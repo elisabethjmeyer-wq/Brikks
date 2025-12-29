@@ -16,7 +16,7 @@ const Auth = {
 
             const user = utilisateurs.find(u =>
                 u.identifiant === identifiant &&
-                u.motdepasse === motDePasse
+                u.mot_de_passe === motDePasse
             );
 
             return user || null;
@@ -33,7 +33,7 @@ const Auth = {
     login(user) {
         // Stocker l'utilisateur (sans le mot de passe)
         const safeUser = { ...user };
-        delete safeUser.motdepasse;
+        delete safeUser.mot_de_passe;
 
         sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(safeUser));
     },
