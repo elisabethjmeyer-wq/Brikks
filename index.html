@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Plateforme éducative">
+    <title>Connexion - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Loader -->
+    <div id="loader" class="loader-overlay">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Page de connexion -->
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">📚</div>
+                <h1 class="login-title">Brikks</h1>
+                <p class="login-subtitle">Plateforme éducative</p>
+            </div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="identifiant">Identifiant</label>
+                    <input
+                        type="text"
+                        id="identifiant"
+                        name="identifiant"
+                        class="form-input"
+                        placeholder="Entrez votre identifiant"
+                        required
+                        autocomplete="username"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="motdepasse">Mot de passe</label>
+                    <input
+                        type="password"
+                        id="motdepasse"
+                        name="motdepasse"
+                        class="form-input"
+                        placeholder="Entrez votre mot de passe"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="btn-login">
+                    Se connecter
+                </button>
+
+                <div id="error-container"></div>
+            </form>
+
+            <p class="text-center text-muted mt-2">
+                <small>Anciennement "Espace cours • Mme Meyer"</small>
+            </p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/sheets.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Gestion du formulaire de connexion
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const identifiant = document.getElementById('identifiant').value.trim();
+            const motdepasse = document.getElementById('motdepasse').value;
+            const btnLogin = document.getElementById('btn-login');
+            const errorContainer = document.getElementById('error-container');
+
+            // Nettoyer les erreurs précédentes
+            errorContainer.innerHTML = '';
+
+            // Validation basique
+            if (!identifiant || !motdepasse) {
+                App.showError('Veuillez remplir tous les champs.', errorContainer);
+                return;
+            }
+
+            // Vérifier si la clé API est configurée
+            if (!CONFIG.API_KEY) {
+                App.showError('Configuration incomplète. Contactez l\'administrateur.', errorContainer);
+                console.error('Clé API Google non configurée dans config.js');
+                return;
+            }
+
+            try {
+                // Afficher le loader
+                App.toggleLoader(true, btnLogin);
+                btnLogin.textContent = 'Connexion...';
+
+                // Vérifier les credentials
+                const user = await Auth.verifyCredentials(identifiant, motdepasse);
+
+                if (user) {
+                    // Connexion réussie
+                    Auth.login(user);
+                    Auth.redirectByRole(user);
+                } else {
+                    // Identifiants incorrects
+                    App.showError('Identifiant ou mot de passe incorrect.', errorContainer);
+                }
+            } catch (error) {
+                App.showError(error.message || 'Erreur de connexion.', errorContainer);
+            } finally {
+                // Masquer le loader
+                App.toggleLoader(false, btnLogin);
+                btnLogin.textContent = 'Se connecter';
+            }
+        });
+
+        // Vérifier si déjà connecté
+        document.addEventListener('DOMContentLoaded', function() {
+            const user = Auth.getCurrentUser();
+            if (user) {
+                Auth.redirectByRole(user);
+            }
+        });
+    </script>
+</body>
+</html>
