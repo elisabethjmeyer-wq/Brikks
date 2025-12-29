@@ -6,7 +6,7 @@
 const CONFIG = {
     // Google Sheets
     SPREADSHEET_ID: '1rsWXHwP2fyuJ0VZKL9UAzFws9UMFqyHXDt5_j8O2Ry0',
-    API_KEY: '', // À configurer avec votre clé API Google
+    API_KEY: 'AIzaSyBPh3rpAu3YKLMC66VnhikqpN8ovYip6Ac',
 
     // Onglets Google Sheets
     SHEETS: {
