@@ -799,6 +799,87 @@
     min-height: 80px;
 }
 
+/* ===== ÉLÈVE - SUPPORTS TABS ===== */
+
+/* Texte explicatif */
+.chapter-text-content {
+    padding: 16px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.text-content-box {
+    background: white;
+    padding: 16px 20px;
+    border-radius: var(--radius);
+    border-left: 4px solid var(--primary);
+}
+
+.text-content-box p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--gray-700);
+    margin: 0;
+}
+
+/* Onglets des supports */
+.supports-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 12px 16px;
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--gray-200);
+    flex-wrap: wrap;
+}
+
+.support-tab {
+    padding: 10px 16px;
+    border: none;
+    background: white;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.support-tab:hover {
+    background: var(--gray-50);
+    color: var(--gray-800);
+}
+
+.support-tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* Panneaux des supports */
+.supports-content {
+    min-height: 400px;
+}
+
+.support-panel {
+    display: none;
+}
+
+.support-panel.active {
+    display: block;
+}
+
+/* Intro accordion style */
+.intro-accordion .theme-accordion-header {
+    background: linear-gradient(to right, var(--primary-bg), transparent);
+}
+
+.intro-accordion .theme-accordion-title {
+    color: var(--primary);
+}
+
 /* ===== ÉLÈVE LECONS ===== */
 
 /* Filter Tabs */
