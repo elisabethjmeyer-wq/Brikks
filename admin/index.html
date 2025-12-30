@@ -16,152 +16,11 @@
 </head>
 <body>
 
-<div class="layout">
-    <!-- ===== SIDEBAR ===== -->
-    <aside class="admin-sidebar" id="admin-sidebar">
-        <div class="admin-logo">
-            <h1>
-                <span>📚</span>
-                Brikks
-                <span class="badge">Admin</span>
-            </h1>
-        </div>
-
-        <nav>
-            <!-- PRINCIPAL -->
-            <div class="sidebar-section">
-                <div class="sidebar-section-title">📌 Principal</div>
-                <a href="#" class="sidebar-link active">
-                    <span class="icon">🏠</span>
-                    Page d'accueil
-                </a>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">📬</span>
-                    Messagerie
-                </a>
-            </div>
-
-            <!-- RESSOURCES -->
-            <div class="sidebar-section">
-                <div class="sidebar-section-title">📚 Ressources</div>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">📖</span>
-                    Leçons
-                </a>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">🧠</span>
-                    Méthodologie
-                </a>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">🎬</span>
-                    Vidéos
-                </a>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">💡</span>
-                    Recommandations
-                </a>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">❓</span>
-                    FAQ
-                </a>
-            </div>
-
-            <!-- EXERCICES -->
-            <div class="sidebar-section">
-                <div class="sidebar-section-title">🎯 Exercices</div>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">📐</span>
-                    Banque de formats
-                </a>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">🧩</span>
-                    Banque d'éléments
-                </a>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">📝</span>
-                    Entraînements
-                </a>
-            </div>
-
-            <!-- ÉVALUATIONS -->
-            <div class="sidebar-section">
-                <div class="sidebar-section-title">📊 Évaluations</div>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">📋</span>
-                    Évaluations
-                </a>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">🟣</span>
-                    Compétences
-                </a>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">📊</span>
-                    Notes & Suivi
-                </a>
-            </div>
-
-            <!-- CONFIGURATION -->
-            <div class="sidebar-section">
-                <div class="sidebar-section-title">⚙️ Configuration</div>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">👥</span>
-                    Utilisateurs
-                </a>
-                <a href="#" class="sidebar-link">
-                    <span class="icon">⚙️</span>
-                    Paramètres
-                </a>
-            </div>
-        </nav>
-    </aside>
-
-    <!-- ===== MAIN CONTENT ===== -->
-    <main class="main-content" id="main-content">
-        <!-- TOP BAR -->
-        <header class="top-bar">
-            <div class="top-bar-left">
-                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Afficher/Masquer le menu">
-                    ☰
-                </button>
-                <div class="top-bar-breadcrumb">
-                    <a href="#">Admin</a>
-                    <span class="separator">/</span>
-                    <span>Page d'accueil</span>
-                </div>
-            </div>
-            <div class="top-bar-right">
-                <button class="top-bar-btn" title="Voir le site élève">
-                    👁️
-                </button>
-                <button class="top-bar-btn" title="Notifications">
-                    🔔
-                </button>
-                <div class="top-bar-user" onclick="toggleUserMenu()">
-                    <div class="top-bar-user-avatar" id="user-avatar">--</div>
-                    <div class="top-bar-user-info">
-                        <div class="top-bar-user-name" id="user-name">Chargement...</div>
-                        <div class="top-bar-user-role" id="user-role">Professeur</div>
-                    </div>
-                    <!-- Dropdown menu -->
-                    <div class="user-dropdown" id="user-dropdown">
-                        <button class="user-dropdown-item danger" onclick="Auth.logout()">
-                            <span>🚪</span>
-                            Déconnexion
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </header>
-
-        <!-- PAGE CONTENT -->
-        <div class="page-content">
-            <div class="placeholder-content">
-                <div class="icon">🏠</div>
-                <h2>Page d'accueil</h2>
-                <p>Contenu de la page d'accueil (dashboard avec statistiques, raccourcis, etc.)</p>
-            </div>
-        </div>
-    </main>
+<!-- Contenu de la page (sera wrappé par le layout) -->
+<div class="placeholder-content">
+    <div class="icon">🏠</div>
+    <h2>Page d'accueil</h2>
+    <p>Contenu de la page d'accueil (dashboard avec statistiques, raccourcis, etc.)</p>
 </div>
 
 <!-- Scripts -->
@@ -169,55 +28,12 @@
 <script src="../js/sheets.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
-<script src="../components/components.js"></script>
+<script src="../components/admin-layout.js"></script>
 
 <script>
-    // Toggle sidebar
-    function toggleSidebar() {
-        const sidebar = document.getElementById('admin-sidebar');
-        const mainContent = document.getElementById('main-content');
-        sidebar.classList.toggle('collapsed');
-        mainContent.classList.toggle('expanded');
-    }
-
-    // Toggle user menu
-    function toggleUserMenu() {
-        const dropdown = document.getElementById('user-dropdown');
-        dropdown.classList.toggle('show');
-    }
-
-    // Fermer le menu si on clique ailleurs
-    document.addEventListener('click', function(e) {
-        const userMenu = document.querySelector('.top-bar-user');
-        const dropdown = document.getElementById('user-dropdown');
-        if (userMenu && dropdown && !userMenu.contains(e.target)) {
-            dropdown.classList.remove('show');
-        }
-    });
-
-    // Vérifier l'accès et afficher les infos utilisateur
+    // Initialiser le layout admin avec l'ID de page et le titre
     document.addEventListener('DOMContentLoaded', function() {
-        const user = Auth.checkAccess(['prof', 'admin', 'professeur']);
-
-        if (user) {
-            // Initiales
-            const prenom = (user.prenom || '').trim();
-            const nom = (user.nom || '').trim();
-            const initials = (prenom && nom)
-                ? (prenom[0] + nom[0]).toUpperCase()
-                : (user.identifiant || 'A')[0].toUpperCase();
-
-            document.getElementById('user-avatar').textContent = initials;
-
-            // Nom complet
-            const displayName = (prenom && nom)
-                ? `${prenom} ${nom}`
-                : user.identifiant;
-            document.getElementById('user-name').textContent = displayName;
-
-            // Rôle
-            document.getElementById('user-role').textContent = 'Professeur';
-        }
+        AdminLayout.init('accueil', "Page d'accueil");
     });
 </script>
 
