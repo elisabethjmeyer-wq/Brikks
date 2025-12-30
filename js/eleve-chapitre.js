@@ -92,7 +92,8 @@ const EleveChapitre = {
 
         const icon = this.getIcon();
         const disciplineName = this.discipline ? this.discipline.nom : '';
-        const themeName = this.theme ? this.theme.titre : '';
+        // Utiliser 'nom' ou 'titre' pour le thème
+        const themeName = this.theme ? (this.theme.nom || this.theme.titre || '') : '';
         const chapterName = this.chapitre ? this.chapitre.titre : '';
 
         breadcrumbContainer.innerHTML = `
@@ -124,8 +125,9 @@ const EleveChapitre = {
 
         const icon = this.getIcon();
         const disciplineName = this.discipline ? this.discipline.nom : '';
-        const themeName = this.theme ? this.theme.titre : '';
-        const themeNumero = this.theme ? this.theme.numero : '';
+        // Utiliser 'nom' ou 'titre' pour le thème
+        const themeName = this.theme ? (this.theme.nom || this.theme.titre || '') : '';
+        const themeNumero = this.theme ? (this.theme.ordre || this.theme.numero || '') : '';
         const chapitreNumero = this.chapitre.numero || '';
 
         // Header
@@ -295,9 +297,12 @@ const EleveChapitre = {
     getIcon() {
         if (!this.discipline) return this.disciplineIcons.default;
 
+        // Utiliser l'emoji de la discipline si disponible
+        if (this.discipline.emoji) return this.discipline.emoji;
+
         const name = (this.discipline.nom || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-        if (name.includes('litt')) return this.disciplineIcons.litterature;
+        if (name.includes('litt') || name.includes('franc')) return this.disciplineIcons.litterature;
         if (name.includes('hist')) return this.disciplineIcons.histoire;
         if (name.includes('geo')) return this.disciplineIcons.geographie;
         if (name.includes('emc') || name.includes('civique')) return this.disciplineIcons.emc;

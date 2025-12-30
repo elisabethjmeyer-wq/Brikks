@@ -121,7 +121,8 @@ const EleveLecons = {
             : this.disciplines.filter(d => d.id === this.currentFilter);
 
         disciplinesToShow.forEach(discipline => {
-            const icon = this.getIcon(discipline.nom);
+            // Utiliser l'emoji de la discipline si disponible
+            const icon = discipline.emoji || this.getIcon(discipline.nom);
             const themesForDiscipline = this.themes.filter(t => t.discipline_id === discipline.id);
 
             // Vérifier s'il y a des chapitres publiés pour cette discipline
@@ -164,12 +165,15 @@ const EleveLecons = {
             this.renderChapterCard(chapitre, index + 1)
         ).join('');
 
+        // Utiliser 'nom' ou 'titre'
+        const themeName = theme.nom || theme.titre || 'Thème sans titre';
+
         return `
             <div class="theme-accordion">
                 <button class="theme-accordion-header">
                     <span class="accordion-arrow">▶</span>
                     <div class="theme-accordion-info">
-                        <div class="theme-accordion-title">${theme.titre}</div>
+                        <div class="theme-accordion-title">${themeName}</div>
                         <div class="theme-accordion-meta">${chapitres.length} chapitre${chapitres.length > 1 ? 's' : ''}</div>
                     </div>
                     <span class="theme-accordion-badge">${chapitres.length}</span>
@@ -223,9 +227,11 @@ const EleveLecons = {
         let itemsHtml = sortedChapitres.map(chapitre => {
             const theme = this.themes.find(t => t.id === chapitre.theme_id);
             const discipline = theme ? this.disciplines.find(d => d.id === theme.discipline_id) : null;
-            const icon = discipline ? this.getIcon(discipline.nom) : '📖';
+            // Utiliser l'emoji de la discipline si disponible
+            const icon = discipline && discipline.emoji ? discipline.emoji : (discipline ? this.getIcon(discipline.nom) : '📖');
             const disciplineName = discipline ? discipline.nom : '';
-            const themeName = theme ? theme.titre : '';
+            // Utiliser 'nom' ou 'titre' pour le thème
+            const themeName = theme ? (theme.nom || theme.titre || '') : '';
 
             return `
                 <a href="chapitre.html?id=${chapitre.id}" class="order-item">

@@ -80,7 +80,8 @@ const AdminLecons = {
         for (const [disciplineId, themes] of Object.entries(themesByDiscipline)) {
             const discipline = this.disciplines.find(d => d.id === disciplineId);
             const disciplineName = discipline ? discipline.nom : 'Autre';
-            const icon = this.getIcon(disciplineName);
+            // Utiliser l'emoji de la discipline si disponible
+            const icon = discipline && discipline.emoji ? discipline.emoji : this.getIcon(disciplineName);
 
             themes.forEach(theme => {
                 const chapitres = this.getChapitresForTheme(theme.id);
@@ -141,13 +142,16 @@ const AdminLecons = {
             this.renderChapterItem(chapitre, index + 1)
         ).join('');
 
+        // Utiliser 'nom' ou 'titre' selon ce qui existe
+        const themeName = theme.nom || theme.titre || 'Thème sans titre';
+
         return `
             <div class="theme-card" data-theme-id="${theme.id}">
                 <div class="theme-header">
                     <span class="drag-handle">⋮⋮</span>
                     <div class="theme-icon">${icon}</div>
                     <div class="theme-info">
-                        <h2 class="theme-title">${theme.titre || 'Thème sans titre'}</h2>
+                        <h2 class="theme-title">${themeName}</h2>
                         <p class="theme-meta">${icon} ${disciplineName} • ${chapitres.length} chapitre${chapitres.length > 1 ? 's' : ''}</p>
                     </div>
                     <div class="theme-actions">
@@ -175,8 +179,10 @@ const AdminLecons = {
             ? `<span class="lesson-tag">L${chapitre.numero_lecon}</span>`
             : `<span class="lesson-tag empty">—</span>`;
 
-        const lienHtml = chapitre.lien
-            ? `<div class="chapter-link"><a href="${chapitre.lien}" target="_blank">📄 ${this.truncateUrl(chapitre.lien)}</a></div>`
+        // Supporter 'lien' ou 'contenu' comme source de contenu
+        const lien = chapitre.lien || '';
+        const lienHtml = lien
+            ? `<div class="chapter-link"><a href="${lien}" target="_blank">📄 ${this.truncateUrl(lien)}</a></div>`
             : '';
 
         return `
@@ -258,7 +264,8 @@ const AdminLecons = {
         if (disciplineSelect) {
             disciplineSelect.innerHTML = '<option value="">— Sélectionner une discipline —</option>';
             this.disciplines.forEach(d => {
-                const icon = this.getIcon(d.nom);
+                // Utiliser l'emoji de la discipline ou l'icône par défaut
+                const icon = d.emoji || this.getIcon(d.nom);
                 disciplineSelect.innerHTML += `<option value="${d.id}">${icon} ${d.nom}</option>`;
             });
         }
@@ -274,10 +281,12 @@ const AdminLecons = {
             for (const [disciplineId, themes] of Object.entries(themesByDiscipline)) {
                 const discipline = this.disciplines.find(d => d.id === disciplineId);
                 const disciplineName = discipline ? discipline.nom : 'Autre';
-                const icon = this.getIcon(disciplineName);
+                const icon = discipline && discipline.emoji ? discipline.emoji : this.getIcon(disciplineName);
 
                 themes.forEach(theme => {
-                    themeSelect.innerHTML += `<option value="${theme.id}">${theme.titre} (${icon} ${disciplineName})</option>`;
+                    // Utiliser 'nom' ou 'titre'
+                    const themeName = theme.nom || theme.titre || 'Sans titre';
+                    themeSelect.innerHTML += `<option value="${theme.id}">${themeName} (${icon} ${disciplineName})</option>`;
                 });
             }
         }
