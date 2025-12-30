@@ -1393,19 +1393,18 @@
     padding-bottom: 20px;
 }
 
-/* Layout côte à côte - base */
+/* Layout côte à côte - base 70/30 */
 .main-content-area {
     display: grid;
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 7fr 3fr;
     gap: 16px;
     align-items: start;
     transition: grid-template-columns 0.3s ease;
 }
 
 /* === FORMAT PAYSAGE (vidéos, slides) === */
-/* Le document prend plus de place en largeur */
 .main-content-area.format-landscape {
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 7fr 3fr;
 }
 
 #main.expanded .main-content-area.format-landscape {
@@ -1419,13 +1418,12 @@
 }
 
 /* === FORMAT PORTRAIT (Publuu, PDFs, Google Docs) === */
-/* Le document est plus étroit mais plus haut */
 .main-content-area.format-portrait {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 7fr 3fr;
 }
 
 #main.expanded .main-content-area.format-portrait {
-    grid-template-columns: 3fr 2fr;
+    grid-template-columns: 3fr 1fr;
 }
 
 .main-content-area.format-portrait .main-viewer .viewer-iframe {
@@ -1436,11 +1434,11 @@
 
 /* === FORMAT PAR DÉFAUT === */
 .main-content-area.format-default {
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 7fr 3fr;
 }
 
 #main.expanded .main-content-area.format-default {
-    grid-template-columns: 5fr 2fr;
+    grid-template-columns: 3fr 1fr;
 }
 
 /* Sur écrans moyens */
@@ -1449,14 +1447,14 @@
     .main-content-area.format-landscape,
     .main-content-area.format-portrait,
     .main-content-area.format-default {
-        grid-template-columns: 1fr 280px;
+        grid-template-columns: 7fr 3fr;
     }
 
     #main.expanded .main-content-area,
     #main.expanded .main-content-area.format-landscape,
     #main.expanded .main-content-area.format-portrait,
     #main.expanded .main-content-area.format-default {
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: 3fr 1fr;
     }
 }
 
