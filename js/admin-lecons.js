@@ -326,7 +326,7 @@ const AdminLecons = {
     editingChapterId: null,
 
     /**
-     * Appelle le Web App
+     * Appelle le Web App (compatible CORS)
      */
     async callWebApp(action, data) {
         if (CONFIG.WEBAPP_URL === 'REMPLACER_PAR_URL_WEB_APP') {
@@ -335,10 +335,20 @@ const AdminLecons = {
         }
 
         try {
-            const response = await fetch(CONFIG.WEBAPP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action, ...data })
+            // Construire l'URL avec les paramètres
+            const params = new URLSearchParams();
+            params.append('action', action);
+            Object.keys(data).forEach(key => {
+                if (data[key] !== undefined && data[key] !== null) {
+                    params.append(key, data[key]);
+                }
+            });
+
+            const url = CONFIG.WEBAPP_URL + '?' + params.toString();
+
+            const response = await fetch(url, {
+                method: 'GET',
+                mode: 'cors'
             });
 
             return await response.json();
