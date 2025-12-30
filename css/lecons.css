@@ -1,0 +1,1227 @@
+/**
+ * Styles pour le module Leçons
+ * Admin et Élève
+ */
+
+/* ===== COMMON ===== */
+
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--gray-900);
+}
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.page-header-eleve {
+    margin-bottom: 24px;
+}
+
+.page-header-eleve h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--gray-900);
+    margin-bottom: 8px;
+}
+
+.page-header-eleve p {
+    font-size: 15px;
+    color: var(--gray-500);
+}
+
+/* Loader Container */
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    color: var(--gray-500);
+}
+
+.loader-container p {
+    margin-top: 16px;
+    font-size: 14px;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 60px 40px;
+    color: var(--gray-400);
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+}
+
+.empty-state .icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.empty-state h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+/* Error State */
+.error-state {
+    text-align: center;
+    padding: 40px;
+}
+
+.error-state .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.error-state h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin-bottom: 8px;
+}
+
+/* ===== ADMIN LECONS ===== */
+
+/* Stats Bar */
+.stats-bar {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stat-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.stat-dot.green { background: var(--accent-green); }
+.stat-dot.orange { background: var(--accent-orange); }
+.stat-dot.red { background: var(--accent-red); }
+
+.stat-label {
+    font-size: 13px;
+    color: var(--gray-600);
+}
+
+.stat-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+/* Themes Container */
+.themes-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Theme Card */
+.theme-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.theme-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.drag-handle {
+    color: var(--gray-400);
+    font-size: 18px;
+    cursor: grab;
+}
+
+.theme-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--primary-bg);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.theme-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.theme-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 4px;
+}
+
+.theme-meta {
+    font-size: 13px;
+    color: var(--gray-500);
+}
+
+.theme-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.theme-toggle {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-toggle:hover {
+    background: var(--gray-100);
+}
+
+/* Chapters List */
+.chapters-list {
+    padding: 0;
+}
+
+.chapter-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--gray-100);
+    transition: all 0.2s;
+}
+
+.chapter-item:hover {
+    background: var(--gray-50);
+}
+
+.chapter-drag {
+    color: var(--gray-300);
+    cursor: grab;
+    padding: 4px;
+}
+
+.chapter-drag:hover {
+    color: var(--gray-500);
+}
+
+.chapter-number {
+    width: 32px;
+    height: 32px;
+    background: var(--gray-100);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-500);
+    flex-shrink: 0;
+}
+
+.chapter-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.chapter-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.chapter-link {
+    font-size: 12px;
+    color: var(--gray-400);
+}
+
+.chapter-link a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.chapter-link a:hover {
+    text-decoration: underline;
+}
+
+/* Lesson Tag */
+.lesson-tag {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--primary-bg);
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.lesson-tag.empty {
+    background: var(--gray-100);
+    color: var(--gray-400);
+}
+
+.lesson-tag.coming {
+    background: var(--gray-100);
+    color: var(--gray-400);
+}
+
+/* Status Badge */
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.status-badge.visible {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+.status-badge.ready {
+    background: var(--accent-orange-light);
+    color: var(--accent-orange);
+}
+
+.status-badge.draft {
+    background: var(--gray-100);
+    color: var(--gray-500);
+}
+
+/* Chapter Actions */
+.chapter-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.chapter-item:hover .chapter-actions {
+    opacity: 1;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-400);
+}
+
+.action-btn:hover {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.action-btn.danger:hover {
+    background: var(--accent-red-light);
+    color: var(--accent-red);
+}
+
+/* Add Chapter Button */
+.add-chapter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: transparent;
+    border: 2px dashed var(--gray-200);
+    border-radius: 0;
+    color: var(--gray-400);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    font-family: inherit;
+}
+
+.add-chapter-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-bg);
+}
+
+/* ===== MODALS ===== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 90%;
+    max-width: 550px;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.95);
+    transition: all 0.2s;
+}
+
+.modal-overlay.active .modal {
+    transform: scale(1);
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--gray-100);
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    background: var(--gray-200);
+}
+
+.modal-body {
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--gray-100);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Form */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.form-hint {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 6px;
+}
+
+/* Status Options */
+.status-options {
+    display: flex;
+    gap: 12px;
+}
+
+.status-option {
+    flex: 1;
+    position: relative;
+}
+
+.status-option input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.status-option label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.status-option input:checked + label {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+}
+
+.status-option .status-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.status-option .status-icon.visible { background: var(--accent-green-light); }
+.status-option .status-icon.ready { background: var(--accent-orange-light); }
+.status-option .status-icon.draft { background: var(--gray-100); }
+
+/* ===== ÉLÈVE LECONS ===== */
+
+/* Filter Tabs */
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    padding: 10px 18px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-family: inherit;
+    background: white;
+    color: var(--gray-600);
+    box-shadow: var(--shadow);
+}
+
+.filter-tab:hover {
+    background: var(--gray-50);
+}
+
+.filter-tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* Order Toggle */
+.order-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 12px 16px;
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.order-toggle span {
+    font-size: 13px;
+    color: var(--gray-600);
+}
+
+.toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    background: var(--gray-200);
+    border-radius: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.toggle-switch.active {
+    background: var(--primary);
+}
+
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: var(--shadow);
+}
+
+.toggle-switch.active::after {
+    transform: translateX(22px);
+}
+
+/* Matière Section */
+.matiere-section {
+    margin-bottom: 32px;
+}
+
+.matiere-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 0;
+    border-bottom: 3px solid var(--primary);
+    margin-bottom: 16px;
+}
+
+.matiere-icon {
+    font-size: 28px;
+}
+
+.matiere-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--gray-900);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Theme Accordion */
+.theme-accordion {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.theme-accordion-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+}
+
+.theme-accordion-header:hover {
+    background: var(--gray-50);
+}
+
+.theme-accordion.open .theme-accordion-header {
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.accordion-arrow {
+    width: 28px;
+    height: 28px;
+    background: var(--gray-100);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--gray-500);
+    transition: transform 0.2s, background 0.2s;
+    flex-shrink: 0;
+}
+
+.theme-accordion.open .accordion-arrow {
+    transform: rotate(90deg);
+    background: var(--primary-bg);
+    color: var(--primary);
+}
+
+.theme-accordion-info {
+    flex: 1;
+}
+
+.theme-accordion-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+}
+
+.theme-accordion-meta {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.theme-accordion-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.theme-accordion-content {
+    display: none;
+    padding: 8px;
+}
+
+.theme-accordion.open .theme-accordion-content {
+    display: block;
+}
+
+/* Chapter Card (Élève) */
+.chapter-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: inherit;
+}
+
+.chapter-card:hover {
+    background: var(--gray-50);
+}
+
+.chapter-card .chapter-number {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.chapter-card .chapter-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.chapter-card .chapter-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 0;
+}
+
+.chapter-arrow {
+    font-size: 16px;
+    color: var(--gray-300);
+    flex-shrink: 0;
+}
+
+.chapter-card:hover .chapter-arrow {
+    color: var(--primary);
+}
+
+/* Order View */
+.order-section {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.order-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.order-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--primary-bg);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.order-info h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+}
+
+.order-info p {
+    font-size: 13px;
+    color: var(--gray-500);
+}
+
+.order-list {
+    padding: 8px;
+}
+
+.order-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: inherit;
+}
+
+.order-item:hover {
+    background: var(--gray-50);
+}
+
+.order-number {
+    width: 40px;
+    height: 40px;
+    background: var(--primary);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+}
+
+.order-content {
+    flex: 1;
+}
+
+.order-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 2px;
+}
+
+.order-subtitle {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.order-arrow {
+    font-size: 16px;
+    color: var(--gray-300);
+}
+
+.order-item:hover .order-arrow {
+    color: var(--primary);
+}
+
+/* ===== CHAPITRE DETAIL ===== */
+
+/* Chapter Header */
+.chapter-header {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.chapter-header-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.chapter-icon {
+    width: 64px;
+    height: 64px;
+    background: var(--primary-bg);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.chapter-info {
+    flex: 1;
+}
+
+.chapter-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.chapter-matiere {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    text-transform: uppercase;
+}
+
+.chapter-theme {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.chapter-header .chapter-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--gray-900);
+    margin-bottom: 8px;
+}
+
+.chapter-subtitle {
+    font-size: 14px;
+    color: var(--gray-500);
+}
+
+.lesson-tag-large {
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    background: var(--primary);
+    color: white;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Content Viewer */
+.content-viewer {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+.viewer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-100);
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.viewer-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.viewer-title .icon {
+    font-size: 18px;
+}
+
+.viewer-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.viewer-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    text-decoration: none;
+}
+
+.viewer-btn:hover {
+    border-color: var(--gray-300);
+    background: var(--gray-50);
+}
+
+.viewer-btn.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.viewer-btn.primary:hover {
+    background: var(--primary-dark);
+}
+
+.viewer-content {
+    min-height: 500px;
+    background: var(--gray-50);
+}
+
+.viewer-iframe {
+    width: 100%;
+    height: 700px;
+    border: none;
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%;
+    height: 0;
+    background: #000;
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.viewer-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: var(--gray-400);
+    text-align: center;
+    padding: 40px;
+}
+
+.viewer-placeholder .icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.viewer-placeholder h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin-bottom: 8px;
+}
+
+.viewer-placeholder p {
+    font-size: 14px;
+    max-width: 400px;
+    margin-bottom: 20px;
+}
+
+/* Chapter Actions Bar */
+.chapter-actions-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+/* Chapter Navigation */
+.chapter-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    gap: 16px;
+}
+
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--gray-100);
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-700);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    font-family: inherit;
+}
+
+.nav-btn:hover {
+    background: var(--gray-200);
+}
+
+.nav-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.nav-btn .arrow {
+    font-size: 18px;
+}
+
+.nav-btn .label {
+    font-size: 11px;
+    color: var(--gray-500);
+    font-weight: 500;
+}
+
+.nav-btn .title {
+    font-size: 13px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
+
+    .header-actions .btn {
+        flex: 1;
+    }
+
+    .stats-bar {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .stat-item {
+        justify-content: space-between;
+    }
+
+    .theme-header {
+        flex-wrap: wrap;
+    }
+
+    .chapter-item {
+        padding: 12px 16px;
+    }
+
+    .chapter-actions {
+        opacity: 1;
+    }
+
+    .status-options {
+        flex-direction: column;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .chapter-header-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .lesson-tag-large {
+        align-self: flex-start;
+    }
+
+    .chapter-nav {
+        flex-direction: column;
+    }
+
+    .nav-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

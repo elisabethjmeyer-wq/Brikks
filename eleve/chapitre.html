@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Détail du chapitre">
+    <title>Chapitre - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/lecons.css">
+</head>
+<body>
+
+<!-- Contenu de la page -->
+<div id="chapitre-page">
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement du chapitre...</p>
+    </div>
+
+    <!-- Contenu principal (masqué pendant le chargement) -->
+    <div id="chapitre-content" style="display: none;">
+        <!-- Chapter Header -->
+        <div class="chapter-header">
+            <div class="chapter-header-top">
+                <div class="chapter-icon" id="chapter-icon">📖</div>
+                <div class="chapter-info">
+                    <div class="chapter-meta">
+                        <span class="chapter-matiere" id="chapter-matiere"></span>
+                        <span class="chapter-theme" id="chapter-theme-info"></span>
+                    </div>
+                    <h1 class="chapter-title" id="chapter-title">Chargement...</h1>
+                    <p class="chapter-subtitle" id="chapter-subtitle"></p>
+                </div>
+                <span class="lesson-tag-large" id="chapter-lesson-tag" style="display: none;"></span>
+            </div>
+        </div>
+
+        <!-- Content Viewer -->
+        <div class="content-viewer">
+            <div class="viewer-header">
+                <div class="viewer-title">
+                    <span class="icon">📄</span>
+                    <span>Document du cours</span>
+                </div>
+                <div class="viewer-actions">
+                    <a href="#" class="viewer-btn" id="btn-new-tab" target="_blank" title="Ouvrir dans un nouvel onglet">
+                        <span>↗</span>
+                        Nouvel onglet
+                    </a>
+                </div>
+            </div>
+            <div class="viewer-content" id="viewer-content">
+                <!-- Iframe ou placeholder -->
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="chapter-actions-bar">
+            <a href="lecons.html" class="btn btn-outline">
+                <span>←</span>
+                Retour aux leçons
+            </a>
+            <a href="#" class="btn btn-primary" id="btn-entrainements" style="display: none;">
+                <span>🎯</span>
+                Voir les entraînements
+            </a>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="chapter-nav" id="chapter-nav">
+            <a href="#" class="nav-btn disabled" id="nav-prev">
+                <span class="arrow">←</span>
+                <div>
+                    <div class="label">Chapitre précédent</div>
+                    <div class="title">—</div>
+                </div>
+            </a>
+            <a href="#" class="nav-btn disabled" id="nav-next">
+                <div style="text-align: right;">
+                    <div class="label">Chapitre suivant</div>
+                    <div class="title">—</div>
+                </div>
+                <span class="arrow">→</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Error state -->
+    <div class="empty-state" id="error-state" style="display: none;">
+        <div class="icon">❌</div>
+        <h3>Chapitre non trouvé</h3>
+        <p>Ce chapitre n'existe pas ou n'est pas accessible.</p>
+        <a href="lecons.html" class="btn btn-primary">Retour aux leçons</a>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/app.js"></script>
+<script src="../components/eleve-layout.js"></script>
+<script src="../js/eleve-chapitre.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        EleveChapitre.init();
+    });
+</script>
+
+</body>
+</html>

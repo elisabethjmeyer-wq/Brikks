@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Gestion des Leçons">
+    <title>Leçons - Administration - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/lecons.css">
+</head>
+<body>
+
+<!-- Contenu de la page -->
+<div id="lecons-page">
+    <!-- Page Header -->
+    <header class="page-header">
+        <h1>📖 Leçons</h1>
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="openModal('modal-theme')">
+                <span>📁</span>
+                Nouveau thème
+            </button>
+            <button class="btn btn-primary" onclick="openModal('modal-chapter')">
+                <span>+</span>
+                Nouveau chapitre
+            </button>
+        </div>
+    </header>
+
+    <!-- Stats bar -->
+    <div class="stats-bar" id="stats-bar">
+        <div class="stat-item">
+            <span class="stat-dot green"></span>
+            <span class="stat-label">Publiés :</span>
+            <span class="stat-value" id="stat-publies">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-dot orange"></span>
+            <span class="stat-label">Prêts :</span>
+            <span class="stat-value" id="stat-prets">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-dot red"></span>
+            <span class="stat-label">Brouillons :</span>
+            <span class="stat-value" id="stat-brouillons">0</span>
+        </div>
+        <div class="stat-item" style="margin-left: auto;">
+            <span class="stat-label">Total :</span>
+            <span class="stat-value" id="stat-total">0 chapitres</span>
+        </div>
+    </div>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des leçons...</p>
+    </div>
+
+    <!-- Themes container -->
+    <div class="themes-container" id="themes-container" style="display: none;"></div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state" style="display: none;">
+        <div class="icon">📚</div>
+        <h3>Aucune leçon</h3>
+        <p>Commencez par créer un thème, puis ajoutez des chapitres.</p>
+        <button class="btn btn-primary" onclick="openModal('modal-theme')">
+            <span>📁</span>
+            Créer un thème
+        </button>
+    </div>
+</div>
+
+<!-- MODAL: Nouveau/Modifier Chapitre -->
+<div class="modal-overlay" id="modal-chapter">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modal-chapter-title">📖 Nouveau chapitre</h3>
+            <button class="modal-close" onclick="closeModal('modal-chapter')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Thème</label>
+                <select id="chapter-theme-select">
+                    <option value="">— Sélectionner un thème —</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Titre du chapitre</label>
+                <input type="text" id="chapter-titre" placeholder="Ex: La Révolution française (1789-1799)">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>N° du chapitre</label>
+                    <input type="number" id="chapter-numero" value="1" min="1">
+                    <p class="form-hint">Ordre dans le thème</p>
+                </div>
+                <div class="form-group">
+                    <label>N° de la leçon</label>
+                    <input type="number" id="chapter-lecon" placeholder="Ex: 8" min="1">
+                    <p class="form-hint">Ordre en classe (optionnel)</p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Lien du document</label>
+                <input type="url" id="chapter-lien" placeholder="https://docs.google.com/document/d/...">
+                <p class="form-hint">URL vers Google Docs, Slides, ou autre</p>
+            </div>
+
+            <div class="form-group">
+                <label>Statut</label>
+                <div class="status-options">
+                    <div class="status-option">
+                        <input type="radio" name="chapter-status" id="status-publie" value="publie">
+                        <label for="status-publie">
+                            <span class="status-icon visible">🟢</span>
+                            <span class="status-label">Publié</span>
+                        </label>
+                    </div>
+                    <div class="status-option">
+                        <input type="radio" name="chapter-status" id="status-pret" value="pret" checked>
+                        <label for="status-pret">
+                            <span class="status-icon ready">🟡</span>
+                            <span class="status-label">Prêt</span>
+                        </label>
+                    </div>
+                    <div class="status-option">
+                        <input type="radio" name="chapter-status" id="status-brouillon" value="brouillon">
+                        <label for="status-brouillon">
+                            <span class="status-icon draft">⚪</span>
+                            <span class="status-label">Brouillon</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-chapter')">Annuler</button>
+            <button class="btn btn-primary" onclick="saveChapter()">✓ Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Nouveau Thème -->
+<div class="modal-overlay" id="modal-theme">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>📁 Nouveau thème</h3>
+            <button class="modal-close" onclick="closeModal('modal-theme')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Discipline</label>
+                <select id="theme-discipline-select">
+                    <option value="">— Sélectionner une discipline —</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>N° du thème</label>
+                <input type="number" id="theme-numero" value="1" min="1">
+            </div>
+
+            <div class="form-group">
+                <label>Titre du thème</label>
+                <input type="text" id="theme-titre" placeholder="Ex: La France de la Révolution à la Ve République">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-theme')">Annuler</button>
+            <button class="btn btn-primary" onclick="saveTheme()">✓ Créer le thème</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/app.js"></script>
+<script src="../components/admin-layout.js"></script>
+<script src="../js/admin-lecons.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        AdminLayout.init('lecons', 'Leçons');
+        AdminLecons.init();
+    });
+</script>
+
+</body>
+</html>

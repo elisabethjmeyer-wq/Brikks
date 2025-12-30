@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leçons - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-icon { font-size: 28px; }
+        .logo-text { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+        .logo-text span { color: var(--gray-500); font-weight: 500; }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 25px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-name { font-size: 14px; font-weight: 600; color: var(--gray-700); }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .breadcrumb a { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb .separator { color: var(--gray-300); }
+        .breadcrumb .current { color: var(--gray-600); }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            font-size: 15px;
+            color: var(--gray-500);
+        }
+
+        /* ===== FILTER TABS ===== */
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 10px 18px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+            background: white;
+            color: var(--gray-600);
+            box-shadow: var(--shadow);
+        }
+
+        .filter-tab:hover {
+            background: var(--gray-50);
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ===== ORDER TOGGLE ===== */
+        .order-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .order-toggle span {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            background: var(--gray-200);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch.active {
+            background: var(--primary);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: var(--shadow);
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(22px);
+        }
+
+        /* ===== MATIÈRE SECTION ===== */
+        .matiere-section {
+            margin-bottom: 32px;
+        }
+
+        .matiere-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 0;
+            border-bottom: 3px solid var(--primary);
+            margin-bottom: 16px;
+        }
+
+        .matiere-icon {
+            font-size: 28px;
+        }
+
+        .matiere-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--gray-900);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ===== INTRO CARD ===== */
+        .intro-card {
+            background: linear-gradient(135deg, var(--primary-bg), white);
+            border: 2px solid var(--primary);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .intro-card:hover {
+            transform: translateX(4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .intro-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+        }
+
+        .intro-content {
+            flex: 1;
+        }
+
+        .intro-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .intro-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .intro-arrow {
+            font-size: 18px;
+            color: var(--primary);
+        }
+
+        /* ===== ACCORDION THEME ===== */
+        .theme-accordion {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .theme-accordion-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .theme-accordion-header:hover {
+            background: var(--gray-50);
+        }
+
+        .theme-accordion.open .theme-accordion-header {
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .accordion-arrow {
+            width: 28px;
+            height: 28px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--gray-500);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .theme-accordion.open .accordion-arrow {
+            transform: rotate(90deg);
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        .theme-accordion-info {
+            flex: 1;
+        }
+
+        .theme-accordion-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .theme-accordion-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .theme-accordion-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .theme-accordion-content {
+            display: none;
+            padding: 8px;
+        }
+
+        .theme-accordion.open .theme-accordion-content {
+            display: block;
+        }
+
+        /* ===== CHAPTER CARD ===== */
+        .chapter-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .chapter-card:hover {
+            background: var(--gray-50);
+        }
+
+        .chapter-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chapter-card.locked:hover {
+            background: transparent;
+        }
+
+        .chapter-number {
+            width: 36px;
+            height: 36px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--gray-500);
+            flex-shrink: 0;
+        }
+
+        .chapter-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chapter-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .chapter-card.locked .chapter-title {
+            color: var(--gray-500);
+        }
+
+        /* Lesson tag */
+        .lesson-tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            background: var(--primary-bg);
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .lesson-tag.coming {
+            background: var(--gray-100);
+            color: var(--gray-400);
+        }
+
+        /* Arrow */
+        .chapter-arrow {
+            font-size: 16px;
+            color: var(--gray-300);
+        }
+
+        .chapter-card:hover .chapter-arrow {
+            color: var(--primary);
+        }
+
+        .chapter-card.locked .chapter-arrow {
+            display: none;
+        }
+
+        /* Lock icon */
+        .lock-icon {
+            font-size: 14px;
+            color: var(--gray-400);
+        }
+
+        /* ===== VUE PAR ORDRE ===== */
+        .order-section {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .order-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .order-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-bg);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .order-info h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .order-info p {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .order-list {
+            padding: 8px;
+        }
+
+        .order-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .order-item:hover {
+            background: var(--gray-50);
+        }
+
+        .order-number {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .order-content {
+            flex: 1;
+        }
+
+        .order-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 2px;
+        }
+
+        .order-subtitle {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .order-arrow {
+            font-size: 16px;
+            color: var(--gray-300);
+        }
+
+        .order-item:hover .order-arrow {
+            color: var(--primary);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .intro-card {
+                padding: 14px 16px;
+            }
+
+            .matiere-title {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle">☰</button>
+            <a href="#" class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">Espace cours <span>• Mme Meyer</span></span>
+            </a>
+        </div>
+        <div class="user-pill">
+            <div class="user-avatar">IA</div>
+            <span class="user-name">Ilyana A.</span>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+        <!-- BREADCRUMB -->
+        <nav class="breadcrumb">
+            <a href="#">Accueil</a>
+            <span class="separator">›</span>
+            <span class="current">Leçons</span>
+        </nav>
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>📖 Leçons</h1>
+            <p>Retrouve tous les cours</p>
+        </div>
+
+        <!-- FILTER TABS -->
+        <div class="filter-tabs">
+            <button class="filter-tab active">Tous</button>
+            <button class="filter-tab">📚 Littérature</button>
+            <button class="filter-tab">🏛️ Histoire</button>
+            <button class="filter-tab">🗺️ Géographie</button>
+            <button class="filter-tab">⚖️ EMC</button>
+        </div>
+
+        <!-- ORDER TOGGLE -->
+        <div class="order-toggle">
+            <span>Afficher par ordre des leçons en classe</span>
+            <div class="toggle-switch" id="order-toggle"></div>
+        </div>
+
+        <!-- VUE PAR THÈME (par défaut) -->
+        <div id="view-theme">
+
+            <!-- ==================== LITTÉRATURE ==================== -->
+            <section class="matiere-section">
+                <div class="matiere-header">
+                    <span class="matiere-icon">📚</span>
+                    <h2 class="matiere-title">Littérature</h2>
+                </div>
+
+                <!-- Cours introductif -->
+                <a href="#" class="intro-card">
+                    <div class="intro-icon">📌</div>
+                    <div class="intro-content">
+                        <div class="intro-label">Introduction</div>
+                        <div class="intro-title">Les bases de l'analyse littéraire</div>
+                    </div>
+                    <span class="lesson-tag">L3</span>
+                    <span class="intro-arrow">→</span>
+                </a>
+
+                <!-- Thème 1 -->
+                <div class="theme-accordion">
+                    <button class="theme-accordion-header">
+                        <span class="accordion-arrow">▶</span>
+                        <div class="theme-accordion-info">
+                            <div class="theme-accordion-title">Thème 1 : Le roman et le récit</div>
+                            <div class="theme-accordion-meta">2 chapitres</div>
+                        </div>
+                        <span class="theme-accordion-badge">1/2</span>
+                    </button>
+                    <div class="theme-accordion-content">
+                        <a href="#" class="chapter-card">
+                            <span class="chapter-number">1</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Les caractéristiques du roman</div>
+                            </div>
+                            <span class="lesson-tag">L9</span>
+                            <span class="chapter-arrow">→</span>
+                        </a>
+                        <div class="chapter-card locked">
+                            <span class="chapter-number">2</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Le personnage de roman</div>
+                            </div>
+                            <span class="lesson-tag coming">À venir</span>
+                            <span class="lock-icon">🔒</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== HISTOIRE ==================== -->
+            <section class="matiere-section">
+                <div class="matiere-header">
+                    <span class="matiere-icon">🏛️</span>
+                    <h2 class="matiere-title">Histoire</h2>
+                </div>
+
+                <!-- Cours introductif -->
+                <a href="#" class="intro-card">
+                    <div class="intro-icon">📌</div>
+                    <div class="intro-content">
+                        <div class="intro-label">Introduction</div>
+                        <div class="intro-title">Les bases de l'histoire : se repérer dans le temps</div>
+                    </div>
+                    <span class="lesson-tag">L1</span>
+                    <span class="intro-arrow">→</span>
+                </a>
+
+                <!-- Thème 1 -->
+                <div class="theme-accordion open">
+                    <button class="theme-accordion-header">
+                        <span class="accordion-arrow">▶</span>
+                        <div class="theme-accordion-info">
+                            <div class="theme-accordion-title">Thème 1 : La France de la Révolution à la Ve République</div>
+                            <div class="theme-accordion-meta">3 chapitres</div>
+                        </div>
+                        <span class="theme-accordion-badge">2/3</span>
+                    </button>
+                    <div class="theme-accordion-content">
+                        <a href="#" class="chapter-card">
+                            <span class="chapter-number">1</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">La Révolution française (1789-1799)</div>
+                            </div>
+                            <span class="lesson-tag">L4</span>
+                            <span class="chapter-arrow">→</span>
+                        </a>
+                        <a href="#" class="chapter-card">
+                            <span class="chapter-number">2</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Napoléon et l'Empire (1799-1815)</div>
+                            </div>
+                            <span class="lesson-tag">L8</span>
+                            <span class="chapter-arrow">→</span>
+                        </a>
+                        <div class="chapter-card locked">
+                            <span class="chapter-number">3</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">La IIIe République (1870-1940)</div>
+                            </div>
+                            <span class="lesson-tag coming">À venir</span>
+                            <span class="lock-icon">🔒</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thème 2 -->
+                <div class="theme-accordion">
+                    <button class="theme-accordion-header">
+                        <span class="accordion-arrow">▶</span>
+                        <div class="theme-accordion-info">
+                            <div class="theme-accordion-title">Thème 2 : Le monde depuis 1945</div>
+                            <div class="theme-accordion-meta">2 chapitres</div>
+                        </div>
+                        <span class="theme-accordion-badge">2/2</span>
+                    </button>
+                    <div class="theme-accordion-content">
+                        <a href="#" class="chapter-card">
+                            <span class="chapter-number">1</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">La Guerre froide (1947-1991)</div>
+                            </div>
+                            <span class="lesson-tag">L3</span>
+                            <span class="chapter-arrow">→</span>
+                        </a>
+                        <a href="#" class="chapter-card">
+                            <span class="chapter-number">2</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Décolonisation et nouveaux États</div>
+                            </div>
+                            <span class="lesson-tag">L6</span>
+                            <span class="chapter-arrow">→</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== GÉOGRAPHIE ==================== -->
+            <section class="matiere-section">
+                <div class="matiere-header">
+                    <span class="matiere-icon">🗺️</span>
+                    <h2 class="matiere-title">Géographie</h2>
+                </div>
+
+                <!-- Cours introductif -->
+                <a href="#" class="intro-card">
+                    <div class="intro-icon">📌</div>
+                    <div class="intro-content">
+                        <div class="intro-label">Introduction</div>
+                        <div class="intro-title">Les bases de la géographie : se repérer dans l'espace</div>
+                    </div>
+                    <span class="lesson-tag">L2</span>
+                    <span class="intro-arrow">→</span>
+                </a>
+
+                <!-- Thème 1 -->
+                <div class="theme-accordion">
+                    <button class="theme-accordion-header">
+                        <span class="accordion-arrow">▶</span>
+                        <div class="theme-accordion-info">
+                            <div class="theme-accordion-title">Thème 1 : La France, un territoire sous influence urbaine</div>
+                            <div class="theme-accordion-meta">3 chapitres</div>
+                        </div>
+                        <span class="theme-accordion-badge">1/3</span>
+                    </button>
+                    <div class="theme-accordion-content">
+                        <a href="#" class="chapter-card">
+                            <span class="chapter-number">1</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Les aires urbaines françaises</div>
+                            </div>
+                            <span class="lesson-tag">L5</span>
+                            <span class="chapter-arrow">→</span>
+                        </a>
+                        <div class="chapter-card locked">
+                            <span class="chapter-number">2</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Les espaces de faible densité</div>
+                            </div>
+                            <span class="lesson-tag coming">À venir</span>
+                            <span class="lock-icon">🔒</span>
+                        </div>
+                        <div class="chapter-card locked">
+                            <span class="chapter-number">3</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Aménager les territoires</div>
+                            </div>
+                            <span class="lesson-tag coming">À venir</span>
+                            <span class="lock-icon">🔒</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thème 2 -->
+                <div class="theme-accordion">
+                    <button class="theme-accordion-header">
+                        <span class="accordion-arrow">▶</span>
+                        <div class="theme-accordion-info">
+                            <div class="theme-accordion-title">Thème 2 : Pourquoi et comment aménager le territoire ?</div>
+                            <div class="theme-accordion-meta">2 chapitres</div>
+                        </div>
+                        <span class="theme-accordion-badge">1/2</span>
+                    </button>
+                    <div class="theme-accordion-content">
+                        <a href="#" class="chapter-card">
+                            <span class="chapter-number">1</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Aménager pour réduire les inégalités</div>
+                            </div>
+                            <span class="lesson-tag">L7</span>
+                            <span class="chapter-arrow">→</span>
+                        </a>
+                        <div class="chapter-card locked">
+                            <span class="chapter-number">2</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Les territoires ultra-marins français</div>
+                            </div>
+                            <span class="lesson-tag coming">À venir</span>
+                            <span class="lock-icon">🔒</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== EMC ==================== -->
+            <section class="matiere-section">
+                <div class="matiere-header">
+                    <span class="matiere-icon">⚖️</span>
+                    <h2 class="matiere-title">EMC</h2>
+                </div>
+
+                <!-- Pas de cours introductif pour EMC dans cet exemple -->
+
+                <!-- Thème 1 -->
+                <div class="theme-accordion">
+                    <button class="theme-accordion-header">
+                        <span class="accordion-arrow">▶</span>
+                        <div class="theme-accordion-info">
+                            <div class="theme-accordion-title">Thème 1 : La République et la citoyenneté</div>
+                            <div class="theme-accordion-meta">2 chapitres</div>
+                        </div>
+                        <span class="theme-accordion-badge">0/2</span>
+                    </button>
+                    <div class="theme-accordion-content">
+                        <div class="chapter-card locked">
+                            <span class="chapter-number">1</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Les valeurs de la République</div>
+                            </div>
+                            <span class="lesson-tag coming">À venir</span>
+                            <span class="lock-icon">🔒</span>
+                        </div>
+                        <div class="chapter-card locked">
+                            <span class="chapter-number">2</span>
+                            <div class="chapter-content">
+                                <div class="chapter-title">Nationalité et citoyenneté</div>
+                            </div>
+                            <span class="lesson-tag coming">À venir</span>
+                            <span class="lock-icon">🔒</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- VUE PAR ORDRE DE LEÇON -->
+        <div id="view-order" style="display: none;">
+            <div class="order-section">
+                <div class="order-header">
+                    <div class="order-icon">📅</div>
+                    <div class="order-info">
+                        <h2>Ordre des leçons en classe</h2>
+                        <p>8 leçons étudiées cette année</p>
+                    </div>
+                </div>
+                <div class="order-list">
+                    <a href="#" class="order-item">
+                        <span class="order-number">L1</span>
+                        <div class="order-content">
+                            <div class="order-title">Les bases de l'histoire : se repérer dans le temps</div>
+                            <div class="order-subtitle">📌 Introduction • 🏛️ Histoire</div>
+                        </div>
+                        <span class="order-arrow">→</span>
+                    </a>
+                    <a href="#" class="order-item">
+                        <span class="order-number">L2</span>
+                        <div class="order-content">
+                            <div class="order-title">Les bases de la géographie : se repérer dans l'espace</div>
+                            <div class="order-subtitle">📌 Introduction • 🗺️ Géographie</div>
+                        </div>
+                        <span class="order-arrow">→</span>
+                    </a>
+                    <a href="#" class="order-item">
+                        <span class="order-number">L3</span>
+                        <div class="order-content">
+                            <div class="order-title">La Guerre froide (1947-1991)</div>
+                            <div class="order-subtitle">Thème 2 • 🏛️ Histoire</div>
+                        </div>
+                        <span class="order-arrow">→</span>
+                    </a>
+                    <a href="#" class="order-item">
+                        <span class="order-number">L4</span>
+                        <div class="order-content">
+                            <div class="order-title">La Révolution française (1789-1799)</div>
+                            <div class="order-subtitle">Thème 1 • 🏛️ Histoire</div>
+                        </div>
+                        <span class="order-arrow">→</span>
+                    </a>
+                    <a href="#" class="order-item">
+                        <span class="order-number">L5</span>
+                        <div class="order-content">
+                            <div class="order-title">Les aires urbaines françaises</div>
+                            <div class="order-subtitle">Thème 1 • 🗺️ Géographie</div>
+                        </div>
+                        <span class="order-arrow">→</span>
+                    </a>
+                    <a href="#" class="order-item">
+                        <span class="order-number">L6</span>
+                        <div class="order-content">
+                            <div class="order-title">Décolonisation et nouveaux États</div>
+                            <div class="order-subtitle">Thème 2 • 🏛️ Histoire</div>
+                        </div>
+                        <span class="order-arrow">→</span>
+                    </a>
+                    <a href="#" class="order-item">
+                        <span class="order-number">L7</span>
+                        <div class="order-content">
+                            <div class="order-title">Aménager pour réduire les inégalités</div>
+                            <div class="order-subtitle">Thème 2 • 🗺️ Géographie</div>
+                        </div>
+                        <span class="order-arrow">→</span>
+                    </a>
+                    <a href="#" class="order-item">
+                        <span class="order-number">L8</span>
+                        <div class="order-content">
+                            <div class="order-title">Napoléon et l'Empire (1799-1815)</div>
+                            <div class="order-subtitle">Thème 1 • 🏛️ Histoire</div>
+                        </div>
+                        <span class="order-arrow">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Toggle order view
+        const toggle = document.getElementById('order-toggle');
+        const viewTheme = document.getElementById('view-theme');
+        const viewOrder = document.getElementById('view-order');
+
+        toggle.addEventListener('click', () => {
+            toggle.classList.toggle('active');
+            if (toggle.classList.contains('active')) {
+                viewTheme.style.display = 'none';
+                viewOrder.style.display = 'block';
+            } else {
+                viewTheme.style.display = 'block';
+                viewOrder.style.display = 'none';
+            }
+        });
+
+        // Filter tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+
+        // Accordion toggle
+        document.querySelectorAll('.theme-accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const accordion = header.closest('.theme-accordion');
+                accordion.classList.toggle('open');
+            });
+        });
+    </script>
+
+</body>
+</html>
