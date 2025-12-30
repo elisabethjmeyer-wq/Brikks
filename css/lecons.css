@@ -1230,38 +1230,88 @@
 
 /* Container hybride */
 .hybrid-layout {
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 140px); /* Hauteur viewport moins header site */
-    min-height: 500px;
+    display: block;
+    padding-bottom: 20px;
 }
 
+/* Layout côte à côte */
 .main-content-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 16px;
+    align-items: start;
 }
 
-/* Viewer principal - prend tout l'espace disponible */
+/* Sur petits écrans, empiler verticalement */
+@media (max-width: 1024px) {
+    .main-content-area {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Viewer principal - hauteur contrôlée */
 .main-viewer {
-    flex: 1;
     background: white;
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
     overflow: hidden;
+}
+
+.main-viewer-header {
     display: flex;
-    flex-direction: column;
-    min-height: 300px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.main-viewer-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.main-viewer-title .icon {
+    font-size: 16px;
+}
+
+.main-viewer-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.viewer-action-btn {
+    padding: 6px 12px;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.viewer-action-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-bg);
 }
 
 .main-viewer .viewer-iframe {
-    flex: 1;
     width: 100%;
-    height: 100%;
+    height: 65vh;
+    min-height: 450px;
+    max-height: 700px;
     border: none;
-    min-height: 400px;
+    display: block;
 }
 
 /* Main viewer plein écran */
@@ -1273,40 +1323,74 @@
     bottom: 0;
     z-index: 1500;
     border-radius: 0;
-    min-height: 100vh;
 }
 
 .main-viewer.fullscreen .viewer-iframe {
-    min-height: 100vh;
+    height: calc(100vh - 50px);
+    max-height: none;
 }
 
-/* Barre des ressources supplémentaires */
+.main-viewer.fullscreen .main-viewer-header {
+    padding: 8px 20px;
+}
+
+/* Panneau latéral des ressources */
 .resources-bar {
-    display: flex;
-    gap: 12px;
-    padding: 12px;
     background: white;
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
-    flex-wrap: wrap;
+    padding: 16px;
+    position: sticky;
+    top: 20px;
+}
+
+.resources-bar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--gray-100);
 }
 
 .resources-bar-title {
-    width: 100%;
     font-size: 11px;
     font-weight: 700;
     color: var(--gray-500);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 4px;
+}
+
+.resources-bar-count {
+    background: var(--primary-bg);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.resources-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Sur petits écrans, grille horizontale */
+@media (max-width: 1024px) {
+    .resources-bar {
+        position: static;
+    }
+
+    .resources-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
 }
 
 /* Cards ressources */
 .resource-card {
-    flex: 1;
-    min-width: 180px;
-    max-width: 280px;
-    padding: 14px 16px;
+    padding: 12px;
     background: var(--gray-50);
     border: 2px solid var(--gray-100);
     border-radius: var(--radius);
@@ -1314,7 +1398,7 @@
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .resource-card:hover {
@@ -1325,14 +1409,14 @@
 }
 
 .resource-card .card-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     background: white;
-    border-radius: 10px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 18px;
     flex-shrink: 0;
 }
 
