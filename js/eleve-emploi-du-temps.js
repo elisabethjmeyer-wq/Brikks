@@ -1,6 +1,6 @@
 /**
  * Module Emploi du temps - Élève
- * Affiche le Google Calendar depuis les paramètres
+ * Affiche le Google Calendar basé sur le groupe de l'élève
  */
 
 const EleveEmploiDuTemps = {
@@ -9,8 +9,8 @@ const EleveEmploiDuTemps = {
      */
     async init() {
         try {
-            const agendaUrl = await this.getAgendaUrl();
-            this.render(agendaUrl);
+            const result = await this.getAgendaForStudent();
+            this.render(result);
         } catch (error) {
             console.error('Erreur chargement emploi du temps:', error);
             this.showError();
@@ -18,21 +18,39 @@ const EleveEmploiDuTemps = {
     },
 
     /**
-     * Récupère l'URL de l'agenda depuis PARAMETRES
+     * Récupère le groupe de l'élève connecté et l'URL de son agenda
      */
-    async getAgendaUrl() {
-        const params = await SheetsAPI.fetchAndParse('PARAMETRES');
-        const agendaParam = params.find(p =>
-            p.cle === 'agenda_url' ||
-            p.parametre === 'agenda_url' ||
-            p.nom === 'agenda_url'
-        );
+    async getAgendaForStudent() {
+        // Récupérer le groupe de l'élève depuis la session
+        const currentUser = App.currentUser || JSON.parse(sessionStorage.getItem('currentUser'));
 
-        if (agendaParam) {
-            return agendaParam.valeur || agendaParam.url || agendaParam.value || '';
+        if (!currentUser || !currentUser.groupe) {
+            return { url: '', groupe: '', reason: 'no_group' };
         }
 
-        return '';
+        const studentGroup = currentUser.groupe;
+
+        // Chercher l'agenda correspondant dans AGENDAS
+        try {
+            const agendas = await SheetsAPI.fetchAndParse('AGENDAS');
+            const agenda = agendas.find(a =>
+                a.groupe === studentGroup ||
+                a.group === studentGroup
+            );
+
+            if (agenda) {
+                return {
+                    url: agenda.url || agenda.valeur || '',
+                    groupe: studentGroup,
+                    reason: 'found'
+                };
+            }
+
+            return { url: '', groupe: studentGroup, reason: 'no_calendar' };
+        } catch (error) {
+            console.error('Erreur récupération AGENDAS:', error);
+            return { url: '', groupe: studentGroup, reason: 'error' };
+        }
     },
 
     /**
@@ -70,17 +88,21 @@ const EleveEmploiDuTemps = {
     /**
      * Affiche le contenu
      */
-    render(url) {
+    render(result) {
         const loader = document.getElementById('loader');
         const content = document.getElementById('module-content');
 
         loader.style.display = 'none';
         content.style.display = 'block';
 
-        if (url) {
-            const embedUrl = this.convertToEmbedUrl(url);
+        if (result.url) {
+            const embedUrl = this.convertToEmbedUrl(result.url);
 
             content.innerHTML = `
+                <div class="calendar-header">
+                    <h3>📅 Calendrier de ta classe</h3>
+                    <span class="sync-badge">Synchronisation en direct</span>
+                </div>
                 <div class="iframe-container iframe-calendar">
                     <iframe
                         src="${embedUrl}"
@@ -90,18 +112,38 @@ const EleveEmploiDuTemps = {
                     ></iframe>
                 </div>
                 <div class="module-actions">
-                    <a href="${url}" target="_blank" class="btn btn-secondary">
+                    <a href="${result.url}" target="_blank" class="btn btn-secondary">
                         <span>↗</span> Ouvrir dans Google Calendar
                     </a>
                 </div>
             `;
         } else {
-            // Pas d'URL configurée
-            content.innerHTML = `
-                <div class="empty-state">
-                    <div class="icon">📆</div>
+            // État vide - pas de groupe ou calendrier non trouvé
+            let message = '';
+            let icon = '📆';
+
+            if (result.reason === 'no_group') {
+                icon = '👤';
+                message = `
+                    <h3>Groupe non défini</h3>
+                    <p>Ton groupe n'est pas encore configuré. Contacte ton enseignant pour qu'il te l'attribue.</p>
+                `;
+            } else if (result.reason === 'no_calendar') {
+                message = `
+                    <h3>Calendrier non disponible</h3>
+                    <p>Le calendrier pour le groupe "${result.groupe}" n'est pas encore configuré.</p>
+                `;
+            } else {
+                message = `
                     <h3>Emploi du temps non configuré</h3>
                     <p>L'emploi du temps n'a pas encore été configuré par l'administrateur.</p>
+                `;
+            }
+
+            content.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">${icon}</div>
+                    ${message}
                 </div>
             `;
         }
