@@ -128,12 +128,12 @@ const EleveEmploiDuTemps = {
                         src="${embedUrl}"
                         class="module-iframe"
                         frameborder="0"
-                        scrolling="no"
+                        scrolling="yes"
                     ></iframe>
                 </div>
-                <div class="module-actions">
-                    <a href="${result.url}" target="_blank" class="btn btn-secondary">
-                        <span>↗</span> Ouvrir dans Google Calendar
+                <div class="calendar-actions">
+                    <a href="${result.url}" target="_blank" class="btn-link">
+                        ↗ Ouvrir en grand
                     </a>
                 </div>
             `;

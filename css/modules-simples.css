@@ -26,9 +26,39 @@
     display: block;
 }
 
-/* Iframe spécifique pour le calendrier - plus compact */
+/* Iframe spécifique pour le calendrier */
 .iframe-calendar .module-iframe {
-    height: 520px;
+    height: 65vh;
+    min-height: 550px;
+}
+
+/* Actions sous l'iframe - version compacte pour calendrier */
+.calendar-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 16px;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-100);
+}
+
+.calendar-actions .btn-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--gray-500);
+    background: none;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.2s, background 0.2s;
+}
+
+.calendar-actions .btn-link:hover {
+    color: var(--primary);
+    background: var(--gray-100);
 }
 
 /* Header du calendrier avec badge */
@@ -280,7 +310,12 @@
     }
 
     .iframe-calendar .module-iframe {
-        height: 450px;
+        height: 55vh;
+        min-height: 400px;
+    }
+
+    .calendar-actions {
+        justify-content: center;
     }
 
     .calendar-header {
