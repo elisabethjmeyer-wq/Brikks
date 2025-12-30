@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emploi du temps - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --primary-light: #a5b4fc;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 12px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .menu-toggle:hover {
+            background: var(--gray-200);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .logo-text span {
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-pill:hover {
+            background: var(--gray-200);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-info {
+            text-align: left;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .user-class {
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb .separator {
+            color: var(--gray-300);
+        }
+
+        .breadcrumb .current {
+            color: var(--gray-500);
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header p {
+            font-size: 15px;
+            color: var(--gray-500);
+            line-height: 1.5;
+        }
+
+        /* ===== GROUP SELECTOR ===== */
+        .group-selector {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .group-selector-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .group-selector-label .icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-bg);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .group-select {
+            padding: 12px 16px;
+            padding-right: 40px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-800);
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 220px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+
+        .group-select:hover {
+            border-color: var(--primary-light);
+        }
+
+        .group-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .group-badge {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .group-badge.visible {
+            display: inline-flex;
+        }
+
+        /* ===== CALENDAR CARD ===== */
+        .calendar-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-200);
+        }
+
+        .calendar-header {
+            padding: 16px 24px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .calendar-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .calendar-header-icon {
+            font-size: 20px;
+        }
+
+        .calendar-header-text {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .calendar-live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .calendar-live-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .calendar-container {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            background: var(--gray-50);
+        }
+
+        .calendar-container iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            display: none;
+        }
+
+        .calendar-container iframe.visible {
+            display: block;
+        }
+
+        .calendar-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .calendar-placeholder.hidden {
+            display: none;
+        }
+
+        .calendar-placeholder-inner {
+            max-width: 320px;
+        }
+
+        .calendar-placeholder-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--primary-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 20px;
+        }
+
+        .calendar-placeholder-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 8px;
+        }
+
+        .calendar-placeholder-text {
+            font-size: 14px;
+            color: var(--gray-500);
+            line-height: 1.5;
+        }
+
+        .calendar-footer {
+            padding: 16px 24px;
+            background: var(--accent-green-light);
+            border-top: 1px solid var(--accent-green);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .calendar-footer-icon {
+            font-size: 18px;
+        }
+
+        .calendar-footer-text {
+            font-size: 14px;
+            color: var(--gray-700);
+            font-weight: 500;
+        }
+
+        .calendar-footer-text strong {
+            color: var(--accent-green);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .main {
+                padding: 16px;
+            }
+
+            .page-header h1 {
+                font-size: 24px;
+            }
+
+            .group-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .group-select {
+                width: 100%;
+            }
+
+            .calendar-container {
+                height: 450px;
+            }
+
+            .user-info {
+                display: none;
+            }
+
+            .calendar-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" title="Menu">☰</button>
+            <a href="#" class="logo">
+                <div class="logo-icon">📚</div>
+                <div class="logo-text">Espace cours <span>• Mme Meyer</span></div>
+            </a>
+        </div>
+
+        <div class="header-right">
+            <div class="user-pill">
+                <div class="user-avatar">ML</div>
+                <div class="user-info">
+                    <div class="user-name">Marie L.</div>
+                    <div class="user-class">2MHR1A</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <!-- BREADCRUMB -->
+        <nav class="breadcrumb">
+            <a href="#">🏠 Accueil</a>
+            <span class="separator">›</span>
+            <span class="current">📅 Emploi du temps</span>
+        </nav>
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>🗓️ Ton emploi du temps</h1>
+            <p>Retrouve toutes les dates importantes, les échéances et ton planning de travail synchronisé en temps réel.</p>
+        </div>
+
+        <!-- GROUP SELECTOR -->
+        <div class="group-selector">
+            <div class="group-selector-label">
+                <div class="icon">👥</div>
+                <span>Sélectionne ton groupe :</span>
+            </div>
+            <select class="group-select" id="groupSelect">
+                <option value="">-- Choisis ton groupe --</option>
+                <option value="8c8e7b1e63cb8cfd8d4b6dd315b274d71982d4ea988d1b7a7bf52e4f15f5bf41@group.calendar.google.com">2MHR1A</option>
+                <option value="4f87ca4c50287902b768e02ae39946dfc4094f76fed8b22d2076b42447e2105b@group.calendar.google.com">2MHR1B</option>
+            </select>
+            <div class="group-badge" id="groupBadge">
+                ✓ Groupe enregistré
+            </div>
+        </div>
+
+        <!-- CALENDAR CARD -->
+        <div class="calendar-card">
+            <div class="calendar-header">
+                <div class="calendar-header-left">
+                    <span class="calendar-header-icon">📅</span>
+                    <span class="calendar-header-text">Calendrier de ta classe</span>
+                </div>
+                <div class="calendar-live-badge">
+                    Synchronisation en direct
+                </div>
+            </div>
+
+            <div class="calendar-container">
+                <iframe id="calendarIframe" sandbox="allow-scripts allow-same-origin"></iframe>
+
+                <div class="calendar-placeholder" id="calendarPlaceholder">
+                    <div class="calendar-placeholder-inner">
+                        <div class="calendar-placeholder-icon">📅</div>
+                        <div class="calendar-placeholder-title">Sélectionne ton groupe</div>
+                        <div class="calendar-placeholder-text">Choisis ton groupe dans le menu ci-dessus pour afficher ton emploi du temps personnalisé.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="calendar-footer">
+                <span class="calendar-footer-icon">✨</span>
+                <div class="calendar-footer-text">
+                    Ce calendrier est <strong>synchronisé en temps réel</strong>. Toutes les modifications apparaissent automatiquement !
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // ===== CALENDAR LOGIC =====
+        const groupSelect = document.getElementById('groupSelect');
+        const calendarIframe = document.getElementById('calendarIframe');
+        const calendarPlaceholder = document.getElementById('calendarPlaceholder');
+        const groupBadge = document.getElementById('groupBadge');
+        const STORAGE_KEY = 'studentGroup';
+
+        function updateCalendar(calendarId) {
+            if (!calendarId) {
+                calendarIframe.src = '';
+                calendarIframe.classList.remove('visible');
+                calendarPlaceholder.classList.remove('hidden');
+                groupBadge.classList.remove('visible');
+                return;
+            }
+
+            const calendarUrl = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarId)}&ctz=Europe%2FParis&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0&wkst=2`;
+
+            setTimeout(() => {
+                calendarIframe.src = calendarUrl;
+                calendarIframe.classList.add('visible');
+                calendarPlaceholder.classList.add('hidden');
+                groupBadge.classList.add('visible');
+            }, 150);
+        }
+
+        // Charger le groupe sauvegardé
+        const savedGroup = localStorage.getItem(STORAGE_KEY);
+        if (savedGroup) {
+            groupSelect.value = savedGroup;
+            updateCalendar(savedGroup);
+        }
+
+        // Écouter les changements
+        groupSelect.addEventListener('change', function() {
+            const selectedGroup = this.value;
+
+            if (selectedGroup) {
+                localStorage.setItem(STORAGE_KEY, selectedGroup);
+                updateCalendar(selectedGroup);
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+                updateCalendar('');
+            }
+        });
+
+        // Menu toggle placeholder
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            alert('La sidebar sera disponible prochainement !');
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classeur modèle - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --primary-light: #a5b4fc;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 12px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .menu-toggle:hover {
+            background: var(--gray-200);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .logo-text span {
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-pill:hover {
+            background: var(--gray-200);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-info {
+            text-align: left;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .user-class {
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb .separator {
+            color: var(--gray-300);
+        }
+
+        .breadcrumb .current {
+            color: var(--gray-500);
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header p {
+            font-size: 15px;
+            color: var(--gray-500);
+            line-height: 1.5;
+        }
+
+        /* ===== HELP TIP ===== */
+        .help-tip {
+            background: var(--primary-bg);
+            border: 2px solid var(--primary-light);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .help-tip-icon {
+            width: 44px;
+            height: 44px;
+            background: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .help-tip-content {
+            flex: 1;
+        }
+
+        .help-tip-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 2px;
+        }
+
+        .help-tip-text {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .help-tip-text strong {
+            color: var(--primary-dark);
+        }
+
+        /* ===== FLIPBOOK CARD ===== */
+        .flipbook-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-200);
+        }
+
+        .flipbook-header {
+            padding: 16px 24px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .flipbook-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flipbook-header-icon {
+            font-size: 20px;
+        }
+
+        .flipbook-header-text {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .flipbook-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .flipbook-container {
+            position: relative;
+            background: var(--gray-900);
+        }
+
+        .flipbook-container iframe {
+            width: 100%;
+            height: 700px;
+            border: 0;
+            display: block;
+        }
+
+        .flipbook-footer {
+            padding: 14px 24px;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .flipbook-footer-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .flipbook-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+            text-decoration: none;
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .main {
+                padding: 16px;
+            }
+
+            .page-header h1 {
+                font-size: 24px;
+            }
+
+            .flipbook-container iframe {
+                height: 500px;
+            }
+
+            .help-tip {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .flipbook-footer {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .user-info {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" title="Menu">☰</button>
+            <a href="#" class="logo">
+                <div class="logo-icon">📚</div>
+                <div class="logo-text">Espace cours <span>• Mme Meyer</span></div>
+            </a>
+        </div>
+
+        <div class="header-right">
+            <div class="user-pill">
+                <div class="user-avatar">ML</div>
+                <div class="user-info">
+                    <div class="user-name">Marie L.</div>
+                    <div class="user-class">2MHR1A</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <!-- BREADCRUMB -->
+        <nav class="breadcrumb">
+            <a href="#">🏠 Accueil</a>
+            <span class="separator">›</span>
+            <span class="current">📂 Classeur modèle</span>
+        </nav>
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>📂 Le classeur modèle</h1>
+            <p>Ton classeur de référence pour toute l'année. Feuillette les pages comme un vrai livre pour retrouver tous les documents du cours !</p>
+        </div>
+
+        <!-- HELP TIP -->
+        <div class="help-tip">
+            <div class="help-tip-icon">💡</div>
+            <div class="help-tip-content">
+                <div class="help-tip-title">Comment naviguer ?</div>
+                <div class="help-tip-text">Utilise les <strong>flèches ← →</strong> ou <strong>clique sur les coins</strong> des pages pour les tourner. Tu peux aussi passer en <strong>plein écran</strong> !</div>
+            </div>
+        </div>
+
+        <!-- FLIPBOOK CARD -->
+        <div class="flipbook-card">
+            <div class="flipbook-header">
+                <div class="flipbook-header-left">
+                    <span class="flipbook-header-icon">📖</span>
+                    <span class="flipbook-header-text">Classeur interactif</span>
+                </div>
+                <div class="flipbook-badge">
+                    🔄 Mis à jour régulièrement
+                </div>
+            </div>
+
+            <div class="flipbook-container">
+                <iframe 
+                    class="publuuflip" 
+                    src="https://publuu.com/flip-book/1031300/2281576/page/1?embed" 
+                    scrolling="no"
+                    allow="clipboard-write; autoplay; fullscreen"
+                    allowfullscreen>
+                </iframe>
+            </div>
+
+            <div class="flipbook-footer">
+                <div class="flipbook-footer-info">
+                    <span>📄</span>
+                    <span>Dernière mise à jour : 15 décembre 2024</span>
+                </div>
+                <div class="flipbook-actions">
+                    <a href="https://publuu.com/flip-book/1031300/2281576" target="_blank" class="btn btn-secondary">
+                        🔗 Ouvrir dans un nouvel onglet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Menu toggle placeholder - la sidebar sera ajoutée plus tard
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            alert('La sidebar sera disponible prochainement !');
+        });
+    </script>
+
+</body>
+</html>
