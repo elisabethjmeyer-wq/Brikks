@@ -110,10 +110,10 @@ const EleveLecons = {
     },
 
     /**
-     * Génère la vue par thème (grille de cartes)
+     * Génère la vue par thème (grille de disciplines)
      */
     renderThemeView() {
-        let html = '';
+        let html = '<div class="disciplines-grid">';
 
         // Filtrer les disciplines
         const disciplinesToShow = this.currentFilter === 'all'
@@ -121,7 +121,6 @@ const EleveLecons = {
             : this.disciplines.filter(d => d.id === this.currentFilter);
 
         disciplinesToShow.forEach(discipline => {
-            // Utiliser l'emoji de la discipline si disponible
             const icon = discipline.emoji || this.getIcon(discipline.nom);
             const themesForDiscipline = this.themes.filter(t => t.discipline_id === discipline.id);
 
@@ -130,7 +129,7 @@ const EleveLecons = {
                 !c.theme_id && c.discipline_id === discipline.id
             ).sort((a, b) => (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0));
 
-            // Vérifier s'il y a des chapitres publiés pour cette discipline
+            // Vérifier s'il y a des chapitres publiés
             const hasPublishedChapters = introChapitres.length > 0 || themesForDiscipline.some(theme =>
                 this.chapitres.some(c => c.theme_id === theme.id)
             );
@@ -138,79 +137,84 @@ const EleveLecons = {
             if (!hasPublishedChapters && this.currentFilter === 'all') return;
 
             html += `
-                <section class="matiere-section">
-                    <div class="matiere-header">
-                        <span class="matiere-icon">${icon}</span>
-                        <h2 class="matiere-title">${discipline.nom}</h2>
+                <div class="discipline-card">
+                    <div class="discipline-card-header">
+                        <span class="discipline-icon">${icon}</span>
+                        <h2 class="discipline-title">${discipline.nom}</h2>
                     </div>
-                    <div class="themes-grid">
+                    <div class="discipline-card-content">
             `;
 
-            // Afficher d'abord les cours introductifs comme une carte spéciale
+            // Cours introductifs = carte spéciale directe (comme maquette)
             if (introChapitres.length > 0) {
-                html += this.renderIntroCard(discipline, introChapitres);
+                html += this.renderIntroDirectCard(introChapitres);
             }
 
-            // Puis les thèmes en cartes
+            // Thèmes = accordions
             themesForDiscipline.forEach(theme => {
                 const chapitres = this.chapitres.filter(c => c.theme_id === theme.id);
                 if (chapitres.length === 0) return;
 
-                html += this.renderThemeCard(theme, chapitres);
+                html += this.renderThemeAccordion(theme, chapitres);
             });
 
-            html += '</div></section>';
+            html += '</div></div>';
         });
 
+        html += '</div>';
         return html || '<div class="empty-state"><div class="icon">📚</div><h3>Aucune leçon dans cette matière</h3></div>';
     },
 
     /**
-     * Génère une carte pour les cours introductifs
+     * Génère la carte directe pour cours introductifs (comme maquette)
      */
-    renderIntroCard(discipline, chapitres) {
+    renderIntroDirectCard(chapitres) {
         const firstChapter = chapitres[0];
-        const chaptersPreview = chapitres.slice(0, 3).map(c => c.titre).join(' • ');
+        const lessonTag = firstChapter.numero_lecon
+            ? `<span class="lesson-tag">L${firstChapter.numero_lecon}</span>`
+            : '';
 
         return `
-            <a href="chapitre.html?id=${firstChapter.id}" class="theme-card theme-card-intro">
-                <div class="theme-card-icon">📌</div>
-                <div class="theme-card-content">
-                    <h3 class="theme-card-title">Cours introductifs</h3>
-                    <p class="theme-card-preview">${chaptersPreview}</p>
+            <a href="chapitre.html?id=${firstChapter.id}" class="intro-direct-card">
+                <div class="intro-direct-icon">📌</div>
+                <div class="intro-direct-content">
+                    <span class="intro-direct-label">INTRODUCTION</span>
+                    <span class="intro-direct-title">${firstChapter.titre || 'Cours introductif'}</span>
                 </div>
-                <div class="theme-card-meta">
-                    <span class="theme-card-count">${chapitres.length}</span>
-                    <span class="theme-card-arrow">→</span>
-                </div>
+                ${lessonTag}
+                <span class="intro-direct-arrow">→</span>
             </a>
         `;
     },
 
     /**
-     * Génère une carte de thème
+     * Génère un accordion de thème
      */
-    renderThemeCard(theme, chapitres) {
+    renderThemeAccordion(theme, chapitres) {
         const sortedChapitres = chapitres.sort((a, b) =>
             (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0)
         );
 
-        const firstChapter = sortedChapitres[0];
+        const chapitresHtml = sortedChapitres.map((chapitre, index) =>
+            this.renderChapterCard(chapitre, index + 1)
+        ).join('');
+
         const themeName = theme.nom || theme.titre || 'Thème sans titre';
-        const chaptersPreview = sortedChapitres.slice(0, 3).map(c => c.titre).join(' • ');
 
         return `
-            <a href="chapitre.html?id=${firstChapter.id}" class="theme-card">
-                <div class="theme-card-icon">📖</div>
-                <div class="theme-card-content">
-                    <h3 class="theme-card-title">${themeName}</h3>
-                    <p class="theme-card-preview">${chaptersPreview}</p>
+            <div class="theme-accordion">
+                <button class="theme-accordion-header">
+                    <span class="accordion-arrow">▶</span>
+                    <div class="theme-accordion-info">
+                        <div class="theme-accordion-title">${themeName}</div>
+                        <div class="theme-accordion-meta">${chapitres.length} chapitre${chapitres.length > 1 ? 's' : ''}</div>
+                    </div>
+                    <span class="theme-accordion-badge">${chapitres.length}</span>
+                </button>
+                <div class="theme-accordion-content">
+                    ${chapitresHtml}
                 </div>
-                <div class="theme-card-meta">
-                    <span class="theme-card-count">${chapitres.length}</span>
-                    <span class="theme-card-arrow">→</span>
-                </div>
-            </a>
+            </div>
         `;
     },
 
