@@ -18,7 +18,9 @@ const CONFIG = {
         DISCIPLINES: 'DISCIPLINES',
         THEMES: 'THEMES',
         CHAPITRES: 'CHAPITRES',
-        SUPPORTS_CHAPITRE: 'SUPPORTS_CHAPITRE'
+        SUPPORTS_CHAPITRE: 'SUPPORTS_CHAPITRE',
+        PARAMETRES: 'PARAMETRES',
+        AGENDAS: 'AGENDAS'
     },
 
     // URLs de redirection (avec préfixe GitHub Pages)

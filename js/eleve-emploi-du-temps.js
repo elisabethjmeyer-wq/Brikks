@@ -22,21 +22,37 @@ const EleveEmploiDuTemps = {
      */
     async getAgendaForStudent() {
         // Récupérer le groupe de l'élève depuis la session
-        const currentUser = App.currentUser || JSON.parse(sessionStorage.getItem('currentUser'));
+        const sessionData = sessionStorage.getItem('currentUser');
+        console.log('[EmploiDuTemps] Session storage raw:', sessionData);
+
+        const currentUser = App.currentUser || (sessionData ? JSON.parse(sessionData) : null);
+        console.log('[EmploiDuTemps] Current user:', currentUser);
+        console.log('[EmploiDuTemps] User groupe:', currentUser?.groupe);
 
         if (!currentUser || !currentUser.groupe) {
+            console.log('[EmploiDuTemps] Pas de groupe trouvé pour l\'utilisateur');
             return { url: '', groupe: '', reason: 'no_group' };
         }
 
         const studentGroup = currentUser.groupe;
+        console.log('[EmploiDuTemps] Groupe élève:', studentGroup);
 
         // Chercher l'agenda correspondant dans AGENDAS
         try {
+            console.log('[EmploiDuTemps] Fetching AGENDAS...');
             const agendas = await SheetsAPI.fetchAndParse('AGENDAS');
-            const agenda = agendas.find(a =>
-                a.groupe === studentGroup ||
-                a.group === studentGroup
-            );
+            console.log('[EmploiDuTemps] AGENDAS data:', agendas);
+
+            const agenda = agendas.find(a => {
+                console.log('[EmploiDuTemps] Comparaison:', {
+                    'agenda.groupe': a.groupe,
+                    'studentGroup': studentGroup,
+                    'match': a.groupe === studentGroup
+                });
+                return a.groupe === studentGroup || a.group === studentGroup;
+            });
+
+            console.log('[EmploiDuTemps] Agenda trouvé:', agenda);
 
             if (agenda) {
                 return {
@@ -48,7 +64,7 @@ const EleveEmploiDuTemps = {
 
             return { url: '', groupe: studentGroup, reason: 'no_calendar' };
         } catch (error) {
-            console.error('Erreur récupération AGENDAS:', error);
+            console.error('[EmploiDuTemps] Erreur récupération AGENDAS:', error);
             return { url: '', groupe: studentGroup, reason: 'error' };
         }
     },
