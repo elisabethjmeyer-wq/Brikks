@@ -26,61 +26,47 @@
     </div>
 
     <!-- Contenu principal (masqué pendant le chargement) -->
-    <div id="chapitre-content" style="display: none;">
-        <!-- Chapter Header -->
-        <div class="chapter-header">
-            <div class="chapter-header-top">
-                <div class="chapter-icon" id="chapter-icon">📖</div>
-                <div class="chapter-info">
-                    <div class="chapter-meta">
-                        <span class="chapter-matiere" id="chapter-matiere"></span>
-                        <span class="chapter-theme" id="chapter-theme-info"></span>
-                    </div>
-                    <h1 class="chapter-title" id="chapter-title">Chargement...</h1>
-                    <p class="chapter-subtitle" id="chapter-subtitle"></p>
+    <div id="chapitre-content" class="hybrid-layout" style="display: none;">
+
+        <!-- Barre compacte : titre + actions -->
+        <div class="chapter-topbar">
+            <div class="topbar-left">
+                <a href="lecons.html" class="back-btn" title="Retour aux leçons">←</a>
+                <span class="chapter-icon-small" id="chapter-icon">📖</span>
+                <div class="topbar-info">
+                    <span class="topbar-meta" id="chapter-matiere"></span>
+                    <h1 class="topbar-title" id="chapter-title">Chargement...</h1>
                 </div>
-                <span class="lesson-tag-large" id="chapter-lesson-tag" style="display: none;"></span>
+                <span class="lesson-tag-small" id="chapter-lesson-tag" style="display: none;"></span>
+            </div>
+            <div class="topbar-actions">
+                <button class="icon-btn" id="btn-fullscreen" onclick="EleveChapitre.toggleFullscreen()" title="Plein écran">⛶</button>
+                <a href="#" class="icon-btn" id="btn-new-tab" target="_blank" title="Nouvel onglet">↗</a>
             </div>
         </div>
 
-        <!-- Content Viewer -->
-        <div class="content-viewer">
-            <div class="viewer-header">
-                <div class="viewer-title">
-                    <span class="icon">📄</span>
-                    <span>Document du cours</span>
-                </div>
-                <div class="viewer-actions">
-                    <button class="viewer-btn fullscreen-btn" id="btn-fullscreen" onclick="EleveChapitre.toggleFullscreen()" title="Mode plein écran">
-                        <span class="icon">⛶</span>
-                        Plein écran
-                    </button>
-                    <a href="#" class="viewer-btn" id="btn-new-tab" target="_blank" title="Ouvrir dans un nouvel onglet">
-                        <span>↗</span>
-                        Nouvel onglet
-                    </a>
-                </div>
+        <!-- Zone principale : document + ressources -->
+        <div class="main-content-area">
+            <!-- Document principal -->
+            <div class="main-viewer" id="main-viewer">
+                <!-- Généré dynamiquement -->
             </div>
-            <div class="viewer-content" id="viewer-content">
-                <!-- Iframe ou placeholder -->
+
+            <!-- Ressources supplémentaires (cards) -->
+            <div class="resources-bar" id="resources-bar" style="display: none;">
+                <!-- Généré dynamiquement -->
             </div>
         </div>
 
-        <!-- Navigation -->
-        <nav class="chapter-nav" id="chapter-nav">
-            <a href="#" class="nav-btn disabled" id="nav-prev">
-                <span class="arrow">←</span>
-                <div>
-                    <div class="label">Chapitre précédent</div>
-                    <div class="title">—</div>
-                </div>
+        <!-- Navigation compacte -->
+        <nav class="chapter-nav-compact" id="chapter-nav">
+            <a href="#" class="nav-link disabled" id="nav-prev" title="Chapitre précédent">
+                <span>←</span>
+                <span class="nav-text">Précédent</span>
             </a>
-            <a href="#" class="nav-btn disabled" id="nav-next">
-                <div style="text-align: right;">
-                    <div class="label">Chapitre suivant</div>
-                    <div class="title">—</div>
-                </div>
-                <span class="arrow">→</span>
+            <a href="#" class="nav-link disabled" id="nav-next" title="Chapitre suivant">
+                <span class="nav-text">Suivant</span>
+                <span>→</span>
             </a>
         </nav>
     </div>
@@ -91,6 +77,22 @@
         <h3>Chapitre non trouvé</h3>
         <p>Ce chapitre n'existe pas ou n'est pas accessible.</p>
         <a href="lecons.html" class="btn btn-primary">Retour aux leçons</a>
+    </div>
+</div>
+
+<!-- Modale pour ressources -->
+<div class="resource-modal-overlay" id="resource-modal">
+    <div class="resource-modal">
+        <div class="resource-modal-header">
+            <div class="resource-modal-title" id="modal-title">
+                <span class="icon">📄</span>
+                <span>Ressource</span>
+            </div>
+            <button class="modal-close-btn" onclick="EleveChapitre.closeResourceModal()">✕</button>
+        </div>
+        <div class="resource-modal-content" id="modal-content">
+            <!-- Contenu dynamique -->
+        </div>
     </div>
 </div>
 

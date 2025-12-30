@@ -50,10 +50,17 @@ const EleveChapitre = {
             // Afficher le contenu
             this.render();
 
-            // Écouter la touche Échap pour quitter le plein écran
+            // Écouter la touche Échap
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && document.querySelector('.content-viewer.fullscreen')) {
-                    this.toggleFullscreen();
+                if (e.key === 'Escape') {
+                    // Fermer la modale ressource si ouverte
+                    if (document.querySelector('.resource-modal-overlay.active')) {
+                        this.closeResourceModal();
+                    }
+                    // Quitter le plein écran si actif
+                    else if (document.querySelector('.main-viewer.fullscreen')) {
+                        this.toggleFullscreen();
+                    }
                 }
             });
 
@@ -148,29 +155,30 @@ const EleveChapitre = {
 
         const icon = this.getIcon();
         const disciplineName = this.discipline ? this.discipline.nom : '';
-        const themeName = this.theme ? (this.theme.nom || this.theme.titre || '') : '';
-        const themeNumero = this.theme ? (this.theme.ordre || this.theme.numero || '') : '';
-        const chapitreNumero = this.chapitre.numero || '';
         const isIntro = !this.chapitre.theme_id && this.chapitre.discipline_id;
 
-        // Header
+        // Topbar compacte
         document.getElementById('chapter-icon').textContent = icon;
-        document.getElementById('chapter-matiere').innerHTML = `${icon} ${disciplineName}`;
 
+        // Métadonnées condensées
+        let metaText = disciplineName;
         if (isIntro) {
-            document.getElementById('chapter-theme-info').textContent =
-                `📌 Cours introductif ${chapitreNumero ? '• Chapitre ' + chapitreNumero : ''}`;
-        } else {
-            document.getElementById('chapter-theme-info').textContent =
-                `${themeNumero ? 'Thème ' + themeNumero : ''} ${chapitreNumero ? '• Chapitre ' + chapitreNumero : ''}`;
+            metaText += ' • Intro';
+        } else if (this.theme) {
+            const themeNumero = this.theme.ordre || this.theme.numero || '';
+            if (themeNumero) metaText += ` • T${themeNumero}`;
         }
+        if (this.chapitre.numero) {
+            metaText += ` • Ch.${this.chapitre.numero}`;
+        }
+        document.getElementById('chapter-matiere').textContent = metaText;
 
         document.getElementById('chapter-title').textContent = this.chapitre.titre || 'Chapitre sans titre';
 
         // Tag de leçon
         if (this.chapitre.numero_lecon) {
             const lessonTag = document.getElementById('chapter-lesson-tag');
-            lessonTag.textContent = `Leçon ${this.chapitre.numero_lecon}`;
+            lessonTag.textContent = `L${this.chapitre.numero_lecon}`;
             lessonTag.style.display = 'inline-block';
         }
 
@@ -192,37 +200,41 @@ const EleveChapitre = {
      * Toggle le mode plein écran
      */
     toggleFullscreen() {
-        const viewer = document.querySelector('.content-viewer');
+        const viewer = document.querySelector('.main-viewer');
         const btn = document.getElementById('btn-fullscreen');
+
+        if (!viewer) return;
 
         viewer.classList.toggle('fullscreen');
 
         if (viewer.classList.contains('fullscreen')) {
-            btn.innerHTML = '<span class="icon">✕</span> Quitter';
+            btn.textContent = '✕';
+            btn.title = 'Quitter le plein écran';
             document.body.style.overflow = 'hidden';
         } else {
-            btn.innerHTML = '<span class="icon">⛶</span> Plein écran';
+            btn.textContent = '⛶';
+            btn.title = 'Plein écran';
             document.body.style.overflow = '';
         }
     },
 
     /**
-     * Affiche le contenu dans le viewer
+     * Affiche le contenu dans le viewer (layout hybride)
      */
     renderViewer() {
-        const viewerContent = document.getElementById('viewer-content');
-        const viewerHeader = document.querySelector('.viewer-header');
+        const mainViewer = document.getElementById('main-viewer');
+        const resourcesBar = document.getElementById('resources-bar');
 
-        // Déterminer quels supports afficher
+        // Déterminer le document principal et les ressources supplémentaires
         const supportsToShow = this.supports.length > 0
             ? this.supports
             : (this.chapitre.lien ? [{ type: 'document', nom: 'Document du cours', url: this.chapitre.lien }] : []);
 
-        // Afficher le texte explicatif si présent
         const texteExplicatif = this.chapitre.contenu_texte;
 
+        // Pas de contenu du tout
         if (supportsToShow.length === 0 && !texteExplicatif) {
-            viewerContent.innerHTML = `
+            mainViewer.innerHTML = `
                 <div class="viewer-placeholder">
                     <div class="icon">📄</div>
                     <h3>Aucun document</h3>
@@ -232,54 +244,110 @@ const EleveChapitre = {
             return;
         }
 
-        let html = '';
+        // Document principal = premier support
+        const mainSupport = supportsToShow[0];
+        if (mainSupport) {
+            mainViewer.innerHTML = this.renderSupportContent(mainSupport);
+        }
 
-        // Texte explicatif
+        // Ressources supplémentaires = note prof + autres supports
+        const additionalResources = [];
+
+        // Note du professeur
         if (texteExplicatif) {
-            html += `
-                <div class="chapter-text-content">
-                    <div class="text-content-box">
-                        <p>${texteExplicatif.replace(/\n/g, '<br>')}</p>
+            additionalResources.push({
+                type: 'note',
+                nom: 'Note du professeur',
+                content: texteExplicatif
+            });
+        }
+
+        // Autres supports (à partir du 2ème)
+        if (supportsToShow.length > 1) {
+            for (let i = 1; i < supportsToShow.length; i++) {
+                additionalResources.push(supportsToShow[i]);
+            }
+        }
+
+        // Afficher la barre de ressources si nécessaire
+        if (additionalResources.length > 0) {
+            resourcesBar.style.display = 'flex';
+
+            let cardsHtml = '<span class="resources-bar-title">Ressources complémentaires</span>';
+
+            additionalResources.forEach((resource, index) => {
+                const icon = resource.type === 'note' ? '📝' : this.getSupportIcon(resource.type);
+                const typeLabel = this.getTypeLabel(resource.type);
+                const isNote = resource.type === 'note';
+
+                cardsHtml += `
+                    <div class="resource-card ${isNote ? 'note-card' : ''}" onclick="EleveChapitre.openResource(${index})">
+                        <div class="card-icon">${icon}</div>
+                        <div class="card-info">
+                            <div class="card-type">${typeLabel}</div>
+                            <div class="card-name">${resource.nom || 'Ressource'}</div>
+                        </div>
+                        <span class="card-arrow">→</span>
                     </div>
+                `;
+            });
+
+            resourcesBar.innerHTML = cardsHtml;
+
+            // Stocker les ressources pour ouverture
+            this.additionalResources = additionalResources;
+        }
+    },
+
+    /**
+     * Ouvre une ressource dans la modale
+     */
+    openResource(index) {
+        const resource = this.additionalResources[index];
+        if (!resource) return;
+
+        const modal = document.getElementById('resource-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+
+        const icon = resource.type === 'note' ? '📝' : this.getSupportIcon(resource.type);
+        modalTitle.innerHTML = `<span class="icon">${icon}</span><span>${resource.nom || 'Ressource'}</span>`;
+
+        // Contenu selon le type
+        if (resource.type === 'note') {
+            modalContent.innerHTML = `
+                <div class="text-content-box">
+                    <p>${resource.content.replace(/\n/g, '<br>')}</p>
                 </div>
             `;
+        } else {
+            modalContent.innerHTML = this.renderSupportContent(resource);
         }
 
-        // Onglets si plusieurs supports
-        if (supportsToShow.length > 1) {
-            html += '<div class="supports-tabs">';
-            supportsToShow.forEach((support, index) => {
-                const typeIcon = this.getSupportIcon(support.type);
-                const activeClass = index === 0 ? 'active' : '';
-                html += `<button class="support-tab ${activeClass}" data-index="${index}">${typeIcon} ${support.nom || 'Support ' + (index + 1)}</button>`;
-            });
-            html += '</div>';
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    },
+
+    /**
+     * Ferme la modale ressource
+     */
+    closeResourceModal() {
+        const modal = document.getElementById('resource-modal');
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    },
+
+    /**
+     * Retourne le label du type de ressource
+     */
+    getTypeLabel(type) {
+        switch ((type || '').toLowerCase()) {
+            case 'note': return 'Note';
+            case 'video': return 'Vidéo';
+            case 'audio': return 'Audio';
+            case 'lien': return 'Lien externe';
+            default: return 'Document';
         }
-
-        // Conteneurs des supports
-        html += '<div class="supports-content">';
-        supportsToShow.forEach((support, index) => {
-            const activeClass = index === 0 ? 'active' : '';
-            html += `<div class="support-panel ${activeClass}" data-index="${index}">`;
-            html += this.renderSupportContent(support);
-            html += '</div>';
-        });
-        html += '</div>';
-
-        viewerContent.innerHTML = html;
-
-        // Mettre à jour le titre du viewer
-        if (supportsToShow.length > 0) {
-            const firstSupport = supportsToShow[0];
-            const typeIcon = this.getSupportIcon(firstSupport.type);
-            document.querySelector('.viewer-title').innerHTML = `
-                <span class="icon">${typeIcon}</span>
-                <span>${firstSupport.nom || 'Document du cours'}</span>
-            `;
-        }
-
-        // Bind des événements des onglets
-        this.bindSupportTabs();
     },
 
     /**
@@ -442,7 +510,7 @@ const EleveChapitre = {
             const prev = relatedChapters[currentIndex - 1];
             prevBtn.href = `chapitre.html?id=${prev.id}`;
             prevBtn.classList.remove('disabled');
-            prevBtn.querySelector('.title').textContent = this.truncate(prev.titre, 30);
+            prevBtn.title = prev.titre;
         }
 
         // Chapitre suivant
@@ -450,7 +518,7 @@ const EleveChapitre = {
             const next = relatedChapters[currentIndex + 1];
             nextBtn.href = `chapitre.html?id=${next.id}`;
             nextBtn.classList.remove('disabled');
-            nextBtn.querySelector('.title').textContent = this.truncate(next.titre, 30);
+            nextBtn.title = next.titre;
         }
     },
 
