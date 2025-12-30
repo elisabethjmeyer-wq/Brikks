@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leçons - Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ===== SIDEBAR ===== */
+        .admin-sidebar {
+            width: 280px;
+            background: var(--gray-900);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 150;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .admin-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .admin-logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-logo .badge {
+            background: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sidebar-section { margin-bottom: 24px; }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 20px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar-link .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        .sidebar-link .badge {
+            margin-left: auto;
+            background: var(--accent-red);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* ===== MAIN ===== */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            background: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .top-bar-left { display: flex; align-items: center; gap: 16px; }
+
+        .toggle-sidebar-btn {
+            width: 40px; height: 40px;
+            border-radius: 10px; border: none;
+            background: var(--gray-100); color: var(--gray-600);
+            font-size: 18px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .toggle-sidebar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+
+        .top-bar-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-500); }
+        .top-bar-breadcrumb a { color: var(--gray-500); text-decoration: none; }
+        .top-bar-breadcrumb a:hover { color: var(--primary); }
+        .top-bar-breadcrumb .separator { color: var(--gray-300); }
+
+        .top-bar-right { display: flex; align-items: center; gap: 12px; }
+
+        .top-bar-btn {
+            width: 40px; height: 40px;
+            border-radius: 10px; border: none;
+            background: var(--gray-100); color: var(--gray-600);
+            font-size: 18px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; position: relative;
+        }
+        .top-bar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-btn .notif-dot {
+            position: absolute; top: 8px; right: 8px;
+            width: 8px; height: 8px;
+            background: var(--accent-red); border-radius: 50%; border: 2px solid white;
+        }
+
+        .top-bar-user {
+            display: flex; align-items: center; gap: 10px;
+            padding: 6px 12px 6px 6px; border-radius: 10px;
+            cursor: pointer; transition: all 0.2s; position: relative;
+        }
+        .top-bar-user:hover { background: var(--gray-100); }
+
+        .top-bar-user-avatar {
+            width: 36px; height: 36px; border-radius: 8px;
+            background: var(--primary-bg); color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 600;
+        }
+        .top-bar-user-info { text-align: left; }
+        .top-bar-user-name {
+            font-size: 13px; font-weight: 600; color: var(--gray-800);
+            display: flex; align-items: center; gap: 6px;
+        }
+        .top-bar-user-name::after { content: "▼"; font-size: 10px; color: var(--gray-400); }
+        .top-bar-user-role { font-size: 11px; color: var(--gray-500); }
+
+        .user-dropdown {
+            position: absolute; top: 100%; right: 0; margin-top: 8px;
+            background: white; border-radius: var(--radius);
+            box-shadow: var(--shadow-lg); border: 1px solid var(--gray-200);
+            min-width: 180px; display: none; z-index: 200; overflow: hidden;
+        }
+        .user-dropdown.show { display: block; }
+        .user-dropdown-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 16px; font-size: 14px; color: var(--gray-700);
+            text-decoration: none; transition: all 0.2s; cursor: pointer;
+        }
+        .user-dropdown-item:hover { background: var(--gray-50); }
+        .user-dropdown-item.danger { color: var(--accent-red); }
+        .user-dropdown-item.danger:hover { background: var(--accent-red-light); }
+
+        /* ===== PAGE CONTENT ===== */
+        .page-content { padding: 24px; flex: 1; }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+
+        .btn-xs {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background: white;
+            border: 2px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--gray-300);
+            background: var(--gray-50);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--gray-500);
+            padding: 8px;
+        }
+
+        .btn-ghost:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        /* ===== STATS BAR ===== */
+        .stats-bar {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+            padding: 16px 20px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .stat-dot.green { background: var(--accent-green); }
+        .stat-dot.orange { background: var(--accent-orange); }
+        .stat-dot.red { background: var(--accent-red); }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .stat-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        /* ===== THEMES LIST ===== */
+        .themes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* ===== THEME CARD ===== */
+        .theme-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .theme-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-100);
+            cursor: grab;
+        }
+
+        .theme-header:active {
+            cursor: grabbing;
+        }
+
+        .drag-handle {
+            color: var(--gray-400);
+            font-size: 18px;
+            cursor: grab;
+        }
+
+        .theme-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--primary-bg);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .theme-info {
+            flex: 1;
+        }
+
+        .theme-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .theme-meta {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .theme-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .theme-toggle {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle:hover {
+            background: var(--gray-100);
+        }
+
+        /* ===== CHAPTERS LIST ===== */
+        .chapters-list {
+            padding: 0;
+        }
+
+        .chapter-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            transition: all 0.2s;
+        }
+
+        .chapter-item:last-child {
+            border-bottom: none;
+        }
+
+        .chapter-item:hover {
+            background: var(--gray-50);
+        }
+
+        .chapter-item.dragging {
+            background: var(--primary-bg);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .chapter-drag {
+            color: var(--gray-300);
+            cursor: grab;
+            padding: 4px;
+        }
+
+        .chapter-drag:hover {
+            color: var(--gray-500);
+        }
+
+        .chapter-number {
+            width: 32px;
+            height: 32px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .chapter-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chapter-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chapter-link {
+            font-size: 12px;
+            color: var(--gray-400);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+
+        .chapter-link a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .chapter-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* Lesson tag */
+        .lesson-tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        .lesson-tag.empty {
+            background: var(--gray-100);
+            color: var(--gray-400);
+        }
+
+        /* Status badge */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-badge.visible {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .status-badge.ready {
+            background: var(--accent-orange-light);
+            color: var(--accent-orange);
+        }
+
+        .status-badge.draft {
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
+        .chapter-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .chapter-item:hover .chapter-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-400);
+        }
+
+        .action-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .action-btn.danger:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* Add chapter button */
+        .add-chapter-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px;
+            background: transparent;
+            border: 2px dashed var(--gray-200);
+            border-radius: 0;
+            color: var(--gray-400);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            font-family: inherit;
+        }
+
+        .add-chapter-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        /* ===== MODALS ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            width: 90%;
+            max-width: 550px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.95);
+            transition: all 0.2s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--gray-100);
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* ===== FORM ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        /* Status radio buttons */
+        .status-options {
+            display: flex;
+            gap: 12px;
+        }
+
+        .status-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .status-option input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .status-option label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .status-option input:checked + label {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .status-option .status-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .status-option .status-icon.visible { background: var(--accent-green-light); }
+        .status-option .status-icon.ready { background: var(--accent-orange-light); }
+        .status-option .status-icon.draft { background: var(--gray-100); }
+
+        .status-option .status-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        /* Supports list */
+        .supports-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .support-item {
+            display: grid;
+            grid-template-columns: 140px 1fr 1fr auto;
+            gap: 8px;
+            align-items: center;
+            padding: 12px;
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
+        }
+
+        .support-item select,
+        .support-item input {
+            padding: 10px 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .support-item select:focus,
+        .support-item input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .support-remove {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .support-remove:hover {
+            background: var(--accent-red-light);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 40px;
+            color: var(--gray-400);
+        }
+
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .chapter-link {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="admin-sidebar">
+        <div class="admin-logo">
+            <h1>
+                <span>📚</span>
+                Espace cours
+                <span class="badge">Admin</span>
+            </h1>
+        </div>
+
+        <nav>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📌 Principal</div>
+                <a href="#" class="sidebar-link"><span class="icon">🏠</span>Page d'accueil</a>
+                <a href="#" class="sidebar-link"><span class="icon">📬</span>Messagerie<span class="badge">3</span></a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📚 Ressources</div>
+                <a href="#" class="sidebar-link active"><span class="icon">📖</span>Leçons</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧠</span>Méthodologie</a>
+                <a href="#" class="sidebar-link"><span class="icon">🎬</span>Vidéos</a>
+                <a href="#" class="sidebar-link"><span class="icon">💡</span>Recommandations</a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">🎯 Exercices</div>
+                <a href="#" class="sidebar-link"><span class="icon">📐</span>Banque de formats</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧩</span>Banque d'éléments</a>
+                <a href="#" class="sidebar-link"><span class="icon">📝</span>Entraînements</a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📊 Évaluations</div>
+                <a href="#" class="sidebar-link"><span class="icon">📋</span>Évaluations</a>
+                <a href="#" class="sidebar-link"><span class="icon">🟣</span>Compétences</a>
+                <a href="#" class="sidebar-link"><span class="icon">📊</span>Notes & Suivi</a>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">👥 Élèves</div>
+                <a href="#" class="sidebar-link"><span class="icon">👥</span>Utilisateurs</a>
+                <a href="#" class="sidebar-link"><span class="icon">❓</span>FAQ</a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <!-- TOP BAR -->
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Afficher/Masquer le menu">☰</button>
+                <div class="top-bar-breadcrumb">
+                    <a href="#">Admin</a>
+                    <span class="separator">/</span>
+                    <span>Leçons</span>
+                </div>
+            </div>
+            <div class="top-bar-right">
+                <button class="top-bar-btn" title="Voir le site élève">👁️</button>
+                <button class="top-bar-btn" title="Notifications">🔔<span class="notif-dot"></span></button>
+                <div class="top-bar-user" onclick="toggleUserMenu()">
+                    <div class="top-bar-user-avatar">EM</div>
+                    <div class="top-bar-user-info">
+                        <div class="top-bar-user-name">Mme Meyer</div>
+                        <div class="top-bar-user-role">Professeur</div>
+                    </div>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <a href="#" class="user-dropdown-item danger"><span>🚪</span>Déconnexion</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- PAGE CONTENT -->
+        <div class="page-content">
+        <header class="page-header">
+            <h1>📖 Leçons</h1>
+            <div class="header-actions">
+                <button class="btn btn-outline" id="btn-add-theme">
+                    <span>📁</span>
+                    Nouveau thème
+                </button>
+                <button class="btn btn-primary" id="btn-add-chapter">
+                    <span>+</span>
+                    Nouveau chapitre
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-dot green"></span>
+                <span class="stat-label">Visibles :</span>
+                <span class="stat-value">5</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-dot orange"></span>
+                <span class="stat-label">Prêts :</span>
+                <span class="stat-value">2</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-dot red"></span>
+                <span class="stat-label">Brouillons :</span>
+                <span class="stat-value">1</span>
+            </div>
+            <div class="stat-item" style="margin-left: auto;">
+                <span class="stat-label">Total :</span>
+                <span class="stat-value">8 chapitres</span>
+            </div>
+        </div>
+
+        <!-- Themes container -->
+        <div class="themes-container">
+            <!-- THEME 1 -->
+            <div class="theme-card">
+                <div class="theme-header">
+                    <span class="drag-handle">⋮⋮</span>
+                    <div class="theme-icon">🏛️</div>
+                    <div class="theme-info">
+                        <h2 class="theme-title">Thème 1 : La France de la Révolution à la Ve République</h2>
+                        <p class="theme-meta">🏛️ Histoire • 3 chapitres</p>
+                    </div>
+                    <div class="theme-actions">
+                        <button class="btn btn-ghost btn-xs">✏️ Modifier</button>
+                        <button class="theme-toggle" title="Réduire">▼</button>
+                    </div>
+                </div>
+                <div class="chapters-list">
+                    <!-- Chapter 1 -->
+                    <div class="chapter-item">
+                        <span class="chapter-drag">⋮⋮</span>
+                        <span class="chapter-number">1</span>
+                        <div class="chapter-info">
+                            <div class="chapter-title">
+                                La Révolution française (1789-1799)
+                                <span class="lesson-tag">L3</span>
+                            </div>
+                            <div class="chapter-link">
+                                <a href="#" target="_blank">📄 docs.google.com/document/d/1abc...</a>
+                            </div>
+                        </div>
+                        <span class="status-badge visible">🟢 Visible</span>
+                        <div class="chapter-actions">
+                            <button class="action-btn" title="Modifier">✏️</button>
+                            <button class="action-btn" title="Voir">👁️</button>
+                            <button class="action-btn danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <!-- Chapter 2 -->
+                    <div class="chapter-item">
+                        <span class="chapter-drag">⋮⋮</span>
+                        <span class="chapter-number">2</span>
+                        <div class="chapter-info">
+                            <div class="chapter-title">
+                                Napoléon et l'Empire (1799-1815)
+                                <span class="lesson-tag">L7</span>
+                            </div>
+                            <div class="chapter-link">
+                                <a href="#" target="_blank">📄 docs.google.com/document/d/2def...</a>
+                            </div>
+                        </div>
+                        <span class="status-badge visible">🟢 Visible</span>
+                        <div class="chapter-actions">
+                            <button class="action-btn" title="Modifier">✏️</button>
+                            <button class="action-btn" title="Voir">👁️</button>
+                            <button class="action-btn danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <!-- Chapter 3 - Ready -->
+                    <div class="chapter-item">
+                        <span class="chapter-drag">⋮⋮</span>
+                        <span class="chapter-number">3</span>
+                        <div class="chapter-info">
+                            <div class="chapter-title">
+                                La IIIe République (1870-1940)
+                                <span class="lesson-tag empty">—</span>
+                            </div>
+                            <div class="chapter-link">
+                                <a href="#" target="_blank">📄 docs.google.com/document/d/3ghi...</a>
+                            </div>
+                        </div>
+                        <span class="status-badge ready">🟡 Prêt</span>
+                        <div class="chapter-actions">
+                            <button class="action-btn" title="Modifier">✏️</button>
+                            <button class="action-btn" title="Voir">👁️</button>
+                            <button class="action-btn danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <button class="add-chapter-btn">+ Ajouter un chapitre</button>
+                </div>
+            </div>
+
+            <!-- THEME 2 -->
+            <div class="theme-card">
+                <div class="theme-header">
+                    <span class="drag-handle">⋮⋮</span>
+                    <div class="theme-icon">🏛️</div>
+                    <div class="theme-info">
+                        <h2 class="theme-title">Thème 2 : Le monde depuis 1945</h2>
+                        <p class="theme-meta">🏛️ Histoire • 2 chapitres</p>
+                    </div>
+                    <div class="theme-actions">
+                        <button class="btn btn-ghost btn-xs">✏️ Modifier</button>
+                        <button class="theme-toggle" title="Réduire">▼</button>
+                    </div>
+                </div>
+                <div class="chapters-list">
+                    <!-- Chapter 1 -->
+                    <div class="chapter-item">
+                        <span class="chapter-drag">⋮⋮</span>
+                        <span class="chapter-number">1</span>
+                        <div class="chapter-info">
+                            <div class="chapter-title">
+                                La Guerre froide (1947-1991)
+                                <span class="lesson-tag">L1</span>
+                            </div>
+                            <div class="chapter-link">
+                                <a href="#" target="_blank">📄 docs.google.com/document/d/4jkl...</a>
+                            </div>
+                        </div>
+                        <span class="status-badge visible">🟢 Visible</span>
+                        <div class="chapter-actions">
+                            <button class="action-btn" title="Modifier">✏️</button>
+                            <button class="action-btn" title="Voir">👁️</button>
+                            <button class="action-btn danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <!-- Chapter 2 -->
+                    <div class="chapter-item">
+                        <span class="chapter-drag">⋮⋮</span>
+                        <span class="chapter-number">2</span>
+                        <div class="chapter-info">
+                            <div class="chapter-title">
+                                Décolonisation et nouveaux États
+                                <span class="lesson-tag">L5</span>
+                            </div>
+                            <div class="chapter-link">
+                                <a href="#" target="_blank">📄 docs.google.com/document/d/5mno...</a>
+                            </div>
+                        </div>
+                        <span class="status-badge visible">🟢 Visible</span>
+                        <div class="chapter-actions">
+                            <button class="action-btn" title="Modifier">✏️</button>
+                            <button class="action-btn" title="Voir">👁️</button>
+                            <button class="action-btn danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <button class="add-chapter-btn">+ Ajouter un chapitre</button>
+                </div>
+            </div>
+
+            <!-- THEME 3 - Geography -->
+            <div class="theme-card">
+                <div class="theme-header">
+                    <span class="drag-handle">⋮⋮</span>
+                    <div class="theme-icon">🗺️</div>
+                    <div class="theme-info">
+                        <h2 class="theme-title">Thème 1 : La France, un territoire sous influence urbaine</h2>
+                        <p class="theme-meta">🗺️ Géographie • 3 chapitres</p>
+                    </div>
+                    <div class="theme-actions">
+                        <button class="btn btn-ghost btn-xs">✏️ Modifier</button>
+                        <button class="theme-toggle" title="Réduire">▼</button>
+                    </div>
+                </div>
+                <div class="chapters-list">
+                    <!-- Chapter 1 -->
+                    <div class="chapter-item">
+                        <span class="chapter-drag">⋮⋮</span>
+                        <span class="chapter-number">1</span>
+                        <div class="chapter-info">
+                            <div class="chapter-title">
+                                Les aires urbaines françaises
+                                <span class="lesson-tag">L2</span>
+                            </div>
+                            <div class="chapter-link">
+                                <a href="#" target="_blank">📄 docs.google.com/document/d/6pqr...</a>
+                            </div>
+                        </div>
+                        <span class="status-badge visible">🟢 Visible</span>
+                        <div class="chapter-actions">
+                            <button class="action-btn" title="Modifier">✏️</button>
+                            <button class="action-btn" title="Voir">👁️</button>
+                            <button class="action-btn danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <!-- Chapter 2 - Draft -->
+                    <div class="chapter-item">
+                        <span class="chapter-drag">⋮⋮</span>
+                        <span class="chapter-number">2</span>
+                        <div class="chapter-info">
+                            <div class="chapter-title">
+                                Les espaces de faible densité
+                                <span class="lesson-tag empty">—</span>
+                            </div>
+                            <div class="chapter-link">
+                                <a href="#" target="_blank">📄 docs.google.com/document/d/7stu...</a>
+                            </div>
+                        </div>
+                        <span class="status-badge draft">⚪ Brouillon</span>
+                        <div class="chapter-actions">
+                            <button class="action-btn" title="Modifier">✏️</button>
+                            <button class="action-btn" title="Voir">👁️</button>
+                            <button class="action-btn danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <!-- Chapter 3 - Ready -->
+                    <div class="chapter-item">
+                        <span class="chapter-drag">⋮⋮</span>
+                        <span class="chapter-number">3</span>
+                        <div class="chapter-info">
+                            <div class="chapter-title">
+                                Aménager les territoires
+                                <span class="lesson-tag empty">—</span>
+                            </div>
+                            <div class="chapter-link">
+                                <a href="#" target="_blank">📄 docs.google.com/document/d/8vwx...</a>
+                            </div>
+                        </div>
+                        <span class="status-badge ready">🟡 Prêt</span>
+                        <div class="chapter-actions">
+                            <button class="action-btn" title="Modifier">✏️</button>
+                            <button class="action-btn" title="Voir">👁️</button>
+                            <button class="action-btn danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <button class="add-chapter-btn">+ Ajouter un chapitre</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL: Nouveau/Modifier Chapitre -->
+<div class="modal-overlay" id="modal-chapter">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>📖 Nouveau chapitre</h3>
+            <button class="modal-close" onclick="closeModal('modal-chapter')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Thème</label>
+                <select id="theme-select">
+                    <option value="">— Cours introductif (hors thème) —</option>
+                    <option>Thème 1 : La France de la Révolution... (🏛️ Histoire)</option>
+                    <option>Thème 2 : Le monde depuis 1945 (🏛️ Histoire)</option>
+                    <option selected>Thème 1 : La France, un territoire... (🗺️ Géographie)</option>
+                </select>
+                <p class="form-hint">💡 Laisse vide pour un cours introductif qui apparaîtra en haut de la matière</p>
+            </div>
+
+            <div class="form-group" id="matiere-group" style="display: none;">
+                <label>Matière</label>
+                <select>
+                    <option>📚 Littérature</option>
+                    <option>🏛️ Histoire</option>
+                    <option>🗺️ Géographie</option>
+                    <option>⚖️ EMC</option>
+                </select>
+                <p class="form-hint">Pour les cours introductifs hors thème</p>
+            </div>
+
+            <div class="form-group">
+                <label>Titre du chapitre</label>
+                <input type="text" placeholder="Ex: La Révolution française (1789-1799)">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>N° du chapitre</label>
+                    <input type="number" value="4" min="1">
+                    <p class="form-hint">Ordre dans le thème</p>
+                </div>
+                <div class="form-group">
+                    <label>N° de la leçon</label>
+                    <input type="number" placeholder="Ex: 8" min="1">
+                    <p class="form-hint">Ordre en classe (optionnel)</p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>📎 Supports du cours</label>
+                <div class="supports-list" id="supports-list">
+                    <div class="support-item">
+                        <select class="support-type">
+                            <option value="doc">📄 Document</option>
+                            <option value="video">🎬 Vidéo</option>
+                            <option value="slides">📊 Diaporama</option>
+                            <option value="link">🔗 Lien externe</option>
+                        </select>
+                        <input type="text" placeholder="Nom (ex: Cours principal)" class="support-name">
+                        <input type="url" placeholder="https://..." class="support-url">
+                        <button type="button" class="support-remove" title="Supprimer">🗑️</button>
+                    </div>
+                    <div class="support-item">
+                        <select class="support-type">
+                            <option value="doc">📄 Document</option>
+                            <option value="video" selected>🎬 Vidéo</option>
+                            <option value="slides">📊 Diaporama</option>
+                            <option value="link">🔗 Lien externe</option>
+                        </select>
+                        <input type="text" placeholder="Nom" value="Vidéo explicative" class="support-name">
+                        <input type="url" placeholder="https://..." value="https://loom.com/share/abc123" class="support-url">
+                        <button type="button" class="support-remove" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" id="add-support" style="margin-top: 8px;">+ Ajouter un support</button>
+                <p class="form-hint">💡 Le premier support sera affiché par défaut. Les autres seront accessibles via des onglets.</p>
+            </div>
+
+            <div class="form-group">
+                <label>Statut</label>
+                <div class="status-options">
+                    <div class="status-option">
+                        <input type="radio" name="status" id="status-visible" value="visible">
+                        <label for="status-visible">
+                            <span class="status-icon visible">🟢</span>
+                            <span class="status-label">Visible</span>
+                        </label>
+                    </div>
+                    <div class="status-option">
+                        <input type="radio" name="status" id="status-ready" value="ready" checked>
+                        <label for="status-ready">
+                            <span class="status-icon ready">🟡</span>
+                            <span class="status-label">Prêt</span>
+                        </label>
+                    </div>
+                    <div class="status-option">
+                        <input type="radio" name="status" id="status-draft" value="draft">
+                        <label for="status-draft">
+                            <span class="status-icon draft">⚪</span>
+                            <span class="status-label">Brouillon</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-chapter')">Annuler</button>
+            <button class="btn btn-primary">✓ Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Nouveau Thème -->
+<div class="modal-overlay" id="modal-theme">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>📁 Nouveau thème</h3>
+            <button class="modal-close" onclick="closeModal('modal-theme')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Matière</label>
+                <select>
+                    <option>📚 Littérature</option>
+                    <option>🏛️ Histoire</option>
+                    <option>🗺️ Géographie</option>
+                    <option>⚖️ EMC</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>N° du thème</label>
+                <input type="number" value="2" min="1">
+                <p class="form-hint">💡 L'icône sera automatique selon la matière : 📚 Littérature, 🏛️ Histoire, 🗺️ Géographie, ⚖️ EMC</p>
+            </div>
+
+            <div class="form-group">
+                <label>Titre du thème</label>
+                <input type="text" placeholder="Ex: La France de la Révolution à la Ve République">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-theme')">Annuler</button>
+            <button class="btn btn-primary">✓ Créer le thème</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal management
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+
+    // Open modals
+    document.getElementById('btn-add-chapter').addEventListener('click', () => openModal('modal-chapter'));
+    document.getElementById('btn-add-theme').addEventListener('click', () => openModal('modal-theme'));
+    
+    document.querySelectorAll('.add-chapter-btn').forEach(btn => {
+        btn.addEventListener('click', () => openModal('modal-chapter'));
+    });
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+    });
+
+    // Toggle theme collapse
+    document.querySelectorAll('.theme-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const card = btn.closest('.theme-card');
+            const list = card.querySelector('.chapters-list');
+            if (list.style.display === 'none') {
+                list.style.display = 'block';
+                btn.textContent = '▼';
+            } else {
+                list.style.display = 'none';
+                btn.textContent = '▶';
+            }
+        });
+    });
+
+    // Show/hide matière field based on theme selection
+    const themeSelect = document.getElementById('theme-select');
+    const matiereGroup = document.getElementById('matiere-group');
+    if (themeSelect && matiereGroup) {
+        themeSelect.addEventListener('change', () => {
+            if (themeSelect.value === '') {
+                matiereGroup.style.display = 'block';
+            } else {
+                matiereGroup.style.display = 'none';
+            }
+        });
+    }
+
+    // Add support
+    const addSupportBtn = document.getElementById('add-support');
+    const supportsList = document.getElementById('supports-list');
+    if (addSupportBtn && supportsList) {
+        addSupportBtn.addEventListener('click', () => {
+            const newSupport = document.createElement('div');
+            newSupport.className = 'support-item';
+            newSupport.innerHTML = `
+                <select class="support-type">
+                    <option value="doc">📄 Document</option>
+                    <option value="video">🎬 Vidéo</option>
+                    <option value="slides">📊 Diaporama</option>
+                    <option value="link">🔗 Lien externe</option>
+                </select>
+                <input type="text" placeholder="Nom (ex: Fiche de révision)" class="support-name">
+                <input type="url" placeholder="https://..." class="support-url">
+                <button type="button" class="support-remove" title="Supprimer">🗑️</button>
+            `;
+            supportsList.appendChild(newSupport);
+            
+            // Add remove listener
+            newSupport.querySelector('.support-remove').addEventListener('click', () => {
+                newSupport.remove();
+            });
+        });
+
+        // Remove support listeners for existing items
+        document.querySelectorAll('.support-remove').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.closest('.support-item').remove();
+            });
+        });
+    }
+
+    // Toggle Sidebar
+    function toggleSidebar() {
+        document.querySelector('.admin-sidebar').classList.toggle('collapsed');
+        document.querySelector('.main-content').classList.toggle('expanded');
+    }
+
+    // Toggle User Menu
+    function toggleUserMenu() {
+        document.getElementById('user-dropdown').classList.toggle('show');
+    }
+
+    document.addEventListener('click', function(e) {
+        const userMenu = document.querySelector('.top-bar-user');
+        const dropdown = document.getElementById('user-dropdown');
+        if (userMenu && !userMenu.contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+</script>
+
+</body>
+</html>
