@@ -54,11 +54,43 @@ const EleveLayout = {
     ],
 
     /**
+     * Vérifie si on est en mode prévisualisation
+     */
+    isPreviewMode() {
+        return sessionStorage.getItem('brikks_preview') === 'true';
+    },
+
+    /**
+     * Génère la bannière de prévisualisation
+     */
+    getPreviewBannerHTML() {
+        if (!this.isPreviewMode()) return '';
+
+        return `
+            <div class="preview-banner" id="preview-banner">
+                <span>👁️ Mode prévisualisation</span>
+                <button class="preview-banner-btn" onclick="EleveLayout.exitPreview()">
+                    ← Retour admin
+                </button>
+            </div>
+        `;
+    },
+
+    /**
+     * Quitte le mode prévisualisation
+     */
+    exitPreview() {
+        sessionStorage.removeItem('brikks_preview');
+        window.location.href = '/Brikks/admin/';
+    },
+
+    /**
      * Génère le HTML du header
      */
     getHeaderHTML() {
         return `
-            <header class="eleve-header">
+            ${this.getPreviewBannerHTML()}
+            <header class="eleve-header${this.isPreviewMode() ? ' with-preview-banner' : ''}">
                 <div class="header-left">
                     <button class="menu-toggle" id="menuToggle" title="Menu">
                         ☰

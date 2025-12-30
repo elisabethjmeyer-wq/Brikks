@@ -824,6 +824,61 @@ h3 { font-size: 1.25rem; }
     }
 }
 
+/* ===== PREVIEW BANNER ===== */
+.preview-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(135deg, var(--accent-orange), #d97706);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 1100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.preview-banner-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.preview-banner-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Adjust header when preview banner is shown */
+.eleve-header.with-preview-banner {
+    top: 40px;
+}
+
+.eleve-header.with-preview-banner ~ .eleve-sidebar {
+    top: calc(var(--header-height) + 40px);
+    height: calc(100vh - var(--header-height) - 40px);
+}
+
+.eleve-header.with-preview-banner ~ .sidebar-overlay {
+    top: calc(var(--header-height) + 40px);
+}
+
+.eleve-header.with-preview-banner ~ .eleve-main {
+    margin-top: calc(var(--header-height) + 40px);
+}
+
 /* Cards */
 .card {
     background: white;
