@@ -103,7 +103,7 @@ const AdminLayout = {
                     </div>
                 </div>
                 <div class="top-bar-right">
-                    <button class="top-bar-btn" title="Voir le site élève" onclick="window.open('/Brikks/eleve/', '_blank')">
+                    <button class="top-bar-btn" title="Prévisualiser le site élève" onclick="AdminLayout.openPreview()">
                         👁️
                     </button>
                     <button class="top-bar-btn" title="Notifications">
@@ -223,6 +223,16 @@ const AdminLayout = {
                 dropdown.classList.remove('show');
             }
         });
+    },
+
+    /**
+     * Ouvre le mode prévisualisation élève
+     */
+    openPreview() {
+        // Stocker le flag de prévisualisation
+        sessionStorage.setItem('brikks_preview', 'true');
+        // Rediriger vers l'espace élève
+        window.location.href = '/Brikks/eleve/';
     }
 };
 
