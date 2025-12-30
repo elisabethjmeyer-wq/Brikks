@@ -1,15 +1,17 @@
 /**
  * Layout Élève - Composants réutilisables
  * Header + Sidebar pour toutes les pages élève
+ * Charge dynamiquement les paramètres et la config du menu
  */
 
 const EleveLayout = {
     /**
-     * Configuration du menu sidebar
+     * Configuration par défaut du menu (fallback)
      */
-    menuItems: [
+    defaultMenuItems: [
         {
             section: '📅 Organisation',
+            sectionId: 'organisation',
             items: [
                 { icon: '📆', label: 'Emploi du temps', href: '/Brikks/eleve/emploi-du-temps.html', id: 'emploi-du-temps' },
                 { icon: '📂', label: 'Classeur modèle', href: '/Brikks/eleve/classeur.html', id: 'classeur' }
@@ -17,6 +19,7 @@ const EleveLayout = {
         },
         {
             section: '📖 Cours',
+            sectionId: 'cours',
             items: [
                 { icon: '📖', label: 'Leçons', href: '/Brikks/eleve/lecons.html', id: 'lecons' },
                 { icon: '🧠', label: 'Méthodologie', href: '/Brikks/eleve/methodologie.html', id: 'methodologie' }
@@ -24,6 +27,7 @@ const EleveLayout = {
         },
         {
             section: "📝 S'entraîner",
+            sectionId: 'entrainement',
             items: [
                 { icon: '🟢', label: 'Connaissances', href: '/Brikks/eleve/connaissances.html', id: 'connaissances' },
                 { icon: '🟠', label: 'Savoir-faire', href: '/Brikks/eleve/savoir-faire.html', id: 'savoir-faire' },
@@ -32,6 +36,7 @@ const EleveLayout = {
         },
         {
             section: '📋 Évaluations',
+            sectionId: 'evaluations',
             items: [
                 { icon: '📋', label: 'Mes évaluations', href: '/Brikks/eleve/evaluations.html', id: 'evaluations' },
                 { icon: '📊', label: 'Mes notes', href: '/Brikks/eleve/notes.html', id: 'notes' }
@@ -39,6 +44,7 @@ const EleveLayout = {
         },
         {
             section: '📺 Ressources',
+            sectionId: 'ressources',
             items: [
                 { icon: '🎬', label: 'Vidéos', href: '/Brikks/eleve/videos.html', id: 'videos' },
                 { icon: '💡', label: 'Recommandations', href: '/Brikks/eleve/recommandations.html', id: 'recommandations' }
@@ -46,6 +52,7 @@ const EleveLayout = {
         },
         {
             section: '❓ Aide',
+            sectionId: 'aide',
             items: [
                 { icon: '❓', label: 'FAQ', href: '/Brikks/eleve/faq.html', id: 'faq' },
                 { icon: '✉️', label: 'Messagerie', href: '/Brikks/eleve/messagerie.html', id: 'messagerie' }
@@ -53,11 +60,134 @@ const EleveLayout = {
         }
     ],
 
+    // Menu items actif (sera mis à jour dynamiquement)
+    menuItems: [],
+
+    // Paramètres du site
+    siteParams: {
+        titre: 'Brikks',
+        sousTitre: 'Espace élève',
+        emoji: '📚',
+        couleur: '#6366f1'
+    },
+
     /**
      * Vérifie si on est en mode prévisualisation
      */
     isPreviewMode() {
         return sessionStorage.getItem('brikks_preview') === 'true';
+    },
+
+    /**
+     * Charge les paramètres du site depuis PARAMETRES
+     */
+    async loadSiteParams() {
+        try {
+            const params = await SheetsAPI.fetchAndParse('PARAMETRES');
+
+            params.forEach(p => {
+                const key = p.cle || p.parametre || p.nom || p.key;
+                const value = p.valeur || p.value || '';
+
+                switch (key) {
+                    case 'site_titre':
+                        if (value) this.siteParams.titre = value;
+                        break;
+                    case 'site_sous_titre':
+                        if (value) this.siteParams.sousTitre = value;
+                        break;
+                    case 'site_emoji':
+                        if (value) this.siteParams.emoji = value;
+                        break;
+                    case 'site_couleur':
+                        if (value) this.siteParams.couleur = value;
+                        break;
+                }
+            });
+
+            console.log('[EleveLayout] Site params loaded:', this.siteParams);
+        } catch (error) {
+            console.log('[EleveLayout] Using default site params');
+        }
+    },
+
+    /**
+     * Charge la configuration du menu depuis CONFIG_MENU
+     */
+    async loadMenuConfig() {
+        try {
+            const menuConfig = await SheetsAPI.fetchAndParse('CONFIG_MENU');
+            console.log('[EleveLayout] CONFIG_MENU loaded:', menuConfig);
+
+            if (menuConfig && menuConfig.length > 0) {
+                // Grouper par catégorie
+                const grouped = {};
+
+                menuConfig.forEach(item => {
+                    // Vérifier si visible
+                    const isVisible = item.visible === 'true' || item.visible === true || item.visible === '1' || item.visible === 1;
+                    if (!isVisible) return; // Ignorer les éléments masqués
+
+                    const cat = item.categorie || 'Autres';
+                    if (!grouped[cat]) {
+                        grouped[cat] = {
+                            section: `${item.categorie_icon || '📁'} ${cat}`,
+                            sectionId: cat.toLowerCase().replace(/\s+/g, '-'),
+                            items: []
+                        };
+                    }
+
+                    // Construire l'URL de la page
+                    const elementCode = item.element_code || item.id;
+                    const href = `/Brikks/eleve/${elementCode}.html`;
+
+                    grouped[cat].items.push({
+                        icon: item.icon || '📄',
+                        label: item.nom_affiche || item.nom,
+                        href: href,
+                        id: elementCode
+                    });
+                });
+
+                // Convertir en array et filtrer les sections vides
+                const sections = Object.values(grouped).filter(s => s.items.length > 0);
+
+                if (sections.length > 0) {
+                    this.menuItems = sections;
+                    console.log('[EleveLayout] Dynamic menu loaded:', this.menuItems);
+                    return;
+                }
+            }
+
+            // Fallback sur le menu par défaut
+            this.menuItems = this.defaultMenuItems;
+        } catch (error) {
+            console.log('[EleveLayout] Using default menu');
+            this.menuItems = this.defaultMenuItems;
+        }
+    },
+
+    /**
+     * Applique la couleur primaire personnalisée
+     */
+    applyCustomColor() {
+        if (this.siteParams.couleur && this.siteParams.couleur !== '#6366f1') {
+            document.documentElement.style.setProperty('--primary', this.siteParams.couleur);
+            // Calculer une version plus sombre pour hover
+            const darkerColor = this.adjustColor(this.siteParams.couleur, -20);
+            document.documentElement.style.setProperty('--primary-dark', darkerColor);
+        }
+    },
+
+    /**
+     * Ajuste une couleur (plus sombre/clair)
+     */
+    adjustColor(color, amount) {
+        const num = parseInt(color.slice(1), 16);
+        const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+        const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+        const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+        return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
     },
 
     /**
@@ -88,6 +218,8 @@ const EleveLayout = {
      * Génère le HTML du header
      */
     getHeaderHTML() {
+        const { titre, sousTitre, emoji } = this.siteParams;
+
         return `
             ${this.getPreviewBannerHTML()}
             <header class="eleve-header${this.isPreviewMode() ? ' with-preview-banner' : ''}">
@@ -96,8 +228,8 @@ const EleveLayout = {
                         ☰
                     </button>
                     <a href="/Brikks/eleve/" class="logo">
-                        <div class="logo-icon">📚</div>
-                        <div class="logo-text">Brikks <span>• Espace élève</span></div>
+                        <div class="logo-icon">${emoji}</div>
+                        <div class="logo-text">${titre} <span>• ${sousTitre}</span></div>
                     </a>
                 </div>
                 <div class="header-right">
@@ -171,10 +303,19 @@ const EleveLayout = {
      * @param {string} pageId - ID de la page active (pour highlight menu)
      * @param {string} pageTitle - Titre pour le fil d'Ariane
      */
-    init(pageId, pageTitle) {
+    async init(pageId, pageTitle) {
         // Vérifier l'accès
         const user = Auth.checkAccess(['eleve', 'élève', 'etudiant', 'étudiant']);
         if (!user) return;
+
+        // Charger les paramètres et config du menu en parallèle
+        await Promise.all([
+            this.loadSiteParams(),
+            this.loadMenuConfig()
+        ]);
+
+        // Appliquer la couleur personnalisée
+        this.applyCustomColor();
 
         // Créer le conteneur layout
         const body = document.body;
