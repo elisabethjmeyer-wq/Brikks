@@ -132,7 +132,7 @@ const AdminLayout = {
      * @param {string} pageId - ID de la page active (pour highlight menu)
      * @param {string} pageTitle - Titre pour le fil d'Ariane
      */
-    init(pageId, pageTitle) {
+    async init(pageId, pageTitle) {
         // Vérifier l'accès
         const user = Auth.checkAccess(['prof', 'admin', 'professeur']);
         if (!user) return;
@@ -156,11 +156,17 @@ const AdminLayout = {
         // Highlight le menu actif
         this.setActiveMenu(pageId);
 
-        // Afficher les infos utilisateur
+        // Afficher les infos utilisateur (données en cache)
         this.displayUserInfo(user);
 
         // Événements
         this.initEvents();
+
+        // Rafraîchir les données utilisateur depuis Google Sheets (async)
+        const updatedUser = await Auth.refreshCurrentUser();
+        if (updatedUser) {
+            this.displayUserInfo(updatedUser);
+        }
     },
 
     /**

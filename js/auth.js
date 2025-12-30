@@ -79,6 +79,36 @@ const Auth = {
     },
 
     /**
+     * Rafraîchit les données utilisateur depuis Google Sheets
+     * @returns {Promise<Object|null>} - Utilisateur mis à jour ou null
+     */
+    async refreshCurrentUser() {
+        const currentUser = this.getCurrentUser();
+        if (!currentUser || !currentUser.identifiant) {
+            return null;
+        }
+
+        try {
+            const utilisateurs = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.UTILISATEURS);
+            const updatedUser = utilisateurs.find(u =>
+                (u.identifiant || '').trim() === currentUser.identifiant
+            );
+
+            if (updatedUser) {
+                // Mettre à jour le stockage (sans le mot de passe)
+                const safeUser = { ...updatedUser };
+                delete safeUser.mot_de_passe;
+                sessionStorage.setItem(CONFIG.STORAGE_KEYS.USER, JSON.stringify(safeUser));
+                return safeUser;
+            }
+        } catch (error) {
+            console.error('Erreur lors du rafraîchissement des données utilisateur:', error);
+        }
+
+        return currentUser;
+    },
+
+    /**
      * Vérifie si l'utilisateur est connecté
      * @returns {boolean}
      */
