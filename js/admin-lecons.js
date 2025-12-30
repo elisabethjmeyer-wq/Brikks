@@ -468,7 +468,8 @@ const AdminLecons = {
         const index = supportsList.children.length;
 
         const supportHtml = `
-            <div class="support-item" data-index="${index}">
+            <div class="support-item" data-index="${index}" draggable="true">
+                <div class="support-drag-handle" title="Glisser pour réordonner">⋮⋮</div>
                 <select class="support-type" name="support-type-${index}">
                     <option value="document" ${data.type === 'document' ? 'selected' : ''}>📄 Document</option>
                     <option value="video" ${data.type === 'video' ? 'selected' : ''}>🎬 Vidéo</option>
@@ -477,21 +478,95 @@ const AdminLecons = {
                 </select>
                 <input type="text" class="support-name" name="support-name-${index}" placeholder="Nom du support" value="${data.nom || ''}">
                 <input type="url" class="support-url" name="support-url-${index}" placeholder="https://..." value="${data.url || ''}">
-                <button type="button" class="support-remove" onclick="AdminLecons.removeSupport(${index})" title="Supprimer">🗑️</button>
+                <button type="button" class="support-remove" onclick="AdminLecons.removeSupport(this)" title="Supprimer">🗑️</button>
             </div>
         `;
 
         supportsList.insertAdjacentHTML('beforeend', supportHtml);
+
+        // Ajouter les événements drag-and-drop
+        const newItem = supportsList.lastElementChild;
+        this.initDragEvents(newItem);
     },
 
     /**
      * Supprime un support du formulaire
      */
-    removeSupport(index) {
-        const supportItem = document.querySelector(`.support-item[data-index="${index}"]`);
+    removeSupport(btn) {
+        const supportItem = btn.closest('.support-item');
         if (supportItem) {
             supportItem.remove();
         }
+    },
+
+    /**
+     * Initialise les événements drag-and-drop pour un élément
+     */
+    initDragEvents(item) {
+        const handle = item.querySelector('.support-drag-handle');
+
+        // Empêcher le drag sauf depuis la poignée
+        item.addEventListener('dragstart', (e) => {
+            if (!e.target.classList.contains('support-drag-handle') &&
+                !e.target.closest('.support-drag-handle')) {
+                // Autoriser quand même si on a cliqué sur la poignée récemment
+                if (!item.classList.contains('drag-ready')) {
+                    e.preventDefault();
+                    return;
+                }
+            }
+            item.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', item.outerHTML);
+        });
+
+        item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+            item.classList.remove('drag-ready');
+            document.querySelectorAll('.support-item.drag-over').forEach(el => {
+                el.classList.remove('drag-over');
+            });
+        });
+
+        item.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const dragging = document.querySelector('.support-item.dragging');
+            if (dragging && dragging !== item) {
+                item.classList.add('drag-over');
+            }
+        });
+
+        item.addEventListener('dragleave', () => {
+            item.classList.remove('drag-over');
+        });
+
+        item.addEventListener('drop', (e) => {
+            e.preventDefault();
+            item.classList.remove('drag-over');
+            const dragging = document.querySelector('.support-item.dragging');
+            if (dragging && dragging !== item) {
+                const supportsList = document.getElementById('supports-list');
+                const items = [...supportsList.children];
+                const dragIndex = items.indexOf(dragging);
+                const dropIndex = items.indexOf(item);
+
+                if (dragIndex < dropIndex) {
+                    item.after(dragging);
+                } else {
+                    item.before(dragging);
+                }
+            }
+        });
+
+        // Permettre le drag depuis la poignée
+        handle.addEventListener('mousedown', () => {
+            item.classList.add('drag-ready');
+        });
+
+        handle.addEventListener('mouseup', () => {
+            setTimeout(() => item.classList.remove('drag-ready'), 100);
+        });
     },
 
     /**

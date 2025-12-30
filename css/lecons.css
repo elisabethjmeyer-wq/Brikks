@@ -725,13 +725,56 @@
 
 .support-item {
     display: grid;
-    grid-template-columns: 140px 1fr 1fr auto;
+    grid-template-columns: auto 140px 1fr 1fr auto;
     gap: 10px;
     align-items: center;
     padding: 12px;
     background: var(--gray-50);
     border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
+    border: 2px solid var(--gray-200);
+    transition: all 0.2s;
+}
+
+/* Drag handle */
+.support-drag-handle {
+    width: 24px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-400);
+    cursor: grab;
+    font-size: 14px;
+    letter-spacing: -2px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.support-drag-handle:hover {
+    background: var(--gray-200);
+    color: var(--gray-600);
+}
+
+.support-drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Drag states */
+.support-item.dragging {
+    opacity: 0.5;
+    border-color: var(--primary);
+    background: var(--primary-bg);
+}
+
+.support-item.drag-over {
+    border-color: var(--primary);
+    border-style: dashed;
+    background: var(--primary-bg);
+}
+
+.support-item.drag-ready {
+    cursor: grabbing;
 }
 
 .support-item select,
@@ -2247,15 +2290,32 @@
     }
 
     .support-item {
-        grid-template-columns: 1fr;
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas:
+            "drag type delete"
+            "drag name name"
+            "drag url url";
     }
 
-    .support-item select,
-    .support-item input {
-        width: 100%;
+    .support-drag-handle {
+        grid-area: drag;
+        height: 100%;
+    }
+
+    .support-item .support-type {
+        grid-area: type;
+    }
+
+    .support-item .support-name {
+        grid-area: name;
+    }
+
+    .support-item .support-url {
+        grid-area: url;
     }
 
     .support-remove {
+        grid-area: delete;
         justify-self: end;
     }
 
