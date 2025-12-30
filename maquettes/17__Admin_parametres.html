@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paramètres - Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --sidebar-width: 280px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ===== SIDEBAR ===== */
+        .admin-sidebar {
+            width: var(--sidebar-width);
+            background: var(--gray-900);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 150;
+        }
+
+        .admin-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .admin-logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-logo .badge {
+            background: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sidebar-section { margin-bottom: 24px; }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 20px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar-link .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        .sidebar-link .badge {
+            margin-left: auto;
+            background: var(--accent-red);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* ===== MAIN ===== */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+        }
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            background: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .toggle-sidebar-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .toggle-sidebar-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .top-bar-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .top-bar-breadcrumb a {
+            color: var(--gray-500);
+            text-decoration: none;
+        }
+
+        .top-bar-breadcrumb a:hover {
+            color: var(--primary);
+        }
+
+        .top-bar-breadcrumb .separator {
+            color: var(--gray-300);
+        }
+
+        .top-bar-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px 6px 6px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .top-bar-user:hover {
+            background: var(--gray-100);
+        }
+
+        .top-bar-user-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .top-bar-user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .top-bar-user-role {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+
+        /* ===== PAGE CONTENT ===== */
+        .page-content {
+            padding: 24px;
+            max-width: 1000px;
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            font-size: 15px;
+            color: var(--gray-500);
+        }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: white;
+            padding: 6px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab:hover {
+            color: var(--gray-700);
+            background: var(--gray-50);
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ===== TAB CONTENT ===== */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ===== CARDS ===== */
+        .card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-header-icon {
+            font-size: 20px;
+        }
+
+        .card-header-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* ===== FORM ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== COLOR PICKER ===== */
+        .color-picker-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .color-picker {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--gray-200);
+            border-radius: 10px;
+            cursor: pointer;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .color-picker::-webkit-color-swatch {
+            border: none;
+            border-radius: 6px;
+        }
+
+        .color-presets {
+            display: flex;
+            gap: 8px;
+        }
+
+        .color-preset {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .color-preset:hover {
+            transform: scale(1.1);
+        }
+
+        .color-preset.active {
+            border-color: var(--gray-800);
+        }
+
+        /* ===== EMOJI PICKER ===== */
+        .emoji-picker-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+
+        .emoji-option {
+            width: 44px;
+            height: 44px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            background: white;
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .emoji-option:hover {
+            border-color: var(--gray-300);
+            transform: scale(1.05);
+        }
+
+        .emoji-option.selected {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        /* ===== PREVIEW ===== */
+        .preview-box {
+            background: var(--gray-50);
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .preview-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .preview-header-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+        }
+
+        .preview-header-text {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .preview-header-text span {
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        /* ===== IFRAME PREVIEW ===== */
+        .iframe-preview {
+            background: var(--gray-900);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+
+        .iframe-preview iframe {
+            width: 100%;
+            height: 300px;
+            border: none;
+            border-radius: 6px;
+        }
+
+        .iframe-placeholder {
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-500);
+            background: var(--gray-100);
+            border-radius: 8px;
+        }
+
+        .iframe-placeholder-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        /* ===== MENU ÉLÈVE TAB ===== */
+        .menu-section {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .menu-section.drag-over {
+            box-shadow: 0 0 0 3px var(--primary);
+        }
+
+        .menu-section-header {
+            padding: 12px 16px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-section-drag {
+            cursor: grab;
+            color: var(--gray-400);
+            font-size: 14px;
+        }
+
+        .menu-section-icon {
+            font-size: 18px;
+        }
+
+        .menu-section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-800);
+            flex: 1;
+        }
+
+        .menu-section-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .menu-section-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .menu-section-btn.delete:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .menu-section-body {
+            padding: 6px;
+            min-height: 40px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: white;
+            cursor: grab;
+            transition: all 0.2s;
+        }
+
+        .menu-item:hover {
+            background: var(--gray-50);
+        }
+
+        .menu-item.dragging {
+            opacity: 0.5;
+        }
+
+        .menu-item-drag {
+            color: var(--gray-400);
+            font-size: 12px;
+        }
+
+        .menu-item-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--gray-100);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .menu-item-name {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .menu-item-name-custom {
+            font-size: 11px;
+            color: var(--primary);
+            margin-left: 6px;
+        }
+
+        .menu-item-status {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .menu-item-status.visible {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .menu-item-status.hidden {
+            background: var(--gray-200);
+            color: var(--gray-500);
+        }
+
+        .menu-item-status.locked {
+            background: var(--accent-orange-light);
+            color: var(--accent-orange);
+        }
+
+        .menu-item.disabled {
+            opacity: 0.5;
+        }
+
+        .toggle-mini {
+            width: 32px;
+            height: 18px;
+            background: var(--gray-300);
+            border-radius: 9px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-mini.active {
+            background: var(--accent-green);
+        }
+
+        .toggle-mini.active.locked {
+            background: var(--accent-orange);
+        }
+
+        .toggle-mini-knob {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .toggle-mini.active .toggle-mini-knob {
+            transform: translateX(14px);
+        }
+
+        .menu-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .menu-item-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 6px;
+            color: var(--gray-500);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .menu-item-btn:hover {
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        .add-category-btn {
+            width: 100%;
+            padding: 14px;
+            border: 2px dashed var(--gray-300);
+            border-radius: var(--radius);
+            background: transparent;
+            color: var(--gray-500);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .add-category-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        /* ===== SAVE BAR ===== */
+        .save-bar {
+            position: fixed;
+            bottom: 0;
+            left: var(--sidebar-width);
+            right: 0;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            transform: translateY(100%);
+            transition: transform 0.3s;
+            z-index: 50;
+        }
+
+        .save-bar.show {
+            transform: translateY(0);
+        }
+
+        .save-bar-text {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--gray-600);
+        }
+
+        .save-bar-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-orange);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .save-bar-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 440px;
+            max-height: 90vh;
+            overflow: hidden;
+            transform: translateY(20px);
+            transition: transform 0.2s;
+        }
+
+        .modal-overlay.show .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* ===== INFO BOX ===== */
+        .info-box {
+            background: var(--accent-blue-light);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--gray-700);
+        }
+
+        .info-box-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="admin-sidebar">
+        <div class="admin-logo">
+            <h1>
+                <span>📚</span>
+                Espace cours
+                <span class="badge">Admin</span>
+            </h1>
+        </div>
+
+        <nav>
+            <!-- PRINCIPAL -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📌 Principal</div>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">🏠</span>
+                    Page d'accueil
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📬</span>
+                    Messagerie
+                    <span class="badge">3</span>
+                </a>
+            </div>
+
+            <!-- RESSOURCES -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📚 Ressources</div>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📖</span>
+                    Leçons
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">🧠</span>
+                    Méthodologie
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">🎬</span>
+                    Vidéos
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">💡</span>
+                    Recommandations
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">❓</span>
+                    FAQ
+                </a>
+            </div>
+
+            <!-- EXERCICES -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">🎯 Exercices</div>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📐</span>
+                    Banque de formats
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">🧩</span>
+                    Banque d'éléments
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📝</span>
+                    Entraînements
+                </a>
+            </div>
+
+            <!-- ÉVALUATIONS -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📊 Évaluations</div>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    Évaluations
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">🟣</span>
+                    Compétences
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📊</span>
+                    Notes & Suivi
+                </a>
+            </div>
+
+            <!-- ÉLÈVES -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">👥 Élèves</div>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">👥</span>
+                    Utilisateurs
+                </a>
+            </div>
+
+            <!-- PARAMÈTRES -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">⚙️ Configuration</div>
+                <a href="#" class="sidebar-link active">
+                    <span class="icon">⚙️</span>
+                    Paramètres
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <!-- TOP BAR -->
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Menu">☰</button>
+                <div class="top-bar-breadcrumb">
+                    <a href="#">Admin</a>
+                    <span class="separator">/</span>
+                    <span>Paramètres</span>
+                </div>
+            </div>
+            <div class="top-bar-user">
+                <div class="top-bar-user-avatar">EM</div>
+                <div>
+                    <div class="top-bar-user-name">Mme Meyer</div>
+                    <div class="top-bar-user-role">Professeur</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- PAGE CONTENT -->
+        <div class="page-content">
+            
+            <!-- PAGE HEADER -->
+            <div class="page-header">
+                <h1>⚙️ Paramètres</h1>
+                <p>Configure ton espace de cours : apparence, classeur modèle et menu élève.</p>
+            </div>
+
+            <!-- TABS -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('general')">
+                    🎨 Général
+                </button>
+                <button class="tab" onclick="switchTab('classeur')">
+                    📂 Classeur modèle
+                </button>
+                <button class="tab" onclick="switchTab('menu')">
+                    📱 Menu élève
+                </button>
+            </div>
+
+            <!-- ===== TAB: GÉNÉRAL ===== -->
+            <div class="tab-content active" id="tab-general">
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-header-icon">🏷️</span>
+                        <span class="card-header-title">Nom du site</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Titre principal</label>
+                                <input type="text" class="form-input" id="siteName" value="Espace cours" onchange="updatePreview(); showSaveBar();">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Sous-titre</label>
+                                <input type="text" class="form-input" id="siteSubtitle" value="Mme Meyer" onchange="updatePreview(); showSaveBar();">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-header-icon">😀</span>
+                        <span class="card-header-title">Logo / Emoji</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">Choisis un emoji</label>
+                            <div class="emoji-picker-inline" id="logoEmojiPicker">
+                                <button type="button" class="emoji-option selected" data-emoji="📚">📚</button>
+                                <button type="button" class="emoji-option" data-emoji="📖">📖</button>
+                                <button type="button" class="emoji-option" data-emoji="🎓">🎓</button>
+                                <button type="button" class="emoji-option" data-emoji="✏️">✏️</button>
+                                <button type="button" class="emoji-option" data-emoji="📝">📝</button>
+                                <button type="button" class="emoji-option" data-emoji="🏫">🏫</button>
+                                <button type="button" class="emoji-option" data-emoji="🌟">🌟</button>
+                                <button type="button" class="emoji-option" data-emoji="🚀">🚀</button>
+                                <button type="button" class="emoji-option" data-emoji="💡">💡</button>
+                                <button type="button" class="emoji-option" data-emoji="🎯">🎯</button>
+                                <button type="button" class="emoji-option" data-emoji="📐">📐</button>
+                                <button type="button" class="emoji-option" data-emoji="🌍">🌍</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-header-icon">🎨</span>
+                        <span class="card-header-title">Couleur principale</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">Choisis une couleur</label>
+                            <div class="color-picker-group">
+                                <input type="color" class="color-picker" id="primaryColor" value="#6366f1" onchange="updatePreview(); showSaveBar();">
+                                <div class="color-presets">
+                                    <button class="color-preset active" style="background: #6366f1;" onclick="setColor('#6366f1')" title="Violet (défaut)"></button>
+                                    <button class="color-preset" style="background: #3b82f6;" onclick="setColor('#3b82f6')" title="Bleu"></button>
+                                    <button class="color-preset" style="background: #10b981;" onclick="setColor('#10b981')" title="Vert"></button>
+                                    <button class="color-preset" style="background: #f59e0b;" onclick="setColor('#f59e0b')" title="Orange"></button>
+                                    <button class="color-preset" style="background: #ef4444;" onclick="setColor('#ef4444')" title="Rouge"></button>
+                                    <button class="color-preset" style="background: #8b5cf6;" onclick="setColor('#8b5cf6')" title="Violet clair"></button>
+                                    <button class="color-preset" style="background: #ec4899;" onclick="setColor('#ec4899')" title="Rose"></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="preview-box">
+                            <div class="preview-label">Aperçu du header</div>
+                            <div class="preview-header">
+                                <div class="preview-header-icon" id="previewIcon" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">📚</div>
+                                <div class="preview-header-text">
+                                    <span id="previewName">Espace cours</span> <span>• <span id="previewSubtitle">Mme Meyer</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ===== TAB: CLASSEUR MODÈLE ===== -->
+            <div class="tab-content" id="tab-classeur">
+                
+                <div class="info-box">
+                    <span class="info-box-icon">💡</span>
+                    <div>
+                        <strong>Comment mettre à jour le classeur ?</strong><br>
+                        1. Modifie ton document Word/Google Docs<br>
+                        2. Exporte en PDF<br>
+                        3. Upload sur Publuu<br>
+                        4. Colle le nouveau lien ci-dessous
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-header-icon">🔗</span>
+                        <span class="card-header-title">Lien Publuu</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">URL d'embed du flipbook</label>
+                            <input type="text" class="form-input" id="publuuUrl" value="https://publuu.com/flip-book/1031300/2281576" placeholder="https://publuu.com/flip-book/..." onchange="updateClasseurPreview(); showSaveBar();">
+                            <div class="form-hint">Colle ici le lien de partage Publuu (pas le lien embed complet)</div>
+                        </div>
+
+                        <div class="preview-box">
+                            <div class="preview-label">Aperçu du classeur</div>
+                            <div class="iframe-preview">
+                                <iframe id="classeurPreview" src="https://publuu.com/flip-book/1031300/2281576/page/1?embed" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ===== TAB: MENU ÉLÈVE ===== -->
+            <div class="tab-content" id="tab-menu">
+                
+                <div class="info-box">
+                    <span class="info-box-icon">💡</span>
+                    <div>
+                        <strong>Glisse-dépose</strong> pour réorganiser • <strong>Toggle</strong> pour afficher/masquer/bloquer • <strong>✏️</strong> pour renommer
+                    </div>
+                </div>
+
+                <div id="menuSectionsContainer">
+                    
+                    <!-- Organisation -->
+                    <div class="menu-section" data-section-id="organisation">
+                        <div class="menu-section-header">
+                            <span class="menu-section-drag">⋮⋮</span>
+                            <span class="menu-section-icon">📅</span>
+                            <span class="menu-section-title">Organisation</span>
+                            <button class="menu-section-btn" title="Modifier">✏️</button>
+                            <button class="menu-section-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                        <div class="menu-section-body">
+                            <div class="menu-item" data-id="emploi-du-temps" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">📆</div>
+                                <span class="menu-item-name">Emploi du temps</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                            <div class="menu-item" data-id="classeur" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">📂</div>
+                                <span class="menu-item-name">Classeur modèle</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cours -->
+                    <div class="menu-section" data-section-id="cours">
+                        <div class="menu-section-header">
+                            <span class="menu-section-drag">⋮⋮</span>
+                            <span class="menu-section-icon">📖</span>
+                            <span class="menu-section-title">Cours</span>
+                            <button class="menu-section-btn" title="Modifier">✏️</button>
+                            <button class="menu-section-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                        <div class="menu-section-body">
+                            <div class="menu-item" data-id="lecons" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">📖</div>
+                                <span class="menu-item-name">Leçons</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                            <div class="menu-item" data-id="methodologie" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">🧠</div>
+                                <span class="menu-item-name">Méthodologie</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- S'entraîner -->
+                    <div class="menu-section" data-section-id="entrainement">
+                        <div class="menu-section-header">
+                            <span class="menu-section-drag">⋮⋮</span>
+                            <span class="menu-section-icon">📝</span>
+                            <span class="menu-section-title">S'entraîner</span>
+                            <button class="menu-section-btn" title="Modifier">✏️</button>
+                            <button class="menu-section-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                        <div class="menu-section-body">
+                            <div class="menu-item" data-id="connaissances" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">🟢</div>
+                                <span class="menu-item-name">Connaissances</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                            <div class="menu-item" data-id="savoir-faire" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">🟠</div>
+                                <span class="menu-item-name">Savoir-faire</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                            <div class="menu-item disabled" data-id="competences" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">🟣</div>
+                                <span class="menu-item-name">Compétences</span>
+                                <span class="menu-item-status hidden">Masqué</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Évaluations -->
+                    <div class="menu-section" data-section-id="evaluations">
+                        <div class="menu-section-header">
+                            <span class="menu-section-drag">⋮⋮</span>
+                            <span class="menu-section-icon">📋</span>
+                            <span class="menu-section-title">Évaluations</span>
+                            <button class="menu-section-btn" title="Modifier">✏️</button>
+                            <button class="menu-section-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                        <div class="menu-section-body">
+                            <div class="menu-item" data-id="mes-evaluations" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">📋</div>
+                                <span class="menu-item-name">Mes évaluations</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                            <div class="menu-item" data-id="mes-notes" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">📊</div>
+                                <span class="menu-item-name">Mes notes</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ressources -->
+                    <div class="menu-section" data-section-id="ressources">
+                        <div class="menu-section-header">
+                            <span class="menu-section-drag">⋮⋮</span>
+                            <span class="menu-section-icon">📺</span>
+                            <span class="menu-section-title">Ressources</span>
+                            <button class="menu-section-btn" title="Modifier">✏️</button>
+                            <button class="menu-section-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                        <div class="menu-section-body">
+                            <div class="menu-item" data-id="videos" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">🎬</div>
+                                <span class="menu-item-name">Vidéos</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                            <div class="menu-item" data-id="recommandations" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">💡</div>
+                                <span class="menu-item-name">Recommandations</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Aide -->
+                    <div class="menu-section" data-section-id="aide">
+                        <div class="menu-section-header">
+                            <span class="menu-section-drag">⋮⋮</span>
+                            <span class="menu-section-icon">❓</span>
+                            <span class="menu-section-title">Aide</span>
+                            <button class="menu-section-btn" title="Modifier">✏️</button>
+                            <button class="menu-section-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                        <div class="menu-section-body">
+                            <div class="menu-item" data-id="faq" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">❓</div>
+                                <span class="menu-item-name">FAQ</span>
+                                <span class="menu-item-status visible">Visible</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                            <div class="menu-item" data-id="messagerie" draggable="true">
+                                <span class="menu-item-drag">⋮⋮</span>
+                                <div class="menu-item-icon">✉️</div>
+                                <span class="menu-item-name">Messagerie</span>
+                                <span class="menu-item-status locked">🔒 Bloqué</span>
+                                <div class="menu-item-actions">
+                                    <div class="toggle-mini active locked" onclick="this.classList.toggle('active'); showSaveBar();"><div class="toggle-mini-knob"></div></div>
+                                    <button class="menu-item-btn">✏️</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <button class="add-category-btn" onclick="openNewCategoryModal()">
+                    ➕ Ajouter une catégorie
+                </button>
+
+            </div>
+
+            <!-- Spacer -->
+            <div style="height: 80px;"></div>
+
+        </div>
+    </main>
+</div>
+
+<!-- ===== SAVE BAR ===== -->
+<div class="save-bar" id="saveBar">
+    <div class="save-bar-text">
+        <span class="save-bar-dot"></span>
+        <span>Modifications non enregistrées</span>
+    </div>
+    <div class="save-bar-actions">
+        <button class="btn btn-secondary" onclick="cancelChanges()">Annuler</button>
+        <button class="btn btn-primary" onclick="saveChanges()">💾 Enregistrer</button>
+    </div>
+</div>
+
+<!-- ===== MODAL: New Category ===== -->
+<div class="modal-overlay" id="newCategoryModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">➕ Nouvelle catégorie</h2>
+            <button class="modal-close" onclick="closeNewCategoryModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Nom de la catégorie</label>
+                <input type="text" class="form-input" id="newCategoryName" placeholder="Ex: Projets, Favoris...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Icône</label>
+                <div class="emoji-picker-inline" id="newCategoryEmoji">
+                    <button type="button" class="emoji-option selected" data-emoji="⭐">⭐</button>
+                    <button type="button" class="emoji-option" data-emoji="📁">📁</button>
+                    <button type="button" class="emoji-option" data-emoji="🎯">🎯</button>
+                    <button type="button" class="emoji-option" data-emoji="🏆">🏆</button>
+                    <button type="button" class="emoji-option" data-emoji="💬">💬</button>
+                    <button type="button" class="emoji-option" data-emoji="🔧">🔧</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeNewCategoryModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="createCategory()">➕ Créer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let hasChanges = false;
+    let selectedEmoji = '📚';
+    let selectedCategoryEmoji = '⭐';
+
+    // ===== TABS =====
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        event.target.classList.add('active');
+        document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    // ===== GENERAL TAB =====
+    function updatePreview() {
+        const name = document.getElementById('siteName').value;
+        const subtitle = document.getElementById('siteSubtitle').value;
+        const color = document.getElementById('primaryColor').value;
+        
+        document.getElementById('previewName').textContent = name;
+        document.getElementById('previewSubtitle').textContent = subtitle;
+        document.getElementById('previewIcon').style.background = `linear-gradient(135deg, ${color}, ${adjustColor(color, -20)})`;
+        document.getElementById('previewIcon').textContent = selectedEmoji;
+    }
+
+    function setColor(color) {
+        document.getElementById('primaryColor').value = color;
+        document.querySelectorAll('.color-preset').forEach(p => p.classList.remove('active'));
+        event.target.classList.add('active');
+        updatePreview();
+        showSaveBar();
+    }
+
+    function adjustColor(color, amount) {
+        const num = parseInt(color.slice(1), 16);
+        const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+        const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+        const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+        return `#${(1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1)}`;
+    }
+
+    // Logo emoji picker
+    document.getElementById('logoEmojiPicker').addEventListener('click', (e) => {
+        const btn = e.target.closest('.emoji-option');
+        if (btn) {
+            document.querySelectorAll('#logoEmojiPicker .emoji-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedEmoji = btn.dataset.emoji;
+            updatePreview();
+            showSaveBar();
+        }
+    });
+
+    // ===== CLASSEUR TAB =====
+    function updateClasseurPreview() {
+        const url = document.getElementById('publuuUrl').value;
+        if (url) {
+            let embedUrl = url;
+            if (!url.includes('/page/')) {
+                embedUrl = url + '/page/1?embed';
+            } else if (!url.includes('?embed')) {
+                embedUrl = url + '?embed';
+            }
+            document.getElementById('classeurPreview').src = embedUrl;
+        }
+    }
+
+    // ===== MENU TAB =====
+    document.getElementById('newCategoryEmoji')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.emoji-option');
+        if (btn) {
+            document.querySelectorAll('#newCategoryEmoji .emoji-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedCategoryEmoji = btn.dataset.emoji;
+        }
+    });
+
+    function openNewCategoryModal() {
+        document.getElementById('newCategoryModal').classList.add('show');
+        document.getElementById('newCategoryName').value = '';
+    }
+
+    function closeNewCategoryModal() {
+        document.getElementById('newCategoryModal').classList.remove('show');
+    }
+
+    function createCategory() {
+        const name = document.getElementById('newCategoryName').value.trim();
+        if (!name) {
+            alert('Veuillez entrer un nom');
+            return;
+        }
+        
+        // Create new section (simplified)
+        alert('Catégorie "' + name + '" créée avec l\'icône ' + selectedCategoryEmoji);
+        closeNewCategoryModal();
+        showSaveBar();
+    }
+
+    // ===== SAVE BAR =====
+    function showSaveBar() {
+        hasChanges = true;
+        document.getElementById('saveBar').classList.add('show');
+    }
+
+    function hideSaveBar() {
+        hasChanges = false;
+        document.getElementById('saveBar').classList.remove('show');
+    }
+
+    function saveChanges() {
+        alert('✅ Paramètres enregistrés !');
+        hideSaveBar();
+    }
+
+    function cancelChanges() {
+        if (confirm('Annuler les modifications ?')) {
+            location.reload();
+        }
+    }
+
+    // ===== SIDEBAR =====
+    function toggleSidebar() {
+        document.querySelector('.admin-sidebar').classList.toggle('collapsed');
+        document.querySelector('.main-content').classList.toggle('expanded');
+    }
+
+    // ===== MODAL CLOSE =====
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.remove('show');
+        });
+    });
+
+    // ===== WARN BEFORE LEAVE =====
+    window.onbeforeunload = () => hasChanges ? 'Modifications non enregistrées' : null;
+
+    // ===== INIT =====
+    updatePreview();
+</script>
+
+</body>
+</html>
