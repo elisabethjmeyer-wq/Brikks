@@ -510,6 +510,54 @@ const AdminParametres = {
     },
 
     /**
+     * Envoie une requête POST vers Google Apps Script via JSONP
+     * (contourne les problèmes CORS)
+     */
+    postToAppsScript(action, data) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+            // Créer le callback global
+            window[callbackName] = (response) => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                if (response.success) {
+                    resolve(response);
+                } else {
+                    reject(new Error(response.error || 'Erreur inconnue'));
+                }
+            };
+
+            // Créer le script JSONP
+            const script = document.createElement('script');
+            const params = new URLSearchParams({
+                action: action,
+                data: JSON.stringify(data),
+                callback: callbackName
+            });
+            script.src = `${CONFIG.WEBAPP_URL}?${params.toString()}`;
+            script.onerror = () => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('Erreur réseau'));
+            };
+
+            // Timeout de 30 secondes
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        document.body.removeChild(script);
+                    }
+                    reject(new Error('Timeout'));
+                }
+            }, 30000);
+
+            document.body.appendChild(script);
+        });
+    },
+
+    /**
      * Sauvegarde les modifications
      */
     async saveChanges() {
@@ -532,49 +580,24 @@ const AdminParametres = {
             // Collecter les données du menu
             const menuItems = this.collectMenuState();
 
-            // Envoyer les paramètres via Apps Script
-            const paramsResponse = await fetch(CONFIG.WEBAPP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({
-                    action: 'updateParametres',
-                    data: JSON.stringify(params)
-                })
-            });
+            console.log('[Parametres] Saving params:', params);
+            console.log('[Parametres] Saving menu:', menuItems);
 
-            // Envoyer le menu via Apps Script
-            const menuResponse = await fetch(CONFIG.WEBAPP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams({
-                    action: 'updateMenuConfig',
-                    data: JSON.stringify(menuItems)
-                })
-            });
+            // Envoyer les paramètres via JSONP
+            const paramsResult = await this.postToAppsScript('updateParametres', params);
+            console.log('[Parametres] Params saved:', paramsResult);
 
-            if (paramsResponse.ok && menuResponse.ok) {
-                this.hasChanges = false;
-                document.getElementById('saveBar')?.classList.remove('show');
-                alert('✅ Paramètres enregistrés !');
-            } else {
-                throw new Error('Erreur serveur');
-            }
-
-        } catch (error) {
-            console.error('[Parametres] Erreur sauvegarde:', error);
-            alert('❌ Erreur lors de la sauvegarde. Les paramètres seront sauvegardés localement.');
-
-            // Sauvegarde locale en fallback
-            localStorage.setItem('brikks_params', JSON.stringify({
-                site_titre: document.getElementById('siteName')?.value,
-                site_sous_titre: document.getElementById('siteSubtitle')?.value,
-                site_emoji: this.selectedEmoji,
-                site_couleur: document.getElementById('primaryColor')?.value,
-                classeur_url: document.getElementById('classeurUrl')?.value
-            }));
+            // Envoyer le menu via JSONP
+            const menuResult = await this.postToAppsScript('updateMenuConfig', menuItems);
+            console.log('[Parametres] Menu saved:', menuResult);
 
             this.hasChanges = false;
             document.getElementById('saveBar')?.classList.remove('show');
+            alert('✅ Paramètres enregistrés !');
+
+        } catch (error) {
+            console.error('[Parametres] Erreur sauvegarde:', error);
+            alert('❌ Erreur lors de la sauvegarde: ' + error.message);
 
         } finally {
             if (saveBtn) {
