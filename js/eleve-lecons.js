@@ -125,8 +125,13 @@ const EleveLecons = {
             const icon = discipline.emoji || this.getIcon(discipline.nom);
             const themesForDiscipline = this.themes.filter(t => t.discipline_id === discipline.id);
 
+            // Chapitres introductifs (sans theme_id, avec discipline_id)
+            const introChapitres = this.chapitres.filter(c =>
+                !c.theme_id && c.discipline_id === discipline.id
+            ).sort((a, b) => (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0));
+
             // Vérifier s'il y a des chapitres publiés pour cette discipline
-            const hasPublishedChapters = themesForDiscipline.some(theme =>
+            const hasPublishedChapters = introChapitres.length > 0 || themesForDiscipline.some(theme =>
                 this.chapitres.some(c => c.theme_id === theme.id)
             );
 
@@ -140,6 +145,12 @@ const EleveLecons = {
                     </div>
             `;
 
+            // Afficher d'abord les cours introductifs
+            if (introChapitres.length > 0) {
+                html += this.renderIntroAccordion(discipline, introChapitres, icon);
+            }
+
+            // Puis les thèmes
             themesForDiscipline.forEach(theme => {
                 const chapitres = this.chapitres.filter(c => c.theme_id === theme.id);
                 if (chapitres.length === 0) return;
@@ -151,6 +162,31 @@ const EleveLecons = {
         });
 
         return html || '<div class="empty-state"><div class="icon">📚</div><h3>Aucune leçon dans cette matière</h3></div>';
+    },
+
+    /**
+     * Génère un accordion pour les cours introductifs
+     */
+    renderIntroAccordion(discipline, chapitres, icon) {
+        const chapitresHtml = chapitres.map((chapitre, index) =>
+            this.renderChapterCard(chapitre, index + 1)
+        ).join('');
+
+        return `
+            <div class="theme-accordion intro-accordion">
+                <button class="theme-accordion-header">
+                    <span class="accordion-arrow">▶</span>
+                    <div class="theme-accordion-info">
+                        <div class="theme-accordion-title">📌 Cours introductifs</div>
+                        <div class="theme-accordion-meta">${chapitres.length} cours</div>
+                    </div>
+                    <span class="theme-accordion-badge">${chapitres.length}</span>
+                </button>
+                <div class="theme-accordion-content">
+                    ${chapitresHtml}
+                </div>
+            </div>
+        `;
     },
 
     /**
@@ -225,13 +261,20 @@ const EleveLecons = {
         }
 
         let itemsHtml = sortedChapitres.map(chapitre => {
-            const theme = this.themes.find(t => t.id === chapitre.theme_id);
-            const discipline = theme ? this.disciplines.find(d => d.id === theme.discipline_id) : null;
-            // Utiliser l'emoji de la discipline si disponible
+            let theme = null;
+            let discipline = null;
+
+            if (chapitre.theme_id) {
+                theme = this.themes.find(t => t.id === chapitre.theme_id);
+                discipline = theme ? this.disciplines.find(d => d.id === theme.discipline_id) : null;
+            } else if (chapitre.discipline_id) {
+                // Cours introductif
+                discipline = this.disciplines.find(d => d.id === chapitre.discipline_id);
+            }
+
             const icon = discipline && discipline.emoji ? discipline.emoji : (discipline ? this.getIcon(discipline.nom) : '📖');
             const disciplineName = discipline ? discipline.nom : '';
-            // Utiliser 'nom' ou 'titre' pour le thème
-            const themeName = theme ? (theme.nom || theme.titre || '') : '';
+            const themeName = theme ? (theme.nom || theme.titre || '') : 'Cours introductif';
 
             return `
                 <a href="chapitre.html?id=${chapitre.id}" class="order-item">

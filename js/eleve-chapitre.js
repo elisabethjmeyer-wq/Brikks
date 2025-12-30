@@ -8,6 +8,8 @@ const EleveChapitre = {
     theme: null,
     discipline: null,
     allChapitres: [],
+    supports: [],
+    currentSupportIndex: 0,
 
     // Icônes par discipline
     disciplineIcons: {
@@ -58,10 +60,11 @@ const EleveChapitre = {
      * Charge les données depuis Google Sheets
      */
     async loadData(chapitreId) {
-        const [disciplines, themes, chapitres] = await Promise.all([
+        const [disciplines, themes, chapitres, supports] = await Promise.all([
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.DISCIPLINES),
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.THEMES),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.CHAPITRES)
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.CHAPITRES),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.SUPPORTS_CHAPITRE).catch(() => [])
         ]);
 
         // Filtrer les chapitres publiés
@@ -73,12 +76,21 @@ const EleveChapitre = {
         this.chapitre = this.allChapitres.find(c => c.id === chapitreId);
 
         if (this.chapitre) {
-            // Trouver le thème
-            this.theme = (themes || []).find(t => t.id === this.chapitre.theme_id);
+            // Charger les supports du chapitre
+            this.supports = (supports || [])
+                .filter(s => s.chapitre_id === chapitreId)
+                .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
 
-            // Trouver la discipline
-            if (this.theme) {
-                this.discipline = (disciplines || []).find(d => d.id === this.theme.discipline_id);
+            // Trouver le thème (si c'est un chapitre de thème)
+            if (this.chapitre.theme_id) {
+                this.theme = (themes || []).find(t => t.id === this.chapitre.theme_id);
+                if (this.theme) {
+                    this.discipline = (disciplines || []).find(d => d.id === this.theme.discipline_id);
+                }
+            }
+            // Sinon c'est un cours introductif (discipline_id directement)
+            else if (this.chapitre.discipline_id) {
+                this.discipline = (disciplines || []).find(d => d.id === this.chapitre.discipline_id);
             }
         }
     },
@@ -95,6 +107,7 @@ const EleveChapitre = {
         // Utiliser 'nom' ou 'titre' pour le thème
         const themeName = this.theme ? (this.theme.nom || this.theme.titre || '') : '';
         const chapterName = this.chapitre ? this.chapitre.titre : '';
+        const isIntro = !this.chapitre.theme_id && this.chapitre.discipline_id;
 
         breadcrumbContainer.innerHTML = `
             <a href="/Brikks/eleve/">🏠 Accueil</a>
@@ -107,7 +120,10 @@ const EleveChapitre = {
             ${themeName ? `
                 <span class="separator">›</span>
                 <span>${this.truncate(themeName, 30)}</span>
-            ` : ''}
+            ` : (isIntro ? `
+                <span class="separator">›</span>
+                <span>📌 Cours introductifs</span>
+            ` : '')}
             <span class="separator">›</span>
             <span class="current">${this.truncate(chapterName, 40)}</span>
         `;
@@ -125,16 +141,23 @@ const EleveChapitre = {
 
         const icon = this.getIcon();
         const disciplineName = this.discipline ? this.discipline.nom : '';
-        // Utiliser 'nom' ou 'titre' pour le thème
         const themeName = this.theme ? (this.theme.nom || this.theme.titre || '') : '';
         const themeNumero = this.theme ? (this.theme.ordre || this.theme.numero || '') : '';
         const chapitreNumero = this.chapitre.numero || '';
+        const isIntro = !this.chapitre.theme_id && this.chapitre.discipline_id;
 
         // Header
         document.getElementById('chapter-icon').textContent = icon;
         document.getElementById('chapter-matiere').innerHTML = `${icon} ${disciplineName}`;
-        document.getElementById('chapter-theme-info').textContent =
-            `${themeNumero ? 'Thème ' + themeNumero : ''} ${chapitreNumero ? '• Chapitre ' + chapitreNumero : ''}`;
+
+        if (isIntro) {
+            document.getElementById('chapter-theme-info').textContent =
+                `📌 Cours introductif ${chapitreNumero ? '• Chapitre ' + chapitreNumero : ''}`;
+        } else {
+            document.getElementById('chapter-theme-info').textContent =
+                `${themeNumero ? 'Thème ' + themeNumero : ''} ${chapitreNumero ? '• Chapitre ' + chapitreNumero : ''}`;
+        }
+
         document.getElementById('chapter-title').textContent = this.chapitre.titre || 'Chapitre sans titre';
 
         // Tag de leçon
@@ -150,9 +173,11 @@ const EleveChapitre = {
         // Navigation
         this.renderNavigation();
 
-        // Bouton nouveau onglet
-        if (this.chapitre.lien) {
-            document.getElementById('btn-new-tab').href = this.chapitre.lien;
+        // Bouton nouveau onglet - utiliser le premier support ou le lien direct
+        const firstSupport = this.supports[0];
+        const mainUrl = firstSupport ? firstSupport.url : this.chapitre.lien;
+        if (mainUrl) {
+            document.getElementById('btn-new-tab').href = mainUrl;
         }
     },
 
@@ -161,8 +186,17 @@ const EleveChapitre = {
      */
     renderViewer() {
         const viewerContent = document.getElementById('viewer-content');
+        const viewerHeader = document.querySelector('.viewer-header');
 
-        if (!this.chapitre.lien) {
+        // Déterminer quels supports afficher
+        const supportsToShow = this.supports.length > 0
+            ? this.supports
+            : (this.chapitre.lien ? [{ type: 'document', nom: 'Document du cours', url: this.chapitre.lien }] : []);
+
+        // Afficher le texte explicatif si présent
+        const texteExplicatif = this.chapitre.contenu_texte;
+
+        if (supportsToShow.length === 0 && !texteExplicatif) {
             viewerContent.innerHTML = `
                 <div class="viewer-placeholder">
                     <div class="icon">📄</div>
@@ -173,51 +207,145 @@ const EleveChapitre = {
             return;
         }
 
-        const lien = this.chapitre.lien;
+        let html = '';
+
+        // Texte explicatif
+        if (texteExplicatif) {
+            html += `
+                <div class="chapter-text-content">
+                    <div class="text-content-box">
+                        <p>${texteExplicatif.replace(/\n/g, '<br>')}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Onglets si plusieurs supports
+        if (supportsToShow.length > 1) {
+            html += '<div class="supports-tabs">';
+            supportsToShow.forEach((support, index) => {
+                const typeIcon = this.getSupportIcon(support.type);
+                const activeClass = index === 0 ? 'active' : '';
+                html += `<button class="support-tab ${activeClass}" data-index="${index}">${typeIcon} ${support.nom || 'Support ' + (index + 1)}</button>`;
+            });
+            html += '</div>';
+        }
+
+        // Conteneurs des supports
+        html += '<div class="supports-content">';
+        supportsToShow.forEach((support, index) => {
+            const activeClass = index === 0 ? 'active' : '';
+            html += `<div class="support-panel ${activeClass}" data-index="${index}">`;
+            html += this.renderSupportContent(support);
+            html += '</div>';
+        });
+        html += '</div>';
+
+        viewerContent.innerHTML = html;
+
+        // Mettre à jour le titre du viewer
+        if (supportsToShow.length > 0) {
+            const firstSupport = supportsToShow[0];
+            const typeIcon = this.getSupportIcon(firstSupport.type);
+            document.querySelector('.viewer-title').innerHTML = `
+                <span class="icon">${typeIcon}</span>
+                <span>${firstSupport.nom || 'Document du cours'}</span>
+            `;
+        }
+
+        // Bind des événements des onglets
+        this.bindSupportTabs();
+    },
+
+    /**
+     * Retourne l'icône selon le type de support
+     */
+    getSupportIcon(type) {
+        switch ((type || '').toLowerCase()) {
+            case 'video': return '🎬';
+            case 'audio': return '🎧';
+            case 'lien': return '🔗';
+            default: return '📄';
+        }
+    },
+
+    /**
+     * Génère le contenu d'un support
+     */
+    renderSupportContent(support) {
+        const url = support.url;
+        if (!url) return '<div class="viewer-placeholder"><p>URL non définie</p></div>';
 
         // Détecter le type de lien et l'adapter pour l'embed
-        if (lien.includes('docs.google.com/document')) {
-            // Google Docs
-            const embedUrl = this.convertGoogleDocsUrl(lien);
-            viewerContent.innerHTML = `
-                <iframe class="viewer-iframe" src="${embedUrl}" allowfullscreen></iframe>
-            `;
-        } else if (lien.includes('docs.google.com/presentation')) {
-            // Google Slides
-            const embedUrl = this.convertGoogleSlidesUrl(lien);
-            viewerContent.innerHTML = `
-                <iframe class="viewer-iframe" src="${embedUrl}" allowfullscreen></iframe>
-            `;
-        } else if (lien.includes('youtube.com') || lien.includes('youtu.be')) {
-            // YouTube
-            const embedUrl = this.convertYouTubeUrl(lien);
-            viewerContent.innerHTML = `
-                <div class="video-container">
-                    <iframe src="${embedUrl}" allowfullscreen></iframe>
-                </div>
-            `;
-        } else if (lien.includes('loom.com')) {
-            // Loom
-            const embedUrl = lien.replace('/share/', '/embed/');
-            viewerContent.innerHTML = `
-                <div class="video-container">
-                    <iframe src="${embedUrl}" allowfullscreen></iframe>
-                </div>
-            `;
+        if (url.includes('docs.google.com/document')) {
+            const embedUrl = this.convertGoogleDocsUrl(url);
+            return `<iframe class="viewer-iframe" src="${embedUrl}" allowfullscreen></iframe>`;
+        } else if (url.includes('docs.google.com/presentation')) {
+            const embedUrl = this.convertGoogleSlidesUrl(url);
+            return `<iframe class="viewer-iframe" src="${embedUrl}" allowfullscreen></iframe>`;
+        } else if (url.includes('drive.google.com')) {
+            const embedUrl = this.convertGoogleDriveUrl(url);
+            return `<iframe class="viewer-iframe" src="${embedUrl}" allowfullscreen></iframe>`;
+        } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+            const embedUrl = this.convertYouTubeUrl(url);
+            return `<div class="video-container"><iframe src="${embedUrl}" allowfullscreen></iframe></div>`;
+        } else if (url.includes('loom.com')) {
+            const embedUrl = url.replace('/share/', '/embed/');
+            return `<div class="video-container"><iframe src="${embedUrl}" allowfullscreen></iframe></div>`;
         } else {
-            // Lien externe générique
-            viewerContent.innerHTML = `
+            return `
                 <div class="viewer-placeholder">
                     <div class="icon">🔗</div>
-                    <h3>Lien externe</h3>
+                    <h3>${support.nom || 'Lien externe'}</h3>
                     <p>Ce document s'ouvre dans un nouvel onglet.</p>
-                    <a href="${lien}" target="_blank" class="btn btn-primary">
+                    <a href="${url}" target="_blank" class="btn btn-primary">
                         <span>↗</span>
-                        Ouvrir le document
+                        Ouvrir
                     </a>
                 </div>
             `;
         }
+    },
+
+    /**
+     * Convertit une URL Google Drive pour l'embed
+     */
+    convertGoogleDriveUrl(url) {
+        const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if (match) {
+            return `https://drive.google.com/file/d/${match[1]}/preview`;
+        }
+        return url;
+    },
+
+    /**
+     * Bind des événements pour les onglets de supports
+     */
+    bindSupportTabs() {
+        document.querySelectorAll('.support-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const index = tab.dataset.index;
+
+                // Mettre à jour les onglets actifs
+                document.querySelectorAll('.support-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Mettre à jour les panneaux actifs
+                document.querySelectorAll('.support-panel').forEach(p => p.classList.remove('active'));
+                document.querySelector(`.support-panel[data-index="${index}"]`).classList.add('active');
+
+                // Mettre à jour le titre du viewer
+                const support = this.supports[index] || { type: 'document', nom: 'Document' };
+                const typeIcon = this.getSupportIcon(support.type);
+                document.querySelector('.viewer-title').innerHTML = `
+                    <span class="icon">${typeIcon}</span>
+                    <span>${support.nom || 'Document du cours'}</span>
+                `;
+
+                // Mettre à jour le bouton nouvel onglet
+                document.getElementById('btn-new-tab').href = support.url;
+            });
+        });
     },
 
     /**
@@ -262,29 +390,39 @@ const EleveChapitre = {
      * Affiche la navigation (chapitre précédent/suivant)
      */
     renderNavigation() {
-        if (!this.theme) return;
+        let relatedChapters = [];
 
-        // Récupérer les chapitres du même thème
-        const themeChapiters = this.allChapitres
-            .filter(c => c.theme_id === this.theme.id)
-            .sort((a, b) => (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0));
+        // Si c'est un chapitre de thème
+        if (this.theme) {
+            relatedChapters = this.allChapitres
+                .filter(c => c.theme_id === this.theme.id)
+                .sort((a, b) => (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0));
+        }
+        // Si c'est un cours introductif
+        else if (this.chapitre.discipline_id && !this.chapitre.theme_id) {
+            relatedChapters = this.allChapitres
+                .filter(c => !c.theme_id && c.discipline_id === this.chapitre.discipline_id)
+                .sort((a, b) => (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0));
+        }
 
-        const currentIndex = themeChapiters.findIndex(c => c.id === this.chapitre.id);
+        if (relatedChapters.length === 0) return;
+
+        const currentIndex = relatedChapters.findIndex(c => c.id === this.chapitre.id);
 
         const prevBtn = document.getElementById('nav-prev');
         const nextBtn = document.getElementById('nav-next');
 
         // Chapitre précédent
         if (currentIndex > 0) {
-            const prev = themeChapiters[currentIndex - 1];
+            const prev = relatedChapters[currentIndex - 1];
             prevBtn.href = `chapitre.html?id=${prev.id}`;
             prevBtn.classList.remove('disabled');
             prevBtn.querySelector('.title').textContent = this.truncate(prev.titre, 30);
         }
 
         // Chapitre suivant
-        if (currentIndex < themeChapiters.length - 1) {
-            const next = themeChapiters[currentIndex + 1];
+        if (currentIndex < relatedChapters.length - 1) {
+            const next = relatedChapters[currentIndex + 1];
             nextBtn.href = `chapitre.html?id=${next.id}`;
             nextBtn.classList.remove('disabled');
             nextBtn.querySelector('.title').textContent = this.truncate(next.titre, 30);
