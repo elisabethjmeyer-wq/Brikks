@@ -774,6 +774,18 @@ h3 { font-size: 1.25rem; }
     transition: margin-left 0.3s ease;
 }
 
+/* Container intérieur pour limiter la largeur */
+.eleve-main > *:not(.breadcrumb) {
+    max-width: 1400px;
+}
+
+/* Centrer le contenu sur très grands écrans */
+@media (min-width: 1800px) {
+    .eleve-main {
+        padding: 24px 48px;
+    }
+}
+
 /* Breadcrumb */
 .breadcrumb {
     display: flex;
