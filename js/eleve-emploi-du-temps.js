@@ -95,7 +95,10 @@ const EleveEmploiDuTemps = {
         }
 
         if (calendarId) {
-            return `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarId)}&ctz=Europe%2FParis&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0`;
+            // showTabs=1 permet de choisir la vue (jour/semaine/mois)
+            // showNav=1 permet la navigation (flèches)
+            // mode=MONTH pour une vue mensuelle par défaut (plus compact)
+            return `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarId)}&ctz=Europe%2FParis&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0`;
         }
 
         // Si on ne peut pas convertir, retourner l'URL telle quelle

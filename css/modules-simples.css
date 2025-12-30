@@ -28,9 +28,7 @@
 
 /* Iframe spécifique pour le calendrier - plus compact */
 .iframe-calendar .module-iframe {
-    height: 60vh;
-    min-height: 450px;
-    max-height: 550px;
+    height: 520px;
 }
 
 /* Header du calendrier avec badge */
@@ -282,9 +280,7 @@
     }
 
     .iframe-calendar .module-iframe {
-        height: 55vh;
-        min-height: 400px;
-        max-height: 450px;
+        height: 450px;
     }
 
     .calendar-header {
