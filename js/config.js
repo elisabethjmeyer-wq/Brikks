@@ -11,7 +11,9 @@ const CONFIG = {
     // Onglets Google Sheets
     SHEETS: {
         UTILISATEURS: 'UTILISATEURS',
-        // Autres onglets à ajouter selon les besoins
+        DISCIPLINES: 'DISCIPLINES',
+        THEMES: 'THEMES',
+        CHAPITRES: 'CHAPITRES'
     },
 
     // URLs de redirection (avec préfixe GitHub Pages)
