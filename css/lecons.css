@@ -1012,46 +1012,67 @@
     transform: translateX(22px);
 }
 
-/* Matière Section */
+/* Container des leçons - grille sur grands écrans */
+#view-theme {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Sur grands écrans, afficher les disciplines en 2 colonnes */
+@media (min-width: 1200px) {
+    #view-theme {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+        align-items: start;
+    }
+}
+
+/* Matière Section - Design compact */
 .matiere-section {
-    margin-bottom: 32px;
+    margin-bottom: 24px;
 }
 
 .matiere-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 0;
+    gap: 10px;
+    padding: 12px 0;
     border-bottom: 3px solid var(--primary);
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 10;
 }
 
 .matiere-icon {
-    font-size: 28px;
+    font-size: 22px;
 }
 
 .matiere-title {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 800;
     color: var(--gray-900);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-/* Theme Accordion */
+/* Theme Accordion - Compact */
 .theme-accordion {
     background: white;
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     overflow: hidden;
 }
 
 .theme-accordion-header {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
+    gap: 12px;
+    padding: 12px 16px;
     cursor: pointer;
     transition: all 0.2s;
     border: none;
@@ -1070,14 +1091,14 @@
 }
 
 .accordion-arrow {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     background: var(--gray-100);
-    border-radius: 8px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 10px;
     color: var(--gray-500);
     transition: transform 0.2s, background 0.2s;
     flex-shrink: 0;
@@ -1091,23 +1112,25 @@
 
 .theme-accordion-info {
     flex: 1;
+    min-width: 0;
 }
 
 .theme-accordion-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--gray-800);
-    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .theme-accordion-meta {
-    font-size: 12px;
-    color: var(--gray-500);
+    display: none;
 }
 
 .theme-accordion-badge {
-    padding: 4px 10px;
-    border-radius: 12px;
+    padding: 3px 8px;
+    border-radius: 10px;
     font-size: 11px;
     font-weight: 600;
     background: var(--gray-100);
@@ -1116,20 +1139,20 @@
 
 .theme-accordion-content {
     display: none;
-    padding: 8px;
+    padding: 6px;
 }
 
 .theme-accordion.open .theme-accordion-content {
     display: block;
 }
 
-/* Chapter Card (Élève) */
+/* Chapter Card (Élève) - Compact */
 .chapter-card {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    border-radius: 10px;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
     text-decoration: none;
@@ -1141,9 +1164,9 @@
 }
 
 .chapter-card .chapter-number {
-    width: 36px;
-    height: 36px;
-    font-size: 13px;
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
     font-weight: 700;
 }
 
@@ -1153,10 +1176,13 @@
 }
 
 .chapter-card .chapter-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--gray-800);
     margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .chapter-arrow {
