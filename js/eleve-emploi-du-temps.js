@@ -22,10 +22,11 @@ const EleveEmploiDuTemps = {
      */
     async getAgendaForStudent() {
         // Récupérer le groupe de l'élève depuis la session
-        const sessionData = sessionStorage.getItem('currentUser');
+        // Clé correcte : 'brikks_user' (CONFIG.STORAGE_KEYS.USER)
+        const sessionData = sessionStorage.getItem('brikks_user');
         console.log('[EmploiDuTemps] Session storage raw:', sessionData);
 
-        const currentUser = App.currentUser || (sessionData ? JSON.parse(sessionData) : null);
+        const currentUser = sessionData ? JSON.parse(sessionData) : null;
         console.log('[EmploiDuTemps] Current user:', currentUser);
         console.log('[EmploiDuTemps] User groupe:', currentUser?.groupe);
 
