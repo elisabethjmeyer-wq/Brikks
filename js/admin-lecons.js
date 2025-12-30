@@ -326,15 +326,16 @@ const AdminLecons = {
     editingChapterId: null,
 
     /**
-     * Appelle le Web App (compatible CORS)
+     * Appelle le Web App (compatible CORS via JSONP)
      */
-    async callWebApp(action, data) {
-        if (CONFIG.WEBAPP_URL === 'REMPLACER_PAR_URL_WEB_APP') {
-            alert('Erreur : Le Web App n\'est pas configuré.\nVoir google-apps-script/DEPLOIEMENT.md');
-            return { success: false, error: 'Web App non configuré' };
-        }
+    callWebApp(action, data) {
+        return new Promise((resolve) => {
+            if (CONFIG.WEBAPP_URL === 'REMPLACER_PAR_URL_WEB_APP') {
+                alert('Erreur : Le Web App n\'est pas configuré.\nVoir google-apps-script/DEPLOIEMENT.md');
+                resolve({ success: false, error: 'Web App non configuré' });
+                return;
+            }
 
-        try {
             // Construire l'URL avec les paramètres
             const params = new URLSearchParams();
             params.append('action', action);
@@ -344,18 +345,39 @@ const AdminLecons = {
                 }
             });
 
+            // Nom unique pour le callback JSONP
+            const callbackName = 'brikksCallback_' + Date.now();
+            params.append('callback', callbackName);
+
             const url = CONFIG.WEBAPP_URL + '?' + params.toString();
 
-            const response = await fetch(url, {
-                method: 'GET',
-                mode: 'cors'
-            });
+            // Créer le callback global
+            window[callbackName] = function(response) {
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                resolve(response);
+            };
 
-            return await response.json();
-        } catch (error) {
-            console.error('Erreur Web App:', error);
-            return { success: false, error: error.message };
-        }
+            // Créer le script JSONP
+            const script = document.createElement('script');
+            script.src = url;
+            script.onerror = function() {
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                resolve({ success: false, error: 'Erreur de connexion au serveur' });
+            };
+
+            document.body.appendChild(script);
+
+            // Timeout après 30 secondes
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    resolve({ success: false, error: 'Timeout - le serveur ne répond pas' });
+                }
+            }, 30000);
+        });
     },
 
     /**
