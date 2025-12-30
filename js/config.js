@@ -10,7 +10,7 @@ const CONFIG = {
 
     // URL du Web App Google Apps Script (à remplir après déploiement)
     // Voir google-apps-script/DEPLOIEMENT.md pour les instructions
-    WEBAPP_URL: 'REMPLACER_PAR_URL_WEB_APP',
+    WEBAPP_URL: 'https://script.google.com/macros/s/AKfycbwoxqiWIYM4m3exZMghd_gYQJEMbJCIfPKJRLWJ_Ad7F8qzlid48Rtxofyyqk-mK2YLqQ/exec',
 
     // Onglets Google Sheets
     SHEETS: {
