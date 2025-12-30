@@ -24,14 +24,17 @@ const Auth = {
             console.log('4. Mot de passe saisi:', motDePasse);
 
             const user = utilisateurs.find(u => {
+                // Trim des valeurs pour éviter les espaces parasites
+                const sheetId = (u.identifiant || '').trim();
+                const sheetPwd = (u.mot_de_passe || '').trim();
                 // DEBUG: Comparaison pour chaque utilisateur
                 console.log('5. Comparaison avec:', {
-                    identifiant_sheets: u.identifiant,
-                    mot_de_passe_sheets: u.mot_de_passe,
-                    match_identifiant: u.identifiant === identifiant,
-                    match_mdp: u.mot_de_passe === motDePasse
+                    identifiant_sheets: sheetId,
+                    mot_de_passe_sheets: sheetPwd,
+                    match_identifiant: sheetId === identifiant,
+                    match_mdp: sheetPwd === motDePasse
                 });
-                return u.identifiant === identifiant && u.mot_de_passe === motDePasse;
+                return sheetId === identifiant && sheetPwd === motDePasse;
             });
 
             // DEBUG: Résultat
