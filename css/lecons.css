@@ -1237,9 +1237,26 @@
 /* Layout côte à côte */
 .main-content-area {
     display: grid;
-    grid-template-columns: 1fr 260px;
+    grid-template-columns: 1fr 320px;
     gap: 16px;
     align-items: start;
+    transition: grid-template-columns 0.3s ease;
+}
+
+/* Quand sidebar masqué, le document principal s'élargit */
+#main.expanded .main-content-area {
+    grid-template-columns: 1fr 280px;
+}
+
+/* Sur écrans moyens avec sidebar visible */
+@media (max-width: 1200px) {
+    .main-content-area {
+        grid-template-columns: 1fr 280px;
+    }
+
+    #main.expanded .main-content-area {
+        grid-template-columns: 1fr 260px;
+    }
 }
 
 /* Sur petits écrans, empiler verticalement */
