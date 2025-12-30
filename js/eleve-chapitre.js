@@ -402,6 +402,9 @@ const EleveChapitre = {
         } else if (url.includes('drive.google.com')) {
             const embedUrl = this.convertGoogleDriveUrl(url);
             return `<iframe class="viewer-iframe" src="${embedUrl}" allowfullscreen></iframe>`;
+        } else if (url.includes('publuu.com')) {
+            // Publuu flipbook - embed direct
+            return `<iframe class="viewer-iframe" src="${url}" allowfullscreen></iframe>`;
         } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
             const embedUrl = this.convertYouTubeUrl(url);
             return `<div class="video-container"><iframe src="${embedUrl}" allowfullscreen></iframe></div>`;
