@@ -7,6 +7,13 @@ const AdminLecons = {
     disciplines: [],
     themes: [],
     chapitres: [],
+    supports: [],
+
+    // Filtre actif
+    currentFilter: '',
+
+    // Supports temporaires pour le formulaire
+    tempSupports: [],
 
     // Icônes par discipline
     disciplineIcons: {
@@ -25,6 +32,7 @@ const AdminLecons = {
             await this.loadData();
             this.render();
             this.populateSelects();
+            this.populateFilterSelect();
         } catch (error) {
             console.error('Erreur lors du chargement:', error);
             this.showError('Erreur lors du chargement des données');
@@ -35,21 +43,47 @@ const AdminLecons = {
      * Charge les données depuis Google Sheets
      */
     async loadData() {
-        const [disciplines, themes, chapitres] = await Promise.all([
+        const [disciplines, themes, chapitres, supports] = await Promise.all([
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.DISCIPLINES),
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.THEMES),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.CHAPITRES)
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.CHAPITRES),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.SUPPORTS_CHAPITRE).catch(() => [])
         ]);
 
         this.disciplines = disciplines || [];
         this.themes = themes || [];
         this.chapitres = chapitres || [];
+        this.supports = supports || [];
 
         console.log('Données chargées:', {
             disciplines: this.disciplines.length,
             themes: this.themes.length,
-            chapitres: this.chapitres.length
+            chapitres: this.chapitres.length,
+            supports: this.supports.length
         });
+    },
+
+    /**
+     * Remplit le select de filtre par discipline
+     */
+    populateFilterSelect() {
+        const filterSelect = document.getElementById('filter-discipline');
+        if (!filterSelect) return;
+
+        filterSelect.innerHTML = '<option value="">Toutes les disciplines</option>';
+        this.disciplines.forEach(d => {
+            const icon = d.emoji || this.getIcon(d.nom);
+            filterSelect.innerHTML += `<option value="${d.id}">${icon} ${d.nom}</option>`;
+        });
+    },
+
+    /**
+     * Filtre par discipline
+     */
+    filterByDiscipline() {
+        const filterSelect = document.getElementById('filter-discipline');
+        this.currentFilter = filterSelect.value;
+        this.render();
     },
 
     /**
@@ -62,7 +96,10 @@ const AdminLecons = {
 
         loader.style.display = 'none';
 
-        if (this.themes.length === 0) {
+        // Vérifier s'il y a des données (thèmes ou chapitres introductifs)
+        const hasData = this.themes.length > 0 || this.chapitres.some(c => !c.theme_id);
+
+        if (!hasData) {
             emptyState.style.display = 'block';
             container.style.display = 'none';
             this.updateStats();
@@ -72,26 +109,72 @@ const AdminLecons = {
         container.style.display = 'flex';
         emptyState.style.display = 'none';
 
-        // Grouper les thèmes par discipline
-        const themesByDiscipline = this.groupThemesByDiscipline();
-
         let html = '';
 
-        for (const [disciplineId, themes] of Object.entries(themesByDiscipline)) {
-            const discipline = this.disciplines.find(d => d.id === disciplineId);
-            const disciplineName = discipline ? discipline.nom : 'Autre';
-            // Utiliser l'emoji de la discipline si disponible
-            const icon = discipline && discipline.emoji ? discipline.emoji : this.getIcon(disciplineName);
+        // Grouper par discipline
+        const disciplinesToShow = this.currentFilter
+            ? this.disciplines.filter(d => d.id === this.currentFilter)
+            : this.disciplines;
 
-            themes.forEach(theme => {
+        disciplinesToShow.forEach(discipline => {
+            const icon = discipline.emoji || this.getIcon(discipline.nom);
+
+            // Chapitres introductifs de cette discipline
+            const introChapitres = this.chapitres.filter(c =>
+                !c.theme_id && c.discipline_id === discipline.id
+            ).sort((a, b) => (parseInt(a.numero) || 0) - (parseInt(b.numero) || 0));
+
+            // Thèmes de cette discipline
+            const disciplineThemes = this.themes.filter(t =>
+                t.discipline_id === discipline.id
+            ).sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+
+            // Afficher les chapitres introductifs
+            if (introChapitres.length > 0) {
+                html += this.renderIntroSection(discipline, introChapitres, icon);
+            }
+
+            // Afficher les thèmes
+            disciplineThemes.forEach(theme => {
                 const chapitres = this.getChapitresForTheme(theme.id);
-                html += this.renderThemeCard(theme, chapitres, icon, disciplineName);
+                html += this.renderThemeCard(theme, chapitres, icon, discipline.nom);
             });
-        }
+        });
 
         container.innerHTML = html;
         this.updateStats();
         this.bindEvents();
+    },
+
+    /**
+     * Génère le HTML pour les chapitres introductifs
+     */
+    renderIntroSection(discipline, chapitres, icon) {
+        const chapitresHtml = chapitres.map((chapitre, index) =>
+            this.renderChapterItem(chapitre, index + 1)
+        ).join('');
+
+        return `
+            <div class="theme-card intro-section" data-discipline-id="${discipline.id}">
+                <div class="theme-header intro-header">
+                    <span class="drag-handle">⋮⋮</span>
+                    <div class="theme-icon">${icon}</div>
+                    <div class="theme-info">
+                        <h2 class="theme-title">📌 Cours introductifs - ${discipline.nom}</h2>
+                        <p class="theme-meta">${chapitres.length} chapitre${chapitres.length > 1 ? 's' : ''} hors thème</p>
+                    </div>
+                    <div class="theme-actions">
+                        <button class="theme-toggle" title="Réduire">▼</button>
+                    </div>
+                </div>
+                <div class="chapters-list">
+                    ${chapitresHtml}
+                    <button class="add-chapter-btn" onclick="AdminLecons.addIntroChapter('${discipline.id}')">
+                        + Ajouter un cours introductif
+                    </button>
+                </div>
+            </div>
+        `;
     },
 
     /**
@@ -142,7 +225,6 @@ const AdminLecons = {
             this.renderChapterItem(chapitre, index + 1)
         ).join('');
 
-        // Utiliser 'nom' ou 'titre' selon ce qui existe
         const themeName = theme.nom || theme.titre || 'Thème sans titre';
 
         return `
@@ -180,11 +262,16 @@ const AdminLecons = {
             ? `<span class="lesson-tag">L${chapitre.numero_lecon}</span>`
             : `<span class="lesson-tag empty">—</span>`;
 
-        // Supporter 'lien' ou 'contenu' comme source de contenu
+        // Compter les supports
+        const supportsCount = this.supports.filter(s => s.chapitre_id === chapitre.id).length;
         const lien = chapitre.lien || '';
-        const lienHtml = lien
-            ? `<div class="chapter-link"><a href="${lien}" target="_blank">📄 ${this.truncateUrl(lien)}</a></div>`
-            : '';
+
+        let lienHtml = '';
+        if (supportsCount > 0) {
+            lienHtml = `<div class="chapter-link"><span>📎 ${supportsCount} support${supportsCount > 1 ? 's' : ''}</span></div>`;
+        } else if (lien) {
+            lienHtml = `<div class="chapter-link"><a href="${lien}" target="_blank">📄 ${this.truncateUrl(lien)}</a></div>`;
+        }
 
         return `
             <div class="chapter-item" data-chapter-id="${chapitre.id}">
@@ -265,9 +352,18 @@ const AdminLecons = {
         if (disciplineSelect) {
             disciplineSelect.innerHTML = '<option value="">— Sélectionner une discipline —</option>';
             this.disciplines.forEach(d => {
-                // Utiliser l'emoji de la discipline ou l'icône par défaut
                 const icon = d.emoji || this.getIcon(d.nom);
                 disciplineSelect.innerHTML += `<option value="${d.id}">${icon} ${d.nom}</option>`;
+            });
+        }
+
+        // Select disciplines pour chapitre introductif
+        const chapterDisciplineSelect = document.getElementById('chapter-discipline-select');
+        if (chapterDisciplineSelect) {
+            chapterDisciplineSelect.innerHTML = '<option value="">— Sélectionner une discipline —</option>';
+            this.disciplines.forEach(d => {
+                const icon = d.emoji || this.getIcon(d.nom);
+                chapterDisciplineSelect.innerHTML += `<option value="${d.id}">${icon} ${d.nom}</option>`;
             });
         }
 
@@ -277,19 +373,15 @@ const AdminLecons = {
             themeSelect.innerHTML = '<option value="">— Sélectionner un thème —</option>';
 
             // Grouper par discipline
-            const themesByDiscipline = this.groupThemesByDiscipline();
+            this.disciplines.forEach(discipline => {
+                const disciplineThemes = this.themes.filter(t => t.discipline_id === discipline.id);
+                const icon = discipline.emoji || this.getIcon(discipline.nom);
 
-            for (const [disciplineId, themes] of Object.entries(themesByDiscipline)) {
-                const discipline = this.disciplines.find(d => d.id === disciplineId);
-                const disciplineName = discipline ? discipline.nom : 'Autre';
-                const icon = discipline && discipline.emoji ? discipline.emoji : this.getIcon(disciplineName);
-
-                themes.forEach(theme => {
-                    // Utiliser 'nom' ou 'titre'
+                disciplineThemes.forEach(theme => {
                     const themeName = theme.nom || theme.titre || 'Sans titre';
-                    themeSelect.innerHTML += `<option value="${theme.id}">${themeName} (${icon} ${disciplineName})</option>`;
+                    themeSelect.innerHTML += `<option value="${theme.id}">${themeName} (${icon} ${discipline.nom})</option>`;
                 });
-            }
+            });
         }
     },
 
@@ -314,11 +406,114 @@ const AdminLecons = {
     },
 
     /**
+     * Déplie tous les thèmes
+     */
+    expandAll() {
+        document.querySelectorAll('.theme-card').forEach(card => {
+            const list = card.querySelector('.chapters-list');
+            const btn = card.querySelector('.theme-toggle');
+            if (list) list.style.display = 'block';
+            if (btn) btn.textContent = '▼';
+        });
+    },
+
+    /**
+     * Replie tous les thèmes
+     */
+    collapseAll() {
+        document.querySelectorAll('.theme-card').forEach(card => {
+            const list = card.querySelector('.chapters-list');
+            const btn = card.querySelector('.theme-toggle');
+            if (list) list.style.display = 'none';
+            if (btn) btn.textContent = '▶';
+        });
+    },
+
+    /**
+     * Toggle entre chapitre de thème et cours introductif
+     */
+    toggleChapterType() {
+        const isIntro = document.getElementById('type-intro').checked;
+        document.getElementById('theme-select-group').style.display = isIntro ? 'none' : 'block';
+        document.getElementById('discipline-select-group').style.display = isIntro ? 'block' : 'none';
+    },
+
+    /**
      * Ouvre le modal pour ajouter un chapitre à un thème spécifique
      */
     addChapterToTheme(themeId) {
+        this.resetChapterForm();
+        document.getElementById('type-theme').checked = true;
+        this.toggleChapterType();
         document.getElementById('chapter-theme-select').value = themeId;
         openModal('modal-chapter');
+    },
+
+    /**
+     * Ouvre le modal pour ajouter un chapitre introductif
+     */
+    addIntroChapter(disciplineId) {
+        this.resetChapterForm();
+        document.getElementById('type-intro').checked = true;
+        this.toggleChapterType();
+        document.getElementById('chapter-discipline-select').value = disciplineId;
+        openModal('modal-chapter');
+    },
+
+    /**
+     * Ajoute un support au formulaire
+     */
+    addSupport(data = {}) {
+        const supportsList = document.getElementById('supports-list');
+        const index = supportsList.children.length;
+
+        const supportHtml = `
+            <div class="support-item" data-index="${index}">
+                <select class="support-type" name="support-type-${index}">
+                    <option value="document" ${data.type === 'document' ? 'selected' : ''}>📄 Document</option>
+                    <option value="video" ${data.type === 'video' ? 'selected' : ''}>🎬 Vidéo</option>
+                    <option value="audio" ${data.type === 'audio' ? 'selected' : ''}>🎧 Audio</option>
+                    <option value="lien" ${data.type === 'lien' ? 'selected' : ''}>🔗 Lien externe</option>
+                </select>
+                <input type="text" class="support-name" name="support-name-${index}" placeholder="Nom du support" value="${data.nom || ''}">
+                <input type="url" class="support-url" name="support-url-${index}" placeholder="https://..." value="${data.url || ''}">
+                <button type="button" class="support-remove" onclick="AdminLecons.removeSupport(${index})" title="Supprimer">🗑️</button>
+            </div>
+        `;
+
+        supportsList.insertAdjacentHTML('beforeend', supportHtml);
+    },
+
+    /**
+     * Supprime un support du formulaire
+     */
+    removeSupport(index) {
+        const supportItem = document.querySelector(`.support-item[data-index="${index}"]`);
+        if (supportItem) {
+            supportItem.remove();
+        }
+    },
+
+    /**
+     * Récupère les supports du formulaire
+     */
+    getSupportsFromForm() {
+        const supports = [];
+        document.querySelectorAll('.support-item').forEach((item, index) => {
+            const type = item.querySelector('.support-type').value;
+            const nom = item.querySelector('.support-name').value;
+            const url = item.querySelector('.support-url').value;
+
+            if (url) {
+                supports.push({
+                    type,
+                    nom: nom || `Support ${index + 1}`,
+                    url,
+                    ordre: index + 1
+                });
+            }
+        });
+        return supports;
     },
 
     // ID en cours d'édition
@@ -336,7 +531,6 @@ const AdminLecons = {
                 return;
             }
 
-            // Construire l'URL avec les paramètres
             const params = new URLSearchParams();
             params.append('action', action);
             Object.keys(data).forEach(key => {
@@ -345,20 +539,17 @@ const AdminLecons = {
                 }
             });
 
-            // Nom unique pour le callback JSONP
             const callbackName = 'brikksCallback_' + Date.now();
             params.append('callback', callbackName);
 
             const url = CONFIG.WEBAPP_URL + '?' + params.toString();
 
-            // Créer le callback global
             window[callbackName] = function(response) {
                 delete window[callbackName];
                 if (script.parentNode) script.parentNode.removeChild(script);
                 resolve(response);
             };
 
-            // Créer le script JSONP
             const script = document.createElement('script');
             script.src = url;
             script.onerror = function() {
@@ -369,7 +560,6 @@ const AdminLecons = {
 
             document.body.appendChild(script);
 
-            // Timeout après 30 secondes
             setTimeout(() => {
                 if (window[callbackName]) {
                     delete window[callbackName];
@@ -406,16 +596,48 @@ const AdminLecons = {
 
         this.editingChapterId = chapitreId;
 
-        document.getElementById('chapter-theme-select').value = chapitre.theme_id || '';
+        // Type de chapitre
+        const isIntro = !chapitre.theme_id && chapitre.discipline_id;
+        if (isIntro) {
+            document.getElementById('type-intro').checked = true;
+            document.getElementById('chapter-discipline-select').value = chapitre.discipline_id || '';
+        } else {
+            document.getElementById('type-theme').checked = true;
+            document.getElementById('chapter-theme-select').value = chapitre.theme_id || '';
+        }
+        this.toggleChapterType();
+
         document.getElementById('chapter-titre').value = chapitre.titre || '';
         document.getElementById('chapter-numero').value = chapitre.numero || '';
         document.getElementById('chapter-lecon').value = chapitre.numero_lecon || '';
-        document.getElementById('chapter-lien').value = chapitre.lien || '';
+        document.getElementById('chapter-contenu-texte').value = chapitre.contenu_texte || '';
 
         // Statut
         const statut = (chapitre.statut || 'brouillon').toLowerCase();
         const radioBtn = document.querySelector(`input[name="chapter-status"][value="${statut}"]`);
         if (radioBtn) radioBtn.checked = true;
+
+        // Charger les supports
+        const supportsList = document.getElementById('supports-list');
+        supportsList.innerHTML = '';
+
+        const chapterSupports = this.supports.filter(s => s.chapitre_id === chapitreId);
+        if (chapterSupports.length > 0) {
+            chapterSupports.forEach(support => {
+                this.addSupport({
+                    type: support.type,
+                    nom: support.nom,
+                    url: support.url
+                });
+            });
+        } else if (chapitre.lien) {
+            // Migration : utiliser l'ancien champ lien
+            this.addSupport({
+                type: 'document',
+                nom: 'Document principal',
+                url: chapitre.lien
+            });
+        }
 
         document.getElementById('modal-chapter-title').textContent = 'Modifier le chapitre';
         openModal('modal-chapter');
@@ -426,10 +648,14 @@ const AdminLecons = {
      */
     viewChapter(chapitreId) {
         const chapitre = this.chapitres.find(c => c.id === chapitreId);
-        if (chapitre && chapitre.lien) {
+        const chapterSupports = this.supports.filter(s => s.chapitre_id === chapitreId);
+
+        if (chapterSupports.length > 0) {
+            window.open(chapterSupports[0].url, '_blank');
+        } else if (chapitre && chapitre.lien) {
             window.open(chapitre.lien, '_blank');
         } else {
-            alert('Ce chapitre n\'a pas de lien associé.');
+            alert('Ce chapitre n\'a pas de support associé.');
         }
     },
 
@@ -501,11 +727,9 @@ const AdminLecons = {
 
         let result;
         if (this.editingThemeId) {
-            // Modification
             data.id = this.editingThemeId;
             result = await this.callWebApp('updateTheme', data);
         } else {
-            // Création
             result = await this.callWebApp('addTheme', data);
         }
 
@@ -525,38 +749,75 @@ const AdminLecons = {
      * Sauvegarde un chapitre (création ou modification)
      */
     async saveChapter() {
-        const themeId = document.getElementById('chapter-theme-select').value;
+        const isIntro = document.getElementById('type-intro').checked;
+        const themeId = isIntro ? '' : document.getElementById('chapter-theme-select').value;
+        const disciplineId = isIntro ? document.getElementById('chapter-discipline-select').value : '';
         const titre = document.getElementById('chapter-titre').value;
         const numero = document.getElementById('chapter-numero').value;
         const numeroLecon = document.getElementById('chapter-lecon').value;
-        const lien = document.getElementById('chapter-lien').value;
+        const contenuTexte = document.getElementById('chapter-contenu-texte').value;
         const statut = document.querySelector('input[name="chapter-status"]:checked').value;
 
-        if (!themeId || !titre) {
-            alert('Veuillez sélectionner un thème et entrer un titre.');
+        // Validation
+        if (isIntro && !disciplineId) {
+            alert('Veuillez sélectionner une discipline.');
+            return;
+        }
+        if (!isIntro && !themeId) {
+            alert('Veuillez sélectionner un thème.');
+            return;
+        }
+        if (!titre) {
+            alert('Veuillez entrer un titre.');
             return;
         }
 
+        // Récupérer les supports
+        const supports = this.getSupportsFromForm();
+
+        // Premier support pour le champ lien (rétrocompatibilité)
+        const lien = supports.length > 0 ? supports[0].url : '';
+
         const data = {
-            theme_id: themeId,
+            theme_id: themeId || undefined,
+            discipline_id: disciplineId || undefined,
             titre: titre,
             numero: numero || undefined,
             numero_lecon: numeroLecon || undefined,
+            contenu_texte: contenuTexte || undefined,
             lien: lien || undefined,
             statut: statut
         };
 
         let result;
         if (this.editingChapterId) {
-            // Modification
             data.id = this.editingChapterId;
             result = await this.callWebApp('updateChapter', data);
         } else {
-            // Création
             result = await this.callWebApp('addChapter', data);
         }
 
         if (result.success) {
+            const chapterId = this.editingChapterId || result.id;
+
+            // Sauvegarder les supports
+            if (supports.length > 0) {
+                // Supprimer les anciens supports
+                if (this.editingChapterId) {
+                    await this.callWebApp('deleteChapterSupports', { chapitre_id: chapterId });
+                }
+                // Ajouter les nouveaux
+                for (const support of supports) {
+                    await this.callWebApp('addSupport', {
+                        chapitre_id: chapterId,
+                        type: support.type,
+                        nom: support.nom,
+                        url: support.url,
+                        ordre: support.ordre
+                    });
+                }
+            }
+
             this.showNotification(this.editingChapterId ? 'Chapitre modifié' : 'Chapitre créé', 'success');
             closeModal('modal-chapter');
             this.resetChapterForm();
@@ -584,20 +845,26 @@ const AdminLecons = {
      */
     resetChapterForm() {
         this.editingChapterId = null;
+        document.getElementById('type-theme').checked = true;
+        this.toggleChapterType();
         document.getElementById('chapter-theme-select').value = '';
+        document.getElementById('chapter-discipline-select').value = '';
         document.getElementById('chapter-titre').value = '';
-        document.getElementById('chapter-numero').value = '';
+        document.getElementById('chapter-numero').value = '1';
         document.getElementById('chapter-lecon').value = '';
-        document.getElementById('chapter-lien').value = '';
+        document.getElementById('chapter-contenu-texte').value = '';
+        document.getElementById('supports-list').innerHTML = '';
         document.querySelector('input[name="chapter-status"][value="brouillon"]').checked = true;
         document.getElementById('modal-chapter-title').textContent = 'Nouveau chapitre';
+
+        // Ajouter un support vide par défaut
+        this.addSupport();
     },
 
     /**
      * Affiche une notification
      */
     showNotification(message, type = 'info') {
-        // Créer l'élément de notification
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
         notification.innerHTML = `
@@ -605,13 +872,9 @@ const AdminLecons = {
             <span>${message}</span>
         `;
 
-        // Ajouter au DOM
         document.body.appendChild(notification);
-
-        // Animation d'entrée
         setTimeout(() => notification.classList.add('show'), 10);
 
-        // Supprimer après 3 secondes
         setTimeout(() => {
             notification.classList.remove('show');
             setTimeout(() => notification.remove(), 300);

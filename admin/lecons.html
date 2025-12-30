@@ -34,6 +34,20 @@
         </div>
     </header>
 
+    <!-- Filter bar -->
+    <div class="filter-bar" id="filter-bar">
+        <div class="filter-group">
+            <label>Filtrer par discipline :</label>
+            <select id="filter-discipline" onchange="AdminLecons.filterByDiscipline()">
+                <option value="">Toutes les disciplines</option>
+            </select>
+        </div>
+        <div class="filter-actions">
+            <button class="btn btn-ghost btn-sm" onclick="AdminLecons.expandAll()">▼ Tout déplier</button>
+            <button class="btn btn-ghost btn-sm" onclick="AdminLecons.collapseAll()">▶ Tout replier</button>
+        </div>
+    </div>
+
     <!-- Stats bar -->
     <div class="stats-bar" id="stats-bar">
         <div class="stat-item">
@@ -70,26 +84,64 @@
     <div class="empty-state" id="empty-state" style="display: none;">
         <div class="icon">📚</div>
         <h3>Aucune leçon</h3>
-        <p>Commencez par créer un thème, puis ajoutez des chapitres.</p>
-        <button class="btn btn-primary" onclick="openNewThemeModal()">
-            <span>📁</span>
-            Créer un thème
-        </button>
+        <p>Commencez par créer un thème ou un chapitre introductif.</p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn btn-outline" onclick="openNewThemeModal()">
+                <span>📁</span>
+                Créer un thème
+            </button>
+            <button class="btn btn-primary" onclick="openNewChapterModal()">
+                <span>+</span>
+                Créer un chapitre
+            </button>
+        </div>
     </div>
 </div>
 
 <!-- MODAL: Nouveau/Modifier Chapitre -->
 <div class="modal-overlay" id="modal-chapter">
-    <div class="modal">
+    <div class="modal modal-large">
         <div class="modal-header">
             <h3 id="modal-chapter-title">📖 Nouveau chapitre</h3>
             <button class="modal-close" onclick="closeModal('modal-chapter')">×</button>
         </div>
         <div class="modal-body">
+            <!-- Type de chapitre -->
             <div class="form-group">
+                <label>Type de chapitre</label>
+                <div class="chapter-type-options">
+                    <div class="chapter-type-option">
+                        <input type="radio" name="chapter-type" id="type-theme" value="theme" checked onchange="AdminLecons.toggleChapterType()">
+                        <label for="type-theme">
+                            <span class="type-icon">📁</span>
+                            <span class="type-label">Chapitre de thème</span>
+                            <span class="type-desc">Rattaché à un thème existant</span>
+                        </label>
+                    </div>
+                    <div class="chapter-type-option">
+                        <input type="radio" name="chapter-type" id="type-intro" value="intro" onchange="AdminLecons.toggleChapterType()">
+                        <label for="type-intro">
+                            <span class="type-icon">📌</span>
+                            <span class="type-label">Cours introductif</span>
+                            <span class="type-desc">Hors thème, en haut de la discipline</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sélection du thème (pour chapitre de thème) -->
+            <div class="form-group" id="theme-select-group">
                 <label>Thème</label>
                 <select id="chapter-theme-select">
                     <option value="">— Sélectionner un thème —</option>
+                </select>
+            </div>
+
+            <!-- Sélection de la discipline (pour cours introductif) -->
+            <div class="form-group" id="discipline-select-group" style="display: none;">
+                <label>Discipline</label>
+                <select id="chapter-discipline-select">
+                    <option value="">— Sélectionner une discipline —</option>
                 </select>
             </div>
 
@@ -102,7 +154,7 @@
                 <div class="form-group">
                     <label>N° du chapitre</label>
                     <input type="number" id="chapter-numero" value="1" min="1">
-                    <p class="form-hint">Ordre dans le thème</p>
+                    <p class="form-hint">Ordre d'affichage</p>
                 </div>
                 <div class="form-group">
                     <label>N° de la leçon</label>
@@ -111,10 +163,22 @@
                 </div>
             </div>
 
+            <!-- Supports multiples -->
             <div class="form-group">
-                <label>Lien du document</label>
-                <input type="url" id="chapter-lien" placeholder="https://docs.google.com/document/d/...">
-                <p class="form-hint">URL vers Google Docs, Slides, ou autre</p>
+                <label>📎 Supports du cours</label>
+                <div class="supports-list" id="supports-list">
+                    <!-- Les supports seront ajoutés ici dynamiquement -->
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="AdminLecons.addSupport()" style="margin-top: 8px;">
+                    + Ajouter un support
+                </button>
+                <p class="form-hint">💡 Le premier support sera affiché par défaut. Les autres seront accessibles via des onglets.</p>
+            </div>
+
+            <!-- Texte explicatif optionnel -->
+            <div class="form-group">
+                <label>📝 Texte explicatif (optionnel)</label>
+                <textarea id="chapter-contenu-texte" rows="3" placeholder="Ajouter une description ou des instructions pour ce chapitre..."></textarea>
             </div>
 
             <div class="form-group">
@@ -128,14 +192,14 @@
                         </label>
                     </div>
                     <div class="status-option">
-                        <input type="radio" name="chapter-status" id="status-pret" value="pret" checked>
+                        <input type="radio" name="chapter-status" id="status-pret" value="pret">
                         <label for="status-pret">
                             <span class="status-icon ready">🟡</span>
                             <span class="status-label">Prêt</span>
                         </label>
                     </div>
                     <div class="status-option">
-                        <input type="radio" name="chapter-status" id="status-brouillon" value="brouillon">
+                        <input type="radio" name="chapter-status" id="status-brouillon" value="brouillon" checked>
                         <label for="status-brouillon">
                             <span class="status-icon draft">⚪</span>
                             <span class="status-label">Brouillon</span>
