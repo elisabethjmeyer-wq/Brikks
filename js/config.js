@@ -14,11 +14,11 @@ const CONFIG = {
         // Autres onglets à ajouter selon les besoins
     },
 
-    // URLs de redirection
+    // URLs de redirection (avec préfixe GitHub Pages)
     ROUTES: {
-        ADMIN: '/admin/',
-        ELEVE: '/eleve/',
-        LOGIN: '/'
+        ADMIN: '/Brikks/admin/',
+        ELEVE: '/Brikks/eleve/',
+        LOGIN: '/Brikks/'
     },
 
     // Clés de stockage local
