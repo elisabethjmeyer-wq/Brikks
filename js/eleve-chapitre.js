@@ -247,7 +247,23 @@ const EleveChapitre = {
         // Document principal = premier support
         const mainSupport = supportsToShow[0];
         if (mainSupport) {
-            mainViewer.innerHTML = this.renderSupportContent(mainSupport);
+            const mainIcon = this.getSupportIcon(mainSupport.type);
+            const mainLabel = mainSupport.nom || 'Leçon principale';
+
+            mainViewer.innerHTML = `
+                <div class="main-viewer-header">
+                    <div class="main-viewer-title">
+                        <span class="icon">${mainIcon}</span>
+                        <span>${mainLabel}</span>
+                    </div>
+                    <div class="main-viewer-actions">
+                        <button class="viewer-action-btn" onclick="EleveChapitre.toggleFullscreen()">
+                            <span>⛶</span> Agrandir
+                        </button>
+                    </div>
+                </div>
+                ${this.renderSupportContent(mainSupport)}
+            `;
         }
 
         // Ressources supplémentaires = note prof + autres supports
@@ -271,16 +287,22 @@ const EleveChapitre = {
 
         // Afficher la barre de ressources si nécessaire
         if (additionalResources.length > 0) {
-            resourcesBar.style.display = 'flex';
+            resourcesBar.style.display = 'block';
 
-            let cardsHtml = '<span class="resources-bar-title">Ressources complémentaires</span>';
+            let html = `
+                <div class="resources-bar-header">
+                    <span class="resources-bar-title">Ressources complémentaires</span>
+                    <span class="resources-bar-count">${additionalResources.length}</span>
+                </div>
+                <div class="resources-grid">
+            `;
 
             additionalResources.forEach((resource, index) => {
                 const icon = resource.type === 'note' ? '📝' : this.getSupportIcon(resource.type);
                 const typeLabel = this.getTypeLabel(resource.type);
                 const isNote = resource.type === 'note';
 
-                cardsHtml += `
+                html += `
                     <div class="resource-card ${isNote ? 'note-card' : ''}" onclick="EleveChapitre.openResource(${index})">
                         <div class="card-icon">${icon}</div>
                         <div class="card-info">
@@ -292,7 +314,8 @@ const EleveChapitre = {
                 `;
             });
 
-            resourcesBar.innerHTML = cardsHtml;
+            html += '</div>';
+            resourcesBar.innerHTML = html;
 
             // Stocker les ressources pour ouverture
             this.additionalResources = additionalResources;
