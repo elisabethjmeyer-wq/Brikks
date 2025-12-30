@@ -615,6 +615,7 @@ function updateMenuConfig(data) {
   const elementCodeCol = headers.indexOf('element_code');
   const visibleCol = headers.indexOf('visible');
   const nomAfficheCol = headers.indexOf('nom_affiche');
+  const iconCol = headers.indexOf('icon');
   const ordreCol = headers.indexOf('ordre');
 
   if (elementCodeCol === -1) {
@@ -643,6 +644,9 @@ function updateMenuConfig(data) {
       }
       if (nomAfficheCol >= 0 && item.nom_affiche !== undefined) {
         sheet.getRange(rowIndex, nomAfficheCol + 1).setValue(item.nom_affiche);
+      }
+      if (iconCol >= 0 && item.icon !== undefined) {
+        sheet.getRange(rowIndex, iconCol + 1).setValue(item.icon);
       }
       if (ordreCol >= 0 && item.ordre !== undefined) {
         sheet.getRange(rowIndex, ordreCol + 1).setValue(item.ordre);
