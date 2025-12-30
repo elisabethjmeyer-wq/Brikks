@@ -23,11 +23,11 @@
     <header class="page-header">
         <h1>📖 Leçons</h1>
         <div class="header-actions">
-            <button class="btn btn-outline" onclick="openModal('modal-theme')">
+            <button class="btn btn-outline" onclick="openNewThemeModal()">
                 <span>📁</span>
                 Nouveau thème
             </button>
-            <button class="btn btn-primary" onclick="openModal('modal-chapter')">
+            <button class="btn btn-primary" onclick="openNewChapterModal()">
                 <span>+</span>
                 Nouveau chapitre
             </button>
@@ -71,7 +71,7 @@
         <div class="icon">📚</div>
         <h3>Aucune leçon</h3>
         <p>Commencez par créer un thème, puis ajoutez des chapitres.</p>
-        <button class="btn btn-primary" onclick="openModal('modal-theme')">
+        <button class="btn btn-primary" onclick="openNewThemeModal()">
             <span>📁</span>
             Créer un thème
         </button>
@@ -151,11 +151,11 @@
     </div>
 </div>
 
-<!-- MODAL: Nouveau Thème -->
+<!-- MODAL: Nouveau/Modifier Thème -->
 <div class="modal-overlay" id="modal-theme">
     <div class="modal">
         <div class="modal-header">
-            <h3>📁 Nouveau thème</h3>
+            <h3 id="modal-theme-title">📁 Nouveau thème</h3>
             <button class="modal-close" onclick="closeModal('modal-theme')">×</button>
         </div>
         <div class="modal-body">
@@ -178,7 +178,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-outline" onclick="closeModal('modal-theme')">Annuler</button>
-            <button class="btn btn-primary" onclick="saveTheme()">✓ Créer le thème</button>
+            <button class="btn btn-primary" onclick="saveTheme()">✓ Enregistrer</button>
         </div>
     </div>
 </div>
@@ -196,6 +196,25 @@
         AdminLayout.init('lecons', 'Leçons');
         AdminLecons.init();
     });
+
+    // Fonctions globales pour les boutons
+    function openNewThemeModal() {
+        AdminLecons.resetThemeForm();
+        openModal('modal-theme');
+    }
+
+    function openNewChapterModal() {
+        AdminLecons.resetChapterForm();
+        openModal('modal-chapter');
+    }
+
+    function saveTheme() {
+        AdminLecons.saveTheme();
+    }
+
+    function saveChapter() {
+        AdminLecons.saveChapter();
+    }
 </script>
 
 </body>

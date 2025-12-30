@@ -1225,3 +1225,53 @@
         justify-content: center;
     }
 }
+
+/* ===== NOTIFICATIONS ===== */
+
+.notification {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--gray-900);
+    color: white;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 10000;
+}
+
+.notification.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.notification-success {
+    background: #059669;
+}
+
+.notification-error {
+    background: #DC2626;
+}
+
+.notification-info {
+    background: var(--primary);
+}
+
+/* Danger button variant */
+.btn.danger,
+.btn-ghost.danger {
+    color: #DC2626;
+}
+
+.btn.danger:hover,
+.btn-ghost.danger:hover {
+    background: #FEE2E2;
+}

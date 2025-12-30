@@ -8,6 +8,10 @@ const CONFIG = {
     SPREADSHEET_ID: '1rsWXHwP2fyuJ0VZKL9UAzFws9UMFqyHXDt5_j8O2Ry0',
     API_KEY: 'AIzaSyBPh3rpAu3YKLMC66VnhikqpN8ovYip6Ac',
 
+    // URL du Web App Google Apps Script (à remplir après déploiement)
+    // Voir google-apps-script/DEPLOIEMENT.md pour les instructions
+    WEBAPP_URL: 'REMPLACER_PAR_URL_WEB_APP',
+
     // Onglets Google Sheets
     SHEETS: {
         UTILISATEURS: 'UTILISATEURS',
