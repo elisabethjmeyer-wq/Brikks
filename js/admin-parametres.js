@@ -329,12 +329,19 @@ const AdminParametres = {
                     items: []
                 };
             }
+            // Handle TRUE/true/1/oui variations for visible
+            const visibleValue = String(item.visible || '').toLowerCase().trim();
+            const isVisible = visibleValue === 'true' || visibleValue === '1' || visibleValue === 'oui' || visibleValue === 'yes' || item.visible === true;
+
+            const bloqueValue = String(item.bloque || '').toLowerCase().trim();
+            const isBloque = bloqueValue === 'true' || bloqueValue === '1' || bloqueValue === 'oui' || bloqueValue === 'yes' || item.bloque === true;
+
             grouped[cat].items.push({
                 id: item.element_code || item.id,
                 nom: item.nom_affiche || item.nom,
                 icon: item.icon || '📄',
-                visible: item.visible === 'true' || item.visible === true || item.visible === '1',
-                bloque: item.bloque === 'true' || item.bloque === true || item.bloque === '1'
+                visible: isVisible,
+                bloque: isBloque
             });
         });
 
@@ -479,6 +486,30 @@ const AdminParametres = {
     },
 
     /**
+     * Collecte l'état actuel du menu depuis le DOM
+     */
+    collectMenuState() {
+        const menuItems = [];
+        const menuElements = document.querySelectorAll('.menu-item');
+
+        menuElements.forEach((el, index) => {
+            const itemId = el.dataset.id;
+            const toggle = el.querySelector('.toggle-mini');
+            const isVisible = toggle?.classList.contains('active') || false;
+            const name = el.querySelector('.menu-item-name')?.textContent || '';
+
+            menuItems.push({
+                element_code: itemId,
+                visible: isVisible,
+                nom_affiche: name,
+                ordre: index + 1
+            });
+        });
+
+        return menuItems;
+    },
+
+    /**
      * Sauvegarde les modifications
      */
     async saveChanges() {
@@ -489,7 +520,7 @@ const AdminParametres = {
         }
 
         try {
-            // Collecter les données
+            // Collecter les données des paramètres
             const params = [
                 { cle: 'site_titre', valeur: document.getElementById('siteName')?.value || '' },
                 { cle: 'site_sous_titre', valeur: document.getElementById('siteSubtitle')?.value || '' },
@@ -498,8 +529,11 @@ const AdminParametres = {
                 { cle: 'classeur_url', valeur: document.getElementById('classeurUrl')?.value || '' }
             ];
 
-            // Envoyer via Apps Script
-            const response = await fetch(CONFIG.WEBAPP_URL, {
+            // Collecter les données du menu
+            const menuItems = this.collectMenuState();
+
+            // Envoyer les paramètres via Apps Script
+            const paramsResponse = await fetch(CONFIG.WEBAPP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({
@@ -508,7 +542,17 @@ const AdminParametres = {
                 })
             });
 
-            if (response.ok) {
+            // Envoyer le menu via Apps Script
+            const menuResponse = await fetch(CONFIG.WEBAPP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    action: 'updateMenuConfig',
+                    data: JSON.stringify(menuItems)
+                })
+            });
+
+            if (paramsResponse.ok && menuResponse.ok) {
                 this.hasChanges = false;
                 document.getElementById('saveBar')?.classList.remove('show');
                 alert('✅ Paramètres enregistrés !');

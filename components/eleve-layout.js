@@ -124,8 +124,12 @@ const EleveLayout = {
                 const grouped = {};
 
                 menuConfig.forEach(item => {
-                    // Vérifier si visible
-                    const isVisible = item.visible === 'true' || item.visible === true || item.visible === '1' || item.visible === 1;
+                    // Vérifier si visible (gérer TRUE/true/1/false/FALSE/0)
+                    const visibleValue = String(item.visible || '').toLowerCase().trim();
+                    const isVisible = visibleValue === 'true' || visibleValue === '1' || visibleValue === 'oui' || visibleValue === 'yes';
+
+                    console.log('[EleveLayout] Item:', item.element_code, 'visible:', item.visible, '-> isVisible:', isVisible);
+
                     if (!isVisible) return; // Ignorer les éléments masqués
 
                     const cat = item.categorie || 'Autres';
@@ -162,7 +166,7 @@ const EleveLayout = {
             // Fallback sur le menu par défaut
             this.menuItems = this.defaultMenuItems;
         } catch (error) {
-            console.log('[EleveLayout] Using default menu');
+            console.log('[EleveLayout] Using default menu, error:', error);
             this.menuItems = this.defaultMenuItems;
         }
     },
