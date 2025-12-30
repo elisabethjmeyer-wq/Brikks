@@ -41,6 +41,7 @@ function handleRequest(e) {
   try {
     const params = e.parameter || {};
     const action = params.action;
+    const callback = params.callback; // Support JSONP
 
     // Si POST avec body JSON
     let data = {};
@@ -80,23 +81,33 @@ function handleRequest(e) {
         result = { success: false, error: 'Action non reconnue: ' + action };
     }
 
-    return createJsonResponse(result);
+    return createResponse(result, callback);
 
   } catch (error) {
-    return createJsonResponse({
+    const callback = e.parameter ? e.parameter.callback : null;
+    return createResponse({
       success: false,
       error: error.message
-    });
+    }, callback);
   }
 }
 
 /**
- * Crée une réponse JSON avec CORS
+ * Crée une réponse (JSONP si callback, sinon JSON)
  */
-function createJsonResponse(data) {
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+function createResponse(data, callback) {
+  if (callback) {
+    // JSONP : retourne du JavaScript qui appelle le callback
+    const jsonData = JSON.stringify(data);
+    return ContentService
+      .createTextOutput(callback + '(' + jsonData + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } else {
+    // JSON classique
+    return ContentService
+      .createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 // ========================================
