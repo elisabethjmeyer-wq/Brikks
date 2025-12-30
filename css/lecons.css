@@ -1237,13 +1237,13 @@
 /* Layout côte à côte */
 .main-content-area {
     display: grid;
-    grid-template-columns: 1fr 280px;
+    grid-template-columns: 1fr 260px;
     gap: 16px;
     align-items: start;
 }
 
 /* Sur petits écrans, empiler verticalement */
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
     .main-content-area {
         grid-template-columns: 1fr;
     }
@@ -1377,7 +1377,7 @@
 }
 
 /* Sur petits écrans, grille horizontale */
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
     .resources-bar {
         position: static;
     }
