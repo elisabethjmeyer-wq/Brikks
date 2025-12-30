@@ -104,6 +104,60 @@
 
 /* ===== ADMIN LECONS ===== */
 
+/* Filter Bar */
+.filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 14px 20px;
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.filter-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-600);
+    white-space: nowrap;
+}
+
+.filter-group select {
+    padding: 8px 36px 8px 12px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: inherit;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    min-width: 220px;
+}
+
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-bg);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
 /* Stats Bar */
 .stats-bar {
     display: flex;
@@ -606,6 +660,145 @@
 .status-option .status-icon.ready { background: var(--accent-orange-light); }
 .status-option .status-icon.draft { background: var(--gray-100); }
 
+/* Modal Large */
+.modal.modal-large {
+    max-width: 700px;
+}
+
+/* Chapter Type Options */
+.chapter-type-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.chapter-type-option {
+    position: relative;
+}
+
+.chapter-type-option input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.chapter-type-option label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.chapter-type-option input:checked + label {
+    border-color: var(--primary);
+    background: var(--primary-bg);
+}
+
+.chapter-type-option .type-icon {
+    font-size: 24px;
+}
+
+.chapter-type-option .type-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.chapter-type-option .type-desc {
+    font-size: 11px;
+    color: var(--gray-500);
+}
+
+/* Supports List */
+.supports-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.support-item {
+    display: grid;
+    grid-template-columns: 140px 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 12px;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+}
+
+.support-item select,
+.support-item input {
+    padding: 10px 12px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: inherit;
+    background: white;
+    transition: all 0.2s;
+}
+
+.support-item select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+}
+
+.support-item input:focus,
+.support-item select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-bg);
+}
+
+.support-remove {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: white;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.support-remove:hover {
+    background: var(--accent-red-light);
+    color: var(--accent-red);
+}
+
+/* Intro Section (chapitres introductifs) */
+.intro-section {
+    border-left: 4px solid var(--primary);
+}
+
+.intro-header {
+    background: linear-gradient(to right, var(--primary-bg), var(--gray-50));
+}
+
+.intro-header .theme-title {
+    color: var(--primary);
+}
+
+/* Textarea Styling */
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
 /* ===== ÉLÈVE LECONS ===== */
 
 /* Filter Tabs */
@@ -947,30 +1140,30 @@
 
 /* ===== CHAPITRE DETAIL ===== */
 
-/* Chapter Header */
+/* Chapter Header - Compact version */
 .chapter-header {
     background: white;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
-    padding: 24px;
-    margin-bottom: 24px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
 }
 
 .chapter-header-top {
     display: flex;
     align-items: flex-start;
-    gap: 20px;
+    gap: 14px;
 }
 
 .chapter-icon {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     background: var(--primary-bg);
-    border-radius: 16px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 32px;
+    font-size: 24px;
     flex-shrink: 0;
 }
 
@@ -981,8 +1174,8 @@
 .chapter-meta {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
+    gap: 10px;
+    margin-bottom: 4px;
     flex-wrap: wrap;
 }
 
@@ -999,14 +1192,14 @@
 }
 
 .chapter-header .chapter-title {
-    font-size: 24px;
-    font-weight: 800;
+    font-size: 20px;
+    font-weight: 700;
     color: var(--gray-900);
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .chapter-subtitle {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--gray-500);
 }
 
@@ -1027,18 +1220,18 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
     overflow: hidden;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 }
 
 .viewer-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    padding: 12px 16px;
     background: var(--gray-50);
     border-bottom: 1px solid var(--gray-100);
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
 }
 
 .viewer-title {
@@ -1163,22 +1356,22 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 14px 16px;
     background: white;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
-    gap: 16px;
+    gap: 12px;
 }
 
 .nav-btn {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
+    gap: 10px;
+    padding: 10px 16px;
     background: var(--gray-100);
     border: none;
     border-radius: var(--radius);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--gray-700);
     cursor: pointer;
@@ -1253,6 +1446,38 @@
 
     .form-row {
         grid-template-columns: 1fr;
+    }
+
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group select {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .chapter-type-options {
+        grid-template-columns: 1fr;
+    }
+
+    .support-item {
+        grid-template-columns: 1fr;
+    }
+
+    .support-item select,
+    .support-item input {
+        width: 100%;
+    }
+
+    .support-remove {
+        justify-self: end;
     }
 
     .chapter-header-top {
