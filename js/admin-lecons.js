@@ -156,6 +156,7 @@ const AdminLecons = {
                     </div>
                     <div class="theme-actions">
                         <button class="btn btn-ghost btn-xs" onclick="AdminLecons.editTheme('${theme.id}')">✏️ Modifier</button>
+                        <button class="btn btn-ghost btn-xs danger" onclick="AdminLecons.deleteTheme('${theme.id}')">🗑️</button>
                         <button class="theme-toggle" title="Réduire">▼</button>
                     </div>
                 </div>
@@ -320,18 +321,72 @@ const AdminLecons = {
         openModal('modal-chapter');
     },
 
+    // ID en cours d'édition
+    editingThemeId: null,
+    editingChapterId: null,
+
     /**
-     * Édite un thème (placeholder)
+     * Appelle le Web App
      */
-    editTheme(themeId) {
-        alert('Fonctionnalité à venir : Modifier le thème ' + themeId);
+    async callWebApp(action, data) {
+        if (CONFIG.WEBAPP_URL === 'REMPLACER_PAR_URL_WEB_APP') {
+            alert('Erreur : Le Web App n\'est pas configuré.\nVoir google-apps-script/DEPLOIEMENT.md');
+            return { success: false, error: 'Web App non configuré' };
+        }
+
+        try {
+            const response = await fetch(CONFIG.WEBAPP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, ...data })
+            });
+
+            return await response.json();
+        } catch (error) {
+            console.error('Erreur Web App:', error);
+            return { success: false, error: error.message };
+        }
     },
 
     /**
-     * Édite un chapitre (placeholder)
+     * Ouvre le modal pour éditer un thème
+     */
+    editTheme(themeId) {
+        const theme = this.themes.find(t => t.id === themeId);
+        if (!theme) return;
+
+        this.editingThemeId = themeId;
+
+        document.getElementById('theme-discipline-select').value = theme.discipline_id || '';
+        document.getElementById('theme-numero').value = theme.ordre || '';
+        document.getElementById('theme-titre').value = theme.nom || theme.titre || '';
+
+        document.getElementById('modal-theme-title').textContent = 'Modifier le thème';
+        openModal('modal-theme');
+    },
+
+    /**
+     * Ouvre le modal pour éditer un chapitre
      */
     editChapter(chapitreId) {
-        alert('Fonctionnalité à venir : Modifier le chapitre ' + chapitreId);
+        const chapitre = this.chapitres.find(c => c.id === chapitreId);
+        if (!chapitre) return;
+
+        this.editingChapterId = chapitreId;
+
+        document.getElementById('chapter-theme-select').value = chapitre.theme_id || '';
+        document.getElementById('chapter-titre').value = chapitre.titre || '';
+        document.getElementById('chapter-numero').value = chapitre.numero || '';
+        document.getElementById('chapter-lecon').value = chapitre.numero_lecon || '';
+        document.getElementById('chapter-lien').value = chapitre.lien || '';
+
+        // Statut
+        const statut = (chapitre.statut || 'brouillon').toLowerCase();
+        const radioBtn = document.querySelector(`input[name="chapter-status"][value="${statut}"]`);
+        if (radioBtn) radioBtn.checked = true;
+
+        document.getElementById('modal-chapter-title').textContent = 'Modifier le chapitre';
+        openModal('modal-chapter');
     },
 
     /**
@@ -347,35 +402,97 @@ const AdminLecons = {
     },
 
     /**
-     * Supprime un chapitre (placeholder)
+     * Supprime un chapitre
      */
-    deleteChapter(chapitreId) {
-        if (confirm('Êtes-vous sûr de vouloir supprimer ce chapitre ?')) {
-            alert('Fonctionnalité à venir : Supprimer le chapitre ' + chapitreId);
+    async deleteChapter(chapitreId) {
+        const chapitre = this.chapitres.find(c => c.id === chapitreId);
+        if (!chapitre) return;
+
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer le chapitre "${chapitre.titre}" ?`)) {
+            return;
+        }
+
+        const result = await this.callWebApp('deleteChapter', { id: chapitreId });
+
+        if (result.success) {
+            this.showNotification('Chapitre supprimé avec succès', 'success');
+            await this.loadData();
+            this.render();
+            this.populateSelects();
+        } else {
+            alert('Erreur : ' + result.error);
         }
     },
 
     /**
-     * Sauvegarde un thème (placeholder)
+     * Supprime un thème
      */
-    saveTheme() {
-        const disciplineId = document.getElementById('theme-discipline-select').value;
-        const numero = document.getElementById('theme-numero').value;
-        const titre = document.getElementById('theme-titre').value;
+    async deleteTheme(themeId) {
+        const theme = this.themes.find(t => t.id === themeId);
+        if (!theme) return;
 
-        if (!disciplineId || !titre) {
+        const themeName = theme.nom || theme.titre || 'ce thème';
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer "${themeName}" ?\n\nNote : Vous ne pourrez pas supprimer un thème qui contient des chapitres.`)) {
+            return;
+        }
+
+        const result = await this.callWebApp('deleteTheme', { id: themeId });
+
+        if (result.success) {
+            this.showNotification('Thème supprimé avec succès', 'success');
+            await this.loadData();
+            this.render();
+            this.populateSelects();
+        } else {
+            alert('Erreur : ' + result.error);
+        }
+    },
+
+    /**
+     * Sauvegarde un thème (création ou modification)
+     */
+    async saveTheme() {
+        const disciplineId = document.getElementById('theme-discipline-select').value;
+        const ordre = document.getElementById('theme-numero').value;
+        const nom = document.getElementById('theme-titre').value;
+
+        if (!disciplineId || !nom) {
             alert('Veuillez remplir tous les champs obligatoires.');
             return;
         }
 
-        alert('Fonctionnalité à venir : Créer le thème "' + titre + '"');
-        closeModal('modal-theme');
+        const data = {
+            discipline_id: disciplineId,
+            nom: nom,
+            ordre: ordre || undefined
+        };
+
+        let result;
+        if (this.editingThemeId) {
+            // Modification
+            data.id = this.editingThemeId;
+            result = await this.callWebApp('updateTheme', data);
+        } else {
+            // Création
+            result = await this.callWebApp('addTheme', data);
+        }
+
+        if (result.success) {
+            this.showNotification(this.editingThemeId ? 'Thème modifié' : 'Thème créé', 'success');
+            closeModal('modal-theme');
+            this.resetThemeForm();
+            await this.loadData();
+            this.render();
+            this.populateSelects();
+        } else {
+            alert('Erreur : ' + result.error);
+        }
     },
 
     /**
-     * Sauvegarde un chapitre (placeholder)
+     * Sauvegarde un chapitre (création ou modification)
      */
-    saveChapter() {
+    async saveChapter() {
         const themeId = document.getElementById('chapter-theme-select').value;
         const titre = document.getElementById('chapter-titre').value;
         const numero = document.getElementById('chapter-numero').value;
@@ -388,8 +505,85 @@ const AdminLecons = {
             return;
         }
 
-        alert('Fonctionnalité à venir : Créer le chapitre "' + titre + '"');
-        closeModal('modal-chapter');
+        const data = {
+            theme_id: themeId,
+            titre: titre,
+            numero: numero || undefined,
+            numero_lecon: numeroLecon || undefined,
+            lien: lien || undefined,
+            statut: statut
+        };
+
+        let result;
+        if (this.editingChapterId) {
+            // Modification
+            data.id = this.editingChapterId;
+            result = await this.callWebApp('updateChapter', data);
+        } else {
+            // Création
+            result = await this.callWebApp('addChapter', data);
+        }
+
+        if (result.success) {
+            this.showNotification(this.editingChapterId ? 'Chapitre modifié' : 'Chapitre créé', 'success');
+            closeModal('modal-chapter');
+            this.resetChapterForm();
+            await this.loadData();
+            this.render();
+            this.populateSelects();
+        } else {
+            alert('Erreur : ' + result.error);
+        }
+    },
+
+    /**
+     * Réinitialise le formulaire thème
+     */
+    resetThemeForm() {
+        this.editingThemeId = null;
+        document.getElementById('theme-discipline-select').value = '';
+        document.getElementById('theme-numero').value = '';
+        document.getElementById('theme-titre').value = '';
+        document.getElementById('modal-theme-title').textContent = 'Nouveau thème';
+    },
+
+    /**
+     * Réinitialise le formulaire chapitre
+     */
+    resetChapterForm() {
+        this.editingChapterId = null;
+        document.getElementById('chapter-theme-select').value = '';
+        document.getElementById('chapter-titre').value = '';
+        document.getElementById('chapter-numero').value = '';
+        document.getElementById('chapter-lecon').value = '';
+        document.getElementById('chapter-lien').value = '';
+        document.querySelector('input[name="chapter-status"][value="brouillon"]').checked = true;
+        document.getElementById('modal-chapter-title').textContent = 'Nouveau chapitre';
+    },
+
+    /**
+     * Affiche une notification
+     */
+    showNotification(message, type = 'info') {
+        // Créer l'élément de notification
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <span>${type === 'success' ? '✓' : 'ℹ'}</span>
+            <span>${message}</span>
+        `;
+
+        // Ajouter au DOM
+        document.body.appendChild(notification);
+
+        // Animation d'entrée
+        setTimeout(() => notification.classList.add('show'), 10);
+
+        // Supprimer après 3 secondes
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
     },
 
     /**
