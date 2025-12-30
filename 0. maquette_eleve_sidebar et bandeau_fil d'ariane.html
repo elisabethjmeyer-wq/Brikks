@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Composant Sidebar & Header Élève</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --primary-light: #a5b4fc;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --sidebar-width: 260px;
+            --header-height: 64px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 1000;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 42px;
+            height: 42px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: var(--gray-600);
+        }
+
+        .menu-toggle:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .menu-toggle.active {
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .logo-text span {
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* User Menu */
+        .user-menu {
+            position: relative;
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px 6px 6px;
+            background: var(--gray-100);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .user-pill:hover {
+            background: var(--gray-200);
+        }
+
+        .user-pill.active {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-info {
+            text-align: left;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .user-class {
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        .user-chevron {
+            font-size: 10px;
+            color: var(--gray-400);
+            margin-left: 4px;
+            transition: transform 0.2s;
+        }
+
+        .user-pill.active .user-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* User Dropdown */
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            min-width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s;
+            z-index: 1001;
+        }
+
+        .user-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: var(--gray-700);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            font-family: inherit;
+        }
+
+        .user-dropdown-item:first-child {
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        .user-dropdown-item:last-child {
+            border-radius: 0 0 var(--radius) var(--radius);
+        }
+
+        .user-dropdown-item:hover {
+            background: var(--gray-50);
+        }
+
+        .user-dropdown-item.danger {
+            color: var(--accent-red);
+        }
+
+        .user-dropdown-item.danger:hover {
+            background: var(--accent-red-light);
+        }
+
+        .user-dropdown-divider {
+            height: 1px;
+            background: var(--gray-200);
+            margin: 4px 0;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            width: var(--sidebar-width);
+            height: calc(100vh - var(--header-height));
+            background: white;
+            border-right: 1px solid var(--gray-200);
+            overflow-y: auto;
+            z-index: 900;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar-inner {
+            padding: 16px 12px;
+        }
+
+        /* Sidebar Section */
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--gray-400);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 12px;
+            margin-bottom: 8px;
+        }
+
+        /* Sidebar Item */
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--gray-600);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-bottom: 2px;
+        }
+
+        .sidebar-item:hover {
+            background: var(--gray-100);
+            color: var(--gray-800);
+        }
+
+        .sidebar-item.active {
+            background: var(--primary-bg);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .sidebar-item-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .sidebar-item-text {
+            flex: 1;
+        }
+
+        .sidebar-item-badge {
+            padding: 2px 8px;
+            background: var(--accent-red);
+            color: white;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .sidebar-item-badge.orange {
+            background: var(--accent-orange);
+        }
+
+        .sidebar-item-badge.green {
+            background: var(--accent-green);
+        }
+
+        /* Sidebar colored indicators */
+        .sidebar-item .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .sidebar-item .dot.green { background: var(--accent-green); }
+        .sidebar-item .dot.orange { background: var(--accent-orange); }
+        .sidebar-item .dot.purple { background: var(--accent-purple); }
+
+        /* ===== OVERLAY ===== */
+        .sidebar-overlay {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 800;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .sidebar-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main {
+            margin-top: var(--header-height);
+            padding: 24px;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Desktop: sidebar pushes content */
+        @media (min-width: 1024px) {
+            .sidebar {
+                transform: translateX(0);
+            }
+
+            .sidebar.closed {
+                transform: translateX(-100%);
+            }
+
+            .main {
+                margin-left: var(--sidebar-width);
+            }
+
+            .main.expanded {
+                margin-left: 0;
+            }
+
+            .sidebar-overlay {
+                display: none;
+            }
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb .separator {
+            color: var(--gray-300);
+        }
+
+        .breadcrumb .current {
+            color: var(--gray-500);
+        }
+
+        /* ===== DEMO CONTENT ===== */
+        .demo-content {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .demo-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: var(--shadow);
+        }
+
+        .demo-card h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 16px;
+        }
+
+        .demo-card p {
+            font-size: 15px;
+            color: var(--gray-600);
+            line-height: 1.7;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 640px) {
+            .header {
+                padding: 0 16px;
+            }
+
+            .logo-text {
+                font-size: 15px;
+            }
+
+            .logo-text span {
+                display: none;
+            }
+
+            .user-info {
+                display: none;
+            }
+
+            .user-pill {
+                padding: 6px;
+            }
+
+            .user-chevron {
+                display: none;
+            }
+
+            .main {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" title="Menu">
+                ☰
+            </button>
+            <a href="#" class="logo">
+                <div class="logo-icon">📚</div>
+                <div class="logo-text">Espace cours <span>• Mme Meyer</span></div>
+            </a>
+        </div>
+
+        <div class="header-right">
+            <div class="user-menu">
+                <div class="user-pill" id="userPill" onclick="toggleUserMenu()">
+                    <div class="user-avatar">ML</div>
+                    <div class="user-info">
+                        <div class="user-name">Marie L.</div>
+                        <div class="user-class">2MHR1A</div>
+                    </div>
+                    <span class="user-chevron">▼</span>
+                </div>
+                <div class="user-dropdown" id="userDropdown">
+                    <button class="user-dropdown-item danger" onclick="logout()">
+                        🚪 Déconnexion
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-inner">
+
+            <!-- ORGANISATION -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📅 Organisation</div>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">📆</span>
+                    <span class="sidebar-item-text">Emploi du temps</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">📂</span>
+                    <span class="sidebar-item-text">Classeur modèle</span>
+                </a>
+            </div>
+
+            <!-- COURS -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📖 Cours</div>
+                <a href="#" class="sidebar-item active">
+                    <span class="sidebar-item-icon">📖</span>
+                    <span class="sidebar-item-text">Leçons</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">🧠</span>
+                    <span class="sidebar-item-text">Méthodologie</span>
+                </a>
+            </div>
+
+            <!-- S'ENTRAÎNER -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📝 S'entraîner</div>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">🟢</span>
+                    <span class="sidebar-item-text">Connaissances</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">🟠</span>
+                    <span class="sidebar-item-text">Savoir-faire</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">🟣</span>
+                    <span class="sidebar-item-text">Compétences</span>
+                </a>
+            </div>
+
+            <!-- ÉVALUATIONS -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📋 Évaluations</div>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">📋</span>
+                    <span class="sidebar-item-text">Mes évaluations</span>
+                    <span class="sidebar-item-badge">2</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">📊</span>
+                    <span class="sidebar-item-text">Mes notes</span>
+                </a>
+            </div>
+
+            <!-- RESSOURCES -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📺 Ressources</div>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">🎬</span>
+                    <span class="sidebar-item-text">Vidéos</span>
+                    <span class="sidebar-item-badge green">Nouveau</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">💡</span>
+                    <span class="sidebar-item-text">Recommandations</span>
+                </a>
+            </div>
+
+            <!-- AIDE -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">❓ Aide</div>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">❓</span>
+                    <span class="sidebar-item-text">FAQ</span>
+                </a>
+                <a href="#" class="sidebar-item">
+                    <span class="sidebar-item-icon">✉️</span>
+                    <span class="sidebar-item-text">Messagerie</span>
+                    <span class="sidebar-item-badge orange">1</span>
+                </a>
+            </div>
+
+        </div>
+    </aside>
+
+    <!-- ===== OVERLAY (mobile) ===== -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main" id="main">
+        <div class="demo-content">
+
+            <!-- FIL D'ARIANE -->
+            <nav class="breadcrumb">
+                <a href="#">🏠 Accueil</a>
+                <span class="separator">›</span>
+                <span class="current">📖 Leçons</span>
+            </nav>
+
+            <div class="demo-card">
+                <h1>📖 Page de démonstration</h1>
+                <p>
+                    Ceci est une page de démonstration pour visualiser le header et la sidebar élève.
+                </p>
+                <br>
+                <p>
+                    <strong>Fonctionnalités :</strong>
+                </p>
+                <ul style="margin: 16px 0 0 24px; color: var(--gray-600); line-height: 2;">
+                    <li>☰ Bouton menu pour ouvrir/fermer la sidebar</li>
+                    <li>👤 Menu utilisateur avec déconnexion au clic sur l'avatar</li>
+                    <li>📱 Responsive : overlay sur mobile, push sur desktop</li>
+                    <li>🔴 Badges de notification (évaluations, messages)</li>
+                    <li>✨ Item actif surligné en violet</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+        const menuToggle = document.getElementById('menuToggle');
+        const main = document.getElementById('main');
+        const userPill = document.getElementById('userPill');
+        const userDropdown = document.getElementById('userDropdown');
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            const isDesktop = window.innerWidth >= 1024;
+            
+            if (isDesktop) {
+                sidebar.classList.toggle('closed');
+                main.classList.toggle('expanded');
+                menuToggle.classList.toggle('active', !sidebar.classList.contains('closed'));
+            } else {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('show', sidebar.classList.contains('open'));
+                menuToggle.classList.toggle('active', sidebar.classList.contains('open'));
+            }
+        }
+
+        // Close sidebar (mobile)
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('show');
+            menuToggle.classList.remove('active');
+        }
+
+        // Toggle user menu
+        function toggleUserMenu() {
+            userPill.classList.toggle('active');
+            userDropdown.classList.toggle('show');
+        }
+
+        // Close user menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!userPill.contains(e.target) && !userDropdown.contains(e.target)) {
+                userPill.classList.remove('active');
+                userDropdown.classList.remove('show');
+            }
+        });
+
+        // Logout function
+        function logout() {
+            if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+                // Redirect to login page
+                alert('Déconnexion... (redirection vers la page de connexion)');
+                // window.location.href = '/login.html';
+            }
+        }
+
+        // Menu toggle click
+        menuToggle.addEventListener('click', toggleSidebar);
+
+        // Initialize: open sidebar on desktop by default
+        if (window.innerWidth >= 1024) {
+            sidebar.classList.remove('closed');
+            menuToggle.classList.add('active');
+        }
+
+        // Handle resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 1024) {
+                sidebarOverlay.classList.remove('show');
+                sidebar.classList.remove('open');
+                if (!sidebar.classList.contains('closed')) {
+                    menuToggle.classList.add('active');
+                }
+            } else {
+                sidebar.classList.add('closed');
+                menuToggle.classList.remove('active');
+            }
+        });
+    </script>
+
+</body>
+</html>
