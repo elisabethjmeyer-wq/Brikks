@@ -148,29 +148,30 @@ const EleveChapitre = {
 
         const icon = this.getIcon();
         const disciplineName = this.discipline ? this.discipline.nom : '';
-        const themeName = this.theme ? (this.theme.nom || this.theme.titre || '') : '';
-        const themeNumero = this.theme ? (this.theme.ordre || this.theme.numero || '') : '';
-        const chapitreNumero = this.chapitre.numero || '';
         const isIntro = !this.chapitre.theme_id && this.chapitre.discipline_id;
 
-        // Header
+        // Topbar compacte
         document.getElementById('chapter-icon').textContent = icon;
-        document.getElementById('chapter-matiere').innerHTML = `${icon} ${disciplineName}`;
 
+        // Métadonnées condensées
+        let metaText = disciplineName;
         if (isIntro) {
-            document.getElementById('chapter-theme-info').textContent =
-                `📌 Cours introductif ${chapitreNumero ? '• Chapitre ' + chapitreNumero : ''}`;
-        } else {
-            document.getElementById('chapter-theme-info').textContent =
-                `${themeNumero ? 'Thème ' + themeNumero : ''} ${chapitreNumero ? '• Chapitre ' + chapitreNumero : ''}`;
+            metaText += ' • Intro';
+        } else if (this.theme) {
+            const themeNumero = this.theme.ordre || this.theme.numero || '';
+            if (themeNumero) metaText += ` • T${themeNumero}`;
         }
+        if (this.chapitre.numero) {
+            metaText += ` • Ch.${this.chapitre.numero}`;
+        }
+        document.getElementById('chapter-matiere').textContent = metaText;
 
         document.getElementById('chapter-title').textContent = this.chapitre.titre || 'Chapitre sans titre';
 
         // Tag de leçon
         if (this.chapitre.numero_lecon) {
             const lessonTag = document.getElementById('chapter-lesson-tag');
-            lessonTag.textContent = `Leçon ${this.chapitre.numero_lecon}`;
+            lessonTag.textContent = `L${this.chapitre.numero_lecon}`;
             lessonTag.style.display = 'inline-block';
         }
 
@@ -198,10 +199,12 @@ const EleveChapitre = {
         viewer.classList.toggle('fullscreen');
 
         if (viewer.classList.contains('fullscreen')) {
-            btn.innerHTML = '<span class="icon">✕</span> Quitter';
+            btn.textContent = '✕';
+            btn.title = 'Quitter le plein écran';
             document.body.style.overflow = 'hidden';
         } else {
-            btn.innerHTML = '<span class="icon">⛶</span> Plein écran';
+            btn.textContent = '⛶';
+            btn.title = 'Plein écran';
             document.body.style.overflow = '';
         }
     },
@@ -211,7 +214,6 @@ const EleveChapitre = {
      */
     renderViewer() {
         const viewerContent = document.getElementById('viewer-content');
-        const viewerHeader = document.querySelector('.viewer-header');
 
         // Déterminer quels supports afficher
         const supportsToShow = this.supports.length > 0
@@ -234,10 +236,14 @@ const EleveChapitre = {
 
         let html = '';
 
-        // Texte explicatif
+        // Texte explicatif repliable (fermé par défaut)
         if (texteExplicatif) {
             html += `
-                <div class="chapter-text-content">
+                <div class="text-toggle-bar" onclick="EleveChapitre.toggleText()">
+                    <span class="toggle-icon">▶</span>
+                    <span>📝 Note du professeur</span>
+                </div>
+                <div class="chapter-text-content" id="text-content">
                     <div class="text-content-box">
                         <p>${texteExplicatif.replace(/\n/g, '<br>')}</p>
                     </div>
@@ -251,7 +257,8 @@ const EleveChapitre = {
             supportsToShow.forEach((support, index) => {
                 const typeIcon = this.getSupportIcon(support.type);
                 const activeClass = index === 0 ? 'active' : '';
-                html += `<button class="support-tab ${activeClass}" data-index="${index}">${typeIcon} ${support.nom || 'Support ' + (index + 1)}</button>`;
+                const shortName = this.truncate(support.nom || 'Support ' + (index + 1), 20);
+                html += `<button class="support-tab ${activeClass}" data-index="${index}">${typeIcon} ${shortName}</button>`;
             });
             html += '</div>';
         }
@@ -268,18 +275,20 @@ const EleveChapitre = {
 
         viewerContent.innerHTML = html;
 
-        // Mettre à jour le titre du viewer
-        if (supportsToShow.length > 0) {
-            const firstSupport = supportsToShow[0];
-            const typeIcon = this.getSupportIcon(firstSupport.type);
-            document.querySelector('.viewer-title').innerHTML = `
-                <span class="icon">${typeIcon}</span>
-                <span>${firstSupport.nom || 'Document du cours'}</span>
-            `;
-        }
-
         // Bind des événements des onglets
         this.bindSupportTabs();
+    },
+
+    /**
+     * Toggle le texte explicatif
+     */
+    toggleText() {
+        const bar = document.querySelector('.text-toggle-bar');
+        const content = document.getElementById('text-content');
+        if (bar && content) {
+            bar.classList.toggle('open');
+            content.classList.toggle('open');
+        }
     },
 
     /**
@@ -442,7 +451,7 @@ const EleveChapitre = {
             const prev = relatedChapters[currentIndex - 1];
             prevBtn.href = `chapitre.html?id=${prev.id}`;
             prevBtn.classList.remove('disabled');
-            prevBtn.querySelector('.title').textContent = this.truncate(prev.titre, 30);
+            prevBtn.title = prev.titre;
         }
 
         // Chapitre suivant
@@ -450,7 +459,7 @@ const EleveChapitre = {
             const next = relatedChapters[currentIndex + 1];
             nextBtn.href = `chapitre.html?id=${next.id}`;
             nextBtn.classList.remove('disabled');
-            nextBtn.querySelector('.title').textContent = this.truncate(next.titre, 30);
+            nextBtn.title = next.titre;
         }
     },
 
