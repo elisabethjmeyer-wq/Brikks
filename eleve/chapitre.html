@@ -26,7 +26,7 @@
     </div>
 
     <!-- Contenu principal (masqué pendant le chargement) -->
-    <div id="chapitre-content" style="display: none;">
+    <div id="chapitre-content" class="hybrid-layout" style="display: none;">
 
         <!-- Barre compacte : titre + actions -->
         <div class="chapter-topbar">
@@ -45,9 +45,15 @@
             </div>
         </div>
 
-        <!-- Content Viewer -->
-        <div class="content-viewer">
-            <div class="viewer-content" id="viewer-content">
+        <!-- Zone principale : document + ressources -->
+        <div class="main-content-area">
+            <!-- Document principal -->
+            <div class="main-viewer" id="main-viewer">
+                <!-- Généré dynamiquement -->
+            </div>
+
+            <!-- Ressources supplémentaires (cards) -->
+            <div class="resources-bar" id="resources-bar" style="display: none;">
                 <!-- Généré dynamiquement -->
             </div>
         </div>
@@ -71,6 +77,22 @@
         <h3>Chapitre non trouvé</h3>
         <p>Ce chapitre n'existe pas ou n'est pas accessible.</p>
         <a href="lecons.html" class="btn btn-primary">Retour aux leçons</a>
+    </div>
+</div>
+
+<!-- Modale pour ressources -->
+<div class="resource-modal-overlay" id="resource-modal">
+    <div class="resource-modal">
+        <div class="resource-modal-header">
+            <div class="resource-modal-title" id="modal-title">
+                <span class="icon">📄</span>
+                <span>Ressource</span>
+            </div>
+            <button class="modal-close-btn" onclick="EleveChapitre.closeResourceModal()">✕</button>
+        </div>
+        <div class="resource-modal-content" id="modal-content">
+            <!-- Contenu dynamique -->
+        </div>
     </div>
 </div>
 
