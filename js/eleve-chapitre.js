@@ -219,11 +219,36 @@ const EleveChapitre = {
     },
 
     /**
+     * Détecte le format du contenu (landscape/portrait) selon l'URL
+     */
+    getContentFormat(url) {
+        if (!url) return 'default';
+
+        // Formats paysage (16:9)
+        if (url.includes('youtube.com') || url.includes('youtu.be') ||
+            url.includes('loom.com') ||
+            url.includes('docs.google.com/presentation')) {
+            return 'landscape';
+        }
+
+        // Formats portrait (documents, flipbooks)
+        if (url.includes('publuu.com') ||
+            url.includes('docs.google.com/document') ||
+            url.includes('drive.google.com/file')) {
+            return 'portrait';
+        }
+
+        // Par défaut
+        return 'default';
+    },
+
+    /**
      * Affiche le contenu dans le viewer (layout hybride)
      */
     renderViewer() {
         const mainViewer = document.getElementById('main-viewer');
         const resourcesBar = document.getElementById('resources-bar');
+        const contentArea = document.querySelector('.main-content-area');
 
         // Déterminer le document principal et les ressources supplémentaires
         const supportsToShow = this.supports.length > 0
@@ -249,6 +274,11 @@ const EleveChapitre = {
         if (mainSupport) {
             const mainIcon = this.getSupportIcon(mainSupport.type);
             const mainLabel = mainSupport.nom || 'Leçon principale';
+
+            // Appliquer le format du contenu à la zone de contenu
+            const contentFormat = this.getContentFormat(mainSupport.url);
+            contentArea.classList.remove('format-landscape', 'format-portrait', 'format-default');
+            contentArea.classList.add(`format-${contentFormat}`);
 
             mainViewer.innerHTML = `
                 <div class="main-viewer-header">
