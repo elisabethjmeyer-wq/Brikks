@@ -128,9 +128,14 @@ const EleveLayout = {
                     const visibleValue = String(item.visible || '').toLowerCase().trim();
                     const isVisible = visibleValue === 'true' || visibleValue === '1' || visibleValue === 'oui' || visibleValue === 'yes';
 
-                    console.log('[EleveLayout] Item:', item.element_code, 'visible:', item.visible, '-> isVisible:', isVisible);
+                    // Vérifier si bloqué
+                    const bloqueValue = String(item.bloque || '').toLowerCase().trim();
+                    const isBloque = bloqueValue === 'true' || bloqueValue === '1' || bloqueValue === 'oui' || bloqueValue === 'yes';
 
-                    if (!isVisible) return; // Ignorer les éléments masqués
+                    // Déterminer si l'élément est désactivé (non visible OU bloqué)
+                    const isDisabled = !isVisible || isBloque;
+
+                    console.log('[EleveLayout] Item:', item.element_code, 'visible:', isVisible, 'bloque:', isBloque, 'disabled:', isDisabled);
 
                     const cat = item.categorie || 'Autres';
                     if (!grouped[cat]) {
@@ -149,7 +154,8 @@ const EleveLayout = {
                         icon: item.icon || '📄',
                         label: item.nom_affiche || item.nom,
                         href: href,
-                        id: elementCode
+                        id: elementCode,
+                        disabled: isDisabled
                     });
                 });
 
@@ -267,12 +273,26 @@ const EleveLayout = {
             menuHTML += `
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">${section.section}</div>
-                    ${section.items.map(item => `
-                        <a href="${item.href}" class="sidebar-item" data-page="${item.id}">
-                            <span class="sidebar-item-icon">${item.icon}</span>
-                            <span class="sidebar-item-text">${item.label}</span>
-                        </a>
-                    `).join('')}
+                    ${section.items.map(item => {
+                        if (item.disabled) {
+                            // Élément désactivé : pas de lien, grisé
+                            return `
+                                <div class="sidebar-item disabled" data-page="${item.id}" title="Non disponible">
+                                    <span class="sidebar-item-icon">${item.icon}</span>
+                                    <span class="sidebar-item-text">${item.label}</span>
+                                    <span class="sidebar-item-lock">🔒</span>
+                                </div>
+                            `;
+                        } else {
+                            // Élément actif : lien cliquable
+                            return `
+                                <a href="${item.href}" class="sidebar-item" data-page="${item.id}">
+                                    <span class="sidebar-item-icon">${item.icon}</span>
+                                    <span class="sidebar-item-text">${item.label}</span>
+                                </a>
+                            `;
+                        }
+                    }).join('')}
                 </div>
             `;
         });
