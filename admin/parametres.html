@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Paramètres">
+    <title>Paramètres - Administration - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-parametres.css">
+</head>
+<body>
+
+<!-- Contenu de la page -->
+<div id="parametres-page">
+    <!-- Page Header -->
+    <header class="page-header">
+        <div>
+            <h1>⚙️ Paramètres</h1>
+            <p class="page-subtitle">Configure ton espace de cours : apparence, classeur modèle et menu élève.</p>
+        </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tabs-container">
+        <button class="tab active" data-tab="general">🎨 Général</button>
+        <button class="tab" data-tab="classeur">📂 Classeur modèle</button>
+        <button class="tab" data-tab="menu">📱 Menu élève</button>
+    </div>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des paramètres...</p>
+    </div>
+
+    <!-- ===== TAB: GÉNÉRAL ===== -->
+    <div class="tab-content active" id="tab-general">
+
+        <!-- Nom du site -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-header-icon">🏷️</span>
+                <span class="card-header-title">Nom du site</span>
+            </div>
+            <div class="card-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Titre principal</label>
+                        <input type="text" class="form-input" id="siteName" value="" placeholder="Ex: Espace cours">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sous-titre</label>
+                        <input type="text" class="form-input" id="siteSubtitle" value="" placeholder="Ex: Mme Meyer">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logo / Emoji -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-header-icon">😀</span>
+                <span class="card-header-title">Logo / Emoji</span>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Choisis un emoji</label>
+                    <div class="emoji-picker-inline" id="logoEmojiPicker">
+                        <button type="button" class="emoji-option" data-emoji="📚">📚</button>
+                        <button type="button" class="emoji-option" data-emoji="📖">📖</button>
+                        <button type="button" class="emoji-option" data-emoji="🎓">🎓</button>
+                        <button type="button" class="emoji-option" data-emoji="✏️">✏️</button>
+                        <button type="button" class="emoji-option" data-emoji="📝">📝</button>
+                        <button type="button" class="emoji-option" data-emoji="🏫">🏫</button>
+                        <button type="button" class="emoji-option" data-emoji="🌟">🌟</button>
+                        <button type="button" class="emoji-option" data-emoji="🚀">🚀</button>
+                        <button type="button" class="emoji-option" data-emoji="💡">💡</button>
+                        <button type="button" class="emoji-option" data-emoji="🎯">🎯</button>
+                        <button type="button" class="emoji-option" data-emoji="📐">📐</button>
+                        <button type="button" class="emoji-option" data-emoji="🌍">🌍</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Couleur principale -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-header-icon">🎨</span>
+                <span class="card-header-title">Couleur principale</span>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Choisis une couleur</label>
+                    <div class="color-picker-group">
+                        <input type="color" class="color-picker" id="primaryColor" value="#6366f1">
+                        <div class="color-presets">
+                            <button class="color-preset" style="background: #6366f1;" data-color="#6366f1" title="Violet (défaut)"></button>
+                            <button class="color-preset" style="background: #3b82f6;" data-color="#3b82f6" title="Bleu"></button>
+                            <button class="color-preset" style="background: #10b981;" data-color="#10b981" title="Vert"></button>
+                            <button class="color-preset" style="background: #f59e0b;" data-color="#f59e0b" title="Orange"></button>
+                            <button class="color-preset" style="background: #ef4444;" data-color="#ef4444" title="Rouge"></button>
+                            <button class="color-preset" style="background: #8b5cf6;" data-color="#8b5cf6" title="Violet clair"></button>
+                            <button class="color-preset" style="background: #ec4899;" data-color="#ec4899" title="Rose"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aperçu -->
+                <div class="preview-box">
+                    <div class="preview-label">Aperçu du header</div>
+                    <div class="preview-header">
+                        <div class="preview-header-icon" id="previewIcon">📚</div>
+                        <div class="preview-header-text">
+                            <span id="previewName">Espace cours</span> <span class="preview-separator">•</span> <span id="previewSubtitle">Mme Meyer</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== TAB: CLASSEUR MODÈLE ===== -->
+    <div class="tab-content" id="tab-classeur">
+
+        <!-- Info box -->
+        <div class="info-box">
+            <span class="info-box-icon">💡</span>
+            <div>
+                <strong>Comment mettre à jour le classeur ?</strong><br>
+                1. Modifie ton document Word/Google Docs<br>
+                2. Exporte en PDF<br>
+                3. Upload sur Publuu<br>
+                4. Colle le nouveau lien ci-dessous
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-header-icon">🔗</span>
+                <span class="card-header-title">Lien Publuu</span>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">URL du flipbook</label>
+                    <input type="text" class="form-input" id="classeurUrl" value="" placeholder="https://publuu.com/flip-book/...">
+                    <div class="form-hint">Colle ici le lien de partage Publuu (pas le lien embed complet)</div>
+                </div>
+
+                <div class="preview-box">
+                    <div class="preview-label">Aperçu du classeur</div>
+                    <div class="iframe-preview" id="classeurPreviewContainer">
+                        <div class="iframe-placeholder" id="classeurPlaceholder">
+                            <span class="iframe-placeholder-icon">📂</span>
+                            <span>Entrez une URL pour voir l'aperçu</span>
+                        </div>
+                        <iframe id="classeurPreview" style="display: none;" allowfullscreen></iframe>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="refreshPreviewBtn" style="margin-top: 12px;" onclick="AdminParametres.refreshClasseurPreview()">
+                        🔄 Rafraîchir l'aperçu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== TAB: MENU ÉLÈVE ===== -->
+    <div class="tab-content" id="tab-menu">
+
+        <!-- Info box -->
+        <div class="info-box">
+            <span class="info-box-icon">💡</span>
+            <div>
+                <strong>Glisse-dépose</strong> pour réorganiser • <strong>Toggle</strong> pour afficher/masquer • <strong>✏️</strong> pour renommer
+            </div>
+        </div>
+
+        <div id="menuSectionsContainer">
+            <!-- Les sections du menu seront générées ici -->
+        </div>
+
+        <button class="add-category-btn" id="addCategoryBtn">
+            ➕ Ajouter une catégorie
+        </button>
+
+    </div>
+
+    <!-- Spacer pour la barre de sauvegarde -->
+    <div style="height: 80px;"></div>
+
+</div>
+
+<!-- ===== SAVE BAR ===== -->
+<div class="save-bar" id="saveBar">
+    <div class="save-bar-text">
+        <span class="save-bar-dot"></span>
+        <span>Modifications non enregistrées</span>
+    </div>
+    <div class="save-bar-actions">
+        <button class="btn btn-secondary" id="cancelBtn">Annuler</button>
+        <button class="btn btn-primary" id="saveBtn">💾 Enregistrer</button>
+    </div>
+</div>
+
+<!-- ===== MODAL: Nouvelle catégorie ===== -->
+<div class="modal-overlay" id="newCategoryModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">➕ Nouvelle catégorie</h2>
+            <button class="modal-close" id="closeCategoryModal">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Nom de la catégorie</label>
+                <input type="text" class="form-input" id="newCategoryName" placeholder="Ex: Projets, Favoris...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Icône</label>
+                <div class="emoji-picker-inline" id="newCategoryEmoji">
+                    <button type="button" class="emoji-option selected" data-emoji="⭐">⭐</button>
+                    <button type="button" class="emoji-option" data-emoji="📁">📁</button>
+                    <button type="button" class="emoji-option" data-emoji="🎯">🎯</button>
+                    <button type="button" class="emoji-option" data-emoji="🏆">🏆</button>
+                    <button type="button" class="emoji-option" data-emoji="💬">💬</button>
+                    <button type="button" class="emoji-option" data-emoji="🔧">🔧</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelCategoryBtn">Annuler</button>
+            <button class="btn btn-primary" id="createCategoryBtn">➕ Créer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: Modifier élément ===== -->
+<div class="modal-overlay" id="editItemModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">✏️ Modifier l'élément</h2>
+            <button class="modal-close" id="closeEditModal">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Nom affiché</label>
+                <input type="text" class="form-input" id="editItemName" placeholder="Nom personnalisé">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelEditBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveEditBtn">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../components/admin-layout.js"></script>
+<script src="../js/admin-parametres.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        AdminLayout.init('parametres', 'Paramètres');
+        AdminParametres.init();
+    });
+</script>
+
+</body>
+</html>
