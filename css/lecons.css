@@ -825,37 +825,44 @@
 /* Onglets des supports */
 .supports-tabs {
     display: flex;
-    gap: 4px;
-    padding: 12px 16px;
+    gap: 6px;
+    padding: 10px 16px;
     background: var(--gray-100);
     border-bottom: 1px solid var(--gray-200);
     flex-wrap: wrap;
 }
 
 .support-tab {
-    padding: 10px 16px;
+    padding: 12px 20px;
     border: none;
     background: white;
     border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--gray-600);
     cursor: pointer;
     transition: all 0.2s;
     font-family: inherit;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.support-tab .tab-icon {
+    font-size: 16px;
 }
 
 .support-tab:hover {
     background: var(--gray-50);
     color: var(--gray-800);
+    transform: translateY(-1px);
 }
 
 .support-tab.active {
     background: var(--primary);
     color: white;
+    box-shadow: 0 2px 8px rgba(89, 86, 213, 0.3);
 }
 
 /* Panneaux des supports */
@@ -1221,73 +1228,77 @@
 
 /* ===== CHAPITRE DETAIL ===== */
 
-/* Chapter Header - Compact version */
+/* Chapter Header - Ultra compact version */
 .chapter-header {
     background: white;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
-    padding: 16px 20px;
-    margin-bottom: 16px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
 }
 
 .chapter-header-top {
     display: flex;
-    align-items: flex-start;
-    gap: 14px;
+    align-items: center;
+    gap: 12px;
 }
 
 .chapter-icon {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     background: var(--primary-bg);
-    border-radius: 12px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 20px;
     flex-shrink: 0;
 }
 
 .chapter-info {
     flex: 1;
+    min-width: 0;
 }
 
 .chapter-meta {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 4px;
+    gap: 8px;
+    margin-bottom: 2px;
     flex-wrap: wrap;
 }
 
 .chapter-matiere {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--primary);
     text-transform: uppercase;
 }
 
 .chapter-theme {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--gray-500);
 }
 
 .chapter-header .chapter-title {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--gray-900);
-    margin-bottom: 4px;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .chapter-subtitle {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--gray-500);
 }
 
 .lesson-tag-large {
-    padding: 8px 16px;
-    border-radius: 10px;
-    font-size: 14px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
     font-weight: 700;
     background: var(--primary);
     color: white;
@@ -1301,48 +1312,69 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
     overflow: hidden;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
+}
+
+/* Fullscreen mode */
+.content-viewer.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    border-radius: 0;
+    margin: 0;
+}
+
+.content-viewer.fullscreen .viewer-iframe {
+    height: calc(100vh - 80px);
+    max-height: none;
+}
+
+.content-viewer.fullscreen .supports-tabs {
+    padding: 8px 20px;
 }
 
 .viewer-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 6px 12px;
     background: var(--gray-50);
     border-bottom: 1px solid var(--gray-100);
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 6px;
 }
 
 .viewer-title {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 14px;
+    gap: 8px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--gray-700);
+    color: var(--gray-600);
 }
 
 .viewer-title .icon {
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .viewer-actions {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 
 .viewer-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
+    gap: 5px;
+    padding: 6px 12px;
     background: white;
-    border: 2px solid var(--gray-200);
-    border-radius: 8px;
-    font-size: 13px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--gray-600);
     cursor: pointer;
@@ -1352,8 +1384,9 @@
 }
 
 .viewer-btn:hover {
-    border-color: var(--gray-300);
-    background: var(--gray-50);
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-bg);
 }
 
 .viewer-btn.primary {
@@ -1366,14 +1399,25 @@
     background: var(--primary-dark);
 }
 
+/* Fullscreen button */
+.viewer-btn.fullscreen-btn {
+    padding: 6px 10px;
+}
+
+.viewer-btn.fullscreen-btn .icon {
+    font-size: 14px;
+}
+
 .viewer-content {
-    min-height: 500px;
+    min-height: 600px;
     background: var(--gray-50);
 }
 
 .viewer-iframe {
     width: 100%;
-    height: 700px;
+    height: calc(100vh - 280px);
+    min-height: 500px;
+    max-height: 900px;
     border: none;
 }
 
@@ -1432,23 +1476,23 @@
     flex-wrap: wrap;
 }
 
-/* Chapter Navigation */
+/* Chapter Navigation - Compact */
 .chapter-nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 16px;
+    padding: 10px 14px;
     background: white;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
-    gap: 12px;
+    gap: 10px;
 }
 
 .nav-btn {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 16px;
+    gap: 8px;
+    padding: 8px 14px;
     background: var(--gray-100);
     border: none;
     border-radius: var(--radius);
@@ -1462,27 +1506,34 @@
 }
 
 .nav-btn:hover {
-    background: var(--gray-200);
+    background: var(--primary-bg);
+    color: var(--primary);
 }
 
 .nav-btn.disabled {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
     pointer-events: none;
 }
 
 .nav-btn .arrow {
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .nav-btn .label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--gray-500);
     font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
 .nav-btn .title {
-    font-size: 13px;
+    font-size: 12px;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ===== RESPONSIVE ===== */

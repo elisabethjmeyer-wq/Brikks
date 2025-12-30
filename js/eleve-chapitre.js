@@ -50,6 +50,13 @@ const EleveChapitre = {
             // Afficher le contenu
             this.render();
 
+            // Écouter la touche Échap pour quitter le plein écran
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && document.querySelector('.content-viewer.fullscreen')) {
+                    this.toggleFullscreen();
+                }
+            });
+
         } catch (error) {
             console.error('Erreur lors du chargement:', error);
             this.showError();
@@ -178,6 +185,24 @@ const EleveChapitre = {
         const mainUrl = firstSupport ? firstSupport.url : this.chapitre.lien;
         if (mainUrl) {
             document.getElementById('btn-new-tab').href = mainUrl;
+        }
+    },
+
+    /**
+     * Toggle le mode plein écran
+     */
+    toggleFullscreen() {
+        const viewer = document.querySelector('.content-viewer');
+        const btn = document.getElementById('btn-fullscreen');
+
+        viewer.classList.toggle('fullscreen');
+
+        if (viewer.classList.contains('fullscreen')) {
+            btn.innerHTML = '<span class="icon">✕</span> Quitter';
+            document.body.style.overflow = 'hidden';
+        } else {
+            btn.innerHTML = '<span class="icon">⛶</span> Plein écran';
+            document.body.style.overflow = '';
         }
     },
 
