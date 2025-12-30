@@ -1277,28 +1277,28 @@
     padding-bottom: 20px;
 }
 
-/* Layout côte à côte */
+/* Layout côte à côte - proportions équilibrées */
 .main-content-area {
     display: grid;
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 3fr 2fr;
     gap: 16px;
     align-items: start;
     transition: grid-template-columns 0.3s ease;
 }
 
-/* Quand sidebar masqué, le document principal s'élargit */
+/* Quand sidebar masqué, le document principal s'élargit un peu */
 #main.expanded .main-content-area {
-    grid-template-columns: 1fr 280px;
+    grid-template-columns: 2fr 1fr;
 }
 
 /* Sur écrans moyens avec sidebar visible */
 @media (max-width: 1200px) {
     .main-content-area {
-        grid-template-columns: 1fr 280px;
+        grid-template-columns: 1fr 1fr;
     }
 
     #main.expanded .main-content-area {
-        grid-template-columns: 1fr 260px;
+        grid-template-columns: 3fr 2fr;
     }
 }
 
@@ -1367,9 +1367,9 @@
 
 .main-viewer .viewer-iframe {
     width: 100%;
-    height: 65vh;
-    min-height: 450px;
-    max-height: 700px;
+    height: 75vh;
+    min-height: 500px;
+    max-height: none;
     border: none;
     display: block;
 }
