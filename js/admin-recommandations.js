@@ -657,13 +657,20 @@ const AdminRecommandations = {
         // Google Drive: https://drive.google.com/file/d/FILE_ID/view
         const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
         if (driveMatch) {
-            return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+            // Utilise lh3.googleusercontent.com qui est plus fiable
+            return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
         }
 
         // Google Drive: https://drive.google.com/open?id=FILE_ID
         const driveMatch2 = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
         if (driveMatch2) {
-            return `https://drive.google.com/uc?export=view&id=${driveMatch2[1]}`;
+            return `https://lh3.googleusercontent.com/d/${driveMatch2[1]}`;
+        }
+
+        // Google Drive: uc?id=FILE_ID ou uc?export=view&id=FILE_ID
+        const driveMatch3 = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
+        if (driveMatch3) {
+            return `https://lh3.googleusercontent.com/d/${driveMatch3[1]}`;
         }
 
         // Dropbox: remplacer dl=0 par dl=1
