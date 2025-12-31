@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Méthodologie - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-teal: #14b8a6;
+            --accent-teal-light: #ccfbf1;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-icon { font-size: 28px; }
+        .logo-text { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+        .logo-text span { color: var(--gray-500); font-weight: 500; }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-notif {
+            width: 44px;
+            height: 44px;
+            background: var(--gray-100);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 20px;
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 25px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-name { font-size: 14px; font-weight: 600; color: var(--gray-700); }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .breadcrumb a { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb .separator { color: var(--gray-300); }
+        .breadcrumb .current { color: var(--gray-600); }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            font-size: 16px;
+            color: var(--gray-500);
+        }
+
+        /* ===== SEARCH BAR ===== */
+        .search-bar {
+            position: relative;
+            margin-bottom: 32px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 16px 20px 16px 52px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            font-size: 15px;
+            font-family: inherit;
+            background: white;
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-bg);
+        }
+
+        .search-bar::before {
+            content: '🔍';
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+        }
+
+        /* ===== CATEGORY SECTION ===== */
+        .category-section {
+            margin-bottom: 40px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .category-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .category-icon.analyser { background: var(--accent-blue-light); }
+        .category-icon.rediger { background: var(--accent-purple-light); }
+        .category-icon.reperer { background: var(--accent-teal-light); }
+        .category-icon.organiser { background: var(--accent-orange-light); }
+
+        .category-info { flex: 1; }
+
+        .category-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .category-meta {
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        /* ===== COMPETENCES GRID ===== */
+        .competences-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        /* ===== COMPETENCE CARD ===== */
+        .competence-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .competence-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .competence-card-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .competence-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-bg);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .competence-info { flex: 1; }
+
+        .competence-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .competence-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Levels badges */
+        .levels-row {
+            display: flex;
+            gap: 4px;
+        }
+
+        .level-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .level-dot.completed {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .level-dot.available {
+            background: var(--gray-200);
+            color: var(--gray-600);
+        }
+
+        .level-dot.locked {
+            background: var(--gray-100);
+            color: var(--gray-400);
+        }
+
+        .steps-badge {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* Progress bar */
+        .competence-progress {
+            margin-top: auto;
+            padding-top: 14px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .progress-label {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .progress-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--gray-200);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent-green);
+            border-radius: 3px;
+        }
+
+        /* Status tags */
+        .status-tag {
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-tag.new {
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+        }
+
+        .status-tag.in-progress {
+            background: var(--accent-orange-light);
+            color: var(--accent-orange);
+        }
+
+        .status-tag.completed {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        /* ===== FILTER TABS ===== */
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+            background: white;
+            color: var(--gray-600);
+            box-shadow: var(--shadow);
+        }
+
+        .filter-tab:hover { background: var(--gray-50); }
+
+        .filter-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .competences-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .category-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle">☰</button>
+            <a href="#" class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">Espace cours <span>• Mme Meyer</span></span>
+            </a>
+        </div>
+        <div class="header-right">
+            <a href="#" class="header-notif">📬</a>
+            <div class="user-pill">
+                <div class="user-avatar">IA</div>
+                <span class="user-name">Ilyana A.</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+        <!-- BREADCRUMB -->
+        <nav class="breadcrumb">
+            <a href="#">Accueil</a>
+            <span class="separator">›</span>
+            <span class="current">Méthodologie</span>
+        </nav>
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>🧠 Méthodologie</h1>
+            <p>Apprends les méthodes essentielles pour réussir en histoire-géographie</p>
+        </div>
+
+        <!-- SEARCH -->
+        <div class="search-bar">
+            <input type="text" placeholder="Rechercher une compétence...">
+        </div>
+
+        <!-- FILTERS -->
+        <div class="filter-section">
+            <span class="filter-label">Filtrer :</span>
+            <div class="filter-tabs">
+                <button class="filter-tab active">Toutes</button>
+                <button class="filter-tab">🆕 Nouvelles</button>
+                <button class="filter-tab">🔄 En cours</button>
+                <button class="filter-tab">✅ Terminées</button>
+            </div>
+        </div>
+
+        <!-- CATEGORY: ANALYSER -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon analyser">📄</div>
+                <div class="category-info">
+                    <h2 class="category-title">Analyser</h2>
+                    <p class="category-meta">4 compétences • Apprendre à lire et comprendre les documents</p>
+                </div>
+            </div>
+
+            <div class="competences-grid">
+                <a href="#" class="competence-card">
+                    <div class="competence-card-header">
+                        <div class="competence-icon">📋</div>
+                        <div class="competence-info">
+                            <h3 class="competence-title">Présenter un document</h3>
+                            <div class="competence-meta">
+                                <div class="levels-row">
+                                    <span class="level-dot completed">1</span>
+                                    <span class="level-dot available">2</span>
+                                    <span class="level-dot locked">3</span>
+                                </div>
+                                <span class="steps-badge">7 étapes</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="competence-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-value">4/7</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 57%;"></div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="#" class="competence-card">
+                    <div class="competence-card-header">
+                        <div class="competence-icon">🔍</div>
+                        <div class="competence-info">
+                            <h3 class="competence-title">Identifier les informations clés</h3>
+                            <div class="competence-meta">
+                                <span class="steps-badge">4 étapes</span>
+                                <span class="status-tag in-progress">En cours</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="competence-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-value">2/4</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 50%;"></div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="#" class="competence-card">
+                    <div class="competence-card-header">
+                        <div class="competence-icon">📊</div>
+                        <div class="competence-info">
+                            <h3 class="competence-title">Analyser un graphique</h3>
+                            <div class="competence-meta">
+                                <div class="levels-row">
+                                    <span class="level-dot available">1</span>
+                                    <span class="level-dot locked">2</span>
+                                </div>
+                                <span class="steps-badge">5 étapes</span>
+                                <span class="status-tag new">Nouveau</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="competence-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-value">0/5</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="#" class="competence-card">
+                    <div class="competence-card-header">
+                        <div class="competence-icon">🗺️</div>
+                        <div class="competence-info">
+                            <h3 class="competence-title">Lire une carte</h3>
+                            <div class="competence-meta">
+                                <span class="steps-badge">3 étapes</span>
+                                <span class="status-tag completed">Terminé</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="competence-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-value">3/3</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- CATEGORY: RÉDIGER -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon rediger">✍️</div>
+                <div class="category-info">
+                    <h2 class="category-title">Rédiger</h2>
+                    <p class="category-meta">3 compétences • Apprendre à écrire et argumenter</p>
+                </div>
+            </div>
+
+            <div class="competences-grid">
+                <a href="#" class="competence-card">
+                    <div class="competence-card-header">
+                        <div class="competence-icon">📝</div>
+                        <div class="competence-info">
+                            <h3 class="competence-title">Rédiger un paragraphe argumenté</h3>
+                            <div class="competence-meta">
+                                <div class="levels-row">
+                                    <span class="level-dot completed">1</span>
+                                    <span class="level-dot completed">2</span>
+                                    <span class="level-dot available">3</span>
+                                </div>
+                                <span class="steps-badge">9 étapes</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="competence-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-value">6/9</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 67%;"></div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="#" class="competence-card">
+                    <div class="competence-card-header">
+                        <div class="competence-icon">📖</div>
+                        <div class="competence-info">
+                            <h3 class="competence-title">Écrire une introduction</h3>
+                            <div class="competence-meta">
+                                <span class="steps-badge">3 étapes</span>
+                                <span class="status-tag new">Nouveau</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="competence-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-value">0/3</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- CATEGORY: SE REPÉRER -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon reperer">🗺️</div>
+                <div class="category-info">
+                    <h2 class="category-title">Se repérer</h2>
+                    <p class="category-meta">3 compétences • Maîtriser le temps et l'espace</p>
+                </div>
+            </div>
+
+            <div class="competences-grid">
+                <a href="#" class="competence-card">
+                    <div class="competence-card-header">
+                        <div class="competence-icon">⏳</div>
+                        <div class="competence-info">
+                            <h3 class="competence-title">Naviguer dans le temps</h3>
+                            <div class="competence-meta">
+                                <div class="levels-row">
+                                    <span class="level-dot completed">1</span>
+                                    <span class="level-dot completed">2</span>
+                                    <span class="level-dot completed">3</span>
+                                </div>
+                                <span class="steps-badge">9 étapes</span>
+                                <span class="status-tag completed">Terminé</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="competence-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-value">9/9</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="#" class="competence-card">
+                    <div class="competence-card-header">
+                        <div class="competence-icon">🌍</div>
+                        <div class="competence-info">
+                            <h3 class="competence-title">Se repérer dans l'espace</h3>
+                            <div class="competence-meta">
+                                <span class="steps-badge">4 étapes</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="competence-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-value">1/4</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 25%;"></div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- CATEGORY: S'ORGANISER -->
+        <section class="category-section">
+            <div class="category-header">
+                <div class="category-icon organiser">📁</div>
+                <div class="category-info">
+                    <h2 class="category-title">S'organiser</h2>
+                    <p class="category-meta">2 compétences • Gérer son travail efficacement</p>
+                </div>
+            </div>
+
+            <div class="competences-grid">
+                <a href="#" class="competence-card">
+                    <div class="competence-card-header">
+                        <div class="competence-icon">📅</div>
+                        <div class="competence-info">
+                            <h3 class="competence-title">Réviser efficacement</h3>
+                            <div class="competence-meta">
+                                <span class="steps-badge">5 étapes</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="competence-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-value">2/5</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 40%;"></div>
+                        </div>
+                    </div>
+                </a>
+
+                <a href="#" class="competence-card">
+                    <div class="competence-card-header">
+                        <div class="competence-icon">⏰</div>
+                        <div class="competence-info">
+                            <h3 class="competence-title">Gérer son temps</h3>
+                            <div class="competence-meta">
+                                <span class="steps-badge">2 étapes</span>
+                                <span class="status-tag new">Nouveau</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="competence-progress">
+                        <div class="progress-header">
+                            <span class="progress-label">Progression</span>
+                            <span class="progress-value">0/2</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Filter tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+    </script>
+
+</body>
+</html>
