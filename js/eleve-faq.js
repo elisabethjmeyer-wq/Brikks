@@ -224,35 +224,35 @@ const EleveFAQ = {
     },
 
     /**
-     * Get YouTube embed URL from various YouTube URL formats
+     * Get embed URL from various video URL formats (YouTube, Loom, etc.)
      */
     getYouTubeEmbedUrl(url) {
         if (!url) return null;
 
         // Already an embed URL
-        if (url.includes('youtube.com/embed/')) {
+        if (url.includes('/embed/')) {
             return url;
         }
 
-        let videoId = null;
+        // Loom: https://www.loom.com/share/VIDEO_ID -> https://www.loom.com/embed/VIDEO_ID
+        const loomMatch = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+        if (loomMatch) {
+            return `https://www.loom.com/embed/${loomMatch[1]}`;
+        }
 
-        // youtube.com/watch?v=VIDEO_ID
+        // YouTube: youtube.com/watch?v=VIDEO_ID
         const watchMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
         if (watchMatch) {
-            videoId = watchMatch[1];
+            return `https://www.youtube.com/embed/${watchMatch[1]}`;
         }
 
-        // youtu.be/VIDEO_ID
+        // YouTube short: youtu.be/VIDEO_ID
         const shortMatch = url.match(/youtu\.be\/([^?]+)/);
         if (shortMatch) {
-            videoId = shortMatch[1];
+            return `https://www.youtube.com/embed/${shortMatch[1]}`;
         }
 
-        if (videoId) {
-            return `https://www.youtube.com/embed/${videoId}`;
-        }
-
-        // Return original URL if not YouTube (could be direct video link)
+        // Return original URL if not recognized (could be direct video link)
         return url;
     },
 
