@@ -1,0 +1,384 @@
+/**
+ * Page Méthodologie élève - Liste des compétences
+ */
+
+/* ===== PAGE HEADER ===== */
+.methodologie-header {
+    margin-bottom: 24px;
+}
+
+.methodologie-header h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--gray-800);
+    margin: 0 0 8px 0;
+}
+
+.methodologie-header p {
+    font-size: 1rem;
+    color: var(--gray-500);
+    margin: 0;
+}
+
+/* ===== SEARCH BAR ===== */
+.search-bar {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 14px 20px 14px 48px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    font-size: 15px;
+    font-family: inherit;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s;
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.search-bar::before {
+    content: '🔍';
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+}
+
+/* ===== FILTER SECTION ===== */
+.filter-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+
+.filter-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-500);
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-tab {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-family: inherit;
+    background: white;
+    color: var(--gray-600);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.filter-tab:hover {
+    background: var(--gray-50);
+}
+
+.filter-tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* ===== CATEGORY SECTION ===== */
+.category-section {
+    margin-bottom: 36px;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.category-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+}
+
+.category-icon.blue { background: var(--accent-blue-light, #dbeafe); }
+.category-icon.purple { background: var(--accent-purple-light, #ede9fe); }
+.category-icon.teal { background: var(--accent-teal-light, #ccfbf1); }
+.category-icon.orange { background: var(--accent-orange-light, #fef3c7); }
+
+.category-info {
+    flex: 1;
+}
+
+.category-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--gray-800);
+    margin: 0 0 4px 0;
+}
+
+.category-meta {
+    font-size: 0.875rem;
+    color: var(--gray-500);
+    margin: 0;
+}
+
+/* ===== COMPETENCES GRID ===== */
+.competences-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+/* ===== COMPETENCE CARD ===== */
+.competence-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.competence-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.competence-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.competence-icon {
+    width: 46px;
+    height: 46px;
+    background: var(--primary-bg, #eef2ff);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.competence-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.competence-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+}
+
+.competence-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Levels badges */
+.levels-row {
+    display: flex;
+    gap: 4px;
+}
+
+.level-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.level-dot.completed {
+    background: var(--accent-green, #10b981);
+    color: white;
+}
+
+.level-dot.available {
+    background: var(--gray-200);
+    color: var(--gray-600);
+}
+
+.level-dot.locked {
+    background: var(--gray-100);
+    color: var(--gray-400);
+}
+
+.steps-badge {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+/* Status tags */
+.status-tag {
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.status-tag.new {
+    background: var(--accent-blue-light, #dbeafe);
+    color: var(--accent-blue, #3b82f6);
+}
+
+.status-tag.in-progress {
+    background: var(--accent-orange-light, #fef3c7);
+    color: var(--accent-orange, #f59e0b);
+}
+
+.status-tag.completed {
+    background: var(--accent-green-light, #d1fae5);
+    color: var(--accent-green, #10b981);
+}
+
+/* Progress bar */
+.competence-progress {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--gray-100);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.progress-label {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.progress-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-green, #10b981);
+}
+
+.progress-bar {
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent-green, #10b981);
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--gray-400);
+    background: white;
+    border-radius: var(--radius-lg);
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* ===== LOADER ===== */
+.loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+}
+
+.loader .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--gray-200);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 700px) {
+    .competences-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .category-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .methodologie-header h1 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 500px) {
+    .filter-section {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filter-tabs {
+        width: 100%;
+    }
+
+    .filter-tab {
+        flex: 1;
+        text-align: center;
+    }
+}

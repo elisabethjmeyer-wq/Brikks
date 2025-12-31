@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Brikks - Méthodologie">
-    <title>Méthodologie - Brikks</title>
+    <meta name="description" content="Brikks - M�thodologie Parcours">
+    <title>M�thodologie - Brikks</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,15 +13,9 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="../css/eleve-methodologie.css">
+    <link rel="stylesheet" href="../css/eleve-methodologie-parcours.css">
 </head>
 <body>
-
-<!-- Header -->
-<div class="methodologie-header" id="page-header">
-    <h1>🧠 Méthodologie</h1>
-    <p>Apprends les méthodes essentielles pour réussir</p>
-</div>
 
 <!-- Main content -->
 <div id="main-content">
@@ -36,12 +30,12 @@
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/eleve-layout.js"></script>
-<script src="../js/eleve-methodologie.js"></script>
+<script src="../js/eleve-methodologie-parcours.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', async function() {
-        await EleveLayout.init('methodologie', 'Méthodologie');
-        await EleveMethodologie.init();
+        await EleveLayout.init('methodologie', 'M�thodologie');
+        await EleveMethodologieParcours.init();
     });
 </script>
 
