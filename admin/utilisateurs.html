@@ -20,14 +20,21 @@
 <!-- Contenu de la page -->
 <div id="utilisateurs-page">
     <!-- Page Header -->
-    <header class="page-header">
+    <header class="admin-header">
         <div>
             <h1>👥 Gestion des utilisateurs</h1>
-            <p class="page-subtitle">Gère les comptes élèves et administrateurs, les classes et les groupes.</p>
+            <p>Gérez les élèves, classes et groupes de la plateforme</p>
         </div>
-        <button class="btn btn-primary" id="addUserBtn">
-            ➕ Nouvel utilisateur
-        </button>
+        <div class="header-actions">
+            <button class="btn btn-secondary" id="manageBtn">
+                <span>⚙️</span>
+                Gérer classes/groupes
+            </button>
+            <button class="btn btn-primary" id="addUserBtn">
+                <span>➕</span>
+                Ajouter un utilisateur
+            </button>
+        </div>
     </header>
 
     <!-- Loader -->
@@ -42,67 +49,61 @@
         <!-- Stats Cards -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon stat-icon-total">👥</div>
-                <div class="stat-info">
-                    <span class="stat-value" id="statTotal">0</span>
-                    <span class="stat-label">Total utilisateurs</span>
-                </div>
+                <div class="stat-card-icon blue">👥</div>
+                <div class="stat-card-value" id="statTotal">0</div>
+                <div class="stat-card-label">Utilisateurs total</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon stat-icon-eleves">🎓</div>
-                <div class="stat-info">
-                    <span class="stat-value" id="statEleves">0</span>
-                    <span class="stat-label">Élèves</span>
-                </div>
+                <div class="stat-card-icon green">🎓</div>
+                <div class="stat-card-value" id="statEleves">0</div>
+                <div class="stat-card-label">Élèves</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon stat-icon-admins">👑</div>
-                <div class="stat-info">
-                    <span class="stat-value" id="statAdmins">0</span>
-                    <span class="stat-label">Administrateurs</span>
-                </div>
+                <div class="stat-card-icon purple">👩‍🏫</div>
+                <div class="stat-card-value" id="statProfs">0</div>
+                <div class="stat-card-label">Professeurs</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon stat-icon-classes">🏫</div>
-                <div class="stat-info">
-                    <span class="stat-value" id="statClasses">0</span>
-                    <span class="stat-label">Classes</span>
-                </div>
+                <div class="stat-card-icon teal">👋</div>
+                <div class="stat-card-value" id="statInvites">0</div>
+                <div class="stat-card-label">Invités</div>
             </div>
         </div>
 
         <!-- Filtres -->
         <div class="filters-bar">
             <div class="search-box">
-                <span class="search-icon">🔍</span>
-                <input type="text" class="search-input" id="searchInput" placeholder="Rechercher un utilisateur...">
+                <input type="text" id="searchInput" placeholder="Rechercher un utilisateur...">
             </div>
-            <div class="filter-group">
-                <select class="filter-select" id="filterClasse">
-                    <option value="">Toutes les classes</option>
-                </select>
-                <select class="filter-select" id="filterGroupe">
-                    <option value="">Tous les groupes</option>
-                </select>
-                <select class="filter-select" id="filterRole">
-                    <option value="">Tous les rôles</option>
-                    <option value="admin">Administrateurs</option>
-                    <option value="eleve">Élèves</option>
-                </select>
-            </div>
+            <select class="filter-select" id="filterClasse">
+                <option value="">Toutes les classes</option>
+            </select>
+            <select class="filter-select" id="filterGroupe">
+                <option value="">Tous les groupes</option>
+            </select>
+            <select class="filter-select" id="filterRole">
+                <option value="">Tous les rôles</option>
+                <option value="eleve">Élève</option>
+                <option value="prof">Professeur</option>
+                <option value="invite">Invité</option>
+            </select>
         </div>
 
         <!-- Tableau des utilisateurs -->
-        <div class="table-container">
+        <div class="table-card">
+            <div class="table-header">
+                <h2>Liste des utilisateurs</h2>
+                <span class="table-count" id="tableCount">0 utilisateurs</span>
+            </div>
+
             <table class="users-table">
                 <thead>
                     <tr>
-                        <th class="sortable" data-sort="nom">Nom ↕</th>
-                        <th class="sortable" data-sort="prenom">Prénom ↕</th>
-                        <th class="sortable" data-sort="identifiant">Identifiant ↕</th>
-                        <th>Classes</th>
-                        <th>Groupes</th>
-                        <th class="sortable" data-sort="role">Rôle ↕</th>
+                        <th>Utilisateur</th>
+                        <th>Rôle</th>
+                        <th>Classe</th>
+                        <th>Groupe</th>
+                        <th>Dernière connexion</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -113,9 +114,17 @@
 
             <!-- Empty state -->
             <div class="empty-state" id="emptyState" style="display: none;">
-                <div class="icon">👥</div>
+                <div class="empty-icon">👥</div>
                 <h3>Aucun utilisateur trouvé</h3>
-                <p>Modifie tes filtres ou ajoute un nouvel utilisateur.</p>
+                <p>Modifiez vos filtres ou ajoutez un nouvel utilisateur.</p>
+            </div>
+
+            <!-- Pagination -->
+            <div class="table-footer" id="tableFooter">
+                <div class="pagination-info" id="paginationInfo">Affichage 1-10 sur 0 utilisateurs</div>
+                <div class="pagination" id="pagination">
+                    <!-- Pagination générée dynamiquement -->
+                </div>
             </div>
         </div>
 
@@ -123,70 +132,70 @@
 </div>
 
 <!-- ===== MODAL: Ajouter/Modifier utilisateur ===== -->
-<div class="modal-overlay" id="userModal">
-    <div class="modal modal-large">
+<div class="modal-overlay hidden" id="userModal">
+    <div class="modal">
         <div class="modal-header">
-            <h2 class="modal-title" id="userModalTitle">➕ Nouvel utilisateur</h2>
+            <h2 id="userModalTitle">Ajouter un utilisateur</h2>
             <button class="modal-close" id="closeUserModal">✕</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="editUserId">
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Nom *</label>
-                    <input type="text" class="form-input" id="userNom" placeholder="Dupont">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Prénom *</label>
-                    <input type="text" class="form-input" id="userPrenom" placeholder="Jean">
-                </div>
-            </div>
+            <div class="form-section">👤 Informations personnelles</div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Identifiant *</label>
-                    <input type="text" class="form-input" id="userIdentifiant" placeholder="jean.dupont">
-                    <div class="form-hint">Utilisé pour la connexion</div>
+                    <label>Prénom <span class="req">*</span></label>
+                    <input type="text" class="form-input" id="userPrenom" placeholder="Ex: Ilyana">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Mot de passe <span id="passwordHint">(obligatoire)</span></label>
-                    <input type="password" class="form-input" id="userPassword" placeholder="••••••••">
-                    <div class="form-hint" id="passwordEditHint" style="display: none;">Laisser vide pour ne pas modifier</div>
+                    <label>Nom <span class="req">*</span></label>
+                    <input type="text" class="form-input" id="userNom" placeholder="Ex: Amrani">
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="form-label">Rôle *</label>
-                    <select class="form-input" id="userRole">
-                        <option value="eleve">Élève</option>
-                        <option value="admin">Administrateur</option>
-                    </select>
-                </div>
+            <div class="form-group">
+                <label>Rôle <span class="req">*</span></label>
+                <select class="form-select" id="userRole">
+                    <option value="eleve">🎓 Élève</option>
+                    <option value="prof">👩‍🏫 Professeur</option>
+                    <option value="invite">👋 Invité</option>
+                </select>
             </div>
 
-            <div class="form-row" id="classeGroupeRow">
-                <div class="form-group">
-                    <label class="form-label">Classes</label>
-                    <div class="chips-container" id="userClassesChips">
-                        <!-- Chips générées dynamiquement -->
+            <div id="classeGroupeFields">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Classe <span class="req">*</span></label>
+                        <select class="form-select" id="userClasse">
+                            <option value="">Sélectionner...</option>
+                        </select>
                     </div>
-                    <select class="form-input" id="addClasseSelect">
-                        <option value="">+ Ajouter une classe</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Groupes</label>
-                    <div class="chips-container" id="userGroupesChips">
-                        <!-- Chips générées dynamiquement -->
+                    <div class="form-group">
+                        <label>Groupe</label>
+                        <select class="form-select" id="userGroupe">
+                            <option value="">Aucun</option>
+                        </select>
                     </div>
-                    <select class="form-input" id="addGroupeSelect">
-                        <option value="">+ Ajouter un groupe</option>
-                    </select>
                 </div>
             </div>
 
+            <div class="form-section" style="margin-top: 24px;">🔐 Identifiants</div>
+
+            <div class="form-group">
+                <label>Identifiant <span class="req">*</span></label>
+                <input type="text" class="form-input" id="userIdentifiant" placeholder="Ex: i.amrani">
+                <div class="form-help">Utilisé pour la connexion</div>
+            </div>
+
+            <div class="form-group">
+                <label>Mot de passe <span id="passwordRequired" class="req">*</span></label>
+                <div class="password-row">
+                    <input type="text" class="form-input" id="userPassword" placeholder="••••••••">
+                    <button type="button" class="btn-generate" id="generatePasswordBtn">Générer</button>
+                </div>
+                <div class="form-help" id="passwordHelp">Minimum 6 caractères</div>
+            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelUserBtn">Annuler</button>
@@ -196,47 +205,42 @@
 </div>
 
 <!-- ===== MODAL: Réinitialiser mot de passe ===== -->
-<div class="modal-overlay" id="passwordModal">
+<div class="modal-overlay hidden" id="passwordModal">
     <div class="modal">
         <div class="modal-header">
-            <h2 class="modal-title">🔑 Réinitialiser le mot de passe</h2>
+            <h2>🔑 Réinitialiser le mot de passe</h2>
             <button class="modal-close" id="closePasswordModal">✕</button>
         </div>
         <div class="modal-body">
-            <p>Réinitialiser le mot de passe de <strong id="passwordUserName"></strong> ?</p>
+            <p style="margin-bottom: 16px; color: var(--gray-600);">Pour <strong id="passwordUserName"></strong></p>
             <input type="hidden" id="passwordUserId">
 
             <div class="form-group">
-                <label class="form-label">Nouveau mot de passe</label>
-                <input type="password" class="form-input" id="newPassword" placeholder="••••••••">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Confirmer le mot de passe</label>
-                <input type="password" class="form-input" id="confirmPassword" placeholder="••••••••">
+                <label>Nouveau mot de passe <span class="req">*</span></label>
+                <div class="password-row">
+                    <input type="text" class="form-input" id="newPassword" placeholder="••••••••">
+                    <button type="button" class="btn-generate" id="generateNewPasswordBtn">Générer</button>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelPasswordBtn">Annuler</button>
-            <button class="btn btn-warning" id="confirmPasswordBtn">🔑 Réinitialiser</button>
+            <button class="btn btn-primary" id="confirmPasswordBtn">✓ Réinitialiser</button>
         </div>
     </div>
 </div>
 
 <!-- ===== MODAL: Supprimer utilisateur ===== -->
-<div class="modal-overlay" id="deleteModal">
-    <div class="modal">
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal confirm">
         <div class="modal-header">
-            <h2 class="modal-title">🗑️ Supprimer l'utilisateur</h2>
+            <h2></h2>
             <button class="modal-close" id="closeDeleteModal">✕</button>
         </div>
         <div class="modal-body">
-            <div class="warning-box">
-                <span class="warning-icon">⚠️</span>
-                <div>
-                    <strong>Attention !</strong><br>
-                    Cette action est irréversible. L'utilisateur <strong id="deleteUserName"></strong> sera définitivement supprimé.
-                </div>
-            </div>
+            <div class="confirm-icon">🗑️</div>
+            <div class="confirm-title">Supprimer cet utilisateur ?</div>
+            <div class="confirm-text">Êtes-vous sûr de vouloir supprimer <strong id="deleteUserName"></strong> ? Cette action est irréversible.</div>
             <input type="hidden" id="deleteUserId">
         </div>
         <div class="modal-footer">
@@ -247,50 +251,42 @@
 </div>
 
 <!-- ===== MODAL: Gérer classes et groupes ===== -->
-<div class="modal-overlay" id="manageModal">
-    <div class="modal modal-large">
+<div class="modal-overlay hidden" id="manageModal">
+    <div class="modal">
         <div class="modal-header">
-            <h2 class="modal-title">🏫 Gérer les classes et groupes</h2>
+            <h2>⚙️ Gérer classes et groupes</h2>
             <button class="modal-close" id="closeManageModal">✕</button>
         </div>
         <div class="modal-body">
-            <div class="manage-tabs">
-                <button class="manage-tab active" data-tab="classes">Classes</button>
-                <button class="manage-tab" data-tab="groupes">Groupes</button>
-            </div>
-
-            <!-- Tab Classes -->
-            <div class="manage-tab-content active" id="manageTabClasses">
-                <div class="form-row" style="margin-bottom: 16px;">
-                    <input type="text" class="form-input" id="newClasseName" placeholder="Nom de la classe">
-                    <button class="btn btn-primary" id="addClasseBtn">➕ Ajouter</button>
-                </div>
-                <div class="manage-list" id="classesList">
+            <!-- Classes -->
+            <div class="manage-section">
+                <div class="manage-section-title">🏫 Classes</div>
+                <div class="tags-list" id="classesList">
                     <!-- Générées dynamiquement -->
+                </div>
+                <div class="add-inline">
+                    <input type="text" id="newClasseName" placeholder="Nom de la nouvelle classe...">
+                    <button id="addClasseBtn">+ Ajouter</button>
                 </div>
             </div>
 
-            <!-- Tab Groupes -->
-            <div class="manage-tab-content" id="manageTabGroupes">
-                <div class="form-row" style="margin-bottom: 16px;">
-                    <input type="text" class="form-input" id="newGroupeName" placeholder="Nom du groupe">
-                    <button class="btn btn-primary" id="addGroupeBtn">➕ Ajouter</button>
-                </div>
-                <div class="manage-list" id="groupesList">
+            <!-- Groupes -->
+            <div class="manage-section">
+                <div class="manage-section-title">👥 Groupes</div>
+                <div class="tags-list" id="groupesList">
                     <!-- Générées dynamiquement -->
+                </div>
+                <div class="add-inline">
+                    <input type="text" id="newGroupeName" placeholder="Nom du nouveau groupe...">
+                    <button id="addGroupeBtn">+ Ajouter</button>
                 </div>
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" id="closeManageBtn">Fermer</button>
+            <button class="btn btn-primary" id="closeManageBtn">Fermer</button>
         </div>
     </div>
 </div>
-
-<!-- Bouton flottant pour gérer classes/groupes -->
-<button class="fab-button" id="manageBtn" title="Gérer les classes et groupes">
-    🏫
-</button>
 
 <!-- Scripts -->
 <script src="../js/config.js"></script>
