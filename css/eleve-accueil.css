@@ -4,14 +4,28 @@
  */
 
 /* ===== CONTAINER PRINCIPAL ===== */
+/* Compenser le padding du .eleve-main pour utiliser toute la largeur */
 .accueil-container {
-    width: 100%;
+    width: calc(100% + 48px);
+    margin-left: -24px;
+    margin-right: -24px;
+    padding: 0 24px;
 }
 
 .main-content {
     display: flex;
     flex-direction: column;
     gap: 24px;
+}
+
+/* Section vidéo pleine largeur (sans padding) */
+.video-section {
+    margin-left: -24px;
+    margin-right: -24px;
+}
+
+.video-section .video-card {
+    border-radius: 0;
 }
 
 /* ===== HEADER D'ACCUEIL ===== */
@@ -38,11 +52,7 @@
     color: var(--gray-500);
 }
 
-/* ===== SECTION VIDÉO (PLEINE LARGEUR) ===== */
-.video-section {
-    width: 100%;
-}
-
+/* ===== CARTE VIDÉO ===== */
 .video-card {
     background: white;
     border-radius: var(--radius-lg);
@@ -597,6 +607,19 @@
 }
 
 @media (max-width: 600px) {
+    /* Ajuster les marges négatives pour mobile (padding 16px) */
+    .accueil-container {
+        width: calc(100% + 32px);
+        margin-left: -16px;
+        margin-right: -16px;
+        padding: 0 16px;
+    }
+
+    .video-section {
+        margin-left: -16px;
+        margin-right: -16px;
+    }
+
     .accueil-header {
         margin-bottom: 20px;
     }
