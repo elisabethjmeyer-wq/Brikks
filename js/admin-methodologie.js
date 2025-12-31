@@ -48,7 +48,7 @@ const AdminMethodologie = {
 
     showContent() {
         const loader = document.getElementById('loader');
-        const content = document.getElementById('main-content');
+        const content = document.getElementById('methodologie-content');
         if (loader) loader.style.display = 'none';
         if (content) content.style.display = 'block';
     },
