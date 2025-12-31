@@ -17,22 +17,17 @@
 </head>
 <body>
 
-<!-- Contenu de la page (sera wrappé par le layout) -->
-<div class="accueil-container">
-    <!-- Header de bienvenue -->
-    <div id="greeting-container" class="accueil-header">
-        <!-- Généré par JS -->
-    </div>
+<!-- Greeting -->
+<div id="greeting-container"></div>
 
-    <!-- Contenu principal (2 colonnes) -->
-    <div id="main-content" class="main-content">
-        <div class="accueil-loader">
-            <div class="spinner"></div>
-        </div>
+<!-- Main content -->
+<div id="main-content">
+    <div class="loader">
+        <div class="spinner"></div>
     </div>
 </div>
 
-<!-- Modal pour vidéo/recommandation -->
+<!-- Modal -->
 <div class="media-modal" id="media-modal">
     <div class="modal-overlay" id="modal-overlay"></div>
     <div class="modal-container">
@@ -40,9 +35,7 @@
             <h3 class="modal-title" id="modal-title">Chargement...</h3>
             <button class="modal-close" id="modal-close">✕</button>
         </div>
-        <div class="modal-body" id="modal-content">
-            <!-- Contenu injecté par JS -->
-        </div>
+        <div class="modal-body" id="modal-content"></div>
     </div>
 </div>
 
@@ -56,13 +49,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', async function() {
-        // Marquer la page accueil pour le CSS
-        document.body.classList.add('page-accueil');
-
-        // Initialiser le layout élève
         await EleveLayout.init('accueil', 'Accueil');
-
-        // Initialiser la page d'accueil
         await EleveAccueil.init();
     });
 </script>
