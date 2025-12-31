@@ -21,7 +21,9 @@ const SHEETS = {
   SUPPORTS_CHAPITRE: 'SUPPORTS_CHAPITRE',
   PARAMETRES: 'PARAMETRES',
   CONFIG_MENU: 'CONFIG_MENU',
-  UTILISATEURS: 'UTILISATEURS'
+  UTILISATEURS: 'UTILISATEURS',
+  CLASSES: 'CLASSES',
+  GROUPES: 'GROUPES'
 };
 
 /**
@@ -111,6 +113,22 @@ function handleRequest(e) {
         break;
       case 'resetPassword':
         result = resetPassword(request);
+        break;
+
+      // CLASSES
+      case 'createClasse':
+        result = createClasse(request);
+        break;
+      case 'deleteClasse':
+        result = deleteClasse(request);
+        break;
+
+      // GROUPES
+      case 'createGroupe':
+        result = createGroupe(request);
+        break;
+      case 'deleteGroupe':
+        result = deleteGroupe(request);
         break;
 
       default:
@@ -963,5 +981,265 @@ function resetPassword(data) {
   return {
     success: true,
     message: 'Mot de passe réinitialisé avec succès'
+  };
+}
+
+// ========================================
+// FONCTIONS CLASSES
+// ========================================
+
+/**
+ * Crée une nouvelle classe
+ * @param {Object} data - { nom, annee_scolaire }
+ */
+function createClasse(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.CLASSES);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet CLASSES non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let classeData = data;
+  if (typeof data.data === 'string') {
+    classeData = JSON.parse(data.data);
+  } else if (data.data) {
+    classeData = data.data;
+  }
+
+  if (!classeData.nom) {
+    return { success: false, error: 'Le nom de la classe est requis' };
+  }
+
+  // Vérifier si une classe avec ce nom existe déjà
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const nomCol = headers.indexOf('nom');
+
+  if (nomCol >= 0) {
+    const exists = allData.slice(1).some(row => row[nomCol] === classeData.nom);
+    if (exists) {
+      return { success: false, error: 'Une classe avec ce nom existe déjà' };
+    }
+  }
+
+  // Générer un ID unique
+  const id = classeData.id || 'classe_' + new Date().getTime();
+
+  // Construire la ligne selon les colonnes existantes
+  const newRow = [];
+  headers.forEach((header, index) => {
+    const colName = header.toLowerCase().trim();
+    if (colName === 'id') {
+      newRow[index] = id;
+    } else if (classeData[colName] !== undefined) {
+      newRow[index] = classeData[colName];
+    } else {
+      newRow[index] = '';
+    }
+  });
+
+  sheet.appendRow(newRow);
+
+  return {
+    success: true,
+    id: id,
+    message: 'Classe créée avec succès'
+  };
+}
+
+/**
+ * Supprime une classe
+ * @param {Object} data - { id }
+ */
+function deleteClasse(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEETS.CLASSES);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet CLASSES non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let classeData = data;
+  if (typeof data.data === 'string') {
+    classeData = JSON.parse(data.data);
+  } else if (data.data) {
+    classeData = data.data;
+  }
+
+  if (!classeData.id) {
+    return { success: false, error: 'id est requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  // Trouver la ligne
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idCol] === classeData.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Classe non trouvée: ' + classeData.id };
+  }
+
+  // Vérifier s'il y a des utilisateurs dans cette classe
+  const usersSheet = ss.getSheetByName(SHEETS.UTILISATEURS);
+  if (usersSheet) {
+    const usersData = usersSheet.getDataRange().getValues();
+    const classeIdCol = usersData[0].indexOf('classe_id');
+    if (classeIdCol >= 0) {
+      const hasUsers = usersData.slice(1).some(row => row[classeIdCol] === classeData.id);
+      if (hasUsers) {
+        return {
+          success: false,
+          error: 'Impossible de supprimer cette classe car elle contient des utilisateurs'
+        };
+      }
+    }
+  }
+
+  // Supprimer la ligne
+  sheet.deleteRow(rowIndex);
+
+  return {
+    success: true,
+    message: 'Classe supprimée avec succès'
+  };
+}
+
+// ========================================
+// FONCTIONS GROUPES
+// ========================================
+
+/**
+ * Crée un nouveau groupe
+ * @param {Object} data - { nom, classe_id, type }
+ */
+function createGroupe(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.GROUPES);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet GROUPES non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let groupeData = data;
+  if (typeof data.data === 'string') {
+    groupeData = JSON.parse(data.data);
+  } else if (data.data) {
+    groupeData = data.data;
+  }
+
+  if (!groupeData.nom) {
+    return { success: false, error: 'Le nom du groupe est requis' };
+  }
+
+  // Vérifier si un groupe avec ce nom existe déjà
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const nomCol = headers.indexOf('nom');
+
+  if (nomCol >= 0) {
+    const exists = allData.slice(1).some(row => row[nomCol] === groupeData.nom);
+    if (exists) {
+      return { success: false, error: 'Un groupe avec ce nom existe déjà' };
+    }
+  }
+
+  // Générer un ID unique
+  const id = groupeData.id || 'groupe_' + new Date().getTime();
+
+  // Construire la ligne selon les colonnes existantes
+  const newRow = [];
+  headers.forEach((header, index) => {
+    const colName = header.toLowerCase().trim();
+    if (colName === 'id') {
+      newRow[index] = id;
+    } else if (groupeData[colName] !== undefined) {
+      newRow[index] = groupeData[colName];
+    } else {
+      newRow[index] = '';
+    }
+  });
+
+  sheet.appendRow(newRow);
+
+  return {
+    success: true,
+    id: id,
+    message: 'Groupe créé avec succès'
+  };
+}
+
+/**
+ * Supprime un groupe
+ * @param {Object} data - { id }
+ */
+function deleteGroupe(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEETS.GROUPES);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet GROUPES non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let groupeData = data;
+  if (typeof data.data === 'string') {
+    groupeData = JSON.parse(data.data);
+  } else if (data.data) {
+    groupeData = data.data;
+  }
+
+  if (!groupeData.id) {
+    return { success: false, error: 'id est requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  // Trouver la ligne
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idCol] === groupeData.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Groupe non trouvé: ' + groupeData.id };
+  }
+
+  // Vérifier s'il y a des utilisateurs dans ce groupe
+  const usersSheet = ss.getSheetByName(SHEETS.UTILISATEURS);
+  if (usersSheet) {
+    const usersData = usersSheet.getDataRange().getValues();
+    const groupeCol = usersData[0].indexOf('groupe');
+    if (groupeCol >= 0) {
+      const hasUsers = usersData.slice(1).some(row => row[groupeCol] === groupeData.id);
+      if (hasUsers) {
+        return {
+          success: false,
+          error: 'Impossible de supprimer ce groupe car il contient des utilisateurs'
+        };
+      }
+    }
+  }
+
+  // Supprimer la ligne
+  sheet.deleteRow(rowIndex);
+
+  return {
+    success: true,
+    message: 'Groupe supprimé avec succès'
   };
 }
