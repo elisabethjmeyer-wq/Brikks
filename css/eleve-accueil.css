@@ -4,13 +4,13 @@
  */
 
 /* ===== FORCER LE PARENT SANS PADDING ===== */
-/* On cible le main qui contient notre container */
-.eleve-main:has(.accueil-container) {
+/* On utilise une classe sur body ajoutée par JS */
+.page-accueil .eleve-main {
     padding: 0 !important;
 }
 
 /* Le breadcrumb a besoin de padding */
-.eleve-main:has(.accueil-container) .breadcrumb {
+.page-accueil .breadcrumb {
     padding: 16px 24px 0;
 }
 
@@ -618,7 +618,7 @@
 
 @media (max-width: 600px) {
     /* Ajuster pour mobile */
-    .eleve-main:has(.accueil-container) .breadcrumb {
+    .page-accueil .breadcrumb {
         padding: 12px 16px 0;
     }
 

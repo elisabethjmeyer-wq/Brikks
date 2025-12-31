@@ -56,6 +56,9 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', async function() {
+        // Marquer la page accueil pour le CSS
+        document.body.classList.add('page-accueil');
+
         // Initialiser le layout élève
         await EleveLayout.init('accueil', 'Accueil');
 
