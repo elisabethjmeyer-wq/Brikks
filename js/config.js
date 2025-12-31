@@ -16,6 +16,7 @@ const CONFIG = {
     SHEETS: {
         UTILISATEURS: 'UTILISATEURS',
         CLASSES: 'CLASSES',
+        GROUPES: 'GROUPES',
         DISCIPLINES: 'DISCIPLINES',
         THEMES: 'THEMES',
         CHAPITRES: 'CHAPITRES',

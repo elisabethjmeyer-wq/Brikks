@@ -7,7 +7,8 @@ const AdminUtilisateurs = {
     users: [],
     classes: [],        // Liste des classes [{id, nom, annee_scolaire}]
     classesMap: {},     // Mapping id -> nom pour affichage
-    groupes: [],
+    groupes: [],        // Liste des groupes [{id, nom, classe_id, type}]
+    groupesMap: {},     // Mapping id -> nom pour affichage
 
     // Pagination
     currentPage: 1,
@@ -45,10 +46,11 @@ const AdminUtilisateurs = {
      * Charge les données depuis Google Sheets
      */
     async loadData() {
-        // Charger utilisateurs et classes en parallèle
-        const [users, classesData] = await Promise.all([
+        // Charger utilisateurs, classes et groupes en parallèle
+        const [users, classesData, groupesData] = await Promise.all([
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.UTILISATEURS),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.CLASSES)
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.CLASSES),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.GROUPES)
         ]);
 
         this.users = users || [];
@@ -60,15 +62,12 @@ const AdminUtilisateurs = {
             this.classesMap[c.id] = c.nom || c.id;
         });
 
-        // Extraire les groupes uniques depuis les utilisateurs
-        const groupesSet = new Set();
-        this.users.forEach(user => {
-            const groupeValue = user.groupe || user.groupes || '';
-            if (groupeValue) {
-                groupeValue.toString().split(',').map(g => g.trim()).filter(g => g).forEach(g => groupesSet.add(g));
-            }
+        // Charger les groupes depuis l'onglet GROUPES
+        this.groupes = groupesData || [];
+        this.groupesMap = {};
+        this.groupes.forEach(g => {
+            this.groupesMap[g.id] = g.nom || g.id;
         });
-        this.groupes = Array.from(groupesSet).sort();
 
         console.log('Données chargées:', {
             users: this.users.length,
@@ -114,11 +113,12 @@ const AdminUtilisateurs = {
             classeSelect.innerHTML += `<option value="${c.id}">${displayName}</option>`;
         });
 
-        // Groupes
+        // Groupes - afficher le nom, stocker l'ID
         const groupeSelect = document.getElementById('filterGroupe');
         groupeSelect.innerHTML = '<option value="">Tous les groupes</option>';
         this.groupes.forEach(g => {
-            groupeSelect.innerHTML += `<option value="${g}">${g}</option>`;
+            const displayName = g.nom || g.id;
+            groupeSelect.innerHTML += `<option value="${g.id}">${displayName}</option>`;
         });
 
         // Classes dans le modal utilisateur
@@ -136,7 +136,8 @@ const AdminUtilisateurs = {
         if (userGroupeSelect) {
             userGroupeSelect.innerHTML = '<option value="">Aucun</option>';
             this.groupes.forEach(g => {
-                userGroupeSelect.innerHTML += `<option value="${g}">${g}</option>`;
+                const displayName = g.nom || g.id;
+                userGroupeSelect.innerHTML += `<option value="${g.id}">${displayName}</option>`;
             });
         }
     },
@@ -254,10 +255,11 @@ const AdminUtilisateurs = {
             ? `<span class="class-badge">${classeName}</span>`
             : '<span class="no-data">—</span>';
 
-        // Groupe
-        const groupeValue = (user.groupe || user.groupes || '').toString().trim();
-        const groupeHtml = groupeValue
-            ? `<span class="group-badge">${groupeValue}</span>`
+        // Groupe - afficher le nom au lieu de l'ID
+        const groupeId = (user.groupe || user.groupes || '').toString().trim();
+        const groupeName = this.groupesMap[groupeId] || groupeId;
+        const groupeHtml = groupeId
+            ? `<span class="group-badge">${groupeName}</span>`
             : '<span class="no-data">—</span>';
 
         // Date dernière connexion
