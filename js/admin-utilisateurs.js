@@ -77,7 +77,7 @@ const AdminUtilisateurs = {
      */
     showContent() {
         document.getElementById('loader').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('users-content').style.display = 'block';
     },
 
     /**
