@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Recommandations">
+    <title>Recommandations - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/eleve-recommandations.css">
+</head>
+<body>
+
+<!-- Contenu de la page -->
+<div id="recommandations-page" class="page-container">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <a href="accueil.html">Accueil</a>
+        <span class="separator">›</span>
+        <span class="current">Recommandations</span>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="page-header">
+        <h1>💡 Recommandations</h1>
+        <p>Découvre les ressources sélectionnées par ton professeur</p>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des recommandations...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="reco-content" style="display: none;">
+
+        <!-- Featured Reco -->
+        <div class="featured-reco" id="featuredReco">
+            <div class="featured-label">
+                <span>⭐</span> Recommandation de la semaine
+            </div>
+            <div class="featured-reco-content" id="featuredRecoContent">
+                <!-- Dynamically filled -->
+            </div>
+        </div>
+
+        <!-- Archives -->
+        <div class="archives-section">
+            <div class="archives-header">
+                <h2>📚 Toutes les recommandations</h2>
+                <span class="archives-count" id="archivesCount">0 recommandations</span>
+            </div>
+
+            <div class="archives-filters">
+                <input type="text" class="search-input" id="searchInput" placeholder="Rechercher...">
+                <select class="filter-select" id="filterType">
+                    <option value="all">Tous les types</option>
+                    <option value="podcast">🎧 Podcasts</option>
+                    <option value="video">🎬 Vidéos</option>
+                    <option value="livre">📖 Livres</option>
+                    <option value="article">📰 Articles</option>
+                    <option value="autre">📌 Autres</option>
+                </select>
+            </div>
+
+            <div class="archives-list" id="archivesList">
+                <!-- Dynamically filled -->
+            </div>
+
+            <!-- Empty state -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">📭</div>
+                <h3>Aucune recommandation</h3>
+                <p>Ton professeur n'a pas encore partagé de recommandations</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Détail recommandation -->
+<div class="modal-overlay hidden" id="recoModal">
+    <div class="modal-content">
+        <button class="modal-close" id="closeRecoModal">×</button>
+        <div class="reco-detail" id="recoDetail">
+            <!-- Dynamically filled -->
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/eleve-recommandations.js"></script>
+
+</body>
+</html>
