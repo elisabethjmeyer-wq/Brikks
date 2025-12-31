@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vidéos de la semaine - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-icon { font-size: 28px; }
+        .logo-text { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+        .logo-text span { color: var(--gray-500); font-weight: 500; }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-notif {
+            width: 44px;
+            height: 44px;
+            background: var(--gray-100);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 20px;
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 25px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-name { font-size: 14px; font-weight: 600; color: var(--gray-700); }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .breadcrumb a { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb .separator { color: var(--gray-300); }
+        .breadcrumb .current { color: var(--gray-600); }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .page-header p {
+            font-size: 15px;
+            color: var(--gray-500);
+        }
+
+        /* ===== FEATURED VIDEO ===== */
+        .featured-video {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .featured-label {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .featured-video-content {
+            position: relative;
+        }
+
+        /* Video container */
+        .video-container {
+            position: relative;
+            padding-bottom: 56.25%;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Video placeholder */
+        .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .video-placeholder:hover .play-btn {
+            transform: scale(1.1);
+            background: rgba(255,255,255,0.3);
+        }
+
+        .play-btn {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 16px;
+            transition: all 0.2s;
+        }
+
+        .video-placeholder h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .video-placeholder p {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .featured-info {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .featured-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .featured-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .featured-date {
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .watch-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .watch-status.watched {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .watch-status.not-watched {
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
+        /* Message joint */
+        .featured-message {
+            display: flex;
+            gap: 14px;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #fef3c7, #fffbeb);
+            border-top: 1px solid #fde68a;
+        }
+
+        .message-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .message-text {
+            font-size: 14px;
+            color: var(--gray-700);
+            line-height: 1.7;
+        }
+
+        .message-text p {
+            margin-bottom: 4px;
+        }
+
+        .message-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ===== SEARCH & FILTERS ===== */
+        .filters-bar {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px 12px 44px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'/%3E%3C/svg%3E") 14px center no-repeat;
+            background-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .filter-select {
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+            min-width: 160px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* ===== ARCHIVES LIST ===== */
+        .archives-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .archives-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .archives-header h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .archives-count {
+            font-size: 13px;
+            color: var(--gray-500);
+            background: var(--gray-100);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .archives-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        /* Video item */
+        .video-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .video-item:last-child { border-bottom: none; }
+
+        .video-item:hover {
+            background: var(--primary-bg);
+        }
+
+        .video-thumb {
+            width: 100px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--gray-700), var(--gray-800));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-thumb .play {
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--gray-800);
+            transition: all 0.2s;
+        }
+
+        .video-item:hover .video-thumb .play {
+            transform: scale(1.1);
+        }
+
+        .video-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .video-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .video-meta {
+            font-size: 13px;
+            color: var(--gray-500);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .video-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 10px;
+        }
+
+        .video-status.watched {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .video-status.not-watched {
+            background: var(--gray-100);
+            color: var(--gray-400);
+        }
+
+        .video-arrow {
+            font-size: 18px;
+            color: var(--gray-300);
+            transition: all 0.2s;
+        }
+
+        .video-item:hover .video-arrow {
+            color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        /* Empty state */
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--gray-400);
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* ===== VIDEO POPUP ===== */
+        .video-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+            padding: 20px;
+        }
+
+        .video-popup-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .video-popup {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: all 0.2s;
+        }
+
+        .video-popup-overlay.active .video-popup {
+            transform: scale(1);
+        }
+
+        .video-popup-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+        }
+
+        .video-popup-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .video-popup-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .video-popup-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .video-popup-content {
+            position: relative;
+            padding-top: 56.25%;
+            background: #000;
+        }
+
+        .video-popup-content iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .filters-bar {
+                flex-direction: column;
+            }
+
+            .search-input, .filter-select {
+                width: 100%;
+            }
+
+            .video-thumb {
+                width: 80px;
+                height: 45px;
+            }
+
+            .featured-info {
+                flex-direction: column;
+                gap: 12px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle">☰</button>
+            <a href="#" class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">Espace cours <span>• Mme Meyer</span></span>
+            </a>
+        </div>
+        <div class="header-right">
+            <a href="#" class="header-notif">📬</a>
+            <div class="user-pill">
+                <div class="user-avatar">IA</div>
+                <span class="user-name">Ilyana A.</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+        <!-- BREADCRUMB -->
+        <nav class="breadcrumb">
+            <a href="#">Accueil</a>
+            <span class="separator">›</span>
+            <span class="current">Vidéos de la semaine</span>
+        </nav>
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>🎬 Vidéos de la semaine</h1>
+            <p>Retrouve le bilan et les infos importantes de chaque semaine</p>
+        </div>
+
+        <!-- FEATURED VIDEO -->
+        <div class="featured-video">
+            <div class="featured-label">
+                <span>⭐</span> Vidéo de cette semaine
+            </div>
+            <div class="featured-video-content">
+                <div class="video-container">
+                    <div class="video-placeholder" onclick="openVideo('https://www.loom.com/embed/example', 'Semaine du 23 décembre')">
+                        <div class="play-btn">▶</div>
+                        <h3>Semaine du 23 décembre</h3>
+                        <p>Bonnes fêtes ! 🎄</p>
+                    </div>
+                </div>
+            </div>
+            <div class="featured-info">
+                <div class="featured-meta">
+                    <span class="featured-title">Semaine du 23 décembre - Bonnes fêtes ! 🎄</span>
+                    <span class="featured-date">23 décembre 2024</span>
+                </div>
+                <div class="watch-status not-watched">
+                    <span>○</span> Pas encore vue
+                </div>
+            </div>
+            <!-- Message joint -->
+            <div class="featured-message">
+                <div class="message-icon">📝</div>
+                <div class="message-text">
+                    <p>• Bonnes vacances à tous ! 🎄</p>
+                    <p>• Profitez bien mais n'oubliez pas de réviser un peu</p>
+                    <p>• Rendez-vous le 6 janvier pour la reprise</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEARCH & FILTERS -->
+        <div class="filters-bar">
+            <input type="text" class="search-input" placeholder="Rechercher une vidéo...">
+            <select class="filter-select">
+                <option value="all">Tous les mois</option>
+                <option value="2024-12">Décembre 2024</option>
+                <option value="2024-11">Novembre 2024</option>
+                <option value="2024-10">Octobre 2024</option>
+                <option value="2024-09">Septembre 2024</option>
+            </select>
+        </div>
+
+        <!-- ARCHIVES LIST -->
+        <div class="archives-card">
+            <div class="archives-header">
+                <h2>📅 Archives</h2>
+                <span class="archives-count">11 vidéos</span>
+            </div>
+
+            <div class="archives-list">
+                <!-- Video 1 -->
+                <div class="video-item" onclick="openVideo('https://www.loom.com/embed/example1', 'Semaine du 16 décembre')">
+                    <div class="video-thumb">
+                        <div class="play">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">Semaine du 16 décembre - Dernière ligne droite</div>
+                        <div class="video-meta">
+                            <span>16 décembre 2024</span>
+                            <span>•</span>
+                            <span>5:15</span>
+                        </div>
+                    </div>
+                    <div class="video-status watched">
+                        <span>✓</span> Vue
+                    </div>
+                    <span class="video-arrow">→</span>
+                </div>
+
+                <!-- Video 2 -->
+                <div class="video-item" onclick="openVideo('https://www.loom.com/embed/example2', 'Semaine du 9 décembre')">
+                    <div class="video-thumb">
+                        <div class="play">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">Semaine du 9 décembre - Préparation contrôle</div>
+                        <div class="video-meta">
+                            <span>9 décembre 2024</span>
+                            <span>•</span>
+                            <span>6:02</span>
+                        </div>
+                    </div>
+                    <div class="video-status watched">
+                        <span>✓</span> Vue
+                    </div>
+                    <span class="video-arrow">→</span>
+                </div>
+
+                <!-- Video 3 -->
+                <div class="video-item" onclick="openVideo('https://www.loom.com/embed/example3', 'Semaine du 2 décembre')">
+                    <div class="video-thumb">
+                        <div class="play">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">Semaine du 2 décembre - Nouveau chapitre</div>
+                        <div class="video-meta">
+                            <span>2 décembre 2024</span>
+                            <span>•</span>
+                            <span>4:48</span>
+                        </div>
+                    </div>
+                    <div class="video-status watched">
+                        <span>✓</span> Vue
+                    </div>
+                    <span class="video-arrow">→</span>
+                </div>
+
+                <!-- Video 4 -->
+                <div class="video-item" onclick="openVideo('https://www.loom.com/embed/example4', 'Semaine du 25 novembre')">
+                    <div class="video-thumb">
+                        <div class="play">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">Semaine du 25 novembre - Retour sur l'évaluation</div>
+                        <div class="video-meta">
+                            <span>25 novembre 2024</span>
+                            <span>•</span>
+                            <span>5:30</span>
+                        </div>
+                    </div>
+                    <div class="video-status not-watched">
+                        <span>○</span>
+                    </div>
+                    <span class="video-arrow">→</span>
+                </div>
+
+                <!-- Video 5 -->
+                <div class="video-item" onclick="openVideo('https://www.loom.com/embed/example5', 'Semaine du 18 novembre')">
+                    <div class="video-thumb">
+                        <div class="play">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">Semaine du 18 novembre - Méthode paragraphe</div>
+                        <div class="video-meta">
+                            <span>18 novembre 2024</span>
+                            <span>•</span>
+                            <span>4:22</span>
+                        </div>
+                    </div>
+                    <div class="video-status watched">
+                        <span>✓</span> Vue
+                    </div>
+                    <span class="video-arrow">→</span>
+                </div>
+
+                <!-- Video 6 -->
+                <div class="video-item" onclick="openVideo('https://www.loom.com/embed/example6', 'Semaine du 11 novembre')">
+                    <div class="video-thumb">
+                        <div class="play">▶</div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">Semaine du 11 novembre - Jour férié</div>
+                        <div class="video-meta">
+                            <span>11 novembre 2024</span>
+                            <span>•</span>
+                            <span>3:45</span>
+                        </div>
+                    </div>
+                    <div class="video-status watched">
+                        <span>✓</span> Vue
+                    </div>
+                    <span class="video-arrow">→</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- VIDEO POPUP -->
+    <div class="video-popup-overlay" id="videoPopup" onclick="closeVideo(event)">
+        <div class="video-popup" onclick="event.stopPropagation()">
+            <div class="video-popup-header">
+                <span class="video-popup-title" id="videoPopupTitle"></span>
+                <button class="video-popup-close" onclick="closeVideo()">✕</button>
+            </div>
+            <div class="video-popup-content">
+                <iframe id="videoPopupIframe" src="" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Open video popup
+        function openVideo(url, title) {
+            document.getElementById('videoPopupTitle').textContent = title;
+            document.getElementById('videoPopupIframe').src = url;
+            document.getElementById('videoPopup').classList.add('active');
+        }
+
+        // Close video popup
+        function closeVideo(event) {
+            if (!event || event.target === event.currentTarget) {
+                document.getElementById('videoPopup').classList.remove('active');
+                document.getElementById('videoPopupIframe').src = '';
+            }
+        }
+
+        // Keyboard close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeVideo();
+            }
+        });
+
+        // Search functionality
+        const searchInput = document.querySelector('.search-input');
+        const videoItems = document.querySelectorAll('.video-item');
+
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.toLowerCase();
+            videoItems.forEach(item => {
+                const title = item.querySelector('.video-title').textContent.toLowerCase();
+                if (title.includes(query)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        // Filter by month
+        const filterSelect = document.querySelector('.filter-select');
+        filterSelect.addEventListener('change', () => {
+            const month = filterSelect.value;
+            videoItems.forEach(item => {
+                if (month === 'all') {
+                    item.style.display = 'flex';
+                } else {
+                    const date = item.querySelector('.video-meta').textContent;
+                    // Simple check - in real app would parse dates properly
+                    if (month === '2024-12' && date.includes('décembre')) {
+                        item.style.display = 'flex';
+                    } else if (month === '2024-11' && date.includes('novembre')) {
+                        item.style.display = 'flex';
+                    } else if (month === '2024-10' && date.includes('octobre')) {
+                        item.style.display = 'flex';
+                    } else if (month === '2024-09' && date.includes('septembre')) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
