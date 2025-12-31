@@ -732,8 +732,8 @@ function createUser(data) {
     userData = data.data;
   }
 
-  if (!userData.identifiant || !userData.password) {
-    return { success: false, error: 'identifiant et password sont requis' };
+  if (!userData.identifiant || (!userData.mot_de_passe && !userData.password)) {
+    return { success: false, error: 'identifiant et mot_de_passe sont requis' };
   }
 
   const allData = sheet.getDataRange().getValues();
@@ -752,15 +752,25 @@ function createUser(data) {
   const id = userData.id || 'user_' + new Date().getTime();
 
   // Construire la ligne selon les colonnes existantes
-  // Colonnes attendues: id | nom | prenom | identifiant | password | role | classes | groupes
+  // Colonnes attendues: id | identifiant | mot_de_passe | prenom | nom | role | classe_id | groupe | date_creation | derniere_connexion
   const newRow = [];
-  const expectedCols = ['id', 'nom', 'prenom', 'identifiant', 'password', 'role', 'classes', 'groupes'];
+
+  // Mapping des noms alternatifs
+  const fieldMapping = {
+    'mot_de_passe': userData.mot_de_passe || userData.password || '',
+    'classe_id': userData.classe_id || userData.classes || '',
+    'groupe': userData.groupe || userData.groupes || ''
+  };
 
   headers.forEach((header, index) => {
     const colName = header.toLowerCase().trim();
     if (colName === 'id') {
       newRow[index] = id;
-    } else if (expectedCols.includes(colName) && userData[colName] !== undefined) {
+    } else if (colName === 'date_creation') {
+      newRow[index] = new Date().toISOString().split('T')[0];
+    } else if (fieldMapping[colName] !== undefined) {
+      newRow[index] = fieldMapping[colName];
+    } else if (userData[colName] !== undefined) {
       newRow[index] = userData[colName];
     } else {
       newRow[index] = '';
@@ -818,10 +828,22 @@ function updateUser(data) {
   }
 
   // Mettre à jour les colonnes spécifiées
-  const updates = ['nom', 'prenom', 'identifiant', 'password', 'role', 'classes', 'groupes'];
+  // Mapping des noms de colonnes (JS -> Sheet)
+  const columnMapping = {
+    'mot_de_passe': 'mot_de_passe',
+    'password': 'mot_de_passe',
+    'classe_id': 'classe_id',
+    'classes': 'classe_id',
+    'groupe': 'groupe',
+    'groupes': 'groupe'
+  };
+
+  const updates = ['nom', 'prenom', 'identifiant', 'mot_de_passe', 'password', 'role', 'classe_id', 'classes', 'groupe', 'groupes'];
   updates.forEach(col => {
-    if (userData[col] !== undefined && userData[col] !== '') {
-      const colIndex = headers.indexOf(col);
+    if (userData[col] !== undefined) {
+      // Trouver le nom de colonne réel dans le sheet
+      const sheetCol = columnMapping[col] || col;
+      const colIndex = headers.indexOf(sheetCol);
       if (colIndex >= 0) {
         sheet.getRange(rowIndex, colIndex + 1).setValue(userData[col]);
       }
@@ -902,8 +924,10 @@ function resetPassword(data) {
     userData = data.data;
   }
 
-  if (!userData.id || !userData.password) {
-    return { success: false, error: 'id et password sont requis' };
+  // Supporter les deux noms: password ou mot_de_passe
+  const newPassword = userData.password || userData.mot_de_passe;
+  if (!userData.id || !newPassword) {
+    return { success: false, error: 'id et password/mot_de_passe sont requis' };
   }
 
   const allData = sheet.getDataRange().getValues();
@@ -911,10 +935,14 @@ function resetPassword(data) {
 
   // Trouver la ligne avec cet ID
   const idCol = headers.indexOf('id');
-  const passwordCol = headers.indexOf('password');
+  // Chercher d'abord mot_de_passe, sinon password
+  let passwordCol = headers.indexOf('mot_de_passe');
+  if (passwordCol === -1) {
+    passwordCol = headers.indexOf('password');
+  }
 
   if (passwordCol === -1) {
-    return { success: false, error: 'Colonne password non trouvée' };
+    return { success: false, error: 'Colonne mot_de_passe non trouvée' };
   }
 
   let rowIndex = -1;
@@ -930,7 +958,7 @@ function resetPassword(data) {
   }
 
   // Mettre à jour le mot de passe
-  sheet.getRange(rowIndex, passwordCol + 1).setValue(userData.password);
+  sheet.getRange(rowIndex, passwordCol + 1).setValue(newPassword);
 
   return {
     success: true,
