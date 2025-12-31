@@ -44,7 +44,7 @@
     </div>
 
     <!-- Contenu principal (masqué pendant le chargement) -->
-    <div id="main-content" style="display: none;">
+    <div id="users-content" style="display: none;">
 
         <!-- Stats Cards -->
         <div class="stats-grid">
@@ -297,8 +297,8 @@
 <script src="../js/admin-utilisateurs.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        AdminLayout.init('utilisateurs', 'Gestion des utilisateurs');
+    document.addEventListener('DOMContentLoaded', async function() {
+        await AdminLayout.init('utilisateurs', 'Gestion des utilisateurs');
         AdminUtilisateurs.init();
     });
 </script>
