@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recommandations - Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-pink: #ec4899;
+            --accent-pink-light: #fce7f3;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ===== SIDEBAR ===== */
+        .admin-sidebar {
+            width: 280px;
+            background: var(--gray-900);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 150;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-sidebar.collapsed { transform: translateX(-100%); }
+
+        .admin-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .admin-logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-logo .badge {
+            background: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sidebar-section { margin-bottom: 24px; }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 20px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar-link .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        /* ===== MAIN ===== */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+        .main-content.expanded { margin-left: 0; }
+
+        /* ===== TOP BAR ===== */
+        .top-bar { background: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 100; }
+        .top-bar-left { display: flex; align-items: center; gap: 16px; }
+        .toggle-sidebar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .toggle-sidebar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-500); }
+        .top-bar-breadcrumb a { color: var(--gray-500); text-decoration: none; }
+        .top-bar-breadcrumb a:hover { color: var(--primary); }
+        .top-bar-breadcrumb .separator { color: var(--gray-300); }
+        .top-bar-right { display: flex; align-items: center; gap: 12px; }
+        .top-bar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; }
+        .top-bar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-btn .notif-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--accent-red); border-radius: 50%; border: 2px solid white; }
+        .top-bar-user { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 10px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .top-bar-user:hover { background: var(--gray-100); }
+        .top-bar-user-avatar { width: 36px; height: 36px; border-radius: 8px; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+        .top-bar-user-info { text-align: left; }
+        .top-bar-user-name { font-size: 13px; font-weight: 600; color: var(--gray-800); display: flex; align-items: center; gap: 6px; }
+        .top-bar-user-name::after { content: "▼"; font-size: 10px; color: var(--gray-400); }
+        .top-bar-user-role { font-size: 11px; color: var(--gray-500); }
+        .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: var(--radius); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid var(--gray-200); min-width: 180px; display: none; z-index: 200; overflow: hidden; }
+        .user-dropdown.show { display: block; }
+        .user-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-size: 14px; color: var(--gray-700); text-decoration: none; transition: all 0.2s; cursor: pointer; }
+        .user-dropdown-item:hover { background: var(--gray-50); }
+        .user-dropdown-item.danger { color: var(--accent-red); }
+        .user-dropdown-item.danger:hover { background: var(--accent-red-light); }
+        .page-content { padding: 24px; flex: 1; }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+
+        .btn-outline {
+            background: white;
+            border: 2px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+        .btn-outline:hover { border-color: var(--gray-300); background: var(--gray-50); }
+
+        .btn-sm { padding: 8px 12px; font-size: 13px; }
+        .btn-ghost { background: transparent; color: var(--gray-500); padding: 8px; }
+        .btn-ghost:hover { background: var(--gray-100); color: var(--gray-700); }
+
+        /* ===== FEATURED CONTROL CARD ===== */
+        .featured-control {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .featured-control-header {
+            background: linear-gradient(135deg, var(--accent-orange), #d97706);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .featured-control-header h2 {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .featured-control-body {
+            padding: 24px;
+        }
+
+        /* Toggle */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+        }
+
+        .toggle-info h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .toggle-info p {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            background: var(--gray-300);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch.active { background: var(--accent-green); }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+            box-shadow: var(--shadow);
+        }
+
+        .toggle-switch.active::after { transform: translateX(24px); }
+
+        /* Current reco display */
+        .current-reco-section {
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .current-reco-label {
+            background: var(--gray-100);
+            padding: 10px 16px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .current-reco-label .auto-badge {
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+
+        .current-reco-content {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .current-reco-image {
+            width: 160px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--accent-orange-light), var(--accent-pink-light));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .current-reco-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .current-reco-info {
+            flex: 1;
+        }
+
+        .current-reco-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .type-ecouter { background: var(--accent-purple-light); color: var(--accent-purple); }
+        .type-regarder { background: var(--accent-blue-light); color: var(--accent-blue); }
+        .type-lire { background: var(--accent-green-light); color: var(--accent-green); }
+
+        .current-reco-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 6px;
+        }
+
+        .current-reco-meta {
+            font-size: 13px;
+            color: var(--gray-500);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .current-reco-tags {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .reco-tag {
+            padding: 3px 10px;
+            background: var(--primary-bg);
+            color: var(--primary);
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .current-reco-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Resources count */
+        .resources-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--accent-orange-light);
+            color: var(--accent-orange);
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* ===== RECOS LIST ===== */
+        .recos-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .recos-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .recos-header h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .recos-count {
+            font-size: 13px;
+            color: var(--gray-500);
+            background: var(--gray-100);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        /* Filters */
+        .recos-filters {
+            padding: 16px 24px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 16px 10px 40px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'/%3E%3C/svg%3E") 12px center no-repeat;
+            background-size: 18px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .filter-select {
+            padding: 10px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Recos list */
+        .recos-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .reco-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            transition: all 0.2s;
+        }
+
+        .reco-item:last-child { border-bottom: none; }
+        .reco-item:hover { background: var(--gray-50); }
+
+        .reco-item.featured {
+            background: var(--accent-orange-light);
+            border-left: 4px solid var(--accent-orange);
+        }
+
+        .reco-drag {
+            color: var(--gray-300);
+            cursor: grab;
+            padding: 4px;
+        }
+
+        .reco-image {
+            width: 80px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--gray-200), var(--gray-300));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 20px;
+            overflow: hidden;
+        }
+
+        .reco-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .reco-info { flex: 1; min-width: 0; }
+
+        .reco-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reco-title .star { color: var(--accent-orange); }
+
+        .reco-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .reco-type-badge {
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .reco-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .reco-item:hover .reco-actions { opacity: 1; }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-400);
+        }
+
+        .action-btn:hover { background: var(--gray-100); color: var(--gray-700); }
+        .action-btn.star:hover { background: var(--accent-orange-light); color: var(--accent-orange); }
+        .action-btn.danger:hover { background: var(--accent-red-light); color: var(--accent-red); }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.95);
+            transition: all 0.2s;
+        }
+
+        .modal-overlay.active .modal { transform: scale(1); }
+
+        .modal.large { max-width: 700px; }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--gray-100);
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .modal-close:hover { background: var(--gray-200); }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* ===== FORM ===== */
+        .form-group { margin-bottom: 20px; }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* Type selector */
+        .type-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .type-option {
+            flex: 1;
+            padding: 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .type-option:hover { border-color: var(--gray-300); }
+
+        .type-option.selected { border-color: var(--primary); background: var(--primary-bg); }
+
+        .type-option .icon { font-size: 24px; margin-bottom: 6px; }
+        .type-option .label { font-size: 13px; font-weight: 600; color: var(--gray-700); }
+
+        /* Resources editor */
+        .resources-editor {
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .resources-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .resources-header h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .resources-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .resource-item:last-child { border-bottom: none; }
+
+        .resource-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .resource-info { flex: 1; }
+
+        .resource-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .resource-url {
+            font-size: 11px;
+            color: var(--gray-400);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+
+        .resource-remove {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .resource-remove:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .add-resource-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px;
+            background: white;
+            border: none;
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .add-resource-btn:hover { background: var(--primary-bg); }
+
+        /* Tags input */
+        .tags-input-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            min-height: 48px;
+        }
+
+        .tags-input-container:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--primary-bg);
+            color: var(--primary);
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .tag-chip button {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .tags-input {
+            flex: 1;
+            min-width: 100px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        /* Image preview */
+        .image-preview {
+            margin-top: 12px;
+            width: 100%;
+            height: 120px;
+            background: var(--gray-100);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-400);
+            font-size: 14px;
+            overflow: hidden;
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="admin-sidebar">
+        <div class="admin-logo"><h1><span>📚</span>Espace cours<span class="badge">Admin</span></h1></div>
+        <nav>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📌 Principal</div>
+                <a href="#" class="sidebar-link"><span class="icon">🏠</span>Page d'accueil</a>
+                <a href="#" class="sidebar-link"><span class="icon">📬</span>Messagerie<span class="badge">3</span></a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📚 Ressources</div>
+                <a href="#" class="sidebar-link"><span class="icon">📖</span>Leçons</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧠</span>Méthodologie</a>
+                <a href="#" class="sidebar-link"><span class="icon">🎬</span>Vidéos</a>
+                <a href="#" class="sidebar-link active"><span class="icon">💡</span>Recommandations</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">🎯 Exercices</div>
+                <a href="#" class="sidebar-link"><span class="icon">📐</span>Banque de formats</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧩</span>Banque d'éléments</a>
+                <a href="#" class="sidebar-link"><span class="icon">📝</span>Entraînements</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📊 Évaluations</div>
+                <a href="#" class="sidebar-link"><span class="icon">📋</span>Évaluations</a>
+                <a href="#" class="sidebar-link"><span class="icon">🟣</span>Compétences</a>
+                <a href="#" class="sidebar-link"><span class="icon">📊</span>Notes & Suivi</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">👥 Élèves</div>
+                <a href="#" class="sidebar-link"><span class="icon">👥</span>Utilisateurs</a>
+                <a href="#" class="sidebar-link"><span class="icon">❓</span>FAQ</a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Afficher/Masquer le menu">☰</button>
+                <div class="top-bar-breadcrumb"><a href="#">Admin</a><span class="separator">/</span><span>Recommandations</span></div>
+            </div>
+            <div class="top-bar-right">
+                <button class="top-bar-btn" title="Voir le site élève">👁️</button>
+                <button class="top-bar-btn" title="Notifications">🔔<span class="notif-dot"></span></button>
+                <div class="top-bar-user" onclick="toggleUserMenu()">
+                    <div class="top-bar-user-avatar">EM</div>
+                    <div class="top-bar-user-info"><div class="top-bar-user-name">Mme Meyer</div><div class="top-bar-user-role">Professeur</div></div>
+                    <div class="user-dropdown" id="user-dropdown"><a href="#" class="user-dropdown-item danger"><span>🚪</span>Déconnexion</a></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-content">
+        <header class="page-header">
+            <h1>💡 Recommandations</h1>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openModal('modal-new-reco')">
+                    <span>+</span>
+                    Nouvelle recommandation
+                </button>
+            </div>
+        </header>
+
+        <!-- FEATURED CONTROL -->
+        <div class="featured-control">
+            <div class="featured-control-header">
+                <h2>⭐ Recommandation mise en avant</h2>
+            </div>
+            <div class="featured-control-body">
+                <!-- Toggle affichage -->
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <h3>Afficher sur la page d'accueil</h3>
+                        <p>La recommandation apparaîtra dans le menu central des élèves</p>
+                    </div>
+                    <div class="toggle-switch active" id="toggle-display"></div>
+                </div>
+
+                <!-- Current reco -->
+                <div class="current-reco-section">
+                    <div class="current-reco-label">
+                        Recommandation actuellement affichée
+                        <span class="auto-badge">AUTO</span>
+                    </div>
+                    <div class="current-reco-content">
+                        <div class="current-reco-image">
+                            🎵
+                        </div>
+                        <div class="current-reco-info">
+                            <span class="current-reco-type type-ecouter">🎵 À écouter</span>
+                            <div class="current-reco-title">Podcast : L'Histoire en musique - La Révolution française</div>
+                            <div class="current-reco-meta">
+                                <span>23 décembre 2024</span>
+                                <span class="resources-badge">📎 3 ressources</span>
+                            </div>
+                            <div class="current-reco-tags">
+                                <span class="reco-tag">Histoire</span>
+                                <span class="reco-tag">Révolution</span>
+                            </div>
+                        </div>
+                        <div class="current-reco-actions">
+                            <button class="btn btn-outline btn-sm" onclick="openModal('modal-select-reco')">
+                                🔄 Changer
+                            </button>
+                            <button class="btn btn-ghost btn-sm" title="Voir">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECOS LIST -->
+        <div class="recos-card">
+            <div class="recos-header">
+                <h2>📅 Toutes les recommandations</h2>
+                <span class="recos-count">8 recommandations</span>
+            </div>
+
+            <div class="recos-filters">
+                <input type="text" class="search-input" placeholder="Rechercher une recommandation...">
+                <select class="filter-select">
+                    <option value="all">Tous les types</option>
+                    <option value="ecouter">🎵 À écouter</option>
+                    <option value="regarder">🎬 À regarder</option>
+                    <option value="lire">📖 À lire</option>
+                </select>
+                <select class="filter-select">
+                    <option value="all">Tous les mois</option>
+                    <option value="2024-12">Décembre 2024</option>
+                    <option value="2024-11">Novembre 2024</option>
+                    <option value="2024-10">Octobre 2024</option>
+                </select>
+            </div>
+
+            <div class="recos-list">
+                <!-- Reco 1 - Featured -->
+                <div class="reco-item featured">
+                    <span class="reco-drag">⋮⋮</span>
+                    <div class="reco-image">🎵</div>
+                    <div class="reco-info">
+                        <div class="reco-title">
+                            <span class="star">⭐</span>
+                            Podcast : L'Histoire en musique - La Révolution française
+                        </div>
+                        <div class="reco-meta">
+                            <span class="reco-type-badge type-ecouter">🎵 Écouter</span>
+                            <span>23 décembre 2024</span>
+                            <span class="resources-badge">📎 3</span>
+                        </div>
+                    </div>
+                    <div class="reco-actions">
+                        <button class="action-btn" title="Voir">👁️</button>
+                        <button class="action-btn" title="Modifier">✏️</button>
+                        <button class="action-btn danger" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+
+                <!-- Reco 2 -->
+                <div class="reco-item">
+                    <span class="reco-drag">⋮⋮</span>
+                    <div class="reco-image">🎬</div>
+                    <div class="reco-info">
+                        <div class="reco-title">
+                            Documentaire : Les secrets de Versailles
+                        </div>
+                        <div class="reco-meta">
+                            <span class="reco-type-badge type-regarder">🎬 Regarder</span>
+                            <span>16 décembre 2024</span>
+                            <span class="resources-badge">📎 2</span>
+                        </div>
+                    </div>
+                    <div class="reco-actions">
+                        <button class="action-btn star" title="Mettre en avant">⭐</button>
+                        <button class="action-btn" title="Voir">👁️</button>
+                        <button class="action-btn" title="Modifier">✏️</button>
+                        <button class="action-btn danger" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+
+                <!-- Reco 3 -->
+                <div class="reco-item">
+                    <span class="reco-drag">⋮⋮</span>
+                    <div class="reco-image">📖</div>
+                    <div class="reco-info">
+                        <div class="reco-title">
+                            Article : Comment les cartes ont façonné notre vision du monde
+                        </div>
+                        <div class="reco-meta">
+                            <span class="reco-type-badge type-lire">📖 Lire</span>
+                            <span>9 décembre 2024</span>
+                            <span class="resources-badge">📎 1</span>
+                        </div>
+                    </div>
+                    <div class="reco-actions">
+                        <button class="action-btn star" title="Mettre en avant">⭐</button>
+                        <button class="action-btn" title="Voir">👁️</button>
+                        <button class="action-btn" title="Modifier">✏️</button>
+                        <button class="action-btn danger" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+
+                <!-- Reco 4 -->
+                <div class="reco-item">
+                    <span class="reco-drag">⋮⋮</span>
+                    <div class="reco-image">🎵</div>
+                    <div class="reco-info">
+                        <div class="reco-title">
+                            Chanson : Le temps des cerises - Histoire et symbolique
+                        </div>
+                        <div class="reco-meta">
+                            <span class="reco-type-badge type-ecouter">🎵 Écouter</span>
+                            <span>2 décembre 2024</span>
+                            <span class="resources-badge">📎 2</span>
+                        </div>
+                    </div>
+                    <div class="reco-actions">
+                        <button class="action-btn star" title="Mettre en avant">⭐</button>
+                        <button class="action-btn" title="Voir">👁️</button>
+                        <button class="action-btn" title="Modifier">✏️</button>
+                        <button class="action-btn danger" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+
+                <!-- Reco 5 -->
+                <div class="reco-item">
+                    <span class="reco-drag">⋮⋮</span>
+                    <div class="reco-image">🎬</div>
+                    <div class="reco-info">
+                        <div class="reco-title">
+                            Vidéo YouTube : C'est pas sorcier - Les volcans
+                        </div>
+                        <div class="reco-meta">
+                            <span class="reco-type-badge type-regarder">🎬 Regarder</span>
+                            <span>25 novembre 2024</span>
+                            <span class="resources-badge">📎 1</span>
+                        </div>
+                    </div>
+                    <div class="reco-actions">
+                        <button class="action-btn star" title="Mettre en avant">⭐</button>
+                        <button class="action-btn" title="Voir">👁️</button>
+                        <button class="action-btn" title="Modifier">✏️</button>
+                        <button class="action-btn danger" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL: Nouvelle recommandation -->
+<div class="modal-overlay" id="modal-new-reco">
+    <div class="modal large">
+        <div class="modal-header">
+            <h3>💡 Nouvelle recommandation</h3>
+            <button class="modal-close" onclick="closeModal('modal-new-reco')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Type de recommandation</label>
+                <div class="type-selector">
+                    <div class="type-option selected" data-type="ecouter">
+                        <div class="icon">🎵</div>
+                        <div class="label">À écouter</div>
+                    </div>
+                    <div class="type-option" data-type="regarder">
+                        <div class="icon">🎬</div>
+                        <div class="label">À regarder</div>
+                    </div>
+                    <div class="type-option" data-type="lire">
+                        <div class="icon">📖</div>
+                        <div class="label">À lire</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Titre de la recommandation</label>
+                <input type="text" placeholder="Ex: Podcast - L'Histoire en musique">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea placeholder="Décris brièvement cette recommandation et son lien avec le cours..."></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" value="2024-12-30">
+                </div>
+                <div class="form-group">
+                    <label>Image de couverture (optionnel)</label>
+                    <input type="url" id="reco-image" placeholder="Lien vers l'image">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tags / Disciplines</label>
+                <div class="tags-input-container">
+                    <span class="tag-chip">Histoire <button>×</button></span>
+                    <span class="tag-chip">Révolution <button>×</button></span>
+                    <input type="text" class="tags-input" placeholder="Ajouter un tag...">
+                </div>
+                <p class="form-hint">Appuie sur Entrée pour ajouter un tag</p>
+            </div>
+
+            <!-- Resources editor -->
+            <div class="form-group">
+                <label>📎 Ressources liées</label>
+                <div class="resources-editor">
+                    <div class="resources-header">
+                        <h4>Liste des ressources</h4>
+                        <span style="font-size: 12px; color: var(--gray-500);">Ajoute les liens</span>
+                    </div>
+                    <div class="resources-list">
+                        <div class="resource-item">
+                            <div class="resource-icon">🎵</div>
+                            <div class="resource-info">
+                                <div class="resource-name">Épisode Spotify - La Révolution en chansons</div>
+                                <div class="resource-url">https://open.spotify.com/episode/xxx</div>
+                            </div>
+                            <button class="resource-remove">×</button>
+                        </div>
+                        <div class="resource-item">
+                            <div class="resource-icon">📄</div>
+                            <div class="resource-info">
+                                <div class="resource-name">Fiche récap - Les chants révolutionnaires</div>
+                                <div class="resource-url">https://drive.google.com/file/xxx</div>
+                            </div>
+                            <button class="resource-remove">×</button>
+                        </div>
+                    </div>
+                    <button class="add-resource-btn" onclick="openModal('modal-add-resource')">+ Ajouter une ressource</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-new-reco')">Annuler</button>
+            <button class="btn btn-primary">✓ Créer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Ajouter une ressource -->
+<div class="modal-overlay" id="modal-add-resource">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>📎 Ajouter une ressource</h3>
+            <button class="modal-close" onclick="closeModal('modal-add-resource')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Type de ressource</label>
+                <select>
+                    <option value="link">🔗 Lien externe</option>
+                    <option value="spotify">🎵 Spotify</option>
+                    <option value="youtube">🎬 YouTube</option>
+                    <option value="article">📖 Article</option>
+                    <option value="gdrive">📁 Google Drive</option>
+                    <option value="image">🖼️ Image</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Nom de la ressource</label>
+                <input type="text" placeholder="Ex: Épisode 1 - Introduction">
+            </div>
+
+            <div class="form-group">
+                <label>URL</label>
+                <input type="url" placeholder="https://...">
+                <p class="form-hint">Colle le lien vers la ressource</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-add-resource')">Annuler</button>
+            <button class="btn btn-primary">✓ Ajouter</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Sélectionner une recommandation -->
+<div class="modal-overlay" id="modal-select-reco">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🔄 Choisir la recommandation à afficher</h3>
+            <button class="modal-close" onclick="closeModal('modal-select-reco')">×</button>
+        </div>
+        <div class="modal-body" style="padding: 0;">
+            <div style="padding: 16px; background: var(--gray-50); border-bottom: 1px solid var(--gray-200);">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="radio" name="reco-mode" value="auto" checked>
+                    <span><strong>Automatique</strong> - Dernière recommandation ajoutée</span>
+                </label>
+            </div>
+            <div style="padding: 16px 16px 8px; font-size: 12px; font-weight: 600; color: var(--gray-500); text-transform: uppercase;">
+                Ou choisir manuellement :
+            </div>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <label style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--gray-100);">
+                    <input type="radio" name="reco-mode" value="1">
+                    <div style="width: 32px; font-size: 20px;">🎵</div>
+                    <div>
+                        <div style="font-weight: 600;">Podcast : L'Histoire en musique</div>
+                        <div style="font-size: 12px; color: var(--gray-500);">23 décembre 2024</div>
+                    </div>
+                </label>
+                <label style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; border-bottom: 1px solid var(--gray-100);">
+                    <input type="radio" name="reco-mode" value="2">
+                    <div style="width: 32px; font-size: 20px;">🎬</div>
+                    <div>
+                        <div style="font-weight: 600;">Documentaire : Les secrets de Versailles</div>
+                        <div style="font-size: 12px; color: var(--gray-500);">16 décembre 2024</div>
+                    </div>
+                </label>
+                <label style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer;">
+                    <input type="radio" name="reco-mode" value="3">
+                    <div style="width: 32px; font-size: 20px;">📖</div>
+                    <div>
+                        <div style="font-weight: 600;">Article : Comment les cartes ont façonné...</div>
+                        <div style="font-size: 12px; color: var(--gray-500);">9 décembre 2024</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-select-reco')">Annuler</button>
+            <button class="btn btn-primary">✓ Appliquer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal management
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+    });
+
+    // Toggle display
+    document.getElementById('toggle-display').addEventListener('click', function() {
+        this.classList.toggle('active');
+    });
+
+    // Type selector
+    document.querySelectorAll('.type-option').forEach(option => {
+        option.addEventListener('click', () => {
+            document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
+            option.classList.add('selected');
+        });
+    });
+
+    function toggleSidebar() {
+        document.querySelector('.admin-sidebar').classList.toggle('collapsed');
+        document.querySelector('.main-content').classList.toggle('expanded');
+    }
+    function toggleUserMenu() { document.getElementById('user-dropdown').classList.toggle('show'); }
+    document.addEventListener('click', function(e) {
+        const userMenu = document.querySelector('.top-bar-user');
+        if (userMenu && !userMenu.contains(e.target)) document.getElementById('user-dropdown').classList.remove('show');
+    });
+</script>
+
+</body>
+</html>
