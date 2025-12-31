@@ -65,8 +65,8 @@
 <script src="../js/eleve-lecons.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        EleveLayout.init('lecons', 'Leçons');
+    document.addEventListener('DOMContentLoaded', async function() {
+        await EleveLayout.init('lecons', 'Leçons');
         EleveLecons.init();
     });
 </script>

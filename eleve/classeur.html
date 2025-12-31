@@ -63,8 +63,8 @@
 <script src="../js/eleve-classeur.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        EleveLayout.init('classeur', 'Le classeur modèle');
+    document.addEventListener('DOMContentLoaded', async function() {
+        await EleveLayout.init('classeur', 'Le classeur modèle');
         EleveClasseur.init();
     });
 </script>

@@ -54,8 +54,8 @@
 <script src="../js/eleve-emploi-du-temps.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        EleveLayout.init('emploi-du-temps', 'Ton emploi du temps');
+    document.addEventListener('DOMContentLoaded', async function() {
+        await EleveLayout.init('emploi-du-temps', 'Ton emploi du temps');
         EleveEmploiDuTemps.init();
     });
 </script>
