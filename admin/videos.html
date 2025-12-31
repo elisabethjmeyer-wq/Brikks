@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Gestion des vidéos de la semaine">
+    <title>Vidéos de la semaine - Administration - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-videos.css">
+</head>
+<body>
+
+<!-- Contenu de la page -->
+<div id="videos-page">
+    <!-- Page Header -->
+    <header class="admin-header">
+        <div>
+            <h1>🎬 Vidéos de la semaine</h1>
+            <p>Gérez les vidéos hebdomadaires pour vos élèves</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="addVideoBtn">
+                <span>➕</span>
+                Nouvelle vidéo
+            </button>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des vidéos...</p>
+    </div>
+
+    <!-- Contenu principal (masqué pendant le chargement) -->
+    <div id="videos-content" style="display: none;">
+
+        <!-- Featured Video Control -->
+        <div class="featured-control">
+            <div class="featured-control-header">
+                <h2>⭐ Vidéo mise en avant</h2>
+            </div>
+            <div class="featured-control-body">
+                <!-- Toggle affichage -->
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <h3>Afficher sur la page d'accueil</h3>
+                        <p>La vidéo apparaîtra dans le menu central des élèves</p>
+                    </div>
+                    <div class="toggle-switch active" id="toggleDisplay"></div>
+                </div>
+
+                <!-- Current video -->
+                <div class="current-video-section" id="currentVideoSection">
+                    <div class="current-video-label">
+                        Vidéo actuellement affichée
+                        <span class="auto-badge" id="modeBadge">AUTO</span>
+                    </div>
+                    <div class="current-video-content" id="currentVideoContent">
+                        <!-- Dynamically filled -->
+                    </div>
+                    <!-- Message joint -->
+                    <div class="current-video-message" id="currentVideoMessage" style="display: none;">
+                        <div class="message-label">📝 Message joint</div>
+                        <div class="message-content" id="messageContent"></div>
+                    </div>
+                </div>
+
+                <!-- No video state -->
+                <div class="no-video-state" id="noVideoState" style="display: none;">
+                    <div class="icon">🎬</div>
+                    <h3>Aucune vidéo</h3>
+                    <p>Ajoutez une vidéo pour qu'elle s'affiche ici</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Videos List -->
+        <div class="videos-card">
+            <div class="videos-header">
+                <h2>📅 Toutes les vidéos</h2>
+                <span class="videos-count" id="videosCount">0 vidéos</span>
+            </div>
+
+            <div class="videos-filters">
+                <input type="text" class="search-input" id="searchInput" placeholder="Rechercher une vidéo...">
+                <select class="filter-select" id="filterMonth">
+                    <option value="all">Tous les mois</option>
+                </select>
+            </div>
+
+            <div class="videos-list" id="videosList">
+                <!-- Dynamically filled -->
+            </div>
+
+            <!-- Empty state -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">📭</div>
+                <h3>Aucune vidéo</h3>
+                <p>Cliquez sur "Nouvelle vidéo" pour ajouter votre première vidéo</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Nouvelle/Éditer vidéo -->
+<div class="modal-overlay hidden" id="videoModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modalTitle">🎬 Nouvelle vidéo</h2>
+            <button class="modal-close" id="closeVideoModal">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="videoId">
+
+            <div class="form-group">
+                <label>Titre de la vidéo <span class="req">*</span></label>
+                <input type="text" class="form-input" id="videoTitre" placeholder="Ex: Semaine du 30 décembre - Bonne année !">
+            </div>
+
+            <div class="form-group">
+                <label>Lien de la vidéo <span class="req">*</span></label>
+                <input type="url" class="form-input" id="videoUrl" placeholder="https://www.loom.com/share/...">
+                <p class="form-help">💡 Supporte Loom, YouTube, Vimeo et autres liens embed</p>
+                <div class="video-preview" id="videoPreview">
+                    <span>Aperçu vidéo</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>📝 Message / Infos importantes (optionnel)</label>
+                <textarea class="form-textarea" id="videoDescription" rows="5" placeholder="Ex:
+• Contrôle d'histoire vendredi sur le chapitre 3
+• Penser à rendre le DM de géographie
+• Réviser les dates clés de la Révolution"></textarea>
+                <p class="form-help">💡 Ce texte s'affichera sous la vidéo côté élève</p>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date de publication</label>
+                    <input type="date" class="form-input" id="videoDate">
+                </div>
+                <div class="form-group">
+                    <label>Tags (optionnel)</label>
+                    <input type="text" class="form-input" id="videoTags" placeholder="Ex: Histoire, Révisions">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelVideoBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveVideoBtn">✓ Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Sélectionner une vidéo -->
+<div class="modal-overlay hidden" id="selectModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>🔄 Choisir la vidéo à afficher</h2>
+            <button class="modal-close" id="closeSelectModal">×</button>
+        </div>
+        <div class="modal-body" style="padding: 0;">
+            <div class="select-option">
+                <label>
+                    <input type="radio" name="videoMode" value="auto" checked>
+                    <span><strong>Automatique</strong> - Dernière vidéo ajoutée</span>
+                </label>
+            </div>
+            <div class="select-divider">Ou choisir manuellement :</div>
+            <div class="select-list" id="selectList">
+                <!-- Dynamically filled -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelSelectBtn">Annuler</button>
+            <button class="btn btn-primary" id="applySelectBtn">✓ Appliquer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Confirmer suppression -->
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal confirm">
+        <div class="modal-body">
+            <div class="confirm-icon">🗑️</div>
+            <div class="confirm-title">Supprimer cette vidéo ?</div>
+            <div class="confirm-text" id="deleteConfirmText">Cette action est irréversible.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Annuler</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">🗑️ Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Voir vidéo -->
+<div class="modal-overlay hidden" id="viewModal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h2 id="viewModalTitle">🎬 Vidéo</h2>
+            <button class="modal-close" id="closeViewModal">×</button>
+        </div>
+        <div class="modal-body" style="padding: 0;">
+            <div class="view-video-container" id="viewVideoContainer">
+                <!-- iframe inserted here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/data-service.js"></script>
+<script src="../js/admin-videos.js"></script>
+
+</body>
+</html>
