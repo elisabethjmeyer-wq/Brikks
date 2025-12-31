@@ -15,6 +15,8 @@ const CONFIG = {
     // Onglets Google Sheets
     SHEETS: {
         UTILISATEURS: 'UTILISATEURS',
+        CLASSES: 'CLASSES',
+        GROUPES: 'GROUPES',
         DISCIPLINES: 'DISCIPLINES',
         THEMES: 'THEMES',
         CHAPITRES: 'CHAPITRES',

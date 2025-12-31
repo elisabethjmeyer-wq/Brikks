@@ -5,8 +5,10 @@
 const AdminUtilisateurs = {
     // Données
     users: [],
-    classes: [],
-    groupes: [],
+    classes: [],        // Liste des classes [{id, nom, annee_scolaire}]
+    classesMap: {},     // Mapping id -> nom pour affichage
+    groupes: [],        // Liste des groupes [{id, nom, classe_id, type}]
+    groupesMap: {},     // Mapping id -> nom pour affichage
 
     // Pagination
     currentPage: 1,
@@ -44,26 +46,28 @@ const AdminUtilisateurs = {
      * Charge les données depuis Google Sheets
      */
     async loadData() {
-        const users = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.UTILISATEURS);
+        // Charger utilisateurs, classes et groupes en parallèle
+        const [users, classesData, groupesData] = await Promise.all([
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.UTILISATEURS),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.CLASSES),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.GROUPES)
+        ]);
+
         this.users = users || [];
 
-        // Extraire les classes et groupes uniques
-        const classesSet = new Set();
-        const groupesSet = new Set();
-
-        this.users.forEach(user => {
-            const classeValue = user.classe_id || user.classes || '';
-            if (classeValue) {
-                classeValue.toString().split(',').map(c => c.trim()).filter(c => c).forEach(c => classesSet.add(c));
-            }
-            const groupeValue = user.groupe || user.groupes || '';
-            if (groupeValue) {
-                groupeValue.toString().split(',').map(g => g.trim()).filter(g => g).forEach(g => groupesSet.add(g));
-            }
+        // Charger les classes depuis l'onglet CLASSES
+        this.classes = classesData || [];
+        this.classesMap = {};
+        this.classes.forEach(c => {
+            this.classesMap[c.id] = c.nom || c.id;
         });
 
-        this.classes = Array.from(classesSet).sort();
-        this.groupes = Array.from(groupesSet).sort();
+        // Charger les groupes depuis l'onglet GROUPES
+        this.groupes = groupesData || [];
+        this.groupesMap = {};
+        this.groupes.forEach(g => {
+            this.groupesMap[g.id] = g.nom || g.id;
+        });
 
         console.log('Données chargées:', {
             users: this.users.length,
@@ -76,8 +80,10 @@ const AdminUtilisateurs = {
      * Affiche le contenu principal
      */
     showContent() {
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('users-content').style.display = 'block';
+        const loader = document.getElementById('loader');
+        const content = document.getElementById('users-content');
+        if (loader) loader.style.display = 'none';
+        if (content) content.style.display = 'block';
     },
 
     /**
@@ -99,18 +105,20 @@ const AdminUtilisateurs = {
      * Affiche les options des filtres
      */
     renderFilters() {
-        // Classes
+        // Classes - afficher le nom, stocker l'ID
         const classeSelect = document.getElementById('filterClasse');
         classeSelect.innerHTML = '<option value="">Toutes les classes</option>';
         this.classes.forEach(c => {
-            classeSelect.innerHTML += `<option value="${c}">${c}</option>`;
+            const displayName = c.nom || c.id;
+            classeSelect.innerHTML += `<option value="${c.id}">${displayName}</option>`;
         });
 
-        // Groupes
+        // Groupes - afficher le nom, stocker l'ID
         const groupeSelect = document.getElementById('filterGroupe');
         groupeSelect.innerHTML = '<option value="">Tous les groupes</option>';
         this.groupes.forEach(g => {
-            groupeSelect.innerHTML += `<option value="${g}">${g}</option>`;
+            const displayName = g.nom || g.id;
+            groupeSelect.innerHTML += `<option value="${g.id}">${displayName}</option>`;
         });
 
         // Classes dans le modal utilisateur
@@ -118,7 +126,8 @@ const AdminUtilisateurs = {
         if (userClasseSelect) {
             userClasseSelect.innerHTML = '<option value="">Sélectionner...</option>';
             this.classes.forEach(c => {
-                userClasseSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                const displayName = c.nom || c.id;
+                userClasseSelect.innerHTML += `<option value="${c.id}">${displayName}</option>`;
             });
         }
 
@@ -127,7 +136,8 @@ const AdminUtilisateurs = {
         if (userGroupeSelect) {
             userGroupeSelect.innerHTML = '<option value="">Aucun</option>';
             this.groupes.forEach(g => {
-                userGroupeSelect.innerHTML += `<option value="${g}">${g}</option>`;
+                const displayName = g.nom || g.id;
+                userGroupeSelect.innerHTML += `<option value="${g.id}">${displayName}</option>`;
             });
         }
     },
@@ -238,16 +248,18 @@ const AdminUtilisateurs = {
             roleClass = 'eleve';
         }
 
-        // Classe
-        const classeValue = (user.classe_id || user.classes || '').toString().trim();
-        const classeHtml = classeValue
-            ? `<span class="class-badge">${classeValue}</span>`
+        // Classe - afficher le nom au lieu de l'ID
+        const classeId = (user.classe_id || user.classes || '').toString().trim();
+        const classeName = this.classesMap[classeId] || classeId;
+        const classeHtml = classeId
+            ? `<span class="class-badge">${classeName}</span>`
             : '<span class="no-data">—</span>';
 
-        // Groupe
-        const groupeValue = (user.groupe || user.groupes || '').toString().trim();
-        const groupeHtml = groupeValue
-            ? `<span class="group-badge">${groupeValue}</span>`
+        // Groupe - afficher le nom au lieu de l'ID
+        const groupeId = (user.groupe || user.groupes || '').toString().trim();
+        const groupeName = this.groupesMap[groupeId] || groupeId;
+        const groupeHtml = groupeId
+            ? `<span class="group-badge">${groupeName}</span>`
             : '<span class="no-data">—</span>';
 
         // Date dernière connexion
