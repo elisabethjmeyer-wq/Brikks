@@ -1770,19 +1770,34 @@ function deleteCategorieFAQ(data) {
     return { success: false, error: 'Catégorie FAQ non trouvée: ' + catData.id };
   }
 
-  // Vérifier s'il y a des questions dans cette catégorie
+  // Vérifier s'il y a des questions dans cette catégorie (supports both categorie_id and categories columns)
   const questionsSheet = ss.getSheetByName(SHEETS.QUESTIONS_FAQ);
   if (questionsSheet) {
     const questionsData = questionsSheet.getDataRange().getValues();
-    const catIdCol = questionsData[0].indexOf('categorie_id');
-    if (catIdCol >= 0) {
-      const hasQuestions = questionsData.slice(1).some(row => row[catIdCol] === catData.id);
-      if (hasQuestions) {
-        return {
-          success: false,
-          error: 'Impossible de supprimer cette catégorie car elle contient des questions'
-        };
+    const questionsHeaders = questionsData[0];
+    const catIdCol = questionsHeaders.indexOf('categorie_id');
+    const categoriesCol = questionsHeaders.indexOf('categories');
+
+    const hasQuestions = questionsData.slice(1).some(row => {
+      // Check single category ID column
+      if (catIdCol >= 0 && row[catIdCol] === catData.id) {
+        return true;
       }
+      // Check multi-category column (comma-separated)
+      if (categoriesCol >= 0 && row[categoriesCol]) {
+        const categoryIds = String(row[categoriesCol]).split(',').map(id => id.trim());
+        if (categoryIds.includes(catData.id)) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (hasQuestions) {
+      return {
+        success: false,
+        error: 'Impossible de supprimer cette catégorie car elle contient des questions'
+      };
     }
   }
 
@@ -1891,8 +1906,8 @@ function updateQuestionFAQ(data) {
     return { success: false, error: 'Question FAQ non trouvée: ' + qData.id };
   }
 
-  // Mettre à jour les colonnes spécifiées
-  const updates = ['categorie_id', 'question', 'reponse', 'type_reponse', 'video_url', 'ordre'];
+  // Mettre à jour les colonnes spécifiées (including categories for multi-category support)
+  const updates = ['categorie_id', 'categories', 'question', 'reponse', 'type_reponse', 'video_url', 'ordre'];
   updates.forEach(col => {
     if (qData[col] !== undefined) {
       const colIndex = headers.indexOf(col);

@@ -1,6 +1,6 @@
 /**
  * Admin FAQ - Gestion des questions fréquentes
- * Design matching the mockup
+ * Supports multiple categories per question
  */
 
 const AdminFAQ = {
@@ -12,9 +12,7 @@ const AdminFAQ = {
     editingQuestionId: null,
     deletingItemId: null,
     deletingItemType: null, // 'question' ou 'category'
-
-    // Couleurs par défaut pour les catégories
-    defaultColors: ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#ef4444'],
+    selectedCategories: [], // Array of selected category IDs for question form
 
     /**
      * Initialise la page
@@ -47,13 +45,8 @@ const AdminFAQ = {
             return (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0);
         });
 
-        // Trier les questions par catégorie puis par ordre
+        // Trier les questions par ordre
         this.questions = (questions || []).sort((a, b) => {
-            if (a.categorie_id !== b.categorie_id) {
-                const catA = this.categories.findIndex(c => c.id === a.categorie_id);
-                const catB = this.categories.findIndex(c => c.id === b.categorie_id);
-                return catA - catB;
-            }
             return (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0);
         });
 
@@ -100,27 +93,93 @@ const AdminFAQ = {
         const mixte = this.questions.filter(q => q.type_reponse === 'mixte').length;
 
         document.getElementById('totalQuestions').textContent = total;
-        document.getElementById('totalTexte').textContent = texte + mixte; // Texte includes mixte
-        document.getElementById('totalVideo').textContent = video + mixte; // Video includes mixte
+        document.getElementById('totalTexte').textContent = texte + mixte;
+        document.getElementById('totalVideo').textContent = video + mixte;
     },
 
     /**
-     * Remplit le filtre de catégories
+     * Parse les catégories d'une question (supporte ancien format categorie_id et nouveau format categories)
+     */
+    getQuestionCategories(question) {
+        // Nouveau format: categories (comma-separated IDs)
+        if (question.categories) {
+            return question.categories.split(',').map(id => id.trim()).filter(id => id);
+        }
+        // Ancien format: categorie_id (single ID)
+        if (question.categorie_id) {
+            return [question.categorie_id];
+        }
+        return [];
+    },
+
+    /**
+     * Remplit le filtre de catégories (custom dropdown)
      */
     renderCategoryFilter() {
-        const filter = document.getElementById('filterCategory');
-        const modalSelect = document.getElementById('questionCategory');
+        const menu = document.getElementById('filterDropdownMenu');
+        const countAll = document.getElementById('filterCountAll');
 
-        const options = this.categories.map(cat =>
-            `<option value="${cat.id}">${cat.icone || '📁'} ${this.escapeHtml(cat.nom)}</option>`
-        ).join('');
+        if (countAll) {
+            countAll.textContent = this.questions.length;
+        }
 
-        if (filter) {
-            filter.innerHTML = `<option value="all">Toutes les catégories</option>${options}`;
+        if (menu) {
+            // Keep the "all" option, add category options
+            const categoryOptions = this.categories.map(cat => {
+                const count = this.questions.filter(q =>
+                    this.getQuestionCategories(q).includes(cat.id)
+                ).length;
+                return `
+                    <div class="filter-option" data-value="${cat.id}">
+                        <span class="filter-icon">${cat.icone || '📁'}</span>
+                        <span class="filter-name">${this.escapeHtml(cat.nom)}</span>
+                        <span class="filter-count">${count}</span>
+                    </div>
+                `;
+            }).join('');
+
+            menu.innerHTML = `
+                <div class="filter-option active" data-value="all">
+                    <span class="filter-icon">📁</span>
+                    <span class="filter-name">Toutes les catégories</span>
+                    <span class="filter-count">${this.questions.length}</span>
+                </div>
+                ${categoryOptions}
+            `;
+
+            // Bind click events to options
+            menu.querySelectorAll('.filter-option').forEach(option => {
+                option.addEventListener('click', () => this.selectFilterOption(option));
+            });
         }
-        if (modalSelect) {
-            modalSelect.innerHTML = `<option value="">Sélectionner...</option>${options}`;
-        }
+    },
+
+    /**
+     * Sélectionne une option de filtre
+     */
+    selectFilterOption(option) {
+        const value = option.dataset.value;
+        const menu = document.getElementById('filterDropdownMenu');
+        const btn = document.getElementById('filterDropdownBtn');
+        const filterInput = document.getElementById('filterCategory');
+
+        // Update active state
+        menu.querySelectorAll('.filter-option').forEach(opt => opt.classList.remove('active'));
+        option.classList.add('active');
+
+        // Update button text
+        const icon = option.querySelector('.filter-icon').textContent;
+        const name = option.querySelector('.filter-name').textContent;
+        btn.querySelector('.filter-icon').textContent = icon;
+        btn.querySelector('.filter-text').textContent = name;
+
+        // Update hidden input and close menu
+        filterInput.value = value;
+        menu.classList.add('hidden');
+        btn.classList.remove('open');
+
+        // Re-render questions
+        this.renderQuestionsList();
     },
 
     /**
@@ -155,13 +214,20 @@ const AdminFAQ = {
      * Render un item de question
      */
     renderQuestionItem(q) {
-        const category = this.categories.find(c => c.id === q.categorie_id);
-        const catName = category?.nom || 'Sans catégorie';
-        const catColor = category?.couleur || '#6366f1';
+        const categoryIds = this.getQuestionCategories(q);
         const typeReponse = q.type_reponse || 'texte';
 
-        // Generate category tag class
-        const catClass = this.getCategoryClass(catName);
+        // Generate category tags HTML
+        const categoryTagsHtml = categoryIds.map(catId => {
+            const category = this.categories.find(c => c.id === catId);
+            if (!category) return '';
+            const catColor = category.couleur || '#6366f1';
+            return `
+                <span class="tag" style="background: ${this.hexToRgba(catColor, 0.15)}; color: ${catColor};">
+                    ${category.icone || '📁'} ${this.escapeHtml(category.nom)}
+                </span>
+            `;
+        }).join('');
 
         // Type tag HTML
         const typeTagHtml = this.getTypeTagHtml(typeReponse);
@@ -177,9 +243,7 @@ const AdminFAQ = {
                     <div class="question-content">
                         <div class="question-text">${this.escapeHtml(q.question)}</div>
                         <div class="question-tags">
-                            <span class="tag ${catClass}" style="background: ${this.hexToRgba(catColor, 0.15)}; color: ${catColor};">
-                                ${category?.icone || '📁'} ${this.escapeHtml(catName)}
-                            </span>
+                            ${categoryTagsHtml}
                             ${typeTagHtml}
                         </div>
                     </div>
@@ -210,17 +274,6 @@ const AdminFAQ = {
                 </div>
             </div>
         `;
-    },
-
-    /**
-     * Get category CSS class based on name
-     */
-    getCategoryClass(catName) {
-        const name = catName.toLowerCase();
-        if (name.includes('technique')) return 'tag-technique';
-        if (name.includes('note') || name.includes('évaluation')) return 'tag-notes';
-        if (name.includes('cours')) return 'tag-cours';
-        return 'tag-category';
     },
 
     /**
@@ -287,9 +340,12 @@ const AdminFAQ = {
                 return false;
             }
 
-            // Filtre catégorie
-            if (category !== 'all' && q.categorie_id !== category) {
-                return false;
+            // Filtre catégorie (supports multiple categories)
+            if (category !== 'all') {
+                const questionCats = this.getQuestionCategories(q);
+                if (!questionCats.includes(category)) {
+                    return false;
+                }
             }
 
             return true;
@@ -374,9 +430,26 @@ const AdminFAQ = {
         document.getElementById('addQuestionBtn')?.addEventListener('click', () => this.openAddQuestionModal());
         document.getElementById('manageCategoriesBtn')?.addEventListener('click', () => this.openCategoriesModal());
 
-        // Recherche et filtres
+        // Recherche
         document.getElementById('searchInput')?.addEventListener('input', () => this.renderQuestionsList());
-        document.getElementById('filterCategory')?.addEventListener('change', () => this.renderQuestionsList());
+
+        // Custom filter dropdown
+        const filterBtn = document.getElementById('filterDropdownBtn');
+        const filterMenu = document.getElementById('filterDropdownMenu');
+
+        if (filterBtn && filterMenu) {
+            filterBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                filterBtn.classList.toggle('open');
+                filterMenu.classList.toggle('hidden');
+            });
+
+            // Close on outside click
+            document.addEventListener('click', () => {
+                filterBtn.classList.remove('open');
+                filterMenu.classList.add('hidden');
+            });
+        }
 
         // Modal question
         document.getElementById('closeQuestionModal')?.addEventListener('click', () => this.closeQuestionModal());
@@ -392,6 +465,14 @@ const AdminFAQ = {
         document.getElementById('closeCategoriesModal')?.addEventListener('click', () => this.closeCategoriesModal());
         document.getElementById('closeCategoriesBtn')?.addEventListener('click', () => this.closeCategoriesModal());
         document.getElementById('addCategoryBtn')?.addEventListener('click', () => this.addCategory());
+
+        // Enter key to add category
+        document.getElementById('newCategoryName')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.addCategory();
+            }
+        });
 
         // Modal suppression
         document.getElementById('cancelDeleteBtn')?.addEventListener('click', () => this.closeDeleteModal());
@@ -423,6 +504,51 @@ const AdminFAQ = {
         }
     },
 
+    /**
+     * Render category tags selector in modal
+     */
+    renderCategoryTagsSelector() {
+        const container = document.getElementById('categoryTagsSelector');
+        if (!container) return;
+
+        if (this.categories.length === 0) {
+            container.innerHTML = `
+                <p style="color: #6b7280; font-size: 13px; margin: 0;">
+                    Aucune catégorie disponible. Créez d'abord des catégories.
+                </p>
+            `;
+            return;
+        }
+
+        container.innerHTML = this.categories.map(cat => {
+            const isSelected = this.selectedCategories.includes(cat.id);
+            return `
+                <div class="category-tag-option ${isSelected ? 'selected' : ''}"
+                     data-id="${cat.id}"
+                     onclick="AdminFAQ.toggleCategorySelection('${cat.id}')">
+                    <span class="cat-icon">${cat.icone || '📁'}</span>
+                    <span class="cat-name">${this.escapeHtml(cat.nom)}</span>
+                    <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+            `;
+        }).join('');
+    },
+
+    /**
+     * Toggle category selection
+     */
+    toggleCategorySelection(categoryId) {
+        const index = this.selectedCategories.indexOf(categoryId);
+        if (index === -1) {
+            this.selectedCategories.push(categoryId);
+        } else {
+            this.selectedCategories.splice(index, 1);
+        }
+        this.renderCategoryTagsSelector();
+    },
+
     // ========== GESTION DES QUESTIONS ==========
 
     /**
@@ -430,18 +556,21 @@ const AdminFAQ = {
      */
     openAddQuestionModal() {
         this.editingQuestionId = null;
-        document.getElementById('modalTitle').innerHTML = '<span class="header-icon">?</span> Nouvelle question';
+        this.selectedCategories = [];
+
+        document.getElementById('modalTitle').innerHTML = '<span class="header-icon">?</span> Ajouter une question';
         document.getElementById('questionId').value = '';
-        document.getElementById('questionCategory').value = '';
         document.getElementById('questionText').value = '';
         document.getElementById('questionAnswer').value = '';
         document.getElementById('questionVideoUrl').value = '';
-        document.getElementById('questionOrder').value = '';
 
         // Reset type selector
         const texteRadio = document.querySelector('input[name="typeReponse"][value="texte"]');
         if (texteRadio) texteRadio.checked = true;
         this.updateFormForType();
+
+        // Render category tags
+        this.renderCategoryTagsSelector();
 
         document.getElementById('questionModal').classList.remove('hidden');
     },
@@ -454,19 +583,22 @@ const AdminFAQ = {
         if (!question) return;
 
         this.editingQuestionId = questionId;
+        this.selectedCategories = this.getQuestionCategories(question);
+
         document.getElementById('modalTitle').innerHTML = '<span class="header-icon">?</span> Modifier la question';
         document.getElementById('questionId').value = question.id;
-        document.getElementById('questionCategory').value = question.categorie_id || '';
         document.getElementById('questionText').value = question.question || '';
         document.getElementById('questionAnswer').value = question.reponse || '';
         document.getElementById('questionVideoUrl').value = question.video_url || '';
-        document.getElementById('questionOrder').value = question.ordre || '';
 
         // Set type selector
         const type = question.type_reponse || 'texte';
         const radio = document.querySelector(`input[name="typeReponse"][value="${type}"]`);
         if (radio) radio.checked = true;
         this.updateFormForType();
+
+        // Render category tags
+        this.renderCategoryTagsSelector();
 
         document.getElementById('questionModal').classList.remove('hidden');
     },
@@ -477,22 +609,21 @@ const AdminFAQ = {
     closeQuestionModal() {
         document.getElementById('questionModal').classList.add('hidden');
         this.editingQuestionId = null;
+        this.selectedCategories = [];
     },
 
     /**
      * Sauvegarde une question
      */
     async saveQuestion() {
-        const categoryId = document.getElementById('questionCategory').value;
         const questionText = document.getElementById('questionText').value.trim();
         const answer = document.getElementById('questionAnswer').value.trim();
         const videoUrl = document.getElementById('questionVideoUrl').value.trim();
-        const order = document.getElementById('questionOrder').value;
         const typeReponse = document.querySelector('input[name="typeReponse"]:checked')?.value || 'texte';
 
         // Validation
-        if (!categoryId) {
-            alert('Veuillez sélectionner une catégorie.');
+        if (this.selectedCategories.length === 0) {
+            alert('Veuillez sélectionner au moins une catégorie.');
             return;
         }
         if (!questionText) {
@@ -518,13 +649,21 @@ const AdminFAQ = {
         `;
 
         try {
+            // Calculate order for new questions
+            let ordre = '1';
+            if (!this.editingQuestionId) {
+                const maxOrder = Math.max(0, ...this.questions.map(q => parseInt(q.ordre) || 0));
+                ordre = String(maxOrder + 1);
+            }
+
             const questionData = {
-                categorie_id: categoryId,
+                categories: this.selectedCategories.join(','), // Multiple categories as comma-separated
+                categorie_id: this.selectedCategories[0] || '', // Keep for backward compatibility
                 question: questionText,
                 reponse: answer,
                 video_url: videoUrl,
                 type_reponse: typeReponse,
-                ordre: order || '1'
+                ordre: ordre
             };
 
             if (this.editingQuestionId) {
@@ -536,6 +675,7 @@ const AdminFAQ = {
 
             await this.loadData();
             this.renderStats();
+            this.renderCategoryFilter();
             this.renderQuestionsList();
             this.closeQuestionModal();
 
@@ -575,8 +715,6 @@ const AdminFAQ = {
     openCategoriesModal() {
         this.renderCategoriesList();
         document.getElementById('newCategoryName').value = '';
-        document.getElementById('newCategoryIcon').value = '';
-        document.getElementById('newCategoryColor').value = this.defaultColors[this.categories.length % this.defaultColors.length];
         document.getElementById('categoriesModal').classList.remove('hidden');
     },
 
@@ -588,7 +726,7 @@ const AdminFAQ = {
     },
 
     /**
-     * Affiche la liste des catégories dans le modal
+     * Affiche la liste des catégories dans le modal (simplified)
      */
     renderCategoriesList() {
         const list = document.getElementById('categoriesList');
@@ -607,25 +745,18 @@ const AdminFAQ = {
         }
 
         list.innerHTML = this.categories.map(cat => {
-            const questionsCount = this.questions.filter(q => q.categorie_id === cat.id).length;
-            const color = cat.couleur || '#6366f1';
+            // Count questions that include this category
+            const questionsCount = this.questions.filter(q =>
+                this.getQuestionCategories(q).includes(cat.id)
+            ).length;
 
             return `
                 <div class="category-item" data-id="${cat.id}">
-                    <div class="category-icon" style="background: ${this.hexToRgba(color, 0.15)}; color: ${color};">
-                        ${cat.icone || '📁'}
-                    </div>
                     <div class="category-info">
                         <div class="category-name">${this.escapeHtml(cat.nom)}</div>
                         <div class="category-count">${questionsCount} question${questionsCount > 1 ? 's' : ''}</div>
                     </div>
                     <div class="category-actions">
-                        <button class="action-btn edit" onclick="AdminFAQ.editCategory('${cat.id}')" title="Modifier">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                        </button>
                         <button class="action-btn delete" onclick="AdminFAQ.confirmDeleteCategory('${cat.id}')" title="Supprimer" ${questionsCount > 0 ? 'disabled' : ''}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"/>
@@ -643,8 +774,6 @@ const AdminFAQ = {
      */
     async addCategory() {
         const name = document.getElementById('newCategoryName').value.trim();
-        const icon = document.getElementById('newCategoryIcon').value.trim() || '📁';
-        const color = document.getElementById('newCategoryColor').value;
 
         if (!name) {
             alert('Veuillez entrer un nom de catégorie.');
@@ -657,15 +786,14 @@ const AdminFAQ = {
             <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
             </svg>
-            Ajout...
         `;
 
         try {
             const maxOrder = Math.max(0, ...this.categories.map(c => parseInt(c.ordre) || 0));
             await this.callWebApp('createCategorieFAQ', {
                 nom: name,
-                icone: icon,
-                couleur: color,
+                icone: '📁',
+                couleur: '#6366f1',
                 ordre: String(maxOrder + 1)
             });
 
@@ -674,7 +802,6 @@ const AdminFAQ = {
             this.renderCategoryFilter();
             this.renderCategoriesList();
             document.getElementById('newCategoryName').value = '';
-            document.getElementById('newCategoryIcon').value = '';
 
         } catch (error) {
             console.error('Erreur lors de l\'ajout:', error);
@@ -686,40 +813,7 @@ const AdminFAQ = {
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
-                Ajouter
             `;
-        }
-    },
-
-    /**
-     * Édite une catégorie
-     */
-    async editCategory(categoryId) {
-        const category = this.categories.find(c => c.id === categoryId);
-        if (!category) return;
-
-        const newName = prompt('Nouveau nom:', category.nom);
-        if (newName === null) return;
-
-        const newIcon = prompt('Nouvelle icône (emoji):', category.icone || '📁');
-        if (newIcon === null) return;
-
-        try {
-            await this.callWebApp('updateCategorieFAQ', {
-                id: categoryId,
-                nom: newName.trim() || category.nom,
-                icone: newIcon.trim() || '📁'
-            });
-
-            await this.loadData();
-            this.renderStats();
-            this.renderCategoryFilter();
-            this.renderCategoriesList();
-            this.renderQuestionsList();
-
-        } catch (error) {
-            console.error('Erreur lors de la modification:', error);
-            alert('Erreur lors de la modification: ' + error.message);
         }
     },
 
@@ -730,9 +824,12 @@ const AdminFAQ = {
         const category = this.categories.find(c => c.id === categoryId);
         if (!category) return;
 
-        const questionsCount = this.questions.filter(q => q.categorie_id === categoryId).length;
+        const questionsCount = this.questions.filter(q =>
+            this.getQuestionCategories(q).includes(categoryId)
+        ).length;
+
         if (questionsCount > 0) {
-            alert(`Impossible de supprimer cette catégorie car elle contient ${questionsCount} question(s).`);
+            alert(`Impossible de supprimer cette catégorie car elle est utilisée par ${questionsCount} question(s).`);
             return;
         }
 
