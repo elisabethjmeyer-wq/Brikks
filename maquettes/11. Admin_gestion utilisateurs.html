@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des utilisateurs | Admin - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-teal: #14b8a6;
+            --accent-teal-light: #ccfbf1;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ===== SIDEBAR (identique Dashboard v3) ===== */
+        .admin-sidebar {
+            width: 280px;
+            background: var(--gray-900);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 150;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-sidebar.collapsed { transform: translateX(-100%); }
+
+        .admin-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .admin-logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-logo .badge {
+            background: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sidebar-section { margin-bottom: 24px; }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 20px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar-link .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        .sidebar-link .badge {
+            margin-left: auto;
+            background: var(--accent-red);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .sidebar-link .badge.green { background: var(--accent-green); }
+        .sidebar-link .badge.orange { background: var(--accent-orange); }
+
+        /* ===== MAIN ===== */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+        .main-content.expanded { margin-left: 0; }
+
+        /* ===== TOP BAR ===== */
+        .top-bar { background: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 100; }
+        .top-bar-left { display: flex; align-items: center; gap: 16px; }
+        .toggle-sidebar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .toggle-sidebar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-500); }
+        .top-bar-breadcrumb a { color: var(--gray-500); text-decoration: none; }
+        .top-bar-breadcrumb a:hover { color: var(--primary); }
+        .top-bar-breadcrumb .separator { color: var(--gray-300); }
+        .top-bar-right { display: flex; align-items: center; gap: 12px; }
+        .top-bar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; }
+        .top-bar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-btn .notif-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--accent-red); border-radius: 50%; border: 2px solid white; }
+        .top-bar-user { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 10px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .top-bar-user:hover { background: var(--gray-100); }
+        .top-bar-user-avatar { width: 36px; height: 36px; border-radius: 8px; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+        .top-bar-user-info { text-align: left; }
+        .top-bar-user-name { font-size: 13px; font-weight: 600; color: var(--gray-800); display: flex; align-items: center; gap: 6px; }
+        .top-bar-user-name::after { content: "▼"; font-size: 10px; color: var(--gray-400); }
+        .top-bar-user-role { font-size: 11px; color: var(--gray-500); }
+        .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: var(--radius); box-shadow: var(--shadow-lg); border: 1px solid var(--gray-200); min-width: 180px; display: none; z-index: 200; overflow: hidden; }
+        .user-dropdown.show { display: block; }
+        .user-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-size: 14px; color: var(--gray-700); text-decoration: none; transition: all 0.2s; cursor: pointer; }
+        .user-dropdown-item:hover { background: var(--gray-50); }
+        .user-dropdown-item.danger { color: var(--accent-red); }
+        .user-dropdown-item.danger:hover { background: var(--accent-red-light); }
+        .page-content { padding: 24px; flex: 1; }
+
+        /* ===== HEADER ===== */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .admin-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .admin-header p {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        
+        .btn-secondary { 
+            background: white; 
+            border: 2px solid var(--gray-200); 
+            color: var(--gray-700); 
+        }
+        .btn-secondary:hover { background: var(--gray-50); }
+
+        .btn-danger { background: var(--accent-red); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--gray-100);
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--gray-600);
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .btn-icon.danger:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* ===== STATS GRID ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card-icon.blue { background: var(--accent-blue-light); }
+        .stat-card-icon.green { background: var(--accent-green-light); }
+        .stat-card-icon.purple { background: var(--accent-purple-light); }
+        .stat-card-icon.teal { background: var(--accent-teal-light); }
+
+        .stat-card-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .stat-card-label {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        /* ===== FILTERS ===== */
+        .filters-bar {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 240px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 10px 32px 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") right 8px center no-repeat;
+            background-size: 16px;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* ===== TABLE ===== */
+        .table-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-header h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .table-count {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead { background: var(--gray-50); }
+
+        th {
+            padding: 12px 20px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        td {
+            padding: 14px 20px;
+            font-size: 14px;
+            color: var(--gray-700);
+            border-bottom: 1px solid var(--gray-100);
+            vertical-align: middle;
+        }
+
+        tr:hover td { background: var(--gray-50); }
+        tr:last-child td { border-bottom: none; }
+
+        /* User cell */
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            color: white;
+        }
+
+        .user-avatar.eleve { background: linear-gradient(135deg, var(--accent-blue), #2563eb); }
+        .user-avatar.prof { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
+        .user-avatar.invite { background: linear-gradient(135deg, var(--accent-teal), #0d9488); }
+
+        .user-name { font-weight: 600; color: var(--gray-800); }
+        .user-id { font-size: 12px; color: var(--gray-400); }
+
+        /* Badges */
+        .role-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .role-badge.eleve { background: var(--accent-blue-light); color: var(--accent-blue); }
+        .role-badge.prof { background: var(--primary-bg); color: var(--primary); }
+        .role-badge.invite { background: var(--accent-teal-light); color: var(--accent-teal); }
+
+        .class-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--gray-100);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .group-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: var(--accent-orange-light);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #b45309;
+        }
+
+        /* Date */
+        .date-cell {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .date-cell small {
+            display: block;
+            font-size: 11px;
+            color: var(--gray-400);
+            margin-top: 2px;
+        }
+
+        .date-cell.inactive {
+            color: var(--gray-400);
+            font-style: italic;
+        }
+
+        /* Actions */
+        .actions-cell { display: flex; gap: 6px; }
+
+        /* Pagination */
+        .table-footer {
+            padding: 14px 20px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pagination-info { font-size: 13px; color: var(--gray-500); }
+
+        .pagination { display: flex; gap: 4px; }
+
+        .page-btn {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            background: white;
+            color: var(--gray-600);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .page-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .page-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+        .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden { display: none; }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 8px;
+            font-size: 16px;
+            color: var(--gray-500);
+            cursor: pointer;
+        }
+
+        .modal-close:hover { background: var(--gray-200); }
+
+        .modal-body { padding: 24px; }
+
+        .form-section {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .form-group { margin-bottom: 16px; }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-700);
+            margin-bottom: 6px;
+        }
+
+        .form-group label .req { color: var(--accent-red); }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-input:focus { outline: none; border-color: var(--primary); }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+        }
+
+        .form-select:focus { outline: none; border-color: var(--primary); }
+
+        .form-help {
+            font-size: 11px;
+            color: var(--gray-400);
+            margin-top: 4px;
+        }
+
+        .password-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .password-row .form-input { flex: 1; }
+
+        .btn-generate {
+            padding: 10px 14px;
+            background: var(--primary-bg);
+            color: var(--primary);
+            border: none;
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-generate:hover { background: var(--primary); color: white; }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Confirm modal */
+        .modal.confirm { max-width: 380px; text-align: center; }
+        .modal.confirm .modal-body { padding: 32px 24px; }
+
+        .confirm-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 16px;
+            background: var(--accent-red-light);
+        }
+
+        .confirm-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .confirm-text {
+            font-size: 14px;
+            color: var(--gray-600);
+            line-height: 1.5;
+        }
+
+        .modal.confirm .modal-footer { justify-content: center; }
+
+        /* ===== MODAL GESTION CLASSES/GROUPES ===== */
+        .manage-section {
+            margin-bottom: 24px;
+        }
+
+        .manage-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .manage-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tags-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .tag-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .tag-item .remove {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            background: transparent;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .tag-item .remove:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .add-inline {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-inline input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .add-inline input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .add-inline button {
+            padding: 10px 16px;
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: var(--radius);
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .add-inline button:hover {
+            background: var(--primary);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="admin-sidebar">
+        <div class="admin-logo"><h1><span>📚</span>Espace cours<span class="badge">Admin</span></h1></div>
+        <nav>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📌 Principal</div>
+                <a href="#" class="sidebar-link"><span class="icon">🏠</span>Page d'accueil</a>
+                <a href="#" class="sidebar-link"><span class="icon">📬</span>Messagerie<span class="badge">3</span></a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📚 Ressources</div>
+                <a href="#" class="sidebar-link"><span class="icon">📖</span>Leçons</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧠</span>Méthodologie</a>
+                <a href="#" class="sidebar-link"><span class="icon">🎬</span>Vidéos</a>
+                <a href="#" class="sidebar-link"><span class="icon">💡</span>Recommandations</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">🎯 Exercices</div>
+                <a href="#" class="sidebar-link"><span class="icon">📐</span>Banque de formats</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧩</span>Banque d'éléments</a>
+                <a href="#" class="sidebar-link"><span class="icon">📝</span>Entraînements</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📊 Évaluations</div>
+                <a href="#" class="sidebar-link"><span class="icon">📋</span>Évaluations</a>
+                <a href="#" class="sidebar-link"><span class="icon">🟣</span>Compétences</a>
+                <a href="#" class="sidebar-link"><span class="icon">📊</span>Notes & Suivi</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">👥 Élèves</div>
+                <a href="#" class="sidebar-link active"><span class="icon">👥</span>Utilisateurs</a>
+                <a href="#" class="sidebar-link"><span class="icon">❓</span>FAQ</a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Afficher/Masquer le menu">☰</button>
+                <div class="top-bar-breadcrumb"><a href="#">Admin</a><span class="separator">/</span><span>Utilisateurs</span></div>
+            </div>
+            <div class="top-bar-right">
+                <button class="top-bar-btn" title="Voir le site élève">👁️</button>
+                <button class="top-bar-btn" title="Notifications">🔔<span class="notif-dot"></span></button>
+                <div class="top-bar-user" onclick="toggleUserMenu()">
+                    <div class="top-bar-user-avatar">EM</div>
+                    <div class="top-bar-user-info"><div class="top-bar-user-name">Mme Meyer</div><div class="top-bar-user-role">Professeur</div></div>
+                    <div class="user-dropdown" id="user-dropdown"><a href="#" class="user-dropdown-item danger"><span>🚪</span>Déconnexion</a></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-content">
+        <!-- HEADER -->
+        <header class="admin-header">
+            <div>
+                <h1>👥 Gestion des utilisateurs</h1>
+                <p>Gérez les élèves, classes et groupes de la plateforme</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="openModal('manage')">
+                    <span>⚙️</span>
+                    Gérer classes/groupes
+                </button>
+                <button class="btn btn-primary" onclick="openModal('add')">
+                    <span>➕</span>
+                    Ajouter un utilisateur
+                </button>
+            </div>
+        </header>
+
+        <!-- STATS -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-icon blue">👥</div>
+                <div class="stat-card-value">28</div>
+                <div class="stat-card-label">Utilisateurs total</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon green">🎓</div>
+                <div class="stat-card-value">25</div>
+                <div class="stat-card-label">Élèves</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon purple">👩‍🏫</div>
+                <div class="stat-card-value">1</div>
+                <div class="stat-card-label">Professeur</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon teal">👋</div>
+                <div class="stat-card-value">2</div>
+                <div class="stat-card-label">Invités</div>
+            </div>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="filters-bar">
+            <div class="search-box">
+                <input type="text" placeholder="Rechercher un utilisateur...">
+            </div>
+            <select class="filter-select">
+                <option value="">Toutes les classes</option>
+                <option value="2MHR1">2MHR1</option>
+                <option value="2MHR2">2MHR2</option>
+                <option value="1MHR">1MHR</option>
+                <option value="TMHR">TMHR</option>
+            </select>
+            <select class="filter-select">
+                <option value="">Tous les groupes</option>
+                <option value="G1">Groupe 1</option>
+                <option value="G2">Groupe 2</option>
+            </select>
+            <select class="filter-select">
+                <option value="">Tous les rôles</option>
+                <option value="eleve">Élève</option>
+                <option value="prof">Professeur</option>
+                <option value="invite">Invité</option>
+            </select>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-card">
+            <div class="table-header">
+                <h2>Liste des utilisateurs</h2>
+                <span class="table-count">28 utilisateurs</span>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Utilisateur</th>
+                        <th>Rôle</th>
+                        <th>Classe</th>
+                        <th>Groupe</th>
+                        <th>Dernière connexion</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Prof -->
+                    <tr>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar prof">EM</div>
+                                <div>
+                                    <div class="user-name">Elisa Meyer</div>
+                                    <div class="user-id">e.meyer</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="role-badge prof">👩‍🏫 Professeur</span></td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>
+                            <div class="date-cell">
+                                Aujourd'hui, 14:32
+                                <small>Inscrit le 01/09/2024</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="btn-icon" title="Modifier" onclick="openModal('edit')">✏️</button>
+                                <button class="btn-icon" title="Réinitialiser MDP" onclick="openModal('password')">🔑</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Élève 1 -->
+                    <tr>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar eleve">IA</div>
+                                <div>
+                                    <div class="user-name">Ilyana Amrani</div>
+                                    <div class="user-id">i.amrani</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="role-badge eleve">🎓 Élève</span></td>
+                        <td><span class="class-badge">2MHR1</span></td>
+                        <td><span class="group-badge">G1</span></td>
+                        <td>
+                            <div class="date-cell">
+                                Hier, 16:45
+                                <small>Inscrit le 05/09/2024</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="btn-icon" title="Modifier" onclick="openModal('edit')">✏️</button>
+                                <button class="btn-icon" title="Réinitialiser MDP" onclick="openModal('password')">🔑</button>
+                                <button class="btn-icon danger" title="Supprimer" onclick="openModal('delete')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Élève 2 -->
+                    <tr>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar eleve">TD</div>
+                                <div>
+                                    <div class="user-name">Théo Dupont</div>
+                                    <div class="user-id">t.dupont</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="role-badge eleve">🎓 Élève</span></td>
+                        <td><span class="class-badge">2MHR1</span></td>
+                        <td><span class="group-badge">G1</span></td>
+                        <td>
+                            <div class="date-cell">
+                                27/12/2024, 09:12
+                                <small>Inscrit le 05/09/2024</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="btn-icon" title="Modifier" onclick="openModal('edit')">✏️</button>
+                                <button class="btn-icon" title="Réinitialiser MDP" onclick="openModal('password')">🔑</button>
+                                <button class="btn-icon danger" title="Supprimer" onclick="openModal('delete')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Élève 3 -->
+                    <tr>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar eleve">LM</div>
+                                <div>
+                                    <div class="user-name">Léa Martin</div>
+                                    <div class="user-id">l.martin</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="role-badge eleve">🎓 Élève</span></td>
+                        <td><span class="class-badge">2MHR1</span></td>
+                        <td><span class="group-badge">G2</span></td>
+                        <td>
+                            <div class="date-cell">
+                                26/12/2024, 14:30
+                                <small>Inscrit le 05/09/2024</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="btn-icon" title="Modifier" onclick="openModal('edit')">✏️</button>
+                                <button class="btn-icon" title="Réinitialiser MDP" onclick="openModal('password')">🔑</button>
+                                <button class="btn-icon danger" title="Supprimer" onclick="openModal('delete')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Élève jamais connecté -->
+                    <tr>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar eleve">CL</div>
+                                <div>
+                                    <div class="user-name">Chloé Leroy</div>
+                                    <div class="user-id">c.leroy</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="role-badge eleve">🎓 Élève</span></td>
+                        <td><span class="class-badge">2MHR2</span></td>
+                        <td><span class="group-badge">G1</span></td>
+                        <td>
+                            <div class="date-cell inactive">
+                                Jamais connecté
+                                <small>Inscrit le 10/09/2024</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="btn-icon" title="Modifier" onclick="openModal('edit')">✏️</button>
+                                <button class="btn-icon" title="Réinitialiser MDP" onclick="openModal('password')">🔑</button>
+                                <button class="btn-icon danger" title="Supprimer" onclick="openModal('delete')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Invité -->
+                    <tr>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar invite">PA</div>
+                                <div>
+                                    <div class="user-name">Pierre Amrani</div>
+                                    <div class="user-id">p.amrani</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="role-badge invite">👋 Invité</span></td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>
+                            <div class="date-cell">
+                                20/12/2024, 20:15
+                                <small>Inscrit le 15/09/2024</small>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="actions-cell">
+                                <button class="btn-icon" title="Modifier" onclick="openModal('edit')">✏️</button>
+                                <button class="btn-icon" title="Réinitialiser MDP" onclick="openModal('password')">🔑</button>
+                                <button class="btn-icon danger" title="Supprimer" onclick="openModal('delete')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="table-footer">
+                <div class="pagination-info">Affichage 1-6 sur 28 utilisateurs</div>
+                <div class="pagination">
+                    <button class="page-btn" disabled>←</button>
+                    <button class="page-btn active">1</button>
+                    <button class="page-btn">2</button>
+                    <button class="page-btn">3</button>
+                    <button class="page-btn">4</button>
+                    <button class="page-btn">→</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL: Ajouter/Modifier -->
+<div class="modal-overlay hidden" id="modal-user">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modal-title">Ajouter un utilisateur</h2>
+            <button class="modal-close" onclick="closeModal('modal-user')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-section">👤 Informations personnelles</div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Prénom <span class="req">*</span></label>
+                    <input type="text" class="form-input" placeholder="Ex: Ilyana">
+                </div>
+                <div class="form-group">
+                    <label>Nom <span class="req">*</span></label>
+                    <input type="text" class="form-input" placeholder="Ex: Amrani">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Rôle <span class="req">*</span></label>
+                <select class="form-select" id="role-select" onchange="toggleClassFields()">
+                    <option value="eleve">🎓 Élève</option>
+                    <option value="prof">👩‍🏫 Professeur</option>
+                    <option value="invite">👋 Invité</option>
+                </select>
+            </div>
+
+            <div id="class-fields">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Classe <span class="req">*</span></label>
+                        <select class="form-select">
+                            <option value="">Sélectionner...</option>
+                            <option>2MHR1</option>
+                            <option>2MHR2</option>
+                            <option>1MHR</option>
+                            <option>TMHR</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Groupe</label>
+                        <select class="form-select">
+                            <option value="">Aucun</option>
+                            <option>Groupe 1</option>
+                            <option>Groupe 2</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section" style="margin-top: 24px;">🔐 Identifiants</div>
+
+            <div class="form-group">
+                <label>Identifiant <span class="req">*</span></label>
+                <input type="text" class="form-input" placeholder="Ex: i.amrani">
+                <div class="form-help">Généré automatiquement à partir du nom</div>
+            </div>
+
+            <div class="form-group">
+                <label>Mot de passe <span class="req">*</span></label>
+                <div class="password-row">
+                    <input type="text" class="form-input" id="password-field" placeholder="••••••••">
+                    <button type="button" class="btn-generate" onclick="generatePassword()">Générer</button>
+                </div>
+                <div class="form-help">Minimum 6 caractères</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-user')">Annuler</button>
+            <button class="btn btn-primary">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Réinitialiser MDP -->
+<div class="modal-overlay hidden" id="modal-password">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>🔑 Réinitialiser le mot de passe</h2>
+            <button class="modal-close" onclick="closeModal('modal-password')">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 16px; color: var(--gray-600);">Pour <strong>Ilyana Amrani</strong></p>
+            <div class="form-group">
+                <label>Nouveau mot de passe <span class="req">*</span></label>
+                <div class="password-row">
+                    <input type="text" class="form-input" value="Soleil2024!">
+                    <button type="button" class="btn-generate" onclick="generatePassword()">Générer</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-password')">Annuler</button>
+            <button class="btn btn-primary">✓ Réinitialiser</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Confirmer suppression -->
+<div class="modal-overlay hidden" id="modal-delete">
+    <div class="modal confirm">
+        <div class="modal-header">
+            <h2></h2>
+            <button class="modal-close" onclick="closeModal('modal-delete')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-icon">🗑️</div>
+            <div class="confirm-title">Supprimer cet utilisateur ?</div>
+            <div class="confirm-text">Êtes-vous sûr de vouloir supprimer <strong>Ilyana Amrani</strong> ? Cette action est irréversible.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-delete')">Annuler</button>
+            <button class="btn btn-danger">🗑️ Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Gérer classes et groupes -->
+<div class="modal-overlay hidden" id="modal-manage">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>⚙️ Gérer classes et groupes</h2>
+            <button class="modal-close" onclick="closeModal('modal-manage')">✕</button>
+        </div>
+        <div class="modal-body">
+            <!-- Classes -->
+            <div class="manage-section">
+                <div class="manage-section-title">🏫 Classes</div>
+                <div class="tags-list">
+                    <div class="tag-item">2MHR1 <button class="remove">✕</button></div>
+                    <div class="tag-item">2MHR2 <button class="remove">✕</button></div>
+                    <div class="tag-item">1MHR <button class="remove">✕</button></div>
+                    <div class="tag-item">TMHR <button class="remove">✕</button></div>
+                </div>
+                <div class="add-inline">
+                    <input type="text" placeholder="Nom de la nouvelle classe...">
+                    <button>+ Ajouter</button>
+                </div>
+            </div>
+
+            <!-- Groupes -->
+            <div class="manage-section">
+                <div class="manage-section-title">👥 Groupes</div>
+                <div class="tags-list">
+                    <div class="tag-item">Groupe A <button class="remove">✕</button></div>
+                    <div class="tag-item">Groupe B <button class="remove">✕</button></div>
+                </div>
+                <div class="add-inline">
+                    <input type="text" placeholder="Nom du nouveau groupe...">
+                    <button>+ Ajouter</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="closeModal('modal-manage')">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openModal(type) {
+        if (type === 'add') {
+            document.getElementById('modal-title').textContent = 'Ajouter un utilisateur';
+            document.getElementById('modal-user').classList.remove('hidden');
+        } else if (type === 'edit') {
+            document.getElementById('modal-title').textContent = "Modifier l'utilisateur";
+            document.getElementById('modal-user').classList.remove('hidden');
+        } else if (type === 'password') {
+            document.getElementById('modal-password').classList.remove('hidden');
+        } else if (type === 'delete') {
+            document.getElementById('modal-delete').classList.remove('hidden');
+        } else if (type === 'manage') {
+            document.getElementById('modal-manage').classList.remove('hidden');
+        }
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function toggleClassFields() {
+        const role = document.getElementById('role-select').value;
+        document.getElementById('class-fields').style.display = role === 'eleve' ? 'block' : 'none';
+    }
+
+    function generatePassword() {
+        const words = ['Soleil', 'Lune', 'Etoile', 'Nuage', 'Ocean', 'Foret'];
+        const year = new Date().getFullYear();
+        const symbols = ['!', '@', '#', '$'];
+        const password = words[Math.floor(Math.random() * words.length)] + year + symbols[Math.floor(Math.random() * symbols.length)];
+        document.getElementById('password-field').value = password;
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.add('hidden');
+        });
+    });
+
+    function toggleSidebar() {
+        document.querySelector('.admin-sidebar').classList.toggle('collapsed');
+        document.querySelector('.main-content').classList.toggle('expanded');
+    }
+    function toggleUserMenu() { document.getElementById('user-dropdown').classList.toggle('show'); }
+    document.addEventListener('click', function(e) {
+        const userMenu = document.querySelector('.top-bar-user');
+        if (userMenu && !userMenu.contains(e.target)) document.getElementById('user-dropdown').classList.remove('show');
+    });
+</script>
+
+</body>
+</html>
