@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Gestion des recommandations">
+    <title>Recommandations - Administration - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-recommandations.css">
+</head>
+<body>
+
+<!-- Contenu de la page -->
+<div id="recommandations-page">
+    <!-- Page Header -->
+    <header class="admin-header">
+        <div>
+            <h1>💡 Recommandations</h1>
+            <p>Partagez des ressources inspirantes avec vos élèves</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="addRecoBtn">
+                <span>➕</span>
+                Nouvelle recommandation
+            </button>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des recommandations...</p>
+    </div>
+
+    <!-- Contenu principal (masqué pendant le chargement) -->
+    <div id="reco-content" style="display: none;">
+
+        <!-- Featured Reco Control -->
+        <div class="featured-control">
+            <div class="featured-control-header">
+                <h2>⭐ Recommandation mise en avant</h2>
+            </div>
+            <div class="featured-control-body">
+                <!-- Toggle affichage -->
+                <div class="toggle-row">
+                    <div class="toggle-info">
+                        <h3>Afficher sur la page d'accueil</h3>
+                        <p>La recommandation apparaîtra sur la page d'accueil des élèves</p>
+                    </div>
+                    <div class="toggle-switch active" id="toggleDisplay"></div>
+                </div>
+
+                <!-- Current reco -->
+                <div class="current-reco-section" id="currentRecoSection">
+                    <div class="current-reco-label">
+                        Recommandation actuellement affichée
+                        <span class="auto-badge" id="modeBadge">AUTO</span>
+                    </div>
+                    <div class="current-reco-content" id="currentRecoContent">
+                        <!-- Dynamically filled -->
+                    </div>
+                </div>
+
+                <!-- No reco state -->
+                <div class="no-reco-state" id="noRecoState" style="display: none;">
+                    <div class="icon">💡</div>
+                    <h3>Aucune recommandation</h3>
+                    <p>Ajoutez une recommandation pour qu'elle s'affiche ici</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recos List -->
+        <div class="recos-card">
+            <div class="recos-header">
+                <h2>📚 Toutes les recommandations</h2>
+                <span class="recos-count" id="recosCount">0 recommandations</span>
+            </div>
+
+            <div class="recos-filters">
+                <input type="text" class="search-input" id="searchInput" placeholder="Rechercher une recommandation...">
+                <select class="filter-select" id="filterType">
+                    <option value="all">Tous les types</option>
+                    <option value="podcast">Podcasts</option>
+                    <option value="video">Vidéos</option>
+                    <option value="livre">Livres</option>
+                    <option value="article">Articles</option>
+                    <option value="autre">Autres</option>
+                </select>
+            </div>
+
+            <div class="recos-list" id="recosList">
+                <!-- Dynamically filled -->
+            </div>
+
+            <!-- Empty state -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">📭</div>
+                <h3>Aucune recommandation</h3>
+                <p>Cliquez sur "Nouvelle recommandation" pour ajouter votre première recommandation</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Nouvelle/Éditer recommandation -->
+<div class="modal-overlay hidden" id="recoModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modalTitle">💡 Nouvelle recommandation</h2>
+            <button class="modal-close" id="closeRecoModal">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="recoId">
+
+            <div class="form-group">
+                <label>Titre <span class="req">*</span></label>
+                <input type="text" class="form-input" id="recoTitre" placeholder="Ex: Podcast Révolutions">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Type <span class="req">*</span></label>
+                    <select class="form-input" id="recoType">
+                        <option value="">Sélectionner...</option>
+                        <option value="podcast">🎧 Podcast</option>
+                        <option value="video">🎬 Vidéo</option>
+                        <option value="livre">📖 Livre</option>
+                        <option value="article">📰 Article</option>
+                        <option value="autre">📌 Autre</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date de publication</label>
+                    <input type="date" class="form-input" id="recoDate">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Description <span class="req">*</span></label>
+                <textarea class="form-textarea" id="recoDescription" rows="3" placeholder="Brève description de la ressource..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Lien URL <span class="req">*</span></label>
+                <input type="url" class="form-input" id="recoUrl" placeholder="https://...">
+            </div>
+
+            <div class="form-group">
+                <label>Image de couverture (URL)</label>
+                <input type="url" class="form-input" id="recoImage" placeholder="https://...image.jpg">
+                <div class="image-preview" id="imagePreview">
+                    <span>Aperçu image</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tags (optionnel)</label>
+                <input type="text" class="form-input" id="recoTags" placeholder="Ex: Histoire, Révolution, France">
+                <p class="form-help">Séparez les tags par des virgules</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelRecoBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveRecoBtn">✓ Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Sélectionner une recommandation -->
+<div class="modal-overlay hidden" id="selectModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>🔄 Choisir la recommandation à afficher</h2>
+            <button class="modal-close" id="closeSelectModal">×</button>
+        </div>
+        <div class="modal-body" style="padding: 0;">
+            <div class="select-option">
+                <label>
+                    <input type="radio" name="recoMode" value="auto" checked>
+                    <span><strong>Automatique</strong> - Dernière recommandation ajoutée</span>
+                </label>
+            </div>
+            <div class="select-divider">Ou choisir manuellement :</div>
+            <div class="select-list" id="selectList">
+                <!-- Dynamically filled -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelSelectBtn">Annuler</button>
+            <button class="btn btn-primary" id="applySelectBtn">✓ Appliquer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Confirmer suppression -->
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal confirm">
+        <div class="modal-body">
+            <div class="confirm-icon">🗑️</div>
+            <div class="confirm-title">Supprimer cette recommandation ?</div>
+            <div class="confirm-text" id="deleteConfirmText">Cette action est irréversible.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Annuler</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">🗑️ Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/app.js"></script>
+<script src="../components/admin-layout.js"></script>
+<script src="../js/admin-recommandations.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        AdminLayout.init('recommandations', 'Recommandations');
+        AdminRecommandations.init();
+    });
+</script>
+
+</body>
+</html>
