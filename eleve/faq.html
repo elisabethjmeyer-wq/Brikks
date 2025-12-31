@@ -15,15 +15,16 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/eleve-faq.css">
 </head>
-<body class="loading-layout">
+<body>
 
-<!-- Contenu de la page -->
-<div id="faq-page">
+<!-- Contenu de la page (sera wrappé par le layout) -->
+<div id="faq-page" class="page-container">
+
     <!-- Page Header -->
-    <div class="page-header">
+    <header class="page-header">
         <h1>❓ Questions fréquentes</h1>
         <p>Trouve rapidement les réponses à tes questions</p>
-    </div>
+    </header>
 
     <!-- Loader -->
     <div class="loader-container" id="loader">
@@ -34,12 +35,9 @@
     <!-- Contenu principal -->
     <div id="faq-content" style="display: none;">
 
-        <!-- Search and Filters -->
-        <div class="faq-search-section">
-            <div class="search-box">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" placeholder="Rechercher une question...">
-            </div>
+        <!-- Search & Filters -->
+        <div class="filters-bar">
+            <input type="text" class="search-input" id="searchInput" placeholder="Rechercher une question...">
             <select class="filter-select" id="filterCategory">
                 <option value="all">Toutes les catégories</option>
                 <!-- Dynamically filled -->
@@ -47,7 +45,7 @@
         </div>
 
         <!-- Results count -->
-        <div class="results-info">
+        <div class="results-info" id="resultsInfo">
             <span id="resultsCount">0 questions</span>
         </div>
 
@@ -64,13 +62,15 @@
         </div>
 
         <!-- CTA Contact -->
-        <div class="cta-contact" id="ctaContact">
-            <div class="cta-icon">💬</div>
-            <div class="cta-content">
-                <h3>Tu n'as pas trouvé ta réponse ?</h3>
-                <p>Pose ta question directement à ton professeur</p>
+        <div class="cta-card" id="ctaContact">
+            <div class="cta-left">
+                <span class="cta-icon">💬</span>
+                <div class="cta-text">
+                    <strong>Tu n'as pas trouvé ta réponse ?</strong>
+                    <span>Pose ta question directement à ton professeur</span>
+                </div>
             </div>
-            <a href="messagerie.html" class="btn btn-primary">Envoyer un message</a>
+            <a href="messagerie.html" class="btn-cta">Envoyer un message</a>
         </div>
     </div>
 </div>
