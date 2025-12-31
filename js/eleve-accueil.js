@@ -1,6 +1,6 @@
 /**
  * Élève Accueil - Page d'accueil personnalisée
- * Affiche la vidéo et la recommandation de la semaine
+ * Design léger avec miniatures cliquables et modals
  */
 
 const EleveAccueil = {
@@ -32,21 +32,17 @@ const EleveAccueil = {
      */
     async init() {
         try {
-            // Récupérer l'utilisateur connecté
             this.user = JSON.parse(sessionStorage.getItem(CONFIG.STORAGE_KEYS.USER));
-
-            // Afficher le message de bienvenue
             this.renderGreeting();
 
-            // Charger les données en parallèle
             await Promise.all([
                 this.loadFeaturedVideo(),
                 this.loadFeaturedReco()
             ]);
 
-            // Afficher les sections
             this.renderVideoSection();
             this.renderRecoSection();
+            this.bindModalEvents();
 
         } catch (error) {
             console.error('[EleveAccueil] Erreur:', error);
@@ -54,7 +50,7 @@ const EleveAccueil = {
     },
 
     /**
-     * Affiche le message de bienvenue personnalisé
+     * Message de bienvenue
      */
     renderGreeting() {
         const container = document.getElementById('greeting-container');
@@ -77,26 +73,16 @@ const EleveAccueil = {
     async loadFeaturedVideo() {
         try {
             const videos = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.VIDEOS);
-
             if (!videos || videos.length === 0) {
                 this.featuredVideo = null;
                 return;
             }
 
-            // Trier par date (plus récente en premier)
-            videos.sort((a, b) => {
-                const dateA = new Date(a.date_publication || 0);
-                const dateB = new Date(b.date_publication || 0);
-                return dateB - dateA;
-            });
-
-            // Chercher celle marquée comme featured, sinon prendre la plus récente
+            videos.sort((a, b) => new Date(b.date_publication || 0) - new Date(a.date_publication || 0));
             const featured = videos.find(v => v.est_featured === 'TRUE' || v.est_featured === true);
             this.featuredVideo = featured || videos[0];
-
-            console.log('[EleveAccueil] Vidéo featured:', this.featuredVideo?.titre);
         } catch (error) {
-            console.error('[EleveAccueil] Erreur chargement vidéos:', error);
+            console.error('[EleveAccueil] Erreur vidéos:', error);
             this.featuredVideo = null;
         }
     },
@@ -107,32 +93,22 @@ const EleveAccueil = {
     async loadFeaturedReco() {
         try {
             const recos = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.RECOMMANDATIONS);
-
             if (!recos || recos.length === 0) {
                 this.featuredReco = null;
                 return;
             }
 
-            // Trier par date (plus récente en premier)
-            recos.sort((a, b) => {
-                const dateA = new Date(a.date_publication || 0);
-                const dateB = new Date(b.date_publication || 0);
-                return dateB - dateA;
-            });
-
-            // Chercher celle marquée comme featured, sinon prendre la plus récente
+            recos.sort((a, b) => new Date(b.date_publication || 0) - new Date(a.date_publication || 0));
             const featured = recos.find(r => r.est_featured === 'TRUE' || r.est_featured === true);
             this.featuredReco = featured || recos[0];
-
-            console.log('[EleveAccueil] Recommandation featured:', this.featuredReco?.titre);
         } catch (error) {
-            console.error('[EleveAccueil] Erreur chargement recommandations:', error);
+            console.error('[EleveAccueil] Erreur recommandations:', error);
             this.featuredReco = null;
         }
     },
 
     /**
-     * Affiche la section vidéo de la semaine
+     * Section vidéo : miniature + infos côte à côte
      */
     renderVideoSection() {
         const container = document.getElementById('video-section');
@@ -141,15 +117,9 @@ const EleveAccueil = {
         if (!this.featuredVideo) {
             container.innerHTML = `
                 <div class="accueil-card">
-                    <div class="accueil-card-header">
-                        <h2 class="accueil-card-title">🎬 Vidéo de la semaine</h2>
-                        <a href="videos.html" class="accueil-card-link">Toutes les vidéos →</a>
-                    </div>
-                    <div class="accueil-card-body">
-                        <div class="empty-state">
-                            <span class="icon">🎬</span>
-                            <p>Aucune vidéo disponible pour le moment.</p>
-                        </div>
+                    <div class="empty-state">
+                        <span class="icon">🎬</span>
+                        <p>Aucune vidéo disponible</p>
                     </div>
                 </div>
             `;
@@ -157,60 +127,55 @@ const EleveAccueil = {
         }
 
         const video = this.featuredVideo;
-        const embedUrl = this.getEmbedUrl(video.url);
+        const thumbnailUrl = this.getThumbnailUrl(video.url);
         const tags = this.parseTags(video.tags);
         const highlights = this.parseHighlights(video.description);
 
-        // Tronquer la description si trop longue
-        const maxDescLength = 150;
+        // Tronquer l'intro
         let introText = highlights.intro;
-        if (introText.length > maxDescLength) {
-            introText = introText.substring(0, maxDescLength).trim() + '...';
+        if (introText.length > 120) {
+            introText = introText.substring(0, 120).trim() + '...';
         }
 
         container.innerHTML = `
-            <div class="accueil-card accueil-card--video">
-                <div class="accueil-card-header">
-                    <h2 class="accueil-card-title">🎬 Vidéo de la semaine</h2>
-                    <a href="videos.html" class="accueil-card-link">Toutes les vidéos →</a>
-                </div>
-                <div class="accueil-card-body">
-                    <!-- Titre et meta AU-DESSUS du player -->
-                    <div class="video-header">
-                        <div class="video-meta">
-                            <span class="video-badge">⭐ Infos de la semaine</span>
-                            <span class="video-date">📅 ${this.formatDate(video.date_publication)}</span>
+            <div class="accueil-card accueil-card--featured">
+                <div class="featured-layout">
+                    <!-- Miniature cliquable -->
+                    <div class="featured-thumbnail" onclick="EleveAccueil.openVideoModal()">
+                        <div class="thumbnail-img" style="background-image: url('${thumbnailUrl}')">
+                            <div class="thumbnail-overlay">
+                                <div class="play-button">▶</div>
+                                <span class="play-label">Regarder</span>
+                            </div>
                         </div>
-                        <h3 class="video-title">${this.escapeHtml(video.titre)}</h3>
-                        ${introText ? `<p class="video-description">${this.escapeHtml(introText)}</p>` : ''}
+                        <div class="thumbnail-badge">🎬 Vidéo de la semaine</div>
                     </div>
 
-                    <!-- Player vidéo -->
-                    <div class="video-player-wrapper">
-                        ${embedUrl
-                            ? `<iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>`
-                            : `<div class="video-player-placeholder">
-                                <span class="icon">🎬</span>
-                                <span>Vidéo non disponible</span>
-                               </div>`
-                        }
-                    </div>
+                    <!-- Infos de la semaine -->
+                    <div class="featured-info">
+                        <div class="info-header">
+                            <span class="info-badge">⭐ Infos de la semaine</span>
+                            <span class="info-date">📅 ${this.formatDate(video.date_publication)}</span>
+                        </div>
+                        <h3 class="info-title">${this.escapeHtml(video.titre)}</h3>
+                        ${introText ? `<p class="info-description">${this.escapeHtml(introText)}</p>` : ''}
 
-                    <!-- Infos complémentaires EN DESSOUS -->
-                    <div class="video-footer">
                         ${highlights.items.length > 0 ? `
-                            <div class="video-highlights">
-                                <div class="video-highlights-title">⚡ À retenir :</div>
+                            <div class="info-highlights">
+                                <strong>⚡ À retenir :</strong>
                                 <ul>
                                     ${highlights.items.slice(0, 3).map(item => `<li>${this.escapeHtml(item)}</li>`).join('')}
                                 </ul>
                             </div>
                         ` : ''}
+
                         ${tags.length > 0 ? `
-                            <div class="tags">
+                            <div class="info-tags">
                                 ${tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('')}
                             </div>
                         ` : ''}
+
+                        <a href="videos.html" class="info-link">Toutes les vidéos →</a>
                     </div>
                 </div>
             </div>
@@ -218,7 +183,7 @@ const EleveAccueil = {
     },
 
     /**
-     * Affiche la section recommandation de la semaine
+     * Section recommandation : format compact horizontal
      */
     renderRecoSection() {
         const container = document.getElementById('reco-section');
@@ -226,16 +191,10 @@ const EleveAccueil = {
 
         if (!this.featuredReco) {
             container.innerHTML = `
-                <div class="accueil-card">
-                    <div class="accueil-card-header">
-                        <h2 class="accueil-card-title">💡 Recommandation de la semaine</h2>
-                        <a href="recommandations.html" class="accueil-card-link">Toutes les recommandations →</a>
-                    </div>
-                    <div class="accueil-card-body">
-                        <div class="empty-state">
-                            <span class="icon">💡</span>
-                            <p>Aucune recommandation disponible pour le moment.</p>
-                        </div>
+                <div class="accueil-card accueil-card--reco-compact">
+                    <div class="empty-state small">
+                        <span class="icon">💡</span>
+                        <p>Aucune recommandation</p>
                     </div>
                 </div>
             `;
@@ -247,67 +206,234 @@ const EleveAccueil = {
         const typeLabel = this.typeLabels[reco.type] || 'À découvrir';
         const imageUrl = this.getDirectImageUrl(reco.image_url);
         const tags = this.parseTags(reco.tags);
-        const isPlayable = ['podcast', 'video'].includes(reco.type);
 
-        // Tronquer la description
-        const maxDescLength = 180;
+        // Tronquer description
         let descText = reco.description || '';
-        if (descText.length > maxDescLength) {
-            descText = descText.substring(0, maxDescLength).trim() + '...';
+        if (descText.length > 100) {
+            descText = descText.substring(0, 100).trim() + '...';
         }
 
         container.innerHTML = `
-            <div class="accueil-card accueil-card--reco">
-                <div class="accueil-card-header">
-                    <h2 class="accueil-card-title">💡 Recommandation de la semaine</h2>
-                    <a href="recommandations.html" class="accueil-card-link">Toutes les recommandations →</a>
-                </div>
-                <div class="accueil-card-body">
-                    <!-- Layout vertical : image en haut -->
-                    <div class="reco-image-large">
+            <div class="accueil-card accueil-card--reco-compact">
+                <div class="reco-compact-layout">
+                    <!-- Image cliquable -->
+                    <div class="reco-compact-image" onclick="EleveAccueil.openRecoModal()">
                         ${imageUrl
-                            ? `<img src="${imageUrl}" alt="${this.escapeHtml(reco.titre)}" onerror="this.style.display='none'; this.parentElement.querySelector('.reco-image-placeholder').style.display='flex';">
-                               <span class="reco-image-placeholder" style="display:none;">${typeIcon}</span>`
-                            : `<span class="reco-image-placeholder">${typeIcon}</span>`
+                            ? `<img src="${imageUrl}" alt="${this.escapeHtml(reco.titre)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                               <div class="reco-placeholder" style="display:none;">${typeIcon}</div>`
+                            : `<div class="reco-placeholder">${typeIcon}</div>`
                         }
-                        ${isPlayable && reco.url ? `<a href="${reco.url}" target="_blank" class="reco-play-btn" title="Ouvrir">▶</a>` : ''}
+                        <div class="reco-play-overlay">
+                            <span>▶</span>
+                        </div>
                     </div>
 
-                    <!-- Infos en bas -->
-                    <div class="reco-info-vertical">
-                        <div class="reco-badges">
-                            <span class="reco-badge featured">⭐ Cette semaine</span>
-                            <span class="reco-badge type">${typeIcon} ${typeLabel}</span>
+                    <!-- Infos -->
+                    <div class="reco-compact-info">
+                        <div class="reco-compact-header">
+                            <span class="reco-badge-small featured">💡 Recommandation</span>
+                            <span class="reco-badge-small type">${typeIcon} ${typeLabel}</span>
                         </div>
-                        <h3 class="reco-title">${this.escapeHtml(reco.titre)}</h3>
-                        <p class="reco-description">${this.escapeHtml(descText)}</p>
-                        ${tags.length > 0 ? `
-                            <div class="tags">
-                                ${tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('')}
+                        <h4 class="reco-compact-title">${this.escapeHtml(reco.titre)}</h4>
+                        <p class="reco-compact-desc">${this.escapeHtml(descText)}</p>
+                        <div class="reco-compact-footer">
+                            ${tags.length > 0 ? `
+                                <div class="reco-compact-tags">
+                                    ${tags.slice(0, 3).map(tag => `<span class="tag small">${this.escapeHtml(tag)}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                            <div class="reco-compact-actions">
+                                <span class="reco-date">📅 ${this.formatDate(reco.date_publication)}</span>
+                                <button class="btn-open" onclick="EleveAccueil.openRecoModal()">Découvrir →</button>
                             </div>
-                        ` : ''}
-                        <div class="reco-meta">
-                            <span>📅 ${this.formatDate(reco.date_publication)}</span>
-                            ${reco.url ? `<a href="${reco.url}" target="_blank" class="reco-open-link">Ouvrir →</a>` : ''}
                         </div>
                     </div>
                 </div>
+                <a href="recommandations.html" class="reco-all-link">Toutes les recommandations →</a>
             </div>
         `;
     },
 
     /**
-     * Parse les tags (séparés par virgule)
+     * Ouvre le modal vidéo
      */
+    openVideoModal() {
+        if (!this.featuredVideo) return;
+
+        const modal = document.getElementById('media-modal');
+        const title = document.getElementById('modal-title');
+        const content = document.getElementById('modal-content');
+        const embedUrl = this.getEmbedUrl(this.featuredVideo.url);
+
+        title.textContent = this.featuredVideo.titre;
+        content.innerHTML = embedUrl
+            ? `<div class="modal-video"><iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`
+            : `<div class="modal-error">Impossible de charger la vidéo</div>`;
+
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    },
+
+    /**
+     * Ouvre le modal recommandation
+     */
+    openRecoModal() {
+        if (!this.featuredReco) return;
+
+        const reco = this.featuredReco;
+
+        // Si c'est une vidéo/podcast, ouvrir dans le modal
+        if (['podcast', 'video'].includes(reco.type)) {
+            const modal = document.getElementById('media-modal');
+            const title = document.getElementById('modal-title');
+            const content = document.getElementById('modal-content');
+            const embedUrl = this.getEmbedUrl(reco.url);
+            const imageUrl = this.getDirectImageUrl(reco.image_url);
+
+            title.textContent = reco.titre;
+
+            if (embedUrl) {
+                content.innerHTML = `<div class="modal-video"><iframe src="${embedUrl}" allowfullscreen></iframe></div>`;
+            } else {
+                // Afficher image + lien
+                content.innerHTML = `
+                    <div class="modal-reco-content">
+                        ${imageUrl ? `<img src="${imageUrl}" alt="${this.escapeHtml(reco.titre)}">` : ''}
+                        <p>${this.escapeHtml(reco.description || '')}</p>
+                        <a href="${reco.url}" target="_blank" class="modal-external-link">Ouvrir le contenu →</a>
+                    </div>
+                `;
+            }
+
+            modal.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        } else {
+            // Livre/article : ouvrir directement le lien
+            if (reco.url) {
+                window.open(reco.url, '_blank');
+            }
+        }
+    },
+
+    /**
+     * Ferme le modal
+     */
+    closeModal() {
+        const modal = document.getElementById('media-modal');
+        const content = document.getElementById('modal-content');
+
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+
+        // Arrêter la vidéo
+        setTimeout(() => {
+            content.innerHTML = '';
+        }, 300);
+    },
+
+    /**
+     * Bind les événements du modal
+     */
+    bindModalEvents() {
+        const modal = document.getElementById('media-modal');
+        const closeBtn = document.getElementById('modal-close');
+        const overlay = document.getElementById('modal-overlay');
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.closeModal());
+        }
+        if (overlay) {
+            overlay.addEventListener('click', () => this.closeModal());
+        }
+
+        // Fermer avec Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal?.classList.contains('open')) {
+                this.closeModal();
+            }
+        });
+    },
+
+    /**
+     * Génère l'URL de la miniature depuis l'URL vidéo
+     */
+    getThumbnailUrl(url) {
+        if (!url) return '';
+
+        // YouTube
+        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+        if (ytMatch) {
+            return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+        }
+
+        // Vimeo - pas de thumbnail facile, utiliser placeholder
+        if (url.includes('vimeo.com')) {
+            return '';
+        }
+
+        // Loom - pas de thumbnail publique
+        if (url.includes('loom.com')) {
+            return '';
+        }
+
+        return '';
+    },
+
+    /**
+     * Convertit URL en embed
+     */
+    getEmbedUrl(url) {
+        if (!url) return null;
+
+        if (url.includes('loom.com/share/')) {
+            return url.replace('/share/', '/embed/');
+        }
+
+        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+        if (ytMatch) {
+            return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
+        }
+
+        const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+        if (vimeoMatch) {
+            return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+        }
+
+        if (url.includes('/embed/') || url.includes('player.')) {
+            return url;
+        }
+
+        return null;
+    },
+
+    /**
+     * URL directe pour images Google Drive, etc.
+     */
+    getDirectImageUrl(url) {
+        if (!url) return null;
+
+        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) {
+            return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
+        }
+
+        const driveMatch2 = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+        if (driveMatch2) {
+            return `https://lh3.googleusercontent.com/d/${driveMatch2[1]}`;
+        }
+
+        if (url.includes('dropbox.com')) {
+            return url.replace('dl=0', 'dl=1');
+        }
+
+        return url;
+    },
+
     parseTags(tagsStr) {
         if (!tagsStr) return [];
         return tagsStr.split(',').map(t => t.trim()).filter(t => t);
     },
 
-    /**
-     * Parse la description pour extraire intro et points "À retenir"
-     * Format attendu : texte libre, puis lignes commençant par • ou -
-     */
     parseHighlights(description) {
         if (!description) return { intro: '', items: [] };
 
@@ -318,102 +444,22 @@ const EleveAccueil = {
         for (const line of lines) {
             const trimmed = line.trim();
             if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
-                // C'est un point à retenir
                 items.push(trimmed.replace(/^[•\-*]\s*/, ''));
-            } else if (trimmed) {
-                // C'est du texte d'intro (seulement si on n'a pas encore de bullets)
-                if (items.length === 0) {
-                    intro.push(trimmed);
-                }
+            } else if (trimmed && items.length === 0) {
+                intro.push(trimmed);
             }
         }
 
-        return {
-            intro: intro.join(' '),
-            items: items
-        };
+        return { intro: intro.join(' '), items };
     },
 
-    /**
-     * Convertit une URL en URL embed pour les vidéos
-     */
-    getEmbedUrl(url) {
-        if (!url) return null;
-
-        // Loom
-        if (url.includes('loom.com/share/')) {
-            return url.replace('/share/', '/embed/');
-        }
-
-        // YouTube
-        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-        if (ytMatch) {
-            return `https://www.youtube-nocookie.com/embed/${ytMatch[1]}`;
-        }
-
-        // Vimeo
-        const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
-        if (vimeoMatch) {
-            return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-        }
-
-        // URL embed directe
-        if (url.includes('/embed/') || url.includes('player.')) {
-            return url;
-        }
-
-        return null;
-    },
-
-    /**
-     * Convertit les URLs de partage en URLs directes pour les images
-     */
-    getDirectImageUrl(url) {
-        if (!url) return null;
-
-        // Google Drive: https://drive.google.com/file/d/FILE_ID/view
-        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (driveMatch) {
-            return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
-        }
-
-        // Google Drive: https://drive.google.com/open?id=FILE_ID
-        const driveMatch2 = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
-        if (driveMatch2) {
-            return `https://lh3.googleusercontent.com/d/${driveMatch2[1]}`;
-        }
-
-        // Google Drive: uc?id=FILE_ID
-        const driveMatch3 = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
-        if (driveMatch3) {
-            return `https://lh3.googleusercontent.com/d/${driveMatch3[1]}`;
-        }
-
-        // Dropbox
-        if (url.includes('dropbox.com')) {
-            return url.replace('dl=0', 'dl=1');
-        }
-
-        return url;
-    },
-
-    /**
-     * Formate une date
-     */
     formatDate(dateStr) {
         if (!dateStr) return '';
         const date = new Date(dateStr);
         if (isNaN(date)) return dateStr;
-        return date.toLocaleDateString('fr-FR', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
-        });
+        return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     },
 
-    /**
-     * Échappe le HTML
-     */
     escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -422,5 +468,4 @@ const EleveAccueil = {
     }
 };
 
-// Export global
 window.EleveAccueil = EleveAccueil;

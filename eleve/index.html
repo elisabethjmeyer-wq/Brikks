@@ -24,15 +24,13 @@
         <!-- Généré par JS -->
     </div>
 
-    <!-- Grille 2 colonnes : Vidéo + Recommandation -->
-    <div class="accueil-grid">
-        <!-- Vidéo de la semaine -->
+    <!-- Sections empilées -->
+    <div class="accueil-sections">
+        <!-- Vidéo + Infos de la semaine -->
         <div id="video-section">
             <div class="accueil-card">
-                <div class="accueil-card-body">
-                    <div class="accueil-loader">
-                        <div class="spinner"></div>
-                    </div>
+                <div class="accueil-loader">
+                    <div class="spinner"></div>
                 </div>
             </div>
         </div>
@@ -40,12 +38,24 @@
         <!-- Recommandation de la semaine -->
         <div id="reco-section">
             <div class="accueil-card">
-                <div class="accueil-card-body">
-                    <div class="accueil-loader">
-                        <div class="spinner"></div>
-                    </div>
+                <div class="accueil-loader">
+                    <div class="spinner"></div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour vidéo/recommandation -->
+<div class="media-modal" id="media-modal">
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Chargement...</h3>
+            <button class="modal-close" id="modal-close">✕</button>
+        </div>
+        <div class="modal-body" id="modal-content">
+            <!-- Contenu injecté par JS -->
         </div>
     </div>
 </div>
