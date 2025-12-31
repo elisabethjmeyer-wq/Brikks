@@ -40,15 +40,34 @@
     grid-template-columns: 1fr 1fr;
 }
 
-/* Visual (image/thumbnail) */
-.slide-visual {
+/* Visual container */
+.slide-visual-container {
     position: relative;
     aspect-ratio: 16/10;
+    background: #000;
+}
+
+/* Visual (image/thumbnail) */
+.slide-visual {
+    position: absolute;
+    inset: 0;
     background-size: cover;
     background-position: center;
     background-color: var(--gray-800);
     cursor: pointer;
     overflow: hidden;
+}
+
+/* Video player (après clic) */
+.video-player {
+    position: absolute;
+    inset: 0;
+}
+
+.video-player iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
 }
 
 .slide-visual.no-image {
@@ -417,7 +436,7 @@
         grid-template-columns: 1fr;
     }
 
-    .slide-visual {
+    .slide-visual-container {
         aspect-ratio: 16/9;
     }
 

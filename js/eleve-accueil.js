@@ -82,21 +82,21 @@ const EleveAccueil = {
         if (this.featuredVideo) {
             const v = this.featuredVideo;
             const thumb = this.getThumbnail(v.url);
+            const embedUrl = this.getEmbedUrl(v.url);
             slides.push(`
                 <div class="slide slide-video" data-type="video">
-                    <div class="slide-visual" style="background-image: url('${thumb}')" onclick="EleveAccueil.openVideo()">
-                        <div class="slide-overlay">
-                            <div class="play-btn">▶</div>
+                    <div class="slide-visual-container">
+                        <div class="slide-visual" style="background-image: url('${thumb}')" onclick="EleveAccueil.playVideo(this)" data-embed="${embedUrl || ''}">
+                            <div class="slide-overlay">
+                                <div class="play-btn">▶</div>
+                            </div>
+                            <span class="slide-badge video">🎬 Vidéo de la semaine</span>
                         </div>
-                        <span class="slide-badge video">🎬 Vidéo de la semaine</span>
                     </div>
                     <div class="slide-content">
                         <h3 class="slide-title">${this.escapeHtml(v.titre)}</h3>
-                        <p class="slide-desc">${this.escapeHtml(this.truncate(v.description, 120))}</p>
-                        <div class="slide-meta">
-                            <span class="slide-date">📅 ${this.formatDate(v.date_publication)}</span>
-                            <button class="slide-btn" onclick="EleveAccueil.openVideo()">Regarder →</button>
-                        </div>
+                        <p class="slide-desc">${this.escapeHtml(this.truncate(v.description, 150))}</p>
+                        <span class="slide-date">📅 ${this.formatDate(v.date_publication)}</span>
                     </div>
                 </div>
             `);
@@ -202,17 +202,17 @@ const EleveAccueil = {
         });
     },
 
-    // Ouvrir vidéo en modal
-    openVideo() {
-        if (!this.featuredVideo) return;
-        const embedUrl = this.getEmbedUrl(this.featuredVideo.url);
+    // Lancer la vidéo directement dans le carousel
+    playVideo(element) {
+        const embedUrl = element.dataset.embed;
+        if (!embedUrl) return;
 
-        this.showModal(
-            this.featuredVideo.titre,
-            embedUrl
-                ? `<div class="modal-video"><iframe src="${embedUrl}" allowfullscreen></iframe></div>`
-                : `<div class="modal-error">Impossible de charger la vidéo</div>`
-        );
+        const container = element.parentElement;
+        container.innerHTML = `
+            <div class="video-player">
+                <iframe src="${embedUrl}?autoplay=1" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+            </div>
+        `;
     },
 
     // Ouvrir recommandation
