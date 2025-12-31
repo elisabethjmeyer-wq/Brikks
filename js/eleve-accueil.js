@@ -109,20 +109,19 @@ const EleveAccueil = {
             const img = this.getDirectImageUrl(r.image_url);
             slides.push(`
                 <div class="slide slide-reco" data-type="reco">
-                    <div class="slide-visual ${img ? '' : 'no-image'}" ${img ? `style="background-image: url('${img}')"` : ''} onclick="EleveAccueil.openReco()">
-                        ${!img ? `<span class="slide-icon">${icon}</span>` : ''}
-                        <div class="slide-overlay">
-                            <div class="play-btn">${icon}</div>
+                    <div class="slide-visual-container" onclick="EleveAccueil.openReco()">
+                        <div class="slide-visual ${img ? '' : 'no-image'}" ${img ? `style="background-image: url('${img}')"` : ''}>
+                            ${!img ? `<span class="slide-icon">${icon}</span>` : ''}
+                            <div class="slide-overlay">
+                                <div class="play-btn">${icon}</div>
+                            </div>
+                            <span class="slide-badge reco">💡 Recommandation</span>
                         </div>
-                        <span class="slide-badge reco">💡 Recommandation</span>
                     </div>
                     <div class="slide-content">
                         <h3 class="slide-title">${this.escapeHtml(r.titre)}</h3>
-                        <p class="slide-desc">${this.escapeHtml(this.truncate(r.description, 120))}</p>
-                        <div class="slide-meta">
-                            <span class="slide-date">📅 ${this.formatDate(r.date_publication)}</span>
-                            <button class="slide-btn" onclick="EleveAccueil.openReco()">Découvrir →</button>
-                        </div>
+                        <p class="slide-desc">${this.escapeHtml(this.truncate(r.description, 150))}</p>
+                        <span class="slide-date">📅 ${this.formatDate(r.date_publication)}</span>
                     </div>
                 </div>
             `);
