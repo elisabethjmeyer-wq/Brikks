@@ -1,6 +1,6 @@
 /**
  * Élève Accueil - Page d'accueil personnalisée
- * Layout 2 colonnes : gauche (vidéo + reco) | droite (infos)
+ * Layout : Vidéo en haut (pleine largeur) + 2 colonnes en dessous (infos | reco)
  */
 
 const EleveAccueil = {
@@ -88,7 +88,7 @@ const EleveAccueil = {
     },
 
     /**
-     * Rendu principal : 2 colonnes
+     * Rendu principal : Vidéo pleine largeur + 2 colonnes (infos | reco)
      */
     renderMainContent() {
         const container = document.getElementById('main-content');
@@ -97,79 +97,102 @@ const EleveAccueil = {
         const video = this.featuredVideo;
         const reco = this.featuredReco;
 
-        // Préparer les données vidéo
+        // Section vidéo (pleine largeur avec lecture directe)
         let videoHTML = '';
-        let infoHTML = '';
-
         if (video) {
-            const thumbnailUrl = this.getThumbnailUrl(video.url);
+            const embedUrl = this.getEmbedUrl(video.url);
             const tags = this.parseTags(video.tags);
-            const highlights = this.parseHighlights(video.description);
 
-            let introText = highlights.intro;
-            if (introText.length > 200) {
-                introText = introText.substring(0, 200).trim() + '...';
-            }
-
-            // Colonne gauche : Miniature vidéo
             videoHTML = `
-                <div class="media-card" onclick="EleveAccueil.openVideoModal()">
-                    <div class="media-card-header">🎬 Vidéo de la semaine</div>
-                    <div class="media-thumbnail" style="background-image: url('${thumbnailUrl}')">
-                        <div class="media-thumbnail-overlay">
-                            <div class="play-btn">▶</div>
-                            <span class="play-label">Regarder</span>
+                <section class="video-section">
+                    <div class="video-card">
+                        <div class="video-header">
+                            <div class="video-header-left">
+                                <span class="video-badge">🎬 Vidéo de la semaine</span>
+                                <span class="video-date">📅 ${this.formatDate(video.date_publication)}</span>
+                            </div>
+                            <a href="videos.html" class="video-all-link">Toutes les vidéos →</a>
+                        </div>
+                        <div class="video-container">
+                            ${embedUrl
+                                ? `<iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>`
+                                : `<div class="video-error">Impossible de charger la vidéo</div>`
+                            }
+                        </div>
+                        <div class="video-info">
+                            <h2 class="video-title">${this.escapeHtml(video.titre)}</h2>
+                            ${tags.length > 0 ? `
+                                <div class="video-tags">
+                                    ${tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('')}
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
-                </div>
-            `;
-
-            // Colonne droite : Infos
-            infoHTML = `
-                <div class="info-card">
-                    <div class="info-card-header">
-                        <span class="info-badge">⭐ Infos de la semaine</span>
-                        <span class="info-date">📅 ${this.formatDate(video.date_publication)}</span>
-                    </div>
-                    <h2 class="info-title">${this.escapeHtml(video.titre)}</h2>
-                    ${introText ? `<p class="info-desc">${this.escapeHtml(introText)}</p>` : ''}
-                    ${highlights.items.length > 0 ? `
-                        <div class="info-highlights">
-                            <strong>⚡ À retenir :</strong>
-                            <ul>
-                                ${highlights.items.slice(0, 4).map(item => `<li>${this.escapeHtml(item)}</li>`).join('')}
-                            </ul>
-                        </div>
-                    ` : ''}
-                    ${tags.length > 0 ? `
-                        <div class="info-tags">
-                            ${tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('')}
-                        </div>
-                    ` : ''}
-                    <a href="videos.html" class="info-link">Toutes les vidéos →</a>
-                </div>
+                </section>
             `;
         } else {
             videoHTML = `
-                <div class="media-card empty">
-                    <div class="media-card-header">🎬 Vidéo de la semaine</div>
-                    <div class="empty-state-small">
-                        <span>🎬</span>
-                        <p>Aucune vidéo</p>
+                <section class="video-section">
+                    <div class="video-card empty">
+                        <div class="video-header">
+                            <span class="video-badge">🎬 Vidéo de la semaine</span>
+                        </div>
+                        <div class="empty-state">
+                            <span class="empty-icon">🎬</span>
+                            <p>Aucune vidéo disponible pour le moment</p>
+                        </div>
                     </div>
-                </div>
+                </section>
             `;
+        }
+
+        // Section infos (points clés de la vidéo)
+        let infoHTML = '';
+        if (video) {
+            const highlights = this.parseHighlights(video.description);
+
+            if (highlights.intro || highlights.items.length > 0) {
+                infoHTML = `
+                    <div class="info-card">
+                        <div class="info-header">
+                            <span class="info-badge">⚡ À retenir</span>
+                        </div>
+                        <div class="info-body">
+                            ${highlights.intro ? `<p class="info-intro">${this.escapeHtml(highlights.intro)}</p>` : ''}
+                            ${highlights.items.length > 0 ? `
+                                <ul class="info-list">
+                                    ${highlights.items.slice(0, 5).map(item => `<li>${this.escapeHtml(item)}</li>`).join('')}
+                                </ul>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            } else {
+                infoHTML = `
+                    <div class="info-card">
+                        <div class="info-header">
+                            <span class="info-badge">⚡ À retenir</span>
+                        </div>
+                        <div class="info-body">
+                            <p class="info-intro">${this.escapeHtml(video.description || 'Regardez la vidéo pour découvrir le contenu de la semaine.')}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        } else {
             infoHTML = `
                 <div class="info-card empty">
-                    <div class="info-card-header">
-                        <span class="info-badge">⭐ Infos de la semaine</span>
+                    <div class="info-header">
+                        <span class="info-badge">⚡ À retenir</span>
                     </div>
-                    <p class="info-empty">Aucune info disponible pour le moment.</p>
+                    <div class="info-body">
+                        <p class="info-empty">Aucune info disponible</p>
+                    </div>
                 </div>
             `;
         }
 
-        // Recommandation
+        // Section recommandation
         let recoHTML = '';
         if (reco) {
             const typeIcon = this.typeIcons[reco.type] || '📌';
@@ -177,15 +200,13 @@ const EleveAccueil = {
             const imageUrl = this.getDirectImageUrl(reco.image_url);
             const tags = this.parseTags(reco.tags);
 
-            let descText = reco.description || '';
-            if (descText.length > 80) {
-                descText = descText.substring(0, 80).trim() + '...';
-            }
-
             recoHTML = `
                 <div class="reco-card" onclick="EleveAccueil.openRecoModal()">
-                    <div class="reco-card-header">💡 Recommandation</div>
-                    <div class="reco-content">
+                    <div class="reco-header">
+                        <span class="reco-badge">💡 Recommandation</span>
+                        <span class="reco-type">${typeIcon} ${typeLabel}</span>
+                    </div>
+                    <div class="reco-body">
                         <div class="reco-image">
                             ${imageUrl
                                 ? `<img src="${imageUrl}" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
@@ -194,15 +215,12 @@ const EleveAccueil = {
                             }
                             <div class="reco-play-overlay"><span>▶</span></div>
                         </div>
-                        <div class="reco-info">
-                            <div class="reco-badges">
-                                <span class="reco-badge type">${typeIcon} ${typeLabel}</span>
-                            </div>
-                            <h4 class="reco-title">${this.escapeHtml(reco.titre)}</h4>
-                            <p class="reco-desc">${this.escapeHtml(descText)}</p>
+                        <div class="reco-content">
+                            <h3 class="reco-title">${this.escapeHtml(reco.titre)}</h3>
+                            <p class="reco-desc">${this.escapeHtml(reco.description || '')}</p>
                             ${tags.length > 0 ? `
                                 <div class="reco-tags">
-                                    ${tags.slice(0, 2).map(tag => `<span class="tag small">${this.escapeHtml(tag)}</span>`).join('')}
+                                    ${tags.slice(0, 3).map(tag => `<span class="tag small">${this.escapeHtml(tag)}</span>`).join('')}
                                 </div>
                             ` : ''}
                         </div>
@@ -212,49 +230,36 @@ const EleveAccueil = {
                         <span class="reco-action">Découvrir →</span>
                     </div>
                 </div>
+                <a href="recommandations.html" class="section-link">Toutes les recommandations →</a>
             `;
         } else {
             recoHTML = `
                 <div class="reco-card empty">
-                    <div class="reco-card-header">💡 Recommandation</div>
-                    <div class="empty-state-small">
-                        <span>💡</span>
+                    <div class="reco-header">
+                        <span class="reco-badge">💡 Recommandation</span>
+                    </div>
+                    <div class="empty-state small">
+                        <span class="empty-icon">💡</span>
                         <p>Aucune recommandation</p>
                     </div>
                 </div>
             `;
         }
 
-        // Assemblage final : 2 colonnes
+        // Assemblage final
         container.innerHTML = `
-            <div class="two-columns">
-                <div class="column-left">
-                    ${videoHTML}
-                    ${recoHTML}
-                    <a href="recommandations.html" class="all-link">Toutes les recommandations →</a>
+            ${videoHTML}
+            <section class="bottom-section">
+                <div class="bottom-grid">
+                    <div class="bottom-col">
+                        ${infoHTML}
+                    </div>
+                    <div class="bottom-col">
+                        ${recoHTML}
+                    </div>
                 </div>
-                <div class="column-right">
-                    ${infoHTML}
-                </div>
-            </div>
+            </section>
         `;
-    },
-
-    openVideoModal() {
-        if (!this.featuredVideo) return;
-
-        const modal = document.getElementById('media-modal');
-        const title = document.getElementById('modal-title');
-        const content = document.getElementById('modal-content');
-        const embedUrl = this.getEmbedUrl(this.featuredVideo.url);
-
-        title.textContent = this.featuredVideo.titre;
-        content.innerHTML = embedUrl
-            ? `<div class="modal-video"><iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>`
-            : `<div class="modal-error">Impossible de charger la vidéo</div>`;
-
-        modal.classList.add('open');
-        document.body.style.overflow = 'hidden';
     },
 
     openRecoModal() {
@@ -317,13 +322,6 @@ const EleveAccueil = {
                 this.closeModal();
             }
         });
-    },
-
-    getThumbnailUrl(url) {
-        if (!url) return '';
-        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-        if (ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
-        return '';
     },
 
     getEmbedUrl(url) {
