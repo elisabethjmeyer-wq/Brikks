@@ -148,7 +148,10 @@ const EleveLayout = {
 
                     // Construire l'URL de la page
                     const elementCode = item.element_code || item.id;
-                    const href = `/Brikks/eleve/${elementCode}.html`;
+                    // Cas spécial : "accueil" ou "index" pointe vers /eleve/ (index.html)
+                    const href = (elementCode === 'accueil' || elementCode === 'index')
+                        ? '/Brikks/eleve/'
+                        : `/Brikks/eleve/${elementCode}.html`;
 
                     grouped[cat].items.push({
                         icon: item.icon || '📄',
