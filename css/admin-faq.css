@@ -218,37 +218,36 @@
 }
 
 /* Couleurs des icônes comme la maquette */
-.stat-icon-wrapper.blue,
+/* Questions = Rose/Pink */
 .stat-questions .stat-icon-wrapper,
 .stat-icon-wrapper.pink {
-    background: var(--accent-blue-light);
+    background: #fce7f3;
 }
 
-.stat-icon-wrapper.blue svg,
 .stat-questions .stat-icon-wrapper svg,
 .stat-icon-wrapper.pink svg {
-    stroke: var(--accent-blue);
+    stroke: #ec4899;
 }
 
-.stat-icon-wrapper.green,
+/* Texte = Orange */
 .stat-texte .stat-icon-wrapper,
 .stat-icon-wrapper.orange {
-    background: var(--accent-green-light);
+    background: var(--accent-orange-light);
 }
 
-.stat-icon-wrapper.green svg,
 .stat-texte .stat-icon-wrapper svg,
 .stat-icon-wrapper.orange svg {
-    stroke: var(--accent-green);
+    stroke: var(--accent-orange);
 }
 
-.stat-icon-wrapper.purple,
-.stat-video .stat-icon-wrapper {
+/* Vidéo = Violet */
+.stat-video .stat-icon-wrapper,
+.stat-icon-wrapper.purple {
     background: var(--accent-purple-light);
 }
 
-.stat-icon-wrapper.purple svg,
-.stat-video .stat-icon-wrapper svg {
+.stat-video .stat-icon-wrapper svg,
+.stat-icon-wrapper.purple svg {
     stroke: var(--accent-purple);
 }
 
@@ -1040,10 +1039,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 14px;
-    background: var(--gray-50);
+    padding: 14px 16px;
+    background: white;
     border-radius: var(--radius);
     border: 1px solid var(--gray-200);
+    transition: all 0.2s;
+}
+
+.category-item:hover {
+    border-color: var(--gray-300);
+    box-shadow: var(--shadow);
 }
 
 .category-info {
@@ -1054,26 +1059,28 @@
 }
 
 .category-item-icon {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
-    background: var(--accent-blue-light);
+    font-size: 18px;
+    background: var(--primary-bg);
 }
 
 .category-name {
     font-weight: 600;
-    color: var(--gray-700);
+    color: var(--gray-800);
     font-size: 14px;
 }
 
 .category-count {
     font-size: 12px;
-    color: var(--gray-400);
-    margin-left: auto;
+    color: var(--gray-500);
+    background: var(--gray-100);
+    padding: 4px 10px;
+    border-radius: 12px;
     margin-right: 12px;
 }
 
