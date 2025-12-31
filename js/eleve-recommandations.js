@@ -339,7 +339,5 @@ const EleveRecommandations = {
     }
 };
 
-// Initialisation au chargement
-document.addEventListener('DOMContentLoaded', () => {
-    EleveRecommandations.init();
-});
+// Export global
+window.EleveRecommandations = EleveRecommandations;

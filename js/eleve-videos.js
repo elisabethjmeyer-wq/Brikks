@@ -394,7 +394,5 @@ const EleveVideos = {
     }
 };
 
-// Initialisation au chargement de la page
-document.addEventListener('DOMContentLoaded', () => {
-    EleveVideos.init();
-});
+// Export global
+window.EleveVideos = EleveVideos;
