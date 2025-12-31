@@ -42,7 +42,7 @@ const EleveChapitre = {
             }
 
             // Initialiser le layout avec le titre du chapitre
-            EleveLayout.init('lecons', this.chapitre.titre || 'Chapitre');
+            await EleveLayout.init('lecons', this.chapitre.titre || 'Chapitre');
 
             // Mettre à jour le fil d'Ariane
             this.updateBreadcrumb();
