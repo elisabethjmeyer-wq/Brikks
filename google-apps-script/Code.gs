@@ -1833,8 +1833,17 @@ function createQuestionFAQ(data) {
     qData = data.data;
   }
 
-  if (!qData.question || !qData.reponse) {
-    return { success: false, error: 'La question et la réponse sont requises' };
+  // Validation: question requise, et soit réponse texte, soit vidéo URL selon le type
+  if (!qData.question) {
+    return { success: false, error: 'La question est requise' };
+  }
+
+  const typeReponse = qData.type_reponse || 'texte';
+  if ((typeReponse === 'texte' || typeReponse === 'mixte') && !qData.reponse) {
+    return { success: false, error: 'La réponse texte est requise pour ce type de question' };
+  }
+  if ((typeReponse === 'video' || typeReponse === 'mixte') && !qData.video_url) {
+    return { success: false, error: 'L\'URL vidéo est requise pour ce type de question' };
   }
 
   // Générer un ID unique

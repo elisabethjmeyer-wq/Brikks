@@ -133,7 +133,7 @@ const EleveFAQ = {
                             <span class="faq-item-chevron">▼</span>
                         </div>
                         <div class="faq-item-answer">
-                            <div class="faq-item-answer-content">${this.formatAnswer(q.reponse)}</div>
+                            <div class="faq-item-answer-content">${this.formatAnswer(q.reponse, q.video_url, q.type_reponse)}</div>
                         </div>
                     </div>
                 `).join('');
@@ -198,11 +198,62 @@ const EleveFAQ = {
     },
 
     /**
-     * Formate la réponse (gère les sauts de ligne)
+     * Formate la réponse (gère les sauts de ligne et vidéos)
      */
-    formatAnswer(text) {
-        if (!text) return '';
-        return this.escapeHtml(text).replace(/\n/g, '<br>');
+    formatAnswer(text, videoUrl, type) {
+        let html = '';
+
+        // Texte
+        if (text && (type === 'texte' || type === 'mixte' || !type)) {
+            html += `<p>${this.escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
+        }
+
+        // Vidéo
+        if (videoUrl && (type === 'video' || type === 'mixte')) {
+            const embedUrl = this.getYouTubeEmbedUrl(videoUrl);
+            if (embedUrl) {
+                html += `
+                    <div class="video-wrapper">
+                        <iframe src="${embedUrl}" allowfullscreen></iframe>
+                    </div>
+                `;
+            }
+        }
+
+        return html || '<p><em>Pas de réponse</em></p>';
+    },
+
+    /**
+     * Get embed URL from various video URL formats (YouTube, Loom, etc.)
+     */
+    getYouTubeEmbedUrl(url) {
+        if (!url) return null;
+
+        // Already an embed URL
+        if (url.includes('/embed/')) {
+            return url;
+        }
+
+        // Loom: https://www.loom.com/share/VIDEO_ID -> https://www.loom.com/embed/VIDEO_ID
+        const loomMatch = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+        if (loomMatch) {
+            return `https://www.loom.com/embed/${loomMatch[1]}`;
+        }
+
+        // YouTube: youtube.com/watch?v=VIDEO_ID
+        const watchMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
+        if (watchMatch) {
+            return `https://www.youtube.com/embed/${watchMatch[1]}`;
+        }
+
+        // YouTube short: youtu.be/VIDEO_ID
+        const shortMatch = url.match(/youtu\.be\/([^?]+)/);
+        if (shortMatch) {
+            return `https://www.youtube.com/embed/${shortMatch[1]}`;
+        }
+
+        // Return original URL if not recognized (could be direct video link)
+        return url;
     },
 
     /**
