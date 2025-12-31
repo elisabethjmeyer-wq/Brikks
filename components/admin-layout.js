@@ -133,6 +133,9 @@ const AdminLayout = {
      * @param {string} pageTitle - Titre pour le fil d'Ariane
      */
     async init(pageId, pageTitle) {
+        // Cacher le contenu pendant le chargement du layout
+        document.body.classList.add('loading-layout');
+
         // Vérifier l'accès
         const user = Auth.checkAccess(['prof', 'admin', 'professeur']);
         if (!user) return;
@@ -161,6 +164,10 @@ const AdminLayout = {
 
         // Événements
         this.initEvents();
+
+        // Afficher le contenu (layout prêt)
+        body.classList.remove('loading-layout');
+        body.classList.add('layout-ready');
 
         // Rafraîchir les données utilisateur depuis Google Sheets (async)
         const updatedUser = await Auth.refreshCurrentUser();

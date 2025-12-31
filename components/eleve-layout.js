@@ -328,6 +328,9 @@ const EleveLayout = {
      * @param {string} pageTitle - Titre pour le fil d'Ariane
      */
     async init(pageId, pageTitle) {
+        // Cacher le contenu pendant le chargement du layout
+        document.body.classList.add('loading-layout');
+
         // Vérifier l'accès
         const user = Auth.checkAccess(['eleve', 'élève', 'etudiant', 'étudiant']);
         if (!user) return;
@@ -365,6 +368,10 @@ const EleveLayout = {
 
         // Initialiser sidebar selon la taille écran
         this.initSidebar();
+
+        // Afficher le contenu (layout prêt)
+        body.classList.remove('loading-layout');
+        body.classList.add('layout-ready');
     },
 
     /**

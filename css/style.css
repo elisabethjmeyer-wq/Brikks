@@ -58,6 +58,16 @@ body {
     min-height: 100vh;
 }
 
+/* Cache le contenu des pages élève/admin jusqu'à l'init du layout */
+body.loading-layout > *:not(script):not(link):not(style) {
+    opacity: 0;
+}
+
+body.layout-ready > * {
+    opacity: 1;
+    transition: opacity 0.15s ease-in;
+}
+
 /* Typographie */
 h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
