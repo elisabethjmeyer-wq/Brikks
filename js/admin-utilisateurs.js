@@ -443,6 +443,7 @@ const AdminUtilisateurs = {
         document.getElementById('generatePasswordBtn').addEventListener('click', () => {
             document.getElementById('userPassword').value = this.generatePassword();
         });
+        document.getElementById('showPasswordBtn').addEventListener('click', () => this.toggleShowPassword());
 
         // Changement de rôle
         document.getElementById('userRole').addEventListener('change', (e) => {
@@ -492,6 +493,9 @@ const AdminUtilisateurs = {
         return password;
     },
 
+    // Mot de passe actuel de l'utilisateur en cours d'édition
+    currentEditPassword: '',
+
     /**
      * Ouvre le modal d'ajout
      */
@@ -509,7 +513,9 @@ const AdminUtilisateurs = {
         document.getElementById('passwordRequired').style.display = 'inline';
         document.getElementById('passwordHelp').textContent = 'Minimum 6 caractères';
         document.getElementById('classeGroupeFields').style.display = 'block';
+        document.getElementById('showPasswordBtn').style.display = 'none';
 
+        this.currentEditPassword = '';
         this.renderFilters();
         this.openModal('userModal');
     },
@@ -534,12 +540,40 @@ const AdminUtilisateurs = {
         document.getElementById('passwordRequired').style.display = 'none';
         document.getElementById('passwordHelp').textContent = 'Laisser vide pour ne pas changer';
 
+        // Stocker le mot de passe actuel et afficher le bouton "Voir"
+        this.currentEditPassword = user.mot_de_passe || user.password || '';
+        const showBtn = document.getElementById('showPasswordBtn');
+        if (this.currentEditPassword) {
+            showBtn.style.display = 'inline-flex';
+            showBtn.textContent = '👁️ Voir';
+        } else {
+            showBtn.style.display = 'none';
+        }
+
         const role = (user.role || 'eleve').toLowerCase();
         document.getElementById('classeGroupeFields').style.display =
             (role === 'prof' || role === 'professeur') ? 'none' : 'block';
 
         this.renderFilters();
         this.openModal('userModal');
+    },
+
+    /**
+     * Affiche/masque le mot de passe actuel
+     */
+    toggleShowPassword() {
+        const passwordInput = document.getElementById('userPassword');
+        const showBtn = document.getElementById('showPasswordBtn');
+
+        if (passwordInput.value === this.currentEditPassword) {
+            // Masquer
+            passwordInput.value = '';
+            showBtn.textContent = '👁️ Voir';
+        } else {
+            // Afficher
+            passwordInput.value = this.currentEditPassword;
+            showBtn.textContent = '🙈 Masquer';
+        }
     },
 
     /**
@@ -614,9 +648,6 @@ const AdminUtilisateurs = {
             } else {
                 this.users.push(userData);
             }
-
-            // Rafraîchir les classes et groupes
-            this.updateClassesAndGroupes();
 
             this.closeModal('userModal');
             this.renderStats();
@@ -714,7 +745,6 @@ const AdminUtilisateurs = {
 
             // Supprimer localement
             this.users = this.users.filter(u => u.id !== userId);
-            this.updateClassesAndGroupes();
 
             this.closeModal('deleteModal');
             this.renderStats();
@@ -731,28 +761,6 @@ const AdminUtilisateurs = {
             btn.disabled = false;
             btn.textContent = '🗑️ Supprimer';
         }
-    },
-
-    /**
-     * Met à jour la liste des classes et groupes
-     */
-    updateClassesAndGroupes() {
-        const classesSet = new Set();
-        const groupesSet = new Set();
-
-        this.users.forEach(user => {
-            const classeValue = (user.classe_id || user.classes || '').toString();
-            if (classeValue) {
-                classeValue.split(',').map(c => c.trim()).filter(c => c).forEach(c => classesSet.add(c));
-            }
-            const groupeValue = (user.groupe || user.groupes || '').toString();
-            if (groupeValue) {
-                groupeValue.split(',').map(g => g.trim()).filter(g => g).forEach(g => groupesSet.add(g));
-            }
-        });
-
-        this.classes = Array.from(classesSet).sort();
-        this.groupes = Array.from(groupesSet).sort();
     },
 
     /**
@@ -775,13 +783,13 @@ const AdminUtilisateurs = {
             classesList.innerHTML = this.classes.map(classe => {
                 const count = this.users.filter(u => {
                     const classeValue = (u.classe_id || u.classes || '').toString();
-                    return classeValue.split(',').map(c => c.trim()).includes(classe);
+                    return classeValue === classe.id;
                 }).length;
                 return `
                     <div class="tag-item">
-                        <span>${classe}</span>
-                        <span class="tag-count">${count}</span>
-                        <button class="tag-remove" onclick="AdminUtilisateurs.deleteClasse('${classe}')" title="Supprimer">✕</button>
+                        <span>${classe.nom || classe.id}</span>
+                        <span class="tag-count">${count} élève${count > 1 ? 's' : ''}</span>
+                        <button class="tag-remove" onclick="AdminUtilisateurs.deleteClasse('${classe.id}')" title="Supprimer">✕</button>
                     </div>
                 `;
             }).join('');
@@ -795,13 +803,13 @@ const AdminUtilisateurs = {
             groupesList.innerHTML = this.groupes.map(groupe => {
                 const count = this.users.filter(u => {
                     const groupeValue = (u.groupe || u.groupes || '').toString();
-                    return groupeValue.split(',').map(g => g.trim()).includes(groupe);
+                    return groupeValue === groupe.id;
                 }).length;
                 return `
                     <div class="tag-item">
-                        <span>${groupe}</span>
-                        <span class="tag-count">${count}</span>
-                        <button class="tag-remove" onclick="AdminUtilisateurs.deleteGroupe('${groupe}')" title="Supprimer">✕</button>
+                        <span>${groupe.nom || groupe.id}</span>
+                        <span class="tag-count">${count} élève${count > 1 ? 's' : ''}</span>
+                        <button class="tag-remove" onclick="AdminUtilisateurs.deleteGroupe('${groupe.id}')" title="Supprimer">✕</button>
                     </div>
                 `;
             }).join('');
@@ -811,7 +819,7 @@ const AdminUtilisateurs = {
     /**
      * Ajoute une nouvelle classe
      */
-    addClasse() {
+    async addClasse() {
         const input = document.getElementById('newClasseName');
         const name = input.value.trim();
 
@@ -820,52 +828,85 @@ const AdminUtilisateurs = {
             return;
         }
 
-        if (this.classes.includes(name)) {
+        // Vérifier si le nom existe déjà
+        if (this.classes.some(c => c.nom === name)) {
             alert('Cette classe existe déjà.');
             return;
         }
 
-        this.classes.push(name);
-        this.classes.sort();
-        input.value = '';
+        try {
+            const btn = document.getElementById('addClasseBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳';
 
-        this.renderManageLists();
-        this.renderFilters();
+            const result = await this.postToAppsScript('createClasse', {
+                nom: name,
+                annee_scolaire: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1)
+            });
+
+            // Ajouter localement
+            const newClasse = { id: result.id, nom: name };
+            this.classes.push(newClasse);
+            this.classesMap[result.id] = name;
+
+            input.value = '';
+            this.renderManageLists();
+            this.renderFilters();
+
+            alert('Classe créée avec succès !');
+
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la création: ' + error.message);
+        } finally {
+            const btn = document.getElementById('addClasseBtn');
+            btn.disabled = false;
+            btn.textContent = '+ Ajouter';
+        }
     },
 
     /**
      * Supprime une classe
      */
-    async deleteClasse(classe) {
+    async deleteClasse(classeId) {
+        const classe = this.classes.find(c => c.id === classeId);
+        if (!classe) return;
+
         const usersWithClasse = this.users.filter(u => {
             const classeValue = (u.classe_id || u.classes || '').toString();
-            return classeValue.split(',').map(c => c.trim()).includes(classe);
+            return classeValue === classeId;
         });
 
         if (usersWithClasse.length > 0) {
-            if (!confirm(`${usersWithClasse.length} utilisateur(s) utilisent cette classe. Voulez-vous vraiment la supprimer ?`)) {
-                return;
-            }
-
-            // Retirer la classe de tous les utilisateurs
-            for (const user of usersWithClasse) {
-                const classeValue = (user.classe_id || user.classes || '').toString();
-                const newClasses = classeValue.split(',').map(c => c.trim()).filter(c => c !== classe).join(', ');
-                user.classe_id = newClasses;
-                await this.postToAppsScript('updateUser', { id: user.id, classe_id: newClasses });
-            }
+            alert(`Impossible de supprimer "${classe.nom}" car ${usersWithClasse.length} utilisateur(s) y sont assignés.\n\nRetirez d'abord les utilisateurs de cette classe.`);
+            return;
         }
 
-        this.classes = this.classes.filter(c => c !== classe);
-        this.renderManageLists();
-        this.renderFilters();
-        this.renderTable();
+        if (!confirm(`Supprimer la classe "${classe.nom}" ?`)) {
+            return;
+        }
+
+        try {
+            await this.postToAppsScript('deleteClasse', { id: classeId });
+
+            // Supprimer localement
+            this.classes = this.classes.filter(c => c.id !== classeId);
+            delete this.classesMap[classeId];
+
+            this.renderManageLists();
+            this.renderFilters();
+            alert('Classe supprimée avec succès !');
+
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la suppression: ' + error.message);
+        }
     },
 
     /**
      * Ajoute un nouveau groupe
      */
-    addGroupe() {
+    async addGroupe() {
         const input = document.getElementById('newGroupeName');
         const name = input.value.trim();
 
@@ -874,46 +915,79 @@ const AdminUtilisateurs = {
             return;
         }
 
-        if (this.groupes.includes(name)) {
+        // Vérifier si le nom existe déjà
+        if (this.groupes.some(g => g.nom === name)) {
             alert('Ce groupe existe déjà.');
             return;
         }
 
-        this.groupes.push(name);
-        this.groupes.sort();
-        input.value = '';
+        try {
+            const btn = document.getElementById('addGroupeBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳';
 
-        this.renderManageLists();
-        this.renderFilters();
+            const result = await this.postToAppsScript('createGroupe', {
+                nom: name,
+                type: 'standard'
+            });
+
+            // Ajouter localement
+            const newGroupe = { id: result.id, nom: name };
+            this.groupes.push(newGroupe);
+            this.groupesMap[result.id] = name;
+
+            input.value = '';
+            this.renderManageLists();
+            this.renderFilters();
+
+            alert('Groupe créé avec succès !');
+
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la création: ' + error.message);
+        } finally {
+            const btn = document.getElementById('addGroupeBtn');
+            btn.disabled = false;
+            btn.textContent = '+ Ajouter';
+        }
     },
 
     /**
      * Supprime un groupe
      */
-    async deleteGroupe(groupe) {
+    async deleteGroupe(groupeId) {
+        const groupe = this.groupes.find(g => g.id === groupeId);
+        if (!groupe) return;
+
         const usersWithGroupe = this.users.filter(u => {
             const groupeValue = (u.groupe || u.groupes || '').toString();
-            return groupeValue.split(',').map(g => g.trim()).includes(groupe);
+            return groupeValue === groupeId;
         });
 
         if (usersWithGroupe.length > 0) {
-            if (!confirm(`${usersWithGroupe.length} utilisateur(s) utilisent ce groupe. Voulez-vous vraiment le supprimer ?`)) {
-                return;
-            }
-
-            // Retirer le groupe de tous les utilisateurs
-            for (const user of usersWithGroupe) {
-                const groupeValue = (user.groupe || user.groupes || '').toString();
-                const newGroupes = groupeValue.split(',').map(g => g.trim()).filter(g => g !== groupe).join(', ');
-                user.groupe = newGroupes;
-                await this.postToAppsScript('updateUser', { id: user.id, groupe: newGroupes });
-            }
+            alert(`Impossible de supprimer "${groupe.nom}" car ${usersWithGroupe.length} utilisateur(s) y sont assignés.\n\nRetirez d'abord les utilisateurs de ce groupe.`);
+            return;
         }
 
-        this.groupes = this.groupes.filter(g => g !== groupe);
-        this.renderManageLists();
-        this.renderFilters();
-        this.renderTable();
+        if (!confirm(`Supprimer le groupe "${groupe.nom}" ?`)) {
+            return;
+        }
+
+        try {
+            await this.postToAppsScript('deleteGroupe', { id: groupeId });
+
+            // Supprimer localement
+            this.groupes = this.groupes.filter(g => g.id !== groupeId);
+            delete this.groupesMap[groupeId];
+
+            this.renderManageLists();
+            this.renderFilters();
+            alert('Groupe supprimé avec succès !');
+
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la suppression: ' + error.message);
+        }
     },
 
     /**
