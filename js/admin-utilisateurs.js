@@ -28,12 +28,19 @@ const AdminUtilisateurs = {
      */
     async init() {
         try {
+            console.log('AdminUtilisateurs.init() démarré');
             await this.loadData();
+            console.log('Données chargées, rendu en cours...');
             this.renderStats();
+            console.log('Stats rendues');
             this.renderFilters();
+            console.log('Filtres rendus');
             this.renderTable();
+            console.log('Table rendue');
             this.bindEvents();
+            console.log('Événements liés');
             this.showContent();
+            console.log('Contenu affiché');
         } catch (error) {
             console.error('Erreur lors du chargement:', error);
             this.showError('Erreur lors du chargement des données');
@@ -76,8 +83,15 @@ const AdminUtilisateurs = {
      * Affiche le contenu principal
      */
     showContent() {
-        document.getElementById('loader').style.display = 'none';
-        document.getElementById('users-content').style.display = 'block';
+        const loader = document.getElementById('loader');
+        const content = document.getElementById('users-content');
+        console.log('showContent - loader:', loader, 'content:', content);
+        if (loader) loader.style.display = 'none';
+        if (content) {
+            content.style.display = 'block';
+            content.style.visibility = 'visible';
+            content.style.opacity = '1';
+        }
     },
 
     /**
