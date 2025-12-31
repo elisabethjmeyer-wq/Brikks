@@ -23,7 +23,7 @@
     <!-- Page Header -->
     <header class="page-header">
         <h1>💡 Recommandations</h1>
-        <p>Découvre les ressources sélectionnées par ton professeur</p>
+        <p>Découvre des contenus pour enrichir ta culture en lien avec les cours</p>
     </header>
 
     <!-- Loader -->
@@ -36,54 +36,119 @@
     <div id="reco-content" style="display: none;">
 
         <!-- Featured Reco -->
-        <div class="featured-reco" id="featuredReco">
-            <div class="featured-label">
-                <span>⭐</span> Recommandation de la semaine
+        <div class="featured-reco" id="featuredReco" style="display: none;">
+            <div class="featured-image" id="featuredImage">
+                <span class="featured-icon">🎵</span>
+                <div class="featured-play-btn" id="featuredPlayBtn">▶</div>
             </div>
-            <div class="featured-reco-content" id="featuredRecoContent">
-                <!-- Dynamically filled -->
+            <div class="featured-content">
+                <div class="featured-badges">
+                    <span class="featured-badge">⭐ Cette semaine</span>
+                    <span class="featured-type" id="featuredType">🎵 À écouter</span>
+                </div>
+                <h2 class="featured-title" id="featuredTitle">Chargement...</h2>
+                <p class="featured-description" id="featuredDescription"></p>
+                <div class="featured-tags" id="featuredTags"></div>
+                <div class="featured-meta">
+                    <span id="featuredDate"></span>
+                    <span class="resources-badge" id="featuredResources" style="display: none;">📎 <span id="resourcesCount">0</span> ressources</span>
+                </div>
             </div>
         </div>
 
-        <!-- Archives -->
-        <div class="archives-section">
-            <div class="archives-header">
-                <h2>📚 Toutes les recommandations</h2>
-                <span class="archives-count" id="archivesCount">0 recommandations</span>
+        <!-- Filters Bar -->
+        <div class="filters-bar">
+            <input type="text" class="search-input" id="searchInput" placeholder="Rechercher une recommandation...">
+            <select class="filter-select" id="filterType">
+                <option value="all">Tous les types</option>
+                <option value="ecouter">🎵 À écouter</option>
+                <option value="regarder">🎬 À regarder</option>
+                <option value="lire">📖 À lire</option>
+            </select>
+            <select class="filter-select" id="filterDiscipline">
+                <option value="all">Toutes les disciplines</option>
+            </select>
+        </div>
+
+        <!-- Carousels Container -->
+        <div id="carouselsContainer">
+            <!-- Carousel: À écouter -->
+            <div class="carousel-section" id="carousel-ecouter" style="display: none;">
+                <div class="carousel-header">
+                    <h2 class="carousel-title">🎵 À écouter</h2>
+                    <div class="carousel-nav">
+                        <button class="carousel-nav-btn" onclick="EleveRecommandations.scrollCarousel('ecouter', -1)">❮</button>
+                        <button class="carousel-nav-btn" onclick="EleveRecommandations.scrollCarousel('ecouter', 1)">❯</button>
+                    </div>
+                </div>
+                <div class="carousel-track" id="track-ecouter"></div>
             </div>
 
-            <div class="archives-filters">
-                <input type="text" class="search-input" id="searchInput" placeholder="Rechercher...">
-                <select class="filter-select" id="filterType">
-                    <option value="all">Tous les types</option>
-                    <option value="podcast">🎧 Podcasts</option>
-                    <option value="video">🎬 Vidéos</option>
-                    <option value="livre">📖 Livres</option>
-                    <option value="article">📰 Articles</option>
-                    <option value="autre">📌 Autres</option>
-                </select>
+            <!-- Carousel: À regarder -->
+            <div class="carousel-section" id="carousel-regarder" style="display: none;">
+                <div class="carousel-header">
+                    <h2 class="carousel-title">🎬 À regarder</h2>
+                    <div class="carousel-nav">
+                        <button class="carousel-nav-btn" onclick="EleveRecommandations.scrollCarousel('regarder', -1)">❮</button>
+                        <button class="carousel-nav-btn" onclick="EleveRecommandations.scrollCarousel('regarder', 1)">❯</button>
+                    </div>
+                </div>
+                <div class="carousel-track" id="track-regarder"></div>
             </div>
 
-            <div class="archives-list" id="archivesList">
-                <!-- Dynamically filled -->
+            <!-- Carousel: À lire -->
+            <div class="carousel-section" id="carousel-lire" style="display: none;">
+                <div class="carousel-header">
+                    <h2 class="carousel-title">📖 À lire</h2>
+                    <div class="carousel-nav">
+                        <button class="carousel-nav-btn" onclick="EleveRecommandations.scrollCarousel('lire', -1)">❮</button>
+                        <button class="carousel-nav-btn" onclick="EleveRecommandations.scrollCarousel('lire', 1)">❯</button>
+                    </div>
+                </div>
+                <div class="carousel-track" id="track-lire"></div>
             </div>
+        </div>
 
-            <!-- Empty state -->
-            <div class="empty-state" id="emptyState" style="display: none;">
-                <div class="empty-icon">📭</div>
-                <h3>Aucune recommandation</h3>
-                <p>Ton professeur n'a pas encore partagé de recommandations</p>
-            </div>
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">📭</div>
+            <h3>Aucune recommandation</h3>
+            <p>Ton professeur n'a pas encore partagé de recommandations</p>
         </div>
     </div>
 </div>
 
-<!-- MODAL: Détail recommandation -->
+<!-- MODAL: Lecture intégrée -->
 <div class="modal-overlay hidden" id="recoModal">
-    <div class="modal-content">
-        <button class="modal-close" id="closeRecoModal">×</button>
-        <div class="reco-detail" id="recoDetail">
-            <!-- Dynamically filled -->
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <div class="modal-title-info">
+                <span class="modal-type" id="modalType">🎵 À écouter</span>
+                <h3 class="modal-title" id="modalTitle">Titre</h3>
+            </div>
+            <button class="modal-close" id="closeRecoModal">×</button>
+        </div>
+        <div class="modal-body">
+            <!-- Zone de lecture intégrée -->
+            <div class="modal-player" id="modalPlayer">
+                <div class="player-placeholder" id="playerPlaceholder">
+                    <span class="player-icon">🎵</span>
+                    <p>Cliquez pour lancer la lecture</p>
+                </div>
+                <iframe id="playerIframe" src="" allowfullscreen style="display: none;"></iframe>
+            </div>
+            <!-- Infos -->
+            <div class="modal-info">
+                <p class="modal-description" id="modalDescription"></p>
+                <div class="modal-tags" id="modalTags"></div>
+                <div class="modal-meta">
+                    <span id="modalDate"></span>
+                    <span id="modalDiscipline"></span>
+                </div>
+                <a href="#" class="modal-external-link" id="modalExternalLink" target="_blank">
+                    🔗 Ouvrir dans un nouvel onglet
+                </a>
+            </div>
         </div>
     </div>
 </div>
