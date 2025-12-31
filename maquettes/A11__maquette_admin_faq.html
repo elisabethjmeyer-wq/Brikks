@@ -1,0 +1,1584 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ | Admin - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ===== SIDEBAR (identique Dashboard v3) ===== */
+        .admin-sidebar {
+            width: 280px;
+            background: var(--gray-900);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 150;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-sidebar.collapsed { transform: translateX(-100%); }
+
+        .admin-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .admin-logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-logo .badge {
+            background: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sidebar-section { margin-bottom: 24px; }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 20px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar-link .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        .sidebar-link .badge {
+            margin-left: auto;
+            background: var(--accent-red);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .sidebar-link .badge.orange { background: var(--accent-orange); }
+
+        /* ===== MAIN ===== */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+        .main-content.expanded { margin-left: 0; }
+
+        /* ===== TOP BAR ===== */
+        .top-bar { background: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 100; }
+        .top-bar-left { display: flex; align-items: center; gap: 16px; }
+        .toggle-sidebar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .toggle-sidebar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-500); }
+        .top-bar-breadcrumb a { color: var(--gray-500); text-decoration: none; }
+        .top-bar-breadcrumb a:hover { color: var(--primary); }
+        .top-bar-breadcrumb .separator { color: var(--gray-300); }
+        .top-bar-right { display: flex; align-items: center; gap: 12px; }
+        .top-bar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; }
+        .top-bar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-btn .notif-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--accent-red); border-radius: 50%; border: 2px solid white; }
+        .top-bar-user { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 10px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .top-bar-user:hover { background: var(--gray-100); }
+        .top-bar-user-avatar { width: 36px; height: 36px; border-radius: 8px; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+        .top-bar-user-info { text-align: left; }
+        .top-bar-user-name { font-size: 13px; font-weight: 600; color: var(--gray-800); display: flex; align-items: center; gap: 6px; }
+        .top-bar-user-name::after { content: "▼"; font-size: 10px; color: var(--gray-400); }
+        .top-bar-user-role { font-size: 11px; color: var(--gray-500); }
+        .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: var(--radius); box-shadow: var(--shadow-lg); border: 1px solid var(--gray-200); min-width: 180px; display: none; z-index: 200; overflow: hidden; }
+        .user-dropdown.show { display: block; }
+        .user-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-size: 14px; color: var(--gray-700); text-decoration: none; transition: all 0.2s; cursor: pointer; }
+        .user-dropdown-item:hover { background: var(--gray-50); }
+        .user-dropdown-item.danger { color: var(--accent-red); }
+        .user-dropdown-item.danger:hover { background: var(--accent-red-light); }
+        .page-content { padding: 24px; flex: 1; }
+
+        /* ===== HEADER ===== */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .admin-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .admin-header p {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        
+        .btn-secondary { 
+            background: white; 
+            border: 2px solid var(--gray-200); 
+            color: var(--gray-700); 
+        }
+        .btn-secondary:hover { background: var(--gray-50); }
+
+        .btn-danger { background: var(--accent-red); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--gray-100);
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--gray-600);
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .btn-icon.danger:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* ===== STATS ===== */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card-icon.blue { background: var(--accent-blue-light); }
+        .stat-card-icon.green { background: var(--accent-green-light); }
+        .stat-card-icon.purple { background: var(--accent-purple-light); }
+
+        .stat-card-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .stat-card-label {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        /* ===== SEARCH BAR ===== */
+        .search-bar {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .search-bar-top {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+        }
+
+        .search-results-count {
+            font-size: 13px;
+            color: var(--gray-500);
+            white-space: nowrap;
+        }
+
+        /* ===== CATEGORY DROPDOWN ===== */
+        .category-dropdown-container {
+            position: relative;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .category-dropdown-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .category-dropdown-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--gray-100);
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 180px;
+            justify-content: space-between;
+        }
+
+        .category-dropdown-btn:hover {
+            border-color: var(--primary-light);
+        }
+
+        .category-dropdown-btn.open {
+            border-color: var(--primary);
+            background: white;
+        }
+
+        .category-dropdown-btn .arrow {
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .category-dropdown-btn.open .arrow {
+            transform: rotate(180deg);
+        }
+
+        .category-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 85px;
+            margin-top: 4px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
+            z-index: 100;
+            display: none;
+        }
+
+        .category-dropdown-menu.show {
+            display: block;
+        }
+
+        .category-dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .category-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .category-dropdown-item:hover {
+            background: var(--gray-50);
+        }
+
+        .category-dropdown-item.active {
+            background: var(--primary-bg);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .category-dropdown-item .count {
+            background: var(--gray-200);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .category-dropdown-item.active .count {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ===== FAQ CATEGORY BADGE ===== */
+        .faq-category-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .faq-category-badge.notes {
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+        }
+
+        .faq-category-badge.cours {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .faq-category-badge.technique {
+            background: var(--accent-orange-light);
+            color: #b45309;
+        }
+
+        .faq-category-badge.autre {
+            background: var(--accent-purple-light);
+            color: var(--accent-purple);
+        }
+
+        /* ===== FAQ LIST ===== */
+        .faq-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .faq-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .faq-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .faq-card-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .faq-card-header:hover {
+            background: var(--gray-50);
+        }
+
+        .faq-drag {
+            color: var(--gray-300);
+            cursor: grab;
+            font-size: 18px;
+        }
+
+        .faq-drag:hover {
+            color: var(--gray-500);
+        }
+
+        .faq-question {
+            flex: 1;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .faq-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .faq-type-badge.text {
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+        }
+
+        .faq-type-badge.video {
+            background: var(--accent-purple-light);
+            color: var(--accent-purple);
+        }
+
+        .faq-type-badge.mixed {
+            background: var(--accent-orange-light);
+            color: #b45309;
+        }
+
+        .faq-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .faq-chevron {
+            font-size: 18px;
+            color: var(--gray-400);
+            transition: transform 0.2s;
+        }
+
+        .faq-card.open .faq-chevron {
+            transform: rotate(180deg);
+        }
+
+        .faq-card-body {
+            display: none;
+            padding: 0 20px 20px 58px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .faq-card.open .faq-card-body {
+            display: block;
+        }
+
+        .faq-answer {
+            padding-top: 16px;
+            font-size: 14px;
+            color: var(--gray-600);
+            line-height: 1.7;
+        }
+
+        .faq-answer p {
+            margin-bottom: 12px;
+        }
+
+        .faq-answer p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Video embed */
+        .faq-video {
+            margin-top: 16px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--gray-900);
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .faq-video-placeholder {
+            text-align: center;
+            color: white;
+        }
+
+        .faq-video-placeholder .icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .faq-video-placeholder .text {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 60px 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-bottom: 20px;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden { display: none; }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 8px;
+            font-size: 16px;
+            color: var(--gray-500);
+            cursor: pointer;
+        }
+
+        .modal-close:hover { background: var(--gray-200); }
+
+        .modal-body { padding: 24px; }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-group:last-child { margin-bottom: 0; }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-group label .req { color: var(--accent-red); }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-input:focus { outline: none; border-color: var(--primary); }
+
+        .form-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            line-height: 1.6;
+        }
+
+        .form-textarea:focus { outline: none; border-color: var(--primary); }
+
+        .form-help {
+            font-size: 11px;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+        }
+
+        .form-select:focus { outline: none; border-color: var(--primary); }
+
+        /* Response type selector */
+        .response-type-selector {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .response-type-option {
+            flex: 1;
+            padding: 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .response-type-option:hover {
+            border-color: var(--gray-300);
+            background: var(--gray-50);
+        }
+
+        .response-type-option.active {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .response-type-option .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .response-type-option .label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .response-type-option.active .label {
+            color: var(--primary);
+        }
+
+        /* Video URL input */
+        .video-input-group {
+            display: none;
+        }
+
+        .video-input-group.visible {
+            display: block;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Confirm modal */
+        .modal.confirm { max-width: 380px; text-align: center; }
+        .modal.confirm .modal-body { padding: 32px 24px; }
+
+        .confirm-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 16px;
+            background: var(--accent-red-light);
+        }
+
+        .confirm-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .confirm-text {
+            font-size: 14px;
+            color: var(--gray-600);
+            line-height: 1.5;
+        }
+
+        .modal.confirm .modal-footer { justify-content: center; }
+
+        /* ===== CATEGORIES MODAL ===== */
+        .categories-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            border: 1px solid var(--gray-200);
+        }
+
+        .category-item-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .category-item-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .category-item-name {
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            font-family: inherit;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .category-item-name:focus {
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 2px var(--primary-bg);
+        }
+
+        .category-item-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .category-item-count {
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+
+        .add-category-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-sm {
+            padding: 10px 14px;
+            font-size: 13px;
+        }
+
+        /* ===== TAGS SELECTOR ===== */
+        .tags-selector {
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            padding: 8px;
+            background: white;
+            transition: border-color 0.2s;
+        }
+
+        .tags-selector:focus-within {
+            border-color: var(--primary);
+        }
+
+        .tags-selected {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 32px;
+            margin-bottom: 8px;
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .tag-chip.notes {
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+        }
+
+        .tag-chip.cours {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .tag-chip.technique {
+            background: var(--accent-orange-light);
+            color: #b45309;
+        }
+
+        .tag-chip.autre {
+            background: var(--accent-purple-light);
+            color: var(--accent-purple);
+        }
+
+        .tag-chip button {
+            background: none;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0.7;
+            padding: 0;
+            color: inherit;
+        }
+
+        .tag-chip button:hover {
+            opacity: 1;
+        }
+
+        .tags-dropdown {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding-top: 8px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .tag-option {
+            padding: 6px 12px;
+            background: var(--gray-100);
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tag-option:hover {
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        .tag-option.selected {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        /* ===== MULTI TAGS IN FAQ CARD ===== */
+        .faq-tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="admin-sidebar">
+        <div class="admin-logo"><h1><span>📚</span>Espace cours<span class="badge">Admin</span></h1></div>
+        <nav>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📌 Principal</div>
+                <a href="#" class="sidebar-link"><span class="icon">🏠</span>Page d'accueil</a>
+                <a href="#" class="sidebar-link"><span class="icon">📬</span>Messagerie<span class="badge">3</span></a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📚 Ressources</div>
+                <a href="#" class="sidebar-link"><span class="icon">📖</span>Leçons</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧠</span>Méthodologie</a>
+                <a href="#" class="sidebar-link"><span class="icon">🎬</span>Vidéos</a>
+                <a href="#" class="sidebar-link"><span class="icon">💡</span>Recommandations</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">🎯 Exercices</div>
+                <a href="#" class="sidebar-link"><span class="icon">📐</span>Banque de formats</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧩</span>Banque d'éléments</a>
+                <a href="#" class="sidebar-link"><span class="icon">📝</span>Entraînements</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📊 Évaluations</div>
+                <a href="#" class="sidebar-link"><span class="icon">📋</span>Évaluations</a>
+                <a href="#" class="sidebar-link"><span class="icon">🟣</span>Compétences</a>
+                <a href="#" class="sidebar-link"><span class="icon">📊</span>Notes & Suivi</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">👥 Élèves</div>
+                <a href="#" class="sidebar-link"><span class="icon">👥</span>Utilisateurs</a>
+                <a href="#" class="sidebar-link active"><span class="icon">❓</span>FAQ</a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Afficher/Masquer le menu">☰</button>
+                <div class="top-bar-breadcrumb"><a href="#">Admin</a><span class="separator">/</span><span>FAQ</span></div>
+            </div>
+            <div class="top-bar-right">
+                <button class="top-bar-btn" title="Voir le site élève">👁️</button>
+                <button class="top-bar-btn" title="Notifications">🔔<span class="notif-dot"></span></button>
+                <div class="top-bar-user" onclick="toggleUserMenu()">
+                    <div class="top-bar-user-avatar">EM</div>
+                    <div class="top-bar-user-info"><div class="top-bar-user-name">Mme Meyer</div><div class="top-bar-user-role">Professeur</div></div>
+                    <div class="user-dropdown" id="user-dropdown"><a href="#" class="user-dropdown-item danger"><span>🚪</span>Déconnexion</a></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-content">
+        <!-- HEADER -->
+        <header class="admin-header">
+            <div>
+                <h1>❓ Foire aux questions</h1>
+                <p>Gérez les questions fréquentes pour aider vos élèves</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="openModal('categories')">
+                    <span>🏷️</span>
+                    Gérer les catégories
+                </button>
+                <button class="btn btn-primary" onclick="openModal('add')">
+                    <span>➕</span>
+                    Ajouter une question
+                </button>
+            </div>
+        </header>
+
+        <!-- STATS -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-card-icon blue">❓</div>
+                <div class="stat-card-value">12</div>
+                <div class="stat-card-label">Questions total</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon green">📝</div>
+                <div class="stat-card-value">8</div>
+                <div class="stat-card-label">Réponses texte</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon purple">🎬</div>
+                <div class="stat-card-value">4</div>
+                <div class="stat-card-label">Réponses vidéo</div>
+            </div>
+        </div>
+
+        <!-- SEARCH BAR -->
+        <div class="search-bar">
+            <div class="search-bar-top">
+                <div class="search-box">
+                    <input type="text" placeholder="Rechercher une question...">
+                </div>
+                <span class="search-results-count">12 questions</span>
+            </div>
+            <div class="category-dropdown-container">
+                <span class="category-dropdown-label">Filtrer par :</span>
+                <button class="category-dropdown-btn" onclick="toggleCategoryDropdown()">
+                    <span id="selectedCategory">📋 Toutes les catégories</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="category-dropdown-menu" id="categoryDropdown">
+                    <div class="category-dropdown-item active" onclick="filterByCategory('all', this)">
+                        📋 Toutes les catégories <span class="count">12</span>
+                    </div>
+                    <div class="category-dropdown-item" onclick="filterByCategory('notes', this)">
+                        📊 Notes <span class="count">4</span>
+                    </div>
+                    <div class="category-dropdown-item" onclick="filterByCategory('cours', this)">
+                        📖 Cours <span class="count">3</span>
+                    </div>
+                    <div class="category-dropdown-item" onclick="filterByCategory('technique', this)">
+                        🔧 Technique <span class="count">3</span>
+                    </div>
+                    <div class="category-dropdown-item" onclick="filterByCategory('autre', this)">
+                        💬 Autre <span class="count">2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ LIST -->
+        <div class="faq-list">
+            <!-- Question 1 - Texte - Multi-tags -->
+            <div class="faq-card" data-categories="technique">
+                <div class="faq-card-header" onclick="toggleFaq(this)">
+                    <span class="faq-drag">⋮⋮</span>
+                    <span class="faq-question">Comment me connecter à la plateforme ?</span>
+                    <div class="faq-tags">
+                        <span class="faq-category-badge technique">🔧 Technique</span>
+                    </div>
+                    <span class="faq-type-badge text">📝 Texte</span>
+                    <div class="faq-actions">
+                        <button class="btn-icon" title="Modifier" onclick="event.stopPropagation(); openModal('edit')">✏️</button>
+                        <button class="btn-icon danger" title="Supprimer" onclick="event.stopPropagation(); openModal('delete')">🗑️</button>
+                    </div>
+                    <span class="faq-chevron">▼</span>
+                </div>
+                <div class="faq-card-body">
+                    <div class="faq-answer">
+                        <p>Pour te connecter à la plateforme, suis ces étapes :</p>
+                        <p>1. Rends-toi sur la page d'accueil du site<br>
+                        2. Clique sur "Se connecter" en haut à droite<br>
+                        3. Entre ton identifiant (généralement première lettre du prénom + nom)<br>
+                        4. Entre ton mot de passe (celui donné en début d'année)<br>
+                        5. Clique sur "Connexion"</p>
+                        <p>Si tu as oublié ton mot de passe, contacte-moi via le formulaire de contact ou en classe.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 2 - Vidéo - Multi-tags -->
+            <div class="faq-card open" data-categories="cours,technique">
+                <div class="faq-card-header" onclick="toggleFaq(this)">
+                    <span class="faq-drag">⋮⋮</span>
+                    <span class="faq-question">Comment faire un développement construit ?</span>
+                    <div class="faq-tags">
+                        <span class="faq-category-badge cours">📖 Cours</span>
+                        <span class="faq-category-badge technique">🔧 Technique</span>
+                    </div>
+                    <span class="faq-type-badge video">🎬 Vidéo</span>
+                    <div class="faq-actions">
+                        <button class="btn-icon" title="Modifier" onclick="event.stopPropagation(); openModal('edit')">✏️</button>
+                        <button class="btn-icon danger" title="Supprimer" onclick="event.stopPropagation(); openModal('delete')">🗑️</button>
+                    </div>
+                    <span class="faq-chevron">▼</span>
+                </div>
+                <div class="faq-card-body">
+                    <div class="faq-answer">
+                        <p>Voici une vidéo explicative pour réussir ton développement construit :</p>
+                    </div>
+                    <div class="faq-video">
+                        <div class="faq-video-placeholder">
+                            <div class="icon">▶️</div>
+                            <div class="text">Vidéo Loom - 5:32</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 3 - Texte - Multi-tags -->
+            <div class="faq-card" data-categories="notes,technique">
+                <div class="faq-card-header" onclick="toggleFaq(this)">
+                    <span class="faq-drag">⋮⋮</span>
+                    <span class="faq-question">Comment refaire une évaluation non validée ?</span>
+                    <div class="faq-tags">
+                        <span class="faq-category-badge notes">📊 Notes</span>
+                        <span class="faq-category-badge technique">🔧 Technique</span>
+                    </div>
+                    <span class="faq-type-badge text">📝 Texte</span>
+                    <div class="faq-actions">
+                        <button class="btn-icon" title="Modifier" onclick="event.stopPropagation(); openModal('edit')">✏️</button>
+                        <button class="btn-icon danger" title="Supprimer" onclick="event.stopPropagation(); openModal('delete')">🗑️</button>
+                    </div>
+                    <span class="faq-chevron">▼</span>
+                </div>
+                <div class="faq-card-body">
+                    <div class="faq-answer">
+                        <p>Si tu n'as pas validé une évaluation (score inférieur à 80%), tu peux la refaire autant de fois que nécessaire avant la deadline.</p>
+                        <p>Va dans l'onglet "Mes évaluations", trouve l'évaluation avec le statut "À refaire" et clique dessus pour recommencer.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 4 - Mixte - Multi-tags -->
+            <div class="faq-card" data-categories="cours">
+                <div class="faq-card-header" onclick="toggleFaq(this)">
+                    <span class="faq-drag">⋮⋮</span>
+                    <span class="faq-question">Comment analyser un document en histoire ?</span>
+                    <div class="faq-tags">
+                        <span class="faq-category-badge cours">📖 Cours</span>
+                    </div>
+                    <span class="faq-type-badge mixed">📝🎬 Mixte</span>
+                    <div class="faq-actions">
+                        <button class="btn-icon" title="Modifier" onclick="event.stopPropagation(); openModal('edit')">✏️</button>
+                        <button class="btn-icon danger" title="Supprimer" onclick="event.stopPropagation(); openModal('delete')">🗑️</button>
+                    </div>
+                    <span class="faq-chevron">▼</span>
+                </div>
+                <div class="faq-card-body">
+                    <div class="faq-answer">
+                        <p>L'analyse de document suit toujours la même méthode. Regarde d'abord la vidéo puis relis les étapes ci-dessous.</p>
+                    </div>
+                    <div class="faq-video">
+                        <div class="faq-video-placeholder">
+                            <div class="icon">▶️</div>
+                            <div class="text">Vidéo Loom - 8:15</div>
+                        </div>
+                    </div>
+                    <div class="faq-answer" style="margin-top: 16px;">
+                        <p><strong>Les 4 étapes :</strong><br>
+                        1. Présenter le document (nature, auteur, date, contexte)<br>
+                        2. Décrire ce que tu vois/lis<br>
+                        3. Expliquer avec tes connaissances<br>
+                        4. Conclure sur l'intérêt du document</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Question 5 - Texte - Multi-tags -->
+            <div class="faq-card" data-categories="cours,autre">
+                <div class="faq-card-header" onclick="toggleFaq(this)">
+                    <span class="faq-drag">⋮⋮</span>
+                    <span class="faq-question">Où trouver les cours et les fiches de révision ?</span>
+                    <div class="faq-tags">
+                        <span class="faq-category-badge cours">📖 Cours</span>
+                        <span class="faq-category-badge autre">💬 Autre</span>
+                    </div>
+                    <span class="faq-type-badge text">📝 Texte</span>
+                    <div class="faq-actions">
+                        <button class="btn-icon" title="Modifier" onclick="event.stopPropagation(); openModal('edit')">✏️</button>
+                        <button class="btn-icon danger" title="Supprimer" onclick="event.stopPropagation(); openModal('delete')">🗑️</button>
+                    </div>
+                    <span class="faq-chevron">▼</span>
+                </div>
+                <div class="faq-card-body">
+                    <div class="faq-answer">
+                        <p>Tous les cours sont disponibles dans l'onglet "Leçons". Tu peux filtrer par matière (Histoire, Géographie, EMC).</p>
+                        <p>Chaque chapitre contient : le cours complet en PDF, la fiche de révision, et les entraînements associés.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL: Ajouter/Modifier question -->
+<div class="modal-overlay hidden" id="modal-faq">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modal-title">Ajouter une question</h2>
+            <button class="modal-close" onclick="closeModal('modal-faq')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Question <span class="req">*</span></label>
+                <input type="text" class="form-input" placeholder="Ex: Comment me connecter à la plateforme ?">
+            </div>
+
+            <div class="form-group">
+                <label>Catégories <span class="req">*</span></label>
+                <div class="tags-selector">
+                    <div class="tags-selected" id="tags-selected">
+                        <span class="tag-chip notes">📊 Notes <button onclick="removeTag(this)">✕</button></span>
+                    </div>
+                    <div class="tags-dropdown">
+                        <div class="tag-option" onclick="addTag('notes', '📊 Notes')">📊 Notes</div>
+                        <div class="tag-option" onclick="addTag('cours', '📖 Cours')">📖 Cours</div>
+                        <div class="tag-option" onclick="addTag('technique', '🔧 Technique')">🔧 Technique</div>
+                        <div class="tag-option" onclick="addTag('autre', '💬 Autre')">💬 Autre</div>
+                    </div>
+                </div>
+                <div class="form-help">Cliquez pour ajouter une ou plusieurs catégories</div>
+            </div>
+
+            <label style="display: block; font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px;">Type de réponse <span class="req" style="color: var(--accent-red);">*</span></label>
+            <div class="response-type-selector">
+                <div class="response-type-option active" onclick="selectResponseType('text', this)">
+                    <div class="icon">📝</div>
+                    <div class="label">Texte</div>
+                </div>
+                <div class="response-type-option" onclick="selectResponseType('video', this)">
+                    <div class="icon">🎬</div>
+                    <div class="label">Vidéo</div>
+                </div>
+                <div class="response-type-option" onclick="selectResponseType('mixed', this)">
+                    <div class="icon">📝🎬</div>
+                    <div class="label">Mixte</div>
+                </div>
+            </div>
+
+            <div class="form-group" id="text-input-group">
+                <label>Réponse texte</label>
+                <textarea class="form-textarea" placeholder="Écrivez votre réponse ici..."></textarea>
+                <div class="form-help">Vous pouvez utiliser des retours à la ligne pour structurer votre réponse</div>
+            </div>
+
+            <div class="form-group video-input-group" id="video-input-group">
+                <label>URL de la vidéo</label>
+                <input type="text" class="form-input" placeholder="Ex: https://www.loom.com/share/...">
+                <div class="form-help">Collez le lien Loom, YouTube ou autre plateforme vidéo</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-faq')">Annuler</button>
+            <button class="btn btn-primary">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Confirmer suppression -->
+<div class="modal-overlay hidden" id="modal-delete">
+    <div class="modal confirm">
+        <div class="modal-header">
+            <h2></h2>
+            <button class="modal-close" onclick="closeModal('modal-delete')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-icon">🗑️</div>
+            <div class="confirm-title">Supprimer cette question ?</div>
+            <div class="confirm-text">Êtes-vous sûr de vouloir supprimer cette question de la FAQ ? Cette action est irréversible.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-delete')">Annuler</button>
+            <button class="btn btn-danger">🗑️ Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Gérer les catégories -->
+<div class="modal-overlay hidden" id="modal-categories">
+    <div class="modal" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>🏷️ Gérer les catégories</h2>
+            <button class="modal-close" onclick="closeModal('modal-categories')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="categories-list">
+                <div class="category-item">
+                    <div class="category-item-left">
+                        <span class="category-item-icon" style="background: var(--accent-blue-light);">📊</span>
+                        <input type="text" class="category-item-name" value="Notes" />
+                    </div>
+                    <div class="category-item-right">
+                        <span class="category-item-count">4 questions</span>
+                        <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+                <div class="category-item">
+                    <div class="category-item-left">
+                        <span class="category-item-icon" style="background: var(--accent-green-light);">📖</span>
+                        <input type="text" class="category-item-name" value="Cours" />
+                    </div>
+                    <div class="category-item-right">
+                        <span class="category-item-count">3 questions</span>
+                        <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+                <div class="category-item">
+                    <div class="category-item-left">
+                        <span class="category-item-icon" style="background: var(--accent-orange-light);">🔧</span>
+                        <input type="text" class="category-item-name" value="Technique" />
+                    </div>
+                    <div class="category-item-right">
+                        <span class="category-item-count">3 questions</span>
+                        <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+                <div class="category-item">
+                    <div class="category-item-left">
+                        <span class="category-item-icon" style="background: var(--accent-purple-light);">💬</span>
+                        <input type="text" class="category-item-name" value="Autre" />
+                    </div>
+                    <div class="category-item-right">
+                        <span class="category-item-count">2 questions</span>
+                        <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+            </div>
+            <div class="add-category-row">
+                <input type="text" class="form-input" placeholder="Nouvelle catégorie..." style="flex: 1;">
+                <button class="btn btn-primary btn-sm">➕ Ajouter</button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="closeModal('modal-categories')">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openModal(type) {
+        if (type === 'add') {
+            document.getElementById('modal-title').textContent = 'Ajouter une question';
+            document.getElementById('modal-faq').classList.remove('hidden');
+        } else if (type === 'edit') {
+            document.getElementById('modal-title').textContent = 'Modifier la question';
+            document.getElementById('modal-faq').classList.remove('hidden');
+        } else if (type === 'delete') {
+            document.getElementById('modal-delete').classList.remove('hidden');
+        } else if (type === 'categories') {
+            document.getElementById('modal-categories').classList.remove('hidden');
+        }
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function toggleFaq(header) {
+        const card = header.closest('.faq-card');
+        card.classList.toggle('open');
+    }
+
+    function selectResponseType(type, element) {
+        // Update active state
+        document.querySelectorAll('.response-type-option').forEach(opt => opt.classList.remove('active'));
+        element.classList.add('active');
+
+        // Show/hide fields
+        const textGroup = document.getElementById('text-input-group');
+        const videoGroup = document.getElementById('video-input-group');
+
+        if (type === 'text') {
+            textGroup.style.display = 'block';
+            videoGroup.classList.remove('visible');
+        } else if (type === 'video') {
+            textGroup.style.display = 'none';
+            videoGroup.classList.add('visible');
+        } else if (type === 'mixed') {
+            textGroup.style.display = 'block';
+            videoGroup.classList.add('visible');
+        }
+    }
+
+    function toggleCategoryDropdown() {
+        const btn = document.querySelector('.category-dropdown-btn');
+        const menu = document.getElementById('categoryDropdown');
+        btn.classList.toggle('open');
+        menu.classList.toggle('show');
+    }
+
+    function filterByCategory(category, item) {
+        // Update active state
+        document.querySelectorAll('.category-dropdown-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+
+        // Update button text
+        const label = item.textContent.replace(/\d+/g, '').trim();
+        document.getElementById('selectedCategory').textContent = label;
+
+        // Close dropdown
+        document.querySelector('.category-dropdown-btn').classList.remove('open');
+        document.getElementById('categoryDropdown').classList.remove('show');
+
+        // Filter cards - check if category is in the comma-separated list
+        document.querySelectorAll('.faq-card').forEach(card => {
+            const categories = card.dataset.categories ? card.dataset.categories.split(',') : [];
+            if (category === 'all' || categories.includes(category)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const container = document.querySelector('.category-dropdown-container');
+        if (container && !container.contains(e.target)) {
+            document.querySelector('.category-dropdown-btn').classList.remove('open');
+            document.getElementById('categoryDropdown').classList.remove('show');
+        }
+    });
+
+    // Tag management in modal
+    function addTag(value, label) {
+        const container = document.getElementById('tags-selected');
+        const option = document.querySelector(`.tag-option[onclick*="${value}"]`);
+        
+        // Check if tag already exists
+        if (container.querySelector(`.tag-chip.${value}`)) return;
+        
+        // Add tag chip
+        const chip = document.createElement('span');
+        chip.className = `tag-chip ${value}`;
+        chip.innerHTML = `${label} <button onclick="removeTag(this)">✕</button>`;
+        container.appendChild(chip);
+        
+        // Mark option as selected
+        if (option) option.classList.add('selected');
+    }
+
+    function removeTag(btn) {
+        const chip = btn.parentElement;
+        const value = chip.className.split(' ').find(c => c !== 'tag-chip');
+        const option = document.querySelector(`.tag-option[onclick*="${value}"]`);
+        
+        chip.remove();
+        if (option) option.classList.remove('selected');
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.add('hidden');
+        });
+    });
+
+    function toggleSidebar() {
+        document.querySelector('.admin-sidebar').classList.toggle('collapsed');
+        document.querySelector('.main-content').classList.toggle('expanded');
+    }
+    function toggleUserMenu() { document.getElementById('user-dropdown').classList.toggle('show'); }
+    document.addEventListener('click', function(e) {
+        const userMenu = document.querySelector('.top-bar-user');
+        if (userMenu && !userMenu.contains(e.target)) document.getElementById('user-dropdown').classList.remove('show');
+    });
+</script>
+
+</body>
+</html>

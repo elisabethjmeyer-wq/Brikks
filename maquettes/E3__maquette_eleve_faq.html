@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --primary-light: #a5b4fc;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 12px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .menu-toggle:hover {
+            background: var(--gray-200);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .logo-text span {
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-pill:hover {
+            background: var(--gray-200);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-info {
+            text-align: left;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .user-class {
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb .separator {
+            color: var(--gray-300);
+        }
+
+        .breadcrumb .current {
+            color: var(--gray-500);
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header p {
+            font-size: 15px;
+            color: var(--gray-500);
+            line-height: 1.5;
+        }
+
+        /* ===== SEARCH BOX ===== */
+        .search-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--gray-100);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .search-box .icon {
+            font-size: 20px;
+            color: var(--gray-400);
+        }
+
+        .search-box input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            color: var(--gray-800);
+            outline: none;
+        }
+
+        .search-box input::placeholder {
+            color: var(--gray-400);
+        }
+
+        .search-hint {
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 13px;
+            margin-top: 12px;
+        }
+
+        .search-hint strong {
+            color: var(--primary);
+        }
+
+        /* ===== CATEGORY DROPDOWN ===== */
+        .filter-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .category-dropdown-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .category-dropdown-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .category-dropdown-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 180px;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+        }
+
+        .category-dropdown-btn:hover {
+            border-color: var(--primary-light);
+        }
+
+        .category-dropdown-btn.open {
+            border-color: var(--primary);
+        }
+
+        .category-dropdown-btn .arrow {
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .category-dropdown-btn.open .arrow {
+            transform: rotate(180deg);
+        }
+
+        .category-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 4px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            min-width: 200px;
+            z-index: 100;
+            display: none;
+        }
+
+        .category-dropdown-menu.show {
+            display: block;
+        }
+
+        .category-dropdown-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .category-dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .category-dropdown-item:hover {
+            background: var(--gray-50);
+        }
+
+        .category-dropdown-item.active {
+            background: var(--primary-bg);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .category-dropdown-item .count {
+            background: var(--gray-200);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .category-dropdown-item.active .count {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ===== RESULTS COUNT ===== */
+        .results-count {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .results-count strong {
+            color: var(--primary);
+        }
+
+        /* ===== FAQ LIST ===== */
+        .faq-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .faq-item {
+            background: white;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
+            transition: all 0.2s;
+        }
+
+        .faq-item:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .faq-question {
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .faq-question:hover {
+            background: var(--gray-50);
+        }
+
+        .faq-icon {
+            width: 42px;
+            height: 42px;
+            background: var(--primary-bg);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .faq-question-content {
+            flex: 1;
+        }
+
+        .faq-question-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .faq-question-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .faq-category-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .faq-category-badge.notes {
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+        }
+
+        .faq-category-badge.cours {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .faq-category-badge.technique {
+            background: var(--accent-orange-light);
+            color: #b45309;
+        }
+
+        .faq-category-badge.autre {
+            background: var(--accent-purple-light);
+            color: var(--accent-purple);
+        }
+
+        .faq-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .faq-type-badge.text {
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+        }
+
+        .faq-type-badge.video {
+            background: var(--accent-purple-light);
+            color: var(--accent-purple);
+        }
+
+        .faq-toggle {
+            width: 32px;
+            height: 32px;
+            background: var(--gray-100);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--gray-500);
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .faq-item.open .faq-toggle {
+            background: var(--primary);
+            color: white;
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+
+        .faq-item.open .faq-answer {
+            max-height: 1000px;
+        }
+
+        .faq-answer-content {
+            padding: 0 20px 20px 76px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--gray-600);
+        }
+
+        .faq-answer-content p {
+            margin-bottom: 12px;
+        }
+
+        .faq-answer-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ===== VIDEO EMBED ===== */
+        .faq-video {
+            margin-top: 16px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--gray-900);
+        }
+
+        .faq-video iframe {
+            width: 100%;
+            aspect-ratio: 16/9;
+            border: none;
+            display: block;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 60px 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .empty-state-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gray-100);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-bottom: 20px;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ===== CTA MESSAGERIE ===== */
+        .cta-messagerie {
+            background: linear-gradient(135deg, var(--primary-bg) 0%, #e0e7ff 100%);
+            border: 2px dashed var(--primary-light);
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            margin-top: 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .cta-messagerie:hover {
+            border-style: solid;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .cta-messagerie-icon {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .cta-messagerie-content {
+            flex: 1;
+        }
+
+        .cta-messagerie-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin-bottom: 4px;
+        }
+
+        .cta-messagerie-text {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .cta-messagerie-arrow {
+            font-size: 24px;
+            color: var(--primary);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .main {
+                padding: 16px;
+            }
+
+            .page-header h1 {
+                font-size: 24px;
+            }
+
+            .categories {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 8px;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .category-btn {
+                flex-shrink: 0;
+            }
+
+            .faq-answer-content {
+                padding-left: 20px;
+            }
+
+            .user-info {
+                display: none;
+            }
+
+            .cta-messagerie {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .cta-messagerie-arrow {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" title="Menu">☰</button>
+            <a href="#" class="logo">
+                <div class="logo-icon">📚</div>
+                <div class="logo-text">Espace cours <span>• Mme Meyer</span></div>
+            </a>
+        </div>
+
+        <div class="header-right">
+            <div class="user-pill">
+                <div class="user-avatar">ML</div>
+                <div class="user-info">
+                    <div class="user-name">Marie L.</div>
+                    <div class="user-class">2MHR1A</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <!-- BREADCRUMB -->
+        <nav class="breadcrumb">
+            <a href="#">🏠 Accueil</a>
+            <span class="separator">›</span>
+            <span class="current">❓ FAQ</span>
+        </nav>
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>❓ Besoin d'aide ?</h1>
+            <p>Retrouve les réponses aux questions les plus fréquentes. Si tu ne trouves pas ta réponse, écris à Mme Meyer via la messagerie.</p>
+        </div>
+
+        <!-- SEARCH -->
+        <div class="search-card">
+            <div class="search-box">
+                <span class="icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Rechercher une question..." oninput="handleSearch()">
+            </div>
+            <div class="search-hint">
+                💡 Essaie : <strong>notes</strong>, <strong>évaluation</strong>, <strong>absence</strong>, <strong>vidéo</strong>...
+            </div>
+        </div>
+
+        <!-- FILTER ROW -->
+        <div class="filter-row">
+            <div class="category-dropdown-container">
+                <span class="category-dropdown-label">Filtrer par :</span>
+                <button class="category-dropdown-btn" onclick="toggleCategoryDropdown()">
+                    <span id="selectedCategory">📋 Toutes les catégories</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="category-dropdown-menu" id="categoryDropdown">
+                    <div class="category-dropdown-item active" onclick="filterCategory('all', this)">
+                        📋 Toutes les catégories <span class="count">12</span>
+                    </div>
+                    <div class="category-dropdown-item" onclick="filterCategory('notes', this)">
+                        📊 Notes <span class="count">4</span>
+                    </div>
+                    <div class="category-dropdown-item" onclick="filterCategory('cours', this)">
+                        📖 Cours <span class="count">3</span>
+                    </div>
+                    <div class="category-dropdown-item" onclick="filterCategory('technique', this)">
+                        🔧 Technique <span class="count">3</span>
+                    </div>
+                    <div class="category-dropdown-item" onclick="filterCategory('autre', this)">
+                        💬 Autre <span class="count">2</span>
+                    </div>
+                </div>
+            </div>
+            <div class="results-count"><strong>12</strong> questions disponibles</div>
+        </div>
+
+        <!-- FAQ LIST -->
+        <div class="faq-list" id="faqList">
+            
+            <!-- FAQ 1 -->
+            <div class="faq-item" data-categories="notes,technique">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">📊</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">Comment sont calculées mes notes ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge notes">📊 Notes</span>
+                            <span class="faq-category-badge technique">🔧 Technique</span>
+                            <span class="faq-type-badge video">🎬 Vidéo</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Tes notes sont calculées à partir des <strong>briques de compétences</strong> que tu accumules au fil des évaluations. Chaque brique validée te rapporte des points.</p>
+                        <p>Le système prend en compte tes 3 types d'évaluations : Connaissances (🟢), Savoir-faire (🟠) et Compétences (🟣).</p>
+                        <div class="faq-video">
+                            <iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 2 -->
+            <div class="faq-item" data-categories="notes">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">🧱</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">C'est quoi une "brique" de compétence ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge notes">📊 Notes</span>
+                            <span class="faq-type-badge text">📝 Texte</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Une <strong>brique</strong> représente une unité de compétence que tu as validée lors d'une évaluation. C'est comme un bloc de construction : plus tu en accumules, plus ta "tour" de compétences grandit !</p>
+                        <p>Contrairement aux notes classiques, les briques ne peuvent pas être "perdues". Une fois validée, elle reste acquise.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 3 -->
+            <div class="faq-item" data-categories="cours,autre">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">📂</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">Où trouver les documents du cours ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge cours">📖 Cours</span>
+                            <span class="faq-category-badge autre">💬 Autre</span>
+                            <span class="faq-type-badge text">📝 Texte</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Tous les documents sont disponibles dans le <strong>Classeur modèle</strong> accessible depuis le menu. Tu peux le feuilleter comme un vrai livre !</p>
+                        <p>Tu peux aussi retrouver les documents par chapitre dans la section "Leçons".</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 4 -->
+            <div class="faq-item" data-categories="technique">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">🎬</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">Une vidéo ne se lance pas, que faire ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge technique">🔧 Technique</span>
+                            <span class="faq-type-badge text">📝 Texte</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Si une vidéo ne fonctionne pas :</p>
+                        <p>1. <strong>Rafraîchis la page</strong> (F5 ou bouton actualiser)<br>
+                        2. <strong>Vérifie ta connexion</strong> internet<br>
+                        3. <strong>Essaie un autre navigateur</strong> (Chrome fonctionne le mieux)<br>
+                        4. Si ça ne marche toujours pas, <strong>envoie un message</strong> à Mme Meyer via la messagerie</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 5 -->
+            <div class="faq-item" data-categories="notes,cours">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">📈</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">Comment améliorer ma note ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge notes">📊 Notes</span>
+                            <span class="faq-category-badge cours">📖 Cours</span>
+                            <span class="faq-type-badge text">📝 Texte</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Pour améliorer ta note, tu peux :</p>
+                        <p>• <strong>Faire les entraînements</strong> proposés pour chaque chapitre<br>
+                        • <strong>Revoir les vidéos</strong> de méthodologie<br>
+                        • <strong>Valider plus de briques</strong> lors des prochaines évaluations</p>
+                        <p>N'oublie pas : chaque brique compte et reste acquise !</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 6 -->
+            <div class="faq-item" data-categories="cours">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">🏠</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">J'étais absent, comment rattraper le cours ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge cours">📖 Cours</span>
+                            <span class="faq-type-badge text">📝 Texte</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Si tu as été absent :</p>
+                        <p>1. Consulte le <strong>Classeur modèle</strong> pour voir ce qui a été fait<br>
+                        2. Regarde les <strong>vidéos du chapitre</strong> concerné<br>
+                        3. Fais les <strong>exercices d'entraînement</strong><br>
+                        4. Si tu as des questions, utilise la <strong>messagerie</strong></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 7 -->
+            <div class="faq-item" data-categories="technique">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">🔐</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">J'ai oublié mon mot de passe</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge technique">🔧 Technique</span>
+                            <span class="faq-type-badge text">📝 Texte</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Pas de panique ! Demande à Mme Meyer en classe ou envoie un message via l'ENT. Elle te donnera un nouveau mot de passe temporaire.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 8 -->
+            <div class="faq-item" data-categories="notes">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">❌</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">J'ai eu 0 brique à une évaluation, c'est grave ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge notes">📊 Notes</span>
+                            <span class="faq-type-badge text">📝 Texte</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Non, ce n'est pas grave ! Le système de briques est fait pour que tu puisses <strong>progresser à ton rythme</strong>.</p>
+                        <p>Les briques que tu n'as pas validées cette fois pourront l'être lors des prochaines évaluations. L'important est de comprendre ce qui n'a pas fonctionné et de t'entraîner.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 9 -->
+            <div class="faq-item" data-categories="cours,notes">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">📅</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">Où voir les dates des prochaines évaluations ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge cours">📖 Cours</span>
+                            <span class="faq-category-badge notes">📊 Notes</span>
+                            <span class="faq-type-badge text">📝 Texte</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Toutes les dates importantes sont dans ton <strong>Emploi du temps</strong> accessible depuis le menu. Le calendrier est synchronisé en temps réel !</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 10 -->
+            <div class="faq-item" data-categories="technique">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">📱</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">Le site fonctionne-t-il sur téléphone ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge technique">🔧 Technique</span>
+                            <span class="faq-type-badge text">📝 Texte</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Oui ! Le site est <strong>responsive</strong> et s'adapte à tous les écrans. Tu peux consulter tes cours, faire des exercices et voir tes notes depuis ton téléphone.</p>
+                        <p>Pour une meilleure expérience sur les exercices, on recommande quand même un ordinateur ou une tablette.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 11 -->
+            <div class="faq-item" data-categories="autre">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">✉️</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">Comment contacter Mme Meyer ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge autre">💬 Autre</span>
+                            <span class="faq-type-badge text">📝 Texte</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Utilise la <strong>Messagerie</strong> accessible depuis le menu ! C'est le moyen le plus rapide pour poser une question ou signaler un problème.</p>
+                        <p>Mme Meyer répond généralement en fin de semaine.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAQ 12 -->
+            <div class="faq-item" data-categories="autre,notes">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <div class="faq-icon">🏆</div>
+                    <div class="faq-question-content">
+                        <div class="faq-question-text">C'est quoi les points bonus ?</div>
+                        <div class="faq-question-meta">
+                            <span class="faq-category-badge autre">💬 Autre</span>
+                            <span class="faq-category-badge notes">📊 Notes</span>
+                            <span class="faq-type-badge video">🎬 Vidéo</span>
+                        </div>
+                    </div>
+                    <div class="faq-toggle">▼</div>
+                </div>
+                <div class="faq-answer">
+                    <div class="faq-answer-content">
+                        <p>Les <strong>points bonus</strong> sont des récompenses pour ta participation et ton investissement : aide aux camarades, participation en classe, travail supplémentaire...</p>
+                        <p>Ils s'ajoutent à ta note finale et peuvent faire la différence !</p>
+                        <div class="faq-video">
+                            <iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- CTA MESSAGERIE -->
+        <a href="#" class="cta-messagerie">
+            <div class="cta-messagerie-icon">💬</div>
+            <div class="cta-messagerie-content">
+                <div class="cta-messagerie-title">Tu n'as pas trouvé ta réponse ?</div>
+                <div class="cta-messagerie-text">Envoie un message à Mme Meyer, elle te répondra en fin de semaine !</div>
+            </div>
+            <span class="cta-messagerie-arrow">→</span>
+        </a>
+
+    </main>
+
+    <script>
+        // Toggle FAQ item
+        function toggleFaq(element) {
+            const item = element.parentElement;
+            item.classList.toggle('open');
+        }
+
+        // Toggle category dropdown
+        function toggleCategoryDropdown() {
+            const btn = document.querySelector('.category-dropdown-btn');
+            const menu = document.getElementById('categoryDropdown');
+            btn.classList.toggle('open');
+            menu.classList.toggle('show');
+        }
+
+        // Filter by category - supports multi-tags
+        function filterCategory(category, item) {
+            // Update active state
+            document.querySelectorAll('.category-dropdown-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+
+            // Update button text
+            const label = item.textContent.replace(/\d+/g, '').trim();
+            document.getElementById('selectedCategory').textContent = label;
+
+            // Close dropdown
+            document.querySelector('.category-dropdown-btn').classList.remove('open');
+            document.getElementById('categoryDropdown').classList.remove('show');
+
+            // Filter items - check if category is in the comma-separated list
+            const items = document.querySelectorAll('.faq-item');
+            let count = 0;
+
+            items.forEach(faqItem => {
+                const categories = faqItem.dataset.categories ? faqItem.dataset.categories.split(',') : [];
+                if (category === 'all' || categories.includes(category)) {
+                    faqItem.style.display = 'block';
+                    count++;
+                } else {
+                    faqItem.style.display = 'none';
+                }
+            });
+
+            // Update count
+            document.querySelector('.results-count').innerHTML = `<strong>${count}</strong> question${count > 1 ? 's' : ''} disponible${count > 1 ? 's' : ''}`;
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const container = document.querySelector('.category-dropdown-container');
+            if (container && !container.contains(e.target)) {
+                document.querySelector('.category-dropdown-btn').classList.remove('open');
+                document.getElementById('categoryDropdown').classList.remove('show');
+            }
+        });
+
+        // Search
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const items = document.querySelectorAll('.faq-item');
+            let count = 0;
+
+            // Reset category dropdown
+            document.querySelectorAll('.category-dropdown-item').forEach(i => i.classList.remove('active'));
+            document.querySelector('.category-dropdown-item').classList.add('active');
+            document.getElementById('selectedCategory').textContent = '📋 Toutes les catégories';
+
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (query === '' || text.includes(query)) {
+                    item.style.display = 'block';
+                    count++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Update count
+            if (query === '') {
+                document.querySelector('.results-count').innerHTML = `<strong>${count}</strong> questions disponibles`;
+            } else {
+                document.querySelector('.results-count').innerHTML = `<strong>${count}</strong> résultat${count > 1 ? 's' : ''} pour "${query}"`;
+            }
+        }
+
+        // Menu toggle placeholder
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            alert('La sidebar sera disponible prochainement !');
+        });
+    </script>
+
+</body>
+</html>
