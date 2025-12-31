@@ -143,7 +143,7 @@ const EleveRecommandations = {
         // Si image fournie
         if (reco.image_url) {
             const img = document.createElement('img');
-            img.src = reco.image_url;
+            img.src = this.getDirectImageUrl(reco.image_url);
             img.alt = reco.titre;
             imageEl.appendChild(img);
         }
@@ -232,8 +232,9 @@ const EleveRecommandations = {
      */
     renderCard(reco, category) {
         const catConfig = this.categories[category];
-        const imageHtml = reco.image_url
-            ? `<img src="${this.escapeHtml(reco.image_url)}" alt="">`
+        const directImageUrl = this.getDirectImageUrl(reco.image_url);
+        const imageHtml = directImageUrl
+            ? `<img src="${this.escapeHtml(directImageUrl)}" alt="">`
             : '';
 
         // Tags
@@ -526,6 +527,33 @@ const EleveRecommandations = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    /**
+     * Convertit une URL d'image en URL directe (notamment pour Google Drive)
+     */
+    getDirectImageUrl(url) {
+        if (!url) return null;
+
+        // Google Drive: https://drive.google.com/file/d/FILE_ID/view
+        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) {
+            return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+        }
+
+        // Google Drive: https://drive.google.com/open?id=FILE_ID
+        const driveMatch2 = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+        if (driveMatch2) {
+            return `https://drive.google.com/uc?export=view&id=${driveMatch2[1]}`;
+        }
+
+        // Dropbox: remplacer dl=0 par dl=1
+        if (url.includes('dropbox.com')) {
+            return url.replace('dl=0', 'dl=1');
+        }
+
+        // URL déjà directe
+        return url;
     }
 };
 

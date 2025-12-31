@@ -113,8 +113,9 @@ const AdminRecommandations = {
 
         if (content && featuredReco) {
             const typeIcon = this.typeIcons[featuredReco.type] || '📌';
-            const imageHtml = featuredReco.image_url
-                ? `<img src="${featuredReco.image_url}" alt="${this.escapeHtml(featuredReco.titre)}">`
+            const imageUrl = this.getDirectImageUrl(featuredReco.image_url);
+            const imageHtml = imageUrl
+                ? `<img src="${imageUrl}" alt="${this.escapeHtml(featuredReco.titre)}">`
                 : `<span class="type-icon">${typeIcon}</span>`;
 
             content.innerHTML = `
@@ -168,8 +169,9 @@ const AdminRecommandations = {
             list.innerHTML = filteredRecos.map(reco => {
                 const isFeatured = reco.id === this.featuredRecoId;
                 const typeIcon = this.typeIcons[reco.type] || '📌';
-                const imageHtml = reco.image_url
-                    ? `<img src="${reco.image_url}" alt="">`
+                const imageUrl = this.getDirectImageUrl(reco.image_url);
+                const imageHtml = imageUrl
+                    ? `<img src="${imageUrl}" alt="">`
                     : `<span class="type-icon">${typeIcon}</span>`;
 
                 return `
@@ -333,9 +335,17 @@ const AdminRecommandations = {
         const preview = document.getElementById('imagePreview');
         if (!preview) return;
 
-        if (url && url.match(/\.(jpg|jpeg|png|gif|webp)/i)) {
+        const directUrl = this.getDirectImageUrl(url);
+
+        // Vérifier si c'est une image (extension ou Google Drive)
+        const isImage = url && (
+            url.match(/\.(jpg|jpeg|png|gif|webp)/i) ||
+            url.includes('drive.google.com')
+        );
+
+        if (isImage && directUrl) {
             preview.classList.add('has-image');
-            preview.innerHTML = `<img src="${url}" alt="Aperçu" onerror="this.parentElement.innerHTML='<span>Image invalide</span>'; this.parentElement.classList.remove('has-image');">`;
+            preview.innerHTML = `<img src="${directUrl}" alt="Aperçu" onerror="this.parentElement.innerHTML='<span>Image invalide</span>'; this.parentElement.classList.remove('has-image');">`;
         } else {
             preview.classList.remove('has-image');
             preview.innerHTML = '<span>Aperçu image</span>';
@@ -636,6 +646,33 @@ const AdminRecommandations = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    /**
+     * Convertit les URLs de partage en URLs directes pour les images
+     */
+    getDirectImageUrl(url) {
+        if (!url) return null;
+
+        // Google Drive: https://drive.google.com/file/d/FILE_ID/view
+        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) {
+            return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+        }
+
+        // Google Drive: https://drive.google.com/open?id=FILE_ID
+        const driveMatch2 = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+        if (driveMatch2) {
+            return `https://drive.google.com/uc?export=view&id=${driveMatch2[1]}`;
+        }
+
+        // Dropbox: remplacer dl=0 par dl=1
+        if (url.includes('dropbox.com')) {
+            return url.replace('dl=0', 'dl=1');
+        }
+
+        // URL déjà directe
+        return url;
     }
 };
 
