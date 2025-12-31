@@ -380,6 +380,11 @@ const AdminParametres = {
     },
 
     /**
+     * Liste des emojis disponibles pour les éléments de menu
+     */
+    menuEmojis: ['📆', '📅', '📂', '📁', '📖', '📚', '🧠', '💡', '🟢', '🟠', '🟣', '🔵', '📝', '✏️', '📋', '📊', '🎬', '📺', '🎵', '🎮', '❓', '✉️', '💬', '🏠', '⭐', '🔔', '📌', '🎯', '🏆', '🎓'],
+
+    /**
      * Génère le HTML d'un élément de menu
      */
     renderMenuItem(item) {
@@ -390,9 +395,9 @@ const AdminParametres = {
         const itemClass = item.visible ? '' : ' disabled';
 
         return `
-            <div class="menu-item${itemClass}" data-id="${item.id}" draggable="true">
+            <div class="menu-item${itemClass}" data-id="${item.id}" data-icon="${item.icon}" draggable="true">
                 <span class="menu-item-drag">⋮⋮</span>
-                <div class="menu-item-icon">${item.icon}</div>
+                <div class="menu-item-icon" onclick="AdminParametres.openIconPicker(this, '${item.id}')" title="Cliquer pour changer l'icône">${item.icon}</div>
                 <span class="menu-item-name">${item.nom}</span>
                 <span class="menu-item-status ${statusClass}">${statusText}</span>
                 <div class="menu-item-actions">
@@ -403,6 +408,66 @@ const AdminParametres = {
                 </div>
             </div>
         `;
+    },
+
+    /**
+     * Ouvre le picker d'icône pour un élément
+     */
+    openIconPicker(iconEl, itemId) {
+        // Fermer tout picker existant
+        this.closeIconPicker();
+
+        const picker = document.createElement('div');
+        picker.className = 'icon-picker-dropdown';
+        picker.id = 'iconPickerDropdown';
+        picker.innerHTML = this.menuEmojis.map(emoji =>
+            `<button class="icon-picker-option" data-emoji="${emoji}">${emoji}</button>`
+        ).join('');
+
+        // Positionner le picker
+        const rect = iconEl.getBoundingClientRect();
+        picker.style.position = 'fixed';
+        picker.style.top = `${rect.bottom + 5}px`;
+        picker.style.left = `${rect.left}px`;
+
+        // Gestionnaire de clic sur emoji
+        picker.addEventListener('click', (e) => {
+            const btn = e.target.closest('.icon-picker-option');
+            if (btn) {
+                const emoji = btn.dataset.emoji;
+                iconEl.textContent = emoji;
+                iconEl.closest('.menu-item').dataset.icon = emoji;
+                this.closeIconPicker();
+                this.markAsChanged();
+            }
+        });
+
+        document.body.appendChild(picker);
+
+        // Fermer au clic ailleurs
+        setTimeout(() => {
+            document.addEventListener('click', this.handleOutsideClick);
+        }, 10);
+    },
+
+    /**
+     * Gestionnaire pour fermer le picker au clic extérieur
+     */
+    handleOutsideClick(e) {
+        if (!e.target.closest('.icon-picker-dropdown') && !e.target.closest('.menu-item-icon')) {
+            AdminParametres.closeIconPicker();
+        }
+    },
+
+    /**
+     * Ferme le picker d'icône
+     */
+    closeIconPicker() {
+        const existing = document.getElementById('iconPickerDropdown');
+        if (existing) {
+            existing.remove();
+        }
+        document.removeEventListener('click', this.handleOutsideClick);
     },
 
     /**
@@ -497,11 +562,13 @@ const AdminParametres = {
             const toggle = el.querySelector('.toggle-mini');
             const isVisible = toggle?.classList.contains('active') || false;
             const name = el.querySelector('.menu-item-name')?.textContent || '';
+            const icon = el.dataset.icon || el.querySelector('.menu-item-icon')?.textContent || '📄';
 
             menuItems.push({
                 element_code: itemId,
                 visible: isVisible,
                 nom_affiche: name,
+                icon: icon,
                 ordre: index + 1
             });
         });

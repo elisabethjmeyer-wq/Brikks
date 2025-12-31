@@ -710,3 +710,54 @@
         gap: 8px;
     }
 }
+
+/* ===== ICON PICKER DROPDOWN ===== */
+.icon-picker-dropdown {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    padding: 12px;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    z-index: 9999;
+    max-width: 260px;
+    animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.icon-picker-option {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: var(--gray-50);
+    border-radius: 8px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-picker-option:hover {
+    background: var(--primary-bg);
+    transform: scale(1.1);
+}
+
+/* Rendre l'icône de menu cliquable */
+.menu-item-icon {
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+    border-radius: 6px;
+    padding: 2px;
+}
+
+.menu-item-icon:hover {
+    transform: scale(1.15);
+    background: var(--primary-bg);
+}
