@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Vidéos de la semaine">
+    <title>Vidéos de la semaine - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/eleve-videos.css">
+</head>
+<body>
+
+<!-- Contenu de la page -->
+<div id="videos-page" class="page-container">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <a href="accueil.html">Accueil</a>
+        <span class="separator">›</span>
+        <span class="current">Vidéos de la semaine</span>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="page-header">
+        <h1>🎬 Vidéos de la semaine</h1>
+        <p>Retrouve le bilan et les infos importantes de chaque semaine</p>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des vidéos...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="videos-content" style="display: none;">
+
+        <!-- Featured Video -->
+        <div class="featured-video" id="featuredVideo">
+            <div class="featured-label">
+                <span>⭐</span> Vidéo de cette semaine
+            </div>
+            <div class="featured-video-content" id="featuredVideoContent">
+                <!-- Video container -->
+                <div class="video-container" id="videoContainer">
+                    <div class="video-placeholder" id="videoPlaceholder">
+                        <div class="play-btn">▶</div>
+                        <h3 id="placeholderTitle">Chargement...</h3>
+                        <p id="placeholderSubtitle"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="featured-info" id="featuredInfo">
+                <!-- Dynamically filled -->
+            </div>
+            <!-- Message joint -->
+            <div class="featured-message" id="featuredMessage" style="display: none;">
+                <div class="message-icon">📝</div>
+                <div class="message-text" id="messageText"></div>
+            </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <div class="filters-bar">
+            <input type="text" class="search-input" id="searchInput" placeholder="Rechercher une vidéo...">
+            <select class="filter-select" id="filterMonth">
+                <option value="all">Tous les mois</option>
+            </select>
+        </div>
+
+        <!-- Archives List -->
+        <div class="archives-card">
+            <div class="archives-header">
+                <h2>📅 Archives</h2>
+                <span class="archives-count" id="archivesCount">0 vidéos</span>
+            </div>
+
+            <div class="archives-list" id="archivesList">
+                <!-- Dynamically filled -->
+            </div>
+
+            <!-- Empty state -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">📭</div>
+                <h3>Aucune vidéo disponible</h3>
+                <p>Les vidéos de la semaine apparaîtront ici</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Video Popup -->
+<div class="video-popup-overlay" id="videoPopup">
+    <div class="video-popup">
+        <div class="video-popup-header">
+            <span class="video-popup-title" id="videoPopupTitle"></span>
+            <button class="video-popup-close" id="closePopup">✕</button>
+        </div>
+        <div class="video-popup-content">
+            <iframe id="videoPopupIframe" src="" allowfullscreen></iframe>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/eleve-videos.js"></script>
+
+</body>
+</html>

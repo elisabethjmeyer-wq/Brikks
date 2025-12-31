@@ -23,7 +23,8 @@ const CONFIG = {
         SUPPORTS_CHAPITRE: 'SUPPORTS_CHAPITRE',
         PARAMETRES: 'PARAMETRES',
         AGENDAS: 'AGENDAS',
-        CONFIG_MENU: 'CONFIG_MENU'
+        CONFIG_MENU: 'CONFIG_MENU',
+        VIDEOS: 'VIDEOS'
     },
 
     // URLs de redirection (avec préfixe GitHub Pages)
