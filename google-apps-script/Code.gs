@@ -1770,7 +1770,7 @@ function deleteCategorieFAQ(data) {
     return { success: false, error: 'Catégorie FAQ non trouvée: ' + catData.id };
   }
 
-  // Vérifier s'il y a des questions dans cette catégorie (supports both categorie_id and categories columns)
+  // Retirer cette catégorie des questions qui l'utilisent
   const questionsSheet = ss.getSheetByName(SHEETS.QUESTIONS_FAQ);
   if (questionsSheet) {
     const questionsData = questionsSheet.getDataRange().getValues();
@@ -1778,26 +1778,24 @@ function deleteCategorieFAQ(data) {
     const catIdCol = questionsHeaders.indexOf('categorie_id');
     const categoriesCol = questionsHeaders.indexOf('categories');
 
-    const hasQuestions = questionsData.slice(1).some(row => {
-      // Check single category ID column
-      if (catIdCol >= 0 && row[catIdCol] === catData.id) {
-        return true;
+    // Parcourir les questions et retirer la catégorie
+    for (let i = 1; i < questionsData.length; i++) {
+      let updated = false;
+
+      // Nettoyer categorie_id si c'est cette catégorie
+      if (catIdCol >= 0 && questionsData[i][catIdCol] === catData.id) {
+        questionsSheet.getRange(i + 1, catIdCol + 1).setValue('');
+        updated = true;
       }
-      // Check multi-category column (comma-separated)
-      if (categoriesCol >= 0 && row[categoriesCol]) {
-        const categoryIds = String(row[categoriesCol]).split(',').map(id => id.trim());
-        if (categoryIds.includes(catData.id)) {
-          return true;
+
+      // Nettoyer la colonne categories (multi-catégories)
+      if (categoriesCol >= 0 && questionsData[i][categoriesCol]) {
+        const categoryIds = String(questionsData[i][categoriesCol]).split(',').map(id => id.trim());
+        const filteredIds = categoryIds.filter(id => id !== catData.id);
+        if (filteredIds.length !== categoryIds.length) {
+          questionsSheet.getRange(i + 1, categoriesCol + 1).setValue(filteredIds.join(','));
         }
       }
-      return false;
-    });
-
-    if (hasQuestions) {
-      return {
-        success: false,
-        error: 'Impossible de supprimer cette catégorie car elle contient des questions'
-      };
     }
   }
 

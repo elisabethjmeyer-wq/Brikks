@@ -757,7 +757,7 @@ const AdminFAQ = {
                     </div>
                     <div class="category-count">${questionsCount} question${questionsCount > 1 ? 's' : ''}</div>
                     <div class="category-actions">
-                        <button class="action-btn delete" onclick="AdminFAQ.confirmDeleteCategory('${cat.id}')" title="Supprimer" ${questionsCount > 0 ? 'disabled' : ''}>
+                        <button class="action-btn delete" onclick="AdminFAQ.confirmDeleteCategory('${cat.id}')" title="Supprimer">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"/>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -828,15 +828,20 @@ const AdminFAQ = {
             this.getQuestionCategories(q).includes(categoryId)
         ).length;
 
-        if (questionsCount > 0) {
-            alert(`Impossible de supprimer cette catégorie car elle est utilisée par ${questionsCount} question(s).`);
-            return;
-        }
-
         this.deletingItemId = categoryId;
         this.deletingItemType = 'category';
         document.getElementById('deleteTitle').textContent = 'Supprimer cette catégorie ?';
-        document.getElementById('deleteConfirmText').textContent = `"${category.nom}"`;
+
+        if (questionsCount > 0) {
+            document.getElementById('deleteConfirmText').innerHTML = `
+                <strong>"${this.escapeHtml(category.nom)}"</strong><br><br>
+                <span style="color: #ef4444;">Attention : ${questionsCount} question(s) utilisent cette catégorie.
+                Ces questions perdront cette catégorie.</span>
+            `;
+        } else {
+            document.getElementById('deleteConfirmText').textContent = `"${category.nom}"`;
+        }
+
         document.getElementById('deleteModal').classList.remove('hidden');
     },
 
