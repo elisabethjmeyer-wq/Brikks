@@ -707,7 +707,5 @@ const AdminVideos = {
     }
 };
 
-// Initialisation au chargement de la page
-document.addEventListener('DOMContentLoaded', () => {
-    AdminVideos.init();
-});
+// Export global
+window.AdminVideos = AdminVideos;
