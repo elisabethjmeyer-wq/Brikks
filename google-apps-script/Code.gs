@@ -25,7 +25,9 @@ const SHEETS = {
   CLASSES: 'CLASSES',
   GROUPES: 'GROUPES',
   VIDEOS: 'VIDEOS',
-  RECOMMANDATIONS: 'RECOMMANDATIONS'
+  RECOMMANDATIONS: 'RECOMMANDATIONS',
+  CATEGORIES_FAQ: 'CATEGORIES_FAQ',
+  QUESTIONS_FAQ: 'QUESTIONS_FAQ'
 };
 
 /**
@@ -153,6 +155,28 @@ function handleRequest(e) {
         break;
       case 'deleteRecommandation':
         result = deleteRecommandation(request);
+        break;
+
+      // CATEGORIES FAQ
+      case 'createCategorieFAQ':
+        result = createCategorieFAQ(request);
+        break;
+      case 'updateCategorieFAQ':
+        result = updateCategorieFAQ(request);
+        break;
+      case 'deleteCategorieFAQ':
+        result = deleteCategorieFAQ(request);
+        break;
+
+      // QUESTIONS FAQ
+      case 'createQuestionFAQ':
+        result = createQuestionFAQ(request);
+        break;
+      case 'updateQuestionFAQ':
+        result = updateQuestionFAQ(request);
+        break;
+      case 'deleteQuestionFAQ':
+        result = deleteQuestionFAQ(request);
         break;
 
       default:
@@ -1589,5 +1613,346 @@ function deleteRecommandation(data) {
   return {
     success: true,
     message: 'Recommandation supprimée avec succès'
+  };
+}
+
+// ========================================
+// FONCTIONS CATEGORIES FAQ
+// ========================================
+
+/**
+ * Crée une nouvelle catégorie FAQ
+ * @param {Object} data - { nom, icone, ordre }
+ */
+function createCategorieFAQ(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.CATEGORIES_FAQ);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet CATEGORIES_FAQ non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let catData = data;
+  if (typeof data.data === 'string') {
+    catData = JSON.parse(data.data);
+  } else if (data.data) {
+    catData = data.data;
+  }
+
+  if (!catData.nom) {
+    return { success: false, error: 'Le nom de la catégorie est requis' };
+  }
+
+  // Générer un ID unique
+  const id = catData.id || 'cat_faq_' + new Date().getTime();
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Construire la ligne selon les colonnes existantes
+  const newRow = [];
+  headers.forEach((header, index) => {
+    const colName = header.toLowerCase().trim();
+    if (colName === 'id') {
+      newRow[index] = id;
+    } else if (catData[colName] !== undefined) {
+      newRow[index] = catData[colName];
+    } else {
+      newRow[index] = '';
+    }
+  });
+
+  sheet.appendRow(newRow);
+
+  return {
+    success: true,
+    id: id,
+    message: 'Catégorie FAQ créée avec succès'
+  };
+}
+
+/**
+ * Met à jour une catégorie FAQ
+ * @param {Object} data - { id, nom?, icone?, ordre? }
+ */
+function updateCategorieFAQ(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.CATEGORIES_FAQ);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet CATEGORIES_FAQ non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let catData = data;
+  if (typeof data.data === 'string') {
+    catData = JSON.parse(data.data);
+  } else if (data.data) {
+    catData = data.data;
+  }
+
+  if (!catData.id) {
+    return { success: false, error: 'id est requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Trouver la ligne avec cet ID
+  const idCol = headers.indexOf('id');
+  let rowIndex = -1;
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idCol] === catData.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Catégorie FAQ non trouvée: ' + catData.id };
+  }
+
+  // Mettre à jour les colonnes spécifiées
+  const updates = ['nom', 'icone', 'ordre'];
+  updates.forEach(col => {
+    if (catData[col] !== undefined) {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(catData[col]);
+      }
+    }
+  });
+
+  return {
+    success: true,
+    message: 'Catégorie FAQ modifiée avec succès'
+  };
+}
+
+/**
+ * Supprime une catégorie FAQ
+ * @param {Object} data - { id }
+ */
+function deleteCategorieFAQ(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEETS.CATEGORIES_FAQ);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet CATEGORIES_FAQ non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let catData = data;
+  if (typeof data.data === 'string') {
+    catData = JSON.parse(data.data);
+  } else if (data.data) {
+    catData = data.data;
+  }
+
+  if (!catData.id) {
+    return { success: false, error: 'id est requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  // Trouver la ligne
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idCol] === catData.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Catégorie FAQ non trouvée: ' + catData.id };
+  }
+
+  // Vérifier s'il y a des questions dans cette catégorie
+  const questionsSheet = ss.getSheetByName(SHEETS.QUESTIONS_FAQ);
+  if (questionsSheet) {
+    const questionsData = questionsSheet.getDataRange().getValues();
+    const catIdCol = questionsData[0].indexOf('categorie_id');
+    if (catIdCol >= 0) {
+      const hasQuestions = questionsData.slice(1).some(row => row[catIdCol] === catData.id);
+      if (hasQuestions) {
+        return {
+          success: false,
+          error: 'Impossible de supprimer cette catégorie car elle contient des questions'
+        };
+      }
+    }
+  }
+
+  // Supprimer la ligne
+  sheet.deleteRow(rowIndex);
+
+  return {
+    success: true,
+    message: 'Catégorie FAQ supprimée avec succès'
+  };
+}
+
+// ========================================
+// FONCTIONS QUESTIONS FAQ
+// ========================================
+
+/**
+ * Crée une nouvelle question FAQ
+ * @param {Object} data - { categorie_id, question, reponse, ordre }
+ */
+function createQuestionFAQ(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS_FAQ);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet QUESTIONS_FAQ non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let qData = data;
+  if (typeof data.data === 'string') {
+    qData = JSON.parse(data.data);
+  } else if (data.data) {
+    qData = data.data;
+  }
+
+  if (!qData.question || !qData.reponse) {
+    return { success: false, error: 'La question et la réponse sont requises' };
+  }
+
+  // Générer un ID unique
+  const id = qData.id || 'faq_' + new Date().getTime();
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Construire la ligne selon les colonnes existantes
+  const newRow = [];
+  headers.forEach((header, index) => {
+    const colName = header.toLowerCase().trim();
+    if (colName === 'id') {
+      newRow[index] = id;
+    } else if (qData[colName] !== undefined) {
+      newRow[index] = qData[colName];
+    } else {
+      newRow[index] = '';
+    }
+  });
+
+  sheet.appendRow(newRow);
+
+  return {
+    success: true,
+    id: id,
+    message: 'Question FAQ créée avec succès'
+  };
+}
+
+/**
+ * Met à jour une question FAQ
+ * @param {Object} data - { id, categorie_id?, question?, reponse?, ordre? }
+ */
+function updateQuestionFAQ(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS_FAQ);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet QUESTIONS_FAQ non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let qData = data;
+  if (typeof data.data === 'string') {
+    qData = JSON.parse(data.data);
+  } else if (data.data) {
+    qData = data.data;
+  }
+
+  if (!qData.id) {
+    return { success: false, error: 'id est requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Trouver la ligne avec cet ID
+  const idCol = headers.indexOf('id');
+  let rowIndex = -1;
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idCol] === qData.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Question FAQ non trouvée: ' + qData.id };
+  }
+
+  // Mettre à jour les colonnes spécifiées
+  const updates = ['categorie_id', 'question', 'reponse', 'ordre'];
+  updates.forEach(col => {
+    if (qData[col] !== undefined) {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(qData[col]);
+      }
+    }
+  });
+
+  return {
+    success: true,
+    message: 'Question FAQ modifiée avec succès'
+  };
+}
+
+/**
+ * Supprime une question FAQ
+ * @param {Object} data - { id }
+ */
+function deleteQuestionFAQ(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS_FAQ);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet QUESTIONS_FAQ non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let qData = data;
+  if (typeof data.data === 'string') {
+    qData = JSON.parse(data.data);
+  } else if (data.data) {
+    qData = data.data;
+  }
+
+  if (!qData.id) {
+    return { success: false, error: 'id est requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  // Trouver la ligne
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idCol] === qData.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Question FAQ non trouvée: ' + qData.id };
+  }
+
+  // Supprimer la ligne
+  sheet.deleteRow(rowIndex);
+
+  return {
+    success: true,
+    message: 'Question FAQ supprimée avec succès'
   };
 }

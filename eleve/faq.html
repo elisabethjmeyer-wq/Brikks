@@ -3,30 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Questions fréquentes">
     <title>FAQ - Brikks</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../css/style.css">
-</head>
-<body>
 
-<div class="placeholder-content">
-    <div class="icon">🚧</div>
-    <h2>FAQ</h2>
-    <p>Questions fréquemment posées.</p>
-    <p class="hint">Bientôt disponible !</p>
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/eleve-faq.css">
+</head>
+<body class="loading-layout">
+
+<!-- Contenu de la page -->
+<div id="faq-page">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1>❓ Questions fréquentes</h1>
+        <p>Trouve rapidement les réponses à tes questions</p>
+    </div>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="faq-content" style="display: none;">
+
+        <!-- Search and Filters -->
+        <div class="faq-search-section">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Rechercher une question...">
+            </div>
+            <select class="filter-select" id="filterCategory">
+                <option value="all">Toutes les catégories</option>
+                <!-- Dynamically filled -->
+            </select>
+        </div>
+
+        <!-- Results count -->
+        <div class="results-info">
+            <span id="resultsCount">0 questions</span>
+        </div>
+
+        <!-- FAQ List -->
+        <div class="faq-list" id="faqList">
+            <!-- Dynamically filled -->
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">🔍</div>
+            <h3>Aucun résultat</h3>
+            <p>Essaie avec d'autres mots-clés</p>
+        </div>
+
+        <!-- CTA Contact -->
+        <div class="cta-contact" id="ctaContact">
+            <div class="cta-icon">💬</div>
+            <div class="cta-content">
+                <h3>Tu n'as pas trouvé ta réponse ?</h3>
+                <p>Pose ta question directement à ton professeur</p>
+            </div>
+            <a href="messagerie.html" class="btn btn-primary">Envoyer un message</a>
+        </div>
+    </div>
 </div>
 
+<!-- Scripts -->
 <script src="../js/config.js"></script>
 <script src="../js/sheets.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/eleve-layout.js"></script>
+<script src="../js/eleve-faq.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', async function() {
         await EleveLayout.init('faq', 'FAQ');
+        EleveFAQ.init();
     });
 </script>
 
