@@ -5,7 +5,8 @@
 const AdminUtilisateurs = {
     // Données
     users: [],
-    classes: [],
+    classes: [],        // Liste des classes [{id, nom, annee_scolaire}]
+    classesMap: {},     // Mapping id -> nom pour affichage
     groupes: [],
 
     // Pagination
@@ -44,25 +45,29 @@ const AdminUtilisateurs = {
      * Charge les données depuis Google Sheets
      */
     async loadData() {
-        const users = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.UTILISATEURS);
+        // Charger utilisateurs et classes en parallèle
+        const [users, classesData] = await Promise.all([
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.UTILISATEURS),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.CLASSES)
+        ]);
+
         this.users = users || [];
 
-        // Extraire les classes et groupes uniques
-        const classesSet = new Set();
-        const groupesSet = new Set();
+        // Charger les classes depuis l'onglet CLASSES
+        this.classes = classesData || [];
+        this.classesMap = {};
+        this.classes.forEach(c => {
+            this.classesMap[c.id] = c.nom || c.id;
+        });
 
+        // Extraire les groupes uniques depuis les utilisateurs
+        const groupesSet = new Set();
         this.users.forEach(user => {
-            const classeValue = user.classe_id || user.classes || '';
-            if (classeValue) {
-                classeValue.toString().split(',').map(c => c.trim()).filter(c => c).forEach(c => classesSet.add(c));
-            }
             const groupeValue = user.groupe || user.groupes || '';
             if (groupeValue) {
                 groupeValue.toString().split(',').map(g => g.trim()).filter(g => g).forEach(g => groupesSet.add(g));
             }
         });
-
-        this.classes = Array.from(classesSet).sort();
         this.groupes = Array.from(groupesSet).sort();
 
         console.log('Données chargées:', {
@@ -101,11 +106,12 @@ const AdminUtilisateurs = {
      * Affiche les options des filtres
      */
     renderFilters() {
-        // Classes
+        // Classes - afficher le nom, stocker l'ID
         const classeSelect = document.getElementById('filterClasse');
         classeSelect.innerHTML = '<option value="">Toutes les classes</option>';
         this.classes.forEach(c => {
-            classeSelect.innerHTML += `<option value="${c}">${c}</option>`;
+            const displayName = c.nom || c.id;
+            classeSelect.innerHTML += `<option value="${c.id}">${displayName}</option>`;
         });
 
         // Groupes
@@ -120,7 +126,8 @@ const AdminUtilisateurs = {
         if (userClasseSelect) {
             userClasseSelect.innerHTML = '<option value="">Sélectionner...</option>';
             this.classes.forEach(c => {
-                userClasseSelect.innerHTML += `<option value="${c}">${c}</option>`;
+                const displayName = c.nom || c.id;
+                userClasseSelect.innerHTML += `<option value="${c.id}">${displayName}</option>`;
             });
         }
 
@@ -240,10 +247,11 @@ const AdminUtilisateurs = {
             roleClass = 'eleve';
         }
 
-        // Classe
-        const classeValue = (user.classe_id || user.classes || '').toString().trim();
-        const classeHtml = classeValue
-            ? `<span class="class-badge">${classeValue}</span>`
+        // Classe - afficher le nom au lieu de l'ID
+        const classeId = (user.classe_id || user.classes || '').toString().trim();
+        const classeName = this.classesMap[classeId] || classeId;
+        const classeHtml = classeId
+            ? `<span class="class-badge">${classeName}</span>`
             : '<span class="no-data">—</span>';
 
         // Groupe
