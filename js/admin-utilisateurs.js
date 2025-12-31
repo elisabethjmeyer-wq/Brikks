@@ -46,11 +46,15 @@ const AdminUtilisateurs = {
         const groupesSet = new Set();
 
         this.users.forEach(user => {
-            if (user.classes) {
-                user.classes.split(',').map(c => c.trim()).filter(c => c).forEach(c => classesSet.add(c));
+            // Supporter classe_id (single) ou classes (multiple)
+            const classeValue = user.classe_id || user.classes || '';
+            if (classeValue) {
+                classeValue.toString().split(',').map(c => c.trim()).filter(c => c).forEach(c => classesSet.add(c));
             }
-            if (user.groupes) {
-                user.groupes.split(',').map(g => g.trim()).filter(g => g).forEach(g => groupesSet.add(g));
+            // Supporter groupe (single) ou groupes (multiple)
+            const groupeValue = user.groupe || user.groupes || '';
+            if (groupeValue) {
+                groupeValue.toString().split(',').map(g => g.trim()).filter(g => g).forEach(g => groupesSet.add(g));
             }
         });
 
@@ -78,7 +82,7 @@ const AdminUtilisateurs = {
     renderStats() {
         const total = this.users.length;
         const eleves = this.users.filter(u => (u.role || '').toLowerCase() === 'eleve').length;
-        const admins = this.users.filter(u => (u.role || '').toLowerCase() === 'admin').length;
+        const admins = this.users.filter(u => ['admin', 'prof', 'professeur'].includes((u.role || '').toLowerCase())).length;
 
         document.getElementById('statTotal').textContent = total;
         document.getElementById('statEleves').textContent = eleves;
@@ -123,13 +127,15 @@ const AdminUtilisateurs = {
 
             // Classe
             if (this.filters.classe) {
-                const userClasses = (user.classes || '').split(',').map(c => c.trim());
+                const classeValue = (user.classe_id || user.classes || '').toString();
+                const userClasses = classeValue.split(',').map(c => c.trim());
                 if (!userClasses.includes(this.filters.classe)) return false;
             }
 
             // Groupe
             if (this.filters.groupe) {
-                const userGroupes = (user.groupes || '').split(',').map(g => g.trim());
+                const groupeValue = (user.groupe || user.groupes || '').toString();
+                const userGroupes = groupeValue.split(',').map(g => g.trim());
                 if (!userGroupes.includes(this.filters.groupe)) return false;
             }
 
@@ -166,17 +172,19 @@ const AdminUtilisateurs = {
      */
     renderUserRow(user) {
         const role = (user.role || 'eleve').toLowerCase();
-        const roleLabel = role === 'admin' ? '👑 Admin' : '🎓 Élève';
-        const roleClass = role === 'admin' ? 'admin' : 'eleve';
+        const roleLabel = role === 'admin' || role === 'prof' ? '👑 Admin' : '🎓 Élève';
+        const roleClass = role === 'admin' || role === 'prof' ? 'admin' : 'eleve';
 
-        // Classes
-        const classesHtml = user.classes
-            ? user.classes.split(',').map(c => `<span class="tag classe">${c.trim()}</span>`).join('')
+        // Classes (supporter classe_id ou classes)
+        const classeValue = (user.classe_id || user.classes || '').toString();
+        const classesHtml = classeValue
+            ? classeValue.split(',').map(c => `<span class="tag classe">${c.trim()}</span>`).join('')
             : '<span class="no-data">—</span>';
 
-        // Groupes
-        const groupesHtml = user.groupes
-            ? user.groupes.split(',').map(g => `<span class="tag groupe">${g.trim()}</span>`).join('')
+        // Groupes (supporter groupe ou groupes)
+        const groupeValue = (user.groupe || user.groupes || '').toString();
+        const groupesHtml = groupeValue
+            ? groupeValue.split(',').map(g => `<span class="tag groupe">${g.trim()}</span>`).join('')
             : '<span class="no-data">—</span>';
 
         return `
@@ -355,8 +363,10 @@ const AdminUtilisateurs = {
         if (!user) return;
 
         this.editingUser = user;
-        this.selectedClasses = user.classes ? user.classes.split(',').map(c => c.trim()).filter(c => c) : [];
-        this.selectedGroupes = user.groupes ? user.groupes.split(',').map(g => g.trim()).filter(g => g) : [];
+        const classeValue = (user.classe_id || user.classes || '').toString();
+        const groupeValue = (user.groupe || user.groupes || '').toString();
+        this.selectedClasses = classeValue ? classeValue.split(',').map(c => c.trim()).filter(c => c) : [];
+        this.selectedGroupes = groupeValue ? groupeValue.split(',').map(g => g.trim()).filter(g => g) : [];
 
         document.getElementById('userModalTitle').textContent = '✏️ Modifier l\'utilisateur';
         document.getElementById('editUserId').value = user.id;
@@ -501,12 +511,12 @@ const AdminUtilisateurs = {
             prenom,
             identifiant,
             role,
-            classes: role === 'admin' ? '' : this.selectedClasses.join(', '),
-            groupes: role === 'admin' ? '' : this.selectedGroupes.join(', ')
+            classe_id: role === 'admin' || role === 'prof' ? '' : this.selectedClasses.join(', '),
+            groupe: role === 'admin' || role === 'prof' ? '' : this.selectedGroupes.join(', ')
         };
 
         if (password) {
-            userData.password = password;
+            userData.mot_de_passe = password;
         }
 
         try {
@@ -649,11 +659,13 @@ const AdminUtilisateurs = {
         const groupesSet = new Set();
 
         this.users.forEach(user => {
-            if (user.classes) {
-                user.classes.split(',').map(c => c.trim()).filter(c => c).forEach(c => classesSet.add(c));
+            const classeValue = (user.classe_id || user.classes || '').toString();
+            if (classeValue) {
+                classeValue.split(',').map(c => c.trim()).filter(c => c).forEach(c => classesSet.add(c));
             }
-            if (user.groupes) {
-                user.groupes.split(',').map(g => g.trim()).filter(g => g).forEach(g => groupesSet.add(g));
+            const groupeValue = (user.groupe || user.groupes || '').toString();
+            if (groupeValue) {
+                groupeValue.split(',').map(g => g.trim()).filter(g => g).forEach(g => groupesSet.add(g));
             }
         });
 
@@ -676,7 +688,10 @@ const AdminUtilisateurs = {
         // Classes
         const classesList = document.getElementById('classesList');
         classesList.innerHTML = this.classes.map(classe => {
-            const count = this.users.filter(u => (u.classes || '').split(',').map(c => c.trim()).includes(classe)).length;
+            const count = this.users.filter(u => {
+                const classeValue = (u.classe_id || u.classes || '').toString();
+                return classeValue.split(',').map(c => c.trim()).includes(classe);
+            }).length;
             return `
                 <div class="manage-item">
                     <div>
@@ -693,7 +708,10 @@ const AdminUtilisateurs = {
         // Groupes
         const groupesList = document.getElementById('groupesList');
         groupesList.innerHTML = this.groupes.map(groupe => {
-            const count = this.users.filter(u => (u.groupes || '').split(',').map(g => g.trim()).includes(groupe)).length;
+            const count = this.users.filter(u => {
+                const groupeValue = (u.groupe || u.groupes || '').toString();
+                return groupeValue.split(',').map(g => g.trim()).includes(groupe);
+            }).length;
             return `
                 <div class="manage-item">
                     <div>
@@ -737,7 +755,10 @@ const AdminUtilisateurs = {
      * Supprime une classe
      */
     async deleteClasse(classe) {
-        const usersWithClasse = this.users.filter(u => (u.classes || '').split(',').map(c => c.trim()).includes(classe));
+        const usersWithClasse = this.users.filter(u => {
+            const classeValue = (u.classe_id || u.classes || '').toString();
+            return classeValue.split(',').map(c => c.trim()).includes(classe);
+        });
 
         if (usersWithClasse.length > 0) {
             if (!confirm(`${usersWithClasse.length} utilisateur(s) utilisent cette classe. Voulez-vous vraiment la supprimer ? Elle sera retirée de tous les utilisateurs.`)) {
@@ -746,9 +767,10 @@ const AdminUtilisateurs = {
 
             // Retirer la classe de tous les utilisateurs
             for (const user of usersWithClasse) {
-                const newClasses = user.classes.split(',').map(c => c.trim()).filter(c => c !== classe).join(', ');
-                user.classes = newClasses;
-                await this.postToAppsScript('updateUser', { id: user.id, classes: newClasses });
+                const classeValue = (user.classe_id || user.classes || '').toString();
+                const newClasses = classeValue.split(',').map(c => c.trim()).filter(c => c !== classe).join(', ');
+                user.classe_id = newClasses;
+                await this.postToAppsScript('updateUser', { id: user.id, classe_id: newClasses });
             }
         }
 
@@ -787,7 +809,10 @@ const AdminUtilisateurs = {
      * Supprime un groupe
      */
     async deleteGroupe(groupe) {
-        const usersWithGroupe = this.users.filter(u => (u.groupes || '').split(',').map(g => g.trim()).includes(groupe));
+        const usersWithGroupe = this.users.filter(u => {
+            const groupeValue = (u.groupe || u.groupes || '').toString();
+            return groupeValue.split(',').map(g => g.trim()).includes(groupe);
+        });
 
         if (usersWithGroupe.length > 0) {
             if (!confirm(`${usersWithGroupe.length} utilisateur(s) utilisent ce groupe. Voulez-vous vraiment le supprimer ? Il sera retiré de tous les utilisateurs.`)) {
@@ -796,9 +821,10 @@ const AdminUtilisateurs = {
 
             // Retirer le groupe de tous les utilisateurs
             for (const user of usersWithGroupe) {
-                const newGroupes = user.groupes.split(',').map(g => g.trim()).filter(g => g !== groupe).join(', ');
-                user.groupes = newGroupes;
-                await this.postToAppsScript('updateUser', { id: user.id, groupes: newGroupes });
+                const groupeValue = (user.groupe || user.groupes || '').toString();
+                const newGroupes = groupeValue.split(',').map(g => g.trim()).filter(g => g !== groupe).join(', ');
+                user.groupe = newGroupes;
+                await this.postToAppsScript('updateUser', { id: user.id, groupe: newGroupes });
             }
         }
 
