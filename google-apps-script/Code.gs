@@ -20,7 +20,8 @@ const SHEETS = {
   CHAPITRES: 'CHAPITRES',
   SUPPORTS_CHAPITRE: 'SUPPORTS_CHAPITRE',
   PARAMETRES: 'PARAMETRES',
-  CONFIG_MENU: 'CONFIG_MENU'
+  CONFIG_MENU: 'CONFIG_MENU',
+  UTILISATEURS: 'UTILISATEURS'
 };
 
 /**
@@ -96,6 +97,20 @@ function handleRequest(e) {
       // CONFIG_MENU
       case 'updateMenuConfig':
         result = updateMenuConfig(request);
+        break;
+
+      // UTILISATEURS
+      case 'createUser':
+        result = createUser(request);
+        break;
+      case 'updateUser':
+        result = updateUser(request);
+        break;
+      case 'deleteUser':
+        result = deleteUser(request);
+        break;
+      case 'resetPassword':
+        result = resetPassword(request);
         break;
 
       default:
@@ -692,4 +707,233 @@ function testScript() {
   if (supportsSheet) {
     Logger.log('Nombre de lignes SUPPORTS_CHAPITRE: ' + supportsSheet.getLastRow());
   }
+}
+
+// ========================================
+// FONCTIONS UTILISATEURS
+// ========================================
+
+/**
+ * Crée un nouvel utilisateur
+ * @param {Object} data - { id, nom, prenom, identifiant, password, role, classes, groupes }
+ */
+function createUser(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.UTILISATEURS);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet UTILISATEURS non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let userData = data;
+  if (typeof data.data === 'string') {
+    userData = JSON.parse(data.data);
+  } else if (data.data) {
+    userData = data.data;
+  }
+
+  if (!userData.identifiant || !userData.password) {
+    return { success: false, error: 'identifiant et password sont requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Vérifier si l'identifiant existe déjà
+  const identifiantCol = headers.indexOf('identifiant');
+  if (identifiantCol >= 0) {
+    const exists = allData.slice(1).some(row => row[identifiantCol] === userData.identifiant);
+    if (exists) {
+      return { success: false, error: 'Cet identifiant existe déjà' };
+    }
+  }
+
+  // Générer un ID si non fourni
+  const id = userData.id || 'user_' + new Date().getTime();
+
+  // Construire la ligne selon les colonnes existantes
+  // Colonnes attendues: id | nom | prenom | identifiant | password | role | classes | groupes
+  const newRow = [];
+  const expectedCols = ['id', 'nom', 'prenom', 'identifiant', 'password', 'role', 'classes', 'groupes'];
+
+  headers.forEach((header, index) => {
+    const colName = header.toLowerCase().trim();
+    if (colName === 'id') {
+      newRow[index] = id;
+    } else if (expectedCols.includes(colName) && userData[colName] !== undefined) {
+      newRow[index] = userData[colName];
+    } else {
+      newRow[index] = '';
+    }
+  });
+
+  sheet.appendRow(newRow);
+
+  return {
+    success: true,
+    id: id,
+    message: 'Utilisateur créé avec succès'
+  };
+}
+
+/**
+ * Met à jour un utilisateur
+ * @param {Object} data - { id, nom?, prenom?, identifiant?, password?, role?, classes?, groupes? }
+ */
+function updateUser(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.UTILISATEURS);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet UTILISATEURS non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let userData = data;
+  if (typeof data.data === 'string') {
+    userData = JSON.parse(data.data);
+  } else if (data.data) {
+    userData = data.data;
+  }
+
+  if (!userData.id) {
+    return { success: false, error: 'id est requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Trouver la ligne avec cet ID
+  const idCol = headers.indexOf('id');
+  let rowIndex = -1;
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idCol] === userData.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Utilisateur non trouvé: ' + userData.id };
+  }
+
+  // Mettre à jour les colonnes spécifiées
+  const updates = ['nom', 'prenom', 'identifiant', 'password', 'role', 'classes', 'groupes'];
+  updates.forEach(col => {
+    if (userData[col] !== undefined && userData[col] !== '') {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(userData[col]);
+      }
+    }
+  });
+
+  return {
+    success: true,
+    message: 'Utilisateur modifié avec succès'
+  };
+}
+
+/**
+ * Supprime un utilisateur
+ * @param {Object} data - { id }
+ */
+function deleteUser(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.UTILISATEURS);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet UTILISATEURS non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let userData = data;
+  if (typeof data.data === 'string') {
+    userData = JSON.parse(data.data);
+  } else if (data.data) {
+    userData = data.data;
+  }
+
+  if (!userData.id) {
+    return { success: false, error: 'id est requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  // Trouver la ligne
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idCol] === userData.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Utilisateur non trouvé: ' + userData.id };
+  }
+
+  // Supprimer la ligne
+  sheet.deleteRow(rowIndex);
+
+  return {
+    success: true,
+    message: 'Utilisateur supprimé avec succès'
+  };
+}
+
+/**
+ * Réinitialise le mot de passe d'un utilisateur
+ * @param {Object} data - { id, password }
+ */
+function resetPassword(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.UTILISATEURS);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet UTILISATEURS non trouvé' };
+  }
+
+  // Parse les données si elles sont en string (JSONP)
+  let userData = data;
+  if (typeof data.data === 'string') {
+    userData = JSON.parse(data.data);
+  } else if (data.data) {
+    userData = data.data;
+  }
+
+  if (!userData.id || !userData.password) {
+    return { success: false, error: 'id et password sont requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Trouver la ligne avec cet ID
+  const idCol = headers.indexOf('id');
+  const passwordCol = headers.indexOf('password');
+
+  if (passwordCol === -1) {
+    return { success: false, error: 'Colonne password non trouvée' };
+  }
+
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idCol] === userData.id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Utilisateur non trouvé: ' + userData.id };
+  }
+
+  // Mettre à jour le mot de passe
+  sheet.getRange(rowIndex, passwordCol + 1).setValue(userData.password);
+
+  return {
+    success: true,
+    message: 'Mot de passe réinitialisé avec succès'
+  };
 }
