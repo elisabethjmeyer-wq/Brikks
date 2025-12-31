@@ -1,5 +1,6 @@
 /**
  * Admin FAQ - Gestion des questions fréquentes
+ * Design matching the mockup
  */
 
 const AdminFAQ = {
@@ -11,6 +12,9 @@ const AdminFAQ = {
     editingQuestionId: null,
     deletingItemId: null,
     deletingItemType: null, // 'question' ou 'category'
+
+    // Couleurs par défaut pour les catégories
+    defaultColors: ['#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#ef4444'],
 
     /**
      * Initialise la page
@@ -72,7 +76,17 @@ const AdminFAQ = {
     showError(message) {
         const loader = document.getElementById('loader');
         if (loader) {
-            loader.innerHTML = `<div style="color: #ef4444; text-align: center;"><p style="font-size: 48px;">⚠️</p><p>${message}</p></div>`;
+            loader.innerHTML = `
+                <div style="color: #ef4444; text-align: center;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 auto 16px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <p>${message}</p>
+                    <button onclick="AdminFAQ.init()" class="btn btn-primary" style="margin-top: 16px;">Réessayer</button>
+                </div>
+            `;
         }
     },
 
@@ -80,25 +94,14 @@ const AdminFAQ = {
      * Affiche les statistiques
      */
     renderStats() {
-        document.getElementById('totalQuestions').textContent = this.questions.length;
-        document.getElementById('totalCategories').textContent = this.categories.length;
+        const total = this.questions.length;
+        const texte = this.questions.filter(q => (q.type_reponse || 'texte') === 'texte').length;
+        const video = this.questions.filter(q => q.type_reponse === 'video').length;
+        const mixte = this.questions.filter(q => q.type_reponse === 'mixte').length;
 
-        // Stats par catégorie
-        const statsByCategory = document.getElementById('statsByCategory');
-        if (statsByCategory) {
-            statsByCategory.innerHTML = this.categories.map(cat => {
-                const count = this.questions.filter(q => q.categorie_id === cat.id).length;
-                return `
-                    <div class="stat-card small">
-                        <div class="stat-icon">${cat.icone || '📁'}</div>
-                        <div class="stat-info">
-                            <div class="stat-value">${count}</div>
-                            <div class="stat-label">${this.escapeHtml(cat.nom)}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
+        document.getElementById('totalQuestions').textContent = total;
+        document.getElementById('totalTexte').textContent = texte + mixte; // Texte includes mixte
+        document.getElementById('totalVideo').textContent = video + mixte; // Video includes mixte
     },
 
     /**
@@ -144,35 +147,127 @@ const AdminFAQ = {
         if (emptyState) emptyState.style.display = 'none';
 
         if (list) {
-            list.innerHTML = filteredQuestions.map(q => {
-                const category = this.categories.find(c => c.id === q.categorie_id);
-                const catIcon = category?.icone || '📁';
-                const catName = category?.nom || 'Sans catégorie';
+            list.innerHTML = filteredQuestions.map(q => this.renderQuestionItem(q)).join('');
+        }
+    },
 
-                return `
-                    <div class="faq-item" data-id="${q.id}">
-                        <div class="faq-item-header" onclick="AdminFAQ.toggleQuestion('${q.id}')">
-                            <div class="faq-item-icon">${catIcon}</div>
-                            <div class="faq-item-content">
-                                <div class="faq-item-question">${this.escapeHtml(q.question)}</div>
-                                <div class="faq-item-meta">
-                                    <span class="faq-item-category">${this.escapeHtml(catName)}</span>
-                                    <span class="faq-item-order">Ordre: ${q.ordre || '-'}</span>
-                                </div>
-                            </div>
-                            <div class="faq-item-actions">
-                                <button class="action-btn" onclick="event.stopPropagation(); AdminFAQ.editQuestion('${q.id}')" title="Modifier">✏️</button>
-                                <button class="action-btn danger" onclick="event.stopPropagation(); AdminFAQ.confirmDeleteQuestion('${q.id}')" title="Supprimer">🗑️</button>
-                                <span class="faq-item-chevron">▼</span>
-                            </div>
-                        </div>
-                        <div class="faq-item-answer">
-                            <div class="faq-item-answer-content">${this.formatAnswer(q.reponse)}</div>
+    /**
+     * Render un item de question
+     */
+    renderQuestionItem(q) {
+        const category = this.categories.find(c => c.id === q.categorie_id);
+        const catName = category?.nom || 'Sans catégorie';
+        const catColor = category?.couleur || '#6366f1';
+        const typeReponse = q.type_reponse || 'texte';
+
+        // Generate category tag class
+        const catClass = this.getCategoryClass(catName);
+
+        // Type tag HTML
+        const typeTagHtml = this.getTypeTagHtml(typeReponse);
+
+        return `
+            <div class="question-item" data-id="${q.id}">
+                <div class="question-header" onclick="AdminFAQ.toggleQuestion('${q.id}')">
+                    <div class="drag-handle">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="question-content">
+                        <div class="question-text">${this.escapeHtml(q.question)}</div>
+                        <div class="question-tags">
+                            <span class="tag ${catClass}" style="background: ${this.hexToRgba(catColor, 0.15)}; color: ${catColor};">
+                                ${category?.icone || '📁'} ${this.escapeHtml(catName)}
+                            </span>
+                            ${typeTagHtml}
                         </div>
                     </div>
-                `;
-            }).join('');
-        }
+                    <div class="question-actions">
+                        <button class="action-btn edit" onclick="event.stopPropagation(); AdminFAQ.editQuestion('${q.id}')" title="Modifier">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete" onclick="event.stopPropagation(); AdminFAQ.confirmDeleteQuestion('${q.id}')" title="Supprimer">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn chevron-btn" title="Voir la réponse">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="question-answer">
+                    <div class="answer-content">
+                        ${this.formatAnswer(q.reponse, q.video_url, typeReponse)}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Get category CSS class based on name
+     */
+    getCategoryClass(catName) {
+        const name = catName.toLowerCase();
+        if (name.includes('technique')) return 'tag-technique';
+        if (name.includes('note') || name.includes('évaluation')) return 'tag-notes';
+        if (name.includes('cours')) return 'tag-cours';
+        return 'tag-category';
+    },
+
+    /**
+     * Get type tag HTML
+     */
+    getTypeTagHtml(type) {
+        const icons = {
+            texte: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>`,
+            video: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>`,
+            mixte: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>`
+        };
+
+        const labels = {
+            texte: 'Texte',
+            video: 'Vidéo',
+            mixte: 'Mixte'
+        };
+
+        return `
+            <span class="tag tag-type ${type}">
+                ${icons[type] || icons.texte}
+                ${labels[type] || 'Texte'}
+            </span>
+        `;
+    },
+
+    /**
+     * Convert hex to rgba
+     */
+    hexToRgba(hex, alpha) {
+        if (!hex) return `rgba(99, 102, 241, ${alpha})`;
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     },
 
     /**
@@ -205,18 +300,70 @@ const AdminFAQ = {
      * Toggle l'affichage d'une réponse
      */
     toggleQuestion(questionId) {
-        const item = document.querySelector(`.faq-item[data-id="${questionId}"]`);
+        const item = document.querySelector(`.question-item[data-id="${questionId}"]`);
         if (item) {
             item.classList.toggle('open');
         }
     },
 
     /**
-     * Formate la réponse (gère les sauts de ligne)
+     * Formate la réponse (gère les sauts de ligne et vidéos)
      */
-    formatAnswer(text) {
-        if (!text) return '';
-        return this.escapeHtml(text).replace(/\n/g, '<br>');
+    formatAnswer(text, videoUrl, type) {
+        let html = '';
+
+        // Texte
+        if (text && (type === 'texte' || type === 'mixte')) {
+            html += `<p>${this.escapeHtml(text).replace(/\n/g, '</p><p>')}</p>`;
+        }
+
+        // Vidéo
+        if (videoUrl && (type === 'video' || type === 'mixte')) {
+            const embedUrl = this.getYouTubeEmbedUrl(videoUrl);
+            if (embedUrl) {
+                html += `
+                    <div class="video-wrapper">
+                        <iframe src="${embedUrl}" allowfullscreen></iframe>
+                    </div>
+                `;
+            }
+        }
+
+        return html || '<p><em>Aucune réponse</em></p>';
+    },
+
+    /**
+     * Get YouTube embed URL from various YouTube URL formats
+     */
+    getYouTubeEmbedUrl(url) {
+        if (!url) return null;
+
+        // Already an embed URL
+        if (url.includes('youtube.com/embed/')) {
+            return url;
+        }
+
+        // Standard YouTube URL
+        let videoId = null;
+
+        // youtube.com/watch?v=VIDEO_ID
+        const watchMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
+        if (watchMatch) {
+            videoId = watchMatch[1];
+        }
+
+        // youtu.be/VIDEO_ID
+        const shortMatch = url.match(/youtu\.be\/([^?]+)/);
+        if (shortMatch) {
+            videoId = shortMatch[1];
+        }
+
+        if (videoId) {
+            return `https://www.youtube.com/embed/${videoId}`;
+        }
+
+        // Return original URL if not YouTube (could be direct video link)
+        return url;
     },
 
     /**
@@ -235,6 +382,11 @@ const AdminFAQ = {
         document.getElementById('closeQuestionModal')?.addEventListener('click', () => this.closeQuestionModal());
         document.getElementById('cancelQuestionBtn')?.addEventListener('click', () => this.closeQuestionModal());
         document.getElementById('saveQuestionBtn')?.addEventListener('click', () => this.saveQuestion());
+
+        // Type selector change
+        document.querySelectorAll('input[name="typeReponse"]').forEach(radio => {
+            radio.addEventListener('change', () => this.updateFormForType());
+        });
 
         // Modal catégories
         document.getElementById('closeCategoriesModal')?.addEventListener('click', () => this.closeCategoriesModal());
@@ -255,6 +407,22 @@ const AdminFAQ = {
         });
     },
 
+    /**
+     * Update form visibility based on type
+     */
+    updateFormForType() {
+        const type = document.querySelector('input[name="typeReponse"]:checked')?.value || 'texte';
+        const texteGroup = document.getElementById('reponseTexteGroup');
+        const videoGroup = document.getElementById('reponseVideoGroup');
+
+        if (texteGroup) {
+            texteGroup.style.display = (type === 'texte' || type === 'mixte') ? 'block' : 'none';
+        }
+        if (videoGroup) {
+            videoGroup.style.display = (type === 'video' || type === 'mixte') ? 'block' : 'none';
+        }
+    },
+
     // ========== GESTION DES QUESTIONS ==========
 
     /**
@@ -262,12 +430,19 @@ const AdminFAQ = {
      */
     openAddQuestionModal() {
         this.editingQuestionId = null;
-        document.getElementById('modalTitle').textContent = '❓ Nouvelle question';
+        document.getElementById('modalTitle').innerHTML = '<span class="header-icon">?</span> Nouvelle question';
         document.getElementById('questionId').value = '';
         document.getElementById('questionCategory').value = '';
         document.getElementById('questionText').value = '';
         document.getElementById('questionAnswer').value = '';
+        document.getElementById('questionVideoUrl').value = '';
         document.getElementById('questionOrder').value = '';
+
+        // Reset type selector
+        const texteRadio = document.querySelector('input[name="typeReponse"][value="texte"]');
+        if (texteRadio) texteRadio.checked = true;
+        this.updateFormForType();
+
         document.getElementById('questionModal').classList.remove('hidden');
     },
 
@@ -279,12 +454,20 @@ const AdminFAQ = {
         if (!question) return;
 
         this.editingQuestionId = questionId;
-        document.getElementById('modalTitle').textContent = '✏️ Modifier la question';
+        document.getElementById('modalTitle').innerHTML = '<span class="header-icon">?</span> Modifier la question';
         document.getElementById('questionId').value = question.id;
         document.getElementById('questionCategory').value = question.categorie_id || '';
         document.getElementById('questionText').value = question.question || '';
         document.getElementById('questionAnswer').value = question.reponse || '';
+        document.getElementById('questionVideoUrl').value = question.video_url || '';
         document.getElementById('questionOrder').value = question.ordre || '';
+
+        // Set type selector
+        const type = question.type_reponse || 'texte';
+        const radio = document.querySelector(`input[name="typeReponse"][value="${type}"]`);
+        if (radio) radio.checked = true;
+        this.updateFormForType();
+
         document.getElementById('questionModal').classList.remove('hidden');
     },
 
@@ -303,22 +486,44 @@ const AdminFAQ = {
         const categoryId = document.getElementById('questionCategory').value;
         const questionText = document.getElementById('questionText').value.trim();
         const answer = document.getElementById('questionAnswer').value.trim();
+        const videoUrl = document.getElementById('questionVideoUrl').value.trim();
         const order = document.getElementById('questionOrder').value;
+        const typeReponse = document.querySelector('input[name="typeReponse"]:checked')?.value || 'texte';
 
-        if (!categoryId || !questionText || !answer) {
-            alert('Veuillez remplir tous les champs obligatoires.');
+        // Validation
+        if (!categoryId) {
+            alert('Veuillez sélectionner une catégorie.');
+            return;
+        }
+        if (!questionText) {
+            alert('Veuillez entrer une question.');
+            return;
+        }
+        if ((typeReponse === 'texte' || typeReponse === 'mixte') && !answer) {
+            alert('Veuillez entrer une réponse texte.');
+            return;
+        }
+        if ((typeReponse === 'video' || typeReponse === 'mixte') && !videoUrl) {
+            alert('Veuillez entrer une URL vidéo.');
             return;
         }
 
         const saveBtn = document.getElementById('saveQuestionBtn');
         saveBtn.disabled = true;
-        saveBtn.textContent = 'Enregistrement...';
+        saveBtn.innerHTML = `
+            <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+            </svg>
+            Enregistrement...
+        `;
 
         try {
             const questionData = {
                 categorie_id: categoryId,
                 question: questionText,
                 reponse: answer,
+                video_url: videoUrl,
+                type_reponse: typeReponse,
                 ordre: order || '1'
             };
 
@@ -339,7 +544,12 @@ const AdminFAQ = {
             alert('Erreur lors de la sauvegarde: ' + error.message);
         } finally {
             saveBtn.disabled = false;
-            saveBtn.textContent = '✓ Enregistrer';
+            saveBtn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Enregistrer
+            `;
         }
     },
 
@@ -366,6 +576,7 @@ const AdminFAQ = {
         this.renderCategoriesList();
         document.getElementById('newCategoryName').value = '';
         document.getElementById('newCategoryIcon').value = '';
+        document.getElementById('newCategoryColor').value = this.defaultColors[this.categories.length % this.defaultColors.length];
         document.getElementById('categoriesModal').classList.remove('hidden');
     },
 
@@ -384,22 +595,43 @@ const AdminFAQ = {
         if (!list) return;
 
         if (this.categories.length === 0) {
-            list.innerHTML = '<p class="empty-text">Aucune catégorie créée</p>';
+            list.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #6b7280;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 16px; opacity: 0.5;">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <p>Aucune catégorie créée</p>
+                </div>
+            `;
             return;
         }
 
         list.innerHTML = this.categories.map(cat => {
             const questionsCount = this.questions.filter(q => q.categorie_id === cat.id).length;
+            const color = cat.couleur || '#6366f1';
+
             return `
                 <div class="category-item" data-id="${cat.id}">
-                    <div class="category-item-icon">${cat.icone || '📁'}</div>
-                    <div class="category-item-info">
-                        <div class="category-item-name">${this.escapeHtml(cat.nom)}</div>
-                        <div class="category-item-count">${questionsCount} question${questionsCount > 1 ? 's' : ''}</div>
+                    <div class="category-icon" style="background: ${this.hexToRgba(color, 0.15)}; color: ${color};">
+                        ${cat.icone || '📁'}
                     </div>
-                    <div class="category-item-actions">
-                        <button class="action-btn" onclick="AdminFAQ.editCategory('${cat.id}')" title="Modifier">✏️</button>
-                        <button class="action-btn danger" onclick="AdminFAQ.confirmDeleteCategory('${cat.id}')" title="Supprimer" ${questionsCount > 0 ? 'disabled' : ''}>🗑️</button>
+                    <div class="category-info">
+                        <div class="category-name">${this.escapeHtml(cat.nom)}</div>
+                        <div class="category-count">${questionsCount} question${questionsCount > 1 ? 's' : ''}</div>
+                    </div>
+                    <div class="category-actions">
+                        <button class="action-btn edit" onclick="AdminFAQ.editCategory('${cat.id}')" title="Modifier">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </button>
+                        <button class="action-btn delete" onclick="AdminFAQ.confirmDeleteCategory('${cat.id}')" title="Supprimer" ${questionsCount > 0 ? 'disabled' : ''}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             `;
@@ -412,6 +644,7 @@ const AdminFAQ = {
     async addCategory() {
         const name = document.getElementById('newCategoryName').value.trim();
         const icon = document.getElementById('newCategoryIcon').value.trim() || '📁';
+        const color = document.getElementById('newCategoryColor').value;
 
         if (!name) {
             alert('Veuillez entrer un nom de catégorie.');
@@ -420,13 +653,19 @@ const AdminFAQ = {
 
         const addBtn = document.getElementById('addCategoryBtn');
         addBtn.disabled = true;
-        addBtn.textContent = 'Ajout...';
+        addBtn.innerHTML = `
+            <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+            </svg>
+            Ajout...
+        `;
 
         try {
             const maxOrder = Math.max(0, ...this.categories.map(c => parseInt(c.ordre) || 0));
             await this.callWebApp('createCategorieFAQ', {
                 nom: name,
                 icone: icon,
+                couleur: color,
                 ordre: String(maxOrder + 1)
             });
 
@@ -442,7 +681,13 @@ const AdminFAQ = {
             alert('Erreur lors de l\'ajout: ' + error.message);
         } finally {
             addBtn.disabled = false;
-            addBtn.textContent = '➕ Ajouter';
+            addBtn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Ajouter
+            `;
         }
     },
 
@@ -517,7 +762,12 @@ const AdminFAQ = {
 
         const deleteBtn = document.getElementById('confirmDeleteBtn');
         deleteBtn.disabled = true;
-        deleteBtn.textContent = 'Suppression...';
+        deleteBtn.innerHTML = `
+            <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+            </svg>
+            Suppression...
+        `;
 
         try {
             if (this.deletingItemType === 'question') {
@@ -540,7 +790,13 @@ const AdminFAQ = {
             alert('Erreur lors de la suppression: ' + error.message);
         } finally {
             deleteBtn.disabled = false;
-            deleteBtn.textContent = '🗑️ Supprimer';
+            deleteBtn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+                Supprimer
+            `;
         }
     },
 
@@ -553,9 +809,21 @@ const AdminFAQ = {
         return new Promise((resolve, reject) => {
             const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-            window[callbackName] = (response) => {
+            // Timeout après 30 secondes
+            const timeout = setTimeout(() => {
                 delete window[callbackName];
-                document.body.removeChild(script);
+                if (script.parentNode) {
+                    document.body.removeChild(script);
+                }
+                reject(new Error('Timeout: le serveur ne répond pas'));
+            }, 30000);
+
+            window[callbackName] = (response) => {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                if (script.parentNode) {
+                    document.body.removeChild(script);
+                }
 
                 if (response.success) {
                     resolve(response);
@@ -573,8 +841,11 @@ const AdminFAQ = {
             const script = document.createElement('script');
             script.src = `${CONFIG.WEBAPP_URL}?${params.toString()}`;
             script.onerror = () => {
+                clearTimeout(timeout);
                 delete window[callbackName];
-                document.body.removeChild(script);
+                if (script.parentNode) {
+                    document.body.removeChild(script);
+                }
                 reject(new Error('Erreur réseau'));
             };
 

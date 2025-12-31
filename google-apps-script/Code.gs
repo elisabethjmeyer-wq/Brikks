@@ -1713,7 +1713,7 @@ function updateCategorieFAQ(data) {
   }
 
   // Mettre à jour les colonnes spécifiées
-  const updates = ['nom', 'icone', 'ordre'];
+  const updates = ['nom', 'icone', 'couleur', 'ordre'];
   updates.forEach(col => {
     if (catData[col] !== undefined) {
       const colIndex = headers.indexOf(col);
@@ -1892,7 +1892,7 @@ function updateQuestionFAQ(data) {
   }
 
   // Mettre à jour les colonnes spécifiées
-  const updates = ['categorie_id', 'question', 'reponse', 'ordre'];
+  const updates = ['categorie_id', 'question', 'reponse', 'type_reponse', 'video_url', 'ordre'];
   updates.forEach(col => {
     if (qData[col] !== undefined) {
       const colIndex = headers.indexOf(col);
