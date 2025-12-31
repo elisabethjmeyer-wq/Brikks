@@ -3,30 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FAQ - Admin Brikks</title>
+    <meta name="description" content="Brikks - Gestion de la FAQ">
+    <title>FAQ - Administration - Brikks</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-faq.css">
 </head>
 <body>
 
-<div class="placeholder-content">
-    <div class="icon">🚧</div>
-    <h2>FAQ</h2>
-    <p>Cette fonctionnalité est en cours de développement.</p>
-    <p class="hint">Bientôt disponible !</p>
+<!-- Contenu de la page -->
+<div id="faq-page">
+    <!-- Page Header -->
+    <header class="admin-header">
+        <div>
+            <h1>❓ FAQ</h1>
+            <p>Gérez les questions fréquentes de vos élèves</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline" id="manageCategoriesBtn">
+                <span>📁</span>
+                Gérer les catégories
+            </button>
+            <button class="btn btn-primary" id="addQuestionBtn">
+                <span>➕</span>
+                Nouvelle question
+            </button>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement de la FAQ...</p>
+    </div>
+
+    <!-- Contenu principal (masqué pendant le chargement) -->
+    <div id="faq-content" style="display: none;">
+
+        <!-- Stats Cards -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon">❓</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalQuestions">0</div>
+                    <div class="stat-label">Questions</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📁</div>
+                <div class="stat-info">
+                    <div class="stat-value" id="totalCategories">0</div>
+                    <div class="stat-label">Catégories</div>
+                </div>
+            </div>
+            <div class="stats-by-category" id="statsByCategory">
+                <!-- Dynamically filled -->
+            </div>
+        </div>
+
+        <!-- Questions List -->
+        <div class="faq-card">
+            <div class="faq-header">
+                <h2>📋 Questions</h2>
+                <span class="faq-count" id="questionsCount">0 questions</span>
+            </div>
+
+            <div class="faq-filters">
+                <input type="text" class="search-input" id="searchInput" placeholder="Rechercher une question...">
+                <select class="filter-select" id="filterCategory">
+                    <option value="all">Toutes les catégories</option>
+                    <!-- Dynamically filled -->
+                </select>
+            </div>
+
+            <div class="faq-list" id="faqList">
+                <!-- Dynamically filled -->
+            </div>
+
+            <!-- Empty state -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <div class="empty-icon">📭</div>
+                <h3>Aucune question</h3>
+                <p>Cliquez sur "Nouvelle question" pour ajouter votre première question</p>
+            </div>
+        </div>
+    </div>
 </div>
 
+<!-- MODAL: Nouvelle/Éditer question -->
+<div class="modal-overlay hidden" id="questionModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modalTitle">❓ Nouvelle question</h2>
+            <button class="modal-close" id="closeQuestionModal">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="questionId">
+
+            <div class="form-group">
+                <label>Catégorie <span class="req">*</span></label>
+                <select class="form-input" id="questionCategory">
+                    <option value="">Sélectionner...</option>
+                    <!-- Dynamically filled -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Question <span class="req">*</span></label>
+                <input type="text" class="form-input" id="questionText" placeholder="Ex: Comment sont calculées les notes ?">
+            </div>
+
+            <div class="form-group">
+                <label>Réponse <span class="req">*</span></label>
+                <textarea class="form-textarea" id="questionAnswer" rows="5" placeholder="Rédigez la réponse..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Ordre d'affichage</label>
+                <input type="number" class="form-input" id="questionOrder" placeholder="1" min="1">
+                <p class="form-help">Les questions sont triées par ordre croissant</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelQuestionBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveQuestionBtn">✓ Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Gérer les catégories -->
+<div class="modal-overlay hidden" id="categoriesModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h2>📁 Gérer les catégories</h2>
+            <button class="modal-close" id="closeCategoriesModal">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="category-form">
+                <input type="text" class="form-input" id="newCategoryName" placeholder="Nom de la nouvelle catégorie">
+                <input type="text" class="form-input" id="newCategoryIcon" placeholder="Icône (emoji)" maxlength="2" style="width: 80px;">
+                <button class="btn btn-primary" id="addCategoryBtn">➕ Ajouter</button>
+            </div>
+
+            <div class="categories-list" id="categoriesList">
+                <!-- Dynamically filled -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="closeCategoriesBtn">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Confirmer suppression -->
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal confirm">
+        <div class="modal-body">
+            <div class="confirm-icon">🗑️</div>
+            <div class="confirm-title" id="deleteTitle">Supprimer cette question ?</div>
+            <div class="confirm-text" id="deleteConfirmText">Cette action est irréversible.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Annuler</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">🗑️ Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
 <script src="../js/config.js"></script>
 <script src="../js/sheets.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/admin-layout.js"></script>
+<script src="../js/admin-faq.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         AdminLayout.init('faq', 'FAQ');
+        AdminFAQ.init();
     });
 </script>
 
