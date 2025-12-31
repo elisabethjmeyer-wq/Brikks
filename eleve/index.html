@@ -13,14 +13,41 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/eleve-accueil.css">
 </head>
 <body>
 
 <!-- Contenu de la page (sera wrappé par le layout) -->
-<div class="placeholder-content">
-    <div class="icon">📚</div>
-    <h2>Bienvenue sur Brikks !</h2>
-    <p>Ton espace personnel pour apprendre et progresser en français, histoire, géographie et EMC.</p>
+<div class="accueil-container">
+    <!-- Header de bienvenue -->
+    <div id="greeting-container" class="accueil-header">
+        <!-- Généré par JS -->
+    </div>
+
+    <!-- Grille 2 colonnes : Vidéo + Recommandation -->
+    <div class="accueil-grid">
+        <!-- Vidéo de la semaine -->
+        <div id="video-section">
+            <div class="accueil-card">
+                <div class="accueil-card-body">
+                    <div class="accueil-loader">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommandation de la semaine -->
+        <div id="reco-section">
+            <div class="accueil-card">
+                <div class="accueil-card-body">
+                    <div class="accueil-loader">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Scripts -->
@@ -29,11 +56,15 @@
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/eleve-layout.js"></script>
+<script src="../js/eleve-accueil.js"></script>
 
 <script>
-    // Initialiser le layout élève avec l'ID de page et le titre
-    document.addEventListener('DOMContentLoaded', function() {
-        EleveLayout.init('accueil', 'Accueil');
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Initialiser le layout élève
+        await EleveLayout.init('accueil', 'Accueil');
+
+        // Initialiser la page d'accueil
+        await EleveAccueil.init();
     });
 </script>
 
