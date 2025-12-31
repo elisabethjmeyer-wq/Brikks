@@ -787,9 +787,9 @@ const AdminUtilisateurs = {
                 }).length;
                 return `
                     <div class="tag-item">
-                        <span>${classe.nom || classe.id}</span>
+                        <span class="tag-name">${classe.nom || classe.id}</span>
                         <span class="tag-count">${count} élève${count > 1 ? 's' : ''}</span>
-                        <button class="tag-remove" onclick="AdminUtilisateurs.deleteClasse('${classe.id}')" title="Supprimer">✕</button>
+                        <button class="remove" onclick="AdminUtilisateurs.deleteClasse('${classe.id}')" title="Supprimer">✕</button>
                     </div>
                 `;
             }).join('');
@@ -807,9 +807,9 @@ const AdminUtilisateurs = {
                 }).length;
                 return `
                     <div class="tag-item">
-                        <span>${groupe.nom || groupe.id}</span>
+                        <span class="tag-name">${groupe.nom || groupe.id}</span>
                         <span class="tag-count">${count} élève${count > 1 ? 's' : ''}</span>
-                        <button class="tag-remove" onclick="AdminUtilisateurs.deleteGroupe('${groupe.id}')" title="Supprimer">✕</button>
+                        <button class="remove" onclick="AdminUtilisateurs.deleteGroupe('${groupe.id}')" title="Supprimer">✕</button>
                     </div>
                 `;
             }).join('');
