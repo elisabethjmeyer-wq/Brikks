@@ -1,6 +1,6 @@
 /**
  * Styles page d'accueil élève
- * Layout en 2 colonnes avec vidéo et recommandation de la semaine
+ * Layout en 2 colonnes équilibrées avec vidéo et recommandation
  */
 
 /* ===== HEADER D'ACCUEIL ===== */
@@ -27,11 +27,12 @@
     color: var(--gray-500);
 }
 
-/* ===== GRILLE 2 COLONNES ===== */
+/* ===== GRILLE 2 COLONNES ÉQUILIBRÉES ===== */
 .accueil-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 24px;
+    align-items: start; /* Colonnes alignées en haut */
 }
 
 @media (max-width: 1024px) {
@@ -46,8 +47,6 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
 }
 
 .accueil-card-header {
@@ -82,10 +81,55 @@
 
 .accueil-card-body {
     padding: 20px;
-    flex: 1;
 }
 
-/* ===== SECTION VIDÉO ===== */
+/* ===== SECTION VIDÉO - LAYOUT AMÉLIORÉ ===== */
+
+/* Header vidéo (titre au-dessus du player) */
+.video-header {
+    margin-bottom: 16px;
+}
+
+.video-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.video-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+    color: white;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.video-date {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+
+.video-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    line-height: 1.4;
+    margin-bottom: 6px;
+}
+
+.video-description {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    line-height: 1.5;
+}
+
+/* Player vidéo */
 .video-player-wrapper {
     position: relative;
     width: 100%;
@@ -93,7 +137,6 @@
     background: var(--gray-900);
     border-radius: var(--radius);
     overflow: hidden;
-    margin-bottom: 16px;
 }
 
 .video-player-wrapper iframe {
@@ -124,80 +167,37 @@
     opacity: 0.5;
 }
 
-.video-info {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.video-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.video-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: linear-gradient(135deg, var(--primary), var(--accent-purple));
-    color: white;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.video-date {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.85rem;
-    color: var(--gray-500);
-}
-
-.video-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--gray-800);
-    line-height: 1.4;
-}
-
-.video-description {
-    font-size: 0.9rem;
-    color: var(--gray-600);
-    line-height: 1.6;
-}
-
-/* Section "À retenir" */
-.video-highlights {
+/* Footer vidéo (À retenir + tags) */
+.video-footer {
     margin-top: 16px;
-    padding: 16px;
+}
+
+/* Section "À retenir" - Plus compact */
+.video-highlights {
+    padding: 12px 14px;
     background: var(--accent-orange-light);
     border-radius: var(--radius);
-    border-left: 4px solid var(--accent-orange);
+    border-left: 3px solid var(--accent-orange);
+    margin-bottom: 12px;
 }
 
 .video-highlights-title {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
     color: var(--gray-700);
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    margin-bottom: 8px;
 }
 
 .video-highlights ul {
     margin: 0;
-    padding-left: 20px;
-    font-size: 0.85rem;
+    padding-left: 18px;
+    font-size: 0.8rem;
     color: var(--gray-600);
+    line-height: 1.5;
 }
 
 .video-highlights li {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .video-highlights li:last-child {
@@ -208,36 +208,25 @@
 .tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 16px;
+    gap: 6px;
 }
 
 .tag {
-    padding: 6px 12px;
+    padding: 4px 10px;
     background: var(--gray-100);
     color: var(--gray-600);
-    border-radius: 20px;
-    font-size: 0.8rem;
+    border-radius: 14px;
+    font-size: 0.75rem;
     font-weight: 500;
     border: 1px solid var(--gray-200);
 }
 
-/* ===== SECTION RECOMMANDATION ===== */
-.reco-content {
-    display: flex;
-    gap: 20px;
-}
+/* ===== SECTION RECOMMANDATION - LAYOUT VERTICAL ===== */
 
-@media (max-width: 600px) {
-    .reco-content {
-        flex-direction: column;
-    }
-}
-
-.reco-image {
-    flex-shrink: 0;
-    width: 180px;
-    height: 180px;
+/* Image large en haut */
+.reco-image-large {
+    width: 100%;
+    height: 200px;
     background: linear-gradient(135deg, var(--primary-bg), var(--accent-purple-light));
     border-radius: var(--radius);
     overflow: hidden;
@@ -245,16 +234,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 16px;
 }
 
-@media (max-width: 600px) {
-    .reco-image {
-        width: 100%;
-        height: 200px;
-    }
-}
-
-.reco-image img {
+.reco-image-large img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -262,7 +245,10 @@
 
 .reco-image-placeholder {
     font-size: 64px;
-    opacity: 0.6;
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .reco-play-btn {
@@ -277,8 +263,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    box-shadow: var(--shadow-lg);
+    font-size: 22px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     text-decoration: none;
@@ -287,14 +273,14 @@
 
 .reco-play-btn:hover {
     transform: translate(-50%, -50%) scale(1.1);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
-.reco-info {
-    flex: 1;
+/* Infos recommandation */
+.reco-info-vertical {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
 .reco-badges {
@@ -306,9 +292,9 @@
 .reco-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    border-radius: 20px;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 14px;
     font-size: 0.75rem;
     font-weight: 600;
 }
@@ -321,7 +307,7 @@
 .reco-badge.type {
     background: var(--primary-bg);
     color: var(--primary);
-    border: 1px solid var(--primary-light);
+    border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
 .reco-title {
@@ -335,16 +321,57 @@
     font-size: 0.9rem;
     color: var(--gray-600);
     line-height: 1.6;
-    flex: 1;
 }
 
 .reco-meta {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     font-size: 0.85rem;
     color: var(--gray-500);
-    margin-top: auto;
+    margin-top: 4px;
+}
+
+.reco-open-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.reco-open-link:hover {
+    text-decoration: underline;
+}
+
+/* ===== ANCIENS STYLES (fallback) ===== */
+.reco-content {
+    display: flex;
+    gap: 20px;
+}
+
+.reco-image {
+    flex-shrink: 0;
+    width: 160px;
+    height: 160px;
+    background: linear-gradient(135deg, var(--primary-bg), var(--accent-purple-light));
+    border-radius: var(--radius);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reco-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.reco-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 /* ===== ÉTATS VIDES ===== */
@@ -389,10 +416,10 @@
     to { transform: rotate(360deg); }
 }
 
-/* ===== RESPONSIVE AJUSTEMENTS ===== */
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
     .accueil-greeting {
-        font-size: 1.5rem;
+        font-size: 1.4rem;
     }
 
     .accueil-card-header {
@@ -408,8 +435,16 @@
         font-size: 1rem;
     }
 
+    .reco-image-large {
+        height: 180px;
+    }
+
+    .reco-content {
+        flex-direction: column;
+    }
+
     .reco-image {
-        width: 140px;
-        height: 140px;
+        width: 100%;
+        height: 180px;
     }
 }

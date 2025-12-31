@@ -161,13 +161,31 @@ const EleveAccueil = {
         const tags = this.parseTags(video.tags);
         const highlights = this.parseHighlights(video.description);
 
+        // Tronquer la description si trop longue
+        const maxDescLength = 150;
+        let introText = highlights.intro;
+        if (introText.length > maxDescLength) {
+            introText = introText.substring(0, maxDescLength).trim() + '...';
+        }
+
         container.innerHTML = `
-            <div class="accueil-card">
+            <div class="accueil-card accueil-card--video">
                 <div class="accueil-card-header">
                     <h2 class="accueil-card-title">🎬 Vidéo de la semaine</h2>
                     <a href="videos.html" class="accueil-card-link">Toutes les vidéos →</a>
                 </div>
                 <div class="accueil-card-body">
+                    <!-- Titre et meta AU-DESSUS du player -->
+                    <div class="video-header">
+                        <div class="video-meta">
+                            <span class="video-badge">⭐ Infos de la semaine</span>
+                            <span class="video-date">📅 ${this.formatDate(video.date_publication)}</span>
+                        </div>
+                        <h3 class="video-title">${this.escapeHtml(video.titre)}</h3>
+                        ${introText ? `<p class="video-description">${this.escapeHtml(introText)}</p>` : ''}
+                    </div>
+
+                    <!-- Player vidéo -->
                     <div class="video-player-wrapper">
                         ${embedUrl
                             ? `<iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>`
@@ -177,18 +195,14 @@ const EleveAccueil = {
                                </div>`
                         }
                     </div>
-                    <div class="video-info">
-                        <div class="video-meta">
-                            <span class="video-badge">⭐ Infos de la semaine</span>
-                            <span class="video-date">📅 ${this.formatDate(video.date_publication)}</span>
-                        </div>
-                        <h3 class="video-title">${this.escapeHtml(video.titre)}</h3>
-                        ${highlights.intro ? `<p class="video-description">${this.escapeHtml(highlights.intro)}</p>` : ''}
+
+                    <!-- Infos complémentaires EN DESSOUS -->
+                    <div class="video-footer">
                         ${highlights.items.length > 0 ? `
                             <div class="video-highlights">
                                 <div class="video-highlights-title">⚡ À retenir :</div>
                                 <ul>
-                                    ${highlights.items.map(item => `<li>${this.escapeHtml(item)}</li>`).join('')}
+                                    ${highlights.items.slice(0, 3).map(item => `<li>${this.escapeHtml(item)}</li>`).join('')}
                                 </ul>
                             </div>
                         ` : ''}
@@ -235,38 +249,46 @@ const EleveAccueil = {
         const tags = this.parseTags(reco.tags);
         const isPlayable = ['podcast', 'video'].includes(reco.type);
 
+        // Tronquer la description
+        const maxDescLength = 180;
+        let descText = reco.description || '';
+        if (descText.length > maxDescLength) {
+            descText = descText.substring(0, maxDescLength).trim() + '...';
+        }
+
         container.innerHTML = `
-            <div class="accueil-card">
+            <div class="accueil-card accueil-card--reco">
                 <div class="accueil-card-header">
                     <h2 class="accueil-card-title">💡 Recommandation de la semaine</h2>
                     <a href="recommandations.html" class="accueil-card-link">Toutes les recommandations →</a>
                 </div>
                 <div class="accueil-card-body">
-                    <div class="reco-content">
-                        <div class="reco-image">
-                            ${imageUrl
-                                ? `<img src="${imageUrl}" alt="${this.escapeHtml(reco.titre)}" onerror="this.style.display='none'; this.parentElement.querySelector('.reco-image-placeholder').style.display='block';">
-                                   <span class="reco-image-placeholder" style="display:none;">${typeIcon}</span>`
-                                : `<span class="reco-image-placeholder">${typeIcon}</span>`
-                            }
-                            ${isPlayable && reco.url ? `<a href="${reco.url}" target="_blank" class="reco-play-btn" title="Ouvrir">▶</a>` : ''}
+                    <!-- Layout vertical : image en haut -->
+                    <div class="reco-image-large">
+                        ${imageUrl
+                            ? `<img src="${imageUrl}" alt="${this.escapeHtml(reco.titre)}" onerror="this.style.display='none'; this.parentElement.querySelector('.reco-image-placeholder').style.display='flex';">
+                               <span class="reco-image-placeholder" style="display:none;">${typeIcon}</span>`
+                            : `<span class="reco-image-placeholder">${typeIcon}</span>`
+                        }
+                        ${isPlayable && reco.url ? `<a href="${reco.url}" target="_blank" class="reco-play-btn" title="Ouvrir">▶</a>` : ''}
+                    </div>
+
+                    <!-- Infos en bas -->
+                    <div class="reco-info-vertical">
+                        <div class="reco-badges">
+                            <span class="reco-badge featured">⭐ Cette semaine</span>
+                            <span class="reco-badge type">${typeIcon} ${typeLabel}</span>
                         </div>
-                        <div class="reco-info">
-                            <div class="reco-badges">
-                                <span class="reco-badge featured">⭐ Cette semaine</span>
-                                <span class="reco-badge type">${typeIcon} ${typeLabel}</span>
+                        <h3 class="reco-title">${this.escapeHtml(reco.titre)}</h3>
+                        <p class="reco-description">${this.escapeHtml(descText)}</p>
+                        ${tags.length > 0 ? `
+                            <div class="tags">
+                                ${tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('')}
                             </div>
-                            <h3 class="reco-title">${this.escapeHtml(reco.titre)}</h3>
-                            <p class="reco-description">${this.escapeHtml(reco.description || '')}</p>
-                            ${tags.length > 0 ? `
-                                <div class="tags">
-                                    ${tags.map(tag => `<span class="tag">${this.escapeHtml(tag)}</span>`).join('')}
-                                </div>
-                            ` : ''}
-                            <div class="reco-meta">
-                                <span>📅 ${this.formatDate(reco.date_publication)}</span>
-                                ${reco.url ? `<a href="${reco.url}" target="_blank" style="color: var(--primary); text-decoration: none;">Ouvrir →</a>` : ''}
-                            </div>
+                        ` : ''}
+                        <div class="reco-meta">
+                            <span>📅 ${this.formatDate(reco.date_publication)}</span>
+                            ${reco.url ? `<a href="${reco.url}" target="_blank" class="reco-open-link">Ouvrir →</a>` : ''}
                         </div>
                     </div>
                 </div>
