@@ -133,7 +133,7 @@ const EleveFAQ = {
                             <span class="faq-item-chevron">▼</span>
                         </div>
                         <div class="faq-item-answer">
-                            <div class="faq-item-answer-content">${this.formatAnswer(q.reponse)}</div>
+                            <div class="faq-item-answer-content">${this.formatAnswer(q.reponse, q.video_url, q.type_reponse)}</div>
                         </div>
                     </div>
                 `).join('');
@@ -198,11 +198,62 @@ const EleveFAQ = {
     },
 
     /**
-     * Formate la réponse (gère les sauts de ligne)
+     * Formate la réponse (gère les sauts de ligne et vidéos)
      */
-    formatAnswer(text) {
-        if (!text) return '';
-        return this.escapeHtml(text).replace(/\n/g, '<br>');
+    formatAnswer(text, videoUrl, type) {
+        let html = '';
+
+        // Texte
+        if (text && (type === 'texte' || type === 'mixte' || !type)) {
+            html += `<p>${this.escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
+        }
+
+        // Vidéo
+        if (videoUrl && (type === 'video' || type === 'mixte')) {
+            const embedUrl = this.getYouTubeEmbedUrl(videoUrl);
+            if (embedUrl) {
+                html += `
+                    <div class="video-wrapper">
+                        <iframe src="${embedUrl}" allowfullscreen></iframe>
+                    </div>
+                `;
+            }
+        }
+
+        return html || '<p><em>Pas de réponse</em></p>';
+    },
+
+    /**
+     * Get YouTube embed URL from various YouTube URL formats
+     */
+    getYouTubeEmbedUrl(url) {
+        if (!url) return null;
+
+        // Already an embed URL
+        if (url.includes('youtube.com/embed/')) {
+            return url;
+        }
+
+        let videoId = null;
+
+        // youtube.com/watch?v=VIDEO_ID
+        const watchMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
+        if (watchMatch) {
+            videoId = watchMatch[1];
+        }
+
+        // youtu.be/VIDEO_ID
+        const shortMatch = url.match(/youtu\.be\/([^?]+)/);
+        if (shortMatch) {
+            videoId = shortMatch[1];
+        }
+
+        if (videoId) {
+            return `https://www.youtube.com/embed/${videoId}`;
+        }
+
+        // Return original URL if not YouTube (could be direct video link)
+        return url;
     },
 
     /**
