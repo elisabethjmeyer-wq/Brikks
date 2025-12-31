@@ -24,7 +24,8 @@ const CONFIG = {
         PARAMETRES: 'PARAMETRES',
         AGENDAS: 'AGENDAS',
         CONFIG_MENU: 'CONFIG_MENU',
-        VIDEOS: 'VIDEOS'
+        VIDEOS: 'VIDEOS',
+        RECOMMANDATIONS: 'RECOMMANDATIONS'
     },
 
     // URLs de redirection (avec préfixe GitHub Pages)
