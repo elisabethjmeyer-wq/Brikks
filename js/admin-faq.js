@@ -752,9 +752,10 @@ const AdminFAQ = {
             return `
                 <div class="category-item" data-id="${cat.id}">
                     <div class="category-info">
+                        <div class="category-item-icon">${cat.icone || '📁'}</div>
                         <div class="category-name">${this.escapeHtml(cat.nom)}</div>
-                        <div class="category-count">${questionsCount} question${questionsCount > 1 ? 's' : ''}</div>
                     </div>
+                    <div class="category-count">${questionsCount} question${questionsCount > 1 ? 's' : ''}</div>
                     <div class="category-actions">
                         <button class="action-btn delete" onclick="AdminFAQ.confirmDeleteCategory('${cat.id}')" title="Supprimer" ${questionsCount > 0 ? 'disabled' : ''}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
