@@ -28,11 +28,58 @@ const SHEETS = {
   RECOMMANDATIONS: 'RECOMMANDATIONS',
   CATEGORIES_FAQ: 'CATEGORIES_FAQ',
   QUESTIONS_FAQ: 'QUESTIONS_FAQ',
+  // Nouvelle structure méthodologie (table unique avec tree flexible)
+  METHODOLOGIE: 'METHODOLOGIE',
+  PROGRESSION_METHODOLOGIE: 'PROGRESSION_METHODOLOGIE',
+  PROGRESSION_LECONS: 'PROGRESSION_LECONS',
+  // Anciennes tables (conservées pour compatibilité)
   METHODOLOGIE_CATEGORIES: 'METHODOLOGIE_CATEGORIES',
   METHODOLOGIE_COMPETENCES: 'METHODOLOGIE_COMPETENCES',
-  METHODOLOGIE_ETAPES: 'METHODOLOGIE_ETAPES',
-  PROGRESSION_METHODOLOGIE: 'PROGRESSION_METHODOLOGIE'
+  METHODOLOGIE_ETAPES: 'METHODOLOGIE_ETAPES'
 };
+
+// ========================================
+// FONCTIONS UTILITAIRES
+// ========================================
+
+/**
+ * Trouve l'index d'une colonne de manière insensible à la casse
+ * @param {Array} headers - Tableau des en-têtes
+ * @param {string} columnName - Nom de la colonne à chercher
+ * @returns {number} - Index de la colonne ou -1 si non trouvée
+ */
+function findColumnIndex(headers, columnName) {
+  const lowerName = columnName.toLowerCase().trim();
+  for (let i = 0; i < headers.length; i++) {
+    if (String(headers[i]).toLowerCase().trim() === lowerName) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Parse les données de la requête (supporte JSONP et JSON)
+ * @param {Object} data - Données brutes de la requête
+ * @returns {Object} - Données parsées
+ */
+function parseRequestData(data) {
+  if (typeof data.data === 'string') {
+    return JSON.parse(data.data);
+  } else if (data.data) {
+    return data.data;
+  }
+  return data;
+}
+
+/**
+ * Valide qu'un ID est présent et valide
+ * @param {*} id - L'ID à valider
+ * @returns {boolean} - true si l'ID est valide
+ */
+function isValidId(id) {
+  return id && id !== 'undefined' && id !== 'null' && String(id).trim() !== '';
+}
 
 /**
  * Gère les requêtes GET (lecture)
@@ -219,6 +266,22 @@ function handleRequest(e) {
       // PROGRESSION METHODOLOGIE
       case 'addProgressionMethodologie':
         result = addProgressionMethodologie(request);
+        break;
+
+      // NOUVELLE METHODOLOGIE (table unique avec tree flexible)
+      case 'createMethodologie':
+        result = createMethodologie(request);
+        break;
+      case 'updateMethodologie':
+        result = updateMethodologie(request);
+        break;
+      case 'deleteMethodologie':
+        result = deleteMethodologie(request);
+        break;
+
+      // PROGRESSION LECONS
+      case 'addProgressionLecons':
+        result = addProgressionLecons(request);
         break;
 
       default:
@@ -1458,26 +1521,28 @@ function deleteVideo(data) {
     return { success: false, error: 'Onglet VIDEOS non trouvé' };
   }
 
-  // Parse les données si elles sont en string (JSONP)
-  let videoData = data;
-  if (typeof data.data === 'string') {
-    videoData = JSON.parse(data.data);
-  } else if (data.data) {
-    videoData = data.data;
-  }
+  // Parse les données
+  const videoData = parseRequestData(data);
 
-  if (!videoData.id) {
-    return { success: false, error: 'id est requis' };
+  // Valider l'ID
+  if (!isValidId(videoData.id)) {
+    return { success: false, error: 'ID invalide ou manquant: ' + videoData.id };
   }
 
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0];
-  const idCol = headers.indexOf('id');
+
+  // Utiliser la recherche insensible à la casse
+  const idCol = findColumnIndex(headers, 'id');
+
+  if (idCol === -1) {
+    return { success: false, error: 'Colonne ID non trouvée dans VIDEOS' };
+  }
 
   // Trouver la ligne
   let rowIndex = -1;
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][idCol] === videoData.id) {
+    if (String(allData[i][idCol]).trim() === String(videoData.id).trim()) {
       rowIndex = i + 1;
       break;
     }
@@ -2620,5 +2685,243 @@ function addProgressionMethodologie(data) {
   return {
     success: true,
     message: 'Progression enregistrée avec succès'
+  };
+}
+
+// ========================================
+// NOUVELLE METHODOLOGIE (table unique avec tree flexible)
+// ========================================
+
+/**
+ * Crée un nouvel élément méthodologie
+ * @param {Object} data - { titre, parent_id, icon, couleur, description, ordre, video_url, documents, contenu_html, bex_id, bex_titre }
+ */
+function createMethodologie(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.METHODOLOGIE);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet METHODOLOGIE non trouvé' };
+  }
+
+  // Parse les données
+  const itemData = parseRequestData(data);
+
+  if (!itemData.titre) {
+    return { success: false, error: 'Le titre est requis' };
+  }
+
+  // Générer un ID unique
+  const id = itemData.id || 'meth_' + new Date().getTime();
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Construire la ligne selon les colonnes existantes
+  const newRow = [];
+  headers.forEach((header, index) => {
+    const colName = String(header).toLowerCase().trim();
+    if (colName === 'id') {
+      newRow[index] = id;
+    } else if (itemData[colName] !== undefined) {
+      newRow[index] = itemData[colName];
+    } else {
+      newRow[index] = '';
+    }
+  });
+
+  sheet.appendRow(newRow);
+
+  return {
+    success: true,
+    id: id,
+    message: 'Élément méthodologie créé avec succès'
+  };
+}
+
+/**
+ * Met à jour un élément méthodologie
+ * @param {Object} data - { id, titre?, parent_id?, icon?, couleur?, description?, ordre?, video_url?, documents?, contenu_html?, bex_id?, bex_titre? }
+ */
+function updateMethodologie(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.METHODOLOGIE);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet METHODOLOGIE non trouvé' };
+  }
+
+  // Parse les données
+  const itemData = parseRequestData(data);
+
+  // Valider l'ID
+  if (!isValidId(itemData.id)) {
+    return { success: false, error: 'ID invalide ou manquant: ' + itemData.id };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Trouver la colonne ID (insensible à la casse)
+  const idCol = findColumnIndex(headers, 'id');
+
+  if (idCol === -1) {
+    return { success: false, error: 'Colonne ID non trouvée dans METHODOLOGIE' };
+  }
+
+  // Trouver la ligne avec cet ID
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(itemData.id).trim()) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Élément méthodologie non trouvé: ' + itemData.id };
+  }
+
+  // Mettre à jour les colonnes spécifiées
+  const updates = ['titre', 'parent_id', 'icon', 'couleur', 'description', 'ordre', 'video_url', 'documents', 'contenu_html', 'bex_id', 'bex_titre'];
+  updates.forEach(col => {
+    if (itemData[col] !== undefined) {
+      const colIndex = findColumnIndex(headers, col);
+      if (colIndex >= 0) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(itemData[col]);
+      }
+    }
+  });
+
+  return {
+    success: true,
+    message: 'Élément méthodologie modifié avec succès'
+  };
+}
+
+/**
+ * Supprime un élément méthodologie et tous ses descendants
+ * @param {Object} data - { id }
+ */
+function deleteMethodologie(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.METHODOLOGIE);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet METHODOLOGIE non trouvé' };
+  }
+
+  // Parse les données
+  const itemData = parseRequestData(data);
+
+  // Valider l'ID
+  if (!isValidId(itemData.id)) {
+    return { success: false, error: 'ID invalide ou manquant: ' + itemData.id };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Trouver la colonne ID (insensible à la casse)
+  const idCol = findColumnIndex(headers, 'id');
+  const parentIdCol = findColumnIndex(headers, 'parent_id');
+
+  if (idCol === -1) {
+    return { success: false, error: 'Colonne ID non trouvée dans METHODOLOGIE' };
+  }
+
+  // Collecter tous les IDs à supprimer (l'élément + descendants)
+  const idsToDelete = new Set();
+  idsToDelete.add(String(itemData.id).trim());
+
+  // Fonction récursive pour trouver les descendants
+  function addDescendants(parentId) {
+    for (let i = 1; i < allData.length; i++) {
+      const rowParentId = parentIdCol >= 0 ? String(allData[i][parentIdCol]).trim() : '';
+      const rowId = String(allData[i][idCol]).trim();
+      if (rowParentId === parentId && !idsToDelete.has(rowId)) {
+        idsToDelete.add(rowId);
+        addDescendants(rowId);
+      }
+    }
+  }
+
+  addDescendants(String(itemData.id).trim());
+
+  // Supprimer les lignes (en partant de la fin pour éviter les problèmes d'index)
+  let deletedCount = 0;
+  for (let i = allData.length - 1; i >= 1; i--) {
+    const rowId = String(allData[i][idCol]).trim();
+    if (idsToDelete.has(rowId)) {
+      sheet.deleteRow(i + 1);
+      deletedCount++;
+    }
+  }
+
+  return {
+    success: true,
+    message: `${deletedCount} élément(s) méthodologie supprimé(s)`,
+    deleted: deletedCount
+  };
+}
+
+// ========================================
+// PROGRESSION LECONS
+// ========================================
+
+/**
+ * Ajoute une progression de leçon (marquer un chapitre comme terminé)
+ * @param {Object} data - { eleve_id, chapitre_id }
+ */
+function addProgressionLecons(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.PROGRESSION_LECONS);
+
+  if (!sheet) {
+    return { success: false, error: 'Onglet PROGRESSION_LECONS non trouvé' };
+  }
+
+  // Parse les données
+  const progData = parseRequestData(data);
+
+  if (!isValidId(progData.eleve_id) || !isValidId(progData.chapitre_id)) {
+    return { success: false, error: 'eleve_id et chapitre_id sont requis' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  // Vérifier si cette progression existe déjà
+  const eleveIdCol = findColumnIndex(headers, 'eleve_id');
+  const chapitreIdCol = findColumnIndex(headers, 'chapitre_id');
+
+  if (eleveIdCol >= 0 && chapitreIdCol >= 0) {
+    const exists = allData.slice(1).some(row =>
+      String(row[eleveIdCol]).trim() === String(progData.eleve_id).trim() &&
+      String(row[chapitreIdCol]).trim() === String(progData.chapitre_id).trim()
+    );
+    if (exists) {
+      return { success: true, message: 'Progression déjà enregistrée' };
+    }
+  }
+
+  // Ajouter la progression
+  const newRow = [];
+  headers.forEach((header, index) => {
+    const colName = String(header).toLowerCase().trim();
+    if (colName === 'eleve_id') {
+      newRow[index] = progData.eleve_id;
+    } else if (colName === 'chapitre_id') {
+      newRow[index] = progData.chapitre_id;
+    } else if (colName === 'completed') {
+      newRow[index] = 'TRUE';
+    } else if (colName === 'date') {
+      newRow[index] = new Date().toISOString().split('T')[0];
+    } else {
+      newRow[index] = '';
+    }
+  });
+
+  sheet.appendRow(newRow);
+
+  return {
+    success: true,
+    message: 'Progression leçon enregistrée avec succès'
   };
 }
