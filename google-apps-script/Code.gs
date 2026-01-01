@@ -3344,17 +3344,18 @@ function getQuestions(data) {
 }
 
 /**
- * Crée une nouvelle question
- * @param {Object} data - { format_id, discipline_id, theme_id, chapitre_id, enonce, donnees, explication, tags, difficulte }
+ * Crée un nouvel élément (structure atomique)
+ * @param {Object} data - { type, chapitre_id, contenu, donnees, tags, explication, difficulte }
+ * Types: qcm, evenement, paire, point_carte, item_categorie, reponse_libre
  */
 function createQuestion(data) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS);
 
-  if (!data.format_id || !data.enonce) {
-    return { success: false, error: 'format_id et enonce requis' };
+  if (!data.type || !data.contenu) {
+    return { success: false, error: 'type et contenu requis' };
   }
 
-  const id = 'quest_' + new Date().getTime();
+  const id = 'elem_' + new Date().getTime();
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0];
 
@@ -3362,20 +3363,21 @@ function createQuestion(data) {
     const col = String(header).toLowerCase().trim();
     if (col === 'id') return id;
     if (col === 'date_creation') return new Date().toISOString().split('T')[0];
-    if (col === 'donnees' && typeof data.donnees === 'object') {
-      return JSON.stringify(data.donnees);
+    if (col === 'donnees') {
+      if (typeof data.donnees === 'object') return JSON.stringify(data.donnees);
+      return data.donnees || '';
     }
     return data[col] !== undefined ? data[col] : '';
   });
 
   sheet.appendRow(newRow);
 
-  return { success: true, id: id, message: 'Question créée' };
+  return { success: true, id: id, message: 'Element cree' };
 }
 
 /**
- * Met à jour une question
- * @param {Object} data - { id, ...fields }
+ * Met à jour un élément (structure atomique)
+ * @param {Object} data - { id, type?, chapitre_id?, contenu?, donnees?, tags?, explication?, difficulte? }
  */
 function updateQuestion(data) {
   if (!data.id) {
@@ -3396,10 +3398,11 @@ function updateQuestion(data) {
   }
 
   if (rowIndex === -1) {
-    return { success: false, error: 'Question non trouvée' };
+    return { success: false, error: 'Element non trouve' };
   }
 
-  const updates = ['format_id', 'discipline_id', 'theme_id', 'chapitre_id', 'enonce', 'donnees', 'explication', 'tags', 'difficulte'];
+  // Champs de la nouvelle structure atomique
+  const updates = ['type', 'chapitre_id', 'contenu', 'donnees', 'tags', 'explication', 'difficulte'];
   updates.forEach(col => {
     if (data[col] !== undefined) {
       const colIndex = headers.indexOf(col);
@@ -3413,7 +3416,7 @@ function updateQuestion(data) {
     }
   });
 
-  return { success: true, message: 'Question mise à jour' };
+  return { success: true, message: 'Element mis a jour' };
 }
 
 /**
