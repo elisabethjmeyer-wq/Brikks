@@ -198,7 +198,7 @@ const EleveEntrainement = {
                 format: 'image-cliquable',
                 titre: 'Carte des explorations',
                 description: 'Identifiez les lieux sur la carte',
-                imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Whole_world_-_land_and_oceans.jpg/1280px-Whole_world_-_land_and_oceans.jpg',
+                imageUrl: 'https://placehold.co/1200x600/e0f2fe/0369a1?text=Carte+du+Monde\\n(Placez+vos+zones+cliquables)',
                 zones: [
                     { id: 'portugal', label: 'Portugal', x: 42, y: 35, width: 4, height: 6 },
                     { id: 'inde', label: 'Inde', x: 68, y: 42, width: 6, height: 8 },
@@ -360,8 +360,19 @@ const EleveEntrainement = {
     // ========== FORMAT QCM ==========
     renderQCM(step) {
         const container = document.getElementById('exerciseContainer');
-        const stepAnswers = this.answers[this.currentStepIndex] || {};
         const isVerified = this.results[this.currentStepIndex]?.verified;
+
+        // Initialiser le mélange des options si pas encore fait
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = { shuffledOptions: {} };
+            step.questions.forEach(q => {
+                // Créer un tableau d'indices et le mélanger
+                const indices = q.options.map((_, i) => i);
+                this.answers[this.currentStepIndex].shuffledOptions[q.id] = this.shuffleArray(indices);
+            });
+        }
+
+        const stepAnswers = this.answers[this.currentStepIndex];
 
         container.innerHTML = `
             <div class="exercise-card">
@@ -381,7 +392,6 @@ const EleveEntrainement = {
 
                     <div class="exercise-actions">
                         ${isVerified ? `
-                            <button class="btn btn-secondary" onclick="EleveEntrainement.resetStep()">🔄 Recommencer</button>
                             ${this.currentStepIndex < this.steps.length - 1 ? `
                                 <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
                             ` : `
@@ -397,10 +407,14 @@ const EleveEntrainement = {
     },
 
     renderQCMQuestion(question, qIndex, stepAnswers, isVerified) {
-        const selectedIndex = stepAnswers[question.id];
-        const isAnswered = selectedIndex !== undefined;
-        const isCorrect = isVerified && selectedIndex === question.correctIndex;
-        const isIncorrect = isVerified && isAnswered && selectedIndex !== question.correctIndex;
+        // Récupérer l'index original sélectionné par l'élève
+        const selectedOriginalIndex = stepAnswers[question.id];
+        const isAnswered = selectedOriginalIndex !== undefined;
+        const isCorrect = isVerified && selectedOriginalIndex === question.correctIndex;
+        const isIncorrect = isVerified && isAnswered && selectedOriginalIndex !== question.correctIndex;
+
+        // Récupérer l'ordre mélangé des options
+        const shuffledOrder = stepAnswers.shuffledOptions?.[question.id] || question.options.map((_, i) => i);
 
         let itemClass = '';
         if (isVerified && isCorrect) itemClass = 'answered';
@@ -417,22 +431,23 @@ const EleveEntrainement = {
                     </span>
                 </div>
                 <div class="qcm-options">
-                    ${question.options.map((option, oIndex) => {
+                    ${shuffledOrder.map((originalIndex) => {
+                        const option = question.options[originalIndex];
                         let optionClass = '';
-                        if (selectedIndex === oIndex) optionClass = 'selected';
+                        if (selectedOriginalIndex === originalIndex) optionClass = 'selected';
                         if (isVerified) {
                             optionClass += ' disabled';
-                            if (oIndex === question.correctIndex) optionClass += ' correct';
-                            else if (selectedIndex === oIndex) optionClass += ' incorrect';
+                            if (originalIndex === question.correctIndex) optionClass += ' correct';
+                            else if (selectedOriginalIndex === originalIndex) optionClass += ' incorrect';
                         }
 
                         return `
                             <div class="qcm-option ${optionClass}"
-                                 onclick="EleveEntrainement.selectQCMOption('${question.id}', ${oIndex})">
+                                 onclick="EleveEntrainement.selectQCMOption('${question.id}', ${originalIndex})">
                                 <div class="qcm-radio">
-                                    ${isVerified && oIndex === question.correctIndex ? '✓' :
-                                      (isVerified && selectedIndex === oIndex && oIndex !== question.correctIndex ? '✗' :
-                                      (selectedIndex === oIndex ? '●' : ''))}
+                                    ${isVerified && originalIndex === question.correctIndex ? '✓' :
+                                      (isVerified && selectedOriginalIndex === originalIndex && originalIndex !== question.correctIndex ? '✗' :
+                                      (selectedOriginalIndex === originalIndex ? '●' : ''))}
                                 </div>
                                 <span class="qcm-option-text">${this.escapeHtml(option)}</span>
                             </div>
@@ -449,17 +464,12 @@ const EleveEntrainement = {
         `;
     },
 
-    selectQCMOption(questionId, optionIndex) {
+    selectQCMOption(questionId, originalIndex) {
         // Ne pas permettre la sélection si déjà vérifié
         if (this.results[this.currentStepIndex]?.verified) return;
 
-        // Initialiser les réponses pour cette étape si nécessaire
-        if (!this.answers[this.currentStepIndex]) {
-            this.answers[this.currentStepIndex] = {};
-        }
-
-        // Enregistrer la réponse
-        this.answers[this.currentStepIndex][questionId] = optionIndex;
+        // Enregistrer la réponse (l'index original de la bonne réponse)
+        this.answers[this.currentStepIndex][questionId] = originalIndex;
 
         // Re-render la question
         this.renderCurrentStep();
@@ -668,7 +678,6 @@ const EleveEntrainement = {
 
                     <div class="exercise-actions">
                         ${isVerified ? `
-                            <button class="btn btn-secondary" onclick="EleveEntrainement.resetStep()">🔄 Recommencer</button>
                             ${this.currentStepIndex < this.steps.length - 1 ? `
                                 <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
                             ` : `
@@ -706,7 +715,7 @@ const EleveEntrainement = {
                     ${isVerified ? (isCorrectPosition ? '✓' : '✗') : '⋮⋮'}
                 </div>
                 <div class="timeline-event-content">
-                    <div class="timeline-event-date">${this.escapeHtml(event.date)}</div>
+                    ${isVerified ? `<div class="timeline-event-date">${this.escapeHtml(event.date)}</div>` : ''}
                     <div class="timeline-event-titre">${this.escapeHtml(event.titre)}</div>
                     ${event.description ? `<div class="timeline-event-desc">${this.escapeHtml(event.description)}</div>` : ''}
                 </div>
@@ -878,7 +887,6 @@ const EleveEntrainement = {
 
                     <div class="exercise-actions">
                         ${isVerified ? `
-                            <button class="btn btn-secondary" onclick="EleveEntrainement.resetStep()">🔄 Recommencer</button>
                             ${this.currentStepIndex < this.steps.length - 1 ? `
                                 <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
                             ` : `
@@ -1008,7 +1016,6 @@ const EleveEntrainement = {
 
                     <div class="exercise-actions">
                         ${isVerified ? `
-                            <button class="btn btn-secondary" onclick="EleveEntrainement.resetStep()">🔄 Recommencer</button>
                             ${this.currentStepIndex < this.steps.length - 1 ? `
                                 <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
                             ` : `
@@ -1186,7 +1193,6 @@ const EleveEntrainement = {
 
                     <div class="exercise-actions">
                         ${isVerified ? `
-                            <button class="btn btn-secondary" onclick="EleveEntrainement.resetStep()">🔄 Recommencer</button>
                             ${this.currentStepIndex < this.steps.length - 1 ? `
                                 <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
                             ` : `
