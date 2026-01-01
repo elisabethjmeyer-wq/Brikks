@@ -954,6 +954,8 @@ const AdminElements = {
         preview.src = this.normalizeImageUrl(carte.image_url);
         preview.onload = () => {
             container.style.display = 'block';
+            preview.style.display = 'block';
+            coords.textContent = 'Cliquez sur la carte pour placer le point';
             // Reset marker
             const marker = document.getElementById('carteMarker');
             const x = parseFloat(document.getElementById('pointX').value) || 0;
@@ -965,8 +967,26 @@ const AdminElements = {
             }
         };
         preview.onerror = () => {
-            container.style.display = 'none';
-            alert('Impossible de charger l\'image de la carte');
+            // Show fallback manual input instead of hiding
+            container.style.display = 'block';
+            preview.style.display = 'none';
+            coords.innerHTML = `
+                <div style="padding: 20px; background: #fef3c7; border-radius: 8px; text-align: center;">
+                    <p style="margin-bottom: 12px; color: #92400e;">⚠️ Image non chargeable. Saisissez les coordonnees manuellement :</p>
+                    <div style="display: flex; gap: 12px; justify-content: center;">
+                        <label style="display: flex; align-items: center; gap: 4px;">
+                            X: <input type="number" id="manualPointX" style="width: 70px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px;" min="0" max="100" value="${document.getElementById('pointX').value || 50}" onchange="document.getElementById('pointX').value = this.value">%
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 4px;">
+                            Y: <input type="number" id="manualPointY" style="width: 70px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px;" min="0" max="100" value="${document.getElementById('pointY').value || 50}" onchange="document.getElementById('pointY').value = this.value">%
+                        </label>
+                    </div>
+                    <p style="margin-top: 8px; font-size: 12px; color: #6b7280;">Conseil: Utilisez Imgur pour heberger vos images</p>
+                </div>
+            `;
+            // Set default values if empty
+            if (!document.getElementById('pointX').value) document.getElementById('pointX').value = 50;
+            if (!document.getElementById('pointY').value) document.getElementById('pointY').value = 50;
         };
 
         coords.textContent = 'Cliquez sur la carte pour placer le point';
