@@ -3,30 +3,329 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Évaluations - Admin Brikks</title>
+    <meta name="description" content="Brikks - Gestion des evaluations">
+    <title>Evaluations - Administration - Brikks</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-evaluations.css">
 </head>
 <body>
 
-<div class="placeholder-content">
-    <div class="icon">🚧</div>
-    <h2>Évaluations</h2>
-    <p>Cette fonctionnalité est en cours de développement.</p>
-    <p class="hint">Bientôt disponible !</p>
+<div id="evaluations-page">
+    <!-- Page Header -->
+    <header class="admin-header">
+        <div>
+            <h1>Evaluations</h1>
+            <p>Gerez les evaluations et suivez les validations des eleves</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="addEvaluationBtn">
+                <span>+</span>
+                Creer une evaluation
+            </button>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des evaluations...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="evaluations-content" style="display: none;">
+        <!-- Tabs -->
+        <div class="eval-tabs">
+            <button class="eval-tab active green" data-type="connaissances">
+                <span class="tab-icon">C</span>
+                Connaissances
+                <span class="tab-count" id="countConnaissances">0</span>
+            </button>
+            <button class="eval-tab orange" data-type="savoir-faire">
+                <span class="tab-icon">SF</span>
+                Savoir-faire (BEX)
+                <span class="tab-count" id="countSavoirFaire">0</span>
+            </button>
+            <button class="eval-tab purple" data-type="competences">
+                <span class="tab-icon">TC</span>
+                Competences (TC)
+                <span class="tab-count" id="countCompetences">0</span>
+            </button>
+            <button class="eval-tab yellow" data-type="bonus">
+                <span class="tab-icon">B</span>
+                Bonus
+                <span class="tab-count" id="countBonus">0</span>
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Rechercher une evaluation...">
+            </div>
+            <select class="filter-select" id="filterStatut">
+                <option value="">Tous les statuts</option>
+                <option value="brouillon">Brouillon</option>
+                <option value="planifiee">Planifiee</option>
+                <option value="publiee">Publiee</option>
+                <option value="terminee">Terminee</option>
+            </select>
+            <select class="filter-select" id="filterChapitre">
+                <option value="">Tous les chapitres</option>
+            </select>
+        </div>
+
+        <!-- Evaluations List -->
+        <div class="evaluations-list" id="evaluationsList">
+            <!-- Generated dynamically -->
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">?</div>
+            <h3>Aucune evaluation trouvee</h3>
+            <p>Creez une nouvelle evaluation pour ce type.</p>
+        </div>
+    </div>
 </div>
 
+<!-- Modal: Creer/Modifier evaluation -->
+<div class="modal-overlay hidden" id="evaluationModal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h2 id="evaluationModalTitle">Creer une evaluation</h2>
+            <button class="modal-close" id="closeEvaluationModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editEvaluationId">
+
+            <!-- Type selector (for create only) -->
+            <div class="form-group" id="typeSelector">
+                <label>Type d'evaluation <span class="req">*</span></label>
+                <div class="type-cards">
+                    <label class="type-card green selected" data-type="connaissances">
+                        <input type="radio" name="evalType" value="connaissances" checked>
+                        <span class="type-icon">C</span>
+                        <span class="type-name">Connaissances</span>
+                        <span class="type-desc">QCM, quiz sur les lecons</span>
+                    </label>
+                    <label class="type-card orange" data-type="savoir-faire">
+                        <input type="radio" name="evalType" value="savoir-faire">
+                        <span class="type-icon">SF</span>
+                        <span class="type-name">Savoir-faire</span>
+                        <span class="type-desc">Exercices methodologiques</span>
+                    </label>
+                    <label class="type-card purple" data-type="competences">
+                        <input type="radio" name="evalType" value="competences">
+                        <span class="type-icon">TC</span>
+                        <span class="type-name">Competences</span>
+                        <span class="type-desc">Taches complexes</span>
+                    </label>
+                    <label class="type-card yellow" data-type="bonus">
+                        <input type="radio" name="evalType" value="bonus">
+                        <span class="type-icon">B</span>
+                        <span class="type-name">Bonus</span>
+                        <span class="type-desc">Evaluations speciales</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Common fields -->
+            <div class="form-section">Informations generales</div>
+
+            <div class="form-group">
+                <label>Titre <span class="req">*</span></label>
+                <input type="text" class="form-input" id="evalTitre" placeholder="Ex: Evaluation chapitre 1">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Validations (briques) <span class="req">*</span></label>
+                    <input type="number" class="form-input" id="evalBriques" value="3" min="1" max="10">
+                    <div class="form-help">Nombre de points mis en jeu</div>
+                </div>
+                <div class="form-group">
+                    <label>Statut</label>
+                    <select class="form-select" id="evalStatut">
+                        <option value="brouillon">Brouillon</option>
+                        <option value="planifiee">Planifiee</option>
+                        <option value="publiee">Publiee</option>
+                        <option value="terminee">Terminee</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Type-specific fields -->
+            <div id="connaissancesFields" class="type-fields">
+                <div class="form-section">Parametres Connaissances</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Seuil de reussite (%) <span class="req">*</span></label>
+                        <input type="number" class="form-input" id="evalSeuil" value="80" min="0" max="100">
+                        <div class="form-help">Score minimum pour valider</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Chapitre lie</label>
+                        <select class="form-select" id="evalChapitre">
+                            <option value="">Selectionner...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Source des questions</label>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="sourceQuestions" value="banque" checked>
+                            <span>Banque d'elements</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="sourceQuestions" value="personnalise">
+                            <span>Personnalise</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="savoirFaireFields" class="type-fields" style="display: none;">
+                <div class="form-section">Parametres Savoir-faire (BEX)</div>
+                <div class="form-group">
+                    <label>Methodologie liee</label>
+                    <select class="form-select" id="evalMethodologie">
+                        <option value="">Selectionner...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sujets disponibles</label>
+                    <div class="form-help">Selectionner parmi les exercices d'entrainement avec tag "peut tomber en eval"</div>
+                    <div class="subjects-checkboxes" id="subjectsCheckboxes">
+                        <!-- Generated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="competencesFields" class="type-fields" style="display: none;">
+                <div class="form-section">Parametres Competences (TC)</div>
+                <div class="form-group">
+                    <label>Methodologie liee</label>
+                    <select class="form-select" id="evalMethodologieTC">
+                        <option value="">Selectionner...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Competences evaluees</label>
+                    <div class="competences-select" id="competencesSelect">
+                        <!-- Tags/checkboxes for competences -->
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Source du sujet</label>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="sourceSujet" value="externe">
+                            <span>Externe (PDF/image)</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="sourceSujet" value="banque">
+                            <span>Banque de sujets</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="sourceSujet" value="creer">
+                            <span>Creer un sujet</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="bonusFields" class="type-fields" style="display: none;">
+                <div class="form-section">Parametres Bonus</div>
+                <div class="form-group">
+                    <label>Description des criteres</label>
+                    <textarea class="form-textarea" id="evalCriteres" rows="3" placeholder="Decrivez les criteres de validation..."></textarea>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Description / Consignes</label>
+                <textarea class="form-textarea" id="evalDescription" rows="2" placeholder="Instructions pour les eleves..."></textarea>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelEvaluationBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveEvaluationBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Attribution sujets aux eleves -->
+<div class="modal-overlay hidden" id="attributionModal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h2>Attribution des sujets</h2>
+            <button class="modal-close" id="closeAttributionModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="attributionEvaluationId">
+            <p class="modal-intro">Attribuez un sujet a chaque eleve pour cette evaluation.</p>
+
+            <table class="attribution-table">
+                <thead>
+                    <tr>
+                        <th>Eleve</th>
+                        <th>Classe</th>
+                        <th>Progression</th>
+                        <th>Sujet</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="attributionTableBody">
+                    <!-- Generated -->
+                </tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelAttributionBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveAttributionBtn">Enregistrer les attributions</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmation suppression -->
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal modal-small">
+        <div class="modal-header">
+            <h2>Confirmer la suppression</h2>
+            <button class="modal-close" id="closeDeleteModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Etes-vous sur de vouloir supprimer cette evaluation ?</p>
+            <p class="delete-warning">Cette action supprimera aussi tous les resultats associes.</p>
+            <input type="hidden" id="deleteEvaluationId">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Annuler</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
 <script src="../js/config.js"></script>
 <script src="../js/sheets.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/admin-layout.js"></script>
+<script src="../js/admin-evaluations.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        AdminLayout.init('evaluations', 'Évaluations');
+        AdminLayout.init('evaluations', 'Evaluations');
     });
 </script>
 

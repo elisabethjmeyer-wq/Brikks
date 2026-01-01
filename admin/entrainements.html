@@ -3,30 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entraînements - Admin Brikks</title>
+    <meta name="description" content="Brikks - Gestion des entrainements">
+    <title>Entrainements - Administration - Brikks</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-entrainements.css">
 </head>
 <body>
 
-<div class="placeholder-content">
-    <div class="icon">🚧</div>
-    <h2>Entraînements</h2>
-    <p>Cette fonctionnalité est en cours de développement.</p>
-    <p class="hint">Bientôt disponible !</p>
+<div id="entrainements-page">
+    <!-- Page Header -->
+    <header class="admin-header">
+        <div>
+            <h1>Entrainements</h1>
+            <p>Gerez les entrainements pour les eleves</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="addEntrainementBtn">
+                <span>+</span>
+                Creer un entrainement
+            </button>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des entrainements...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="entrainements-content" style="display: none;">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-icon blue">E</div>
+                <div class="stat-card-value" id="statTotal">0</div>
+                <div class="stat-card-label">Entrainements total</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon green">C</div>
+                <div class="stat-card-value" id="statConnaissances">0</div>
+                <div class="stat-card-label">Connaissances</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon orange">S</div>
+                <div class="stat-card-value" id="statSavoirFaire">0</div>
+                <div class="stat-card-label">Savoir-faire</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon purple">K</div>
+                <div class="stat-card-value" id="statCompetences">0</div>
+                <div class="stat-card-label">Competences</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Rechercher un entrainement...">
+            </div>
+            <div class="filter-tabs" id="filterTabs">
+                <button class="filter-tab active" data-type="">Tous</button>
+                <button class="filter-tab green" data-type="connaissances">Connaissances</button>
+                <button class="filter-tab orange" data-type="savoir-faire">Savoir-faire</button>
+                <button class="filter-tab purple" data-type="competences">Competences</button>
+            </div>
+            <select class="filter-select" id="filterStatut">
+                <option value="">Tous les statuts</option>
+                <option value="brouillon">Brouillon</option>
+                <option value="publie">Publie</option>
+            </select>
+        </div>
+
+        <!-- Entrainements Grid -->
+        <div class="entrainements-grid" id="entrainementsGrid">
+            <!-- Generated dynamically -->
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">?</div>
+            <h3>Aucun entrainement trouve</h3>
+            <p>Modifiez vos filtres ou creez un nouvel entrainement.</p>
+        </div>
+    </div>
 </div>
 
+<!-- Modal: Wizard Entrainement -->
+<div class="modal-overlay hidden" id="entrainementModal">
+    <div class="modal modal-wizard">
+        <div class="modal-header">
+            <h2 id="entrainementModalTitle">Creer un entrainement</h2>
+            <button class="modal-close" id="closeEntrainementModal">&times;</button>
+        </div>
+
+        <!-- Wizard Steps Indicator -->
+        <div class="wizard-steps">
+            <div class="wizard-step active" data-step="1">
+                <span class="step-number">1</span>
+                <span class="step-label">Parametres</span>
+            </div>
+            <div class="wizard-step" data-step="2">
+                <span class="step-number">2</span>
+                <span class="step-label">Exercices</span>
+            </div>
+            <div class="wizard-step" data-step="3">
+                <span class="step-number">3</span>
+                <span class="step-label">Validation</span>
+            </div>
+        </div>
+
+        <div class="modal-body">
+            <input type="hidden" id="editEntrainementId">
+
+            <!-- Step 1: Parametres -->
+            <div class="wizard-content" id="step1" style="display: block;">
+                <div class="form-group">
+                    <label>Titre <span class="req">*</span></label>
+                    <input type="text" class="form-input" id="entrainementTitre" placeholder="Ex: Quiz sur la Revolution francaise">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Type <span class="req">*</span></label>
+                        <select class="form-select" id="entrainementType">
+                            <option value="connaissances">Connaissances</option>
+                            <option value="savoir-faire">Savoir-faire</option>
+                            <option value="competences">Competences</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Numero de serie</label>
+                        <input type="number" class="form-input" id="entrainementOrdre" value="1" min="1">
+                        <div class="form-help">Ex: Serie 1/3, 2/3...</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Discipline</label>
+                        <select class="form-select" id="entrainementDiscipline">
+                            <option value="">Selectionner...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Theme</label>
+                        <select class="form-select" id="entrainementTheme" disabled>
+                            <option value="">Selectionner d'abord une discipline...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Chapitre <span class="req">*</span></label>
+                    <select class="form-select" id="entrainementChapitre" disabled>
+                        <option value="">Selectionner d'abord un theme...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea class="form-textarea" id="entrainementDescription" rows="2" placeholder="Description optionnelle..."></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Duree estimee (min)</label>
+                        <input type="number" class="form-input" id="entrainementDuree" value="15" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Statut</label>
+                        <select class="form-select" id="entrainementStatut">
+                            <option value="brouillon">Brouillon</option>
+                            <option value="publie">Publie</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Exercices -->
+            <div class="wizard-content" id="step2" style="display: none;">
+                <div class="exercises-layout">
+                    <!-- Left: List of composed exercises -->
+                    <div class="exercises-list-panel">
+                        <div class="panel-header">
+                            <h3>Exercices composes</h3>
+                            <span class="exercises-count" id="exercisesCount">0 exercices</span>
+                        </div>
+                        <div class="exercises-list" id="exercisesList">
+                            <!-- Generated dynamically -->
+                        </div>
+                        <div class="exercises-empty" id="exercisesEmpty">
+                            <p>Aucun exercice ajoute</p>
+                            <p class="hint">Utilisez le panneau de droite pour composer un exercice</p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Add exercise panel -->
+                    <div class="add-exercise-panel">
+                        <div class="panel-header">
+                            <h3>Ajouter un exercice</h3>
+                        </div>
+                        <div class="add-exercise-form">
+                            <div class="form-group">
+                                <label>Format</label>
+                                <select class="form-select" id="exerciseFormat">
+                                    <option value="format_001">QCM (choix unique)</option>
+                                    <option value="format_002">QCM Multiple</option>
+                                    <option value="format_003">Vrai/Faux</option>
+                                    <option value="format_004">Texte a trous</option>
+                                    <option value="format_005">Association</option>
+                                    <option value="format_006">Ordonner</option>
+                                    <option value="format_007">Question ouverte</option>
+                                    <option value="format_008">Image cliquable</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nombre d'elements</label>
+                                <input type="number" class="form-input" id="exerciseCount" value="5" min="1" max="20">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Mode de selection</label>
+                                <div class="radio-group">
+                                    <label class="radio-item">
+                                        <input type="radio" name="selectionMode" value="random" checked>
+                                        <span>Aleatoire</span>
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="selectionMode" value="manual">
+                                        <span>Selection manuelle</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Elements available for this format -->
+                            <div class="elements-available" id="elementsAvailable" style="display: none;">
+                                <label>Elements disponibles (<span id="availableCount">0</span>)</label>
+                                <div class="elements-checkboxes" id="elementsCheckboxes">
+                                    <!-- Generated -->
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary btn-full" id="addExerciseBtn">
+                                + Ajouter l'exercice
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Validation -->
+            <div class="wizard-content" id="step3" style="display: none;">
+                <div class="validation-recap">
+                    <h3>Recapitulatif</h3>
+
+                    <div class="recap-section">
+                        <h4>Informations generales</h4>
+                        <div class="recap-grid">
+                            <div class="recap-item">
+                                <span class="recap-label">Titre</span>
+                                <span class="recap-value" id="recapTitre">-</span>
+                            </div>
+                            <div class="recap-item">
+                                <span class="recap-label">Type</span>
+                                <span class="recap-value" id="recapType">-</span>
+                            </div>
+                            <div class="recap-item">
+                                <span class="recap-label">Chapitre</span>
+                                <span class="recap-value" id="recapChapitre">-</span>
+                            </div>
+                            <div class="recap-item">
+                                <span class="recap-label">Duree</span>
+                                <span class="recap-value" id="recapDuree">-</span>
+                            </div>
+                            <div class="recap-item">
+                                <span class="recap-label">Statut</span>
+                                <span class="recap-value" id="recapStatut">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recap-section">
+                        <h4>Composition</h4>
+                        <div class="recap-exercises" id="recapExercises">
+                            <!-- Generated -->
+                        </div>
+                    </div>
+
+                    <button class="btn btn-secondary" id="previewBtn">
+                        Apercu de l'entrainement
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <div class="footer-left">
+                <button class="btn btn-secondary" id="saveDraftBtn">Enregistrer en brouillon</button>
+            </div>
+            <div class="footer-right">
+                <button class="btn btn-secondary" id="prevStepBtn" style="display: none;">Precedent</button>
+                <button class="btn btn-primary" id="nextStepBtn">Suivant</button>
+                <button class="btn btn-primary" id="publishBtn" style="display: none;">Publier</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmation suppression -->
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal modal-small">
+        <div class="modal-header">
+            <h2>Confirmer la suppression</h2>
+            <button class="modal-close" id="closeDeleteModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Etes-vous sur de vouloir supprimer cet entrainement ?</p>
+            <p class="delete-warning">Cette action est irreversible.</p>
+            <input type="hidden" id="deleteEntrainementId">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Annuler</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
 <script src="../js/config.js"></script>
 <script src="../js/sheets.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/admin-layout.js"></script>
+<script src="../js/admin-entrainements.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        AdminLayout.init('entrainements', 'Entraînements');
+        AdminLayout.init('entrainements', 'Entrainements');
     });
 </script>
 

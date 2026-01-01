@@ -3,30 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Éléments - Admin Brikks</title>
+    <meta name="description" content="Brikks - Banque d'elements d'entrainement">
+    <title>Banque d'elements - Administration - Brikks</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-elements.css">
 </head>
 <body>
 
-<div class="placeholder-content">
-    <div class="icon">🚧</div>
-    <h2>Éléments d'exercices</h2>
-    <p>Cette fonctionnalité est en cours de développement.</p>
-    <p class="hint">Bientôt disponible !</p>
+<div id="elements-page">
+    <!-- Page Header -->
+    <header class="admin-header">
+        <div>
+            <h1>Banque d'elements</h1>
+            <p>Gerez les questions et elements pour les entrainements</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="addElementBtn">
+                <span>+</span>
+                Ajouter un element
+            </button>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des elements...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="elements-content" style="display: none;">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-icon blue">Q</div>
+                <div class="stat-card-value" id="statTotal">0</div>
+                <div class="stat-card-label">Elements total</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon green">?</div>
+                <div class="stat-card-value" id="statQCM">0</div>
+                <div class="stat-card-label">QCM</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon purple">T</div>
+                <div class="stat-card-value" id="statTimeline">0</div>
+                <div class="stat-card-label">Timeline/Ordonner</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon teal">A</div>
+                <div class="stat-card-value" id="statAssociation">0</div>
+                <div class="stat-card-label">Association</div>
+            </div>
+        </div>
+
+        <!-- Layout 2 colonnes -->
+        <div class="elements-layout">
+            <!-- Colonne gauche: Arborescence -->
+            <div class="sidebar-panel">
+                <div class="panel-header">
+                    <h3>Chapitres</h3>
+                </div>
+                <div class="chapters-tree" id="chaptersTree">
+                    <!-- Arborescence generee dynamiquement -->
+                </div>
+            </div>
+
+            <!-- Colonne droite: Liste des elements -->
+            <div class="main-panel">
+                <!-- Filtres -->
+                <div class="filters-bar">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Rechercher un element...">
+                    </div>
+                    <select class="filter-select" id="filterFormat">
+                        <option value="">Tous les formats</option>
+                        <option value="format_001">QCM</option>
+                        <option value="format_002">QCM Multiple</option>
+                        <option value="format_003">Vrai/Faux</option>
+                        <option value="format_004">Texte a trous</option>
+                        <option value="format_005">Association</option>
+                        <option value="format_006">Ordonner</option>
+                        <option value="format_007">Question ouverte</option>
+                        <option value="format_008">Image cliquable</option>
+                    </select>
+                    <select class="filter-select" id="filterDifficulte">
+                        <option value="">Toutes difficultes</option>
+                        <option value="facile">Facile</option>
+                        <option value="moyen">Moyen</option>
+                        <option value="difficile">Difficile</option>
+                    </select>
+                </div>
+
+                <!-- Chapitre selectionne -->
+                <div class="selected-chapter-bar" id="selectedChapterBar">
+                    <span class="selected-chapter-label">Chapitre :</span>
+                    <span class="selected-chapter-name" id="selectedChapterName">Tous les chapitres</span>
+                    <button class="btn-clear" id="clearChapterFilter" style="display: none;">Effacer</button>
+                </div>
+
+                <!-- Liste des elements -->
+                <div class="elements-list" id="elementsList">
+                    <!-- Elements generes dynamiquement -->
+                </div>
+
+                <!-- Empty state -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-icon">?</div>
+                    <h3>Aucun element trouve</h3>
+                    <p>Modifiez vos filtres ou ajoutez un nouvel element.</p>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-bar" id="paginationBar">
+                    <div class="pagination-info" id="paginationInfo">0 elements</div>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+<!-- Modal: Ajouter/Modifier element -->
+<div class="modal-overlay hidden" id="elementModal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h2 id="elementModalTitle">Ajouter un element</h2>
+            <button class="modal-close" id="closeElementModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editElementId">
+
+            <!-- Infos generales -->
+            <div class="form-section">Informations generales</div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Format <span class="req">*</span></label>
+                    <select class="form-select" id="elementFormat">
+                        <option value="">Selectionner un format...</option>
+                        <option value="format_001">QCM (choix unique)</option>
+                        <option value="format_002">QCM Multiple (plusieurs reponses)</option>
+                        <option value="format_003">Vrai/Faux</option>
+                        <option value="format_004">Texte a trous</option>
+                        <option value="format_005">Association (paires)</option>
+                        <option value="format_006">Ordonner (timeline)</option>
+                        <option value="format_007">Question ouverte</option>
+                        <option value="format_008">Image cliquable</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Difficulte</label>
+                    <select class="form-select" id="elementDifficulte">
+                        <option value="facile">Facile</option>
+                        <option value="moyen">Moyen</option>
+                        <option value="difficile">Difficile</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Discipline</label>
+                    <select class="form-select" id="elementDiscipline">
+                        <option value="">Selectionner...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Theme</label>
+                    <select class="form-select" id="elementTheme" disabled>
+                        <option value="">Selectionner d'abord une discipline...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Chapitre <span class="req">*</span></label>
+                <select class="form-select" id="elementChapitre" disabled>
+                    <option value="">Selectionner d'abord un theme...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Enonce / Question <span class="req">*</span></label>
+                <textarea class="form-textarea" id="elementEnonce" rows="3" placeholder="Saisissez l'enonce ou la question..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Tags</label>
+                <input type="text" class="form-input" id="elementTags" placeholder="Ex: revolution, dates, roi (separes par des virgules)">
+                <div class="tags-suggestions" id="tagsSuggestions"></div>
+            </div>
+
+            <!-- Champs specifiques au format (generes dynamiquement) -->
+            <div class="form-section" id="formatFieldsSection" style="display: none;">Donnees specifiques au format</div>
+            <div id="formatFields">
+                <!-- Champs generes selon le format selectionne -->
+            </div>
+
+            <div class="form-group">
+                <label>Explication (affichee apres correction)</label>
+                <textarea class="form-textarea" id="elementExplication" rows="2" placeholder="Explication affichee apres la correction..."></textarea>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelElementBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveElementBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmation suppression -->
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal modal-small">
+        <div class="modal-header">
+            <h2>Confirmer la suppression</h2>
+            <button class="modal-close" id="closeDeleteModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Etes-vous sur de vouloir supprimer cet element ?</p>
+            <p class="delete-warning">Cette action est irreversible.</p>
+            <input type="hidden" id="deleteElementId">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Annuler</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
 <script src="../js/config.js"></script>
 <script src="../js/sheets.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/admin-layout.js"></script>
+<script src="../js/admin-elements.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        AdminLayout.init('elements', 'Éléments');
+        AdminLayout.init('elements', 'Banque d\'elements');
     });
 </script>
 

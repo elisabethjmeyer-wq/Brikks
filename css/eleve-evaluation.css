@@ -1,0 +1,396 @@
+/**
+ * Eleve Evaluation CSS
+ * Styles specifiques pour l'execution des evaluations
+ */
+
+/* ========== HEADER ========== */
+.evaluation-header {
+    background: linear-gradient(135deg, var(--gray-900) 0%, var(--gray-800) 100%);
+    color: white;
+    padding: 16px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.evaluation-header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+}
+
+.evaluation-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.evaluation-header-left .btn-back {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.evaluation-header-left .btn-back:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.evaluation-header-title h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.evaluation-header-title p {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 4px 0 0 0;
+}
+
+.evaluation-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Stakes Display */
+.evaluation-stakes {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 193, 7, 0.2);
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.evaluation-stakes .stakes-icon {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffc107;
+}
+
+.evaluation-stakes .stakes-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffc107;
+}
+
+.evaluation-stakes .stakes-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Type Badge for Evaluation */
+.evaluation-header .type-badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.evaluation-header .type-badge.connaissances {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.evaluation-header .type-badge.savoir-faire {
+    background: rgba(249, 115, 22, 0.2);
+    color: #fb923c;
+}
+
+.evaluation-header .type-badge.competences {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+}
+
+.evaluation-header .type-badge.bonus {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+/* Timer in Evaluation */
+.evaluation-header .timer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+.evaluation-header .timer.warning {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.evaluation-header .timer.danger {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    animation: timer-pulse 1s infinite;
+}
+
+@keyframes timer-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* ========== MAIN CONTENT ========== */
+.evaluation-main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+/* ========== RESULT SCREEN ========== */
+.evaluation-result {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+}
+
+.evaluation-result-header {
+    padding: 48px 32px;
+    text-align: center;
+    color: white;
+}
+
+.evaluation-result-header.validated {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.evaluation-result-header.failed {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.evaluation-result-header.pending {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.evaluation-result-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.evaluation-result-header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+
+.evaluation-result-header p {
+    font-size: 16px;
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* Validation Result */
+.validation-result {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    padding: 32px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.validation-item {
+    text-align: center;
+}
+
+.validation-item-value {
+    font-size: 36px;
+    font-weight: 700;
+}
+
+.validation-item-value.earned {
+    color: var(--success-500);
+}
+
+.validation-item-value.lost {
+    color: var(--danger-500);
+}
+
+.validation-item-value.pending {
+    color: var(--warning-500);
+}
+
+.validation-item-label {
+    font-size: 13px;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
+/* Score Details */
+.score-details {
+    padding: 32px;
+}
+
+.score-details h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin: 0 0 16px 0;
+}
+
+.score-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.score-item {
+    background: var(--gray-50);
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.score-item-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.score-item-label {
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
+/* Threshold Info */
+.threshold-info {
+    background: var(--gray-100);
+    padding: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.threshold-info-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary-100);
+    color: var(--primary-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.threshold-info-text {
+    flex: 1;
+}
+
+.threshold-info-text strong {
+    display: block;
+    color: var(--gray-900);
+    margin-bottom: 2px;
+}
+
+.threshold-info-text span {
+    font-size: 13px;
+    color: var(--gray-600);
+}
+
+/* Savoir-faire Warning */
+.savoir-faire-warning {
+    background: rgba(249, 115, 22, 0.1);
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    padding: 16px;
+    border-radius: 8px;
+    margin-top: 16px;
+}
+
+.savoir-faire-warning-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--warning-600);
+    margin-bottom: 8px;
+}
+
+.savoir-faire-warning p {
+    font-size: 13px;
+    color: var(--gray-600);
+    margin: 0;
+}
+
+/* Result Actions */
+.result-actions {
+    padding: 24px 32px;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* ========== CONFIRMATION MODAL ========== */
+#confirmModal .modal-body {
+    text-align: center;
+    padding: 32px;
+}
+
+#confirmModal .modal-body p {
+    font-size: 16px;
+    color: var(--gray-700);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 768px) {
+    .evaluation-header-inner {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .evaluation-header-right {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .evaluation-stakes {
+        padding: 6px 12px;
+    }
+
+    .evaluation-stakes .stakes-value {
+        font-size: 16px;
+    }
+
+    .evaluation-stakes .stakes-label {
+        display: none;
+    }
+
+    .validation-result {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .result-actions {
+        flex-direction: column;
+    }
+
+    .result-actions .btn {
+        width: 100%;
+    }
+}

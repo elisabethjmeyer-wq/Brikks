@@ -3,30 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mes évaluations - Brikks</title>
+    <meta name="description" content="Brikks - Mes evaluations">
+    <title>Mes evaluations - Brikks</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/eleve-evaluations.css">
 </head>
 <body>
 
-<div class="placeholder-content">
-    <div class="icon">🚧</div>
-    <h2>Mes évaluations</h2>
-    <p>Retrouve ici toutes tes évaluations.</p>
-    <p class="hint">Bientôt disponible !</p>
+<div id="evaluations-page">
+    <!-- Page Header -->
+    <header class="page-header">
+        <div>
+            <h1>Mes evaluations</h1>
+            <p>Retrouve ici toutes tes evaluations a passer</p>
+        </div>
+        <a href="notes.html" class="btn btn-secondary">
+            Voir mes notes
+        </a>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des evaluations...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="evaluations-content" style="display: none;">
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-item">
+                <span class="stat-value" id="statARepasser">0</span>
+                <span class="stat-label">A repasser</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="statDisponibles">0</span>
+                <span class="stat-label">Disponibles</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="statAVenir">0</span>
+                <span class="stat-label">A venir</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="statTerminees">0</span>
+                <span class="stat-label">Terminees</span>
+            </div>
+        </div>
+
+        <!-- Section: A repasser -->
+        <div class="section" id="sectionRepasser" style="display: none;">
+            <h2 class="section-title red">A repasser</h2>
+            <div class="evaluations-grid" id="gridRepasser">
+                <!-- Generated -->
+            </div>
+        </div>
+
+        <!-- Section: Disponibles -->
+        <div class="section" id="sectionDisponibles" style="display: none;">
+            <h2 class="section-title">Disponibles maintenant</h2>
+            <div class="evaluations-grid" id="gridDisponibles">
+                <!-- Generated -->
+            </div>
+        </div>
+
+        <!-- Section: A venir -->
+        <div class="section" id="sectionAVenir" style="display: none;">
+            <h2 class="section-title gray">A venir</h2>
+            <div class="evaluations-grid" id="gridAVenir">
+                <!-- Generated -->
+            </div>
+        </div>
+
+        <!-- Section: Terminees -->
+        <div class="section" id="sectionTerminees" style="display: none;">
+            <h2 class="section-title green">Terminees</h2>
+            <div class="evaluations-grid" id="gridTerminees">
+                <!-- Generated -->
+            </div>
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">?</div>
+            <h3>Aucune evaluation</h3>
+            <p>Tu n'as pas d'evaluations pour le moment.</p>
+        </div>
+    </div>
 </div>
 
+<!-- Scripts -->
 <script src="../js/config.js"></script>
 <script src="../js/sheets.js"></script>
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/eleve-layout.js"></script>
+<script src="../js/eleve-evaluations.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', async function() {
-        await EleveLayout.init('evaluations', 'Mes évaluations');
+        await EleveLayout.init('evaluations', 'Mes evaluations');
     });
 </script>
 
