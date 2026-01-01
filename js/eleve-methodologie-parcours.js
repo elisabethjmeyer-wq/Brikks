@@ -158,20 +158,54 @@ const EleveMethodologieParcours = {
         return idx < siblings.length - 1 ? siblings[idx + 1] : null;
     },
 
-    // Trouver le contenu précédent/suivant dans l'arbre complet
+    // Obtenir la racine du parcours courant
+    getCurrentParcoursRoot() {
+        const path = this.getPath(this.currentItem.id);
+        return path.length > 0 ? path[0] : null;
+    },
+
+    // Trouver le contenu précédent/suivant DANS LE MÊME PARCOURS uniquement
     findPrevContent() {
-        const allContents = this.getAllContents();
-        const idx = allContents.findIndex(c => c.id === this.currentItem.id);
-        return idx > 0 ? allContents[idx - 1] : null;
+        const root = this.getCurrentParcoursRoot();
+        if (!root) return null;
+
+        const parcoursContents = this.getParcoursContents(root.id);
+        const idx = parcoursContents.findIndex(c => c.id === this.currentItem.id);
+        return idx > 0 ? parcoursContents[idx - 1] : null;
     },
 
     findNextContent() {
-        const allContents = this.getAllContents();
-        const idx = allContents.findIndex(c => c.id === this.currentItem.id);
-        return idx < allContents.length - 1 ? allContents[idx + 1] : null;
+        const root = this.getCurrentParcoursRoot();
+        if (!root) return null;
+
+        const parcoursContents = this.getParcoursContents(root.id);
+        const idx = parcoursContents.findIndex(c => c.id === this.currentItem.id);
+        return idx < parcoursContents.length - 1 ? parcoursContents[idx + 1] : null;
     },
 
-    // Obtenir tous les contenus dans l'ordre de parcours
+    // Obtenir tous les contenus d'un parcours spécifique (branche racine)
+    getParcoursContents(rootId, result = [], visited = new Set()) {
+        if (!rootId || visited.has(rootId)) return result;
+        visited.add(rootId);
+
+        const root = this.items.find(i => i.id === rootId);
+        if (!root) return result;
+
+        // Si c'est un contenu, l'ajouter
+        if (this.isContent(root)) {
+            result.push(root);
+        }
+
+        // Parcourir les enfants
+        const children = this.getChildren(rootId);
+        for (const child of children) {
+            this.getParcoursContents(child.id, result, visited);
+        }
+
+        return result;
+    },
+
+    // Obtenir tous les contenus dans l'ordre de parcours (pour compatibilité)
     getAllContents(parentId = null, result = [], visited = new Set()) {
         const items = parentId === null ? this.getRootItems() : this.getChildren(parentId);
 
@@ -388,18 +422,48 @@ const EleveMethodologieParcours = {
         if (!rootId || visited.has(rootId)) return '';
         visited.add(rootId);
 
+        const root = this.items.find(i => i.id === rootId);
         const children = this.getChildren(rootId);
+
+        // Si la racine elle-même est un contenu (sans enfants), l'afficher directement
+        if (children.length === 0 && root && this.isContent(root)) {
+            return `
+                <div class="tree-menu-items">
+                    ${this.renderTreeMenuItem(root, new Set())}
+                </div>
+            `;
+        }
+
         if (children.length === 0) return '';
 
         return `
             <div class="tree-menu-items">
-                ${children.map(child => this.renderTreeMenuItem(child, visited)).join('')}
+                ${children.map(child => this.renderTreeMenuItem(child, new Set())).join('')}
             </div>
         `;
     },
 
-    renderTreeMenuItem(item, visited = new Set()) {
-        if (visited.has(item.id)) return '';
+    // Vérifie si un item est dans le chemin de l'élément courant
+    isInCurrentPath(itemId) {
+        const currentPath = this.getPath(this.currentItem.id);
+        return currentPath.some(p => p.id === itemId);
+    },
+
+    // Vérifie si un item a un descendant actif (pour ouvrir les groupes parents)
+    hasActiveDescendant(itemId, visited = new Set()) {
+        if (visited.has(itemId)) return false;
+        visited.add(itemId);
+
+        const children = this.getChildren(itemId);
+        for (const child of children) {
+            if (child.id === this.currentItem.id) return true;
+            if (this.hasActiveDescendant(child.id, visited)) return true;
+        }
+        return false;
+    },
+
+    renderTreeMenuItem(item, visited = new Set(), depth = 0) {
+        if (visited.has(item.id) || depth > 10) return '';
         visited.add(item.id);
 
         const isActive = item.id === this.currentItem.id;
@@ -408,22 +472,22 @@ const EleveMethodologieParcours = {
         const children = this.getChildren(item.id);
         const hasChildren = children.length > 0;
 
-        // Déterminer si cet item ou un descendant est actif
-        const isInPath = this.getPath(this.currentItem.id).some(p => p.id === item.id);
+        // Ouvrir automatiquement si cet item ou un descendant est actif
+        const shouldBeOpen = isActive || this.hasActiveDescendant(item.id, new Set());
 
         if (isContent) {
             return `
                 <a href="methodologie-parcours.html?item=${item.id}"
-                   class="tree-menu-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}">
+                   class="tree-menu-item depth-${depth} ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}">
                     <span class="tree-menu-status">${isCompleted ? '✓' : '○'}</span>
                     <span class="tree-menu-title">${this.escapeHtml(item.titre)}</span>
                 </a>
             `;
         }
 
-        // Dossier avec enfants
+        // Dossier avec ou sans enfants
         return `
-            <div class="tree-menu-group ${isInPath ? 'open' : ''}">
+            <div class="tree-menu-group depth-${depth} ${shouldBeOpen ? 'open' : ''}">
                 <div class="tree-menu-folder">
                     <span class="tree-menu-icon">${item.icon || '📁'}</span>
                     <span class="tree-menu-title">${this.escapeHtml(item.titre)}</span>
@@ -431,7 +495,7 @@ const EleveMethodologieParcours = {
                 </div>
                 ${hasChildren ? `
                     <div class="tree-menu-children">
-                        ${children.map(child => this.renderTreeMenuItem(child, new Set(visited))).join('')}
+                        ${children.map(child => this.renderTreeMenuItem(child, new Set(visited), depth + 1)).join('')}
                     </div>
                 ` : ''}
             </div>
