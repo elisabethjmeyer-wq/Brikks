@@ -466,9 +466,13 @@ const EleveLayout = {
     },
 
     /**
-     * Initialise les événements
+     * Initialise les événements (une seule fois)
      */
     initEvents() {
+        // Éviter l'initialisation multiple
+        if (this._eventsInitialized) return;
+        this._eventsInitialized = true;
+
         const menuToggle = document.getElementById('menuToggle');
         const userPill = document.getElementById('userPill');
         const overlay = document.getElementById('sidebarOverlay');

@@ -224,9 +224,13 @@ const AdminLayout = {
     },
 
     /**
-     * Initialise les événements
+     * Initialise les événements (une seule fois)
      */
     initEvents() {
+        // Éviter l'initialisation multiple
+        if (this._eventsInitialized) return;
+        this._eventsInitialized = true;
+
         // Fermer le menu utilisateur si clic ailleurs
         document.addEventListener('click', (e) => {
             const userMenu = document.querySelector('.top-bar-user');

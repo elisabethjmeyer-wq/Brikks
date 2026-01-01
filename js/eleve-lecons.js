@@ -83,7 +83,7 @@ const EleveLecons = {
      * Vérifie si un chapitre est complété
      */
     isChapterCompleted(chapitreId) {
-        return this.progression.some(p => p.chapitre_id === chapitreId && p.completed === 'TRUE');
+        return this.progression.some(p => p.chapitre_id === chapitreId && (p.completed === 'TRUE' || p.completed === true));
     },
 
     /**

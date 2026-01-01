@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Brikks - Banque d'elements">
-    <title>Banque d'elements - Administration - Brikks</title>
+    <meta name="description" content="Brikks - Banque d'éléments">
+    <title>Banque d'éléments - Administration - Brikks</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,13 +21,13 @@
     <!-- Page Header -->
     <header class="admin-header">
         <div>
-            <h1>Banque d'elements</h1>
-            <p>Gerez les elements utilises dans vos exercices</p>
+            <h1>Banque d'éléments</h1>
+            <p>Gérez les éléments utilisés dans vos exercices</p>
         </div>
         <div class="header-actions">
             <button class="btn btn-primary" id="addElementBtn">
                 <span>+</span>
-                Nouvel element
+                Nouvel élément
             </button>
         </div>
     </header>
@@ -35,7 +35,7 @@
     <!-- Loader -->
     <div class="loader-container" id="loader">
         <div class="loader"></div>
-        <p>Chargement des elements...</p>
+        <p>Chargement des éléments...</p>
     </div>
 
     <!-- Contenu principal -->
@@ -53,7 +53,7 @@
                 <div class="stat-icon orange">📅</div>
                 <div class="stat-content">
                     <div class="stat-value" id="statEvenement">0</div>
-                    <div class="stat-label">Evenements</div>
+                    <div class="stat-label">Événements</div>
                 </div>
             </div>
             <div class="stat-card">
@@ -74,7 +74,7 @@
                 <div class="stat-icon pink">📂</div>
                 <div class="stat-content">
                     <div class="stat-value" id="statItemCategorie">0</div>
-                    <div class="stat-label">Items categorie</div>
+                    <div class="stat-label">Items catégorie</div>
                 </div>
             </div>
         </div>
@@ -102,7 +102,7 @@
                         <div class="elements-header-icon" id="headerIcon">📋</div>
                         <div class="elements-header-info">
                             <h2 id="selectedChapterName">Tous les chapitres</h2>
-                            <p id="selectedChapterMeta">0 elements</p>
+                            <p id="selectedChapterMeta">0 éléments</p>
                         </div>
                     </div>
                     <button class="btn btn-primary btn-sm" id="addElementBtnHeader">
@@ -124,7 +124,7 @@
                     </button>
                     <button class="type-filter" data-type="evenement">
                         <span class="type-filter-icon">📅</span>
-                        Evenements
+                        Événements
                         <span class="type-filter-count" id="countEvenement">0</span>
                     </button>
                     <button class="type-filter" data-type="paire">
@@ -151,7 +151,7 @@
 
                 <!-- Recherche -->
                 <div class="search-bar">
-                    <input type="text" id="searchInput" placeholder="Rechercher dans les elements...">
+                    <input type="text" id="searchInput" placeholder="Rechercher dans les éléments...">
                 </div>
 
                 <!-- Liste des elements -->
@@ -162,14 +162,14 @@
                 <!-- Empty state -->
                 <div class="empty-state" id="emptyState" style="display: none;">
                     <div class="empty-icon">📭</div>
-                    <h3>Aucun element trouve</h3>
-                    <p>Modifiez vos filtres ou ajoutez un nouvel element.</p>
-                    <button class="btn btn-primary" id="addElementBtnEmpty">+ Ajouter un element</button>
+                    <h3>Aucun élément trouvé</h3>
+                    <p>Modifiez vos filtres ou ajoutez un nouvel élément.</p>
+                    <button class="btn btn-primary" id="addElementBtnEmpty">+ Ajouter un élément</button>
                 </div>
 
                 <!-- Pagination -->
                 <div class="pagination-bar" id="paginationBar">
-                    <div class="pagination-info" id="paginationInfo">0 elements</div>
+                    <div class="pagination-info" id="paginationInfo">0 éléments</div>
                     <div class="pagination" id="pagination"></div>
                 </div>
             </div>
@@ -181,23 +181,23 @@
 <div class="modal-overlay hidden" id="elementModal">
     <div class="modal modal-large">
         <div class="modal-header">
-            <h2 id="elementModalTitle">➕ Nouvel element</h2>
+            <h2 id="elementModalTitle">➕ Nouvel élément</h2>
             <button class="modal-close" id="closeElementModal">&times;</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="editElementId">
 
             <!-- Selection du type -->
-            <div class="form-section">Type d'element</div>
+            <div class="form-section">Type d'élément</div>
             <div class="type-selector" id="typeSelector">
                 <button class="type-selector-btn active" data-type="qcm">
                     <div class="type-selector-icon">📝</div>
                     <div class="type-selector-label">QCM</div>
-                    <div class="type-selector-desc">Question a choix</div>
+                    <div class="type-selector-desc">Question à choix</div>
                 </button>
                 <button class="type-selector-btn" data-type="evenement">
                     <div class="type-selector-icon">📅</div>
-                    <div class="type-selector-label">Evenement</div>
+                    <div class="type-selector-label">Événement</div>
                     <div class="type-selector-desc">Date + description</div>
                 </button>
                 <button class="type-selector-btn" data-type="paire">
@@ -212,12 +212,12 @@
                 </button>
                 <button class="type-selector-btn" data-type="item_categorie">
                     <div class="type-selector-icon">📂</div>
-                    <div class="type-selector-label">Item categorie</div>
-                    <div class="type-selector-desc">Element + categorie</div>
+                    <div class="type-selector-label">Item catégorie</div>
+                    <div class="type-selector-desc">Élément + catégorie</div>
                 </button>
                 <button class="type-selector-btn" data-type="reponse_libre">
                     <div class="type-selector-icon">💬</div>
-                    <div class="type-selector-label">Reponse libre</div>
+                    <div class="type-selector-label">Réponse libre</div>
                     <div class="type-selector-desc">Question ouverte</div>
                 </button>
             </div>
@@ -228,13 +228,13 @@
                 <div class="form-group">
                     <label>Discipline</label>
                     <select class="form-select" id="elementDiscipline">
-                        <option value="">Selectionner...</option>
+                        <option value="">Sélectionner...</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Chapitre <span class="req">*</span></label>
                     <select class="form-select" id="elementChapitre" disabled>
-                        <option value="">Selectionner d'abord une discipline...</option>
+                        <option value="">Sélectionner d'abord une discipline...</option>
                     </select>
                 </div>
             </div>
@@ -245,43 +245,43 @@
                 <div class="form-dynamic active" id="form-qcm">
                     <div class="form-section">Question QCM</div>
                     <div class="form-group">
-                        <label>Enonce de la question <span class="req">*</span></label>
-                        <textarea class="form-textarea" id="qcmEnonce" rows="3" placeholder="Ex: Quelle est la date du passage du cap de Bonne-Esperance ?"></textarea>
+                        <label>Énoncé de la question <span class="req">*</span></label>
+                        <textarea class="form-textarea" id="qcmEnonce" rows="3" placeholder="Ex: Quelle est la date du passage du cap de Bonne-Espérance ?"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Reponses <span class="form-hint">(cliquez pour marquer la bonne reponse)</span></label>
+                        <label>Réponses <span class="form-hint">(cliquez pour marquer la bonne réponse)</span></label>
                         <div class="reponses-list" id="qcmReponses">
                             <div class="reponse-item correct">
                                 <div class="reponse-radio">✓</div>
-                                <input type="text" class="form-input reponse-input" placeholder="Bonne reponse">
+                                <input type="text" class="form-input reponse-input" placeholder="Bonne réponse">
                                 <button type="button" class="reponse-delete">&times;</button>
                             </div>
                             <div class="reponse-item">
                                 <div class="reponse-radio"></div>
-                                <input type="text" class="form-input reponse-input" placeholder="Mauvaise reponse">
+                                <input type="text" class="form-input reponse-input" placeholder="Mauvaise réponse">
                                 <button type="button" class="reponse-delete">&times;</button>
                             </div>
                             <div class="reponse-item">
                                 <div class="reponse-radio"></div>
-                                <input type="text" class="form-input reponse-input" placeholder="Mauvaise reponse">
+                                <input type="text" class="form-input reponse-input" placeholder="Mauvaise réponse">
                                 <button type="button" class="reponse-delete">&times;</button>
                             </div>
                             <div class="reponse-item">
                                 <div class="reponse-radio"></div>
-                                <input type="text" class="form-input reponse-input" placeholder="Mauvaise reponse">
+                                <input type="text" class="form-input reponse-input" placeholder="Mauvaise réponse">
                                 <button type="button" class="reponse-delete">&times;</button>
                             </div>
                         </div>
-                        <button type="button" class="btn-add-option" id="addQcmOption">➕ Ajouter une reponse</button>
+                        <button type="button" class="btn-add-option" id="addQcmOption">➕ Ajouter une réponse</button>
                     </div>
                 </div>
 
                 <!-- Evenement -->
                 <div class="form-dynamic" id="form-evenement">
-                    <div class="form-section">Evenement</div>
+                    <div class="form-section">Événement</div>
                     <div class="form-group">
-                        <label>Description de l'evenement <span class="req">*</span></label>
-                        <textarea class="form-textarea" id="eventDescription" rows="2" placeholder="Ex: Bartolomeu Dias atteint le cap de Bonne-Esperance"></textarea>
+                        <label>Description de l'événement <span class="req">*</span></label>
+                        <textarea class="form-textarea" id="eventDescription" rows="2" placeholder="Ex: Bartolomeu Dias atteint le cap de Bonne-Espérance"></textarea>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -289,8 +289,8 @@
                             <input type="text" class="form-input" id="eventDate" placeholder="Ex: 1488">
                         </div>
                         <div class="form-group">
-                            <label>Periode <span class="form-hint">(optionnel)</span></label>
-                            <input type="text" class="form-input" id="eventPeriode" placeholder="Ex: XVe siecle">
+                            <label>Période <span class="form-hint">(optionnel)</span></label>
+                            <input type="text" class="form-input" id="eventPeriode" placeholder="Ex: XVe siècle">
                         </div>
                     </div>
                 </div>
@@ -305,7 +305,7 @@
                         </div>
                         <div class="form-group">
                             <label>Terme B <span class="req">*</span></label>
-                            <input type="text" class="form-input" id="paireTermeB" placeholder="Ex: Cap de Bonne-Esperance">
+                            <input type="text" class="form-input" id="paireTermeB" placeholder="Ex: Cap de Bonne-Espérance">
                         </div>
                     </div>
                 </div>
@@ -315,18 +315,18 @@
                     <div class="form-section">Point carte</div>
                     <div class="form-group">
                         <label>Nom du lieu <span class="req">*</span></label>
-                        <input type="text" class="form-input" id="pointNom" placeholder="Ex: Lisbonne, Goa, Cap de Bonne-Esperance...">
+                        <input type="text" class="form-input" id="pointNom" placeholder="Ex: Lisbonne, Goa, Cap de Bonne-Espérance...">
                     </div>
                     <div class="form-group">
                         <label>Carte <span class="req">*</span></label>
                         <select class="form-select" id="pointCarteSelect" onchange="AdminElements.onCarteChange(this.value)">
-                            <option value="">Selectionner une carte...</option>
+                            <option value="">Sélectionner une carte...</option>
                         </select>
                     </div>
                     <!-- Carte preview avec clic pour placer le point -->
                     <div class="carte-preview-container" id="cartePreviewContainer" style="display: none;">
                         <div class="carte-preview-wrapper" onclick="AdminElements.onCarteClick(event)">
-                            <img id="cartePreview" src="" alt="Apercu de la carte" class="carte-preview-img">
+                            <img id="cartePreview" src="" alt="Aperçu de la carte" class="carte-preview-img">
                             <div id="carteMarker" class="carte-marker" style="display: none;">📍</div>
                         </div>
                         <div class="carte-coords" id="carteCoords">Cliquez sur la carte pour placer le point</div>
@@ -338,44 +338,44 @@
 
                 <!-- Item categorie -->
                 <div class="form-dynamic" id="form-item_categorie">
-                    <div class="form-section">Item de categorisation</div>
+                    <div class="form-section">Item de catégorisation</div>
                     <div class="form-group">
-                        <label>Element a classer <span class="req">*</span></label>
+                        <label>Élément à classer <span class="req">*</span></label>
                         <input type="text" class="form-input" id="itemElement" placeholder="Ex: La caravelle">
                     </div>
                     <div class="form-group">
-                        <label>Categorie correcte <span class="req">*</span></label>
+                        <label>Catégorie correcte <span class="req">*</span></label>
                         <input type="text" class="form-input" id="itemCategorie" placeholder="Ex: Instruments de navigation">
                     </div>
                 </div>
 
                 <!-- Reponse libre -->
                 <div class="form-dynamic" id="form-reponse_libre">
-                    <div class="form-section">Question a reponse libre</div>
+                    <div class="form-section">Question à réponse libre</div>
                     <div class="form-group">
                         <label>Question <span class="req">*</span></label>
                         <textarea class="form-textarea" id="libreQuestion" rows="3" placeholder="Ex: Expliquez les motivations des explorations portugaises."></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Mots-cles attendus <span class="form-hint">(separes par virgules)</span></label>
-                        <input type="text" class="form-input" id="libreMotsCles" placeholder="Ex: epices, or, route des Indes, commerce">
+                        <label>Mots-clés attendus <span class="form-hint">(séparés par virgules)</span></label>
+                        <input type="text" class="form-input" id="libreMotsCles" placeholder="Ex: épices, or, route des Indes, commerce">
                     </div>
                     <div class="form-group">
-                        <label>Reponse modele <span class="form-hint">(optionnel)</span></label>
-                        <textarea class="form-textarea" id="libreReponseModele" rows="3" placeholder="Reponse complete affichee dans le corrige..."></textarea>
+                        <label>Réponse modèle <span class="form-hint">(optionnel)</span></label>
+                        <textarea class="form-textarea" id="libreReponseModele" rows="3" placeholder="Réponse complète affichée dans le corrigé..."></textarea>
                     </div>
                 </div>
             </div>
 
             <!-- Champs communs -->
-            <div class="form-section">Informations complementaires</div>
+            <div class="form-section">Informations complémentaires</div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Tags <span class="form-hint">(separes par virgules)</span></label>
+                    <label>Tags <span class="form-hint">(séparés par virgules)</span></label>
                     <input type="text" class="form-input" id="elementTags" placeholder="Ex: revolution, dates, roi">
                 </div>
                 <div class="form-group">
-                    <label>Difficulte</label>
+                    <label>Difficulté</label>
                     <select class="form-select" id="elementDifficulte">
                         <option value="facile">Facile</option>
                         <option value="moyen">Moyen</option>
@@ -384,8 +384,8 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Explication <span class="form-hint">(affichee apres correction)</span></label>
-                <textarea class="form-textarea" id="elementExplication" rows="2" placeholder="Explication affichee apres la correction..."></textarea>
+                <label>Explication <span class="form-hint">(affichée après correction)</span></label>
+                <textarea class="form-textarea" id="elementExplication" rows="2" placeholder="Explication affichée après la correction..."></textarea>
             </div>
 
         </div>
