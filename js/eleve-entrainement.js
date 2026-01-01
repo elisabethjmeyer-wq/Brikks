@@ -282,19 +282,11 @@ const EleveEntrainement = {
         this.stopTimer();
         this.timeExpired = true;
 
-        // Afficher un message et passer aux résultats
-        alert('⏰ Temps écoulé ! L\'entraînement est terminé.');
+        // Afficher un message et redémarrer l'entraînement
+        alert('Temps ecoul\u00e9 ! L\'entra\u00eenement va red\u00e9marrer.');
 
-        // Vérifier automatiquement toutes les étapes non vérifiées
-        this.steps.forEach((step, index) => {
-            if (!this.results[index]?.verified) {
-                this.currentStepIndex = index;
-                this.verifyCurrentStep();
-            }
-        });
-
-        // Afficher les résultats
-        this.showResults();
+        // Redémarrer l'entraînement
+        this.restart();
     },
 
     stopTimer() {
@@ -440,15 +432,7 @@ const EleveEntrainement = {
                     </div>
 
                     <div class="exercise-actions">
-                        ${isVerified ? `
-                            ${this.currentStepIndex < this.steps.length - 1 ? `
-                                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
-                            ` : `
-                                <button class="btn btn-success" onclick="EleveEntrainement.showResults()">🏆 Voir les résultats</button>
-                            `}
-                        ` : `
-                            <button class="btn btn-success" onclick="EleveEntrainement.verifyCurrentStep()">✓ Vérifier mes réponses</button>
-                        `}
+                        ${this.renderNavigationButtons()}
                     </div>
                 </div>
             </div>
@@ -548,6 +532,24 @@ const EleveEntrainement = {
     },
 
     // ========== NAVIGATION ==========
+    renderNavigationButtons() {
+        // Mode correction : navigation entre les corrections
+        if (this.correctionMode) {
+            if (this.currentStepIndex < this.steps.length - 1) {
+                return `<button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Correction suivante</button>`;
+            } else {
+                return `<button class="btn btn-primary" onclick="EleveEntrainement.backToResults()">Retour aux resultats</button>`;
+            }
+        }
+
+        // Mode entraînement normal
+        if (this.currentStepIndex < this.steps.length - 1) {
+            return `<button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Etape suivante</button>`;
+        } else {
+            return `<button class="btn btn-success" onclick="EleveEntrainement.finishTraining()">Terminer l'entrainement</button>`;
+        }
+    },
+
     goToStep(index) {
         if (index >= 0 && index < this.steps.length) {
             this.currentStepIndex = index;
@@ -576,6 +578,22 @@ const EleveEntrainement = {
         if (format && this[format.verify]) {
             this[format.verify]();
         }
+    },
+
+    // Terminer l'entraînement : vérifier toutes les étapes et afficher les résultats
+    finishTraining() {
+        // Vérifier toutes les étapes
+        this.steps.forEach((step, index) => {
+            if (!this.results[index]?.verified) {
+                const savedIndex = this.currentStepIndex;
+                this.currentStepIndex = index;
+                this.verifyCurrentStep();
+                this.currentStepIndex = savedIndex;
+            }
+        });
+
+        // Afficher les résultats
+        this.showResults();
     },
 
     // ========== RÉSULTATS ==========
@@ -656,12 +674,34 @@ const EleveEntrainement = {
                     ` : ''}
 
                     <div class="final-actions">
-                        <button class="btn btn-secondary" onclick="EleveEntrainement.restart()">🔄 Refaire l'entraînement</button>
-                        <button class="btn btn-primary" onclick="window.history.back()">📚 Retour aux entraînements</button>
+                        <button class="btn btn-outline" onclick="EleveEntrainement.showCorrections()">Voir les corrections</button>
+                        <button class="btn btn-secondary" onclick="EleveEntrainement.restart()">Refaire l'entrainement</button>
+                        <button class="btn btn-primary" onclick="window.history.back()">Retour aux entrainements</button>
                     </div>
                 </div>
             </div>
         `;
+    },
+
+    // Afficher les corrections détaillées
+    showCorrections() {
+        this.currentStepIndex = 0;
+        this.correctionMode = true;
+
+        document.getElementById('resultContainer').style.display = 'none';
+        document.getElementById('exerciseContainer').style.display = 'block';
+        document.getElementById('progressSection').style.display = 'block';
+
+        this.render();
+        window.scrollTo(0, 0);
+    },
+
+    // Retour aux résultats depuis le mode correction
+    backToResults() {
+        this.correctionMode = false;
+        document.getElementById('exerciseContainer').style.display = 'none';
+        document.getElementById('progressSection').style.display = 'none';
+        this.showResults();
     },
 
     restart() {
@@ -669,6 +709,7 @@ const EleveEntrainement = {
         this.answers = {};
         this.results = {};
         this.timeExpired = false;
+        this.correctionMode = false;
 
         // Réinitialiser le compte à rebours
         this.remainingTime = this.duration;
@@ -734,22 +775,14 @@ const EleveEntrainement = {
                     </div>
 
                     <div class="exercise-actions">
-                        ${isVerified ? `
-                            ${this.currentStepIndex < this.steps.length - 1 ? `
-                                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
-                            ` : `
-                                <button class="btn btn-success" onclick="EleveEntrainement.showResults()">🏆 Voir les résultats</button>
-                            `}
-                        ` : `
-                            <button class="btn btn-success" onclick="EleveEntrainement.verifyCurrentStep()">✓ Vérifier l'ordre</button>
-                        `}
+                        ${this.renderNavigationButtons()}
                     </div>
                 </div>
             </div>
         `;
 
-        // Setup drag & drop si pas vérifié
-        if (!isVerified) {
+        // Setup drag & drop (seulement si pas en mode correction)
+        if (!this.correctionMode) {
             this.setupTimelineDragDrop();
         }
     },
@@ -943,15 +976,7 @@ const EleveEntrainement = {
                     </div>
 
                     <div class="exercise-actions">
-                        ${isVerified ? `
-                            ${this.currentStepIndex < this.steps.length - 1 ? `
-                                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
-                            ` : `
-                                <button class="btn btn-success" onclick="EleveEntrainement.showResults()">🏆 Voir les résultats</button>
-                            `}
-                        ` : `
-                            <button class="btn btn-success" onclick="EleveEntrainement.verifyCurrentStep()">✓ Vérifier mes réponses</button>
-                        `}
+                        ${this.renderNavigationButtons()}
                     </div>
                 </div>
             </div>
@@ -1072,15 +1097,7 @@ const EleveEntrainement = {
                     </div>
 
                     <div class="exercise-actions">
-                        ${isVerified ? `
-                            ${this.currentStepIndex < this.steps.length - 1 ? `
-                                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
-                            ` : `
-                                <button class="btn btn-success" onclick="EleveEntrainement.showResults()">🏆 Voir les résultats</button>
-                            `}
-                        ` : `
-                            <button class="btn btn-success" onclick="EleveEntrainement.verifyCurrentStep()">✓ Voir la correction</button>
-                        `}
+                        ${this.renderNavigationButtons()}
                     </div>
                 </div>
             </div>
@@ -1185,15 +1202,9 @@ const EleveEntrainement = {
     renderImageCliquable(step) {
         const container = document.getElementById('exerciseContainer');
         const stepAnswers = this.answers[this.currentStepIndex] || {};
-        const isVerified = this.results[this.currentStepIndex]?.verified;
+        const isVerified = this.results[this.currentStepIndex]?.verified || this.correctionMode;
         const currentQuestionIndex = stepAnswers.currentQuestion || 0;
-
-        // Si on a répondu à toutes les questions, montrer le résumé
-        if (currentQuestionIndex >= step.questions.length && !isVerified) {
-            this.verifyImageCliquable();
-            return;
-        }
-
+        const allQuestionsAnswered = currentQuestionIndex >= step.questions.length || isVerified;
         const currentQuestion = step.questions[currentQuestionIndex];
 
         container.innerHTML = `
@@ -1208,7 +1219,7 @@ const EleveEntrainement = {
                 </div>
 
                 <div class="exercise-body">
-                    ${!isVerified ? `
+                    ${!allQuestionsAnswered ? `
                         <div class="image-cliquable-progress">
                             <span>Question ${currentQuestionIndex + 1}/${step.questions.length}</span>
                             <div class="image-cliquable-progress-bar">
@@ -1217,7 +1228,7 @@ const EleveEntrainement = {
                         </div>
 
                         <div class="image-cliquable-question">
-                            <div class="image-cliquable-question-icon">🎯</div>
+                            <div class="image-cliquable-question-icon">Cible</div>
                             <div class="image-cliquable-question-text">${this.escapeHtml(currentQuestion.question)}</div>
                         </div>
                     ` : ''}
@@ -1229,42 +1240,44 @@ const EleveEntrainement = {
                         </div>
                     </div>
 
-                    ${isVerified ? `
-                        <div class="image-cliquable-results">
-                            <h3>Résultats</h3>
-                            <div class="image-cliquable-results-list">
-                                ${step.questions.map((q, qIndex) => {
-                                    const userAnswer = stepAnswers[`q_${qIndex}`];
-                                    const isCorrect = userAnswer === q.correctZoneId;
-                                    return `
-                                        <div class="image-cliquable-result-item ${isCorrect ? 'correct' : 'incorrect'}">
-                                            <span class="image-cliquable-result-icon">${isCorrect ? '✓' : '✗'}</span>
-                                            <span class="image-cliquable-result-text">${this.escapeHtml(q.question)}</span>
-                                            ${!isCorrect ? `<span class="image-cliquable-result-answer">→ ${this.getZoneName(step.zones, q.correctZoneId)}</span>` : ''}
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
+                    ${isVerified ? this.renderImageCliquableResults(step, stepAnswers) : ''}
 
                     <div class="exercise-actions">
-                        ${isVerified ? `
-                            ${this.currentStepIndex < this.steps.length - 1 ? `
-                                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
-                            ` : `
-                                <button class="btn btn-success" onclick="EleveEntrainement.showResults()">🏆 Voir les résultats</button>
-                            `}
-                        ` : ''}
+                        ${allQuestionsAnswered ? this.renderNavigationButtons() : ''}
                     </div>
                 </div>
             </div>
         `;
 
-        // Setup click handlers if not verified
-        if (!isVerified) {
+        // Setup click handlers if not all questions answered and not in correction mode
+        if (!allQuestionsAnswered && !this.correctionMode) {
             this.setupImageClickHandlers(step, currentQuestionIndex);
         }
+    },
+
+    renderImageCliquableResults(step, stepAnswers) {
+        const resultsHtml = step.questions.map((q, qIndex) => {
+            const userAnswer = stepAnswers[`q_${qIndex}`];
+            const isCorrect = userAnswer === q.correctZoneId;
+            const answerText = !isCorrect ? `<span class="image-cliquable-result-answer">Reponse : ${this.getZoneName(step.zones, q.correctZoneId)}</span>` : '';
+
+            return `
+                <div class="image-cliquable-result-item ${isCorrect ? 'correct' : 'incorrect'}">
+                    <span class="image-cliquable-result-icon">${isCorrect ? 'V' : 'X'}</span>
+                    <span class="image-cliquable-result-text">${this.escapeHtml(q.question)}</span>
+                    ${answerText}
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="image-cliquable-results">
+                <h3>Resultats</h3>
+                <div class="image-cliquable-results-list">
+                    ${resultsHtml}
+                </div>
+            </div>
+        `;
     },
 
     renderImageZone(zone, index, stepAnswers, isVerified, questions) {
