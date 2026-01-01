@@ -1,0 +1,559 @@
+/**
+ * Moteur d'Entraînement Élève
+ * Gère les différents formats d'exercices
+ */
+
+const EleveEntrainement = {
+    // État
+    training: null,
+    steps: [],
+    currentStepIndex: 0,
+    answers: {},
+    results: {},
+    startTime: null,
+    timerInterval: null,
+
+    // Configuration des formats d'exercices
+    formats: {
+        qcm: {
+            icon: '📝',
+            label: 'QCM',
+            render: 'renderQCM',
+            verify: 'verifyQCM'
+        },
+        timeline: {
+            icon: '📅',
+            label: 'Timeline',
+            render: 'renderTimeline',
+            verify: 'verifyTimeline'
+        },
+        chronologie: {
+            icon: '🗓️',
+            label: 'Chronologie',
+            render: 'renderChronologie',
+            verify: 'verifyChronologie'
+        },
+        'question-ouverte': {
+            icon: '✍️',
+            label: 'Question ouverte',
+            render: 'renderQuestionOuverte',
+            verify: 'verifyQuestionOuverte'
+        },
+        'image-cliquable': {
+            icon: '🗺️',
+            label: 'Image cliquable',
+            render: 'renderImageCliquable',
+            verify: 'verifyImageCliquable'
+        }
+    },
+
+    // ========== INITIALISATION ==========
+    async init() {
+        try {
+            // Récupérer l'ID de l'entraînement depuis l'URL
+            const params = new URLSearchParams(window.location.search);
+            const trainingId = params.get('id');
+
+            if (trainingId && trainingId !== 'test') {
+                await this.loadTraining(trainingId);
+            } else {
+                // Mode test avec données mock
+                this.loadMockData();
+            }
+
+            this.startTimer();
+            this.render();
+            this.showContent();
+        } catch (error) {
+            console.error('Erreur initialisation:', error);
+            this.showError('Erreur lors du chargement de l\'entraînement');
+        }
+    },
+
+    // ========== CHARGEMENT DONNÉES ==========
+    async loadTraining(trainingId) {
+        // TODO: Charger depuis Google Sheets
+        // Pour l'instant, utiliser les données mock
+        this.loadMockData();
+    },
+
+    loadMockData() {
+        // Données de test pour développement
+        this.training = {
+            id: 'test_001',
+            titre: 'Les explorateurs (Série 1/3)',
+            matiere: 'Histoire',
+            chapitre: 'L1 - Les explorations portugaises',
+            type: 'connaissances' // connaissances, savoir-faire, competences
+        };
+
+        // Étapes de l'entraînement (chaque étape = un format d'exercice)
+        this.steps = [
+            {
+                format: 'qcm',
+                titre: 'Questions à choix unique',
+                description: 'Répondez aux questions ci-dessous',
+                questions: [
+                    {
+                        id: 'q1',
+                        question: 'Quelle est la date du passage du cap de Bonne-Espérance par Bartolomeu Dias ?',
+                        options: ['1492', '1488', '1498', '1500'],
+                        correctIndex: 1,
+                        explanation: 'Bartolomeu Dias atteint le cap de Bonne-Espérance en 1488, ouvrant la route maritime vers l\'océan Indien.'
+                    },
+                    {
+                        id: 'q2',
+                        question: 'Qui a atteint l\'Inde par voie maritime en 1498 ?',
+                        options: ['Christophe Colomb', 'Vasco de Gama', 'Magellan', 'Bartolomeu Dias'],
+                        correctIndex: 1,
+                        explanation: 'Vasco de Gama atteint Calicut (Inde) en 1498, établissant la première route maritime directe entre l\'Europe et l\'Asie.'
+                    },
+                    {
+                        id: 'q3',
+                        question: 'La caravelle est...',
+                        options: ['Un instrument de navigation', 'Une épice précieuse', 'Un type de navire', 'Un comptoir commercial'],
+                        correctIndex: 2,
+                        explanation: 'La caravelle est un navire léger et maniable, idéal pour l\'exploration des côtes africaines.'
+                    },
+                    {
+                        id: 'q4',
+                        question: 'Quel prince portugais a encouragé les explorations maritimes au XVe siècle ?',
+                        options: ['Manuel Ier', 'Henri le Navigateur', 'Jean II', 'Alphonse V'],
+                        correctIndex: 1,
+                        explanation: 'Henri le Navigateur (1394-1460) a fondé une école de navigation et financé de nombreuses expéditions.'
+                    },
+                    {
+                        id: 'q5',
+                        question: 'Quelle épice était la plus recherchée par les Portugais ?',
+                        options: ['La cannelle', 'Le safran', 'Le poivre', 'La muscade'],
+                        correctIndex: 2,
+                        explanation: 'Le poivre était surnommé "l\'or noir" et valait son poids en or à l\'époque.'
+                    }
+                ]
+            }
+        ];
+
+        // Initialiser les réponses
+        this.answers = {};
+        this.results = {};
+    },
+
+    showContent() {
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('trainingContent').style.display = 'block';
+    },
+
+    showError(message) {
+        document.getElementById('loader').innerHTML = `
+            <div class="error-state">
+                <span style="font-size: 48px;">😕</span>
+                <p>${message}</p>
+                <button class="btn btn-secondary" onclick="window.history.back()">Retour</button>
+            </div>
+        `;
+    },
+
+    // ========== TIMER ==========
+    startTimer() {
+        this.startTime = Date.now();
+        this.timerInterval = setInterval(() => this.updateTimer(), 1000);
+    },
+
+    updateTimer() {
+        const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        document.getElementById('timerValue').textContent =
+            `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    },
+
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+        }
+    },
+
+    getElapsedTime() {
+        return Math.floor((Date.now() - this.startTime) / 1000);
+    },
+
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    },
+
+    // ========== RENDU PRINCIPAL ==========
+    render() {
+        this.renderHeader();
+        this.renderProgress();
+        this.renderCurrentStep();
+    },
+
+    renderHeader() {
+        document.getElementById('trainingTitle').textContent =
+            `${this.getFormatIcon(this.steps[0]?.format)} ${this.training.titre}`;
+        document.getElementById('trainingSubtitle').textContent =
+            `${this.training.matiere} • ${this.training.chapitre}`;
+
+        const badge = document.getElementById('typeBadge');
+        badge.textContent = this.getTypeLabel(this.training.type);
+        badge.className = `type-badge ${this.training.type}`;
+    },
+
+    getTypeLabel(type) {
+        const labels = {
+            connaissances: '✅ Connaissances',
+            'savoir-faire': '🔧 Savoir-faire',
+            competences: '🎯 Compétences'
+        };
+        return labels[type] || type;
+    },
+
+    getFormatIcon(format) {
+        return this.formats[format]?.icon || '📝';
+    },
+
+    getFormatLabel(format) {
+        return this.formats[format]?.label || format;
+    },
+
+    renderProgress() {
+        const progressSection = document.getElementById('progressSection');
+        const progressSteps = document.getElementById('progressSteps');
+        const progressText = document.getElementById('progressText');
+
+        // Masquer si une seule étape
+        if (this.steps.length <= 1) {
+            progressSection.style.display = 'none';
+            return;
+        }
+
+        progressSection.style.display = 'block';
+        progressText.textContent = `Étape ${this.currentStepIndex + 1}/${this.steps.length}`;
+
+        progressSteps.innerHTML = this.steps.map((step, index) => {
+            let stepClass = '';
+            if (index < this.currentStepIndex) stepClass = 'completed';
+            else if (index === this.currentStepIndex) stepClass = 'current';
+
+            return `
+                <div class="progress-step ${stepClass}" onclick="EleveEntrainement.goToStep(${index})">
+                    <div class="progress-step-bar">
+                        <div class="progress-step-bar-fill"></div>
+                    </div>
+                    <div class="progress-step-label">
+                        <span class="progress-step-icon">${index + 1}</span>
+                        ${this.getFormatLabel(step.format)} (${step.questions?.length || 0})
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    renderCurrentStep() {
+        const step = this.steps[this.currentStepIndex];
+        if (!step) return;
+
+        const format = this.formats[step.format];
+        if (format && this[format.render]) {
+            this[format.render](step);
+        } else {
+            this.renderUnsupportedFormat(step);
+        }
+    },
+
+    renderUnsupportedFormat(step) {
+        document.getElementById('exerciseContainer').innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-body" style="text-align: center; padding: 60px;">
+                    <span style="font-size: 48px;">🚧</span>
+                    <h2 style="margin: 16px 0;">Format non supporté</h2>
+                    <p style="color: var(--gray-500);">Le format "${step.format}" n'est pas encore implémenté.</p>
+                </div>
+            </div>
+        `;
+    },
+
+    // ========== FORMAT QCM ==========
+    renderQCM(step) {
+        const container = document.getElementById('exerciseContainer');
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+        const isVerified = this.results[this.currentStepIndex]?.verified;
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon qcm">${this.getFormatIcon('qcm')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description}</p>
+                    </div>
+                    <span class="exercise-badge">${step.questions.length} questions</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="qcm-questions-list">
+                        ${step.questions.map((q, qIndex) => this.renderQCMQuestion(q, qIndex, stepAnswers, isVerified)).join('')}
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${isVerified ? `
+                            <button class="btn btn-secondary" onclick="EleveEntrainement.resetStep()">🔄 Recommencer</button>
+                            ${this.currentStepIndex < this.steps.length - 1 ? `
+                                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
+                            ` : `
+                                <button class="btn btn-success" onclick="EleveEntrainement.showResults()">🏆 Voir les résultats</button>
+                            `}
+                        ` : `
+                            <button class="btn btn-success" onclick="EleveEntrainement.verifyCurrentStep()">✓ Vérifier mes réponses</button>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderQCMQuestion(question, qIndex, stepAnswers, isVerified) {
+        const selectedIndex = stepAnswers[question.id];
+        const isAnswered = selectedIndex !== undefined;
+        const isCorrect = isVerified && selectedIndex === question.correctIndex;
+        const isIncorrect = isVerified && isAnswered && selectedIndex !== question.correctIndex;
+
+        let itemClass = '';
+        if (isVerified && isCorrect) itemClass = 'answered';
+        else if (isVerified && isIncorrect) itemClass = 'answered incorrect';
+        else if (isVerified && !isAnswered) itemClass = 'answered incorrect';
+
+        return `
+            <div class="qcm-item ${itemClass}" id="qcm-${question.id}">
+                <div class="qcm-item-header">
+                    <div class="qcm-item-number">${qIndex + 1}</div>
+                    <div class="qcm-item-question">${this.escapeHtml(question.question)}</div>
+                    <span class="qcm-item-status">
+                        ${isVerified ? (isCorrect ? '✓' : (isAnswered ? '✗' : '⚠️')) : ''}
+                    </span>
+                </div>
+                <div class="qcm-options">
+                    ${question.options.map((option, oIndex) => {
+                        let optionClass = '';
+                        if (selectedIndex === oIndex) optionClass = 'selected';
+                        if (isVerified) {
+                            optionClass += ' disabled';
+                            if (oIndex === question.correctIndex) optionClass += ' correct';
+                            else if (selectedIndex === oIndex) optionClass += ' incorrect';
+                        }
+
+                        return `
+                            <div class="qcm-option ${optionClass}"
+                                 onclick="EleveEntrainement.selectQCMOption('${question.id}', ${oIndex})">
+                                <div class="qcm-radio">
+                                    ${isVerified && oIndex === question.correctIndex ? '✓' :
+                                      (isVerified && selectedIndex === oIndex && oIndex !== question.correctIndex ? '✗' :
+                                      (selectedIndex === oIndex ? '●' : ''))}
+                                </div>
+                                <span class="qcm-option-text">${this.escapeHtml(option)}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div class="qcm-item-feedback ${isVerified ? 'show' : ''} ${isCorrect ? 'correct' : 'incorrect'}">
+                    <div class="qcm-item-feedback-header">
+                        ${isCorrect ? '✓ Bonne réponse !' : (isAnswered ? '✗ Mauvaise réponse' : '⚠️ Non répondu')}
+                    </div>
+                    <div class="qcm-item-feedback-text">${this.escapeHtml(question.explanation || '')}</div>
+                </div>
+            </div>
+        `;
+    },
+
+    selectQCMOption(questionId, optionIndex) {
+        // Ne pas permettre la sélection si déjà vérifié
+        if (this.results[this.currentStepIndex]?.verified) return;
+
+        // Initialiser les réponses pour cette étape si nécessaire
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = {};
+        }
+
+        // Enregistrer la réponse
+        this.answers[this.currentStepIndex][questionId] = optionIndex;
+
+        // Re-render la question
+        this.renderCurrentStep();
+    },
+
+    verifyQCM() {
+        const step = this.steps[this.currentStepIndex];
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+
+        let correct = 0;
+        let total = step.questions.length;
+
+        step.questions.forEach(q => {
+            if (stepAnswers[q.id] === q.correctIndex) {
+                correct++;
+            }
+        });
+
+        this.results[this.currentStepIndex] = {
+            verified: true,
+            correct,
+            total,
+            score: Math.round((correct / total) * 100)
+        };
+
+        this.renderCurrentStep();
+    },
+
+    // ========== NAVIGATION ==========
+    goToStep(index) {
+        if (index >= 0 && index < this.steps.length) {
+            this.currentStepIndex = index;
+            this.render();
+        }
+    },
+
+    nextStep() {
+        if (this.currentStepIndex < this.steps.length - 1) {
+            this.currentStepIndex++;
+            this.render();
+            window.scrollTo(0, 0);
+        }
+    },
+
+    resetStep() {
+        delete this.answers[this.currentStepIndex];
+        delete this.results[this.currentStepIndex];
+        this.renderCurrentStep();
+    },
+
+    verifyCurrentStep() {
+        const step = this.steps[this.currentStepIndex];
+        const format = this.formats[step.format];
+
+        if (format && this[format.verify]) {
+            this[format.verify]();
+        }
+    },
+
+    // ========== RÉSULTATS ==========
+    showResults() {
+        this.stopTimer();
+
+        const elapsed = this.getElapsedTime();
+        let totalCorrect = 0;
+        let totalQuestions = 0;
+
+        this.steps.forEach((step, index) => {
+            const result = this.results[index];
+            if (result) {
+                totalCorrect += result.correct;
+                totalQuestions += result.total;
+            }
+        });
+
+        const globalScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+        let headerClass = 'success';
+        let icon = '🏆';
+        let message = 'Bravo, entraînement terminé !';
+
+        if (globalScore < 50) {
+            headerClass = 'failure';
+            icon = '💪';
+            message = 'Continue tes efforts !';
+        } else if (globalScore < 80) {
+            headerClass = 'partial';
+            icon = '👍';
+            message = 'Bien joué !';
+        }
+
+        document.getElementById('exerciseContainer').style.display = 'none';
+        document.getElementById('progressSection').style.display = 'none';
+
+        const resultContainer = document.getElementById('resultContainer');
+        resultContainer.style.display = 'block';
+        resultContainer.innerHTML = `
+            <div class="final-result">
+                <div class="final-result-header ${headerClass}">
+                    <div class="final-result-icon">${icon}</div>
+                    <h2>${message}</h2>
+                    <p>Tu as complété "${this.training.titre}"</p>
+                </div>
+                <div class="final-result-body">
+                    <div class="final-score">
+                        <div class="final-score-item">
+                            <div class="final-score-value">${globalScore}%</div>
+                            <div class="final-score-label">Score global</div>
+                        </div>
+                        <div class="final-score-item">
+                            <div class="final-score-value">${this.formatTime(elapsed)}</div>
+                            <div class="final-score-label">Temps total</div>
+                        </div>
+                    </div>
+
+                    ${this.steps.length > 1 ? `
+                        <div class="final-steps-detail">
+                            ${this.steps.map((step, index) => {
+                                const result = this.results[index] || { correct: 0, total: 0 };
+                                const stepScore = result.total > 0 ? Math.round((result.correct / result.total) * 100) : 0;
+                                let scoreClass = 'success';
+                                if (stepScore < 50) scoreClass = 'failure';
+                                else if (stepScore < 80) scoreClass = 'partial';
+
+                                return `
+                                    <div class="final-step-row">
+                                        <div class="final-step-name">
+                                            <span>${this.getFormatIcon(step.format)}</span>
+                                            ${this.getFormatLabel(step.format)} (${result.total} questions)
+                                        </div>
+                                        <span class="final-step-score ${scoreClass}">${result.correct}/${result.total} ${stepScore >= 80 ? '✓' : ''}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="final-actions">
+                        <button class="btn btn-secondary" onclick="EleveEntrainement.restart()">🔄 Refaire l'entraînement</button>
+                        <button class="btn btn-primary" onclick="window.history.back()">📚 Retour aux entraînements</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    restart() {
+        this.currentStepIndex = 0;
+        this.answers = {};
+        this.results = {};
+        this.startTime = Date.now();
+        this.startTimer();
+
+        document.getElementById('resultContainer').style.display = 'none';
+        document.getElementById('exerciseContainer').style.display = 'block';
+
+        this.render();
+        window.scrollTo(0, 0);
+    },
+
+    quit() {
+        if (Object.keys(this.answers).length > 0) {
+            if (confirm('Es-tu sûr de vouloir quitter ? Ta progression sera perdue.')) {
+                window.history.back();
+            }
+        } else {
+            window.history.back();
+        }
+    },
+
+    // ========== UTILS ==========
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+};
+
+window.EleveEntrainement = EleveEntrainement;
