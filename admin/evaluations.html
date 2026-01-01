@@ -89,8 +89,8 @@
         <!-- Empty state -->
         <div class="empty-state" id="emptyState" style="display: none;">
             <div class="empty-icon">?</div>
-            <h3>Aucune evaluation trouvee</h3>
-            <p>Creez une nouvelle evaluation pour ce type.</p>
+            <h3>Aucune évaluation trouvée</h3>
+            <p>Créez une nouvelle évaluation pour ce type.</p>
         </div>
     </div>
 </div>
@@ -99,7 +99,7 @@
 <div class="modal-overlay hidden" id="evaluationModal">
     <div class="modal modal-large">
         <div class="modal-header">
-            <h2 id="evaluationModalTitle">Creer une evaluation</h2>
+            <h2 id="evaluationModalTitle">Créer une évaluation</h2>
             <button class="modal-close" id="closeEvaluationModal">&times;</button>
         </div>
         <div class="modal-body">
@@ -137,7 +137,7 @@
             </div>
 
             <!-- Common fields -->
-            <div class="form-section">Informations generales</div>
+            <div class="form-section">Informations générales</div>
 
             <div class="form-group">
                 <label>Titre <span class="req">*</span></label>
@@ -154,26 +154,26 @@
                     <label>Statut</label>
                     <select class="form-select" id="evalStatut">
                         <option value="brouillon">Brouillon</option>
-                        <option value="planifiee">Planifiee</option>
-                        <option value="publiee">Publiee</option>
-                        <option value="terminee">Terminee</option>
+                        <option value="planifiee">Planifiée</option>
+                        <option value="publiee">Publiée</option>
+                        <option value="terminee">Terminée</option>
                     </select>
                 </div>
             </div>
 
             <!-- Type-specific fields -->
             <div id="connaissancesFields" class="type-fields">
-                <div class="form-section">Parametres Connaissances</div>
+                <div class="form-section">Paramètres Connaissances</div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Seuil de reussite (%) <span class="req">*</span></label>
+                        <label>Seuil de réussite (%) <span class="req">*</span></label>
                         <input type="number" class="form-input" id="evalSeuil" value="80" min="0" max="100">
                         <div class="form-help">Score minimum pour valider</div>
                     </div>
                     <div class="form-group">
-                        <label>Chapitre lie</label>
+                        <label>Chapitre lié</label>
                         <select class="form-select" id="evalChapitre">
-                            <option value="">Selectionner...</option>
+                            <option value="">Sélectionner...</option>
                         </select>
                     </div>
                 </div>
@@ -182,27 +182,27 @@
                     <div class="radio-group">
                         <label class="radio-item">
                             <input type="radio" name="sourceQuestions" value="banque" checked>
-                            <span>Banque d'elements</span>
+                            <span>Banque d'éléments</span>
                         </label>
                         <label class="radio-item">
                             <input type="radio" name="sourceQuestions" value="personnalise">
-                            <span>Personnalise</span>
+                            <span>Personnalisé</span>
                         </label>
                     </div>
                 </div>
             </div>
 
             <div id="savoirFaireFields" class="type-fields" style="display: none;">
-                <div class="form-section">Parametres Savoir-faire (BEX)</div>
+                <div class="form-section">Paramètres Savoir-faire (BEX)</div>
                 <div class="form-group">
-                    <label>Methodologie liee</label>
+                    <label>Méthodologie liée</label>
                     <select class="form-select" id="evalMethodologie">
-                        <option value="">Selectionner...</option>
+                        <option value="">Sélectionner...</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Sujets disponibles</label>
-                    <div class="form-help">Selectionner parmi les exercices d'entrainement avec tag "peut tomber en eval"</div>
+                    <div class="form-help">Sélectionner parmi les exercices d'entraînement avec tag "peut tomber en éval"</div>
                     <div class="subjects-checkboxes" id="subjectsCheckboxes">
                         <!-- Generated dynamically -->
                     </div>
@@ -210,15 +210,15 @@
             </div>
 
             <div id="competencesFields" class="type-fields" style="display: none;">
-                <div class="form-section">Parametres Competences (TC)</div>
+                <div class="form-section">Paramètres Compétences (TC)</div>
                 <div class="form-group">
-                    <label>Methodologie liee</label>
+                    <label>Méthodologie liée</label>
                     <select class="form-select" id="evalMethodologieTC">
-                        <option value="">Selectionner...</option>
+                        <option value="">Sélectionner...</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Competences evaluees</label>
+                    <label>Compétences évaluées</label>
                     <div class="competences-select" id="competencesSelect">
                         <!-- Tags/checkboxes for competences -->
                     </div>
@@ -236,23 +236,23 @@
                         </label>
                         <label class="radio-item">
                             <input type="radio" name="sourceSujet" value="creer">
-                            <span>Creer un sujet</span>
+                            <span>Créer un sujet</span>
                         </label>
                     </div>
                 </div>
             </div>
 
             <div id="bonusFields" class="type-fields" style="display: none;">
-                <div class="form-section">Parametres Bonus</div>
+                <div class="form-section">Paramètres Bonus</div>
                 <div class="form-group">
-                    <label>Description des criteres</label>
-                    <textarea class="form-textarea" id="evalCriteres" rows="3" placeholder="Decrivez les criteres de validation..."></textarea>
+                    <label>Description des critères</label>
+                    <textarea class="form-textarea" id="evalCriteres" rows="3" placeholder="Décrivez les critères de validation..."></textarea>
                 </div>
             </div>
 
             <div class="form-group">
                 <label>Description / Consignes</label>
-                <textarea class="form-textarea" id="evalDescription" rows="2" placeholder="Instructions pour les eleves..."></textarea>
+                <textarea class="form-textarea" id="evalDescription" rows="2" placeholder="Instructions pour les élèves..."></textarea>
             </div>
 
         </div>
