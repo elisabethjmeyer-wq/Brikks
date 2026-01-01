@@ -149,10 +149,10 @@
    Tree Container
    ============================================ */
 .tree-container {
-    background: white;
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 /* ============================================
@@ -161,6 +161,47 @@
 .tree-item {
     border-radius: 8px;
     margin-bottom: 2px;
+}
+
+/* Parcours racines = cartes distinctes */
+.tree-container > .tree-item {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 2px solid transparent;
+    margin-bottom: 0;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tree-container > .tree-item:hover {
+    border-color: var(--primary-light, rgba(99, 102, 241, 0.3));
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
+}
+
+/* Numérotation des parcours */
+.tree-container > .tree-item {
+    counter-increment: parcours;
+}
+
+.tree-container {
+    counter-reset: parcours;
+}
+
+.tree-container > .tree-item > .tree-item-header::before {
+    content: counter(parcours);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--primary);
+    color: white;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-right: 12px;
+    flex-shrink: 0;
 }
 
 .tree-item-header {
@@ -1007,7 +1048,10 @@
 }
 
 .tree-container.reorder-mode .tree-item-header::before {
-    content: '⋮⋮';
+    content: '⋮⋮' !important;
+    background: transparent !important;
+    width: auto !important;
+    height: auto !important;
     margin-right: 12px;
     color: var(--gray-400);
     font-size: 14px;
