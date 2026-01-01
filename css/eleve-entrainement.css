@@ -1440,3 +1440,33 @@
         font-size: 14px;
     }
 }
+
+/* ===== ADDITIONAL STYLES ===== */
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--gray-300);
+    color: var(--gray-600);
+}
+
+.btn-outline:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-bg, #eef2ff);
+}
+
+.image-cliquable-complete {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: var(--accent-green-light, #d1fae5);
+    border-radius: var(--radius, 12px);
+    margin-bottom: 20px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent-green, #10b981);
+}
+
+.image-cliquable-complete-icon {
+    font-size: 24px;
+}
