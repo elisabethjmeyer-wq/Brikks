@@ -945,8 +945,10 @@ const AdminElements = {
         }
 
         const carte = this.cartes.find(c => c.id === carteId);
+
+        // If no image URL, show manual input directly
         if (!carte || !carte.image_url) {
-            container.style.display = 'none';
+            this.showManualCoordinateInput(container, coords, preview);
             return;
         }
 
@@ -967,29 +969,37 @@ const AdminElements = {
             }
         };
         preview.onerror = () => {
-            // Show fallback manual input instead of hiding
-            container.style.display = 'block';
-            preview.style.display = 'none';
-            coords.innerHTML = `
-                <div style="padding: 20px; background: #fef3c7; border-radius: 8px; text-align: center;">
-                    <p style="margin-bottom: 12px; color: #92400e;">⚠️ Image non chargeable. Saisissez les coordonnees manuellement :</p>
-                    <div style="display: flex; gap: 12px; justify-content: center;">
-                        <label style="display: flex; align-items: center; gap: 4px;">
-                            X: <input type="number" id="manualPointX" style="width: 70px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px;" min="0" max="100" value="${document.getElementById('pointX').value || 50}" onchange="document.getElementById('pointX').value = this.value">%
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 4px;">
-                            Y: <input type="number" id="manualPointY" style="width: 70px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px;" min="0" max="100" value="${document.getElementById('pointY').value || 50}" onchange="document.getElementById('pointY').value = this.value">%
-                        </label>
-                    </div>
-                    <p style="margin-top: 8px; font-size: 12px; color: #6b7280;">Conseil: Utilisez Imgur pour heberger vos images</p>
-                </div>
-            `;
-            // Set default values if empty
-            if (!document.getElementById('pointX').value) document.getElementById('pointX').value = 50;
-            if (!document.getElementById('pointY').value) document.getElementById('pointY').value = 50;
+            this.showManualCoordinateInput(container, coords, preview);
         };
 
         coords.textContent = 'Cliquez sur la carte pour placer le point';
+    },
+
+    showManualCoordinateInput(container, coords, preview) {
+        container.style.display = 'block';
+        preview.style.display = 'none';
+
+        const currentX = document.getElementById('pointX').value || 50;
+        const currentY = document.getElementById('pointY').value || 50;
+
+        coords.innerHTML = `
+            <div style="padding: 20px; background: #f0f9ff; border-radius: 8px; text-align: center; border: 1px solid #bae6fd;">
+                <p style="margin-bottom: 12px; color: #0369a1; font-weight: 500;">📍 Coordonnees du point :</p>
+                <div style="display: flex; gap: 16px; justify-content: center; align-items: center;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 14px;">
+                        X: <input type="number" id="manualPointX" style="width: 80px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" min="0" max="100" value="${currentX}" onchange="document.getElementById('pointX').value = this.value">%
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 14px;">
+                        Y: <input type="number" id="manualPointY" style="width: 80px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;" min="0" max="100" value="${currentY}" onchange="document.getElementById('pointY').value = this.value">%
+                    </label>
+                </div>
+                <p style="margin-top: 12px; font-size: 12px; color: #6b7280;">0% = haut/gauche, 100% = bas/droite</p>
+            </div>
+        `;
+
+        // Set default values in hidden inputs
+        if (!document.getElementById('pointX').value) document.getElementById('pointX').value = 50;
+        if (!document.getElementById('pointY').value) document.getElementById('pointY').value = 50;
     },
 
     onCarteClick(event) {
