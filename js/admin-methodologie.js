@@ -60,7 +60,8 @@ const AdminMethodologie = {
     },
 
     getChildren(parentId) {
-        return this.items.filter(item => item.parent_id === parentId)
+        if (!parentId) return [];
+        return this.items.filter(item => item.parent_id === parentId && item.id !== parentId)
             .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
     },
 
@@ -133,7 +134,11 @@ const AdminMethodologie = {
         container.innerHTML = rootItems.map(item => this.renderItem(item, 0)).join('');
     },
 
-    renderItem(item, depth) {
+    renderItem(item, depth, rendered = new Set()) {
+        // Protection contre les boucles infinies
+        if (rendered.has(item.id) || depth > 10) return '';
+        rendered.add(item.id);
+
         const children = this.getChildren(item.id);
         const hasChildren = children.length > 0;
         const isContent = !!item.video_url;
@@ -185,7 +190,7 @@ const AdminMethodologie = {
                 </div>
                 ${hasChildren ? `
                     <div class="tree-item-children">
-                        ${children.map(child => this.renderItem(child, depth + 1)).join('')}
+                        ${children.map(child => this.renderItem(child, depth + 1, new Set(rendered))).join('')}
                     </div>
                 ` : ''}
             </div>

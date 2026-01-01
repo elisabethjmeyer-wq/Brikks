@@ -49,7 +49,8 @@ const EleveMethodologie = {
     },
 
     getChildren(parentId) {
-        return this.items.filter(item => item.parent_id === parentId)
+        if (!parentId) return [];
+        return this.items.filter(item => item.parent_id === parentId && item.id !== parentId)
             .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
     },
 
@@ -155,7 +156,11 @@ const EleveMethodologie = {
     },
 
     // Filtrer les éléments selon la recherche et le filtre
-    matchesFilter(item) {
+    matchesFilter(item, visited = new Set()) {
+        // Protection contre les boucles infinies
+        if (visited.has(item.id)) return false;
+        visited.add(item.id);
+
         // Filtre par recherche
         if (this.searchQuery) {
             const query = this.searchQuery.toLowerCase();
@@ -164,7 +169,7 @@ const EleveMethodologie = {
             if (!matches) {
                 // Vérifier si un descendant correspond
                 const children = this.getChildren(item.id);
-                if (!children.some(child => this.matchesFilter(child))) {
+                if (!children.some(child => this.matchesFilter(child, new Set(visited)))) {
                     return false;
                 }
             }
@@ -176,7 +181,7 @@ const EleveMethodologie = {
             if (status !== this.currentFilter) {
                 // Vérifier si un descendant correspond
                 const children = this.getChildren(item.id);
-                if (!children.some(child => this.matchesFilter(child))) {
+                if (!children.some(child => this.matchesFilter(child, new Set(visited)))) {
                     return false;
                 }
             }
@@ -245,7 +250,7 @@ const EleveMethodologie = {
         `;
 
         // Afficher les éléments racines
-        const filteredRoots = rootItems.filter(item => this.matchesFilter(item));
+        const filteredRoots = rootItems.filter(item => this.matchesFilter(item, new Set()));
 
         if (filteredRoots.length === 0) {
             html += `
@@ -263,7 +268,11 @@ const EleveMethodologie = {
         container.innerHTML = html;
     },
 
-    renderItem(item, depth) {
+    renderItem(item, depth, rendered = new Set()) {
+        // Protection contre les boucles infinies
+        if (rendered.has(item.id) || depth > 10) return '';
+        rendered.add(item.id);
+
         const children = this.getChildren(item.id);
         const hasChildren = children.length > 0;
         const isContent = this.isContent(item);
@@ -326,7 +335,7 @@ const EleveMethodologie = {
 
                 ${hasChildren ? `
                     <div class="tree-item-children ${isExpanded ? 'expanded' : ''}">
-                        ${children.filter(child => this.matchesFilter(child)).map(child => this.renderItem(child, depth + 1)).join('')}
+                        ${children.filter(child => this.matchesFilter(child, new Set())).map(child => this.renderItem(child, depth + 1, new Set(rendered))).join('')}
                     </div>
                 ` : ''}
             </div>
