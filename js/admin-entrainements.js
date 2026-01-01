@@ -28,11 +28,23 @@ const AdminEntrainements = {
         'format_001': 'QCM',
         'format_002': 'QCM Multiple',
         'format_003': 'Vrai/Faux',
-        'format_004': 'Texte a trous',
+        'format_004': 'Texte à trous',
         'format_005': 'Association',
         'format_006': 'Ordonner',
         'format_007': 'Question ouverte',
         'format_008': 'Image cliquable'
+    },
+
+    // Mapping format_id → type (pour connecter avec la banque d'éléments)
+    formatToType: {
+        'format_001': 'qcm',
+        'format_002': 'qcm',           // QCM Multiple utilise aussi le type qcm
+        'format_003': 'qcm',           // Vrai/Faux est un type de QCM
+        'format_004': 'texte_trous',
+        'format_005': 'paire',         // Association = paires
+        'format_006': 'evenement',     // Ordonner = événements à ordonner
+        'format_007': 'reponse_libre',
+        'format_008': 'point_carte'    // Image cliquable = points sur carte
     },
 
     // ========== INITIALIZATION ==========
@@ -562,21 +574,24 @@ const AdminEntrainements = {
 
         if (!isManual) return;
 
-        // Filter questions by chapter and format
+        // Convertir format_id en type pour filtrer les éléments de la banque
+        const elementType = this.formatToType[formatId];
+
+        // Filter questions by chapter and type (pas format_id)
         const available = this.questions.filter(q =>
-            q.chapitre_id === chapitreId && q.format_id === formatId
+            q.chapitre_id === chapitreId && q.type === elementType
         );
 
         document.getElementById('availableCount').textContent = available.length;
 
         const container = document.getElementById('elementsCheckboxes');
         if (available.length === 0) {
-            container.innerHTML = '<p style="padding: 16px; color: var(--gray-500); text-align: center;">Aucun element disponible pour ce format</p>';
+            container.innerHTML = '<p style="padding: 16px; color: var(--gray-500); text-align: center;">Aucun élément disponible pour ce format</p>';
         } else {
             container.innerHTML = available.map(q => `
                 <label class="element-checkbox">
                     <input type="checkbox" value="${q.id}">
-                    <span class="element-checkbox-label">${this.escapeHtml(q.enonce?.substring(0, 80) || 'Sans enonce')}${q.enonce?.length > 80 ? '...' : ''}</span>
+                    <span class="element-checkbox-label">${this.escapeHtml(q.contenu?.substring(0, 80) || 'Sans contenu')}${q.contenu?.length > 80 ? '...' : ''}</span>
                 </label>
             `).join('');
         }
