@@ -78,7 +78,13 @@ const EleveMethodologieParcours = {
     },
 
     isContent(item) {
-        return !!item.video_url;
+        return !!item.video_url || !!item.fiche_url;
+    },
+
+    getContentType(item) {
+        if (item.video_url) return 'video';
+        if (item.fiche_url) return 'fiche';
+        return null;
     },
 
     isItemCompleted(itemId) {
@@ -223,8 +229,8 @@ const EleveMethodologieParcours = {
         if (!container) return;
 
         const path = this.getPath(this.currentItem.id);
+        const contentType = this.getContentType(this.currentItem);
         const embedUrl = this.getEmbedUrl(this.currentItem.video_url);
-        const documents = this.parseDocuments(this.currentItem.documents);
         const isCompleted = this.isItemCompleted(this.currentItem.id);
         const prevContent = this.findPrevContent();
         const nextContent = this.findNextContent();
@@ -251,10 +257,11 @@ const EleveMethodologieParcours = {
             <div class="parcours-layout">
                 <!-- Main Content -->
                 <div class="parcours-content">
-                    ${embedUrl ? this.renderVideoSection(embedUrl) : this.renderPlaceholder()}
-                    ${documents.length ? this.renderDownloadsSection(documents) : ''}
+                    ${contentType === 'video' && embedUrl ? this.renderVideoSection(embedUrl) : ''}
+                    ${contentType === 'fiche' ? this.renderFicheSection() : ''}
+                    ${!contentType ? this.renderPlaceholder() : ''}
                     ${this.currentItem.contenu_html ? this.renderTextContent() : ''}
-                    ${this.currentItem.bex_id ? this.renderBexLink() : ''}
+                    ${this.renderTrainingLinks()}
                     ${this.renderNavigation(prevContent, nextContent)}
                 </div>
 
@@ -398,16 +405,101 @@ const EleveMethodologieParcours = {
         `;
     },
 
-    renderBexLink() {
+    // Configuration des banques BEX et Compétences
+    bexBanks: {
+        'bex1': { titre: 'BEX 1 - Se repérer dans le temps', url: 'entrainements-sf.html?bex=bex1' },
+        'bex2': { titre: 'BEX 2 - Se repérer dans l\'espace', url: 'entrainements-sf.html?bex=bex2' },
+        'bex3': { titre: 'BEX 3 - Analyser un paratexte', url: 'entrainements-sf.html?bex=bex3' },
+        'bex4': { titre: 'BEX 4 - Maîtriser le vocabulaire', url: 'entrainements-sf.html?bex=bex4' }
+    },
+
+    competenceBanks: {
+        'comp1': { titre: 'Rédiger un développement construit', url: 'entrainements-competences.html?comp=comp1' },
+        'comp2': { titre: 'Analyser des documents', url: 'entrainements-competences.html?comp=comp2' },
+        'comp3': { titre: 'Réaliser un croquis', url: 'entrainements-competences.html?comp=comp3' },
+        'comp4': { titre: 'Argumentation et esprit critique', url: 'entrainements-competences.html?comp=comp4' }
+    },
+
+    renderFicheSection() {
+        const ficheUrl = this.currentItem.fiche_url;
+        const isGoogleDoc = ficheUrl && (ficheUrl.includes('docs.google.com') || ficheUrl.includes('drive.google.com'));
+        const isPdf = ficheUrl && ficheUrl.toLowerCase().endsWith('.pdf');
+
+        // Convertir Google Docs en URL embed
+        let embedUrl = ficheUrl;
+        if (isGoogleDoc) {
+            if (ficheUrl.includes('/d/')) {
+                // Format: https://docs.google.com/document/d/ID/...
+                const match = ficheUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                if (match) {
+                    embedUrl = `https://docs.google.com/document/d/${match[1]}/preview`;
+                }
+            } else if (ficheUrl.includes('id=')) {
+                // Format: https://drive.google.com/file/d/ID/... ou ?id=ID
+                const match = ficheUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/) || ficheUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                if (match) {
+                    embedUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
+                }
+            }
+        }
+
         return `
-            <a href="bex.html?id=${this.currentItem.bex_id}" class="bex-link">
-                <div class="bex-icon">⭐</div>
-                <div class="bex-info">
-                    <div class="bex-label">Exercice recommandé</div>
-                    <div class="bex-title">${this.escapeHtml(this.currentItem.bex_titre || 'Accéder à l\'exercice')}</div>
+            <div class="fiche-section">
+                <h1 class="content-title">${this.currentItem.icon || '📄'} ${this.escapeHtml(this.currentItem.titre)}</h1>
+                ${this.currentItem.description ? `<p class="content-description">${this.escapeHtml(this.currentItem.description)}</p>` : ''}
+
+                <div class="fiche-container">
+                    ${isGoogleDoc || isPdf ? `
+                        <iframe src="${embedUrl}" class="fiche-embed" allowfullscreen></iframe>
+                    ` : `
+                        <div class="fiche-link-container">
+                            <a href="${ficheUrl}" target="_blank" rel="noopener" class="fiche-link-btn">
+                                <span class="fiche-link-icon">📄</span>
+                                <span>Ouvrir la fiche méthode</span>
+                                <span class="fiche-link-arrow">↗</span>
+                            </a>
+                        </div>
+                    `}
                 </div>
-                <span class="bex-arrow">→</span>
-            </a>
+            </div>
+        `;
+    },
+
+    renderTrainingLinks() {
+        const bexBank = this.currentItem.bex_bank;
+        const competenceBank = this.currentItem.competence_bank;
+
+        if (!bexBank && !competenceBank) return '';
+
+        const bexInfo = bexBank ? this.bexBanks[bexBank] : null;
+        const compInfo = competenceBank ? this.competenceBanks[competenceBank] : null;
+
+        return `
+            <div class="training-links">
+                <h3 class="training-links-title">🎯 Pour t'entraîner</h3>
+                <div class="training-links-grid">
+                    ${bexInfo ? `
+                        <a href="${bexInfo.url}" class="training-link training-link-bex">
+                            <div class="training-link-icon">🔧</div>
+                            <div class="training-link-info">
+                                <div class="training-link-label">Entraînement Savoir-faire</div>
+                                <div class="training-link-title">${this.escapeHtml(bexInfo.titre)}</div>
+                            </div>
+                            <span class="training-link-arrow">→</span>
+                        </a>
+                    ` : ''}
+                    ${compInfo ? `
+                        <a href="${compInfo.url}" class="training-link training-link-comp">
+                            <div class="training-link-icon">🎯</div>
+                            <div class="training-link-info">
+                                <div class="training-link-label">Entraînement Compétences</div>
+                                <div class="training-link-title">${this.escapeHtml(compInfo.titre)}</div>
+                            </div>
+                            <span class="training-link-arrow">→</span>
+                        </a>
+                    ` : ''}
+                </div>
+            </div>
         `;
     },
 

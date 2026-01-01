@@ -2643,20 +2643,23 @@ function addProgressionMethodologie(data) {
     progData = data.data;
   }
 
-  if (!progData.eleve_id || !progData.etape_id) {
-    return { success: false, error: 'eleve_id et etape_id sont requis' };
+  // Le client peut envoyer item_id ou etape_id
+  const itemId = progData.item_id || progData.etape_id;
+
+  if (!progData.eleve_id || !itemId) {
+    return { success: false, error: 'eleve_id et item_id sont requis' };
   }
 
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0];
 
-  // Vérifier si cette progression existe déjà
-  const eleveIdCol = headers.indexOf('eleve_id');
-  const etapeIdCol = headers.indexOf('etape_id');
+  // Vérifier si cette progression existe déjà (chercher item_id ou etape_id selon la colonne présente)
+  const eleveIdCol = findColumnIndex(headers, 'eleve_id');
+  const itemIdCol = findColumnIndex(headers, 'item_id') >= 0 ? findColumnIndex(headers, 'item_id') : findColumnIndex(headers, 'etape_id');
 
-  if (eleveIdCol >= 0 && etapeIdCol >= 0) {
+  if (eleveIdCol >= 0 && itemIdCol >= 0) {
     const exists = allData.slice(1).some(row =>
-      row[eleveIdCol] === progData.eleve_id && row[etapeIdCol] === progData.etape_id
+      row[eleveIdCol] === progData.eleve_id && row[itemIdCol] === itemId
     );
     if (exists) {
       return { success: true, message: 'Progression déjà enregistrée' };
@@ -2666,11 +2669,11 @@ function addProgressionMethodologie(data) {
   // Ajouter la progression
   const newRow = [];
   headers.forEach((header, index) => {
-    const colName = header.toLowerCase().trim();
+    const colName = String(header).toLowerCase().trim();
     if (colName === 'eleve_id') {
       newRow[index] = progData.eleve_id;
-    } else if (colName === 'etape_id') {
-      newRow[index] = progData.etape_id;
+    } else if (colName === 'item_id' || colName === 'etape_id') {
+      newRow[index] = itemId;
     } else if (colName === 'completed') {
       newRow[index] = 'TRUE';
     } else if (colName === 'date') {
@@ -2694,7 +2697,7 @@ function addProgressionMethodologie(data) {
 
 /**
  * Crée un nouvel élément méthodologie
- * @param {Object} data - { titre, parent_id, icon, couleur, description, ordre, video_url, documents, contenu_html, bex_id, bex_titre }
+ * @param {Object} data - { titre, parent_id, icon, couleur, description, ordre, type_contenu, video_url, fiche_url, bex_bank, competence_bank }
  */
 function createMethodologie(data) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.METHODOLOGIE);
@@ -2740,7 +2743,7 @@ function createMethodologie(data) {
 
 /**
  * Met à jour un élément méthodologie
- * @param {Object} data - { id, titre?, parent_id?, icon?, couleur?, description?, ordre?, video_url?, documents?, contenu_html?, bex_id?, bex_titre? }
+ * @param {Object} data - { id, titre?, parent_id?, icon?, couleur?, description?, ordre?, type_contenu?, video_url?, fiche_url?, bex_bank?, competence_bank? }
  */
 function updateMethodologie(data) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.METHODOLOGIE);
@@ -2780,8 +2783,8 @@ function updateMethodologie(data) {
     return { success: false, error: 'Élément méthodologie non trouvé: ' + itemData.id };
   }
 
-  // Mettre à jour les colonnes spécifiées
-  const updates = ['titre', 'parent_id', 'icon', 'couleur', 'description', 'ordre', 'video_url', 'documents', 'contenu_html', 'bex_id', 'bex_titre'];
+  // Mettre à jour les colonnes spécifiées (incluant les nouveaux champs)
+  const updates = ['titre', 'parent_id', 'icon', 'couleur', 'description', 'ordre', 'type_contenu', 'video_url', 'fiche_url', 'bex_bank', 'competence_bank'];
   updates.forEach(col => {
     if (itemData[col] !== undefined) {
       const colIndex = findColumnIndex(headers, col);

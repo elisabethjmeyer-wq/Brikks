@@ -82,8 +82,14 @@ const AdminMethodologie = {
     },
 
     isContent(item) {
-        // Un élément est un "contenu" s'il a une vidéo ou s'il n'a pas d'enfants
-        return !!item.video_url || !this.hasChildren(item.id);
+        // Un élément est un "contenu" s'il a une vidéo ou une fiche
+        return !!item.video_url || !!item.fiche_url;
+    },
+
+    getContentTypeLabel(item) {
+        if (item.video_url) return { label: 'Vidéo', icon: '🎬', class: 'badge-video' };
+        if (item.fiche_url) return { label: 'Fiche', icon: '📄', class: 'badge-fiche' };
+        return null;
     },
 
     getDepth(itemId, depth = 0) {
@@ -116,7 +122,7 @@ const AdminMethodologie = {
     // ========== STATS ==========
     renderStats() {
         const rootItems = this.getRootItems();
-        const contentItems = this.items.filter(item => !!item.video_url);
+        const contentItems = this.items.filter(item => this.isContent(item));
         const maxDepth = Math.max(0, ...this.items.map(item => this.getDepth(item.id)));
 
         document.getElementById('totalCategories').textContent = rootItems.length;
@@ -153,11 +159,12 @@ const AdminMethodologie = {
 
         const children = this.getChildren(item.id);
         const hasChildren = children.length > 0;
-        const isContent = !!item.video_url;
+        const isContent = this.isContent(item);
+        const contentType = this.getContentTypeLabel(item);
         const descendantCount = this.countDescendants(item.id);
 
         const depthClass = `depth-${Math.min(depth, 3)}`;
-        const typeIcon = isContent ? '🎬' : (hasChildren ? '📁' : '📄');
+        const typeIcon = contentType ? contentType.icon : (hasChildren ? '📁' : '📄');
 
         return `
             <div class="tree-item ${depthClass}" data-id="${item.id}" data-depth="${depth}">
@@ -177,7 +184,7 @@ const AdminMethodologie = {
                         </div>
                     </div>
                     <div class="tree-item-right">
-                        ${isContent ? '<span class="badge badge-video">Vidéo</span>' : ''}
+                        ${contentType ? `<span class="badge ${contentType.class}">${contentType.label}</span>` : ''}
                         ${hasChildren ? `<span class="badge badge-count">${descendantCount} élément${descendantCount > 1 ? 's' : ''}</span>` : ''}
                         <div class="tree-item-actions">
                             <button class="action-btn add" onclick="event.stopPropagation(); AdminMethodologie.openAddModal('${item.id}')" title="Ajouter un sous-élément">
@@ -226,10 +233,12 @@ const AdminMethodologie = {
         document.getElementById('itemTitre').value = '';
         document.getElementById('itemDescription').value = '';
         document.getElementById('itemVideoUrl').value = '';
-        document.getElementById('itemDocuments').value = '';
-        document.getElementById('itemContenu').value = '';
-        document.getElementById('itemBexId').value = '';
-        document.getElementById('itemBexTitre').value = '';
+        document.getElementById('itemFicheUrl').value = '';
+        document.getElementById('itemBexBank').value = '';
+        document.getElementById('itemCompetenceBank').value = '';
+
+        // Réinitialiser le type de contenu
+        this.setContentType('');
 
         // Afficher le parent si existe
         const parentInfo = document.getElementById('parentInfo');
@@ -249,6 +258,26 @@ const AdminMethodologie = {
         document.getElementById('itemModal').classList.remove('hidden');
     },
 
+    setContentType(type) {
+        // Sélectionner le bon radio button
+        const radios = document.querySelectorAll('input[name="contentType"]');
+        radios.forEach(radio => {
+            radio.checked = radio.value === type;
+        });
+
+        // Afficher/masquer les sections
+        const videoSection = document.getElementById('videoSection');
+        const ficheSection = document.getElementById('ficheSection');
+
+        if (videoSection) videoSection.style.display = type === 'video' ? 'block' : 'none';
+        if (ficheSection) ficheSection.style.display = type === 'fiche' ? 'block' : 'none';
+    },
+
+    getContentType() {
+        const selected = document.querySelector('input[name="contentType"]:checked');
+        return selected ? selected.value : '';
+    },
+
     editItem(itemId) {
         const item = this.items.find(i => i.id === itemId);
         if (!item) return;
@@ -261,10 +290,18 @@ const AdminMethodologie = {
         document.getElementById('itemTitre').value = item.titre || '';
         document.getElementById('itemDescription').value = item.description || '';
         document.getElementById('itemVideoUrl').value = item.video_url || '';
-        document.getElementById('itemDocuments').value = item.documents || '';
-        document.getElementById('itemContenu').value = item.contenu_html || '';
-        document.getElementById('itemBexId').value = item.bex_id || '';
-        document.getElementById('itemBexTitre').value = item.bex_titre || '';
+        document.getElementById('itemFicheUrl').value = item.fiche_url || '';
+        document.getElementById('itemBexBank').value = item.bex_bank || '';
+        document.getElementById('itemCompetenceBank').value = item.competence_bank || '';
+
+        // Déterminer le type de contenu
+        let contentType = '';
+        if (item.video_url) {
+            contentType = 'video';
+        } else if (item.fiche_url) {
+            contentType = 'fiche';
+        }
+        this.setContentType(contentType);
 
         // Afficher le parent si existe
         const parentInfo = document.getElementById('parentInfo');
@@ -288,16 +325,26 @@ const AdminMethodologie = {
         const titre = document.getElementById('itemTitre').value.trim();
         const description = document.getElementById('itemDescription').value.trim();
         const parentId = document.getElementById('itemParentId').value.trim();
-        const videoUrl = document.getElementById('itemVideoUrl').value.trim();
-        const documents = document.getElementById('itemDocuments').value.trim();
-        const contenuHtml = document.getElementById('itemContenu').value.trim();
-        const bexId = document.getElementById('itemBexId').value.trim();
-        const bexTitre = document.getElementById('itemBexTitre').value.trim();
+        const contentType = this.getContentType();
+        const videoUrl = contentType === 'video' ? document.getElementById('itemVideoUrl').value.trim() : '';
+        const ficheUrl = contentType === 'fiche' ? document.getElementById('itemFicheUrl').value.trim() : '';
+        const bexBank = document.getElementById('itemBexBank').value.trim();
+        const competenceBank = document.getElementById('itemCompetenceBank').value.trim();
         const icon = document.querySelector('#itemIconSelector .icon-option.selected')?.textContent || '📁';
         const couleur = document.querySelector('#itemColorSelector .color-option.selected')?.dataset.color || 'blue';
 
         if (!titre) {
             alert('Veuillez entrer un titre');
+            return;
+        }
+
+        // Validation selon le type
+        if (contentType === 'video' && !videoUrl) {
+            alert('Veuillez entrer une URL vidéo');
+            return;
+        }
+        if (contentType === 'fiche' && !ficheUrl) {
+            alert('Veuillez entrer une URL pour la fiche méthode');
             return;
         }
 
@@ -312,11 +359,11 @@ const AdminMethodologie = {
                 parent_id: parentId,
                 icon,
                 couleur,
+                type_contenu: contentType,
                 video_url: videoUrl,
-                documents,
-                contenu_html: contenuHtml,
-                bex_id: bexId,
-                bex_titre: bexTitre
+                fiche_url: ficheUrl,
+                bex_bank: bexBank,
+                competence_bank: competenceBank
             };
 
             if (this.editingItem) {
@@ -459,6 +506,11 @@ const AdminMethodologie = {
         document.getElementById('closeItemModal')?.addEventListener('click', () => this.closeItemModal());
         document.getElementById('cancelItemBtn')?.addEventListener('click', () => this.closeItemModal());
         document.getElementById('saveItemBtn')?.addEventListener('click', () => this.saveItem());
+
+        // Content type selector
+        document.querySelectorAll('input[name="contentType"]').forEach(radio => {
+            radio.addEventListener('change', (e) => this.setContentType(e.target.value));
+        });
 
         // Delete modal
         document.getElementById('cancelDeleteBtn')?.addEventListener('click', () => this.closeDeleteModal());
