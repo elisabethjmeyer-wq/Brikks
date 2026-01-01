@@ -10,8 +10,10 @@ const EleveEntrainement = {
     currentStepIndex: 0,
     answers: {},
     results: {},
-    startTime: null,
+    duration: 0,        // Durée totale en secondes (définie par l'admin)
+    remainingTime: 0,   // Temps restant en secondes
     timerInterval: null,
+    timeExpired: false,
 
     // Configuration des formats d'exercices
     formats: {
@@ -84,8 +86,13 @@ const EleveEntrainement = {
             titre: 'Les explorateurs (Série 1/3)',
             matiere: 'Histoire',
             chapitre: 'L1 - Les explorations portugaises',
-            type: 'connaissances' // connaissances, savoir-faire, competences
+            type: 'connaissances', // connaissances, savoir-faire, competences
+            duration: 10 * 60  // 10 minutes en secondes (configurable par l'admin)
         };
+
+        // Initialiser le compte à rebours
+        this.duration = this.training.duration;
+        this.remainingTime = this.training.duration;
 
         // Étapes de l'entraînement (chaque étape = un format d'exercice)
         this.steps = [
@@ -235,28 +242,70 @@ const EleveEntrainement = {
         `;
     },
 
-    // ========== TIMER ==========
+    // ========== TIMER (COMPTE À REBOURS) ==========
     startTimer() {
-        this.startTime = Date.now();
+        this.timeExpired = false;
+        this.updateTimerDisplay();
         this.timerInterval = setInterval(() => this.updateTimer(), 1000);
     },
 
     updateTimer() {
-        const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-        const minutes = Math.floor(elapsed / 60);
-        const seconds = elapsed % 60;
-        document.getElementById('timerValue').textContent =
-            `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        if (this.remainingTime > 0) {
+            this.remainingTime--;
+            this.updateTimerDisplay();
+
+            // Alertes visuelles quand le temps est bas
+            const timerEl = document.querySelector('.timer');
+            if (this.remainingTime <= 60 && this.remainingTime > 30) {
+                timerEl?.classList.add('warning');
+                timerEl?.classList.remove('danger');
+            } else if (this.remainingTime <= 30) {
+                timerEl?.classList.remove('warning');
+                timerEl?.classList.add('danger');
+            }
+        } else {
+            // Temps écoulé !
+            this.onTimeExpired();
+        }
+    },
+
+    updateTimerDisplay() {
+        const minutes = Math.floor(this.remainingTime / 60);
+        const seconds = this.remainingTime % 60;
+        const timerValueEl = document.getElementById('timerValue');
+        if (timerValueEl) {
+            timerValueEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+    },
+
+    onTimeExpired() {
+        this.stopTimer();
+        this.timeExpired = true;
+
+        // Afficher un message et passer aux résultats
+        alert('⏰ Temps écoulé ! L\'entraînement est terminé.');
+
+        // Vérifier automatiquement toutes les étapes non vérifiées
+        this.steps.forEach((step, index) => {
+            if (!this.results[index]?.verified) {
+                this.currentStepIndex = index;
+                this.verifyCurrentStep();
+            }
+        });
+
+        // Afficher les résultats
+        this.showResults();
     },
 
     stopTimer() {
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
+            this.timerInterval = null;
         }
     },
 
     getElapsedTime() {
-        return Math.floor((Date.now() - this.startTime) / 1000);
+        return this.duration - this.remainingTime;
     },
 
     formatTime(seconds) {
@@ -619,8 +668,16 @@ const EleveEntrainement = {
         this.currentStepIndex = 0;
         this.answers = {};
         this.results = {};
-        this.startTime = Date.now();
+        this.timeExpired = false;
+
+        // Réinitialiser le compte à rebours
+        this.remainingTime = this.duration;
+        this.stopTimer();
         this.startTimer();
+
+        // Retirer les classes d'alerte du timer
+        const timerEl = document.querySelector('.timer');
+        timerEl?.classList.remove('warning', 'danger');
 
         document.getElementById('resultContainer').style.display = 'none';
         document.getElementById('exerciseContainer').style.display = 'block';
