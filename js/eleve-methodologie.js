@@ -231,7 +231,7 @@ const EleveMethodologie = {
 
             <!-- Search -->
             <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Rechercher..." value="${this.escapeHtml(this.searchQuery)}">
+                <input type="text" id="search-input" placeholder="Rechercher un parcours..." value="${this.escapeHtml(this.searchQuery)}">
             </div>
 
             <!-- Filters -->
@@ -239,33 +239,88 @@ const EleveMethodologie = {
                 <span class="filter-label">Filtrer :</span>
                 <div class="filter-tabs">
                     <button class="filter-tab ${this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">Tout</button>
-                    <button class="filter-tab ${this.currentFilter === 'new' ? 'active' : ''}" data-filter="new">🆕 Nouveau</button>
-                    <button class="filter-tab ${this.currentFilter === 'in-progress' ? 'active' : ''}" data-filter="in-progress">🔄 En cours</button>
-                    <button class="filter-tab ${this.currentFilter === 'completed' ? 'active' : ''}" data-filter="completed">✅ Terminé</button>
+                    <button class="filter-tab ${this.currentFilter === 'new' ? 'active' : ''}" data-filter="new">Nouveau</button>
+                    <button class="filter-tab ${this.currentFilter === 'in-progress' ? 'active' : ''}" data-filter="in-progress">En cours</button>
+                    <button class="filter-tab ${this.currentFilter === 'completed' ? 'active' : ''}" data-filter="completed">Terminé</button>
                 </div>
             </div>
 
-            <!-- Tree -->
-            <div class="tree-container">
+            <!-- Parcours Grid -->
+            <div class="parcours-grid">
         `;
 
-        // Afficher les éléments racines
+        // Afficher les éléments racines comme cartes
         const filteredRoots = rootItems.filter(item => this.matchesFilter(item, new Set()));
 
         if (filteredRoots.length === 0) {
             html += `
-                <div class="empty-state">
+                <div class="empty-state" style="grid-column: 1 / -1;">
                     <span class="empty-icon">🔍</span>
                     <p>Aucun résultat pour cette recherche</p>
                 </div>
             `;
         } else {
-            html += filteredRoots.map(item => this.renderItem(item, 0)).join('');
+            html += filteredRoots.map(item => this.renderParcoursCard(item)).join('');
         }
 
         html += '</div>';
 
         container.innerHTML = html;
+    },
+
+    // Rendu d'une carte parcours
+    renderParcoursCard(item) {
+        const progress = this.getItemProgress(item.id);
+        const status = this.getItemStatus(item.id);
+        const percent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
+
+        // Trouver le premier contenu non complété
+        const nextContent = this.findFirstUncompletedContent(item.id, new Set());
+        const href = nextContent ? `methodologie-parcours.html?item=${nextContent.id}` : '#';
+
+        // Texte du bouton selon le statut
+        let buttonText = 'Commencer';
+        let buttonClass = 'btn-primary';
+        if (status === 'completed') {
+            buttonText = 'Revoir';
+            buttonClass = 'btn-secondary';
+        } else if (status === 'in-progress') {
+            buttonText = 'Continuer';
+        }
+
+        // Badge de statut
+        let statusBadge = '';
+        if (status === 'completed') {
+            statusBadge = '<span class="parcours-status-badge completed">Terminé</span>';
+        } else if (status === 'new') {
+            statusBadge = '<span class="parcours-status-badge new">Nouveau</span>';
+        }
+
+        return `
+            <div class="parcours-card ${status}" data-id="${item.id}">
+                <div class="parcours-card-header">
+                    <div class="parcours-icon ${item.couleur || 'blue'}">${item.icon || '📚'}</div>
+                    ${statusBadge}
+                </div>
+                <div class="parcours-card-body">
+                    <h3 class="parcours-title">${this.escapeHtml(item.titre)}</h3>
+                    ${item.description ? `<p class="parcours-desc">${this.escapeHtml(item.description)}</p>` : ''}
+                    <div class="parcours-meta">
+                        <span class="parcours-lessons">${progress.total} leçon${progress.total > 1 ? 's' : ''}</span>
+                        ${item.duree_estimee ? `<span class="parcours-duration">${item.duree_estimee}</span>` : ''}
+                    </div>
+                </div>
+                <div class="parcours-card-footer">
+                    <div class="parcours-progress">
+                        <div class="parcours-progress-bar">
+                            <div class="parcours-progress-fill" style="width: ${percent}%;"></div>
+                        </div>
+                        <span class="parcours-progress-text">${percent}%</span>
+                    </div>
+                    <a href="${href}" class="btn ${buttonClass} parcours-btn">${buttonText}</a>
+                </div>
+            </div>
+        `;
     },
 
     renderItem(item, depth, rendered = new Set()) {

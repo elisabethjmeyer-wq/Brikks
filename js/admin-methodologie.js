@@ -210,9 +210,11 @@ const AdminMethodologie = {
 
         const depthClass = `depth-${Math.min(depth, 3)}`;
         const typeIcon = contentType ? contentType.icon : (hasChildren ? '📁' : '📄');
+        // Parcours racines (depth 0) sont repliés par défaut
+        const collapsedClass = depth === 0 && hasChildren ? 'collapsed' : '';
 
         return `
-            <div class="tree-item ${depthClass}" data-id="${item.id}" data-depth="${depth}">
+            <div class="tree-item ${depthClass} ${collapsedClass}" data-id="${item.id}" data-depth="${depth}">
                 <div class="tree-item-header" onclick="AdminMethodologie.toggleItem('${item.id}')">
                     <div class="tree-item-left">
                         ${hasChildren ? `
@@ -273,7 +275,7 @@ const AdminMethodologie = {
         this.editingItem = null;
         this.currentRessources = [];
 
-        document.getElementById('itemModalTitle').textContent = parentId ? 'Ajouter un sous-élément' : 'Nouvel élément';
+        document.getElementById('itemModalTitle').textContent = parentId ? 'Ajouter un sous-élément' : 'Nouveau parcours';
         document.getElementById('itemId').value = '';
         document.getElementById('itemParentId').value = parentId || '';
         document.getElementById('itemTitre').value = '';
