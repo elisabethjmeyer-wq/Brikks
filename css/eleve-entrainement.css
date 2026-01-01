@@ -1084,7 +1084,14 @@
 }
 
 .image-cliquable-question-icon {
-    font-size: 28px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-green-dark, #047857);
+    background: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .image-cliquable-question-text {
@@ -1099,6 +1106,7 @@
     overflow: hidden;
     border: 2px solid var(--gray-200);
     background: var(--gray-100);
+    min-height: 300px;
 }
 
 .image-cliquable-img {
@@ -1117,18 +1125,21 @@
 
 .image-cliquable-zone {
     position: absolute;
-    border: 3px solid transparent;
+    border: 3px dashed var(--primary-light, rgba(99, 102, 241, 0.5));
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: rgba(99, 102, 241, 0.08);
 }
 
 .image-cliquable-zone:hover {
+    border-style: solid;
     border-color: var(--primary);
-    background: rgba(99, 102, 241, 0.2);
+    background: rgba(99, 102, 241, 0.25);
+    transform: scale(1.02);
 }
 
 .image-cliquable-zone.flash-correct {

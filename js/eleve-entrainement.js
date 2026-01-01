@@ -205,7 +205,7 @@ const EleveEntrainement = {
                 format: 'image-cliquable',
                 titre: 'Carte des explorations',
                 description: 'Identifiez les lieux sur la carte',
-                imageUrl: 'https://placehold.co/1200x600/e0f2fe/0369a1?text=Carte+du+Monde\\n(Placez+vos+zones+cliquables)',
+                imageUrl: 'https://placehold.co/1200x600/e0f2fe/0369a1?text=Carte+du+Monde',
                 zones: [
                     { id: 'portugal', label: 'Portugal', x: 42, y: 35, width: 4, height: 6 },
                     { id: 'inde', label: 'Inde', x: 68, y: 42, width: 6, height: 8 },
@@ -1234,7 +1234,8 @@ const EleveEntrainement = {
                     ` : ''}
 
                     <div class="image-cliquable-container ${isVerified ? 'verified' : ''}">
-                        <img src="${step.imageUrl}" alt="${step.titre}" class="image-cliquable-img" id="clickableImage">
+                        <img src="${step.imageUrl}" alt="${step.titre}" class="image-cliquable-img" id="clickableImage"
+                             onerror="this.onerror=null; this.src='https://placehold.co/1200x600/f0f0f0/666666?text=Image+non+disponible';">
                         <div class="image-cliquable-zones" id="clickableZones">
                             ${step.zones.map((zone, zIndex) => this.renderImageZone(zone, zIndex, stepAnswers, isVerified, step.questions)).join('')}
                         </div>
