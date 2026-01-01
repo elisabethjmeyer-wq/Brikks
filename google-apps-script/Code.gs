@@ -2784,7 +2784,7 @@ function updateMethodologie(data) {
   }
 
   // Mettre à jour les colonnes spécifiées (incluant les nouveaux champs)
-  const updates = ['titre', 'parent_id', 'icon', 'couleur', 'description', 'ordre', 'type_contenu', 'video_url', 'fiche_url', 'bex_bank', 'competence_bank', 'ressources'];
+  const updates = ['titre', 'parent_id', 'icon', 'couleur', 'description', 'ordre', 'type_contenu', 'video_url', 'fiche_url', 'bex_bank', 'competence_bank', 'ressources', 'image_url', 'duree_estimee'];
   updates.forEach(col => {
     if (itemData[col] !== undefined) {
       const colIndex = findColumnIndex(headers, col);
