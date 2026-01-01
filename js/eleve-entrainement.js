@@ -209,8 +209,40 @@ const EleveEntrainement = {
      * Convertit les questions du format Sheet vers le format steps
      */
     convertQuestionsToSteps(questions) {
+        // Mapping des format_id vers les types (fallback si format.type_base manquant)
+        const formatIdToType = {
+            'format_001': 'qcm',
+            'format_002': 'qcm_multiple',
+            'format_003': 'vrai_faux',
+            'format_004': 'trous',
+            'format_005': 'association',
+            'format_006': 'ordonner',
+            'format_007': 'question_ouverte',
+            'format_008': 'image_cliquable'
+        };
+
         return questions.map(q => {
-            const formatType = q.format?.type_base || q.format_id?.replace('format_', '') || 'qcm';
+            // Essayer d'obtenir le type de format de plusieurs façons
+            let formatType = q.format?.type_base;
+
+            if (!formatType && q.format_id) {
+                formatType = formatIdToType[q.format_id] || formatIdToType[String(q.format_id).trim()];
+            }
+
+            // Dernier recours : essayer de déduire du nom du format
+            if (!formatType && q.format?.nom) {
+                const nom = q.format.nom.toLowerCase();
+                if (nom.includes('qcm') && nom.includes('multiple')) formatType = 'qcm_multiple';
+                else if (nom.includes('qcm')) formatType = 'qcm';
+                else if (nom.includes('vrai') || nom.includes('faux')) formatType = 'vrai_faux';
+                else if (nom.includes('trou')) formatType = 'trous';
+                else if (nom.includes('association')) formatType = 'association';
+                else if (nom.includes('ordonner') || nom.includes('ordre')) formatType = 'ordonner';
+            }
+
+            // Fallback final
+            if (!formatType) formatType = 'qcm';
+
             const donnees = q.donnees || {};
 
             // Structure de base
