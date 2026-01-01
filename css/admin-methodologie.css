@@ -967,3 +967,71 @@
         align-self: center;
     }
 }
+
+/* ============================================
+   Reorder Mode
+   ============================================ */
+.btn.reorder-active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.tree-container.reorder-mode .tree-item-header {
+    cursor: grab;
+}
+
+.tree-container.reorder-mode .tree-item-header:active {
+    cursor: grabbing;
+}
+
+.tree-container.reorder-mode .tree-item {
+    transition: transform 0.15s, opacity 0.15s, background 0.15s;
+}
+
+.tree-container.reorder-mode .tree-item.dragging {
+    opacity: 0.5;
+    background: var(--primary-bg);
+}
+
+.tree-container.reorder-mode .tree-item.drag-over {
+    border-top: 3px solid var(--primary);
+}
+
+.tree-container.reorder-mode .tree-item.drag-over-bottom {
+    border-bottom: 3px solid var(--primary);
+}
+
+.tree-container.reorder-mode .tree-item-actions {
+    display: none;
+}
+
+.tree-container.reorder-mode .tree-item-header::before {
+    content: '⋮⋮';
+    margin-right: 12px;
+    color: var(--gray-400);
+    font-size: 14px;
+    letter-spacing: 2px;
+}
+
+.reorder-hint {
+    background: var(--primary-bg);
+    border: 2px dashed var(--primary);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--primary);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.reorder-hint-icon {
+    font-size: 20px;
+}
+
+.reorder-hint .btn {
+    margin-left: auto;
+}

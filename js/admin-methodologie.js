@@ -9,6 +9,8 @@ const AdminMethodologie = {
     editingItem: null,
     deletingItem: null,
     currentRessources: [],
+    reorderMode: false,
+    draggedItem: null,
 
     icons: ['📁', '📄', '📋', '📝', '📊', '📈', '🔍', '✍️', '📖', '🗺️', '🌍', '📅', '⏰', '💡', '🎯', '✅', '⭐', '🎬'],
     colors: ['blue', 'purple', 'teal', 'orange', 'green', 'pink'],
@@ -683,6 +685,9 @@ const AdminMethodologie = {
         // Add button
         document.getElementById('addCategoryBtn')?.addEventListener('click', () => this.openAddModal(null));
 
+        // Reorder toggle
+        document.getElementById('toggleReorderBtn')?.addEventListener('click', () => this.toggleReorderMode());
+
         // Item modal
         document.getElementById('closeItemModal')?.addEventListener('click', () => this.closeItemModal());
         document.getElementById('cancelItemBtn')?.addEventListener('click', () => this.closeItemModal());
@@ -706,6 +711,162 @@ const AdminMethodologie = {
                 if (e.target === overlay) overlay.classList.add('hidden');
             });
         });
+    },
+
+    // ========== REORDER MODE ==========
+    toggleReorderMode() {
+        this.reorderMode = !this.reorderMode;
+
+        const btn = document.getElementById('toggleReorderBtn');
+        const container = document.getElementById('categories-container');
+
+        if (this.reorderMode) {
+            btn.classList.add('reorder-active');
+            btn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Terminer
+            `;
+            container.classList.add('reorder-mode');
+            this.setupTreeDragDrop();
+        } else {
+            btn.classList.remove('reorder-active');
+            btn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="4" y1="6" x2="20" y2="6"/>
+                    <line x1="4" y1="12" x2="20" y2="12"/>
+                    <line x1="4" y1="18" x2="20" y2="18"/>
+                    <circle cx="8" cy="6" r="2" fill="currentColor"/>
+                    <circle cx="16" cy="12" r="2" fill="currentColor"/>
+                    <circle cx="10" cy="18" r="2" fill="currentColor"/>
+                </svg>
+                Réorganiser
+            `;
+            container.classList.remove('reorder-mode');
+        }
+    },
+
+    setupTreeDragDrop() {
+        const container = document.getElementById('categories-container');
+        if (!container) return;
+
+        // Rendre les éléments draggables (seulement les enfants directs du même parent)
+        container.querySelectorAll('.tree-item').forEach(item => {
+            const header = item.querySelector('.tree-item-header');
+            if (!header) return;
+
+            item.setAttribute('draggable', 'true');
+
+            item.addEventListener('dragstart', (e) => {
+                if (!this.reorderMode) return;
+                e.stopPropagation();
+                this.draggedItem = item;
+                item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', item.dataset.id);
+            });
+
+            item.addEventListener('dragend', (e) => {
+                if (!this.reorderMode) return;
+                e.stopPropagation();
+                if (this.draggedItem) {
+                    this.draggedItem.classList.remove('dragging');
+                    this.draggedItem = null;
+                }
+                // Nettoyer les classes drag-over
+                container.querySelectorAll('.drag-over, .drag-over-bottom').forEach(el => {
+                    el.classList.remove('drag-over', 'drag-over-bottom');
+                });
+            });
+
+            item.addEventListener('dragover', (e) => {
+                if (!this.reorderMode || !this.draggedItem) return;
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Ne permettre le drop que sur les éléments du même parent
+                const draggedParent = this.draggedItem.closest('.tree-item-children') || container;
+                const targetParent = item.closest('.tree-item-children') || container;
+
+                if (draggedParent !== targetParent) return;
+                if (this.draggedItem === item) return;
+
+                const rect = item.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+
+                // Nettoyer les classes
+                item.classList.remove('drag-over', 'drag-over-bottom');
+
+                if (e.clientY < midY) {
+                    item.classList.add('drag-over');
+                } else {
+                    item.classList.add('drag-over-bottom');
+                }
+            });
+
+            item.addEventListener('dragleave', (e) => {
+                if (!this.reorderMode) return;
+                item.classList.remove('drag-over', 'drag-over-bottom');
+            });
+
+            item.addEventListener('drop', async (e) => {
+                if (!this.reorderMode || !this.draggedItem) return;
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Ne permettre le drop que sur les éléments du même parent
+                const draggedParent = this.draggedItem.closest('.tree-item-children') || container;
+                const targetParent = item.closest('.tree-item-children') || container;
+
+                if (draggedParent !== targetParent) return;
+                if (this.draggedItem === item) return;
+
+                const rect = item.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+
+                if (e.clientY < midY) {
+                    targetParent.insertBefore(this.draggedItem, item);
+                } else {
+                    targetParent.insertBefore(this.draggedItem, item.nextSibling);
+                }
+
+                // Nettoyer
+                item.classList.remove('drag-over', 'drag-over-bottom');
+
+                // Sauvegarder le nouvel ordre
+                await this.saveNewOrder(targetParent);
+            });
+        });
+    },
+
+    async saveNewOrder(parentContainer) {
+        const container = document.getElementById('categories-container');
+        const isRoot = parentContainer === container;
+
+        // Récupérer les IDs dans le nouvel ordre
+        const items = parentContainer.querySelectorAll(':scope > .tree-item');
+        const orderedIds = Array.from(items).map(item => item.dataset.id);
+
+        // Mettre à jour l'ordre pour chaque élément
+        for (let i = 0; i < orderedIds.length; i++) {
+            const itemId = orderedIds[i];
+            const newOrdre = String(i + 1);
+
+            // Trouver l'élément dans notre liste
+            const item = this.items.find(it => it.id === itemId);
+            if (item && item.ordre !== newOrdre) {
+                try {
+                    await this.callWebApp('updateMethodologie', {
+                        id: itemId,
+                        ordre: newOrdre
+                    });
+                    item.ordre = newOrdre;
+                } catch (error) {
+                    console.error('Erreur lors de la mise à jour de l\'ordre:', error);
+                }
+            }
+        }
     },
 
     // ========== UTILS ==========
