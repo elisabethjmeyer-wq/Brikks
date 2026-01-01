@@ -1,12 +1,11 @@
 /**
- * Élève Méthodologie Parcours - Page de détail d'une étape
+ * Élève Méthodologie Parcours - Structure arborescente flexible
+ * Affichage du contenu avec sidebar de navigation à droite
  */
 
 const EleveMethodologieParcours = {
-    competence: null,
-    currentEtape: null,
-    categories: [],
-    etapes: [],
+    items: [],
+    currentItem: null,
     progression: [],
     user: null,
 
@@ -14,30 +13,22 @@ const EleveMethodologieParcours = {
         try {
             this.user = JSON.parse(sessionStorage.getItem(CONFIG.STORAGE_KEYS.USER));
 
-            // Récupérer les paramètres d'URL
+            // Récupérer le paramètre d'URL
             const params = new URLSearchParams(window.location.search);
-            const competenceId = params.get('competence');
-            const etapeId = params.get('etape');
+            const itemId = params.get('item');
 
-            if (!competenceId) {
-                this.renderError('Compétence non spécifiée');
+            if (!itemId) {
+                this.renderError('Aucun contenu spécifié');
                 return;
             }
 
-            await this.loadData(competenceId);
+            await this.loadData();
 
-            // Trouver l'étape courante
-            if (etapeId) {
-                this.currentEtape = this.etapes.find(e => e.id === etapeId);
-            }
+            // Trouver l'élément courant
+            this.currentItem = this.items.find(i => i.id === itemId);
 
-            // Si pas d'étape spécifiée, prendre la première
-            if (!this.currentEtape && this.etapes.length) {
-                this.currentEtape = this.etapes[0];
-            }
-
-            if (!this.currentEtape) {
-                this.renderError('Aucune étape disponible');
+            if (!this.currentItem) {
+                this.renderError('Contenu non trouvé');
                 return;
             }
 
@@ -49,32 +40,14 @@ const EleveMethodologieParcours = {
         }
     },
 
-    async loadData(competenceId) {
-        const [categories, competences, allEtapes, progression] = await Promise.all([
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE_CATEGORIES),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE_COMPETENCES),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE_ETAPES),
+    async loadData() {
+        const [items, progression] = await Promise.all([
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE),
             this.loadProgression()
         ]);
 
-        this.categories = categories || [];
-        this.competence = (competences || []).find(c => c.id === competenceId);
-
-        if (!this.competence) {
-            throw new Error('Compétence non trouvée');
-        }
-
-        // Filtrer et trier les étapes de cette compétence
-        this.etapes = (allEtapes || [])
-            .filter(e => e.competence_id === competenceId)
-            .sort((a, b) => {
-                const nA = parseInt(a.niveau) || 1;
-                const nB = parseInt(b.niveau) || 1;
-                if (nA !== nB) return nA - nB;
-                return (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0);
-            });
-
-        this.progression = progression;
+        this.items = (items || []).sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+        this.progression = progression || [];
     },
 
     async loadProgression() {
@@ -87,52 +60,141 @@ const EleveMethodologieParcours = {
         }
     },
 
-    // Vérifier si une étape est complétée
-    isEtapeCompleted(etapeId) {
-        return this.progression.some(p => p.etape_id === etapeId && p.completed === 'TRUE');
+    // ========== HELPERS ==========
+    getRootItems() {
+        return this.items.filter(item => !item.parent_id || item.parent_id === '');
     },
 
-    // Obtenir la catégorie de la compétence
-    getCategory() {
-        return this.categories.find(c => c.id === this.competence?.categorie_id);
+    getChildren(parentId) {
+        return this.items.filter(item => item.parent_id === parentId)
+            .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
     },
 
-    // Obtenir les niveaux uniques
-    getLevels() {
-        const niveaux = [...new Set(this.etapes.map(e => parseInt(e.niveau) || 1))].sort();
-        return niveaux.map(n => ({
-            niveau: n,
-            titre: this.etapes.find(e => parseInt(e.niveau) === n)?.niveau_titre || `Niveau ${n}`,
-            etapes: this.etapes.filter(e => parseInt(e.niveau) === n)
-        }));
+    getParent(itemId) {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item || !item.parent_id) return null;
+        return this.items.find(i => i.id === item.parent_id);
     },
 
-    // Calculer la progression globale
-    getGlobalProgress() {
-        const total = this.etapes.length;
-        const completed = this.etapes.filter(e => this.isEtapeCompleted(e.id)).length;
-        return { completed, total, percent: total ? Math.round((completed / total) * 100) : 0 };
+    isContent(item) {
+        return !!item.video_url;
     },
 
-    // Obtenir l'étape précédente
-    getPrevEtape() {
-        const idx = this.etapes.findIndex(e => e.id === this.currentEtape?.id);
-        return idx > 0 ? this.etapes[idx - 1] : null;
+    isItemCompleted(itemId) {
+        return this.progression.some(p => p.item_id === itemId && p.completed === 'TRUE');
     },
 
-    // Obtenir l'étape suivante
-    getNextEtape() {
-        const idx = this.etapes.findIndex(e => e.id === this.currentEtape?.id);
-        return idx < this.etapes.length - 1 ? this.etapes[idx + 1] : null;
+    // Obtenir le chemin (breadcrumb) vers l'élément
+    getPath(itemId, path = []) {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return path;
+
+        path.unshift(item);
+
+        if (item.parent_id) {
+            return this.getPath(item.parent_id, path);
+        }
+
+        return path;
     },
 
-    // Parser les documents (format JSON ou séparé par |)
+    // Obtenir les frères/soeurs (siblings) du même niveau
+    getSiblings(itemId) {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return [];
+
+        if (!item.parent_id) {
+            return this.getRootItems();
+        }
+
+        return this.getChildren(item.parent_id);
+    },
+
+    // Obtenir l'élément précédent/suivant
+    getPrevItem() {
+        const siblings = this.getSiblings(this.currentItem.id);
+        const idx = siblings.findIndex(s => s.id === this.currentItem.id);
+        return idx > 0 ? siblings[idx - 1] : null;
+    },
+
+    getNextItem() {
+        const siblings = this.getSiblings(this.currentItem.id);
+        const idx = siblings.findIndex(s => s.id === this.currentItem.id);
+        return idx < siblings.length - 1 ? siblings[idx + 1] : null;
+    },
+
+    // Trouver le contenu précédent/suivant dans l'arbre complet
+    findPrevContent() {
+        const allContents = this.getAllContents();
+        const idx = allContents.findIndex(c => c.id === this.currentItem.id);
+        return idx > 0 ? allContents[idx - 1] : null;
+    },
+
+    findNextContent() {
+        const allContents = this.getAllContents();
+        const idx = allContents.findIndex(c => c.id === this.currentItem.id);
+        return idx < allContents.length - 1 ? allContents[idx + 1] : null;
+    },
+
+    // Obtenir tous les contenus dans l'ordre de parcours
+    getAllContents(parentId = null, result = [], visited = new Set()) {
+        const items = parentId === null ? this.getRootItems() : this.getChildren(parentId);
+
+        for (const item of items) {
+            if (visited.has(item.id)) continue;
+            visited.add(item.id);
+
+            if (this.isContent(item)) {
+                result.push(item);
+            }
+
+            this.getAllContents(item.id, result, visited);
+        }
+
+        return result;
+    },
+
+    // Calculer la progression dans la branche courante
+    getBranchProgress() {
+        // Remonter jusqu'à la racine
+        const path = this.getPath(this.currentItem.id);
+        if (path.length === 0) return { completed: 0, total: 0, percent: 0 };
+
+        const root = path[0];
+        return this.getItemProgress(root.id);
+    },
+
+    getItemProgress(itemId, visited = new Set()) {
+        if (visited.has(itemId)) return { completed: 0, total: 0 };
+        visited.add(itemId);
+
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return { completed: 0, total: 0 };
+
+        if (this.isContent(item)) {
+            const completed = this.isItemCompleted(itemId) ? 1 : 0;
+            return { completed, total: 1 };
+        }
+
+        const children = this.getChildren(itemId);
+        let totalCompleted = 0;
+        let totalItems = 0;
+
+        children.forEach(child => {
+            const childProgress = this.getItemProgress(child.id, visited);
+            totalCompleted += childProgress.completed;
+            totalItems += childProgress.total;
+        });
+
+        return { completed: totalCompleted, total: totalItems };
+    },
+
+    // Parser les documents
     parseDocuments(documentsStr) {
         if (!documentsStr) return [];
         try {
             return JSON.parse(documentsStr);
         } catch {
-            // Format alternatif: titre|url|taille séparés par ;;
             return documentsStr.split(';;').map(doc => {
                 const [titre, url, taille] = doc.split('|');
                 return { titre, url, taille };
@@ -155,61 +217,64 @@ const EleveMethodologieParcours = {
         const container = document.getElementById('main-content');
         if (!container) return;
 
-        const category = this.getCategory();
-        const levels = this.getLevels();
-        const progress = this.getGlobalProgress();
-        const prevEtape = this.getPrevEtape();
-        const nextEtape = this.getNextEtape();
-        const documents = this.parseDocuments(this.currentEtape.documents);
-        const embedUrl = this.getEmbedUrl(this.currentEtape.video_url);
-        const isCompleted = this.isEtapeCompleted(this.currentEtape.id);
+        const path = this.getPath(this.currentItem.id);
+        const embedUrl = this.getEmbedUrl(this.currentItem.video_url);
+        const documents = this.parseDocuments(this.currentItem.documents);
+        const isCompleted = this.isItemCompleted(this.currentItem.id);
+        const prevContent = this.findPrevContent();
+        const nextContent = this.findNextContent();
+        const branchProgress = this.getBranchProgress();
+        const branchPercent = branchProgress.total > 0
+            ? Math.round((branchProgress.completed / branchProgress.total) * 100)
+            : 0;
 
         container.innerHTML = `
             <!-- Breadcrumb -->
             <div class="breadcrumb-bar">
                 <nav class="breadcrumb">
                     <a href="methodologie.html">Méthodologie</a>
-                    <span class="separator">›</span>
-                    ${category ? `
-                        <a href="methodologie.html">${category.icon || ''} ${this.escapeHtml(category.nom)}</a>
+                    ${path.slice(0, -1).map(item => `
                         <span class="separator">›</span>
-                    ` : ''}
-                    <a href="methodologie-parcours.html?competence=${this.competence.id}">${this.escapeHtml(this.competence.titre)}</a>
+                        <a href="methodologie.html">${item.icon || ''} ${this.escapeHtml(item.titre)}</a>
+                    `).join('')}
                     <span class="separator">›</span>
-                    <span class="current">${this.escapeHtml(this.currentEtape.titre)}</span>
+                    <span class="current">${this.escapeHtml(this.currentItem.titre)}</span>
                 </nav>
             </div>
 
-            <!-- Layout -->
+            <!-- Layout: Content + Sidebar à droite -->
             <div class="parcours-layout">
-                <!-- Content -->
+                <!-- Main Content -->
                 <div class="parcours-content">
-                    ${this.renderVideoSection(embedUrl)}
+                    ${embedUrl ? this.renderVideoSection(embedUrl) : this.renderPlaceholder()}
                     ${documents.length ? this.renderDownloadsSection(documents) : ''}
-                    ${this.currentEtape.contenu_html ? this.renderTextContent() : ''}
-                    ${this.currentEtape.bex_id ? this.renderBexLink() : ''}
-                    ${this.renderNavigation(prevEtape, nextEtape)}
+                    ${this.currentItem.contenu_html ? this.renderTextContent() : ''}
+                    ${this.currentItem.bex_id ? this.renderBexLink() : ''}
+                    ${this.renderNavigation(prevContent, nextContent)}
                 </div>
 
-                <!-- Sidebar -->
+                <!-- Sidebar à droite -->
                 <aside class="parcours-sidebar">
                     <div class="sidebar-card">
                         <div class="sidebar-header">
-                            <h3>${this.competence.icon || '📋'} ${this.escapeHtml(this.competence.titre)}</h3>
+                            <h3>${path[0]?.icon || '📚'} ${this.escapeHtml(path[0]?.titre || 'Navigation')}</h3>
                         </div>
-                        <div class="steps-menu">
-                            ${levels.map((level, idx) => this.renderLevelGroup(level, idx === 0)).join('')}
+
+                        <div class="tree-menu">
+                            ${this.renderTreeMenu(path[0]?.id)}
                         </div>
+
                         <div class="progress-section">
                             <div class="progress-header">
                                 <span class="progress-label">Ta progression</span>
-                                <span class="progress-value">${progress.completed}/${progress.total} étapes</span>
+                                <span class="progress-value">${branchProgress.completed}/${branchProgress.total}</span>
                             </div>
                             <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${progress.percent}%;"></div>
+                                <div class="progress-fill" style="width: ${branchPercent}%;"></div>
                             </div>
+
                             <button class="mark-complete-btn ${isCompleted ? 'completed' : ''}" id="mark-complete-btn">
-                                ${isCompleted ? '✓ Étape terminée' : 'Marquer comme terminée'}
+                                ${isCompleted ? '✓ Terminé' : 'Marquer comme terminé'}
                             </button>
                         </div>
                     </div>
@@ -218,29 +283,77 @@ const EleveMethodologieParcours = {
         `;
     },
 
-    renderVideoSection(embedUrl) {
-        const niveau = parseInt(this.currentEtape.niveau) || 1;
-        const ordre = parseInt(this.currentEtape.ordre) || 1;
+    renderTreeMenu(rootId, visited = new Set()) {
+        if (!rootId || visited.has(rootId)) return '';
+        visited.add(rootId);
 
-        if (embedUrl) {
+        const children = this.getChildren(rootId);
+        if (children.length === 0) return '';
+
+        return `
+            <div class="tree-menu-items">
+                ${children.map(child => this.renderTreeMenuItem(child, visited)).join('')}
+            </div>
+        `;
+    },
+
+    renderTreeMenuItem(item, visited = new Set()) {
+        if (visited.has(item.id)) return '';
+        visited.add(item.id);
+
+        const isActive = item.id === this.currentItem.id;
+        const isContent = this.isContent(item);
+        const isCompleted = this.isItemCompleted(item.id);
+        const children = this.getChildren(item.id);
+        const hasChildren = children.length > 0;
+
+        // Déterminer si cet item ou un descendant est actif
+        const isInPath = this.getPath(this.currentItem.id).some(p => p.id === item.id);
+
+        if (isContent) {
             return `
-                <div class="video-section">
-                    <div class="video-container">
-                        <iframe src="${embedUrl}" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-                    </div>
-                </div>
+                <a href="methodologie-parcours.html?item=${item.id}"
+                   class="tree-menu-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}">
+                    <span class="tree-menu-status">${isCompleted ? '✓' : '○'}</span>
+                    <span class="tree-menu-title">${this.escapeHtml(item.titre)}</span>
+                </a>
             `;
         }
 
+        // Dossier avec enfants
+        return `
+            <div class="tree-menu-group ${isInPath ? 'open' : ''}">
+                <div class="tree-menu-folder">
+                    <span class="tree-menu-icon">${item.icon || '📁'}</span>
+                    <span class="tree-menu-title">${this.escapeHtml(item.titre)}</span>
+                    <span class="tree-menu-toggle">${hasChildren ? '▶' : ''}</span>
+                </div>
+                ${hasChildren ? `
+                    <div class="tree-menu-children">
+                        ${children.map(child => this.renderTreeMenuItem(child, new Set(visited))).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    renderVideoSection(embedUrl) {
         return `
             <div class="video-section">
+                <h1 class="content-title">${this.currentItem.icon || '🎬'} ${this.escapeHtml(this.currentItem.titre)}</h1>
+                ${this.currentItem.description ? `<p class="content-description">${this.escapeHtml(this.currentItem.description)}</p>` : ''}
                 <div class="video-container">
-                    <div class="video-placeholder">
-                        <div class="play-btn">▶</div>
-                        <h3>Niveau ${niveau} - Étape ${ordre}</h3>
-                        <p>${this.escapeHtml(this.currentEtape.titre)}</p>
-                    </div>
+                    <iframe src="${embedUrl}" allowfullscreen allow="autoplay; encrypted-media"></iframe>
                 </div>
+            </div>
+        `;
+    },
+
+    renderPlaceholder() {
+        return `
+            <div class="video-section">
+                <h1 class="content-title">${this.currentItem.icon || '📄'} ${this.escapeHtml(this.currentItem.titre)}</h1>
+                ${this.currentItem.description ? `<p class="content-description">${this.escapeHtml(this.currentItem.description)}</p>` : ''}
             </div>
         `;
     },
@@ -252,8 +365,7 @@ const EleveMethodologieParcours = {
                     <h3>📥 Documents</h3>
                     ${documents.length > 1 ? `
                         <button class="download-all-btn" onclick="EleveMethodologieParcours.downloadAll()">
-                            <span>↓</span>
-                            Tout télécharger
+                            <span>↓</span> Tout télécharger
                         </button>
                     ` : ''}
                 </div>
@@ -276,41 +388,42 @@ const EleveMethodologieParcours = {
     renderTextContent() {
         return `
             <div class="text-content">
-                ${this.currentEtape.contenu_html}
+                ${this.currentItem.contenu_html}
             </div>
         `;
     },
 
     renderBexLink() {
         return `
-            <a href="bex.html?id=${this.currentEtape.bex_id}" class="bex-link">
+            <a href="bex.html?id=${this.currentItem.bex_id}" class="bex-link">
                 <div class="bex-icon">⭐</div>
                 <div class="bex-info">
                     <div class="bex-label">Exercice recommandé</div>
-                    <div class="bex-title">${this.escapeHtml(this.currentEtape.bex_titre || 'Accéder à l\'exercice')}</div>
+                    <div class="bex-title">${this.escapeHtml(this.currentItem.bex_titre || 'Accéder à l\'exercice')}</div>
                 </div>
                 <span class="bex-arrow">→</span>
             </a>
         `;
     },
 
-    renderNavigation(prevEtape, nextEtape) {
+    renderNavigation(prevContent, nextContent) {
         return `
             <nav class="step-navigation">
-                ${prevEtape ? `
-                    <a href="methodologie-parcours.html?competence=${this.competence.id}&etape=${prevEtape.id}" class="nav-btn prev">
+                ${prevContent ? `
+                    <a href="methodologie-parcours.html?item=${prevContent.id}" class="nav-btn prev">
                         <span class="arrow">←</span>
                         <div>
-                            <div class="label">Étape précédente</div>
-                            <div class="title">${this.escapeHtml(prevEtape.titre)}</div>
+                            <div class="label">Précédent</div>
+                            <div class="title">${this.escapeHtml(prevContent.titre)}</div>
                         </div>
                     </a>
                 ` : '<div class="nav-btn disabled"></div>'}
-                ${nextEtape ? `
-                    <a href="methodologie-parcours.html?competence=${this.competence.id}&etape=${nextEtape.id}" class="nav-btn next">
+
+                ${nextContent ? `
+                    <a href="methodologie-parcours.html?item=${nextContent.id}" class="nav-btn next">
                         <div>
-                            <div class="label">Étape suivante</div>
-                            <div class="title">${this.escapeHtml(nextEtape.titre)}</div>
+                            <div class="label">Suivant</div>
+                            <div class="title">${this.escapeHtml(nextContent.titre)}</div>
                         </div>
                         <span class="arrow">→</span>
                     </a>
@@ -319,133 +432,123 @@ const EleveMethodologieParcours = {
         `;
     },
 
-    renderLevelGroup(level, isOpen) {
-        const currentNiveau = parseInt(this.currentEtape?.niveau) || 1;
-        const isCurrentLevel = level.niveau === currentNiveau;
-
-        // Vérifier si le niveau est verrouillé
-        const isLocked = level.niveau > 1 && !this.isLevelUnlocked(level.niveau);
-
-        return `
-            <div class="level-group ${isOpen || isCurrentLevel ? 'open' : ''}">
-                <div class="level-header">
-                    <span class="level-icon ${isLocked ? 'locked' : ''}">${level.niveau}</span>
-                    <span class="level-title ${isLocked ? 'locked' : ''}">${this.escapeHtml(level.titre)}</span>
-                    <span class="level-toggle">${isLocked ? '🔒' : '▶'}</span>
-                </div>
-                <div class="level-steps">
-                    ${level.etapes.map(etape => this.renderStepItem(etape)).join('')}
-                </div>
-            </div>
-        `;
-    },
-
-    renderStepItem(etape) {
-        const isActive = etape.id === this.currentEtape?.id;
-        const isCompleted = this.isEtapeCompleted(etape.id);
-        const ordre = parseInt(etape.ordre) || 1;
-
-        return `
-            <a href="methodologie-parcours.html?competence=${this.competence.id}&etape=${etape.id}"
-               class="step-menu-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}">
-                <span class="step-status">${isCompleted ? '✓' : ordre}</span>
-                <span class="step-menu-title">${this.escapeHtml(etape.titre)}</span>
-            </a>
-        `;
-    },
-
-    isLevelUnlocked(niveau) {
-        if (niveau === 1) return true;
-
-        // Vérifier si toutes les étapes du niveau précédent sont complétées
-        const prevEtapes = this.etapes.filter(e => parseInt(e.niveau) === niveau - 1);
-        return prevEtapes.every(e => this.isEtapeCompleted(e.id));
-    },
-
     getFileIcon(filename) {
         if (!filename) return '📄';
         const ext = filename.split('.').pop()?.toLowerCase();
         const icons = {
-            pdf: '📄',
-            doc: '📝',
-            docx: '📝',
-            xls: '📊',
-            xlsx: '📊',
-            ppt: '📽️',
-            pptx: '📽️',
-            jpg: '🖼️',
-            jpeg: '🖼️',
-            png: '🖼️',
-            gif: '🖼️',
-            mp4: '🎬',
-            mp3: '🎵',
-            zip: '📦'
+            pdf: '📄', doc: '📝', docx: '📝',
+            xls: '📊', xlsx: '📊',
+            ppt: '📽️', pptx: '📽️',
+            jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️',
+            mp4: '🎬', mp3: '🎵', zip: '📦'
         };
         return icons[ext] || '📄';
     },
 
     bindEvents() {
-        // Toggle level groups
-        document.querySelectorAll('.level-header').forEach(header => {
-            header.addEventListener('click', () => {
-                const group = header.closest('.level-group');
-                const toggle = header.querySelector('.level-toggle');
-                if (toggle?.textContent === '🔒') return;
-                group.classList.toggle('open');
+        // Toggle des groupes dans le menu
+        document.querySelectorAll('.tree-menu-folder').forEach(folder => {
+            folder.addEventListener('click', () => {
+                const group = folder.closest('.tree-menu-group');
+                if (group) group.classList.toggle('open');
             });
         });
 
-        // Mark complete button
+        // Bouton marquer comme terminé
         const markCompleteBtn = document.getElementById('mark-complete-btn');
-        if (markCompleteBtn && !this.isEtapeCompleted(this.currentEtape.id)) {
+        if (markCompleteBtn && !this.isItemCompleted(this.currentItem.id)) {
             markCompleteBtn.addEventListener('click', () => this.markAsComplete());
         }
     },
 
     async markAsComplete() {
-        if (!this.user || !this.currentEtape) return;
+        if (!this.user || !this.currentItem) return;
+
+        const btn = document.getElementById('mark-complete-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '⏳ Enregistrement...';
+        }
 
         try {
-            // Appeler le Web App pour enregistrer la progression
-            const response = await fetch(CONFIG.WEBAPP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'addProgressionMethodologie',
-                    eleve_id: this.user.id,
-                    etape_id: this.currentEtape.id
-                })
+            // Appeler le Web App via JSONP
+            await this.callWebApp('addProgressionMethodologie', {
+                eleve_id: this.user.id,
+                item_id: this.currentItem.id
             });
 
-            if (response.ok) {
-                // Mettre à jour localement
-                this.progression.push({
-                    eleve_id: this.user.id,
-                    etape_id: this.currentEtape.id,
-                    completed: 'TRUE',
-                    date: new Date().toISOString()
-                });
+            // Mettre à jour localement
+            this.progression.push({
+                eleve_id: this.user.id,
+                item_id: this.currentItem.id,
+                completed: 'TRUE',
+                date: new Date().toISOString()
+            });
 
-                // Re-render
-                this.render();
-                this.bindEvents();
+            // Re-render
+            this.render();
+            this.bindEvents();
 
-                // Aller à l'étape suivante après un délai
-                const nextEtape = this.getNextEtape();
-                if (nextEtape) {
-                    setTimeout(() => {
-                        window.location.href = `methodologie-parcours.html?competence=${this.competence.id}&etape=${nextEtape.id}`;
-                    }, 500);
-                }
+            // Aller au contenu suivant après un délai
+            const nextContent = this.findNextContent();
+            if (nextContent) {
+                setTimeout(() => {
+                    window.location.href = `methodologie-parcours.html?item=${nextContent.id}`;
+                }, 500);
             }
         } catch (error) {
-            console.error('[EleveMethodologieParcours] Erreur lors de l\'enregistrement:', error);
+            console.error('[EleveMethodologieParcours] Erreur:', error);
             alert('Erreur lors de l\'enregistrement de la progression');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Marquer comme terminé';
+            }
         }
     },
 
+    async callWebApp(action, data) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+            const timeout = setTimeout(() => {
+                delete window[callbackName];
+                if (script.parentNode) document.body.removeChild(script);
+                reject(new Error('Timeout'));
+            }, 30000);
+
+            window[callbackName] = (response) => {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                if (script.parentNode) document.body.removeChild(script);
+
+                if (response.success) {
+                    resolve(response);
+                } else {
+                    reject(new Error(response.error || 'Erreur inconnue'));
+                }
+            };
+
+            const params = new URLSearchParams({
+                action,
+                callback: callbackName,
+                data: JSON.stringify(data)
+            });
+
+            const script = document.createElement('script');
+            script.src = `${CONFIG.WEBAPP_URL}?${params.toString()}`;
+            script.onerror = () => {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                if (script.parentNode) document.body.removeChild(script);
+                reject(new Error('Erreur réseau'));
+            };
+
+            document.body.appendChild(script);
+        });
+    },
+
     downloadAll() {
-        const documents = this.parseDocuments(this.currentEtape.documents);
+        const documents = this.parseDocuments(this.currentItem.documents);
         documents.forEach(doc => {
             if (doc.url) {
                 window.open(doc.url, '_blank');

@@ -1,15 +1,14 @@
 /**
- * Élève Méthodologie - Liste des compétences
+ * Élève Méthodologie - Structure arborescente flexible
  */
 
 const EleveMethodologie = {
-    categories: [],
-    competences: [],
-    etapes: [],
+    items: [],
     progression: [],
     user: null,
     currentFilter: 'all',
     searchQuery: '',
+    expandedItems: new Set(),
 
     async init() {
         try {
@@ -25,20 +24,13 @@ const EleveMethodologie = {
     },
 
     async loadData() {
-        const [categories, competences, etapes, progression] = await Promise.all([
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE_CATEGORIES),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE_COMPETENCES),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE_ETAPES),
+        const [items, progression] = await Promise.all([
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE),
             this.loadProgression()
         ]);
 
-        this.categories = categories || [];
-        this.competences = competences || [];
-        this.etapes = etapes || [];
+        this.items = (items || []).sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
         this.progression = progression || [];
-
-        // Trier les catégories par ordre
-        this.categories.sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
     },
 
     async loadProgression() {
@@ -51,231 +43,311 @@ const EleveMethodologie = {
         }
     },
 
-    // Calculer la progression d'une compétence
-    getCompetenceProgress(competenceId) {
-        const etapes = this.etapes.filter(e => e.competence_id === competenceId);
-        if (!etapes.length) return { completed: 0, total: 0, percent: 0 };
-
-        const completed = etapes.filter(e =>
-            this.progression.some(p => p.etape_id === e.id && p.completed === 'TRUE')
-        ).length;
-
-        return {
-            completed,
-            total: etapes.length,
-            percent: Math.round((completed / etapes.length) * 100)
-        };
+    // ========== HELPERS ==========
+    getRootItems() {
+        return this.items.filter(item => !item.parent_id || item.parent_id === '');
     },
 
-    // Calculer les niveaux d'une compétence
-    getCompetenceLevels(competenceId) {
-        const etapes = this.etapes.filter(e => e.competence_id === competenceId);
-        const niveaux = [...new Set(etapes.map(e => parseInt(e.niveau) || 1))].sort();
+    getChildren(parentId) {
+        return this.items.filter(item => item.parent_id === parentId)
+            .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+    },
 
-        return niveaux.map(niveau => {
-            const etapesNiveau = etapes.filter(e => parseInt(e.niveau) === niveau);
-            const completedEtapes = etapesNiveau.filter(e =>
-                this.progression.some(p => p.etape_id === e.id && p.completed === 'TRUE')
-            ).length;
+    hasChildren(itemId) {
+        return this.items.some(item => item.parent_id === itemId);
+    },
 
-            let status = 'locked';
-            if (niveau === 1) {
-                status = completedEtapes === etapesNiveau.length ? 'completed' : 'available';
-            } else {
-                // Vérifier si le niveau précédent est terminé
-                const prevNiveau = niveau - 1;
-                const prevEtapes = etapes.filter(e => parseInt(e.niveau) === prevNiveau);
-                const prevCompleted = prevEtapes.filter(e =>
-                    this.progression.some(p => p.etape_id === e.id && p.completed === 'TRUE')
-                ).length;
+    isContent(item) {
+        return !!item.video_url;
+    },
 
-                if (prevCompleted === prevEtapes.length) {
-                    status = completedEtapes === etapesNiveau.length ? 'completed' : 'available';
-                }
-            }
+    // Vérifie si un élément est complété
+    isItemCompleted(itemId) {
+        return this.progression.some(p => p.item_id === itemId && p.completed === 'TRUE');
+    },
 
-            return { niveau, status };
+    // Compte les contenus descendants et leur progression
+    getItemProgress(itemId, visited = new Set()) {
+        if (visited.has(itemId)) return { completed: 0, total: 0 };
+        visited.add(itemId);
+
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return { completed: 0, total: 0 };
+
+        // Si c'est un contenu (a une vidéo), compter cet élément
+        if (this.isContent(item)) {
+            const completed = this.isItemCompleted(itemId) ? 1 : 0;
+            return { completed, total: 1 };
+        }
+
+        // Sinon, compter les enfants récursivement
+        const children = this.getChildren(itemId);
+        let totalCompleted = 0;
+        let totalItems = 0;
+
+        children.forEach(child => {
+            const childProgress = this.getItemProgress(child.id, visited);
+            totalCompleted += childProgress.completed;
+            totalItems += childProgress.total;
         });
+
+        return { completed: totalCompleted, total: totalItems };
     },
 
-    // Déterminer le statut d'une compétence
-    getCompetenceStatus(competenceId) {
-        const progress = this.getCompetenceProgress(competenceId);
+    // Détermine le statut d'un élément
+    getItemStatus(itemId) {
+        const progress = this.getItemProgress(itemId);
 
+        if (progress.total === 0) return 'empty';
         if (progress.completed === 0) return 'new';
         if (progress.completed === progress.total) return 'completed';
         return 'in-progress';
     },
 
-    // Obtenir le nombre d'étapes
-    getStepsCount(competenceId) {
-        return this.etapes.filter(e => e.competence_id === competenceId).length;
+    // Trouve le premier contenu non complété dans une branche
+    findFirstUncompletedContent(itemId, visited = new Set()) {
+        if (visited.has(itemId)) return null;
+        visited.add(itemId);
+
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return null;
+
+        // Si c'est un contenu non complété, le retourner
+        if (this.isContent(item) && !this.isItemCompleted(itemId)) {
+            return item;
+        }
+
+        // Sinon parcourir les enfants
+        const children = this.getChildren(itemId);
+        for (const child of children) {
+            const uncompleted = this.findFirstUncompletedContent(child.id, visited);
+            if (uncompleted) return uncompleted;
+        }
+
+        // Si tous complétés, retourner le premier contenu
+        if (this.isContent(item)) return item;
+
+        for (const child of children) {
+            if (this.isContent(child)) return child;
+            const content = this.findFirstContentInBranch(child.id, new Set());
+            if (content) return content;
+        }
+
+        return null;
     },
 
-    // Filtrer les compétences
-    getFilteredCompetences(categoryId) {
-        let competences = this.competences.filter(c => c.categorie_id === categoryId);
+    findFirstContentInBranch(itemId, visited = new Set()) {
+        if (visited.has(itemId)) return null;
+        visited.add(itemId);
 
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return null;
+
+        if (this.isContent(item)) return item;
+
+        const children = this.getChildren(itemId);
+        for (const child of children) {
+            const content = this.findFirstContentInBranch(child.id, visited);
+            if (content) return content;
+        }
+
+        return null;
+    },
+
+    // Filtrer les éléments selon la recherche et le filtre
+    matchesFilter(item) {
         // Filtre par recherche
         if (this.searchQuery) {
             const query = this.searchQuery.toLowerCase();
-            competences = competences.filter(c =>
-                c.titre?.toLowerCase().includes(query) ||
-                c.description?.toLowerCase().includes(query)
-            );
+            const matches = item.titre?.toLowerCase().includes(query) ||
+                item.description?.toLowerCase().includes(query);
+            if (!matches) {
+                // Vérifier si un descendant correspond
+                const children = this.getChildren(item.id);
+                if (!children.some(child => this.matchesFilter(child))) {
+                    return false;
+                }
+            }
         }
 
         // Filtre par statut
         if (this.currentFilter !== 'all') {
-            competences = competences.filter(c => {
-                const status = this.getCompetenceStatus(c.id);
-                return status === this.currentFilter;
-            });
+            const status = this.getItemStatus(item.id);
+            if (status !== this.currentFilter) {
+                // Vérifier si un descendant correspond
+                const children = this.getChildren(item.id);
+                if (!children.some(child => this.matchesFilter(child))) {
+                    return false;
+                }
+            }
         }
 
-        return competences;
+        return true;
     },
 
     render() {
         const container = document.getElementById('main-content');
         if (!container) return;
 
+        const rootItems = this.getRootItems();
+
         // Vérifier s'il y a des données
-        if (!this.categories.length && !this.competences.length) {
+        if (!rootItems.length) {
             container.innerHTML = `
                 <div class="empty-state">
                     <span class="empty-icon">📚</span>
-                    <p>Aucune compétence méthodologique disponible pour le moment</p>
+                    <p>Aucun contenu méthodologique disponible pour le moment</p>
                 </div>
             `;
             return;
         }
 
+        // Calculer la progression globale
+        let totalItems = 0;
+        let completedItems = 0;
+        rootItems.forEach(root => {
+            const progress = this.getItemProgress(root.id);
+            totalItems += progress.total;
+            completedItems += progress.completed;
+        });
+        const globalPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
         let html = `
+            <!-- Global Progress -->
+            <div class="global-progress-card">
+                <div class="global-progress-info">
+                    <span class="global-progress-label">Ta progression globale</span>
+                    <span class="global-progress-value">${completedItems}/${totalItems} contenus</span>
+                </div>
+                <div class="global-progress-bar">
+                    <div class="global-progress-fill" style="width: ${globalPercent}%;"></div>
+                </div>
+            </div>
+
             <!-- Search -->
             <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Rechercher une compétence..." value="${this.escapeHtml(this.searchQuery)}">
+                <input type="text" id="search-input" placeholder="Rechercher..." value="${this.escapeHtml(this.searchQuery)}">
             </div>
 
             <!-- Filters -->
             <div class="filter-section">
                 <span class="filter-label">Filtrer :</span>
                 <div class="filter-tabs">
-                    <button class="filter-tab ${this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">Toutes</button>
-                    <button class="filter-tab ${this.currentFilter === 'new' ? 'active' : ''}" data-filter="new">🆕 Nouvelles</button>
+                    <button class="filter-tab ${this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">Tout</button>
+                    <button class="filter-tab ${this.currentFilter === 'new' ? 'active' : ''}" data-filter="new">🆕 Nouveau</button>
                     <button class="filter-tab ${this.currentFilter === 'in-progress' ? 'active' : ''}" data-filter="in-progress">🔄 En cours</button>
-                    <button class="filter-tab ${this.currentFilter === 'completed' ? 'active' : ''}" data-filter="completed">✅ Terminées</button>
+                    <button class="filter-tab ${this.currentFilter === 'completed' ? 'active' : ''}" data-filter="completed">✅ Terminé</button>
                 </div>
             </div>
+
+            <!-- Tree -->
+            <div class="tree-container">
         `;
 
-        // Catégories
-        for (const category of this.categories) {
-            const competences = this.getFilteredCompetences(category.id);
+        // Afficher les éléments racines
+        const filteredRoots = rootItems.filter(item => this.matchesFilter(item));
 
-            // Ne pas afficher la catégorie si aucune compétence après filtrage
-            if (!competences.length && (this.searchQuery || this.currentFilter !== 'all')) {
-                continue;
-            }
-
-            const competenceCount = this.competences.filter(c => c.categorie_id === category.id).length;
-
+        if (filteredRoots.length === 0) {
             html += `
-                <section class="category-section" data-category="${category.id}">
-                    <div class="category-header">
-                        <div class="category-icon ${category.couleur || 'blue'}">${category.icon || '📁'}</div>
-                        <div class="category-info">
-                            <h2 class="category-title">${this.escapeHtml(category.nom)}</h2>
-                            <p class="category-meta">${competenceCount} compétence${competenceCount > 1 ? 's' : ''} • ${this.escapeHtml(category.description || '')}</p>
-                        </div>
-                    </div>
-
-                    <div class="competences-grid">
-                        ${competences.length ? competences.map(c => this.renderCompetenceCard(c)).join('') : `
-                            <div class="empty-state" style="grid-column: 1 / -1;">
-                                <p>Aucune compétence dans cette catégorie</p>
-                            </div>
-                        `}
-                    </div>
-                </section>
+                <div class="empty-state">
+                    <span class="empty-icon">🔍</span>
+                    <p>Aucun résultat pour cette recherche</p>
+                </div>
             `;
+        } else {
+            html += filteredRoots.map(item => this.renderItem(item, 0)).join('');
         }
 
-        // Message si aucun résultat après filtrage
-        if (this.searchQuery || this.currentFilter !== 'all') {
-            const hasResults = this.categories.some(cat =>
-                this.getFilteredCompetences(cat.id).length > 0
-            );
-
-            if (!hasResults) {
-                html += `
-                    <div class="empty-state">
-                        <span class="empty-icon">🔍</span>
-                        <p>Aucune compétence ne correspond à votre recherche</p>
-                    </div>
-                `;
-            }
-        }
+        html += '</div>';
 
         container.innerHTML = html;
     },
 
-    renderCompetenceCard(competence) {
-        const progress = this.getCompetenceProgress(competence.id);
-        const levels = this.getCompetenceLevels(competence.id);
-        const status = this.getCompetenceStatus(competence.id);
-        const stepsCount = this.getStepsCount(competence.id);
+    renderItem(item, depth) {
+        const children = this.getChildren(item.id);
+        const hasChildren = children.length > 0;
+        const isContent = this.isContent(item);
+        const progress = this.getItemProgress(item.id);
+        const status = this.getItemStatus(item.id);
+        const isExpanded = this.expandedItems.has(item.id);
 
-        const statusLabels = {
-            'new': 'Nouveau',
-            'in-progress': 'En cours',
-            'completed': 'Terminé'
+        const statusIcons = {
+            'new': '',
+            'in-progress': '🔄',
+            'completed': '✓',
+            'empty': ''
         };
 
-        // Trouver la première étape non complétée pour le lien
-        const firstStep = this.etapes
-            .filter(e => e.competence_id === competence.id)
-            .sort((a, b) => {
-                const nA = parseInt(a.niveau) || 1;
-                const nB = parseInt(b.niveau) || 1;
-                if (nA !== nB) return nA - nB;
-                return (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0);
-            })[0];
+        const percent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
 
-        const href = firstStep ? `methodologie-parcours.html?competence=${competence.id}&etape=${firstStep.id}` : '#';
+        // Lien vers le parcours
+        let href = '#';
+        if (isContent) {
+            href = `methodologie-parcours.html?item=${item.id}`;
+        } else {
+            const firstContent = this.findFirstUncompletedContent(item.id, new Set());
+            if (firstContent) {
+                href = `methodologie-parcours.html?item=${firstContent.id}`;
+            }
+        }
 
         return `
-            <a href="${href}" class="competence-card" data-competence="${competence.id}">
-                <div class="competence-card-header">
-                    <div class="competence-icon">${competence.icon || '📋'}</div>
-                    <div class="competence-info">
-                        <h3 class="competence-title">${this.escapeHtml(competence.titre)}</h3>
-                        <div class="competence-meta">
-                            ${levels.length > 1 ? `
-                                <div class="levels-row">
-                                    ${levels.map(l => `
-                                        <span class="level-dot ${l.status}">${l.niveau}</span>
-                                    `).join('')}
-                                </div>
-                            ` : ''}
-                            <span class="steps-badge">${stepsCount} étape${stepsCount > 1 ? 's' : ''}</span>
-                            ${status !== 'new' || progress.completed === 0 ? `
-                                <span class="status-tag ${status}">${statusLabels[status]}</span>
-                            ` : ''}
+            <div class="tree-item depth-${Math.min(depth, 4)} ${status}" data-id="${item.id}">
+                <div class="tree-item-header">
+                    ${hasChildren ? `
+                        <button class="tree-toggle ${isExpanded ? 'expanded' : ''}" onclick="EleveMethodologie.toggleItem('${item.id}')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </button>
+                    ` : '<span class="tree-toggle-placeholder"></span>'}
+
+                    <a href="${href}" class="tree-item-content">
+                        <span class="tree-item-icon ${item.couleur || ''}">${item.icon || (isContent ? '🎬' : '📁')}</span>
+                        <div class="tree-item-info">
+                            <span class="tree-item-title">${this.escapeHtml(item.titre)}</span>
+                            ${item.description ? `<span class="tree-item-desc">${this.escapeHtml(item.description).substring(0, 60)}${item.description.length > 60 ? '...' : ''}</span>` : ''}
                         </div>
+                    </a>
+
+                    <div class="tree-item-right">
+                        ${status === 'completed' ? '<span class="status-badge completed">✓</span>' : ''}
+                        ${status === 'in-progress' ? `
+                            <div class="mini-progress">
+                                <div class="mini-progress-bar">
+                                    <div class="mini-progress-fill" style="width: ${percent}%;"></div>
+                                </div>
+                                <span class="mini-progress-text">${progress.completed}/${progress.total}</span>
+                            </div>
+                        ` : ''}
+                        ${isContent && status === 'new' ? '<span class="status-badge new">Nouveau</span>' : ''}
                     </div>
                 </div>
-                <div class="competence-progress">
-                    <div class="progress-header">
-                        <span class="progress-label">Progression</span>
-                        <span class="progress-value">${progress.completed}/${progress.total}</span>
+
+                ${hasChildren ? `
+                    <div class="tree-item-children ${isExpanded ? 'expanded' : ''}">
+                        ${children.filter(child => this.matchesFilter(child)).map(child => this.renderItem(child, depth + 1)).join('')}
                     </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${progress.percent}%;"></div>
-                    </div>
-                </div>
-            </a>
+                ` : ''}
+            </div>
         `;
+    },
+
+    toggleItem(itemId) {
+        if (this.expandedItems.has(itemId)) {
+            this.expandedItems.delete(itemId);
+        } else {
+            this.expandedItems.add(itemId);
+        }
+
+        const element = document.querySelector(`.tree-item[data-id="${itemId}"]`);
+        if (element) {
+            const toggle = element.querySelector('.tree-toggle');
+            const children = element.querySelector('.tree-item-children');
+
+            if (toggle) toggle.classList.toggle('expanded');
+            if (children) children.classList.toggle('expanded');
+        }
     },
 
     bindEvents() {
@@ -301,6 +373,16 @@ const EleveMethodologie = {
                 this.bindEvents();
             });
         });
+
+        // Développer automatiquement les éléments en cours
+        if (this.expandedItems.size === 0) {
+            this.getRootItems().forEach(root => {
+                const status = this.getItemStatus(root.id);
+                if (status === 'in-progress') {
+                    this.expandedItems.add(root.id);
+                }
+            });
+        }
     },
 
     renderError() {
