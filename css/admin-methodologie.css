@@ -1,5 +1,5 @@
 /**
- * Admin Méthodologie - Styles
+ * Admin Méthodologie - Styles pour structure arborescente
  */
 
 /* ============================================
@@ -99,31 +99,6 @@
     background: #dc2626;
 }
 
-.btn-icon {
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    background: var(--gray-100);
-    border: none;
-    cursor: pointer;
-    color: var(--gray-600);
-    transition: all 0.2s;
-}
-
-.btn-icon:hover {
-    background: var(--gray-200);
-    color: var(--gray-800);
-}
-
-.btn-icon.danger:hover {
-    background: #fee2e2;
-    color: #ef4444;
-}
-
 /* ============================================
    Stats Grid
    ============================================ */
@@ -171,157 +146,79 @@
 }
 
 /* ============================================
-   Categories List
+   Tree Container
    ============================================ */
-.categories-container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.category-card {
+.tree-container {
     background: white;
     border-radius: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    overflow: hidden;
-}
-
-.category-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 20px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.category-header:hover {
-    background: var(--gray-50);
-}
-
-.category-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    flex-shrink: 0;
-}
-
-.category-icon.blue { background: #dbeafe; }
-.category-icon.purple { background: #ede9fe; }
-.category-icon.teal { background: #ccfbf1; }
-.category-icon.orange { background: #fef3c7; }
-
-.category-info {
-    flex: 1;
-}
-
-.category-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--gray-800);
-    margin: 0 0 4px 0;
-}
-
-.category-meta {
-    font-size: 13px;
-    color: var(--gray-500);
-    margin: 0;
-}
-
-.category-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.chevron-btn {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--gray-100);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.chevron-btn svg {
-    transition: transform 0.2s;
-}
-
-.category-card.open .chevron-btn svg {
-    transform: rotate(180deg);
-}
-
-/* Competences inside category */
-.category-content {
-    display: none;
-    border-top: 1px solid var(--gray-100);
-}
-
-.category-card.open .category-content {
-    display: block;
-}
-
-.competences-list {
     padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.add-competence-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 14px;
-    background: var(--gray-50);
-    border: 2px dashed var(--gray-300);
-    border-radius: 12px;
-    color: var(--gray-500);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.add-competence-btn:hover {
-    background: var(--primary-bg);
-    border-color: var(--primary);
-    color: var(--primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 /* ============================================
-   Competence Card
+   Tree Item
    ============================================ */
-.competence-card {
-    background: var(--gray-50);
-    border-radius: 12px;
-    border: 1px solid var(--gray-200);
-    overflow: hidden;
+.tree-item {
+    border-radius: 8px;
+    margin-bottom: 2px;
 }
 
-.competence-header {
+.tree-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.tree-item-header:hover {
+    background: var(--gray-50);
+}
+
+.tree-item-left {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px 16px;
-    cursor: pointer;
-    transition: background 0.2s;
+    flex: 1;
+    min-width: 0;
 }
 
-.competence-header:hover {
+.tree-toggle {
+    width: 28px;
+    height: 28px;
+    border: none;
     background: var(--gray-100);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    color: var(--gray-500);
+    flex-shrink: 0;
 }
 
-.competence-icon {
+.tree-toggle:hover {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.tree-toggle svg {
+    transition: transform 0.2s;
+}
+
+.tree-item.collapsed .tree-toggle svg {
+    transform: rotate(-90deg);
+}
+
+.tree-toggle-placeholder {
+    width: 28px;
+    flex-shrink: 0;
+}
+
+.tree-item-icon {
     width: 40px;
     height: 40px;
     border-radius: 10px;
@@ -329,30 +226,75 @@
     align-items: center;
     justify-content: center;
     font-size: 20px;
-    background: white;
+    background: var(--gray-100);
     flex-shrink: 0;
 }
 
-.competence-info {
-    flex: 1;
+.tree-item-icon.blue { background: #dbeafe; }
+.tree-item-icon.purple { background: #ede9fe; }
+.tree-item-icon.teal { background: #ccfbf1; }
+.tree-item-icon.orange { background: #fef3c7; }
+.tree-item-icon.green { background: #d1fae5; }
+.tree-item-icon.pink { background: #fce7f3; }
+
+.tree-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
 }
 
-.competence-title {
-    font-size: 15px;
+.tree-item-title {
     font-weight: 600;
     color: var(--gray-800);
-    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.competence-stats {
+.tree-item-desc {
     font-size: 12px;
-    color: var(--gray-500);
-    margin-top: 2px;
+    color: var(--gray-400);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.competence-actions {
+.tree-item-right {
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* Badges */
+.badge {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.badge-video {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.badge-count {
+    background: var(--gray-100);
+    color: var(--gray-500);
+}
+
+/* Actions */
+.tree-item-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.tree-item-header:hover .tree-item-actions {
+    opacity: 1;
 }
 
 .action-btn {
@@ -363,144 +305,86 @@
     justify-content: center;
     border: none;
     background: transparent;
-    border-radius: 6px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.15s;
     color: var(--gray-400);
 }
 
 .action-btn:hover {
-    background: var(--gray-200);
+    background: var(--gray-100);
     color: var(--gray-600);
+}
+
+.action-btn.add:hover {
+    background: #d1fae5;
+    color: #059669;
 }
 
 .action-btn.edit:hover {
     background: #fef3c7;
-    color: #f59e0b;
+    color: #d97706;
 }
 
 .action-btn.delete:hover {
     background: #fee2e2;
-    color: #ef4444;
+    color: #dc2626;
 }
 
-/* Etapes inside competence */
-.competence-content {
+/* Children */
+.tree-item-children {
+    margin-left: 40px;
+    padding-left: 20px;
+    border-left: 2px solid var(--gray-200);
+}
+
+.tree-item.collapsed .tree-item-children {
     display: none;
-    border-top: 1px solid var(--gray-200);
-    background: white;
 }
 
-.competence-card.open .competence-content {
-    display: block;
-}
-
-.etapes-list {
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.add-etape-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 10px;
-    background: transparent;
-    border: 1px dashed var(--gray-300);
-    border-radius: 8px;
-    color: var(--gray-500);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.add-etape-btn:hover {
-    background: var(--primary-bg);
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-/* ============================================
-   Etape Item
-   ============================================ */
-.etape-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
+/* Depth styling */
+.tree-item.depth-0 > .tree-item-header {
     background: var(--gray-50);
-    border-radius: 8px;
-    border: 1px solid var(--gray-200);
-    transition: all 0.2s;
+    padding: 16px;
 }
 
-.etape-item:hover {
+.tree-item.depth-0 > .tree-item-header:hover {
     background: var(--gray-100);
 }
 
-.etape-order {
-    width: 28px;
-    height: 28px;
-    background: var(--primary-bg);
-    color: var(--primary);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
+.tree-item.depth-0 > .tree-item-header .tree-item-title {
+    font-size: 16px;
     font-weight: 700;
-    flex-shrink: 0;
 }
 
-.etape-niveau {
-    font-size: 11px;
-    font-weight: 600;
-    color: white;
-    background: var(--gray-400);
-    padding: 2px 8px;
-    border-radius: 10px;
+.tree-item.depth-0 > .tree-item-header .tree-item-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
 }
 
-.etape-niveau.n1 { background: #10b981; }
-.etape-niveau.n2 { background: #f59e0b; }
-.etape-niveau.n3 { background: #ef4444; }
-
-.etape-title {
-    flex: 1;
-    font-size: 13px;
-    color: var(--gray-700);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.tree-item.depth-1 > .tree-item-header .tree-item-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
 }
 
-.etape-indicators {
-    display: flex;
-    gap: 6px;
-    align-items: center;
+.tree-item.depth-2 > .tree-item-header .tree-item-icon,
+.tree-item.depth-3 > .tree-item-header .tree-item-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
 }
 
-.etape-indicator {
+.tree-item.depth-2 > .tree-item-header,
+.tree-item.depth-3 > .tree-item-header {
+    padding: 10px 12px;
+}
+
+.tree-item.depth-2 > .tree-item-header .tree-item-title,
+.tree-item.depth-3 > .tree-item-header .tree-item-title {
     font-size: 14px;
-    opacity: 0.6;
-}
-
-.etape-indicator.active {
-    opacity: 1;
-}
-
-.etape-actions {
-    display: flex;
-    gap: 4px;
-}
-
-.etape-actions .action-btn {
-    width: 28px;
-    height: 28px;
+    font-weight: 500;
 }
 
 /* ============================================
@@ -526,14 +410,16 @@
     background: white;
     border-radius: 16px;
     width: 100%;
-    max-width: 600px;
+    max-width: 500px;
     max-height: 90vh;
-    overflow-y: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
 }
 
 .modal-large {
-    max-width: 800px;
+    max-width: 600px;
 }
 
 .modal-header {
@@ -542,6 +428,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -549,9 +436,6 @@
     font-weight: 700;
     color: var(--gray-900);
     margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
 }
 
 .modal-close {
@@ -576,6 +460,8 @@
 
 .modal-body {
     padding: 24px;
+    overflow-y: auto;
+    flex: 1;
 }
 
 .modal-footer {
@@ -584,6 +470,24 @@
     display: flex;
     gap: 12px;
     justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+/* Parent Info */
+.parent-info {
+    margin-bottom: 20px;
+}
+
+.parent-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
 }
 
 /* ============================================
@@ -631,7 +535,7 @@
 
 .form-textarea {
     resize: vertical;
-    min-height: 120px;
+    min-height: 80px;
     line-height: 1.6;
 }
 
@@ -647,10 +551,17 @@
     gap: 16px;
 }
 
-.form-row-3 {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
+.form-divider {
+    border: none;
+    border-top: 1px solid var(--gray-200);
+    margin: 24px 0;
+}
+
+.form-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin: 0 0 16px 0;
 }
 
 /* Icon selector */
@@ -760,11 +671,8 @@
    Empty State
    ============================================ */
 .empty-state {
-    background: white;
-    border-radius: 16px;
     padding: 60px 20px;
     text-align: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .empty-icon {
@@ -817,6 +725,7 @@
 }
 
 .spinner {
+    display: inline-block;
     animation: spin 0.8s linear infinite;
 }
 
@@ -852,18 +761,20 @@
         grid-template-columns: 1fr;
     }
 
-    .form-row,
-    .form-row-3 {
+    .form-row {
         grid-template-columns: 1fr;
     }
 
-    .category-header {
-        flex-wrap: wrap;
-        gap: 12px;
+    .tree-item-children {
+        margin-left: 24px;
+        padding-left: 12px;
     }
 
-    .category-actions {
-        width: 100%;
-        justify-content: flex-end;
+    .tree-item-header {
+        padding: 10px 12px;
+    }
+
+    .tree-item.depth-0 > .tree-item-header {
+        padding: 14px;
     }
 }

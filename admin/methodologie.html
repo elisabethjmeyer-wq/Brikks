@@ -22,7 +22,7 @@
     <header class="page-header">
         <div class="page-header-left">
             <h1>🧠 Méthodologie</h1>
-            <p class="page-subtitle">Gérez les compétences et parcours d'apprentissage</p>
+            <p class="page-subtitle">Structure arborescente flexible</p>
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" id="addCategoryBtn">
@@ -30,7 +30,7 @@
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
-                Nouvelle catégorie
+                Nouvel élément
             </button>
         </div>
     </header>
@@ -48,176 +48,105 @@
             <div class="stat-card">
                 <div class="stat-icon-wrapper blue">📁</div>
                 <div class="stat-value" id="totalCategories">0</div>
-                <div class="stat-label">Catégories</div>
+                <div class="stat-label">Racines</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon-wrapper purple">📋</div>
                 <div class="stat-value" id="totalCompetences">0</div>
-                <div class="stat-label">Compétences</div>
+                <div class="stat-label">Total éléments</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon-wrapper teal">📝</div>
+                <div class="stat-icon-wrapper teal">🎬</div>
                 <div class="stat-value" id="totalEtapes">0</div>
-                <div class="stat-label">Étapes</div>
+                <div class="stat-label">Contenus vidéo</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon-wrapper green">🎯</div>
                 <div class="stat-value" id="totalNiveaux">0</div>
-                <div class="stat-label">Niveaux</div>
+                <div class="stat-label">Profondeur max</div>
             </div>
         </div>
 
-        <!-- Categories Container -->
-        <div class="categories-container" id="categories-container">
+        <!-- Tree Container -->
+        <div class="tree-container" id="categories-container">
             <!-- Filled dynamically -->
         </div>
     </div>
 </div>
 
-<!-- MODAL: Catégorie -->
-<div class="modal-overlay hidden" id="categoryModal">
-    <div class="modal">
+<!-- MODAL: Élément -->
+<div class="modal-overlay hidden" id="itemModal">
+    <div class="modal modal-large">
         <div class="modal-header">
-            <h2 id="categoryModalTitle">Nouvelle catégorie</h2>
-            <button class="modal-close" id="closeCategoryModal">&times;</button>
+            <h2 id="itemModalTitle">Nouvel élément</h2>
+            <button class="modal-close" id="closeItemModal">&times;</button>
         </div>
         <div class="modal-body">
-            <input type="hidden" id="categoryId">
+            <input type="hidden" id="itemId">
+            <input type="hidden" id="itemParentId">
+
+            <div id="parentInfo" class="parent-info" style="display: none;"></div>
 
             <div class="form-group">
-                <label>Nom <span class="required">*</span></label>
-                <input type="text" class="form-input" id="categoryNom" placeholder="Ex: Analyser">
+                <label>Titre <span class="required">*</span></label>
+                <input type="text" class="form-input" id="itemTitre" placeholder="Ex: Analyser un document">
             </div>
 
             <div class="form-group">
                 <label>Description</label>
-                <input type="text" class="form-input" id="categoryDescription" placeholder="Ex: Apprendre à lire et comprendre les documents">
+                <input type="text" class="form-input" id="itemDescription" placeholder="Brève description de l'élément">
             </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label>Icône</label>
-                    <div class="icon-selector" id="categoryIconSelector">
+                    <div class="icon-selector" id="itemIconSelector">
                         <!-- Filled dynamically -->
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Couleur</label>
-                    <div class="color-selector" id="categoryColorSelector">
+                    <div class="color-selector" id="itemColorSelector">
                         <!-- Filled dynamically -->
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" id="cancelCategoryBtn">Annuler</button>
-            <button class="btn btn-primary" id="saveCategoryBtn">Enregistrer</button>
-        </div>
-    </div>
-</div>
 
-<!-- MODAL: Compétence -->
-<div class="modal-overlay hidden" id="competenceModal">
-    <div class="modal">
-        <div class="modal-header">
-            <h2 id="competenceModalTitle">Nouvelle compétence</h2>
-            <button class="modal-close" id="closeCompetenceModal">&times;</button>
-        </div>
-        <div class="modal-body">
-            <input type="hidden" id="competenceId">
-            <input type="hidden" id="competenceCategorieId">
-
-            <div class="form-group">
-                <label>Titre <span class="required">*</span></label>
-                <input type="text" class="form-input" id="competenceTitre" placeholder="Ex: Présenter un document">
-            </div>
-
-            <div class="form-group">
-                <label>Description</label>
-                <textarea class="form-textarea" id="competenceDescription" rows="3" placeholder="Description de la compétence..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label>Icône</label>
-                <div class="icon-selector" id="competenceIconSelector">
-                    <!-- Filled dynamically -->
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" id="cancelCompetenceBtn">Annuler</button>
-            <button class="btn btn-primary" id="saveCompetenceBtn">Enregistrer</button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL: Étape -->
-<div class="modal-overlay hidden" id="etapeModal">
-    <div class="modal modal-large">
-        <div class="modal-header">
-            <h2 id="etapeModalTitle">Nouvelle étape</h2>
-            <button class="modal-close" id="closeEtapeModal">&times;</button>
-        </div>
-        <div class="modal-body">
-            <input type="hidden" id="etapeId">
-            <input type="hidden" id="etapeCompetenceId">
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Titre <span class="required">*</span></label>
-                    <input type="text" class="form-input" id="etapeTitre" placeholder="Ex: Les éléments à identifier">
-                </div>
-
-                <div class="form-group">
-                    <label>Niveau</label>
-                    <select class="form-select" id="etapeNiveau">
-                        <option value="1">Niveau 1</option>
-                        <option value="2">Niveau 2</option>
-                        <option value="3">Niveau 3</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Titre du niveau (optionnel)</label>
-                <input type="text" class="form-input" id="etapeNiveauTitre" placeholder="Ex: Niveau 1 : Les bases">
-                <p class="form-hint">Affiché dans le menu latéral (ex: "Niveau 1 : Les bases")</p>
-            </div>
+            <hr class="form-divider">
+            <p class="form-section-title">📹 Contenu (optionnel - laissez vide pour un dossier)</p>
 
             <div class="form-group">
                 <label>URL de la vidéo</label>
-                <input type="url" class="form-input" id="etapeVideoUrl" placeholder="https://www.loom.com/share/... ou https://youtube.com/...">
-                <p class="form-hint">Loom, YouTube ou Vimeo</p>
+                <input type="url" class="form-input" id="itemVideoUrl" placeholder="https://www.loom.com/share/... ou https://youtube.com/...">
+                <p class="form-hint">Loom, YouTube ou Vimeo - Si rempli, cet élément sera un contenu</p>
             </div>
 
             <div class="form-group">
                 <label>Documents (JSON)</label>
-                <textarea class="form-textarea" id="etapeDocuments" rows="3" placeholder='[{"titre":"Fiche.pdf","url":"https://...","taille":"2MB"}]'></textarea>
-                <p class="form-hint">Format JSON : tableau d'objets avec titre, url, taille</p>
+                <textarea class="form-textarea" id="itemDocuments" rows="2" placeholder='[{"titre":"Fiche.pdf","url":"https://...","taille":"2MB"}]'></textarea>
             </div>
 
             <div class="form-group">
                 <label>Contenu HTML</label>
-                <textarea class="form-textarea" id="etapeContenu" rows="5" placeholder="<p>Contenu de l'étape...</p>"></textarea>
-                <p class="form-hint">HTML qui sera affiché sous la vidéo (info-box, listes, etc.)</p>
+                <textarea class="form-textarea" id="itemContenu" rows="3" placeholder="<p>Contenu affiché sous la vidéo...</p>"></textarea>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label>ID BEX (exercice)</label>
-                    <input type="text" class="form-input" id="etapeBexId" placeholder="bex1">
+                    <input type="text" class="form-input" id="itemBexId" placeholder="bex1">
                 </div>
 
                 <div class="form-group">
                     <label>Titre BEX</label>
-                    <input type="text" class="form-input" id="etapeBexTitre" placeholder="Exercice de présentation">
+                    <input type="text" class="form-input" id="itemBexTitre" placeholder="Exercice pratique">
                 </div>
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" id="cancelEtapeBtn">Annuler</button>
-            <button class="btn btn-primary" id="saveEtapeBtn">Enregistrer</button>
+            <button class="btn btn-secondary" id="cancelItemBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveItemBtn">Enregistrer</button>
         </div>
     </div>
 </div>
