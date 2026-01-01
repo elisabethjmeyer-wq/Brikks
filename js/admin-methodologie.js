@@ -79,11 +79,13 @@ const AdminMethodologie = {
         return this.getDepth(item.parent_id, depth + 1);
     },
 
-    countDescendants(itemId) {
+    countDescendants(itemId, visited = new Set()) {
+        if (visited.has(itemId)) return 0; // Éviter les boucles infinies
+        visited.add(itemId);
         const children = this.getChildren(itemId);
         let count = children.length;
         children.forEach(child => {
-            count += this.countDescendants(child.id);
+            count += this.countDescendants(child.id, visited);
         });
         return count;
     },

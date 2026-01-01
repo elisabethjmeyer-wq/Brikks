@@ -1,5 +1,6 @@
 /**
- * Page Méthodologie Parcours - Détail d'une étape
+ * Page Méthodologie Parcours - Structure arborescente flexible
+ * Layout avec sidebar à droite
  */
 
 /* ===== LAYOUT ===== */
@@ -13,11 +14,13 @@
 .parcours-content {
     flex: 1;
     min-width: 0;
+    order: 1;
 }
 
 .parcours-sidebar {
-    width: 300px;
+    width: 320px;
     flex-shrink: 0;
+    order: 2;
 }
 
 /* ===== BREADCRUMB ===== */
@@ -63,6 +66,21 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
     overflow: hidden;
     margin-bottom: 20px;
+}
+
+.content-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--gray-800);
+    margin: 0;
+    padding: 20px 22px 8px;
+}
+
+.content-description {
+    font-size: 14px;
+    color: var(--gray-500);
+    margin: 0;
+    padding: 0 22px 16px;
 }
 
 .video-container {
@@ -437,109 +455,43 @@
     margin: 0;
 }
 
-.steps-menu {
+/* ===== TREE MENU (sidebar navigation) ===== */
+.tree-menu {
     max-height: 400px;
     overflow-y: auto;
 }
 
-/* Level group */
-.level-group {
-    border-bottom: 1px solid var(--gray-100);
+.tree-menu-items {
+    padding: 8px 0;
 }
 
-.level-group:last-child {
-    border-bottom: none;
-}
-
-.level-header {
+/* Tree menu item (content link) */
+.tree-menu-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 18px;
-    background: var(--gray-50);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.level-header:hover {
-    background: var(--gray-100);
-}
-
-.level-icon {
-    width: 26px;
-    height: 26px;
-    background: var(--accent-green, #10b981);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    color: white;
-    font-weight: 700;
-    flex-shrink: 0;
-}
-
-.level-icon.locked {
-    background: var(--gray-300);
-}
-
-.level-title {
-    flex: 1;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--gray-800);
-}
-
-.level-title.locked {
-    color: var(--gray-400);
-}
-
-.level-toggle {
-    font-size: 11px;
-    color: var(--gray-400);
-    transition: transform 0.2s;
-}
-
-.level-group.open .level-toggle {
-    transform: rotate(90deg);
-}
-
-.level-steps {
-    display: none;
-}
-
-.level-group.open .level-steps {
-    display: block;
-}
-
-/* Step item */
-.step-menu-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 18px 10px 28px;
-    cursor: pointer;
-    transition: all 0.2s;
+    padding: 10px 18px;
     text-decoration: none;
     color: inherit;
+    transition: all 0.2s;
     border-left: 3px solid transparent;
 }
 
-.step-menu-item:hover {
+.tree-menu-item:hover {
     background: var(--gray-50);
 }
 
-.step-menu-item.active {
+.tree-menu-item.active {
     background: var(--primary-bg, #eef2ff);
     border-left-color: var(--primary);
 }
 
-.step-menu-item.completed .step-status {
+.tree-menu-item.completed .tree-menu-status {
     background: var(--accent-green, #10b981);
     color: white;
 }
 
-.step-status {
+.tree-menu-status {
     width: 22px;
     height: 22px;
     background: var(--gray-200);
@@ -553,23 +505,75 @@
     flex-shrink: 0;
 }
 
-.step-menu-item.active .step-status {
+.tree-menu-item.active .tree-menu-status {
     background: var(--primary);
     color: white;
 }
 
-.step-menu-title {
-    font-size: 12px;
+.tree-menu-title {
+    font-size: 13px;
     color: var(--gray-700);
     flex: 1;
+    line-height: 1.3;
 }
 
-.step-menu-item.active .step-menu-title {
+.tree-menu-item.active .tree-menu-title {
     font-weight: 600;
     color: var(--primary);
 }
 
-/* Progress bar */
+/* Tree menu group (folder) */
+.tree-menu-group {
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.tree-menu-group:last-child {
+    border-bottom: none;
+}
+
+.tree-menu-folder {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: var(--gray-50);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tree-menu-folder:hover {
+    background: var(--gray-100);
+}
+
+.tree-menu-icon {
+    font-size: 16px;
+}
+
+.tree-menu-folder .tree-menu-title {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.tree-menu-toggle {
+    font-size: 11px;
+    color: var(--gray-400);
+    transition: transform 0.2s;
+}
+
+.tree-menu-group.open .tree-menu-toggle {
+    transform: rotate(90deg);
+}
+
+.tree-menu-children {
+    display: none;
+    padding-left: 16px;
+}
+
+.tree-menu-group.open .tree-menu-children {
+    display: block;
+}
+
+/* ===== PROGRESS SECTION ===== */
 .progress-section {
     padding: 14px 18px;
     border-top: 1px solid var(--gray-100);
@@ -681,18 +685,23 @@
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
     .parcours-layout {
-        flex-direction: column-reverse;
+        flex-direction: column;
+    }
+
+    .parcours-content {
+        order: 2;
     }
 
     .parcours-sidebar {
         width: 100%;
+        order: 1;
     }
 
     .sidebar-card {
         position: static;
     }
 
-    .steps-menu {
+    .tree-menu {
         max-height: none;
     }
 }
@@ -724,5 +733,14 @@
 
     .video-placeholder h3 {
         font-size: 16px;
+    }
+
+    .content-title {
+        font-size: 1.2rem;
+        padding: 16px 16px 8px;
+    }
+
+    .content-description {
+        padding: 0 16px 12px;
     }
 }

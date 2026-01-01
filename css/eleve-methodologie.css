@@ -1,5 +1,5 @@
 /**
- * Page Méthodologie élève - Liste des compétences
+ * Page Méthodologie élève - Structure arborescente flexible
  */
 
 /* ===== PAGE HEADER ===== */
@@ -20,10 +20,52 @@
     margin: 0;
 }
 
+/* ===== GLOBAL PROGRESS ===== */
+.global-progress-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.global-progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.global-progress-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.global-progress-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-green, #10b981);
+}
+
+.global-progress-bar {
+    height: 10px;
+    background: var(--gray-200);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.global-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-green, #10b981), #34d399);
+    border-radius: 5px;
+    transition: width 0.3s;
+}
+
 /* ===== SEARCH BAR ===== */
 .search-bar {
     position: relative;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .search-bar input {
@@ -58,7 +100,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
     flex-wrap: wrap;
 }
 
@@ -97,212 +139,212 @@
     color: white;
 }
 
-/* ===== CATEGORY SECTION ===== */
-.category-section {
-    margin-bottom: 36px;
-}
-
-.category-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 18px;
-}
-
-.category-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    flex-shrink: 0;
-}
-
-.category-icon.blue { background: var(--accent-blue-light, #dbeafe); }
-.category-icon.purple { background: var(--accent-purple-light, #ede9fe); }
-.category-icon.teal { background: var(--accent-teal-light, #ccfbf1); }
-.category-icon.orange { background: var(--accent-orange-light, #fef3c7); }
-
-.category-info {
-    flex: 1;
-}
-
-.category-title {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--gray-800);
-    margin: 0 0 4px 0;
-}
-
-.category-meta {
-    font-size: 0.875rem;
-    color: var(--gray-500);
-    margin: 0;
-}
-
-/* ===== COMPETENCES GRID ===== */
-.competences-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
-}
-
-/* ===== COMPETENCE CARD ===== */
-.competence-card {
+/* ===== TREE CONTAINER ===== */
+.tree-container {
     background: white;
     border-radius: var(--radius-lg);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-    padding: 20px;
+    overflow: hidden;
+}
+
+/* ===== TREE ITEM ===== */
+.tree-item {
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.tree-item:last-child {
+    border-bottom: none;
+}
+
+.tree-item-header {
     display: flex;
-    flex-direction: column;
-    transition: all 0.2s;
-    cursor: pointer;
-    text-decoration: none;
-    color: inherit;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    transition: background 0.2s;
 }
 
-.competence-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+.tree-item-header:hover {
+    background: var(--gray-50);
 }
 
-.competence-card-header {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    margin-bottom: 14px;
+/* Depth styling */
+.tree-item.depth-1 > .tree-item-header {
+    padding-left: 32px;
 }
 
-.competence-icon {
-    width: 46px;
-    height: 46px;
-    background: var(--primary-bg, #eef2ff);
-    border-radius: 12px;
+.tree-item.depth-2 > .tree-item-header {
+    padding-left: 48px;
+}
+
+.tree-item.depth-3 > .tree-item-header {
+    padding-left: 64px;
+}
+
+.tree-item.depth-4 > .tree-item-header {
+    padding-left: 80px;
+}
+
+/* Toggle button */
+.tree-toggle {
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--gray-400);
+    transition: all 0.2s;
     flex-shrink: 0;
 }
 
-.competence-info {
+.tree-toggle:hover {
+    color: var(--gray-600);
+}
+
+.tree-toggle svg {
+    transition: transform 0.2s;
+}
+
+.tree-toggle.expanded svg {
+    transform: rotate(180deg);
+}
+
+.tree-toggle-placeholder {
+    width: 24px;
+    flex-shrink: 0;
+}
+
+/* Tree item content (clickable link) */
+.tree-item-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
+}
+
+/* Tree item icon */
+.tree-item-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    background: var(--gray-100);
+}
+
+.tree-item-icon.blue { background: var(--accent-blue-light, #dbeafe); }
+.tree-item-icon.purple { background: var(--accent-purple-light, #ede9fe); }
+.tree-item-icon.teal { background: var(--accent-teal-light, #ccfbf1); }
+.tree-item-icon.orange { background: var(--accent-orange-light, #fef3c7); }
+.tree-item-icon.green { background: var(--accent-green-light, #d1fae5); }
+.tree-item-icon.pink { background: #fce7f3; }
+
+/* Tree item info */
+.tree-item-info {
     flex: 1;
     min-width: 0;
 }
 
-.competence-title {
-    font-size: 1rem;
-    font-weight: 700;
+.tree-item-title {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--gray-800);
-    margin: 0 0 8px 0;
     line-height: 1.3;
 }
 
-.competence-meta {
+.tree-item-desc {
+    display: block;
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-top: 2px;
+}
+
+/* Tree item right section */
+.tree-item-right {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-shrink: 0;
 }
 
-/* Levels badges */
-.levels-row {
-    display: flex;
-    gap: 4px;
-}
-
-.level-dot {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.level-dot.completed {
-    background: var(--accent-green, #10b981);
-    color: white;
-}
-
-.level-dot.available {
-    background: var(--gray-200);
-    color: var(--gray-600);
-}
-
-.level-dot.locked {
-    background: var(--gray-100);
-    color: var(--gray-400);
-}
-
-.steps-badge {
-    font-size: 12px;
-    color: var(--gray-500);
-}
-
-/* Status tags */
-.status-tag {
+/* Status badges */
+.status-badge {
     padding: 4px 10px;
     border-radius: 10px;
     font-size: 11px;
     font-weight: 600;
 }
 
-.status-tag.new {
-    background: var(--accent-blue-light, #dbeafe);
-    color: var(--accent-blue, #3b82f6);
-}
-
-.status-tag.in-progress {
-    background: var(--accent-orange-light, #fef3c7);
-    color: var(--accent-orange, #f59e0b);
-}
-
-.status-tag.completed {
+.status-badge.completed {
     background: var(--accent-green-light, #d1fae5);
     color: var(--accent-green, #10b981);
 }
 
-/* Progress bar */
-.competence-progress {
-    margin-top: auto;
-    padding-top: 14px;
-    border-top: 1px solid var(--gray-100);
+.status-badge.new {
+    background: var(--accent-blue-light, #dbeafe);
+    color: var(--accent-blue, #3b82f6);
 }
 
-.progress-header {
+/* Mini progress bar */
+.mini-progress {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 6px;
+    align-items: center;
+    gap: 8px;
 }
 
-.progress-label {
-    font-size: 12px;
-    color: var(--gray-500);
-}
-
-.progress-value {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent-green, #10b981);
-}
-
-.progress-bar {
+.mini-progress-bar {
+    width: 60px;
     height: 6px;
     background: var(--gray-200);
     border-radius: 3px;
     overflow: hidden;
 }
 
-.progress-fill {
+.mini-progress-fill {
     height: 100%;
     background: var(--accent-green, #10b981);
     border-radius: 3px;
     transition: width 0.3s;
+}
+
+.mini-progress-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-500);
+}
+
+/* Children container */
+.tree-item-children {
+    display: none;
+    border-top: 1px solid var(--gray-100);
+    background: var(--gray-50);
+}
+
+.tree-item-children.expanded {
+    display: block;
+}
+
+.tree-item-children .tree-item {
+    border-bottom: none;
+}
+
+.tree-item-children .tree-item-header {
+    background: transparent;
+}
+
+.tree-item-children .tree-item-header:hover {
+    background: rgba(99, 102, 241, 0.05);
 }
 
 /* ===== EMPTY STATE ===== */
@@ -352,18 +394,23 @@
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 700px) {
-    .competences-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .category-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-    }
-
     .methodologie-header h1 {
         font-size: 1.5rem;
+    }
+
+    .tree-item.depth-1 > .tree-item-header { padding-left: 24px; }
+    .tree-item.depth-2 > .tree-item-header { padding-left: 32px; }
+    .tree-item.depth-3 > .tree-item-header { padding-left: 40px; }
+    .tree-item.depth-4 > .tree-item-header { padding-left: 48px; }
+
+    .tree-item-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+
+    .mini-progress-bar {
+        width: 40px;
     }
 }
 
@@ -380,5 +427,13 @@
     .filter-tab {
         flex: 1;
         text-align: center;
+    }
+
+    .tree-item-desc {
+        display: none;
+    }
+
+    .mini-progress {
+        display: none;
     }
 }
