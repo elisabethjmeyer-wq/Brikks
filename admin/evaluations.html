@@ -21,13 +21,13 @@
     <!-- Page Header -->
     <header class="admin-header">
         <div>
-            <h1>Evaluations</h1>
-            <p>Gerez les evaluations et suivez les validations des eleves</p>
+            <h1>📋 Évaluations</h1>
+            <p>Créez et gérez vos évaluations par type</p>
         </div>
         <div class="header-actions">
             <button class="btn btn-primary" id="addEvaluationBtn">
-                <span>+</span>
-                Creer une evaluation
+                <span>➕</span>
+                Nouvelle évaluation
             </button>
         </div>
     </header>
@@ -43,22 +43,22 @@
         <!-- Tabs -->
         <div class="eval-tabs">
             <button class="eval-tab active green" data-type="connaissances">
-                <span class="tab-icon">C</span>
+                <span class="tab-icon">🟢</span>
                 Connaissances
                 <span class="tab-count" id="countConnaissances">0</span>
             </button>
             <button class="eval-tab orange" data-type="savoir-faire">
-                <span class="tab-icon">SF</span>
-                Savoir-faire (BEX)
+                <span class="tab-icon">🟠</span>
+                Savoir-faire
                 <span class="tab-count" id="countSavoirFaire">0</span>
             </button>
             <button class="eval-tab purple" data-type="competences">
-                <span class="tab-icon">TC</span>
-                Competences (TC)
+                <span class="tab-icon">🟣</span>
+                Compétences
                 <span class="tab-count" id="countCompetences">0</span>
             </button>
             <button class="eval-tab yellow" data-type="bonus">
-                <span class="tab-icon">B</span>
+                <span class="tab-icon">⭐</span>
                 Bonus
                 <span class="tab-count" id="countBonus">0</span>
             </button>
@@ -67,17 +67,17 @@
         <!-- Filters -->
         <div class="filters-bar">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Rechercher une evaluation...">
+                <input type="text" id="searchInput" placeholder="🔍 Rechercher une évaluation...">
             </div>
             <select class="filter-select" id="filterStatut">
-                <option value="">Tous les statuts</option>
-                <option value="brouillon">Brouillon</option>
-                <option value="planifiee">Planifiee</option>
-                <option value="publiee">Publiee</option>
-                <option value="terminee">Terminee</option>
+                <option value="">📊 Tous les statuts</option>
+                <option value="brouillon">📝 Brouillon</option>
+                <option value="planifiee">📅 Planifiée</option>
+                <option value="publiee">🟢 En cours</option>
+                <option value="terminee">✅ Terminée</option>
             </select>
             <select class="filter-select" id="filterChapitre">
-                <option value="">Tous les chapitres</option>
+                <option value="">📚 Tous les chapitres</option>
             </select>
         </div>
 
@@ -107,31 +107,31 @@
 
             <!-- Type selector (for create only) -->
             <div class="form-group" id="typeSelector">
-                <label>Type d'evaluation <span class="req">*</span></label>
+                <label>Type d'évaluation <span class="req">*</span></label>
                 <div class="type-cards">
                     <label class="type-card green selected" data-type="connaissances">
                         <input type="radio" name="evalType" value="connaissances" checked>
-                        <span class="type-icon">C</span>
+                        <span class="type-icon">🟢</span>
                         <span class="type-name">Connaissances</span>
-                        <span class="type-desc">QCM, quiz sur les lecons</span>
+                        <span class="type-desc">QCM, quiz sur les leçons</span>
                     </label>
                     <label class="type-card orange" data-type="savoir-faire">
                         <input type="radio" name="evalType" value="savoir-faire">
-                        <span class="type-icon">SF</span>
+                        <span class="type-icon">🟠</span>
                         <span class="type-name">Savoir-faire</span>
-                        <span class="type-desc">Exercices methodologiques</span>
+                        <span class="type-desc">Exercices méthodologiques</span>
                     </label>
                     <label class="type-card purple" data-type="competences">
                         <input type="radio" name="evalType" value="competences">
-                        <span class="type-icon">TC</span>
-                        <span class="type-name">Competences</span>
-                        <span class="type-desc">Taches complexes</span>
+                        <span class="type-icon">🟣</span>
+                        <span class="type-name">Compétences</span>
+                        <span class="type-desc">Tâches complexes</span>
                     </label>
                     <label class="type-card yellow" data-type="bonus">
                         <input type="radio" name="evalType" value="bonus">
-                        <span class="type-icon">B</span>
+                        <span class="type-icon">⭐</span>
                         <span class="type-name">Bonus</span>
-                        <span class="type-desc">Evaluations speciales</span>
+                        <span class="type-desc">Évaluations spéciales</span>
                     </label>
                 </div>
             </div>
