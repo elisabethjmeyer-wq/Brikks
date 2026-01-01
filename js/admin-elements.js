@@ -1049,7 +1049,8 @@ const AdminElements = {
         // https://drive.google.com/uc?id=FILE_ID
         const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^\/\?]+)/);
         if (driveFileMatch) {
-            return `https://drive.google.com/uc?export=view&id=${driveFileMatch[1]}`;
+            // Try lh3.googleusercontent.com format (often works better for CORS)
+            return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
         }
 
         const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
