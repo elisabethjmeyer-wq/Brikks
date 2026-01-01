@@ -8,6 +8,7 @@ const AdminElements = {
     elements: [],
     disciplines: [],
     chapitres: [],
+    cartes: [],
 
     // Types d'elements
     types: {
@@ -50,15 +51,17 @@ const AdminElements = {
     },
 
     async loadData() {
-        const [disciplinesData, chapitresData, questionsData] = await Promise.all([
+        const [disciplinesData, chapitresData, questionsData, cartesData] = await Promise.all([
             SheetsAPI.getSheetData('DISCIPLINES'),
             SheetsAPI.getSheetData('CHAPITRES'),
-            SheetsAPI.getSheetData('QUESTIONS')
+            SheetsAPI.getSheetData('QUESTIONS'),
+            SheetsAPI.getSheetData('CARTES')
         ]);
 
         this.disciplines = SheetsAPI.parseSheetData(disciplinesData);
         this.chapitres = SheetsAPI.parseSheetData(chapitresData);
         this.elements = SheetsAPI.parseSheetData(questionsData);
+        this.cartes = SheetsAPI.parseSheetData(cartesData);
 
         // Parse donnees JSON
         this.elements = this.elements.map(el => {
@@ -206,10 +209,22 @@ const AdminElements = {
         });
 
         this.chapitres.forEach(chap => {
-            const discId = chap.discipline_id;
-            if (tree[discId]) {
+            const chapDiscId = String(chap.discipline_id || '');
+            const chapDiscNumber = chapDiscId.replace('disc_', '').replace(/^0+/, '');
+
+            // Find matching discipline flexibly
+            let matchedDiscId = null;
+            for (const discId of Object.keys(tree)) {
+                const discNumber = discId.replace('disc_', '').replace(/^0+/, '');
+                if (chapDiscId === discId || chapDiscNumber === discNumber) {
+                    matchedDiscId = discId;
+                    break;
+                }
+            }
+
+            if (matchedDiscId && tree[matchedDiscId]) {
                 const count = this.elements.filter(el => el.chapitre_id === chap.id).length;
-                tree[discId].chapitres.push({
+                tree[matchedDiscId].chapitres.push({
                     ...chap,
                     elementCount: count
                 });
@@ -448,8 +463,9 @@ const AdminElements = {
         const modal = document.getElementById('elementModal');
         const title = document.getElementById('elementModalTitle');
 
-        // Populate disciplines
+        // Populate disciplines and cartes
         this.populateDisciplines();
+        this.populateCartes();
 
         if (element) {
             title.textContent = '✏️ Modifier l\'element';
@@ -518,7 +534,14 @@ const AdminElements = {
             return;
         }
 
-        const chapitres = this.chapitres.filter(c => c.discipline_id === disciplineId);
+        // Match discipline_id flexibly: "disc_001" matches "disc_001", "1", or "001"
+        const discNumber = disciplineId.replace('disc_', '').replace(/^0+/, '');
+        const chapitres = this.chapitres.filter(c => {
+            const chapDiscId = String(c.discipline_id || '');
+            const chapDiscNumber = chapDiscId.replace('disc_', '').replace(/^0+/, '');
+            return chapDiscId === disciplineId || chapDiscNumber === discNumber;
+        });
+
         chapitreSelect.innerHTML = '<option value="">Selectionner un chapitre...</option>' +
             chapitres.map(c => `<option value="${c.id}">${this.escapeHtml(c.titre || c.id)}</option>`).join('');
         chapitreSelect.disabled = false;
@@ -550,9 +573,11 @@ const AdminElements = {
 
         // Point carte
         document.getElementById('pointNom').value = '';
-        document.getElementById('pointCarte').value = '';
+        document.getElementById('pointCarteSelect').value = '';
         document.getElementById('pointX').value = '';
         document.getElementById('pointY').value = '';
+        document.getElementById('cartePreviewContainer').style.display = 'none';
+        document.getElementById('carteMarker').style.display = 'none';
 
         // Item categorie
         document.getElementById('itemElement').value = '';
@@ -609,9 +634,13 @@ const AdminElements = {
                 break;
             case 'point_carte':
                 document.getElementById('pointNom').value = element.contenu || '';
-                document.getElementById('pointCarte').value = donnees.carte_id || '';
+                document.getElementById('pointCarteSelect').value = donnees.carte_id || '';
                 document.getElementById('pointX').value = donnees.x || '';
                 document.getElementById('pointY').value = donnees.y || '';
+                // Load carte preview if exists
+                if (donnees.carte_id) {
+                    this.onCarteChange(donnees.carte_id);
+                }
                 break;
             case 'item_categorie':
                 document.getElementById('itemElement').value = element.contenu || '';
@@ -750,14 +779,25 @@ const AdminElements = {
 
             case 'point_carte':
                 contenu = document.getElementById('pointNom').value.trim();
+                const carteId = document.getElementById('pointCarteSelect').value;
                 if (!contenu) {
                     alert('Veuillez saisir le nom du lieu');
                     return { contenu: null, donnees: null };
                 }
+                if (!carteId) {
+                    alert('Veuillez selectionner une carte');
+                    return { contenu: null, donnees: null };
+                }
+                const pointX = parseFloat(document.getElementById('pointX').value) || 0;
+                const pointY = parseFloat(document.getElementById('pointY').value) || 0;
+                if (pointX === 0 && pointY === 0) {
+                    alert('Veuillez cliquer sur la carte pour placer le point');
+                    return { contenu: null, donnees: null };
+                }
                 donnees = {
-                    carte_id: document.getElementById('pointCarte').value.trim(),
-                    x: parseFloat(document.getElementById('pointX').value) || 0,
-                    y: parseFloat(document.getElementById('pointY').value) || 0
+                    carte_id: carteId,
+                    x: pointX,
+                    y: pointY
                 };
                 break;
 
@@ -869,6 +909,78 @@ const AdminElements = {
                 }
             }, 30000);
         });
+    },
+
+    // ========== CARTES ==========
+    populateCartes() {
+        const select = document.getElementById('pointCarteSelect');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Selectionner une carte...</option>' +
+            this.cartes.map(c => `<option value="${c.id}" data-url="${this.escapeHtml(c.image_url || '')}">${this.escapeHtml(c.nom || c.id)}</option>`).join('');
+    },
+
+    onCarteChange(carteId) {
+        const preview = document.getElementById('cartePreview');
+        const container = document.getElementById('cartePreviewContainer');
+        const coords = document.getElementById('carteCoords');
+
+        if (!carteId) {
+            container.style.display = 'none';
+            return;
+        }
+
+        const carte = this.cartes.find(c => c.id === carteId);
+        if (!carte || !carte.image_url) {
+            container.style.display = 'none';
+            return;
+        }
+
+        preview.src = carte.image_url;
+        preview.onload = () => {
+            container.style.display = 'block';
+            // Reset marker
+            const marker = document.getElementById('carteMarker');
+            const x = parseFloat(document.getElementById('pointX').value) || 0;
+            const y = parseFloat(document.getElementById('pointY').value) || 0;
+            if (x > 0 || y > 0) {
+                this.placeMarker(x, y);
+            } else {
+                marker.style.display = 'none';
+            }
+        };
+        preview.onerror = () => {
+            container.style.display = 'none';
+            alert('Impossible de charger l\'image de la carte');
+        };
+
+        coords.textContent = 'Cliquez sur la carte pour placer le point';
+    },
+
+    onCarteClick(event) {
+        const preview = document.getElementById('cartePreview');
+        const rect = preview.getBoundingClientRect();
+
+        // Calculate percentage position
+        const x = ((event.clientX - rect.left) / rect.width * 100).toFixed(1);
+        const y = ((event.clientY - rect.top) / rect.height * 100).toFixed(1);
+
+        // Update hidden inputs
+        document.getElementById('pointX').value = x;
+        document.getElementById('pointY').value = y;
+
+        // Update coords display
+        document.getElementById('carteCoords').textContent = `Position: ${x}%, ${y}%`;
+
+        // Place marker
+        this.placeMarker(x, y);
+    },
+
+    placeMarker(x, y) {
+        const marker = document.getElementById('carteMarker');
+        marker.style.display = 'block';
+        marker.style.left = `${x}%`;
+        marker.style.top = `${y}%`;
     },
 
     // ========== UTILS ==========

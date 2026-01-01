@@ -318,19 +318,22 @@
                         <input type="text" class="form-input" id="pointNom" placeholder="Ex: Lisbonne, Goa, Cap de Bonne-Esperance...">
                     </div>
                     <div class="form-group">
-                        <label>Carte associee</label>
-                        <input type="text" class="form-input" id="pointCarte" placeholder="Ex: Explorations XV-XVIe siecle">
+                        <label>Carte <span class="req">*</span></label>
+                        <select class="form-select" id="pointCarteSelect" onchange="AdminElements.onCarteChange(this.value)">
+                            <option value="">Selectionner une carte...</option>
+                        </select>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Position X (%)</label>
-                            <input type="number" class="form-input" id="pointX" placeholder="0-100" min="0" max="100">
+                    <!-- Carte preview avec clic pour placer le point -->
+                    <div class="carte-preview-container" id="cartePreviewContainer" style="display: none;">
+                        <div class="carte-preview-wrapper" onclick="AdminElements.onCarteClick(event)">
+                            <img id="cartePreview" src="" alt="Apercu de la carte" class="carte-preview-img">
+                            <div id="carteMarker" class="carte-marker" style="display: none;">📍</div>
                         </div>
-                        <div class="form-group">
-                            <label>Position Y (%)</label>
-                            <input type="number" class="form-input" id="pointY" placeholder="0-100" min="0" max="100">
-                        </div>
+                        <div class="carte-coords" id="carteCoords">Cliquez sur la carte pour placer le point</div>
                     </div>
+                    <!-- Hidden inputs for coordinates -->
+                    <input type="hidden" id="pointX">
+                    <input type="hidden" id="pointY">
                 </div>
 
                 <!-- Item categorie -->
