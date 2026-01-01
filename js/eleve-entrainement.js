@@ -193,6 +193,25 @@ const EleveEntrainement = {
                         correction: 'Les grandes découvertes ont souvent eu des conséquences dramatiques pour les populations locales : colonisation, exploitation des ressources, esclavage, propagation de maladies européennes, et destruction des cultures traditionnelles.'
                     }
                 ]
+            },
+            {
+                format: 'image-cliquable',
+                titre: 'Carte des explorations',
+                description: 'Identifiez les lieux sur la carte',
+                imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Whole_world_-_land_and_oceans.jpg/1280px-Whole_world_-_land_and_oceans.jpg',
+                zones: [
+                    { id: 'portugal', label: 'Portugal', x: 42, y: 35, width: 4, height: 6 },
+                    { id: 'inde', label: 'Inde', x: 68, y: 42, width: 6, height: 8 },
+                    { id: 'bresil', label: 'Brésil', x: 28, y: 58, width: 8, height: 12 },
+                    { id: 'cap', label: 'Cap de Bonne-Espérance', x: 52, y: 72, width: 5, height: 6 },
+                    { id: 'amerique', label: 'Amérique (Caraïbes)', x: 20, y: 42, width: 6, height: 6 }
+                ],
+                questions: [
+                    { question: 'Où se trouve le Portugal, point de départ des explorations ?', correctZoneId: 'portugal' },
+                    { question: 'Cliquez sur le cap contourné par Bartolomeu Dias en 1488', correctZoneId: 'cap' },
+                    { question: 'Où Vasco de Gama est-il arrivé en 1498 ?', correctZoneId: 'inde' },
+                    { question: 'Où Pedro Álvares Cabral a-t-il accosté en 1500 ?', correctZoneId: 'bresil' }
+                ]
             }
         ];
 
@@ -1093,6 +1112,176 @@ const EleveEntrainement = {
             correct: foundKeywords,
             total: totalKeywords,
             score: totalKeywords > 0 ? Math.round((foundKeywords / totalKeywords) * 100) : 100
+        };
+
+        this.renderCurrentStep();
+    },
+
+    // ========== FORMAT IMAGE CLIQUABLE ==========
+    renderImageCliquable(step) {
+        const container = document.getElementById('exerciseContainer');
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+        const isVerified = this.results[this.currentStepIndex]?.verified;
+        const currentQuestionIndex = stepAnswers.currentQuestion || 0;
+
+        // Si on a répondu à toutes les questions, montrer le résumé
+        if (currentQuestionIndex >= step.questions.length && !isVerified) {
+            this.verifyImageCliquable();
+            return;
+        }
+
+        const currentQuestion = step.questions[currentQuestionIndex];
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon image-cliquable">${this.getFormatIcon('image-cliquable')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description}</p>
+                    </div>
+                    <span class="exercise-badge">${step.questions.length} zones</span>
+                </div>
+
+                <div class="exercise-body">
+                    ${!isVerified ? `
+                        <div class="image-cliquable-progress">
+                            <span>Question ${currentQuestionIndex + 1}/${step.questions.length}</span>
+                            <div class="image-cliquable-progress-bar">
+                                <div class="image-cliquable-progress-fill" style="width: ${(currentQuestionIndex / step.questions.length) * 100}%"></div>
+                            </div>
+                        </div>
+
+                        <div class="image-cliquable-question">
+                            <div class="image-cliquable-question-icon">🎯</div>
+                            <div class="image-cliquable-question-text">${this.escapeHtml(currentQuestion.question)}</div>
+                        </div>
+                    ` : ''}
+
+                    <div class="image-cliquable-container ${isVerified ? 'verified' : ''}">
+                        <img src="${step.imageUrl}" alt="${step.titre}" class="image-cliquable-img" id="clickableImage">
+                        <div class="image-cliquable-zones" id="clickableZones">
+                            ${step.zones.map((zone, zIndex) => this.renderImageZone(zone, zIndex, stepAnswers, isVerified, step.questions)).join('')}
+                        </div>
+                    </div>
+
+                    ${isVerified ? `
+                        <div class="image-cliquable-results">
+                            <h3>Résultats</h3>
+                            <div class="image-cliquable-results-list">
+                                ${step.questions.map((q, qIndex) => {
+                                    const userAnswer = stepAnswers[`q_${qIndex}`];
+                                    const isCorrect = userAnswer === q.correctZoneId;
+                                    return `
+                                        <div class="image-cliquable-result-item ${isCorrect ? 'correct' : 'incorrect'}">
+                                            <span class="image-cliquable-result-icon">${isCorrect ? '✓' : '✗'}</span>
+                                            <span class="image-cliquable-result-text">${this.escapeHtml(q.question)}</span>
+                                            ${!isCorrect ? `<span class="image-cliquable-result-answer">→ ${this.getZoneName(step.zones, q.correctZoneId)}</span>` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <div class="exercise-actions">
+                        ${isVerified ? `
+                            <button class="btn btn-secondary" onclick="EleveEntrainement.resetStep()">🔄 Recommencer</button>
+                            ${this.currentStepIndex < this.steps.length - 1 ? `
+                                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
+                            ` : `
+                                <button class="btn btn-success" onclick="EleveEntrainement.showResults()">🏆 Voir les résultats</button>
+                            `}
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Setup click handlers if not verified
+        if (!isVerified) {
+            this.setupImageClickHandlers(step, currentQuestionIndex);
+        }
+    },
+
+    renderImageZone(zone, index, stepAnswers, isVerified, questions) {
+        // Trouver si cette zone était la bonne réponse pour une question
+        let zoneStatus = '';
+        if (isVerified) {
+            questions.forEach((q, qIndex) => {
+                const userAnswer = stepAnswers[`q_${qIndex}`];
+                if (q.correctZoneId === zone.id) {
+                    zoneStatus = userAnswer === zone.id ? 'correct' : 'show-correct';
+                } else if (userAnswer === zone.id) {
+                    zoneStatus = 'incorrect';
+                }
+            });
+        }
+
+        return `
+            <div class="image-cliquable-zone ${zoneStatus}"
+                 data-zone-id="${zone.id}"
+                 style="left: ${zone.x}%; top: ${zone.y}%; width: ${zone.width}%; height: ${zone.height}%;"
+                 title="${this.escapeHtml(zone.label)}">
+                ${isVerified ? `<span class="zone-label">${this.escapeHtml(zone.label)}</span>` : ''}
+            </div>
+        `;
+    },
+
+    getZoneName(zones, zoneId) {
+        const zone = zones.find(z => z.id === zoneId);
+        return zone ? zone.label : 'Inconnu';
+    },
+
+    setupImageClickHandlers(step, currentQuestionIndex) {
+        const zones = document.querySelectorAll('.image-cliquable-zone');
+        const currentQuestion = step.questions[currentQuestionIndex];
+
+        zones.forEach(zone => {
+            zone.addEventListener('click', () => {
+                const zoneId = zone.dataset.zoneId;
+                this.handleZoneClick(zoneId, currentQuestionIndex, step);
+            });
+        });
+    },
+
+    handleZoneClick(zoneId, questionIndex, step) {
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = { currentQuestion: 0 };
+        }
+
+        // Enregistrer la réponse
+        this.answers[this.currentStepIndex][`q_${questionIndex}`] = zoneId;
+
+        // Feedback visuel rapide
+        const clickedZone = document.querySelector(`[data-zone-id="${zoneId}"]`);
+        const isCorrect = step.questions[questionIndex].correctZoneId === zoneId;
+
+        clickedZone.classList.add(isCorrect ? 'flash-correct' : 'flash-incorrect');
+
+        // Passer à la question suivante après un délai
+        setTimeout(() => {
+            this.answers[this.currentStepIndex].currentQuestion = questionIndex + 1;
+            this.renderCurrentStep();
+        }, 600);
+    },
+
+    verifyImageCliquable() {
+        const step = this.steps[this.currentStepIndex];
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+
+        let correct = 0;
+        step.questions.forEach((q, qIndex) => {
+            if (stepAnswers[`q_${qIndex}`] === q.correctZoneId) {
+                correct++;
+            }
+        });
+
+        this.results[this.currentStepIndex] = {
+            verified: true,
+            correct,
+            total: step.questions.length,
+            score: Math.round((correct / step.questions.length) * 100)
         };
 
         this.renderCurrentStep();
