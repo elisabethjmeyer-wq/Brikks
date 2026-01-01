@@ -7,6 +7,8 @@ const EleveLecons = {
     disciplines: [],
     themes: [],
     chapitres: [],
+    progression: [],
+    user: null,
 
     // État
     currentFilter: 'all',
@@ -26,6 +28,7 @@ const EleveLecons = {
      */
     async init() {
         try {
+            this.user = JSON.parse(sessionStorage.getItem(CONFIG.STORAGE_KEYS.USER));
             await this.loadData();
             this.renderFilters();
             this.render();
@@ -40,10 +43,11 @@ const EleveLecons = {
      * Charge les données depuis Google Sheets
      */
     async loadData() {
-        const [disciplines, themes, chapitres] = await Promise.all([
+        const [disciplines, themes, chapitres, progression] = await Promise.all([
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.DISCIPLINES),
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.THEMES),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.CHAPITRES)
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.CHAPITRES),
+            this.loadProgression()
         ]);
 
         this.disciplines = disciplines || [];
@@ -52,12 +56,34 @@ const EleveLecons = {
         this.chapitres = (chapitres || []).filter(c =>
             (c.statut || '').toLowerCase() === 'publie'
         );
+        this.progression = progression || [];
 
         console.log('Données chargées (élève):', {
             disciplines: this.disciplines.length,
             themes: this.themes.length,
-            chapitres: this.chapitres.length
+            chapitres: this.chapitres.length,
+            progression: this.progression.length
         });
+    },
+
+    /**
+     * Charge la progression de l'élève
+     */
+    async loadProgression() {
+        try {
+            const allProgression = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.PROGRESSION_LECONS);
+            if (!allProgression || !this.user) return [];
+            return allProgression.filter(p => p.eleve_id === this.user.id);
+        } catch (e) {
+            return [];
+        }
+    },
+
+    /**
+     * Vérifie si un chapitre est complété
+     */
+    isChapterCompleted(chapitreId) {
+        return this.progression.some(p => p.chapitre_id === chapitreId && p.completed === 'TRUE');
     },
 
     /**
@@ -83,6 +109,7 @@ const EleveLecons = {
         const viewTheme = document.getElementById('view-theme');
         const viewOrder = document.getElementById('view-order');
         const emptyState = document.getElementById('empty-state');
+        const progressContainer = document.getElementById('global-progress');
 
         loader.style.display = 'none';
 
@@ -90,10 +117,14 @@ const EleveLecons = {
             emptyState.style.display = 'block';
             viewTheme.style.display = 'none';
             viewOrder.style.display = 'none';
+            if (progressContainer) progressContainer.style.display = 'none';
             return;
         }
 
         emptyState.style.display = 'none';
+
+        // Afficher la barre de progression globale
+        this.renderGlobalProgress();
 
         // Rendu des deux vues
         viewTheme.innerHTML = this.renderThemeView();
@@ -107,6 +138,29 @@ const EleveLecons = {
             viewTheme.style.display = 'block';
             viewOrder.style.display = 'none';
         }
+    },
+
+    /**
+     * Affiche la barre de progression globale
+     */
+    renderGlobalProgress() {
+        const container = document.getElementById('global-progress');
+        if (!container) return;
+
+        const totalChapitres = this.chapitres.length;
+        const completedChapitres = this.chapitres.filter(c => this.isChapterCompleted(c.id)).length;
+        const percent = totalChapitres > 0 ? Math.round((completedChapitres / totalChapitres) * 100) : 0;
+
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div class="global-progress-info">
+                <span class="global-progress-label">Ta progression</span>
+                <span class="global-progress-value">${completedChapitres}/${totalChapitres} chapitres</span>
+            </div>
+            <div class="global-progress-bar">
+                <div class="global-progress-fill" style="width: ${percent}%;"></div>
+            </div>
+        `;
     },
 
     /**
@@ -225,10 +279,14 @@ const EleveLecons = {
         const lessonTag = chapitre.numero_lecon
             ? `<span class="lesson-tag">L${chapitre.numero_lecon}</span>`
             : '';
+        const isCompleted = this.isChapterCompleted(chapitre.id);
+        const completedBadge = isCompleted
+            ? '<span class="chapter-completed-badge">✓</span>'
+            : '';
 
         return `
-            <a href="chapitre.html?id=${chapitre.id}" class="chapter-card">
-                <span class="chapter-number">${numero}</span>
+            <a href="chapitre.html?id=${chapitre.id}" class="chapter-card ${isCompleted ? 'completed' : ''}">
+                <span class="chapter-number ${isCompleted ? 'completed' : ''}">${isCompleted ? '✓' : numero}</span>
                 <div class="chapter-content">
                     <div class="chapter-title">${chapitre.titre || 'Chapitre sans titre'}</div>
                 </div>
@@ -272,10 +330,11 @@ const EleveLecons = {
             const icon = discipline && discipline.emoji ? discipline.emoji : (discipline ? this.getIcon(discipline.nom) : '📖');
             const disciplineName = discipline ? discipline.nom : '';
             const themeName = theme ? (theme.nom || theme.titre || '') : 'Cours introductif';
+            const isCompleted = this.isChapterCompleted(chapitre.id);
 
             return `
-                <a href="chapitre.html?id=${chapitre.id}" class="order-item">
-                    <span class="order-number">L${chapitre.numero_lecon}</span>
+                <a href="chapitre.html?id=${chapitre.id}" class="order-item ${isCompleted ? 'completed' : ''}">
+                    <span class="order-number ${isCompleted ? 'completed' : ''}">${isCompleted ? '✓' : 'L' + chapitre.numero_lecon}</span>
                     <div class="order-content">
                         <div class="order-title">${chapitre.titre}</div>
                         <div class="order-subtitle">${themeName} • ${icon} ${disciplineName}</div>
