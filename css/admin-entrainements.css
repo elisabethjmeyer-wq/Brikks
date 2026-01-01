@@ -220,45 +220,70 @@
     border-color: var(--primary, #6366f1);
 }
 
-.filter-tabs {
+/* ===== TYPE FILTER TABS ===== */
+.type-tabs {
     display: flex;
     gap: 8px;
+    background: white;
+    padding: 6px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
 }
 
-.filter-tab {
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    border: none;
+.type-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-500);
     cursor: pointer;
-    background: var(--gray-100);
-    color: var(--gray-600);
     transition: all 0.2s;
+    border: none;
+    background: transparent;
+    font-family: inherit;
 }
 
-.filter-tab:hover {
-    background: var(--gray-200);
+.type-tab:hover {
+    color: var(--gray-700);
+    background: var(--gray-50);
 }
 
-.filter-tab.active {
-    background: var(--gray-800);
+.type-tab.active {
+    background: var(--primary, #6366f1);
     color: white;
 }
 
-.filter-tab.green.active {
+.type-tab .count {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    background: rgba(0,0,0,0.1);
+}
+
+.type-tab.active .count {
+    background: rgba(255,255,255,0.2);
+}
+
+.type-tab.connaissances.active {
     background: var(--accent-green);
-    color: white;
 }
 
-.filter-tab.orange.active {
+.type-tab.savoir-faire.active {
     background: var(--accent-orange);
-    color: white;
 }
 
-.filter-tab.purple.active {
+.type-tab.competences.active {
     background: var(--accent-purple);
-    color: white;
+}
+
+@media (max-width: 768px) {
+    .type-tabs {
+        flex-wrap: wrap;
+    }
 }
 
 .filter-select {
@@ -283,106 +308,132 @@
     gap: 20px;
 }
 
+/* ===== ENTRAINEMENT CARD ===== */
 .entrainement-card {
     background: white;
     border-radius: var(--radius-lg);
-    padding: 20px;
     box-shadow: var(--shadow);
-    transition: all 0.2s;
-    border-left: 4px solid var(--gray-300);
+    overflow: hidden;
+    transition: all 0.3s;
+    border: 2px solid transparent;
 }
 
 .entrainement-card:hover {
+    transform: translateY(-4px);
     box-shadow: var(--shadow-md);
+    border-color: var(--primary-light, #818cf8);
 }
 
-.entrainement-card.connaissances {
-    border-left-color: var(--accent-green);
-}
-
-.entrainement-card.savoir-faire {
-    border-left-color: var(--accent-orange);
-}
-
-.entrainement-card.competences {
-    border-left-color: var(--accent-purple);
-}
-
-.entrainement-header {
+.entrainement-card-header {
+    padding: 20px;
     display: flex;
-    justify-content: space-between;
     align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 16px;
 }
 
-.entrainement-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--gray-900);
-    line-height: 1.3;
-}
-
-.entrainement-badges {
+.entrainement-card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
     display: flex;
-    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
     flex-shrink: 0;
 }
 
-.entrainement-badge {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 20px;
-    text-transform: uppercase;
+.entrainement-card-icon.histoire { background: var(--accent-orange-light); }
+.entrainement-card-icon.geographie,
+.entrainement-card-icon.geo { background: #ccfbf1; }
+.entrainement-card-icon.litterature { background: var(--accent-purple-light); }
+.entrainement-card-icon.emc { background: var(--accent-blue-light); }
+
+.entrainement-card-info {
+    flex: 1;
+    min-width: 0;
 }
 
-.entrainement-badge.type-connaissances {
+.entrainement-card-badges {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.entrainement-card-type {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.entrainement-card-type.connaissances {
     background: var(--accent-green-light);
     color: var(--accent-green);
 }
 
-.entrainement-badge.type-savoir-faire {
+.entrainement-card-type.savoir-faire {
     background: var(--accent-orange-light);
-    color: var(--accent-orange);
+    color: #b45309;
 }
 
-.entrainement-badge.type-competences {
+.entrainement-card-type.competences {
     background: var(--accent-purple-light);
     color: var(--accent-purple);
 }
 
-.entrainement-badge.status-brouillon {
-    background: var(--gray-100);
+.entrainement-card-status {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.entrainement-card-status.publie {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+.entrainement-card-status.brouillon {
+    background: var(--gray-200);
     color: var(--gray-600);
 }
 
-.entrainement-badge.status-publie {
-    background: var(--accent-blue-light);
-    color: var(--accent-blue);
+.entrainement-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin: 0 0 4px 0;
 }
 
-.entrainement-chapter {
+.entrainement-card-chapter {
     font-size: 13px;
     color: var(--gray-500);
-    margin-bottom: 12px;
+    margin: 0;
 }
 
-.entrainement-meta {
+.entrainement-card-body {
+    padding: 0 20px 20px;
+}
+
+.entrainement-card-stats {
     display: flex;
     gap: 16px;
-    font-size: 12px;
-    color: var(--gray-500);
     margin-bottom: 16px;
 }
 
-.entrainement-meta span {
+.entrainement-stat {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--gray-500);
 }
 
-.entrainement-formats {
+.entrainement-stat strong {
+    color: var(--gray-700);
+}
+
+.entrainement-card-formats {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
@@ -390,24 +441,34 @@
 }
 
 .format-tag {
-    font-size: 10px;
-    padding: 4px 8px;
+    padding: 4px 10px;
     background: var(--gray-100);
+    border-radius: 6px;
+    font-size: 11px;
     color: var(--gray-600);
-    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
-.entrainement-actions {
+.entrainement-card-actions {
     display: flex;
     gap: 8px;
-    padding-top: 12px;
+    padding-top: 16px;
     border-top: 1px solid var(--gray-100);
 }
 
-.entrainement-actions .btn {
+.entrainement-card-actions .btn {
     flex: 1;
     justify-content: center;
-    padding: 8px 12px;
+}
+
+.entrainement-card-actions .btn-icon {
+    flex: 0 0 auto;
+}
+
+.btn-sm {
+    padding: 8px 14px;
     font-size: 13px;
 }
 
