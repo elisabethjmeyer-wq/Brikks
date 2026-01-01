@@ -90,6 +90,38 @@ const EleveEntrainement = {
         // Étapes de l'entraînement (chaque étape = un format d'exercice)
         this.steps = [
             {
+                format: 'timeline',
+                titre: 'Chronologie des explorations',
+                description: 'Remettez les événements dans l\'ordre chronologique',
+                events: [
+                    {
+                        date: '1488',
+                        titre: 'Cap de Bonne-Espérance',
+                        description: 'Bartolomeu Dias contourne le cap de Bonne-Espérance'
+                    },
+                    {
+                        date: '1492',
+                        titre: 'Découverte de l\'Amérique',
+                        description: 'Christophe Colomb atteint les Caraïbes'
+                    },
+                    {
+                        date: '1498',
+                        titre: 'Route maritime vers l\'Inde',
+                        description: 'Vasco de Gama atteint Calicut'
+                    },
+                    {
+                        date: '1500',
+                        titre: 'Découverte du Brésil',
+                        description: 'Pedro Álvares Cabral accoste au Brésil'
+                    },
+                    {
+                        date: '1519',
+                        titre: 'Tour du monde de Magellan',
+                        description: 'Début de l\'expédition de Magellan'
+                    }
+                ]
+            },
+            {
                 format: 'qcm',
                 titre: 'Questions à choix unique',
                 description: 'Répondez aux questions ci-dessous',
@@ -545,6 +577,226 @@ const EleveEntrainement = {
         } else {
             window.history.back();
         }
+    },
+
+    // ========== FORMAT TIMELINE ==========
+    renderTimeline(step) {
+        const container = document.getElementById('exerciseContainer');
+        const isVerified = this.results[this.currentStepIndex]?.verified;
+
+        // Initialiser l'ordre si pas encore fait
+        if (!this.answers[this.currentStepIndex]) {
+            // Mélanger les événements pour l'exercice
+            this.answers[this.currentStepIndex] = {
+                order: this.shuffleArray([...step.events.map((_, i) => i)])
+            };
+        }
+
+        const currentOrder = this.answers[this.currentStepIndex].order;
+        const orderedEvents = currentOrder.map(i => ({ ...step.events[i], originalIndex: i }));
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon timeline">${this.getFormatIcon('timeline')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description}</p>
+                    </div>
+                    <span class="exercise-badge">${step.events.length} événements</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="timeline-instruction">
+                        <span class="timeline-instruction-icon">💡</span>
+                        <span>Glissez-déposez les événements pour les remettre dans l'ordre chronologique</span>
+                    </div>
+
+                    <div class="timeline-container ${isVerified ? 'verified' : ''}" id="timelineContainer">
+                        ${orderedEvents.map((event, index) => this.renderTimelineEvent(event, index, isVerified, step.events)).join('')}
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${isVerified ? `
+                            <button class="btn btn-secondary" onclick="EleveEntrainement.resetStep()">🔄 Recommencer</button>
+                            ${this.currentStepIndex < this.steps.length - 1 ? `
+                                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
+                            ` : `
+                                <button class="btn btn-success" onclick="EleveEntrainement.showResults()">🏆 Voir les résultats</button>
+                            `}
+                        ` : `
+                            <button class="btn btn-success" onclick="EleveEntrainement.verifyCurrentStep()">✓ Vérifier l'ordre</button>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Setup drag & drop si pas vérifié
+        if (!isVerified) {
+            this.setupTimelineDragDrop();
+        }
+    },
+
+    renderTimelineEvent(event, displayIndex, isVerified, allEvents) {
+        const correctIndex = allEvents.findIndex(e => e.date === event.date && e.titre === event.titre);
+        const isCorrectPosition = isVerified && this.isTimelinePositionCorrect(displayIndex, event.originalIndex, allEvents);
+
+        let statusClass = '';
+        if (isVerified) {
+            statusClass = isCorrectPosition ? 'correct' : 'incorrect';
+        }
+
+        return `
+            <div class="timeline-event ${statusClass}"
+                 data-index="${displayIndex}"
+                 data-original="${event.originalIndex}"
+                 draggable="${!isVerified}">
+                <div class="timeline-event-handle">
+                    ${isVerified ? (isCorrectPosition ? '✓' : '✗') : '⋮⋮'}
+                </div>
+                <div class="timeline-event-content">
+                    <div class="timeline-event-date">${this.escapeHtml(event.date)}</div>
+                    <div class="timeline-event-titre">${this.escapeHtml(event.titre)}</div>
+                    ${event.description ? `<div class="timeline-event-desc">${this.escapeHtml(event.description)}</div>` : ''}
+                </div>
+                ${isVerified && !isCorrectPosition ? `
+                    <div class="timeline-event-correction">
+                        Position correcte : ${this.getCorrectPositionLabel(event.originalIndex, allEvents)}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    isTimelinePositionCorrect(displayIndex, originalIndex, allEvents) {
+        // Trier les événements par date pour obtenir l'ordre correct
+        const sortedByDate = [...allEvents].map((e, i) => ({ ...e, origIdx: i }))
+            .sort((a, b) => this.compareDates(a.date, b.date));
+
+        // La position correcte de cet événement
+        const correctPosition = sortedByDate.findIndex(e => e.origIdx === originalIndex);
+        return displayIndex === correctPosition;
+    },
+
+    getCorrectPositionLabel(originalIndex, allEvents) {
+        const sortedByDate = [...allEvents].map((e, i) => ({ ...e, origIdx: i }))
+            .sort((a, b) => this.compareDates(a.date, b.date));
+
+        const correctPosition = sortedByDate.findIndex(e => e.origIdx === originalIndex);
+        return `#${correctPosition + 1}`;
+    },
+
+    compareDates(dateA, dateB) {
+        // Extraire l'année pour comparaison simple
+        const yearA = parseInt(dateA.match(/-?\d+/)?.[0] || 0);
+        const yearB = parseInt(dateB.match(/-?\d+/)?.[0] || 0);
+        return yearA - yearB;
+    },
+
+    setupTimelineDragDrop() {
+        const container = document.getElementById('timelineContainer');
+        if (!container) return;
+
+        const events = container.querySelectorAll('.timeline-event');
+        let draggedEl = null;
+
+        events.forEach(event => {
+            event.addEventListener('dragstart', (e) => {
+                draggedEl = event;
+                event.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            event.addEventListener('dragend', () => {
+                if (draggedEl) {
+                    draggedEl.classList.remove('dragging');
+                    draggedEl = null;
+                }
+                events.forEach(el => el.classList.remove('drag-over'));
+            });
+
+            event.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+
+            event.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                if (event !== draggedEl) {
+                    event.classList.add('drag-over');
+                }
+            });
+
+            event.addEventListener('dragleave', () => {
+                event.classList.remove('drag-over');
+            });
+
+            event.addEventListener('drop', (e) => {
+                e.preventDefault();
+                event.classList.remove('drag-over');
+
+                if (draggedEl && draggedEl !== event) {
+                    const allEvents = [...container.querySelectorAll('.timeline-event')];
+                    const fromIndex = allEvents.indexOf(draggedEl);
+                    const toIndex = allEvents.indexOf(event);
+
+                    // Réorganiser dans le DOM
+                    if (fromIndex < toIndex) {
+                        event.after(draggedEl);
+                    } else {
+                        event.before(draggedEl);
+                    }
+
+                    // Mettre à jour l'ordre dans answers
+                    this.updateTimelineOrder();
+                }
+            });
+        });
+    },
+
+    updateTimelineOrder() {
+        const container = document.getElementById('timelineContainer');
+        const events = container.querySelectorAll('.timeline-event');
+
+        const newOrder = [...events].map(el => parseInt(el.dataset.original));
+        this.answers[this.currentStepIndex] = { order: newOrder };
+    },
+
+    verifyTimeline() {
+        const step = this.steps[this.currentStepIndex];
+        const currentOrder = this.answers[this.currentStepIndex]?.order || [];
+
+        // Calculer l'ordre correct (trié par date)
+        const sortedByDate = [...step.events].map((e, i) => ({ ...e, origIdx: i }))
+            .sort((a, b) => this.compareDates(a.date, b.date));
+        const correctOrder = sortedByDate.map(e => e.origIdx);
+
+        // Compter les positions correctes
+        let correct = 0;
+        currentOrder.forEach((origIdx, displayIdx) => {
+            if (correctOrder[displayIdx] === origIdx) {
+                correct++;
+            }
+        });
+
+        this.results[this.currentStepIndex] = {
+            verified: true,
+            correct,
+            total: step.events.length,
+            score: Math.round((correct / step.events.length) * 100)
+        };
+
+        this.renderCurrentStep();
+    },
+
+    shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
     },
 
     // ========== UTILS ==========
