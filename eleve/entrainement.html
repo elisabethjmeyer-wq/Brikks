@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Entraînement">
+    <title>Entraînement - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/eleve-layout.css">
+    <link rel="stylesheet" href="../css/eleve-entrainement.css">
+</head>
+<body>
+
+<div id="entrainement-page">
+    <!-- Header Entraînement -->
+    <header class="training-header">
+        <div class="training-header-inner">
+            <div class="training-header-left">
+                <button class="btn-back" onclick="EleveEntrainement.quit()" title="Quitter">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+                <div class="training-header-title">
+                    <h1 id="trainingTitle">Chargement...</h1>
+                    <p id="trainingSubtitle"></p>
+                </div>
+            </div>
+            <div class="training-header-right">
+                <span class="type-badge" id="typeBadge">Entraînement</span>
+                <div class="timer" id="timer">
+                    <span>⏱️</span>
+                    <span id="timerValue">0:00</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement de l'entraînement...</p>
+    </div>
+
+    <!-- Main Content -->
+    <main class="training-main" id="trainingContent" style="display: none;">
+        <!-- Progress Section (si plusieurs étapes) -->
+        <div class="progress-section" id="progressSection" style="display: none;">
+            <div class="progress-header">
+                <h2>Progression</h2>
+                <span id="progressText">Étape 1/1</span>
+            </div>
+            <div class="progress-steps" id="progressSteps">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </div>
+
+        <!-- Exercise Container -->
+        <div class="exercise-container" id="exerciseContainer">
+            <!-- Rempli dynamiquement par le moteur d'exercices -->
+        </div>
+
+        <!-- Result Container (caché par défaut) -->
+        <div class="result-container" id="resultContainer" style="display: none;">
+            <!-- Rempli dynamiquement -->
+        </div>
+    </main>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/eleve-entrainement.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        EleveEntrainement.init();
+    });
+</script>
+
+</body>
+</html>

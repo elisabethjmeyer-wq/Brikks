@@ -283,6 +283,24 @@ const EleveMethodologieParcours = {
         return url;
     },
 
+    // Forcer le téléchargement d'un fichier
+    downloadFile(url, filename) {
+        const downloadUrl = this.getDownloadUrl(url);
+
+        // Créer un lien temporaire pour déclencher le téléchargement
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = filename || 'document';
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+
+        // Pour Google Drive, on doit ouvrir dans un nouvel onglet car le téléchargement direct
+        // peut être bloqué par le navigateur pour les fichiers cross-origin
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
+
     // Obtenir l'URL embed pour vidéo
     getEmbedUrl(url) {
         if (!url) return null;
@@ -537,7 +555,7 @@ const EleveMethodologieParcours = {
                             <span class="ressource-btn-text">${this.escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type))}</span>
                             <span class="ressource-btn-actions">
                                 <span class="ressource-action view" title="Voir">👁️</span>
-                                <a href="${this.getDownloadUrl(ressource.url)}" target="_blank" class="ressource-action download" title="Télécharger" onclick="event.stopPropagation();">⬇️</a>
+                                <span class="ressource-action download" title="Télécharger" onclick="event.stopPropagation(); EleveMethodologieParcours.downloadFile('${ressource.url}', '${this.escapeHtml(ressource.titre || 'document')}');">⬇️</span>
                             </span>
                         </button>
                     `).join('')}
@@ -584,13 +602,13 @@ const EleveMethodologieParcours = {
             content = `<a href="${ressource.url}" target="_blank" class="popup-external-link">Ouvrir le lien ↗</a>`;
         }
 
-        const downloadUrl = this.getDownloadUrl(ressource.url);
+        const titre = this.escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type));
         popup.innerHTML = `
             <div class="ressource-popup">
                 <div class="ressource-popup-header">
-                    <h3>${this.getRessourceIcon(ressource.type)} ${this.escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type))}</h3>
+                    <h3>${this.getRessourceIcon(ressource.type)} ${titre}</h3>
                     <div class="ressource-popup-actions">
-                        <a href="${downloadUrl}" target="_blank" class="popup-btn download" title="Télécharger">⬇️</a>
+                        <button class="popup-btn download" title="Télécharger" onclick="EleveMethodologieParcours.downloadFile('${ressource.url}', '${titre}')">⬇️</button>
                         <a href="${ressource.url}" target="_blank" class="popup-btn external" title="Ouvrir dans un nouvel onglet">↗️</a>
                         <button class="popup-btn close" onclick="this.closest('.ressource-popup-overlay').remove()">✕</button>
                     </div>
