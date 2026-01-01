@@ -1,26 +1,21 @@
 /**
- * Admin Méthodologie - Gestion des compétences et étapes
+ * Admin Méthodologie - Structure arborescente flexible
  */
 
 const AdminMethodologie = {
-    categories: [],
-    competences: [],
-    etapes: [],
-
+    items: [],
+    progression: [],
     editingItem: null,
-    editingType: null, // 'category', 'competence', 'etape'
     deletingItem: null,
-    deletingType: null,
 
-    // Icônes disponibles
-    icons: ['📄', '📋', '📝', '📊', '📈', '🔍', '✍️', '📖', '🗺️', '⏳', '🌍', '📅', '⏰', '📁', '💡', '🎯', '✅', '⭐'],
+    icons: ['📁', '📄', '📋', '📝', '📊', '📈', '🔍', '✍️', '📖', '🗺️', '🌍', '📅', '⏰', '💡', '🎯', '✅', '⭐', '🎬'],
     colors: ['blue', 'purple', 'teal', 'orange', 'green', 'pink'],
 
     async init() {
         try {
             await this.loadData();
             this.renderStats();
-            this.renderCategories();
+            this.renderTree();
             this.bindEvents();
             this.showContent();
         } catch (error) {
@@ -30,20 +25,13 @@ const AdminMethodologie = {
     },
 
     async loadData() {
-        const [categories, competences, etapes] = await Promise.all([
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE_CATEGORIES),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE_COMPETENCES),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE_ETAPES)
+        const [items, progression] = await Promise.all([
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.PROGRESSION_METHODOLOGIE)
         ]);
 
-        this.categories = (categories || []).sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
-        this.competences = (competences || []).sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
-        this.etapes = (etapes || []).sort((a, b) => {
-            const nA = parseInt(a.niveau) || 1;
-            const nB = parseInt(b.niveau) || 1;
-            if (nA !== nB) return nA - nB;
-            return (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0);
-        });
+        this.items = (items || []).sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+        this.progression = progression || [];
     },
 
     showContent() {
@@ -66,404 +54,245 @@ const AdminMethodologie = {
         }
     },
 
-    // ========== STATS ==========
-    renderStats() {
-        document.getElementById('totalCategories').textContent = this.categories.length;
-        document.getElementById('totalCompetences').textContent = this.competences.length;
-        document.getElementById('totalEtapes').textContent = this.etapes.length;
-
-        const niveaux = [...new Set(this.etapes.map(e => parseInt(e.niveau) || 1))];
-        document.getElementById('totalNiveaux').textContent = niveaux.length;
+    // ========== HELPERS ==========
+    getRootItems() {
+        return this.items.filter(item => !item.parent_id || item.parent_id === '');
     },
 
-    // ========== RENDER CATEGORIES ==========
-    renderCategories() {
+    getChildren(parentId) {
+        return this.items.filter(item => item.parent_id === parentId)
+            .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+    },
+
+    hasChildren(itemId) {
+        return this.items.some(item => item.parent_id === itemId);
+    },
+
+    isContent(item) {
+        // Un élément est un "contenu" s'il a une vidéo ou s'il n'a pas d'enfants
+        return !!item.video_url || !this.hasChildren(item.id);
+    },
+
+    getDepth(itemId, depth = 0) {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item || !item.parent_id) return depth;
+        return this.getDepth(item.parent_id, depth + 1);
+    },
+
+    countDescendants(itemId) {
+        const children = this.getChildren(itemId);
+        let count = children.length;
+        children.forEach(child => {
+            count += this.countDescendants(child.id);
+        });
+        return count;
+    },
+
+    getPath(itemId) {
+        const path = [];
+        let current = this.items.find(i => i.id === itemId);
+        while (current) {
+            path.unshift(current);
+            current = current.parent_id ? this.items.find(i => i.id === current.parent_id) : null;
+        }
+        return path;
+    },
+
+    // ========== STATS ==========
+    renderStats() {
+        const rootItems = this.getRootItems();
+        const contentItems = this.items.filter(item => !!item.video_url);
+        const maxDepth = Math.max(0, ...this.items.map(item => this.getDepth(item.id)));
+
+        document.getElementById('totalCategories').textContent = rootItems.length;
+        document.getElementById('totalCompetences').textContent = this.items.length;
+        document.getElementById('totalEtapes').textContent = contentItems.length;
+        document.getElementById('totalNiveaux').textContent = maxDepth + 1;
+    },
+
+    // ========== RENDER TREE ==========
+    renderTree() {
         const container = document.getElementById('categories-container');
         if (!container) return;
 
-        if (this.categories.length === 0) {
+        const rootItems = this.getRootItems();
+
+        if (rootItems.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">📚</div>
-                    <h3>Aucune catégorie</h3>
-                    <p>Créez votre première catégorie pour commencer</p>
+                    <h3>Aucun élément</h3>
+                    <p>Créez votre premier élément pour commencer</p>
                 </div>
             `;
             return;
         }
 
-        container.innerHTML = this.categories.map(cat => {
-            const competences = this.competences.filter(c => c.categorie_id === cat.id);
-            const etapesCount = this.etapes.filter(e =>
-                competences.some(c => c.id === e.competence_id)
-            ).length;
+        container.innerHTML = rootItems.map(item => this.renderItem(item, 0)).join('');
+    },
 
-            return `
-                <div class="category-card" data-id="${cat.id}">
-                    <div class="category-header" onclick="AdminMethodologie.toggleCategory('${cat.id}')">
-                        <div class="category-icon ${cat.couleur || 'blue'}">${cat.icon || '📁'}</div>
-                        <div class="category-info">
-                            <h3 class="category-title">${this.escapeHtml(cat.nom)}</h3>
-                            <p class="category-meta">${competences.length} compétence(s) • ${etapesCount} étape(s)</p>
+    renderItem(item, depth) {
+        const children = this.getChildren(item.id);
+        const hasChildren = children.length > 0;
+        const isContent = !!item.video_url;
+        const descendantCount = this.countDescendants(item.id);
+
+        const depthClass = `depth-${Math.min(depth, 3)}`;
+        const typeIcon = isContent ? '🎬' : (hasChildren ? '📁' : '📄');
+
+        return `
+            <div class="tree-item ${depthClass}" data-id="${item.id}" data-depth="${depth}">
+                <div class="tree-item-header" onclick="AdminMethodologie.toggleItem('${item.id}')">
+                    <div class="tree-item-left">
+                        ${hasChildren ? `
+                            <button class="tree-toggle">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </button>
+                        ` : '<span class="tree-toggle-placeholder"></span>'}
+                        <span class="tree-item-icon ${item.couleur || ''}">${item.icon || typeIcon}</span>
+                        <div class="tree-item-info">
+                            <span class="tree-item-title">${this.escapeHtml(item.titre)}</span>
+                            ${item.description ? `<span class="tree-item-desc">${this.escapeHtml(item.description).substring(0, 50)}${item.description.length > 50 ? '...' : ''}</span>` : ''}
                         </div>
-                        <div class="category-actions">
-                            <button class="action-btn edit" onclick="event.stopPropagation(); AdminMethodologie.editCategory('${cat.id}')" title="Modifier">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    </div>
+                    <div class="tree-item-right">
+                        ${isContent ? '<span class="badge badge-video">Vidéo</span>' : ''}
+                        ${hasChildren ? `<span class="badge badge-count">${descendantCount} élément${descendantCount > 1 ? 's' : ''}</span>` : ''}
+                        <div class="tree-item-actions">
+                            <button class="action-btn add" onclick="event.stopPropagation(); AdminMethodologie.openAddModal('${item.id}')" title="Ajouter un sous-élément">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn edit" onclick="event.stopPropagation(); AdminMethodologie.editItem('${item.id}')" title="Modifier">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                                 </svg>
                             </button>
-                            <button class="action-btn delete" onclick="event.stopPropagation(); AdminMethodologie.confirmDelete('category', '${cat.id}')" title="Supprimer">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <button class="action-btn delete" onclick="event.stopPropagation(); AdminMethodologie.confirmDelete('${item.id}')" title="Supprimer">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="3 6 5 6 21 6"/>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                 </svg>
                             </button>
-                            <button class="chevron-btn">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="6 9 12 15 18 9"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="category-content">
-                        <div class="competences-list">
-                            ${competences.map(comp => this.renderCompetence(comp)).join('')}
-                            <button class="add-competence-btn" onclick="AdminMethodologie.addCompetence('${cat.id}')">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="12" y1="5" x2="12" y2="19"/>
-                                    <line x1="5" y1="12" x2="19" y2="12"/>
-                                </svg>
-                                Ajouter une compétence
-                            </button>
                         </div>
                     </div>
                 </div>
-            `;
-        }).join('');
-    },
-
-    renderCompetence(comp) {
-        const etapes = this.etapes.filter(e => e.competence_id === comp.id);
-        const niveaux = [...new Set(etapes.map(e => parseInt(e.niveau) || 1))].length;
-
-        return `
-            <div class="competence-card" data-id="${comp.id}">
-                <div class="competence-header" onclick="AdminMethodologie.toggleCompetence('${comp.id}')">
-                    <div class="competence-icon">${comp.icon || '📋'}</div>
-                    <div class="competence-info">
-                        <h4 class="competence-title">${this.escapeHtml(comp.titre)}</h4>
-                        <p class="competence-stats">${niveaux} niveau(x) • ${etapes.length} étape(s)</p>
+                ${hasChildren ? `
+                    <div class="tree-item-children">
+                        ${children.map(child => this.renderItem(child, depth + 1)).join('')}
                     </div>
-                    <div class="competence-actions">
-                        <button class="action-btn edit" onclick="event.stopPropagation(); AdminMethodologie.editCompetence('${comp.id}')" title="Modifier">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                        </button>
-                        <button class="action-btn delete" onclick="event.stopPropagation(); AdminMethodologie.confirmDelete('competence', '${comp.id}')" title="Supprimer">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                            </svg>
-                        </button>
-                        <button class="chevron-btn">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6 9 12 15 18 9"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="competence-content">
-                    <div class="etapes-list">
-                        ${etapes.map(etape => this.renderEtape(etape)).join('')}
-                        <button class="add-etape-btn" onclick="AdminMethodologie.addEtape('${comp.id}')">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"/>
-                                <line x1="5" y1="12" x2="19" y2="12"/>
-                            </svg>
-                            Ajouter une étape
-                        </button>
-                    </div>
-                </div>
+                ` : ''}
             </div>
         `;
     },
 
-    renderEtape(etape) {
-        const niveau = parseInt(etape.niveau) || 1;
-        const ordre = parseInt(etape.ordre) || 1;
-        const hasVideo = !!etape.video_url;
-        const hasDocs = !!etape.documents;
-        const hasBex = !!etape.bex_id;
-
-        return `
-            <div class="etape-item" data-id="${etape.id}">
-                <span class="etape-order">${ordre}</span>
-                <span class="etape-niveau n${niveau}">N${niveau}</span>
-                <span class="etape-title">${this.escapeHtml(etape.titre)}</span>
-                <div class="etape-indicators">
-                    <span class="etape-indicator ${hasVideo ? 'active' : ''}" title="Vidéo">🎬</span>
-                    <span class="etape-indicator ${hasDocs ? 'active' : ''}" title="Documents">📄</span>
-                    <span class="etape-indicator ${hasBex ? 'active' : ''}" title="BEX">⭐</span>
-                </div>
-                <div class="etape-actions">
-                    <button class="action-btn edit" onclick="AdminMethodologie.editEtape('${etape.id}')" title="Modifier">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </button>
-                    <button class="action-btn delete" onclick="AdminMethodologie.confirmDelete('etape', '${etape.id}')" title="Supprimer">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        `;
-    },
-
-    // ========== TOGGLE ==========
-    toggleCategory(catId) {
-        const card = document.querySelector(`.category-card[data-id="${catId}"]`);
-        if (card) card.classList.toggle('open');
-    },
-
-    toggleCompetence(compId) {
-        const card = document.querySelector(`.competence-card[data-id="${compId}"]`);
-        if (card) card.classList.toggle('open');
-    },
-
-    // ========== CATEGORY CRUD ==========
-    openAddCategoryModal() {
-        this.editingItem = null;
-        this.editingType = 'category';
-
-        document.getElementById('categoryModalTitle').textContent = 'Nouvelle catégorie';
-        document.getElementById('categoryId').value = '';
-        document.getElementById('categoryNom').value = '';
-        document.getElementById('categoryDescription').value = '';
-
-        this.renderIconSelector('categoryIconSelector', '📁');
-        this.renderColorSelector('categoryColorSelector', 'blue');
-
-        document.getElementById('categoryModal').classList.remove('hidden');
-    },
-
-    editCategory(catId) {
-        const category = this.categories.find(c => c.id === catId);
-        if (!category) return;
-
-        this.editingItem = category;
-        this.editingType = 'category';
-
-        document.getElementById('categoryModalTitle').textContent = 'Modifier la catégorie';
-        document.getElementById('categoryId').value = category.id;
-        document.getElementById('categoryNom').value = category.nom || '';
-        document.getElementById('categoryDescription').value = category.description || '';
-
-        this.renderIconSelector('categoryIconSelector', category.icon || '📁');
-        this.renderColorSelector('categoryColorSelector', category.couleur || 'blue');
-
-        document.getElementById('categoryModal').classList.remove('hidden');
-    },
-
-    async saveCategory() {
-        const nom = document.getElementById('categoryNom').value.trim();
-        const description = document.getElementById('categoryDescription').value.trim();
-        const icon = document.querySelector('#categoryIconSelector .icon-option.selected')?.textContent || '📁';
-        const couleur = document.querySelector('#categoryColorSelector .color-option.selected')?.dataset.color || 'blue';
-
-        if (!nom) {
-            alert('Veuillez entrer un nom');
-            return;
+    toggleItem(itemId) {
+        const element = document.querySelector(`.tree-item[data-id="${itemId}"]`);
+        if (element) {
+            element.classList.toggle('collapsed');
         }
+    },
 
-        const btn = document.getElementById('saveCategoryBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner">⏳</span> Enregistrement...';
+    // ========== ADD/EDIT MODAL ==========
+    openAddModal(parentId = null) {
+        this.editingItem = null;
 
-        try {
-            const data = { nom, description, icon, couleur };
+        document.getElementById('itemModalTitle').textContent = parentId ? 'Ajouter un sous-élément' : 'Nouvel élément';
+        document.getElementById('itemId').value = '';
+        document.getElementById('itemParentId').value = parentId || '';
+        document.getElementById('itemTitre').value = '';
+        document.getElementById('itemDescription').value = '';
+        document.getElementById('itemVideoUrl').value = '';
+        document.getElementById('itemDocuments').value = '';
+        document.getElementById('itemContenu').value = '';
+        document.getElementById('itemBexId').value = '';
+        document.getElementById('itemBexTitre').value = '';
 
-            if (this.editingItem) {
-                data.id = this.editingItem.id;
-                data.ordre = this.editingItem.ordre;
-                await this.callWebApp('updateMethodologieCategorie', data);
-            } else {
-                data.ordre = String(this.categories.length + 1);
-                await this.callWebApp('createMethodologieCategorie', data);
+        // Afficher le parent si existe
+        const parentInfo = document.getElementById('parentInfo');
+        if (parentId) {
+            const parent = this.items.find(i => i.id === parentId);
+            if (parent) {
+                parentInfo.innerHTML = `<span class="parent-badge">Dans : ${parent.icon || '📁'} ${this.escapeHtml(parent.titre)}</span>`;
+                parentInfo.style.display = 'block';
             }
-
-            await this.loadData();
-            this.renderStats();
-            this.renderCategories();
-            this.closeCategoryModal();
-        } catch (error) {
-            console.error('Erreur:', error);
-            alert('Erreur: ' + error.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = 'Enregistrer';
+        } else {
+            parentInfo.style.display = 'none';
         }
+
+        this.renderIconSelector('itemIconSelector', '📁');
+        this.renderColorSelector('itemColorSelector', 'blue');
+
+        document.getElementById('itemModal').classList.remove('hidden');
     },
 
-    closeCategoryModal() {
-        document.getElementById('categoryModal').classList.add('hidden');
-        this.editingItem = null;
+    editItem(itemId) {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return;
+
+        this.editingItem = item;
+
+        document.getElementById('itemModalTitle').textContent = 'Modifier l\'élément';
+        document.getElementById('itemId').value = item.id;
+        document.getElementById('itemParentId').value = item.parent_id || '';
+        document.getElementById('itemTitre').value = item.titre || '';
+        document.getElementById('itemDescription').value = item.description || '';
+        document.getElementById('itemVideoUrl').value = item.video_url || '';
+        document.getElementById('itemDocuments').value = item.documents || '';
+        document.getElementById('itemContenu').value = item.contenu_html || '';
+        document.getElementById('itemBexId').value = item.bex_id || '';
+        document.getElementById('itemBexTitre').value = item.bex_titre || '';
+
+        // Afficher le parent si existe
+        const parentInfo = document.getElementById('parentInfo');
+        if (item.parent_id) {
+            const parent = this.items.find(i => i.id === item.parent_id);
+            if (parent) {
+                parentInfo.innerHTML = `<span class="parent-badge">Dans : ${parent.icon || '📁'} ${this.escapeHtml(parent.titre)}</span>`;
+                parentInfo.style.display = 'block';
+            }
+        } else {
+            parentInfo.style.display = 'none';
+        }
+
+        this.renderIconSelector('itemIconSelector', item.icon || '📁');
+        this.renderColorSelector('itemColorSelector', item.couleur || 'blue');
+
+        document.getElementById('itemModal').classList.remove('hidden');
     },
 
-    // ========== COMPETENCE CRUD ==========
-    addCompetence(categorieId) {
-        this.editingItem = null;
-        this.editingType = 'competence';
-
-        document.getElementById('competenceModalTitle').textContent = 'Nouvelle compétence';
-        document.getElementById('competenceId').value = '';
-        document.getElementById('competenceCategorieId').value = categorieId;
-        document.getElementById('competenceTitre').value = '';
-        document.getElementById('competenceDescription').value = '';
-
-        this.renderIconSelector('competenceIconSelector', '📋');
-
-        document.getElementById('competenceModal').classList.remove('hidden');
-    },
-
-    editCompetence(compId) {
-        const competence = this.competences.find(c => c.id === compId);
-        if (!competence) return;
-
-        this.editingItem = competence;
-        this.editingType = 'competence';
-
-        document.getElementById('competenceModalTitle').textContent = 'Modifier la compétence';
-        document.getElementById('competenceId').value = competence.id;
-        document.getElementById('competenceCategorieId').value = competence.categorie_id;
-        document.getElementById('competenceTitre').value = competence.titre || '';
-        document.getElementById('competenceDescription').value = competence.description || '';
-
-        this.renderIconSelector('competenceIconSelector', competence.icon || '📋');
-
-        document.getElementById('competenceModal').classList.remove('hidden');
-    },
-
-    async saveCompetence() {
-        const titre = document.getElementById('competenceTitre').value.trim();
-        const description = document.getElementById('competenceDescription').value.trim();
-        const categorieId = document.getElementById('competenceCategorieId').value;
-        const icon = document.querySelector('#competenceIconSelector .icon-option.selected')?.textContent || '📋';
+    async saveItem() {
+        const titre = document.getElementById('itemTitre').value.trim();
+        const description = document.getElementById('itemDescription').value.trim();
+        const parentId = document.getElementById('itemParentId').value.trim();
+        const videoUrl = document.getElementById('itemVideoUrl').value.trim();
+        const documents = document.getElementById('itemDocuments').value.trim();
+        const contenuHtml = document.getElementById('itemContenu').value.trim();
+        const bexId = document.getElementById('itemBexId').value.trim();
+        const bexTitre = document.getElementById('itemBexTitre').value.trim();
+        const icon = document.querySelector('#itemIconSelector .icon-option.selected')?.textContent || '📁';
+        const couleur = document.querySelector('#itemColorSelector .color-option.selected')?.dataset.color || 'blue';
 
         if (!titre) {
             alert('Veuillez entrer un titre');
             return;
         }
 
-        const btn = document.getElementById('saveCompetenceBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner">⏳</span> Enregistrement...';
-
-        try {
-            const data = { titre, description, icon, categorie_id: categorieId };
-
-            if (this.editingItem) {
-                data.id = this.editingItem.id;
-                data.ordre = this.editingItem.ordre;
-                await this.callWebApp('updateMethodologieCompetence', data);
-            } else {
-                const sameCategory = this.competences.filter(c => c.categorie_id === categorieId);
-                data.ordre = String(sameCategory.length + 1);
-                await this.callWebApp('createMethodologieCompetence', data);
-            }
-
-            await this.loadData();
-            this.renderStats();
-            this.renderCategories();
-            this.closeCompetenceModal();
-        } catch (error) {
-            console.error('Erreur:', error);
-            alert('Erreur: ' + error.message);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = 'Enregistrer';
-        }
-    },
-
-    closeCompetenceModal() {
-        document.getElementById('competenceModal').classList.add('hidden');
-        this.editingItem = null;
-    },
-
-    // ========== ETAPE CRUD ==========
-    addEtape(competenceId) {
-        this.editingItem = null;
-        this.editingType = 'etape';
-
-        document.getElementById('etapeModalTitle').textContent = 'Nouvelle étape';
-        document.getElementById('etapeId').value = '';
-        document.getElementById('etapeCompetenceId').value = competenceId;
-        document.getElementById('etapeTitre').value = '';
-        document.getElementById('etapeNiveau').value = '1';
-        document.getElementById('etapeNiveauTitre').value = '';
-        document.getElementById('etapeVideoUrl').value = '';
-        document.getElementById('etapeDocuments').value = '';
-        document.getElementById('etapeContenu').value = '';
-        document.getElementById('etapeBexId').value = '';
-        document.getElementById('etapeBexTitre').value = '';
-
-        document.getElementById('etapeModal').classList.remove('hidden');
-    },
-
-    editEtape(etapeId) {
-        const etape = this.etapes.find(e => e.id === etapeId);
-        if (!etape) return;
-
-        this.editingItem = etape;
-        this.editingType = 'etape';
-
-        document.getElementById('etapeModalTitle').textContent = 'Modifier l\'étape';
-        document.getElementById('etapeId').value = etape.id;
-        document.getElementById('etapeCompetenceId').value = etape.competence_id;
-        document.getElementById('etapeTitre').value = etape.titre || '';
-        document.getElementById('etapeNiveau').value = etape.niveau || '1';
-        document.getElementById('etapeNiveauTitre').value = etape.niveau_titre || '';
-        document.getElementById('etapeVideoUrl').value = etape.video_url || '';
-        document.getElementById('etapeDocuments').value = etape.documents || '';
-        document.getElementById('etapeContenu').value = etape.contenu_html || '';
-        document.getElementById('etapeBexId').value = etape.bex_id || '';
-        document.getElementById('etapeBexTitre').value = etape.bex_titre || '';
-
-        document.getElementById('etapeModal').classList.remove('hidden');
-    },
-
-    async saveEtape() {
-        const titre = document.getElementById('etapeTitre').value.trim();
-        const competenceId = document.getElementById('etapeCompetenceId').value;
-        const niveau = document.getElementById('etapeNiveau').value;
-        const niveauTitre = document.getElementById('etapeNiveauTitre').value.trim();
-        const videoUrl = document.getElementById('etapeVideoUrl').value.trim();
-        const documents = document.getElementById('etapeDocuments').value.trim();
-        const contenuHtml = document.getElementById('etapeContenu').value.trim();
-        const bexId = document.getElementById('etapeBexId').value.trim();
-        const bexTitre = document.getElementById('etapeBexTitre').value.trim();
-
-        if (!titre) {
-            alert('Veuillez entrer un titre');
-            return;
-        }
-
-        const btn = document.getElementById('saveEtapeBtn');
+        const btn = document.getElementById('saveItemBtn');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner">⏳</span> Enregistrement...';
 
         try {
             const data = {
                 titre,
-                competence_id: competenceId,
-                niveau,
-                niveau_titre: niveauTitre,
+                description,
+                parent_id: parentId,
+                icon,
+                couleur,
                 video_url: videoUrl,
                 documents,
                 contenu_html: contenuHtml,
@@ -474,19 +303,20 @@ const AdminMethodologie = {
             if (this.editingItem) {
                 data.id = this.editingItem.id;
                 data.ordre = this.editingItem.ordre;
-                await this.callWebApp('updateMethodologieEtape', data);
+                await this.callWebApp('updateMethodologie', data);
             } else {
-                const sameCompetence = this.etapes.filter(e =>
-                    e.competence_id === competenceId && e.niveau === niveau
-                );
-                data.ordre = String(sameCompetence.length + 1);
-                await this.callWebApp('createMethodologieEtape', data);
+                // Calculer l'ordre pour le nouveau item
+                const siblings = parentId
+                    ? this.getChildren(parentId)
+                    : this.getRootItems();
+                data.ordre = String(siblings.length + 1);
+                await this.callWebApp('createMethodologie', data);
             }
 
             await this.loadData();
             this.renderStats();
-            this.renderCategories();
-            this.closeEtapeModal();
+            this.renderTree();
+            this.closeItemModal();
         } catch (error) {
             console.error('Erreur:', error);
             alert('Erreur: ' + error.message);
@@ -496,62 +326,41 @@ const AdminMethodologie = {
         }
     },
 
-    closeEtapeModal() {
-        document.getElementById('etapeModal').classList.add('hidden');
+    closeItemModal() {
+        document.getElementById('itemModal').classList.add('hidden');
         this.editingItem = null;
     },
 
     // ========== DELETE ==========
-    confirmDelete(type, itemId) {
-        let item, title, text;
+    confirmDelete(itemId) {
+        const item = this.items.find(i => i.id === itemId);
+        if (!item) return;
 
-        if (type === 'category') {
-            item = this.categories.find(c => c.id === itemId);
-            const comps = this.competences.filter(c => c.categorie_id === itemId);
-            title = 'Supprimer cette catégorie ?';
-            text = comps.length > 0
-                ? `"${item?.nom}" et ses ${comps.length} compétence(s) seront supprimées.`
-                : `"${item?.nom}"`;
-        } else if (type === 'competence') {
-            item = this.competences.find(c => c.id === itemId);
-            const etapes = this.etapes.filter(e => e.competence_id === itemId);
-            title = 'Supprimer cette compétence ?';
-            text = etapes.length > 0
-                ? `"${item?.titre}" et ses ${etapes.length} étape(s) seront supprimées.`
-                : `"${item?.titre}"`;
-        } else if (type === 'etape') {
-            item = this.etapes.find(e => e.id === itemId);
-            title = 'Supprimer cette étape ?';
-            text = `"${item?.titre}"`;
-        }
+        const descendantCount = this.countDescendants(itemId);
 
         this.deletingItem = itemId;
-        this.deletingType = type;
 
-        document.getElementById('deleteTitle').textContent = title;
-        document.getElementById('deleteText').textContent = text;
+        document.getElementById('deleteTitle').textContent = 'Supprimer cet élément ?';
+        document.getElementById('deleteText').textContent = descendantCount > 0
+            ? `"${item.titre}" et ses ${descendantCount} sous-élément(s) seront supprimés.`
+            : `"${item.titre}"`;
+
         document.getElementById('deleteModal').classList.remove('hidden');
     },
 
     async executeDelete() {
-        if (!this.deletingItem || !this.deletingType) return;
+        if (!this.deletingItem) return;
 
         const btn = document.getElementById('confirmDeleteBtn');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner">⏳</span> Suppression...';
 
         try {
-            const actionMap = {
-                category: 'deleteMethodologieCategorie',
-                competence: 'deleteMethodologieCompetence',
-                etape: 'deleteMethodologieEtape'
-            };
-
-            await this.callWebApp(actionMap[this.deletingType], { id: this.deletingItem });
+            await this.callWebApp('deleteMethodologie', { id: this.deletingItem });
 
             await this.loadData();
             this.renderStats();
-            this.renderCategories();
+            this.renderTree();
             this.closeDeleteModal();
         } catch (error) {
             console.error('Erreur:', error);
@@ -565,7 +374,6 @@ const AdminMethodologie = {
     closeDeleteModal() {
         document.getElementById('deleteModal').classList.add('hidden');
         this.deletingItem = null;
-        this.deletingType = null;
     },
 
     // ========== SELECTORS ==========
@@ -581,7 +389,10 @@ const AdminMethodologie = {
     selectIcon(containerId, icon) {
         const container = document.getElementById(containerId);
         container.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
-        container.querySelector(`.icon-option:nth-child(${this.icons.indexOf(icon) + 1})`).classList.add('selected');
+        const index = this.icons.indexOf(icon);
+        if (index >= 0) {
+            container.children[index].classList.add('selected');
+        }
     },
 
     renderColorSelector(containerId, selected) {
@@ -603,21 +414,13 @@ const AdminMethodologie = {
 
     // ========== EVENTS ==========
     bindEvents() {
-        // Category modal
-        document.getElementById('addCategoryBtn')?.addEventListener('click', () => this.openAddCategoryModal());
-        document.getElementById('closeCategoryModal')?.addEventListener('click', () => this.closeCategoryModal());
-        document.getElementById('cancelCategoryBtn')?.addEventListener('click', () => this.closeCategoryModal());
-        document.getElementById('saveCategoryBtn')?.addEventListener('click', () => this.saveCategory());
+        // Add button
+        document.getElementById('addCategoryBtn')?.addEventListener('click', () => this.openAddModal(null));
 
-        // Competence modal
-        document.getElementById('closeCompetenceModal')?.addEventListener('click', () => this.closeCompetenceModal());
-        document.getElementById('cancelCompetenceBtn')?.addEventListener('click', () => this.closeCompetenceModal());
-        document.getElementById('saveCompetenceBtn')?.addEventListener('click', () => this.saveCompetence());
-
-        // Etape modal
-        document.getElementById('closeEtapeModal')?.addEventListener('click', () => this.closeEtapeModal());
-        document.getElementById('cancelEtapeBtn')?.addEventListener('click', () => this.closeEtapeModal());
-        document.getElementById('saveEtapeBtn')?.addEventListener('click', () => this.saveEtape());
+        // Item modal
+        document.getElementById('closeItemModal')?.addEventListener('click', () => this.closeItemModal());
+        document.getElementById('cancelItemBtn')?.addEventListener('click', () => this.closeItemModal());
+        document.getElementById('saveItemBtn')?.addEventListener('click', () => this.saveItem());
 
         // Delete modal
         document.getElementById('cancelDeleteBtn')?.addEventListener('click', () => this.closeDeleteModal());
