@@ -482,7 +482,7 @@ const EleveMethodologieParcours = {
                         <a href="${bexInfo.url}" class="training-link training-link-bex">
                             <div class="training-link-icon">🔧</div>
                             <div class="training-link-info">
-                                <div class="training-link-label">Entraînement Savoir-faire</div>
+                                <div class="training-link-label">BEX Savoir-faire</div>
                                 <div class="training-link-title">${this.escapeHtml(bexInfo.titre)}</div>
                             </div>
                             <span class="training-link-arrow">→</span>
@@ -492,7 +492,7 @@ const EleveMethodologieParcours = {
                         <a href="${compInfo.url}" class="training-link training-link-comp">
                             <div class="training-link-icon">🎯</div>
                             <div class="training-link-info">
-                                <div class="training-link-label">Entraînement Compétences</div>
+                                <div class="training-link-label">BEX Compétences</div>
                                 <div class="training-link-title">${this.escapeHtml(compInfo.titre)}</div>
                             </div>
                             <span class="training-link-arrow">→</span>
