@@ -1,5 +1,5 @@
 /**
- * Eleve Evaluations - Liste des evaluations pour l'eleve
+ * Eleve Evaluations - Liste des évaluations pour l'élève
  */
 
 const EleveEvaluations = {
@@ -9,12 +9,12 @@ const EleveEvaluations = {
     chapitres: [],
     currentUserId: null,
 
-    // Type colors
-    typeColors: {
-        'connaissances': 'green',
-        'savoir-faire': 'orange',
-        'competences': 'purple',
-        'bonus': 'yellow'
+    // Type icons & colors
+    typeConfig: {
+        'connaissances': { icon: '🟢', color: 'green' },
+        'savoir-faire': { icon: '🟠', color: 'orange' },
+        'competences': { icon: '🟣', color: 'purple' },
+        'bonus': { icon: '⭐', color: 'yellow' }
     },
 
     // ========== INITIALIZATION ==========
@@ -25,12 +25,11 @@ const EleveEvaluations = {
 
             await this.loadData();
             this.categorizeEvaluations();
-            this.updateStats();
             this.renderEvaluations();
             this.showContent();
         } catch (error) {
             console.error('Erreur initialisation:', error);
-            this.showError('Erreur lors du chargement des evaluations');
+            this.showError('Erreur lors du chargement des évaluations');
         }
     },
 
@@ -72,8 +71,7 @@ const EleveEvaluations = {
         this.categories = {
             repasser: [],
             disponibles: [],
-            avenir: [],
-            terminees: []
+            avenir: []
         };
 
         this.evaluations.forEach(eval => {
@@ -81,25 +79,25 @@ const EleveEvaluations = {
 
             if (resultat) {
                 if (resultat.valide === 'true' || resultat.valide === true) {
-                    // Validee - terminee
-                    this.categories.terminees.push({ ...eval, resultat });
+                    // Validée - ne pas afficher (l'élève doit aller voir "Mes notes")
+                    return;
                 } else {
-                    // Non validee - a repasser
+                    // Non validée - à repasser
                     this.categories.repasser.push({ ...eval, resultat });
                 }
             } else {
-                // Pas encore passee
+                // Pas encore passée
                 if (eval.date_ouverture) {
                     const dateOuverture = new Date(eval.date_ouverture);
                     if (dateOuverture > now) {
-                        // A venir
+                        // À venir
                         this.categories.avenir.push(eval);
                     } else {
                         // Disponible
                         this.categories.disponibles.push(eval);
                     }
                 } else {
-                    // Disponible par defaut
+                    // Disponible par défaut
                     this.categories.disponibles.push(eval);
                 }
             }
@@ -114,163 +112,146 @@ const EleveEvaluations = {
     showError(message) {
         document.getElementById('loader').innerHTML = `
             <div class="empty-state">
-                <div class="empty-icon">!</div>
+                <div class="empty-icon">⚠️</div>
                 <h3>Erreur</h3>
                 <p>${message}</p>
             </div>
         `;
     },
 
-    // ========== STATS ==========
-    updateStats() {
-        document.getElementById('statARepasser').textContent = this.categories.repasser.length;
-        document.getElementById('statDisponibles').textContent = this.categories.disponibles.length;
-        document.getElementById('statAVenir').textContent = this.categories.avenir.length;
-        document.getElementById('statTerminees').textContent = this.categories.terminees.length;
-    },
-
     // ========== RENDER ==========
     renderEvaluations() {
-        const hasAny = this.evaluations.length > 0;
+        const container = document.getElementById('evaluationsList');
+        const emptyState = document.getElementById('emptyState');
 
-        if (!hasAny) {
-            document.getElementById('emptyState').style.display = 'block';
+        // Combine all in order: repasser first, then disponibles, then avenir
+        const allEvals = [
+            ...this.categories.repasser.map(e => ({ ...e, status: 'retry' })),
+            ...this.categories.disponibles.map(e => ({ ...e, status: 'available' })),
+            ...this.categories.avenir.map(e => ({ ...e, status: 'upcoming' }))
+        ];
+
+        if (allEvals.length === 0) {
+            container.innerHTML = '';
+            emptyState.style.display = 'block';
             return;
         }
 
-        // Render each section
-        this.renderSection('Repasser', this.categories.repasser, 'repasser');
-        this.renderSection('Disponibles', this.categories.disponibles, 'disponible');
-        this.renderSection('AVenir', this.categories.avenir, 'avenir');
-        this.renderSection('Terminees', this.categories.terminees, 'terminee');
+        emptyState.style.display = 'none';
+        container.innerHTML = allEvals.map(e => this.renderCard(e)).join('');
     },
 
-    renderSection(name, evals, status) {
-        const section = document.getElementById(`section${name}`);
-        const grid = document.getElementById(`grid${name}`);
-
-        if (evals.length === 0) {
-            section.style.display = 'none';
-            return;
-        }
-
-        section.style.display = 'block';
-        grid.innerHTML = evals.map(e => this.renderCard(e, status)).join('');
-    },
-
-    renderCard(evaluation, status) {
-        const typeClass = evaluation.type || 'connaissances';
+    renderCard(evaluation) {
+        const type = evaluation.type || 'connaissances';
+        const config = this.typeConfig[type] || this.typeConfig['connaissances'];
         const chapitre = this.chapitres.find(c => c.id === evaluation.chapitre_id);
-        const chapterName = chapitre?.titre || '';
 
-        let statusClass = '';
+        // Build title - use chapter name for connaissances, or eval title
+        let title = evaluation.titre || 'Évaluation';
+        if (type === 'connaissances' && chapitre) {
+            title = chapitre.titre || title;
+        }
+
+        // Build card classes
+        let cardClass = 'eval-card';
+        if (evaluation.status === 'retry') cardClass += ' retry';
+        if (evaluation.status === 'upcoming') cardClass += ' upcoming';
+
+        // Build meta items
+        let metaItems = [];
+        if (evaluation.date_limite) {
+            metaItems.push(`📅 Jusqu'au ${this.formatDate(evaluation.date_limite)}`);
+        } else if (evaluation.status === 'upcoming' && evaluation.date_ouverture) {
+            metaItems.push(`📅 Ouvre le ${this.formatDate(evaluation.date_ouverture)}`);
+        }
+        metaItems.push(`⏱️ ${evaluation.duree_estimee || 15} min`);
+
+        // Build action/status
         let actionHtml = '';
-        let extraHtml = '';
+        let statusBadge = '';
 
-        switch (status) {
-            case 'repasser':
-                statusClass = 'repasser';
+        switch (evaluation.status) {
+            case 'retry':
+                statusBadge = '<span class="status-badge retry">⚠️ À repasser</span>';
                 actionHtml = `
-                    <div class="card-actions">
-                        <button class="btn btn-warning" onclick="EleveEvaluations.startEvaluation('${evaluation.id}')">
-                            Repasser
-                        </button>
-                    </div>
-                `;
-                if (evaluation.resultat) {
-                    extraHtml = `
-                        <div class="card-result">
-                            <div>
-                                <div class="card-result-score failed">${evaluation.resultat.score || 0}%</div>
-                                <div class="card-result-label">Score precedent</div>
-                            </div>
-                            <div class="card-validations">
-                                <span class="validation-badge not-earned">Non valide</span>
-                            </div>
-                        </div>
-                    `;
-                }
-                break;
-
-            case 'disponible':
-                statusClass = '';
-                actionHtml = `
-                    <div class="card-actions">
-                        <button class="btn btn-primary" onclick="EleveEvaluations.startEvaluation('${evaluation.id}')">
-                            Commencer
-                        </button>
+                    <div class="eval-card-actions">
+                        <a href="evaluation.html?id=${evaluation.id}" class="btn btn-warning">▶️ Repasser</a>
                     </div>
                 `;
                 break;
 
-            case 'avenir':
-                statusClass = 'avenir';
-                const dateOuverture = evaluation.date_ouverture ? new Date(evaluation.date_ouverture) : null;
-                if (dateOuverture) {
-                    const diff = Math.ceil((dateOuverture - new Date()) / (1000 * 60 * 60 * 24));
-                    extraHtml = `
-                        <div class="card-countdown">
-                            Disponible dans ${diff} jour${diff > 1 ? 's' : ''}
-                        </div>
-                    `;
-                }
+            case 'available':
                 actionHtml = `
-                    <div class="card-actions">
-                        <button class="btn btn-secondary" disabled>
-                            Pas encore disponible
-                        </button>
+                    <div class="eval-card-actions">
+                        <a href="evaluation.html?id=${evaluation.id}" class="btn btn-primary">▶️ Commencer</a>
                     </div>
                 `;
                 break;
 
-            case 'terminee':
-                statusClass = 'terminee';
-                if (evaluation.resultat) {
-                    extraHtml = `
-                        <div class="card-result">
-                            <div>
-                                <div class="card-result-score success">${evaluation.resultat.score || 100}%</div>
-                                <div class="card-result-label">Score</div>
-                            </div>
-                            <div class="card-validations">
-                                <span class="validation-badge earned">+${evaluation.briques || 3} validations</span>
-                            </div>
-                        </div>
-                    `;
-                }
+            case 'upcoming':
+                const countdown = this.getCountdown(evaluation.date_ouverture);
                 actionHtml = `
-                    <div class="card-actions">
-                        <a href="notes.html" class="btn btn-secondary">
-                            Voir le detail
-                        </a>
+                    <div class="eval-card-actions">
+                        <span class="upcoming-info">⏳ Dans <span class="time">${countdown}</span></span>
                     </div>
                 `;
                 break;
         }
 
         return `
-            <div class="evaluation-card ${typeClass} ${statusClass}">
-                <div class="card-header">
-                    <span class="card-title">${this.escapeHtml(evaluation.titre || 'Evaluation')}</span>
-                    <span class="card-type-badge ${typeClass}">${typeClass}</span>
+            <div class="${cardClass}">
+                <div class="eval-card-icon ${config.color}">${config.icon}</div>
+                <div class="eval-card-content">
+                    <div class="eval-card-title">
+                        ${this.escapeHtml(title)}
+                        ${statusBadge}
+                    </div>
+                    <div class="eval-card-meta">
+                        ${metaItems.map(item => `<span>${item}</span>`).join('')}
+                    </div>
                 </div>
-                <div class="card-meta">
-                    ${chapterName ? `<span>${this.escapeHtml(chapterName)}</span>` : ''}
-                    <span>${evaluation.briques || 3} validations en jeu</span>
-                </div>
-                ${extraHtml}
                 ${actionHtml}
             </div>
         `;
     },
 
-    // ========== ACTIONS ==========
-    startEvaluation(evaluationId) {
-        // Redirect to evaluation execution page
-        window.location.href = `evaluation.html?id=${evaluationId}`;
+    // ========== HELPERS ==========
+    formatDate(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).replace(' ', ' à ');
+        } catch {
+            return dateStr;
+        }
     },
 
-    // ========== UTILS ==========
+    getCountdown(dateStr) {
+        if (!dateStr) return '?';
+        try {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = date - now;
+
+            if (diff <= 0) return 'Bientôt';
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+            if (days > 0) {
+                return `${days}j ${hours}h`;
+            }
+            return `${hours}h`;
+        } catch {
+            return '?';
+        }
+    },
+
     escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
