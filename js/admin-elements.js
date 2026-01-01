@@ -206,10 +206,22 @@ const AdminElements = {
         });
 
         this.chapitres.forEach(chap => {
-            const discId = chap.discipline_id;
-            if (tree[discId]) {
+            const chapDiscId = String(chap.discipline_id || '');
+            const chapDiscNumber = chapDiscId.replace('disc_', '').replace(/^0+/, '');
+
+            // Find matching discipline flexibly
+            let matchedDiscId = null;
+            for (const discId of Object.keys(tree)) {
+                const discNumber = discId.replace('disc_', '').replace(/^0+/, '');
+                if (chapDiscId === discId || chapDiscNumber === discNumber) {
+                    matchedDiscId = discId;
+                    break;
+                }
+            }
+
+            if (matchedDiscId && tree[matchedDiscId]) {
                 const count = this.elements.filter(el => el.chapitre_id === chap.id).length;
-                tree[discId].chapitres.push({
+                tree[matchedDiscId].chapitres.push({
                     ...chap,
                     elementCount: count
                 });
@@ -518,7 +530,14 @@ const AdminElements = {
             return;
         }
 
-        const chapitres = this.chapitres.filter(c => c.discipline_id === disciplineId);
+        // Match discipline_id flexibly: "disc_001" matches "disc_001", "1", or "001"
+        const discNumber = disciplineId.replace('disc_', '').replace(/^0+/, '');
+        const chapitres = this.chapitres.filter(c => {
+            const chapDiscId = String(c.discipline_id || '');
+            const chapDiscNumber = chapDiscId.replace('disc_', '').replace(/^0+/, '');
+            return chapDiscId === disciplineId || chapDiscNumber === discNumber;
+        });
+
         chapitreSelect.innerHTML = '<option value="">Selectionner un chapitre...</option>' +
             chapitres.map(c => `<option value="${c.id}">${this.escapeHtml(c.titre || c.id)}</option>`).join('');
         chapitreSelect.disabled = false;
