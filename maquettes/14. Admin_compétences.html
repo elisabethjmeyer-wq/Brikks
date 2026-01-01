@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des compétences | Admin - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-teal: #14b8a6;
+            --accent-teal-light: #ccfbf1;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ===== SIDEBAR ===== */
+        .admin-sidebar {
+            width: 280px;
+            background: var(--gray-900);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 150;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-sidebar.collapsed { transform: translateX(-100%); }
+
+        .admin-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .admin-logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-logo .badge {
+            background: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sidebar-section { margin-bottom: 24px; }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 20px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar-link .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        .sidebar-sublink {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 20px 8px 56px;
+            color: var(--gray-500);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .sidebar-sublink:hover {
+            color: var(--gray-300);
+        }
+
+        .sidebar-sublink.active {
+            color: white;
+        }
+
+        /* ===== MAIN ===== */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+        .main-content.expanded { margin-left: 0; }
+
+        /* ===== TOP BAR ===== */
+        .top-bar { background: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 100; }
+        .top-bar-left { display: flex; align-items: center; gap: 16px; }
+        .toggle-sidebar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .toggle-sidebar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-500); }
+        .top-bar-breadcrumb a { color: var(--gray-500); text-decoration: none; }
+        .top-bar-breadcrumb a:hover { color: var(--primary); }
+        .top-bar-breadcrumb .separator { color: var(--gray-300); }
+        .top-bar-right { display: flex; align-items: center; gap: 12px; }
+        .top-bar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; }
+        .top-bar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-btn .notif-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--accent-red); border-radius: 50%; border: 2px solid white; }
+        .top-bar-user { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 10px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .top-bar-user:hover { background: var(--gray-100); }
+        .top-bar-user-avatar { width: 36px; height: 36px; border-radius: 8px; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+        .top-bar-user-info { text-align: left; }
+        .top-bar-user-name { font-size: 13px; font-weight: 600; color: var(--gray-800); display: flex; align-items: center; gap: 6px; }
+        .top-bar-user-name::after { content: "▼"; font-size: 10px; color: var(--gray-400); }
+        .top-bar-user-role { font-size: 11px; color: var(--gray-500); }
+        .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: var(--radius); box-shadow: var(--shadow-lg); border: 1px solid var(--gray-200); min-width: 180px; display: none; z-index: 200; overflow: hidden; }
+        .user-dropdown.show { display: block; }
+        .user-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-size: 14px; color: var(--gray-700); text-decoration: none; transition: all 0.2s; cursor: pointer; }
+        .user-dropdown-item:hover { background: var(--gray-50); }
+        .user-dropdown-item.danger { color: var(--accent-red); }
+        .user-dropdown-item.danger:hover { background: var(--accent-red-light); }
+        .page-content { padding: 24px; flex: 1; }
+
+        /* ===== HEADER ===== */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .admin-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .admin-header p {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+
+        .btn-secondary {
+            background: white;
+            border: 2px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+        .btn-secondary:hover { background: var(--gray-50); }
+
+        .btn-danger { background: var(--accent-red); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--gray-100);
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--gray-600);
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .btn-icon.danger:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* ===== STATS ===== */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .stat-card-icon.purple { background: var(--accent-purple-light); }
+        .stat-card-icon.blue { background: var(--accent-blue-light); }
+        .stat-card-icon.green { background: var(--accent-green-light); }
+
+        .stat-card-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .stat-card-label {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        /* ===== SEARCH & FILTERS ===== */
+        .filters-bar {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px 10px 42px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 10px 32px 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") right 8px center no-repeat;
+            background-size: 16px;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* ===== COMPETENCES GRID ===== */
+        .competences-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 20px;
+        }
+
+        .competence-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .competence-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .competence-card-header {
+            padding: 16px 20px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .competence-card-title {
+            flex: 1;
+        }
+
+        .competence-card-title h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .competence-card-category {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: var(--accent-purple-light);
+            color: var(--accent-purple);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .competence-card-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .competence-card-body {
+            padding: 16px 20px;
+        }
+
+        .criteria-section {
+            margin-bottom: 16px;
+        }
+
+        .criteria-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .criteria-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .criteria-section-title .level {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            background: var(--accent-purple);
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+        }
+
+        .criteria-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .criteria-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--gray-600);
+            line-height: 1.4;
+        }
+
+        .criteria-item::before {
+            content: "✓";
+            color: var(--accent-green);
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .competence-card-footer {
+            padding: 12px 20px;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .usage-stats {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .usage-stats strong {
+            color: var(--gray-700);
+        }
+
+        /* ===== ADD CARD ===== */
+        .add-card {
+            background: var(--gray-50);
+            border: 2px dashed var(--gray-300);
+            border-radius: var(--radius-lg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 250px;
+        }
+
+        .add-card:hover {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .add-card .icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .add-card .text {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .add-card:hover .text {
+            color: var(--primary);
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden { display: none; }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 8px;
+            font-size: 16px;
+            color: var(--gray-500);
+            cursor: pointer;
+        }
+
+        .modal-close:hover { background: var(--gray-200); }
+
+        .modal-body { padding: 24px; }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-group:last-child { margin-bottom: 0; }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-group label .req { color: var(--accent-red); }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-input:focus { outline: none; border-color: var(--primary); }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+        }
+
+        .form-select:focus { outline: none; border-color: var(--primary); }
+
+        .form-help {
+            font-size: 11px;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        /* Criteria inputs */
+        .criteria-inputs {
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .criteria-level {
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .criteria-level:last-child {
+            border-bottom: none;
+        }
+
+        .criteria-level-header {
+            padding: 12px 16px;
+            background: var(--gray-50);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .criteria-level-header .level-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: var(--accent-purple);
+            color: white;
+            border-radius: 50%;
+            font-size: 12px;
+        }
+
+        .criteria-level-header .level-desc {
+            font-weight: 400;
+            color: var(--gray-500);
+            font-size: 12px;
+        }
+
+        .criteria-level-body {
+            padding: 12px 16px;
+        }
+
+        .criteria-input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .criteria-input-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .criteria-input-row input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .criteria-input-row input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .criteria-input-row .btn-remove {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 6px;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .criteria-input-row .btn-remove:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .btn-add-criteria {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px dashed var(--gray-300);
+            border-radius: 6px;
+            color: var(--gray-500);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .btn-add-criteria:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            position: sticky;
+            bottom: 0;
+            background: white;
+        }
+
+        /* Confirm modal */
+        .modal.confirm { max-width: 380px; text-align: center; }
+        .modal.confirm .modal-body { padding: 32px 24px; }
+
+        .confirm-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 16px;
+            background: var(--accent-red-light);
+        }
+
+        .confirm-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .confirm-text {
+            font-size: 14px;
+            color: var(--gray-600);
+            line-height: 1.5;
+        }
+
+        .modal.confirm .modal-footer { justify-content: center; }
+
+        /* ===== CATEGORIES MODAL ===== */
+        .categories-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: var(--gray-50);
+            border-radius: 8px;
+        }
+
+        .category-item-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .category-item-count {
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+
+        .category-item-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .category-item-actions .btn-icon {
+            width: 28px;
+            height: 28px;
+            font-size: 12px;
+        }
+
+        .add-category-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-category-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .add-category-row input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="admin-sidebar">
+        <div class="admin-logo"><h1><span>📚</span>Espace cours<span class="badge">Admin</span></h1></div>
+        <nav>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📌 Principal</div>
+                <a href="#" class="sidebar-link"><span class="icon">🏠</span>Page d'accueil</a>
+                <a href="#" class="sidebar-link"><span class="icon">📬</span>Messagerie<span class="badge">3</span></a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📚 Ressources</div>
+                <a href="#" class="sidebar-link"><span class="icon">📖</span>Leçons</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧠</span>Méthodologie</a>
+                <a href="#" class="sidebar-link"><span class="icon">🎬</span>Vidéos</a>
+                <a href="#" class="sidebar-link"><span class="icon">💡</span>Recommandations</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">🎯 Exercices</div>
+                <a href="#" class="sidebar-link"><span class="icon">📐</span>Banque de formats</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧩</span>Banque d'éléments</a>
+                <a href="#" class="sidebar-link"><span class="icon">📝</span>Entraînements</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📊 Évaluations</div>
+                <a href="#" class="sidebar-link"><span class="icon">📋</span>Évaluations</a>
+                <a href="#" class="sidebar-link active"><span class="icon">🟣</span>Compétences</a>
+                <a href="#" class="sidebar-link"><span class="icon">📊</span>Notes & Suivi</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">👥 Élèves</div>
+                <a href="#" class="sidebar-link"><span class="icon">👥</span>Utilisateurs</a>
+                <a href="#" class="sidebar-link"><span class="icon">❓</span>FAQ</a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Afficher/Masquer le menu">☰</button>
+                <div class="top-bar-breadcrumb"><a href="#">Admin</a><span class="separator">/</span><span>Compétences</span></div>
+            </div>
+            <div class="top-bar-right">
+                <button class="top-bar-btn" title="Voir le site élève">👁️</button>
+                <button class="top-bar-btn" title="Notifications">🔔<span class="notif-dot"></span></button>
+                <div class="top-bar-user" onclick="toggleUserMenu()">
+                    <div class="top-bar-user-avatar">EM</div>
+                    <div class="top-bar-user-info"><div class="top-bar-user-name">Mme Meyer</div><div class="top-bar-user-role">Professeur</div></div>
+                    <div class="user-dropdown" id="user-dropdown"><a href="#" class="user-dropdown-item danger"><span>🚪</span>Déconnexion</a></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-content">
+        <!-- HEADER -->
+        <header class="admin-header">
+            <div>
+                <h1>🟣 Gestion des compétences</h1>
+                <p>Créez et gérez les compétences évaluables et leurs critères de validation</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="openModal('categories')">
+                    <span>🏷️</span>
+                    Gérer les catégories
+                </button>
+                <button class="btn btn-primary" onclick="openModal('add')">
+                    <span>➕</span>
+                    Nouvelle compétence
+                </button>
+            </div>
+        </header>
+
+        <!-- STATS -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-card-icon purple">🟣</div>
+                <div class="stat-card-value">12</div>
+                <div class="stat-card-label">Compétences créées</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon blue">🏷️</div>
+                <div class="stat-card-value">4</div>
+                <div class="stat-card-label">Catégories</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon green">✅</div>
+                <div class="stat-card-value">8</div>
+                <div class="stat-card-label">Utilisées en évaluation</div>
+            </div>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="filters-bar">
+            <div class="search-box">
+                <input type="text" placeholder="Rechercher une compétence...">
+            </div>
+            <select class="filter-select">
+                <option value="">Toutes les catégories</option>
+                <option value="methodologie">📝 Méthodologie</option>
+                <option value="comportement">🎯 Comportement</option>
+                <option value="oral">🎤 Oral</option>
+                <option value="ecrit">✍️ Écrit</option>
+            </select>
+        </div>
+
+        <!-- COMPETENCES GRID -->
+        <div class="competences-grid">
+            <!-- Compétence 1 -->
+            <div class="competence-card">
+                <div class="competence-card-header">
+                    <div class="competence-card-title">
+                        <h3>Rendre une copie présentable</h3>
+                        <span class="competence-card-category">📝 Méthodologie</span>
+                    </div>
+                    <div class="competence-card-actions">
+                        <button class="btn-icon" title="Modifier" onclick="openModal('edit')">✏️</button>
+                        <button class="btn-icon danger" title="Supprimer" onclick="openModal('delete')">🗑️</button>
+                    </div>
+                </div>
+                <div class="competence-card-body">
+                    <div class="criteria-section">
+                        <div class="criteria-section-title">
+                            <span class="level">1</span>
+                            1ère validation
+                        </div>
+                        <div class="criteria-list">
+                            <div class="criteria-item">Nom, prénom, classe dans la marge</div>
+                            <div class="criteria-item">Écriture lisible</div>
+                            <div class="criteria-item">Feuille non froissée</div>
+                        </div>
+                    </div>
+                    <div class="criteria-section">
+                        <div class="criteria-section-title">
+                            <span class="level">2</span>
+                            2ème validation
+                        </div>
+                        <div class="criteria-list">
+                            <div class="criteria-item">Critères niveau 1 +</div>
+                            <div class="criteria-item">Mise en page aérée</div>
+                            <div class="criteria-item">Titres soulignés</div>
+                        </div>
+                    </div>
+                    <div class="criteria-section">
+                        <div class="criteria-section-title">
+                            <span class="level">3</span>
+                            3ème validation
+                        </div>
+                        <div class="criteria-list">
+                            <div class="criteria-item">Critères niveau 2 +</div>
+                            <div class="criteria-item">Organisation impeccable</div>
+                            <div class="criteria-item">Soin exemplaire</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="competence-card-footer">
+                    <span class="usage-stats">Utilisée dans <strong>3 évaluations</strong></span>
+                    <span class="usage-stats"><strong>18 élèves</strong> l'ont validée</span>
+                </div>
+            </div>
+
+            <!-- Compétence 2 -->
+            <div class="competence-card">
+                <div class="competence-card-header">
+                    <div class="competence-card-title">
+                        <h3>Présenter un document</h3>
+                        <span class="competence-card-category">📝 Méthodologie</span>
+                    </div>
+                    <div class="competence-card-actions">
+                        <button class="btn-icon" title="Modifier" onclick="openModal('edit')">✏️</button>
+                        <button class="btn-icon danger" title="Supprimer" onclick="openModal('delete')">🗑️</button>
+                    </div>
+                </div>
+                <div class="competence-card-body">
+                    <div class="criteria-section">
+                        <div class="criteria-section-title">
+                            <span class="level">1</span>
+                            1ère validation
+                        </div>
+                        <div class="criteria-list">
+                            <div class="criteria-item">Identifier la nature du document</div>
+                            <div class="criteria-item">Identifier l'auteur</div>
+                            <div class="criteria-item">Identifier la date</div>
+                        </div>
+                    </div>
+                    <div class="criteria-section">
+                        <div class="criteria-section-title">
+                            <span class="level">2</span>
+                            2ème validation
+                        </div>
+                        <div class="criteria-list">
+                            <div class="criteria-item">Critères niveau 1 +</div>
+                            <div class="criteria-item">Situer dans le contexte historique</div>
+                        </div>
+                    </div>
+                    <div class="criteria-section">
+                        <div class="criteria-section-title">
+                            <span class="level">3</span>
+                            3ème validation
+                        </div>
+                        <div class="criteria-list">
+                            <div class="criteria-item">Critères niveau 2 +</div>
+                            <div class="criteria-item">Expliquer l'intérêt du document</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="competence-card-footer">
+                    <span class="usage-stats">Utilisée dans <strong>5 évaluations</strong></span>
+                    <span class="usage-stats"><strong>12 élèves</strong> l'ont validée</span>
+                </div>
+            </div>
+
+            <!-- Compétence 3 -->
+            <div class="competence-card">
+                <div class="competence-card-header">
+                    <div class="competence-card-title">
+                        <h3>S'exprimer à l'oral</h3>
+                        <span class="competence-card-category">🎤 Oral</span>
+                    </div>
+                    <div class="competence-card-actions">
+                        <button class="btn-icon" title="Modifier" onclick="openModal('edit')">✏️</button>
+                        <button class="btn-icon danger" title="Supprimer" onclick="openModal('delete')">🗑️</button>
+                    </div>
+                </div>
+                <div class="competence-card-body">
+                    <div class="criteria-section">
+                        <div class="criteria-section-title">
+                            <span class="level">1</span>
+                            1ère validation
+                        </div>
+                        <div class="criteria-list">
+                            <div class="criteria-item">Parler suffisamment fort</div>
+                            <div class="criteria-item">Regarder son auditoire</div>
+                        </div>
+                    </div>
+                    <div class="criteria-section">
+                        <div class="criteria-section-title">
+                            <span class="level">2</span>
+                            2ème validation
+                        </div>
+                        <div class="criteria-list">
+                            <div class="criteria-item">Critères niveau 1 +</div>
+                            <div class="criteria-item">Ne pas lire ses notes</div>
+                            <div class="criteria-item">Articuler clairement</div>
+                        </div>
+                    </div>
+                    <div class="criteria-section">
+                        <div class="criteria-section-title">
+                            <span class="level">3</span>
+                            3ème validation
+                        </div>
+                        <div class="criteria-list">
+                            <div class="criteria-item">Critères niveau 2 +</div>
+                            <div class="criteria-item">Gestuelle adaptée</div>
+                            <div class="criteria-item">Captiver l'attention</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="competence-card-footer">
+                    <span class="usage-stats">Utilisée dans <strong>2 évaluations</strong></span>
+                    <span class="usage-stats"><strong>5 élèves</strong> l'ont validée</span>
+                </div>
+            </div>
+
+            <!-- Compétence 4 - Simple (même critères pour tous niveaux) -->
+            <div class="competence-card">
+                <div class="competence-card-header">
+                    <div class="competence-card-title">
+                        <h3>Gestion du temps de travail</h3>
+                        <span class="competence-card-category">🎯 Comportement</span>
+                    </div>
+                    <div class="competence-card-actions">
+                        <button class="btn-icon" title="Modifier" onclick="openModal('edit')">✏️</button>
+                        <button class="btn-icon danger" title="Supprimer" onclick="openModal('delete')">🗑️</button>
+                    </div>
+                </div>
+                <div class="competence-card-body">
+                    <div class="criteria-section">
+                        <div class="criteria-section-title">
+                            <span class="level">★</span>
+                            Critères (identiques pour les 3 validations)
+                        </div>
+                        <div class="criteria-list">
+                            <div class="criteria-item">Rendre son travail dans les temps</div>
+                            <div class="criteria-item">Gérer son temps pendant l'épreuve</div>
+                            <div class="criteria-item">Terminer toutes les questions</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="competence-card-footer">
+                    <span class="usage-stats">Utilisée dans <strong>4 évaluations</strong></span>
+                    <span class="usage-stats"><strong>20 élèves</strong> l'ont validée</span>
+                </div>
+            </div>
+
+            <!-- Add card -->
+            <div class="add-card" onclick="openModal('add')">
+                <div class="icon">➕</div>
+                <div class="text">Ajouter une compétence</div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL: Ajouter/Modifier compétence -->
+<div class="modal-overlay hidden" id="modal-competence">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modal-title">Nouvelle compétence</h2>
+            <button class="modal-close" onclick="closeModal('modal-competence')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Nom de la compétence <span class="req">*</span></label>
+                <input type="text" class="form-input" placeholder="Ex: Rendre une copie présentable">
+            </div>
+
+            <div class="form-group">
+                <label>Catégorie</label>
+                <select class="form-select">
+                    <option value="">Sans catégorie</option>
+                    <option value="methodologie">📝 Méthodologie</option>
+                    <option value="comportement">🎯 Comportement</option>
+                    <option value="oral">🎤 Oral</option>
+                    <option value="ecrit">✍️ Écrit</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Critères de validation <span class="req">*</span></label>
+                <div class="form-help" style="margin-bottom: 12px;">
+                    Définissez les critères pour chaque niveau. Les critères peuvent devenir plus exigeants au fil des validations, ou rester identiques.
+                </div>
+                
+                <div class="criteria-inputs">
+                    <!-- Niveau 1 -->
+                    <div class="criteria-level">
+                        <div class="criteria-level-header">
+                            <span class="level-badge">1</span>
+                            1ère validation
+                            <span class="level-desc">(critères de base)</span>
+                        </div>
+                        <div class="criteria-level-body">
+                            <div class="criteria-input-row">
+                                <input type="text" placeholder="Critère...">
+                                <button class="btn-remove">✕</button>
+                            </div>
+                            <div class="criteria-input-row">
+                                <input type="text" placeholder="Critère...">
+                                <button class="btn-remove">✕</button>
+                            </div>
+                            <button class="btn-add-criteria">+ Ajouter un critère</button>
+                        </div>
+                    </div>
+
+                    <!-- Niveau 2 -->
+                    <div class="criteria-level">
+                        <div class="criteria-level-header">
+                            <span class="level-badge">2</span>
+                            2ème validation
+                            <span class="level-desc">(+ exigeant ou identique)</span>
+                        </div>
+                        <div class="criteria-level-body">
+                            <div class="criteria-input-row">
+                                <input type="text" placeholder="Critère..." value="Critères niveau 1 +">
+                                <button class="btn-remove">✕</button>
+                            </div>
+                            <button class="btn-add-criteria">+ Ajouter un critère</button>
+                        </div>
+                    </div>
+
+                    <!-- Niveau 3 -->
+                    <div class="criteria-level">
+                        <div class="criteria-level-header">
+                            <span class="level-badge">3</span>
+                            3ème validation
+                            <span class="level-desc">(+ exigeant ou identique)</span>
+                        </div>
+                        <div class="criteria-level-body">
+                            <div class="criteria-input-row">
+                                <input type="text" placeholder="Critère..." value="Critères niveau 2 +">
+                                <button class="btn-remove">✕</button>
+                            </div>
+                            <button class="btn-add-criteria">+ Ajouter un critère</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-competence')">Annuler</button>
+            <button class="btn btn-primary">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Gérer les catégories -->
+<div class="modal-overlay hidden" id="modal-categories">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>🏷️ Gérer les catégories</h2>
+            <button class="modal-close" onclick="closeModal('modal-categories')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="categories-list">
+                <div class="category-item">
+                    <span class="category-item-name">📝 Méthodologie</span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="category-item-count">5 compétences</span>
+                        <div class="category-item-actions">
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="category-item">
+                    <span class="category-item-name">🎯 Comportement</span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="category-item-count">3 compétences</span>
+                        <div class="category-item-actions">
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="category-item">
+                    <span class="category-item-name">🎤 Oral</span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="category-item-count">2 compétences</span>
+                        <div class="category-item-actions">
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="category-item">
+                    <span class="category-item-name">✍️ Écrit</span>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span class="category-item-count">2 compétences</span>
+                        <div class="category-item-actions">
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="add-category-row">
+                <input type="text" placeholder="Nouvelle catégorie...">
+                <button class="btn btn-primary btn-sm">+ Ajouter</button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" onclick="closeModal('modal-categories')">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Confirmer suppression -->
+<div class="modal-overlay hidden" id="modal-delete">
+    <div class="modal confirm">
+        <div class="modal-header">
+            <h2></h2>
+            <button class="modal-close" onclick="closeModal('modal-delete')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-icon">🗑️</div>
+            <div class="confirm-title">Supprimer cette compétence ?</div>
+            <div class="confirm-text">Cette compétence est utilisée dans <strong>3 évaluations</strong>. La supprimer n'affectera pas les résultats déjà enregistrés.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-delete')">Annuler</button>
+            <button class="btn btn-danger">🗑️ Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openModal(type) {
+        if (type === 'add') {
+            document.getElementById('modal-title').textContent = 'Nouvelle compétence';
+            document.getElementById('modal-competence').classList.remove('hidden');
+        } else if (type === 'edit') {
+            document.getElementById('modal-title').textContent = 'Modifier la compétence';
+            document.getElementById('modal-competence').classList.remove('hidden');
+        } else if (type === 'delete') {
+            document.getElementById('modal-delete').classList.remove('hidden');
+        } else if (type === 'categories') {
+            document.getElementById('modal-categories').classList.remove('hidden');
+        }
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.add('hidden');
+        });
+    });
+
+    function toggleSidebar() {
+        document.querySelector('.admin-sidebar').classList.toggle('collapsed');
+        document.querySelector('.main-content').classList.toggle('expanded');
+    }
+    function toggleUserMenu() { document.getElementById('user-dropdown').classList.toggle('show'); }
+    document.addEventListener('click', function(e) {
+        const userMenu = document.querySelector('.top-bar-user');
+        if (userMenu && !userMenu.contains(e.target)) document.getElementById('user-dropdown').classList.remove('show');
+    });
+</script>
+
+</body>
+</html>

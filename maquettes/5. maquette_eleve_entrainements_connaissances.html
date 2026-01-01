@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entraînements Connaissances | Élève - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-icon { font-size: 28px; }
+        .logo-text { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+        .logo-text span { color: var(--gray-500); font-weight: 500; }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 25px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-name { font-size: 14px; font-weight: 600; color: var(--gray-700); }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .breadcrumb a { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb .separator { color: var(--gray-300); }
+        .breadcrumb .current { color: var(--gray-600); }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header-badge {
+            padding: 6px 14px;
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .page-header p {
+            font-size: 15px;
+            color: var(--gray-500);
+        }
+
+        /* ===== STATS BAR ===== */
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 18px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-icon {
+            font-size: 20px;
+        }
+
+        .stat-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* ===== FILTER BAR ===== */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--gray-300);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .filter-btn .btn-count {
+            background: var(--gray-100);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .filter-btn.active .btn-count {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        /* Dropdown */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 18px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            min-width: 200px;
+        }
+
+        .dropdown-toggle:hover {
+            border-color: var(--gray-300);
+        }
+
+        .dropdown-toggle .arrow {
+            margin-left: auto;
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .dropdown.open .dropdown-toggle {
+            border-color: var(--primary);
+        }
+
+        .dropdown.open .dropdown-toggle .arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-toggle.has-selection {
+            border-color: var(--accent-green);
+            color: var(--gray-800);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            min-width: 280px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-200);
+            z-index: 100;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .dropdown.open .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: var(--accent-green-light);
+        }
+
+        .dropdown-item.selected {
+            background: var(--accent-green-light);
+        }
+
+        .dropdown-item .item-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .dropdown-item .item-info {
+            flex: 1;
+        }
+
+        .dropdown-item .item-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-800);
+        }
+
+        .dropdown-item.selected .item-title {
+            color: var(--accent-green);
+        }
+
+        .dropdown-item .item-subtitle {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .dropdown-item .item-count {
+            background: var(--gray-100);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .dropdown-item.selected .item-count {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        /* ===== GLOBAL TRAINING MODULE ===== */
+        .global-training {
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-bottom: 32px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .global-training:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        .global-training-icon {
+            width: 64px;
+            height: 64px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+
+        .global-training-content {
+            flex: 1;
+        }
+
+        .global-training-content h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .global-training-content p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 12px;
+        }
+
+        .global-training-stats {
+            display: flex;
+            gap: 16px;
+        }
+
+        .global-training-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            background: rgba(255,255,255,0.15);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        .global-training-arrow {
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        /* ===== MATIÈRE SECTION ===== */
+        .matiere-section {
+            margin-bottom: 32px;
+        }
+
+        .matiere-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 0;
+            border-bottom: 3px solid var(--accent-green);
+            margin-bottom: 16px;
+        }
+
+        .matiere-icon {
+            font-size: 28px;
+        }
+
+        .matiere-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--gray-900);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .matiere-stats {
+            margin-left: auto;
+            display: flex;
+            gap: 12px;
+        }
+
+        .matiere-stat {
+            padding: 4px 12px;
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* ===== THEME ACCORDION ===== */
+        .theme-accordion {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .theme-accordion-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+        }
+
+        .theme-accordion-header:hover {
+            background: var(--gray-50);
+        }
+
+        .theme-accordion.open .theme-accordion-header {
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .accordion-arrow {
+            width: 28px;
+            height: 28px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--gray-500);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .theme-accordion.open .accordion-arrow {
+            transform: rotate(90deg);
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .theme-accordion-info {
+            flex: 1;
+        }
+
+        .theme-accordion-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .theme-accordion-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .theme-accordion-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .theme-accordion-content {
+            display: none;
+            padding: 8px;
+        }
+
+        .theme-accordion.open .theme-accordion-content {
+            display: block;
+        }
+
+        /* ===== CHAPTER BLOCK ===== */
+        .chapter-block {
+            margin-bottom: 8px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .chapter-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--gray-50);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chapter-header:hover {
+            background: var(--gray-100);
+        }
+
+        .chapter-block.open .chapter-header {
+            background: var(--accent-green-light);
+        }
+
+        .chapter-number {
+            width: 32px;
+            height: 32px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--gray-500);
+            flex-shrink: 0;
+        }
+
+        .chapter-block.open .chapter-number {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .chapter-info {
+            flex: 1;
+        }
+
+        .chapter-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .chapter-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .chapter-arrow {
+            font-size: 14px;
+            color: var(--gray-400);
+            transition: transform 0.2s;
+        }
+
+        .chapter-block.open .chapter-arrow {
+            transform: rotate(90deg);
+            color: var(--accent-green);
+        }
+
+        .chapter-content {
+            display: none;
+            padding: 8px 16px 16px;
+            background: white;
+        }
+
+        .chapter-block.open .chapter-content {
+            display: block;
+        }
+
+        /* ===== ENTRAINEMENT ITEM ===== */
+        .entrainement-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            background: var(--gray-50);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: inherit;
+            border: 2px solid transparent;
+        }
+
+        .entrainement-item:hover {
+            background: var(--primary-bg);
+            border-color: var(--primary);
+        }
+
+        .entrainement-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .entrainement-icon {
+            width: 36px;
+            height: 36px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .entrainement-info {
+            flex: 1;
+        }
+
+        .entrainement-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .entrainement-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Status badges */
+        .entrainement-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-badge.not-started {
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
+        .status-badge.in-progress {
+            background: var(--accent-orange-light);
+            color: #b45309;
+        }
+
+        .status-badge.completed {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .score-badge {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .entrainement-arrow {
+            font-size: 16px;
+            color: var(--gray-300);
+        }
+
+        .entrainement-item:hover .entrainement-arrow {
+            color: var(--primary);
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-chapter {
+            padding: 20px;
+            text-align: center;
+            color: var(--gray-400);
+            font-size: 13px;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .stats-bar {
+                flex-direction: column;
+            }
+
+            .stat-item {
+                flex: 1;
+            }
+
+            .matiere-title {
+                font-size: 16px;
+            }
+
+            .matiere-stats {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle">☰</button>
+            <a href="#" class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">Espace cours <span>• Mme Meyer</span></span>
+            </a>
+        </div>
+        <div class="user-pill">
+            <div class="user-avatar">IA</div>
+            <span class="user-name">Ilyana A.</span>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+        <!-- BREADCRUMB -->
+        <nav class="breadcrumb">
+            <a href="#">Accueil</a>
+            <span class="separator">›</span>
+            <a href="#">Entraînements</a>
+            <span class="separator">›</span>
+            <span class="current">Connaissances</span>
+        </nav>
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>
+                ✅ Entraînements
+                <span class="page-header-badge">Connaissances</span>
+            </h1>
+            <p>Révise et mémorise les notions essentielles de tes cours</p>
+        </div>
+
+        <!-- STATS BAR -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-icon">📝</span>
+                <div class="stat-content">
+                    <span class="stat-value">12</span>
+                    <span class="stat-label">entraînements</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">✅</span>
+                <div class="stat-content">
+                    <span class="stat-value">5</span>
+                    <span class="stat-label">terminés</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">🔄</span>
+                <div class="stat-content">
+                    <span class="stat-value">2</span>
+                    <span class="stat-label">en cours</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">🏆</span>
+                <div class="stat-content">
+                    <span class="stat-value">87%</span>
+                    <span class="stat-label">score moyen</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILTER BAR -->
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterAll()">
+                📚 Tous
+                <span class="btn-count">14</span>
+            </button>
+            
+            <div class="dropdown" id="dropdown">
+                <button class="dropdown-toggle" onclick="toggleDropdown(event)">
+                    <span id="dropdownLabel">Choisir une matière</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-item" data-matiere="litterature" onclick="selectMatiere('litterature', '📚', 'Littérature')">
+                        <span class="item-icon">📚</span>
+                        <div class="item-info">
+                            <div class="item-title">Littérature</div>
+                            <div class="item-subtitle">1 thème • 2 entraînements</div>
+                        </div>
+                        <span class="item-count">2</span>
+                    </div>
+                    <div class="dropdown-item" data-matiere="histoire" onclick="selectMatiere('histoire', '🏛️', 'Histoire')">
+                        <span class="item-icon">🏛️</span>
+                        <div class="item-info">
+                            <div class="item-title">Histoire</div>
+                            <div class="item-subtitle">2 thèmes • 8 entraînements</div>
+                        </div>
+                        <span class="item-count">8</span>
+                    </div>
+                    <div class="dropdown-item" data-matiere="geo" onclick="selectMatiere('geo', '🗺️', 'Géographie')">
+                        <span class="item-icon">🗺️</span>
+                        <div class="item-info">
+                            <div class="item-title">Géographie</div>
+                            <div class="item-subtitle">1 thème • 3 entraînements</div>
+                        </div>
+                        <span class="item-count">3</span>
+                    </div>
+                    <div class="dropdown-item" data-matiere="emc" onclick="selectMatiere('emc', '⚖️', 'EMC')">
+                        <span class="item-icon">⚖️</span>
+                        <div class="item-info">
+                            <div class="item-title">EMC</div>
+                            <div class="item-subtitle">1 thème • 🔒 À venir</div>
+                        </div>
+                        <span class="item-count">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GLOBAL TRAINING MODULE -->
+        <a href="#" class="global-training">
+            <div class="global-training-icon">🎲</div>
+            <div class="global-training-content">
+                <h3>Entraînement global</h3>
+                <p>Révise tous les chapitres avec des questions aléatoires</p>
+                <div class="global-training-stats">
+                    <span class="global-training-stat">📝 20 questions</span>
+                    <span class="global-training-stat">⏱️ ~15 min</span>
+                    <span class="global-training-stat">🎯 Tous chapitres</span>
+                </div>
+            </div>
+            <div class="global-training-arrow">→</div>
+        </a>
+
+        <!-- ==================== LITTÉRATURE ==================== -->
+        <section class="matiere-section" data-matiere="litterature">
+            <div class="matiere-header" style="border-bottom-color: #8b5cf6;">
+                <span class="matiere-icon">📚</span>
+                <h2 class="matiere-title">Littérature</h2>
+                <div class="matiere-stats">
+                    <span class="matiere-stat" style="background: #ede9fe; color: #7c3aed;">0/2 terminés</span>
+                </div>
+            </div>
+
+            <!-- Thème 1 -->
+            <div class="theme-accordion">
+                <button class="theme-accordion-header">
+                    <span class="accordion-arrow">▶</span>
+                    <div class="theme-accordion-info">
+                        <div class="theme-accordion-title">Thème 1 : Le roman et le récit</div>
+                        <div class="theme-accordion-meta">2 chapitres • 2 entraînements</div>
+                    </div>
+                    <span class="theme-accordion-badge">0/2</span>
+                </button>
+                <div class="theme-accordion-content">
+                    
+                    <!-- Chapitre 1 -->
+                    <div class="chapter-block">
+                        <div class="chapter-header" onclick="toggleChapter(this)">
+                            <span class="chapter-number">1</span>
+                            <div class="chapter-info">
+                                <div class="chapter-title">Les caractéristiques du roman</div>
+                                <div class="chapter-meta">2 entraînements • 0 terminé</div>
+                            </div>
+                            <span class="chapter-arrow">▶</span>
+                        </div>
+                        <div class="chapter-content">
+                            <a href="#" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Vocabulaire narratif</div>
+                                    <div class="entrainement-meta">
+                                        <span>5 exercices</span>
+                                        <span>~10 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge not-started">⭕ Non commencé</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                            <a href="#" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Les figures de style</div>
+                                    <div class="entrainement-meta">
+                                        <span>4 exercices</span>
+                                        <span>~8 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge not-started">⭕ Non commencé</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Chapitre 2 (verrouillé) -->
+                    <div class="chapter-block">
+                        <div class="chapter-header" style="opacity: 0.5; cursor: not-allowed;">
+                            <span class="chapter-number">2</span>
+                            <div class="chapter-info">
+                                <div class="chapter-title">L'évolution du personnage de roman</div>
+                                <div class="chapter-meta">🔒 Chapitre à venir</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== HISTOIRE ==================== -->
+        <section class="matiere-section" data-matiere="histoire">
+            <div class="matiere-header">
+                <span class="matiere-icon">🏛️</span>
+                <h2 class="matiere-title">Histoire</h2>
+                <div class="matiere-stats">
+                    <span class="matiere-stat">3/6 terminés</span>
+                </div>
+            </div>
+
+            <!-- Thème 1 -->
+            <div class="theme-accordion open">
+                <button class="theme-accordion-header">
+                    <span class="accordion-arrow">▶</span>
+                    <div class="theme-accordion-info">
+                        <div class="theme-accordion-title">Thème 1 : La France de la Révolution à la Ve République</div>
+                        <div class="theme-accordion-meta">3 chapitres • 5 entraînements</div>
+                    </div>
+                    <span class="theme-accordion-badge">3/5</span>
+                </button>
+                <div class="theme-accordion-content">
+                    
+                    <!-- Chapitre 1 -->
+                    <div class="chapter-block open">
+                        <div class="chapter-header" onclick="toggleChapter(this)">
+                            <span class="chapter-number">1</span>
+                            <div class="chapter-info">
+                                <div class="chapter-title">La Révolution française (1789-1799)</div>
+                                <div class="chapter-meta">3 entraînements • 2 terminés</div>
+                            </div>
+                            <span class="chapter-arrow">▶</span>
+                        </div>
+                        <div class="chapter-content">
+                            <a href="maquette_eleve_entrainement_v2.html" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Les dates clés (Série 1/3)</div>
+                                    <div class="entrainement-meta">
+                                        <span>5 exercices</span>
+                                        <span>~10 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge completed">✓ Terminé</span>
+                                    <span class="score-badge">92%</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                            <a href="maquette_eleve_entrainement_v2.html" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Les dates clés (Série 2/3)</div>
+                                    <div class="entrainement-meta">
+                                        <span>4 exercices</span>
+                                        <span>~8 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge completed">✓ Terminé</span>
+                                    <span class="score-badge">85%</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                            <a href="maquette_eleve_entrainement_v2.html" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Les dates clés (Série 3/3)</div>
+                                    <div class="entrainement-meta">
+                                        <span>5 exercices</span>
+                                        <span>~10 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge in-progress">🔄 En cours</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Chapitre 2 -->
+                    <div class="chapter-block">
+                        <div class="chapter-header" onclick="toggleChapter(this)">
+                            <span class="chapter-number">2</span>
+                            <div class="chapter-info">
+                                <div class="chapter-title">Napoléon et l'Empire (1799-1815)</div>
+                                <div class="chapter-meta">2 entraînements • 1 terminé</div>
+                            </div>
+                            <span class="chapter-arrow">▶</span>
+                        </div>
+                        <div class="chapter-content">
+                            <a href="#" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Vocabulaire napoléonien</div>
+                                    <div class="entrainement-meta">
+                                        <span>4 exercices</span>
+                                        <span>~8 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge completed">✓ Terminé</span>
+                                    <span class="score-badge">78%</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                            <a href="#" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Les grandes batailles</div>
+                                    <div class="entrainement-meta">
+                                        <span>3 exercices</span>
+                                        <span>~6 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge not-started">⭕ Non commencé</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Chapitre 3 (verrouillé) -->
+                    <div class="chapter-block">
+                        <div class="chapter-header" style="opacity: 0.5; cursor: not-allowed;">
+                            <span class="chapter-number">3</span>
+                            <div class="chapter-info">
+                                <div class="chapter-title">La IIIe République (1870-1940)</div>
+                                <div class="chapter-meta">🔒 Chapitre à venir</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Thème 2 -->
+            <div class="theme-accordion">
+                <button class="theme-accordion-header">
+                    <span class="accordion-arrow">▶</span>
+                    <div class="theme-accordion-info">
+                        <div class="theme-accordion-title">Thème 2 : Le monde depuis 1945</div>
+                        <div class="theme-accordion-meta">2 chapitres • 3 entraînements</div>
+                    </div>
+                    <span class="theme-accordion-badge">0/3</span>
+                </button>
+                <div class="theme-accordion-content">
+                    
+                    <!-- Chapitre 1 -->
+                    <div class="chapter-block">
+                        <div class="chapter-header" onclick="toggleChapter(this)">
+                            <span class="chapter-number">1</span>
+                            <div class="chapter-info">
+                                <div class="chapter-title">La Guerre froide (1947-1991)</div>
+                                <div class="chapter-meta">2 entraînements • 0 terminé</div>
+                            </div>
+                            <span class="chapter-arrow">▶</span>
+                        </div>
+                        <div class="chapter-content">
+                            <a href="#" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Vocabulaire de la Guerre froide</div>
+                                    <div class="entrainement-meta">
+                                        <span>5 exercices</span>
+                                        <span>~10 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge not-started">⭕ Non commencé</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                            <a href="#" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Les crises majeures</div>
+                                    <div class="entrainement-meta">
+                                        <span>4 exercices</span>
+                                        <span>~8 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge not-started">⭕ Non commencé</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Chapitre 2 -->
+                    <div class="chapter-block">
+                        <div class="chapter-header" onclick="toggleChapter(this)">
+                            <span class="chapter-number">2</span>
+                            <div class="chapter-info">
+                                <div class="chapter-title">Décolonisation et nouveaux États</div>
+                                <div class="chapter-meta">1 entraînement • 0 terminé</div>
+                            </div>
+                            <span class="chapter-arrow">▶</span>
+                        </div>
+                        <div class="chapter-content">
+                            <a href="#" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Les étapes de la décolonisation</div>
+                                    <div class="entrainement-meta">
+                                        <span>4 exercices</span>
+                                        <span>~8 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge not-started">⭕ Non commencé</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== GÉOGRAPHIE ==================== -->
+        <section class="matiere-section" data-matiere="geo">
+            <div class="matiere-header">
+                <span class="matiere-icon">🗺️</span>
+                <h2 class="matiere-title">Géographie</h2>
+                <div class="matiere-stats">
+                    <span class="matiere-stat">2/4 terminés</span>
+                </div>
+            </div>
+
+            <!-- Thème 1 -->
+            <div class="theme-accordion">
+                <button class="theme-accordion-header">
+                    <span class="accordion-arrow">▶</span>
+                    <div class="theme-accordion-info">
+                        <div class="theme-accordion-title">Thème 1 : La France, un territoire sous influence urbaine</div>
+                        <div class="theme-accordion-meta">3 chapitres • 3 entraînements</div>
+                    </div>
+                    <span class="theme-accordion-badge">2/3</span>
+                </button>
+                <div class="theme-accordion-content">
+                    
+                    <!-- Chapitre 1 -->
+                    <div class="chapter-block">
+                        <div class="chapter-header" onclick="toggleChapter(this)">
+                            <span class="chapter-number">1</span>
+                            <div class="chapter-info">
+                                <div class="chapter-title">Les aires urbaines françaises</div>
+                                <div class="chapter-meta">2 entraînements • 2 terminés</div>
+                            </div>
+                            <span class="chapter-arrow">▶</span>
+                        </div>
+                        <div class="chapter-content">
+                            <a href="#" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Vocabulaire urbain</div>
+                                    <div class="entrainement-meta">
+                                        <span>5 exercices</span>
+                                        <span>~10 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge completed">✓ Terminé</span>
+                                    <span class="score-badge">95%</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                            <a href="#" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Les grandes métropoles</div>
+                                    <div class="entrainement-meta">
+                                        <span>4 exercices</span>
+                                        <span>~8 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge completed">✓ Terminé</span>
+                                    <span class="score-badge">88%</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Chapitre 2 -->
+                    <div class="chapter-block">
+                        <div class="chapter-header" onclick="toggleChapter(this)">
+                            <span class="chapter-number">2</span>
+                            <div class="chapter-info">
+                                <div class="chapter-title">Les espaces de faible densité</div>
+                                <div class="chapter-meta">1 entraînement • 0 terminé</div>
+                            </div>
+                            <span class="chapter-arrow">▶</span>
+                        </div>
+                        <div class="chapter-content">
+                            <a href="#" class="entrainement-item">
+                                <div class="entrainement-icon">📝</div>
+                                <div class="entrainement-info">
+                                    <div class="entrainement-title">Les espaces ruraux</div>
+                                    <div class="entrainement-meta">
+                                        <span>4 exercices</span>
+                                        <span>~8 min</span>
+                                    </div>
+                                </div>
+                                <div class="entrainement-status">
+                                    <span class="status-badge in-progress">🔄 En cours</span>
+                                </div>
+                                <span class="entrainement-arrow">→</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Chapitre 3 (verrouillé) -->
+                    <div class="chapter-block">
+                        <div class="chapter-header" style="opacity: 0.5; cursor: not-allowed;">
+                            <span class="chapter-number">3</span>
+                            <div class="chapter-info">
+                                <div class="chapter-title">Aménager les territoires</div>
+                                <div class="chapter-meta">🔒 Chapitre à venir</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== EMC ==================== -->
+        <section class="matiere-section" data-matiere="emc">
+            <div class="matiere-header">
+                <span class="matiere-icon">⚖️</span>
+                <h2 class="matiere-title">EMC</h2>
+                <div class="matiere-stats">
+                    <span class="matiere-stat">0/2 terminés</span>
+                </div>
+            </div>
+
+            <!-- Thème 1 -->
+            <div class="theme-accordion">
+                <button class="theme-accordion-header">
+                    <span class="accordion-arrow">▶</span>
+                    <div class="theme-accordion-info">
+                        <div class="theme-accordion-title">Thème 1 : La République et la citoyenneté</div>
+                        <div class="theme-accordion-meta">2 chapitres • 🔒 À venir</div>
+                    </div>
+                    <span class="theme-accordion-badge">0/0</span>
+                </button>
+                <div class="theme-accordion-content">
+                    <div class="empty-chapter">
+                        🔒 Les entraînements seront disponibles lorsque les chapitres seront étudiés en classe
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Toggle theme accordion
+        document.querySelectorAll('.theme-accordion-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const accordion = header.closest('.theme-accordion');
+                accordion.classList.toggle('open');
+            });
+        });
+
+        // Toggle chapter block
+        function toggleChapter(header) {
+            const block = header.closest('.chapter-block');
+            if (header.style.cursor !== 'not-allowed') {
+                block.classList.toggle('open');
+            }
+        }
+
+        // Toggle dropdown
+        function toggleDropdown(e) {
+            e.stopPropagation();
+            document.getElementById('dropdown').classList.toggle('open');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('dropdown');
+            if (dropdown && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+
+        // Filter all (reset)
+        function filterAll() {
+            // Activer le bouton Tous
+            document.querySelector('.filter-btn').classList.add('active');
+            
+            // Réinitialiser le dropdown
+            document.getElementById('dropdownLabel').textContent = 'Choisir une matière';
+            document.querySelector('.dropdown-toggle').classList.remove('has-selection');
+            
+            // Désélectionner dans le dropdown
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Afficher toutes les sections
+            document.querySelectorAll('.matiere-section').forEach(section => {
+                section.style.display = 'block';
+            });
+            
+            // Afficher le module global
+            document.querySelector('.global-training').style.display = 'flex';
+        }
+
+        // Select matière from dropdown
+        function selectMatiere(matiere, icon, title) {
+            // Désactiver le bouton Tous
+            document.querySelector('.filter-btn').classList.remove('active');
+            
+            // Mettre à jour le dropdown
+            document.getElementById('dropdownLabel').innerHTML = `${icon} ${title}`;
+            document.querySelector('.dropdown-toggle').classList.add('has-selection');
+            
+            // Marquer l'item sélectionné
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                item.classList.remove('selected');
+                if (item.dataset.matiere === matiere) {
+                    item.classList.add('selected');
+                }
+            });
+            
+            // Fermer le dropdown
+            document.getElementById('dropdown').classList.remove('open');
+            
+            // Filtrer les sections
+            document.querySelectorAll('.matiere-section').forEach(section => {
+                if (section.dataset.matiere === matiere) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+            
+            // Cacher le module global quand on filtre
+            document.querySelector('.global-training').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>

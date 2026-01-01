@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entraînement | Élève - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-teal: #14b8a6;
+            --accent-teal-light: #ccfbf1;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ÉLÈVE ===== */
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 16px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .btn-menu {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 10px;
+            font-size: 20px;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-menu:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .header-title h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .header-title p {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .timer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--accent-orange-light);
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #92400e;
+        }
+
+        .type-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* ===== PROGRESS BAR ===== */
+        .progress-section {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .progress-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .progress-header h2 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .progress-header span {
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        .progress-steps {
+            display: flex;
+            gap: 8px;
+        }
+
+        .progress-step {
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .progress-step:hover .progress-step-label {
+            color: var(--primary);
+        }
+
+        .progress-step:hover .progress-step-icon {
+            transform: scale(1.1);
+        }
+
+        .progress-step-bar {
+            height: 6px;
+            background: var(--gray-200);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-step-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-step.completed .progress-step-bar-fill {
+            width: 100%;
+            background: var(--accent-green);
+        }
+
+        .progress-step.current .progress-step-bar-fill {
+            width: 50%;
+            background: var(--primary);
+        }
+
+        .progress-step-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+
+        .progress-step.completed .progress-step-label {
+            color: var(--accent-green);
+        }
+
+        .progress-step.current .progress-step-label {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .progress-step-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            transition: all 0.2s;
+        }
+
+        .progress-step.completed .progress-step-icon {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .progress-step.current .progress-step-icon {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ===== EXERCISE CARD ===== */
+        .exercise-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .exercise-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .exercise-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .exercise-icon.qcm { background: var(--accent-blue-light); }
+        .exercise-icon.timeline { background: var(--accent-orange-light); }
+        .exercise-icon.association { background: var(--accent-green-light); }
+        .exercise-icon.carte { background: var(--accent-teal-light); }
+
+        .exercise-info h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .exercise-info p {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .exercise-badge {
+            margin-left: auto;
+            padding: 8px 14px;
+            background: var(--gray-100);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .exercise-body {
+            padding: 24px;
+        }
+
+        /* ===== QCM MULTI-QUESTIONS (Option B) ===== */
+        .qcm-questions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .qcm-item {
+            padding-bottom: 32px;
+            border-bottom: 2px solid var(--gray-100);
+        }
+
+        .qcm-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .qcm-item-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .qcm-item-number {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .qcm-item.answered .qcm-item-number {
+            background: var(--accent-green);
+        }
+
+        .qcm-item.answered.incorrect .qcm-item-number {
+            background: var(--accent-red);
+        }
+
+        .qcm-item-question {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-800);
+            flex: 1;
+        }
+
+        .qcm-item-status {
+            font-size: 20px;
+        }
+
+        .qcm-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .qcm-option {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .qcm-option:hover {
+            border-color: var(--primary-light);
+            background: var(--gray-50);
+        }
+
+        .qcm-option.selected {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .qcm-option.correct {
+            border-color: var(--accent-green);
+            background: var(--accent-green-light);
+        }
+
+        .qcm-option.incorrect {
+            border-color: var(--accent-red);
+            background: var(--accent-red-light);
+        }
+
+        .qcm-option.disabled {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .qcm-radio {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--gray-300);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .qcm-option.selected .qcm-radio {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        .qcm-option.correct .qcm-radio {
+            border-color: var(--accent-green);
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .qcm-option.incorrect .qcm-radio {
+            border-color: var(--accent-red);
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .qcm-option-text {
+            font-size: 15px;
+            color: var(--gray-700);
+            flex: 1;
+        }
+
+        .qcm-option.selected .qcm-option-text {
+            color: var(--primary-dark);
+            font-weight: 500;
+        }
+
+        /* Result feedback per question */
+        .qcm-item-feedback {
+            margin-top: 16px;
+            padding: 14px 18px;
+            border-radius: var(--radius);
+            display: none;
+        }
+
+        .qcm-item-feedback.show {
+            display: block;
+        }
+
+        .qcm-item-feedback.correct {
+            background: var(--accent-green-light);
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .qcm-item-feedback.incorrect {
+            background: var(--accent-red-light);
+            border-left: 4px solid var(--accent-red);
+        }
+
+        .qcm-item-feedback-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .qcm-item-feedback.correct .qcm-item-feedback-header {
+            color: var(--accent-green);
+        }
+
+        .qcm-item-feedback.incorrect .qcm-item-feedback-header {
+            color: var(--accent-red);
+        }
+
+        .qcm-item-feedback-text {
+            font-size: 14px;
+            color: var(--gray-700);
+        }
+
+        /* ===== EXERCISE ACTIONS ===== */
+        .exercise-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            padding-top: 24px;
+            border-top: 1px solid var(--gray-100);
+            margin-top: 24px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--gray-700);
+            border: 2px solid var(--gray-200);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* ===== TIMELINE STYLES ===== */
+        .timeline-instruction {
+            background: var(--accent-orange-light);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            text-align: center;
+            color: #92400e;
+            font-weight: 500;
+        }
+
+        .timeline-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 20px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            cursor: grab;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .timeline-item:hover {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-md);
+        }
+
+        .timeline-item.correct {
+            border-color: var(--accent-green);
+            background: var(--accent-green-light);
+        }
+
+        .timeline-item.incorrect {
+            border-color: var(--accent-red);
+            background: var(--accent-red-light);
+        }
+
+        .timeline-handle {
+            color: var(--gray-400);
+            font-size: 20px;
+            cursor: grab;
+        }
+
+        .timeline-number {
+            width: 32px;
+            height: 32px;
+            background: var(--gray-100);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--gray-500);
+            flex-shrink: 0;
+        }
+
+        .timeline-item.correct .timeline-number {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .timeline-item.incorrect .timeline-number {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-text {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+        .timeline-date {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 4px;
+            display: none;
+        }
+
+        .timeline-item.show-date .timeline-date {
+            display: block;
+        }
+
+        .timeline-item.correct .timeline-date {
+            color: var(--accent-green);
+        }
+
+        /* ===== ASSOCIATION STYLES ===== */
+        .association-instruction {
+            background: var(--accent-green-light);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            text-align: center;
+            color: #065f46;
+            font-weight: 500;
+        }
+
+        .association-container {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .association-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .association-column-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .association-item {
+            padding: 16px 20px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .association-item:hover {
+            border-color: var(--primary-light);
+        }
+
+        .association-item.selected {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        .association-item.matched {
+            border-color: var(--accent-green);
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+            pointer-events: none;
+        }
+
+        .association-arrows {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            justify-content: center;
+            padding-top: 32px;
+        }
+
+        .association-arrow {
+            width: 40px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-300);
+            font-size: 20px;
+        }
+
+        .association-arrow.matched {
+            color: var(--accent-green);
+        }
+
+        /* ===== FINAL RESULT ===== */
+        .final-result {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .final-result-header {
+            padding: 40px;
+            text-align: center;
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            color: white;
+        }
+
+        .final-result-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .final-result-header h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .final-result-header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .final-result-body {
+            padding: 32px;
+        }
+
+        .final-score {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            margin-bottom: 32px;
+        }
+
+        .final-score-item {
+            text-align: center;
+        }
+
+        .final-score-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .final-score-label {
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        .final-steps-detail {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .final-step-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .final-step-row:last-child {
+            border-bottom: none;
+        }
+
+        .final-step-name {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 15px;
+            color: var(--gray-700);
+        }
+
+        .final-step-name span {
+            font-size: 20px;
+        }
+
+        .final-step-score {
+            font-weight: 600;
+        }
+
+        .final-step-score.success {
+            color: var(--accent-green);
+        }
+
+        .final-step-score.partial {
+            color: var(--accent-orange);
+        }
+
+        .final-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        /* ===== DEMO TABS ===== */
+        .demo-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: white;
+            padding: 8px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+
+        .demo-tab {
+            padding: 10px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-500);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .demo-tab:hover {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .demo-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .demo-view {
+            display: none;
+        }
+
+        .demo-view.active {
+            display: block;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .header-inner {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .progress-steps {
+                flex-wrap: wrap;
+            }
+
+            .association-container {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .association-arrows {
+                flex-direction: row;
+                padding: 0;
+                justify-content: center;
+            }
+
+            .nav-exercice {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .nav-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .final-score {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .demo-tabs {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="header-left">
+                <button class="btn-menu" title="Menu (sidebar)">☰</button>
+                <div class="header-title">
+                    <h1>📜 Les explorateurs (Série 1/3)</h1>
+                    <p>Histoire • L1 - Les explorations portugaises</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <span class="type-badge">✅ Connaissances</span>
+                <div class="timer">
+                    <span>⏱️</span>
+                    <span>5:42</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- DEMO: Onglets pour naviguer entre les vues -->
+        <div class="demo-tabs">
+            <button class="demo-tab active" onclick="showDemo('qcm')">Étape 1: QCM (5 questions)</button>
+            <button class="demo-tab" onclick="showDemo('timeline')">Étape 2: Timeline</button>
+            <button class="demo-tab" onclick="showDemo('association')">Étape 3: Association</button>
+            <button class="demo-tab" onclick="showDemo('result')">Résultat final</button>
+        </div>
+
+        <!-- PROGRESS BAR -->
+        <div class="progress-section">
+            <div class="progress-header">
+                <h2>Progression</h2>
+                <span id="progressText">Étape 1/3</span>
+            </div>
+            <div class="progress-steps" id="progressSteps">
+                <div class="progress-step current" onclick="navigateToStep('qcm')">
+                    <div class="progress-step-bar"><div class="progress-step-bar-fill"></div></div>
+                    <div class="progress-step-label">
+                        <span class="progress-step-icon">1</span>
+                        QCM (5)
+                    </div>
+                </div>
+                <div class="progress-step" onclick="navigateToStep('timeline')">
+                    <div class="progress-step-bar"><div class="progress-step-bar-fill"></div></div>
+                    <div class="progress-step-label">
+                        <span class="progress-step-icon">2</span>
+                        Timeline
+                    </div>
+                </div>
+                <div class="progress-step" onclick="navigateToStep('association')">
+                    <div class="progress-step-bar"><div class="progress-step-bar-fill"></div></div>
+                    <div class="progress-step-label">
+                        <span class="progress-step-icon">3</span>
+                        Association
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== VUE 1: QCM (TOUTES LES QUESTIONS SUR UNE PAGE) ===== -->
+        <div class="demo-view active" id="view-qcm">
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon qcm">📝</div>
+                    <div class="exercise-info">
+                        <h2>Questions à choix unique</h2>
+                        <p>Répondez aux 5 questions ci-dessous</p>
+                    </div>
+                    <span class="exercise-badge">5 questions</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="qcm-questions-list">
+                        
+                        <!-- Question 1 -->
+                        <div class="qcm-item" id="qcm-1">
+                            <div class="qcm-item-header">
+                                <div class="qcm-item-number">1</div>
+                                <div class="qcm-item-question">Quelle est la date du passage du cap de Bonne-Espérance par Bartolomeu Dias ?</div>
+                                <span class="qcm-item-status"></span>
+                            </div>
+                            <div class="qcm-options">
+                                <div class="qcm-option" onclick="selectQCMOption(this, 1)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">1492</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 1)" data-correct="true">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">1488</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 1)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">1498</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 1)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">1500</span>
+                                </div>
+                            </div>
+                            <div class="qcm-item-feedback correct">
+                                <div class="qcm-item-feedback-header">✓ Bonne réponse !</div>
+                                <div class="qcm-item-feedback-text">Bartolomeu Dias atteint le cap de Bonne-Espérance en 1488, ouvrant la route maritime vers l'océan Indien.</div>
+                            </div>
+                        </div>
+
+                        <!-- Question 2 -->
+                        <div class="qcm-item" id="qcm-2">
+                            <div class="qcm-item-header">
+                                <div class="qcm-item-number">2</div>
+                                <div class="qcm-item-question">Qui a atteint l'Inde par voie maritime en 1498 ?</div>
+                                <span class="qcm-item-status"></span>
+                            </div>
+                            <div class="qcm-options">
+                                <div class="qcm-option" onclick="selectQCMOption(this, 2)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Christophe Colomb</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 2)" data-correct="true">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Vasco de Gama</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 2)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Magellan</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 2)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Bartolomeu Dias</span>
+                                </div>
+                            </div>
+                            <div class="qcm-item-feedback correct">
+                                <div class="qcm-item-feedback-header">✓ Bonne réponse !</div>
+                                <div class="qcm-item-feedback-text">Vasco de Gama atteint Calicut (Inde) en 1498, établissant la première route maritime directe entre l'Europe et l'Asie.</div>
+                            </div>
+                        </div>
+
+                        <!-- Question 3 -->
+                        <div class="qcm-item" id="qcm-3">
+                            <div class="qcm-item-header">
+                                <div class="qcm-item-number">3</div>
+                                <div class="qcm-item-question">La caravelle est...</div>
+                                <span class="qcm-item-status"></span>
+                            </div>
+                            <div class="qcm-options">
+                                <div class="qcm-option" onclick="selectQCMOption(this, 3)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Un instrument de navigation</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 3)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Une épice précieuse</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 3)" data-correct="true">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Un type de navire</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 3)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Un comptoir commercial</span>
+                                </div>
+                            </div>
+                            <div class="qcm-item-feedback correct">
+                                <div class="qcm-item-feedback-header">✓ Bonne réponse !</div>
+                                <div class="qcm-item-feedback-text">La caravelle est un navire léger et maniable, idéal pour l'exploration des côtes africaines.</div>
+                            </div>
+                        </div>
+
+                        <!-- Question 4 -->
+                        <div class="qcm-item" id="qcm-4">
+                            <div class="qcm-item-header">
+                                <div class="qcm-item-number">4</div>
+                                <div class="qcm-item-question">Quel prince portugais a encouragé les explorations maritimes au XVe siècle ?</div>
+                                <span class="qcm-item-status"></span>
+                            </div>
+                            <div class="qcm-options">
+                                <div class="qcm-option" onclick="selectQCMOption(this, 4)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Manuel Ier</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 4)" data-correct="true">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Henri le Navigateur</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 4)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Jean II</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 4)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Alphonse V</span>
+                                </div>
+                            </div>
+                            <div class="qcm-item-feedback correct">
+                                <div class="qcm-item-feedback-header">✓ Bonne réponse !</div>
+                                <div class="qcm-item-feedback-text">Henri le Navigateur (1394-1460) a fondé une école de navigation et financé de nombreuses expéditions.</div>
+                            </div>
+                        </div>
+
+                        <!-- Question 5 -->
+                        <div class="qcm-item" id="qcm-5">
+                            <div class="qcm-item-header">
+                                <div class="qcm-item-number">5</div>
+                                <div class="qcm-item-question">Quelle épice était la plus recherchée par les Portugais ?</div>
+                                <span class="qcm-item-status"></span>
+                            </div>
+                            <div class="qcm-options">
+                                <div class="qcm-option" onclick="selectQCMOption(this, 5)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">La cannelle</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 5)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Le safran</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 5)" data-correct="true">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">Le poivre</span>
+                                </div>
+                                <div class="qcm-option" onclick="selectQCMOption(this, 5)">
+                                    <div class="qcm-radio"></div>
+                                    <span class="qcm-option-text">La muscade</span>
+                                </div>
+                            </div>
+                            <div class="qcm-item-feedback correct">
+                                <div class="qcm-item-feedback-header">✓ Bonne réponse !</div>
+                                <div class="qcm-item-feedback-text">Le poivre était surnommé "l'or noir" et valait son poids en or à l'époque.</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="exercise-actions">
+                        <button class="btn btn-success" onclick="verifyAllQCM()">✓ Vérifier mes réponses</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===== VUE 2: TIMELINE ===== -->
+        <div class="demo-view" id="view-timeline">
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon timeline">📅</div>
+                    <div class="exercise-info">
+                        <h2>Ordre chronologique</h2>
+                        <p>Remettez les événements dans l'ordre</p>
+                    </div>
+                    <span class="exercise-badge">4 événements</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="timeline-instruction">
+                        ↕️ Glissez-déposez les événements du plus ancien au plus récent
+                    </div>
+
+                    <div class="timeline-list">
+                        <div class="timeline-item" draggable="true">
+                            <span class="timeline-handle">☰</span>
+                            <div class="timeline-number">1</div>
+                            <div class="timeline-content">
+                                <div class="timeline-text">Vasco de Gama atteint l'Inde</div>
+                                <div class="timeline-date">1498</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item" draggable="true">
+                            <span class="timeline-handle">☰</span>
+                            <div class="timeline-number">2</div>
+                            <div class="timeline-content">
+                                <div class="timeline-text">Passage du cap Bojador</div>
+                                <div class="timeline-date">1434</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item" draggable="true">
+                            <span class="timeline-handle">☰</span>
+                            <div class="timeline-number">3</div>
+                            <div class="timeline-content">
+                                <div class="timeline-text">Découverte du Brésil par Cabral</div>
+                                <div class="timeline-date">1500</div>
+                            </div>
+                        </div>
+                        <div class="timeline-item" draggable="true">
+                            <span class="timeline-handle">☰</span>
+                            <div class="timeline-number">4</div>
+                            <div class="timeline-content">
+                                <div class="timeline-text">Bartolomeu Dias au cap de Bonne-Espérance</div>
+                                <div class="timeline-date">1488</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="exercise-actions">
+                        <button class="btn btn-secondary">🔄 Recommencer</button>
+                        <button class="btn btn-success">✓ Vérifier</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== VUE 3: ASSOCIATION ===== -->
+        <div class="demo-view" id="view-association">
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon association">🔗</div>
+                    <div class="exercise-info">
+                        <h2>Association</h2>
+                        <p>Reliez chaque explorateur à sa découverte</p>
+                    </div>
+                    <span class="exercise-badge">4 paires</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="association-instruction">
+                        💡 Cliquez sur un élément à gauche, puis sur son correspondant à droite
+                    </div>
+
+                    <div class="association-container">
+                        <div class="association-column">
+                            <div class="association-column-title">Explorateurs</div>
+                            <div class="association-item" onclick="selectAssoc(this, 'left')">Bartolomeu Dias</div>
+                            <div class="association-item matched">Vasco de Gama</div>
+                            <div class="association-item" onclick="selectAssoc(this, 'left')">Pedro Álvares Cabral</div>
+                            <div class="association-item selected" onclick="selectAssoc(this, 'left')">Gil Eanes</div>
+                        </div>
+
+                        <div class="association-arrows">
+                            <div class="association-arrow">→</div>
+                            <div class="association-arrow matched">→</div>
+                            <div class="association-arrow">→</div>
+                            <div class="association-arrow">→</div>
+                        </div>
+
+                        <div class="association-column">
+                            <div class="association-column-title">Découvertes</div>
+                            <div class="association-item" onclick="selectAssoc(this, 'right')">Cap de Bonne-Espérance</div>
+                            <div class="association-item" onclick="selectAssoc(this, 'right')">Cap Bojador</div>
+                            <div class="association-item matched">Route des Indes</div>
+                            <div class="association-item" onclick="selectAssoc(this, 'right')">Brésil</div>
+                        </div>
+                    </div>
+
+                    <div class="exercise-actions">
+                        <button class="btn btn-secondary">🔄 Recommencer</button>
+                        <button class="btn btn-success">✓ Vérifier</button>
+                        <button class="btn btn-primary" onclick="navigateToStep('result')">🏆 Terminer l'entraînement</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== VUE 4: RÉSULTAT FINAL ===== -->
+        <div class="demo-view" id="view-result">
+            <div class="final-result">
+                <div class="final-result-header">
+                    <div class="final-result-icon">🏆</div>
+                    <h2>Bravo, entraînement terminé !</h2>
+                    <p>Tu as complété "Les explorateurs (Série 1/3)"</p>
+                </div>
+                <div class="final-result-body">
+                    <div class="final-score">
+                        <div class="final-score-item">
+                            <div class="final-score-value">85%</div>
+                            <div class="final-score-label">Score global</div>
+                        </div>
+                        <div class="final-score-item">
+                            <div class="final-score-value">5:42</div>
+                            <div class="final-score-label">Temps total</div>
+                        </div>
+                    </div>
+
+                    <div class="final-steps-detail">
+                        <div class="final-step-row">
+                            <div class="final-step-name">
+                                <span>📝</span>
+                                QCM (5 questions)
+                            </div>
+                            <span class="final-step-score success">4/5 ✓</span>
+                        </div>
+                        <div class="final-step-row">
+                            <div class="final-step-name">
+                                <span>📅</span>
+                                Timeline (4 événements)
+                            </div>
+                            <span class="final-step-score success">4/4 ✓</span>
+                        </div>
+                        <div class="final-step-row">
+                            <div class="final-step-name">
+                                <span>🔗</span>
+                                Association (4 paires)
+                            </div>
+                            <span class="final-step-score partial">3/4</span>
+                        </div>
+                    </div>
+
+                    <div class="final-actions">
+                        <button class="btn btn-secondary">🔄 Refaire l'entraînement</button>
+                        <button class="btn btn-primary">📚 Série suivante (2/3) →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Navigation via fil d'Ariane (progress steps)
+        function navigateToStep(view) {
+            // Hide all views
+            document.querySelectorAll('.demo-view').forEach(v => v.classList.remove('active'));
+            
+            // Show target view
+            document.getElementById('view-' + view).classList.add('active');
+
+            // Update progress steps
+            const progressText = document.getElementById('progressText');
+            const steps = document.querySelectorAll('.progress-step');
+            
+            steps.forEach(s => s.classList.remove('current', 'completed'));
+            
+            if (view === 'qcm') {
+                progressText.textContent = 'Étape 1/3';
+                steps[0].classList.add('current');
+            } else if (view === 'timeline') {
+                progressText.textContent = 'Étape 2/3';
+                steps[0].classList.add('completed');
+                steps[1].classList.add('current');
+            } else if (view === 'association') {
+                progressText.textContent = 'Étape 3/3';
+                steps[0].classList.add('completed');
+                steps[1].classList.add('completed');
+                steps[2].classList.add('current');
+            } else if (view === 'result') {
+                progressText.textContent = 'Terminé !';
+                steps.forEach(s => s.classList.add('completed'));
+            }
+
+            // Also update demo tabs for consistency
+            document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+            const tabIndex = view === 'qcm' ? 0 : view === 'timeline' ? 1 : view === 'association' ? 2 : 3;
+            document.querySelectorAll('.demo-tab')[tabIndex].classList.add('active');
+        }
+
+        // Demo navigation (for maquette only - same as navigateToStep)
+        function showDemo(view) {
+            navigateToStep(view);
+        }
+
+        // QCM selection (multi-questions version)
+        function selectQCMOption(option, questionNum) {
+            const qcmItem = document.getElementById('qcm-' + questionNum);
+            if (qcmItem.classList.contains('answered')) return;
+
+            // Deselect others in same question
+            qcmItem.querySelectorAll('.qcm-option').forEach(opt => {
+                opt.classList.remove('selected');
+                opt.querySelector('.qcm-radio').textContent = '';
+            });
+
+            // Select this one
+            option.classList.add('selected');
+            option.querySelector('.qcm-radio').textContent = '●';
+        }
+
+        // Verify all QCM
+        function verifyAllQCM() {
+            document.querySelectorAll('.qcm-item').forEach(item => {
+                const selected = item.querySelector('.qcm-option.selected');
+                const correct = item.querySelector('.qcm-option[data-correct="true"]');
+                const feedback = item.querySelector('.qcm-item-feedback');
+                const numberEl = item.querySelector('.qcm-item-number');
+                const statusEl = item.querySelector('.qcm-item-status');
+
+                // Disable all options
+                item.querySelectorAll('.qcm-option').forEach(opt => {
+                    opt.classList.add('disabled');
+                });
+
+                // Mark correct answer
+                correct.classList.add('correct');
+                correct.querySelector('.qcm-radio').textContent = '✓';
+
+                if (selected) {
+                    if (selected === correct) {
+                        item.classList.add('answered');
+                        feedback.classList.add('show', 'correct');
+                        statusEl.textContent = '✓';
+                    } else {
+                        selected.classList.add('incorrect');
+                        selected.querySelector('.qcm-radio').textContent = '✗';
+                        item.classList.add('answered', 'incorrect');
+                        feedback.classList.remove('correct');
+                        feedback.classList.add('show', 'incorrect');
+                        feedback.querySelector('.qcm-item-feedback-header').textContent = '✗ Mauvaise réponse';
+                        statusEl.textContent = '✗';
+                    }
+                } else {
+                    // Not answered
+                    item.classList.add('answered', 'incorrect');
+                    feedback.classList.remove('correct');
+                    feedback.classList.add('show', 'incorrect');
+                    feedback.querySelector('.qcm-item-feedback-header').textContent = '⚠️ Non répondu';
+                    statusEl.textContent = '⚠️';
+                }
+            });
+        }
+
+        // Association selection
+        let selectedLeft = null;
+        function selectAssoc(item, side) {
+            if (item.classList.contains('matched')) return;
+
+            if (side === 'left') {
+                document.querySelectorAll('.association-column:first-child .association-item').forEach(i => {
+                    if (!i.classList.contains('matched')) i.classList.remove('selected');
+                });
+                item.classList.add('selected');
+                selectedLeft = item;
+            } else if (selectedLeft) {
+                // Match!
+                selectedLeft.classList.remove('selected');
+                selectedLeft.classList.add('matched');
+                item.classList.add('matched');
+                selectedLeft = null;
+            }
+        }
+    </script>
+
+</body>
+</html>
