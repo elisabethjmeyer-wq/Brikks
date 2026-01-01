@@ -237,6 +237,37 @@ const EleveMethodologieParcours = {
         }
     },
 
+    // Parser les ressources supplémentaires
+    parseRessources(ressourcesStr) {
+        if (!ressourcesStr) return [];
+        try {
+            const parsed = JSON.parse(ressourcesStr);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    },
+
+    getRessourceIcon(type) {
+        const icons = {
+            video: '🎬',
+            document: '📄',
+            image: '🖼️',
+            link: '🔗'
+        };
+        return icons[type] || '📎';
+    },
+
+    getRessourceLabel(type) {
+        const labels = {
+            video: 'Vidéo',
+            document: 'Document',
+            image: 'Image',
+            link: 'Lien'
+        };
+        return labels[type] || 'Ressource';
+    },
+
     // Obtenir l'URL embed pour vidéo
     getEmbedUrl(url) {
         if (!url) return null;
@@ -285,6 +316,7 @@ const EleveMethodologieParcours = {
                     ${contentType === 'fiche' ? this.renderFicheSection() : ''}
                     ${!contentType ? this.renderPlaceholder() : ''}
                     ${this.currentItem.contenu_html ? this.renderTextContent() : ''}
+                    ${this.renderRessources()}
                     ${this.renderTrainingLinks()}
                     ${this.renderNavigation(prevContent, nextContent)}
                 </div>
@@ -474,6 +506,86 @@ const EleveMethodologieParcours = {
                 </div>
             </div>
         `;
+    },
+
+    renderRessources() {
+        const ressources = this.parseRessources(this.currentItem.ressources);
+        if (ressources.length === 0) return '';
+
+        return `
+            <div class="ressources-section">
+                <h3 class="ressources-title">📎 Ressources complémentaires</h3>
+                <div class="ressources-grid">
+                    ${ressources.map((ressource, index) => `
+                        <button class="ressource-btn" onclick="EleveMethodologieParcours.openRessource(${index})">
+                            <span class="ressource-btn-icon">${this.getRessourceIcon(ressource.type)}</span>
+                            <span class="ressource-btn-text">${this.escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type))}</span>
+                            <span class="ressource-btn-actions">
+                                <span class="ressource-action view" title="Voir">👁️</span>
+                                <a href="${ressource.url}" download class="ressource-action download" title="Télécharger" onclick="event.stopPropagation();">⬇️</a>
+                            </span>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    },
+
+    openRessource(index) {
+        const ressources = this.parseRessources(this.currentItem.ressources);
+        const ressource = ressources[index];
+        if (!ressource) return;
+
+        // Créer la popup
+        const popup = document.createElement('div');
+        popup.className = 'ressource-popup-overlay';
+        popup.onclick = (e) => { if (e.target === popup) popup.remove(); };
+
+        let content = '';
+        if (ressource.type === 'video') {
+            const embedUrl = this.getEmbedUrl(ressource.url);
+            if (embedUrl) {
+                content = `<iframe src="${embedUrl}" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
+            } else {
+                content = `<a href="${ressource.url}" target="_blank" class="popup-external-link">Ouvrir la vidéo ↗</a>`;
+            }
+        } else if (ressource.type === 'image') {
+            content = `<img src="${ressource.url}" alt="${this.escapeHtml(ressource.titre || 'Image')}" />`;
+        } else if (ressource.type === 'document') {
+            // Tenter d'embedder les PDFs et Google Docs
+            if (ressource.url.includes('docs.google.com') || ressource.url.includes('drive.google.com')) {
+                const match = ressource.url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                if (match) {
+                    content = `<iframe src="https://drive.google.com/file/d/${match[1]}/preview"></iframe>`;
+                } else {
+                    content = `<iframe src="${ressource.url}"></iframe>`;
+                }
+            } else if (ressource.url.toLowerCase().endsWith('.pdf')) {
+                content = `<iframe src="${ressource.url}"></iframe>`;
+            } else {
+                content = `<a href="${ressource.url}" target="_blank" class="popup-external-link">Ouvrir le document ↗</a>`;
+            }
+        } else {
+            content = `<a href="${ressource.url}" target="_blank" class="popup-external-link">Ouvrir le lien ↗</a>`;
+        }
+
+        popup.innerHTML = `
+            <div class="ressource-popup">
+                <div class="ressource-popup-header">
+                    <h3>${this.getRessourceIcon(ressource.type)} ${this.escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type))}</h3>
+                    <div class="ressource-popup-actions">
+                        <a href="${ressource.url}" download class="popup-btn download" title="Télécharger">⬇️</a>
+                        <a href="${ressource.url}" target="_blank" class="popup-btn external" title="Ouvrir dans un nouvel onglet">↗️</a>
+                        <button class="popup-btn close" onclick="this.closest('.ressource-popup-overlay').remove()">✕</button>
+                    </div>
+                </div>
+                <div class="ressource-popup-content">
+                    ${content}
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(popup);
     },
 
     renderTrainingLinks() {

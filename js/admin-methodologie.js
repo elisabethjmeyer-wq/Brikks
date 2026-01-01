@@ -8,9 +8,16 @@ const AdminMethodologie = {
     bexConfig: [],
     editingItem: null,
     deletingItem: null,
+    currentRessources: [],
 
     icons: ['📁', '📄', '📋', '📝', '📊', '📈', '🔍', '✍️', '📖', '🗺️', '🌍', '📅', '⏰', '💡', '🎯', '✅', '⭐', '🎬'],
     colors: ['blue', 'purple', 'teal', 'orange', 'green', 'pink'],
+    ressourceTypes: [
+        { value: 'video', label: 'Vidéo', icon: '🎬' },
+        { value: 'document', label: 'Document', icon: '📄' },
+        { value: 'image', label: 'Image', icon: '🖼️' },
+        { value: 'link', label: 'Lien', icon: '🔗' }
+    ],
 
     async init() {
         try {
@@ -262,6 +269,7 @@ const AdminMethodologie = {
     // ========== ADD/EDIT MODAL ==========
     openAddModal(parentId = null) {
         this.editingItem = null;
+        this.currentRessources = [];
 
         document.getElementById('itemModalTitle').textContent = parentId ? 'Ajouter un sous-élément' : 'Nouvel élément';
         document.getElementById('itemId').value = '';
@@ -275,6 +283,9 @@ const AdminMethodologie = {
 
         // Réinitialiser le type de contenu
         this.setContentType('');
+
+        // Réinitialiser les ressources
+        this.renderRessourcesList();
 
         // Afficher le parent si existe
         const parentInfo = document.getElementById('parentInfo');
@@ -339,6 +350,10 @@ const AdminMethodologie = {
         }
         this.setContentType(contentType);
 
+        // Charger les ressources existantes
+        this.currentRessources = this.parseRessources(item.ressources);
+        this.renderRessourcesList();
+
         // Afficher le parent si existe
         const parentInfo = document.getElementById('parentInfo');
         if (item.parent_id) {
@@ -384,6 +399,9 @@ const AdminMethodologie = {
             return;
         }
 
+        // Récupérer les ressources depuis le formulaire
+        this.collectRessourcesFromForm();
+
         const btn = document.getElementById('saveItemBtn');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner">⏳</span> Enregistrement...';
@@ -399,7 +417,8 @@ const AdminMethodologie = {
                 video_url: videoUrl,
                 fiche_url: ficheUrl,
                 bex_bank: bexBank,
-                competence_bank: competenceBank
+                competence_bank: competenceBank,
+                ressources: JSON.stringify(this.currentRessources)
             };
 
             if (this.editingItem) {
@@ -431,6 +450,132 @@ const AdminMethodologie = {
     closeItemModal() {
         document.getElementById('itemModal').classList.add('hidden');
         this.editingItem = null;
+        this.currentRessources = [];
+    },
+
+    // ========== RESSOURCES ==========
+    parseRessources(ressourcesStr) {
+        if (!ressourcesStr) return [];
+        try {
+            const parsed = JSON.parse(ressourcesStr);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    },
+
+    renderRessourcesList() {
+        const container = document.getElementById('ressourcesList');
+        if (!container) return;
+
+        if (this.currentRessources.length === 0) {
+            container.innerHTML = '<div class="ressources-empty">Aucune ressource supplémentaire</div>';
+            return;
+        }
+
+        container.innerHTML = this.currentRessources.map((ressource, index) => `
+            <div class="ressource-item" data-index="${index}" draggable="true">
+                <div class="ressource-drag-handle" title="Glisser pour réorganiser">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/>
+                        <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
+                        <circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/>
+                    </svg>
+                </div>
+                <div class="ressource-fields">
+                    <select class="ressource-type" data-index="${index}">
+                        ${this.ressourceTypes.map(t => `
+                            <option value="${t.value}" ${ressource.type === t.value ? 'selected' : ''}>
+                                ${t.icon} ${t.label}
+                            </option>
+                        `).join('')}
+                    </select>
+                    <input type="text" class="ressource-titre" data-index="${index}"
+                           placeholder="Titre" value="${this.escapeHtml(ressource.titre || '')}">
+                    <input type="url" class="ressource-url" data-index="${index}"
+                           placeholder="URL" value="${this.escapeHtml(ressource.url || '')}">
+                </div>
+                <button type="button" class="ressource-remove" onclick="AdminMethodologie.removeRessource(${index})" title="Supprimer">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+        `).join('');
+
+        this.setupRessourcesDragDrop();
+    },
+
+    addRessource() {
+        this.collectRessourcesFromForm();
+        this.currentRessources.push({ type: 'document', titre: '', url: '' });
+        this.renderRessourcesList();
+    },
+
+    removeRessource(index) {
+        this.collectRessourcesFromForm();
+        this.currentRessources.splice(index, 1);
+        this.renderRessourcesList();
+    },
+
+    collectRessourcesFromForm() {
+        const items = document.querySelectorAll('.ressource-item');
+        const ressources = [];
+
+        items.forEach(item => {
+            const index = parseInt(item.dataset.index);
+            const type = item.querySelector('.ressource-type')?.value || 'document';
+            const titre = item.querySelector('.ressource-titre')?.value?.trim() || '';
+            const url = item.querySelector('.ressource-url')?.value?.trim() || '';
+
+            if (url) {
+                ressources.push({ type, titre, url });
+            }
+        });
+
+        this.currentRessources = ressources;
+    },
+
+    setupRessourcesDragDrop() {
+        const container = document.getElementById('ressourcesList');
+        if (!container) return;
+
+        let draggedItem = null;
+
+        container.querySelectorAll('.ressource-item').forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                draggedItem = item;
+                item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            item.addEventListener('dragend', () => {
+                if (draggedItem) {
+                    draggedItem.classList.remove('dragging');
+                    draggedItem = null;
+                    // Recalculer les index après réorganisation
+                    this.reindexRessources();
+                }
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedItem && draggedItem !== item) {
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        container.insertBefore(draggedItem, item);
+                    } else {
+                        container.insertBefore(draggedItem, item.nextSibling);
+                    }
+                }
+            });
+        });
+    },
+
+    reindexRessources() {
+        this.collectRessourcesFromForm();
+        this.renderRessourcesList();
     },
 
     // ========== DELETE ==========
@@ -547,6 +692,9 @@ const AdminMethodologie = {
         document.querySelectorAll('input[name="contentType"]').forEach(radio => {
             radio.addEventListener('change', (e) => this.setContentType(e.target.value));
         });
+
+        // Ressources
+        document.getElementById('addRessourceBtn')?.addEventListener('click', () => this.addRessource());
 
         // Delete modal
         document.getElementById('cancelDeleteBtn')?.addEventListener('click', () => this.closeDeleteModal());
