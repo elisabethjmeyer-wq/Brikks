@@ -950,7 +950,8 @@ const AdminElements = {
             return;
         }
 
-        preview.src = carte.image_url;
+        // Normalize URL to handle Google Drive, Dropbox, etc.
+        preview.src = this.normalizeImageUrl(carte.image_url);
         preview.onload = () => {
             container.style.display = 'block';
             // Reset marker
@@ -1003,6 +1004,41 @@ const AdminElements = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    /**
+     * Convert various image URL formats to direct viewable URLs
+     * Supports: Google Drive, Dropbox, and direct URLs
+     */
+    normalizeImageUrl(url) {
+        if (!url) return '';
+
+        // Google Drive formats
+        // https://drive.google.com/file/d/FILE_ID/view
+        // https://drive.google.com/open?id=FILE_ID
+        // https://drive.google.com/uc?id=FILE_ID
+        const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^\/\?]+)/);
+        if (driveFileMatch) {
+            return `https://drive.google.com/uc?export=view&id=${driveFileMatch[1]}`;
+        }
+
+        const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+        if (driveOpenMatch) {
+            return `https://drive.google.com/uc?export=view&id=${driveOpenMatch[1]}`;
+        }
+
+        const driveUcMatch = url.match(/drive\.google\.com\/uc\?id=([^&]+)/);
+        if (driveUcMatch && !url.includes('export=view')) {
+            return `https://drive.google.com/uc?export=view&id=${driveUcMatch[1]}`;
+        }
+
+        // Dropbox: change dl=0 to dl=1 for direct link
+        if (url.includes('dropbox.com') && url.includes('dl=0')) {
+            return url.replace('dl=0', 'dl=1');
+        }
+
+        // Already a direct URL or unknown format - return as is
+        return url;
     }
 };
 
