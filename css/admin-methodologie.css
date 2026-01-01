@@ -850,3 +850,120 @@
         transform: translateY(0);
     }
 }
+
+/* ============================================
+   Ressources List
+   ============================================ */
+.ressources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.ressource-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: var(--gray-50);
+    border: 2px solid var(--gray-200);
+    border-radius: 12px;
+    transition: all 0.15s;
+}
+
+.ressource-item:hover {
+    border-color: var(--gray-300);
+}
+
+.ressource-item.dragging {
+    opacity: 0.5;
+    background: var(--primary-bg);
+    border-color: var(--primary);
+}
+
+.ressource-drag-handle {
+    cursor: grab;
+    color: var(--gray-400);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ressource-drag-handle:active {
+    cursor: grabbing;
+}
+
+.ressource-fields {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 120px 1fr 1fr;
+    gap: 10px;
+}
+
+.ressource-fields select,
+.ressource-fields input {
+    padding: 10px 12px;
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: inherit;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+.ressource-fields select:focus,
+.ressource-fields input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.ressource-remove {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--gray-400);
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.ressource-remove:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.btn-small {
+    padding: 8px 14px;
+    font-size: 13px;
+}
+
+.ressources-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--gray-400);
+    font-size: 13px;
+    border: 2px dashed var(--gray-200);
+    border-radius: 12px;
+}
+
+@media (max-width: 600px) {
+    .ressource-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .ressource-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ressource-drag-handle {
+        align-self: center;
+    }
+}

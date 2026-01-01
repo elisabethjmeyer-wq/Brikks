@@ -2743,7 +2743,7 @@ function createMethodologie(data) {
 
 /**
  * Met à jour un élément méthodologie
- * @param {Object} data - { id, titre?, parent_id?, icon?, couleur?, description?, ordre?, type_contenu?, video_url?, fiche_url?, bex_bank?, competence_bank? }
+ * @param {Object} data - { id, titre?, parent_id?, icon?, couleur?, description?, ordre?, type_contenu?, video_url?, fiche_url?, bex_bank?, competence_bank?, ressources? }
  */
 function updateMethodologie(data) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.METHODOLOGIE);
@@ -2784,7 +2784,7 @@ function updateMethodologie(data) {
   }
 
   // Mettre à jour les colonnes spécifiées (incluant les nouveaux champs)
-  const updates = ['titre', 'parent_id', 'icon', 'couleur', 'description', 'ordre', 'type_contenu', 'video_url', 'fiche_url', 'bex_bank', 'competence_bank'];
+  const updates = ['titre', 'parent_id', 'icon', 'couleur', 'description', 'ordre', 'type_contenu', 'video_url', 'fiche_url', 'bex_bank', 'competence_bank', 'ressources'];
   updates.forEach(col => {
     if (itemData[col] !== undefined) {
       const colIndex = findColumnIndex(headers, col);
