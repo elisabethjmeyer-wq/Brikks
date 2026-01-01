@@ -296,10 +296,15 @@ const EleveMethodologie = {
             statusBadge = '<span class="parcours-status-badge new">Nouveau</span>';
         }
 
+        // Image ou icône
+        const visual = item.image_url
+            ? `<img src="${item.image_url}" alt="${this.escapeHtml(item.titre)}" class="parcours-image">`
+            : `<div class="parcours-icon ${item.couleur || 'blue'}">${item.icon || '📚'}</div>`;
+
         return `
             <div class="parcours-card ${status}" data-id="${item.id}">
-                <div class="parcours-card-header">
-                    <div class="parcours-icon ${item.couleur || 'blue'}">${item.icon || '📚'}</div>
+                <div class="parcours-card-header ${item.image_url ? 'has-image' : ''}">
+                    ${visual}
                     ${statusBadge}
                 </div>
                 <div class="parcours-card-body">
