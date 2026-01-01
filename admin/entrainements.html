@@ -21,13 +21,13 @@
     <!-- Page Header -->
     <header class="admin-header">
         <div>
-            <h1>Entrainements</h1>
-            <p>Gerez les entrainements pour les eleves</p>
+            <h1>📝 Entraînements</h1>
+            <p>Créez des séries d'exercices pour que vos élèves s'entraînent</p>
         </div>
         <div class="header-actions">
             <button class="btn btn-primary" id="addEntrainementBtn">
-                <span>+</span>
-                Creer un entrainement
+                <span>➕</span>
+                Nouvel entraînement
             </button>
         </div>
     </header>
@@ -43,42 +43,59 @@
         <!-- Stats Cards -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-card-icon blue">E</div>
+                <div class="stat-card-icon blue">🎮</div>
                 <div class="stat-card-value" id="statTotal">0</div>
-                <div class="stat-card-label">Entrainements total</div>
+                <div class="stat-card-label">Entraînements créés</div>
             </div>
             <div class="stat-card">
-                <div class="stat-card-icon green">C</div>
-                <div class="stat-card-value" id="statConnaissances">0</div>
-                <div class="stat-card-label">Connaissances</div>
+                <div class="stat-card-icon green">✅</div>
+                <div class="stat-card-value" id="statPublies">0</div>
+                <div class="stat-card-label">Publiés</div>
             </div>
             <div class="stat-card">
-                <div class="stat-card-icon orange">S</div>
-                <div class="stat-card-value" id="statSavoirFaire">0</div>
-                <div class="stat-card-label">Savoir-faire</div>
+                <div class="stat-card-icon orange">📝</div>
+                <div class="stat-card-value" id="statBrouillons">0</div>
+                <div class="stat-card-label">Brouillons</div>
             </div>
             <div class="stat-card">
-                <div class="stat-card-icon purple">K</div>
-                <div class="stat-card-value" id="statCompetences">0</div>
-                <div class="stat-card-label">Competences</div>
+                <div class="stat-card-icon purple">👥</div>
+                <div class="stat-card-value" id="statParticipations">0</div>
+                <div class="stat-card-label">Participations élèves</div>
             </div>
         </div>
 
-        <!-- Filters -->
+        <!-- Type Filter Tabs -->
+        <div class="type-tabs" id="filterTabs">
+            <button class="type-tab active" data-type="">
+                📋 Tous
+                <span class="count" id="countAll">0</span>
+            </button>
+            <button class="type-tab connaissances" data-type="connaissances">
+                ✅ Connaissances
+                <span class="count" id="countConnaissances">0</span>
+            </button>
+            <button class="type-tab savoir-faire" data-type="savoir-faire">
+                🔧 Savoir-faire
+                <span class="count" id="countSavoirFaire">0</span>
+            </button>
+            <button class="type-tab competences" data-type="competences">
+                🎯 Compétences
+                <span class="count" id="countCompetences">0</span>
+            </button>
+        </div>
+
+        <!-- Filters Bar -->
         <div class="filters-bar">
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Rechercher un entrainement...">
+                <input type="text" id="searchInput" placeholder="Rechercher un entraînement...">
             </div>
-            <div class="filter-tabs" id="filterTabs">
-                <button class="filter-tab active" data-type="">Tous</button>
-                <button class="filter-tab green" data-type="connaissances">Connaissances</button>
-                <button class="filter-tab orange" data-type="savoir-faire">Savoir-faire</button>
-                <button class="filter-tab purple" data-type="competences">Competences</button>
-            </div>
+            <select class="filter-select" id="filterDiscipline">
+                <option value="">📚 Toutes les matières</option>
+            </select>
             <select class="filter-select" id="filterStatut">
-                <option value="">Tous les statuts</option>
-                <option value="brouillon">Brouillon</option>
-                <option value="publie">Publie</option>
+                <option value="">📊 Tous les statuts</option>
+                <option value="publie">✅ Publiés</option>
+                <option value="brouillon">📝 Brouillons</option>
             </select>
         </div>
 

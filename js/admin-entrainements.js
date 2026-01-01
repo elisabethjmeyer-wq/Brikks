@@ -15,7 +15,8 @@ const AdminEntrainements = {
     filters: {
         search: '',
         type: '',
-        statut: ''
+        statut: '',
+        discipline: ''
     },
 
     // Wizard state
@@ -38,6 +39,7 @@ const AdminEntrainements = {
     async init() {
         try {
             await this.loadData();
+            this.populateDisciplineFilter();
             this.setupEventListeners();
             this.renderEntrainements();
             this.updateStats();
@@ -46,6 +48,17 @@ const AdminEntrainements = {
             console.error('Erreur initialisation:', error);
             this.showError('Erreur lors du chargement des donnees');
         }
+    },
+
+    populateDisciplineFilter() {
+        const select = document.getElementById('filterDiscipline');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">📚 Toutes les matières</option>' +
+            this.disciplines.map(d => {
+                const emoji = d.emoji || '📖';
+                return `<option value="${d.id}">${emoji} ${this.escapeHtml(d.nom || d.id)}</option>`;
+            }).join('');
     },
 
     async loadData() {
@@ -111,14 +124,22 @@ const AdminEntrainements = {
             this.renderEntrainements();
         });
 
-        // Filter tabs
-        document.querySelectorAll('.filter-tab').forEach(tab => {
+        // Type tabs
+        document.querySelectorAll('.type-tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
-                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-                e.target.classList.add('active');
-                this.filters.type = e.target.dataset.type;
+                const clickedTab = e.target.closest('.type-tab');
+                if (!clickedTab) return;
+                document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
+                clickedTab.classList.add('active');
+                this.filters.type = clickedTab.dataset.type;
                 this.renderEntrainements();
             });
+        });
+
+        // Filter discipline
+        document.getElementById('filterDiscipline').addEventListener('change', (e) => {
+            this.filters.discipline = e.target.value;
+            this.renderEntrainements();
         });
 
         // Filter status
@@ -189,6 +210,16 @@ const AdminEntrainements = {
             }
             if (this.filters.type && e.niveau !== this.filters.type) return false;
             if (this.filters.statut && e.statut !== this.filters.statut) return false;
+            if (this.filters.discipline) {
+                // Find chapter and check its discipline
+                const chapitre = this.chapitres.find(c => c.id === e.chapitre_id);
+                if (chapitre) {
+                    const theme = this.themes.find(t => t.id === chapitre.theme_id);
+                    if (!theme || theme.discipline_id !== this.filters.discipline) return false;
+                } else {
+                    return false;
+                }
+            }
             return true;
         });
 
@@ -203,7 +234,23 @@ const AdminEntrainements = {
 
     renderEntrainementCard(entrainement) {
         const chapitre = this.chapitres.find(c => c.id === entrainement.chapitre_id);
-        const chapterName = chapitre?.titre || 'Non defini';
+        const chapterName = chapitre?.titre || 'Non défini';
+
+        // Get discipline info
+        let disciplineEmoji = '📖';
+        let disciplineName = '';
+        let disciplineClass = 'histoire';
+        if (chapitre) {
+            const theme = this.themes.find(t => t.id === chapitre.theme_id);
+            if (theme) {
+                const discipline = this.disciplines.find(d => d.id === theme.discipline_id);
+                if (discipline) {
+                    disciplineEmoji = discipline.emoji || '📖';
+                    disciplineName = discipline.nom || '';
+                    disciplineClass = (discipline.nom || '').toLowerCase().replace(/[^a-z]/g, '') || 'histoire';
+                }
+            }
+        }
 
         // Get exercises for this entrainement
         const exercises = this.entrainementQuestions.filter(eq => eq.entrainement_id === entrainement.id);
@@ -214,45 +261,97 @@ const AdminEntrainements = {
 
         const typeClass = entrainement.niveau || 'connaissances';
         const statusClass = entrainement.statut || 'brouillon';
+        const participations = parseInt(entrainement.participations) || 0;
+
+        // Type labels
+        const typeLabels = {
+            'connaissances': '✅ Connaissances',
+            'savoir-faire': '🔧 Savoir-faire',
+            'competences': '🎯 Compétences'
+        };
+
+        // Status labels
+        const statusLabels = {
+            'publie': 'Publié',
+            'brouillon': 'Brouillon'
+        };
 
         return `
             <div class="entrainement-card ${typeClass}" data-id="${entrainement.id}">
-                <div class="entrainement-header">
-                    <div class="entrainement-title">${this.escapeHtml(entrainement.titre || 'Sans titre')}</div>
-                    <div class="entrainement-badges">
-                        <span class="entrainement-badge type-${typeClass}">${typeClass}</span>
-                        <span class="entrainement-badge status-${statusClass}">${statusClass}</span>
+                <div class="entrainement-card-header">
+                    <div class="entrainement-card-icon ${disciplineClass}">${disciplineEmoji}</div>
+                    <div class="entrainement-card-info">
+                        <div class="entrainement-card-badges">
+                            <span class="entrainement-card-type ${typeClass}">${typeLabels[typeClass] || typeClass}</span>
+                            <span class="entrainement-card-status ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
+                        </div>
+                        <h3 class="entrainement-card-title">${this.escapeHtml(entrainement.titre || 'Sans titre')}</h3>
+                        <p class="entrainement-card-chapter">${disciplineName ? disciplineName + ' • ' : ''}${this.escapeHtml(chapterName)}</p>
                     </div>
                 </div>
-                <div class="entrainement-chapter">${this.escapeHtml(chapterName)}</div>
-                <div class="entrainement-meta">
-                    <span>${exerciseCount} exercices</span>
-                    <span>${entrainement.duree_estimee || 15} min</span>
-                    <span>Serie ${entrainement.ordre || 1}</span>
-                </div>
-                ${formats.length > 0 ? `
-                    <div class="entrainement-formats">
-                        ${formats.map(f => `<span class="format-tag">${this.formatNames[f] || f}</span>`).join('')}
+                <div class="entrainement-card-body">
+                    <div class="entrainement-card-stats">
+                        <span class="entrainement-stat">📝 <strong>${exerciseCount}</strong> exercices</span>
+                        <span class="entrainement-stat">⏱️ <strong>~${entrainement.duree_estimee || 15}</strong> min</span>
+                        <span class="entrainement-stat">👥 <strong>${participations}</strong> participations</span>
                     </div>
-                ` : ''}
-                <div class="entrainement-actions">
-                    <button class="btn btn-secondary" onclick="AdminEntrainements.editEntrainement('${entrainement.id}')">Modifier</button>
-                    <button class="btn btn-secondary" onclick="AdminEntrainements.previewEntrainementById('${entrainement.id}')">Apercu</button>
-                    <button class="btn btn-icon danger" onclick="AdminEntrainements.confirmDelete('${entrainement.id}')" title="Supprimer">X</button>
+                    ${formats.length > 0 ? `
+                        <div class="entrainement-card-formats">
+                            ${formats.map(f => `<span class="format-tag">${this.formatNames[f] || f}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="entrainement-card-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="AdminEntrainements.editEntrainement('${entrainement.id}')">✏️ Modifier</button>
+                        ${statusClass === 'brouillon'
+                            ? `<button class="btn btn-primary btn-sm" onclick="AdminEntrainements.publishEntrainement('${entrainement.id}')">🚀 Publier</button>`
+                            : `<button class="btn btn-secondary btn-sm" onclick="AdminEntrainements.previewEntrainementById('${entrainement.id}')">👁️ Aperçu</button>`
+                        }
+                        <button class="btn btn-icon danger" onclick="AdminEntrainements.confirmDelete('${entrainement.id}')" title="Supprimer">✕</button>
+                    </div>
                 </div>
             </div>
         `;
     },
 
+    async publishEntrainement(id) {
+        try {
+            const result = await this.callAPI('updateEntrainement', { id, statut: 'publie' });
+            if (result.success) {
+                await this.loadData();
+                this.renderEntrainements();
+                this.updateStats();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur publication:', error);
+            alert('Erreur lors de la publication');
+        }
+    },
+
     // ========== STATS ==========
     updateStats() {
-        document.getElementById('statTotal').textContent = this.entrainements.length;
-        document.getElementById('statConnaissances').textContent =
-            this.entrainements.filter(e => e.niveau === 'connaissances').length;
-        document.getElementById('statSavoirFaire').textContent =
-            this.entrainements.filter(e => e.niveau === 'savoir-faire').length;
-        document.getElementById('statCompetences').textContent =
-            this.entrainements.filter(e => e.niveau === 'competences').length;
+        const total = this.entrainements.length;
+        const publies = this.entrainements.filter(e => e.statut === 'publie').length;
+        const brouillons = this.entrainements.filter(e => e.statut === 'brouillon').length;
+        const connaissances = this.entrainements.filter(e => e.niveau === 'connaissances').length;
+        const savoirFaire = this.entrainements.filter(e => e.niveau === 'savoir-faire').length;
+        const competences = this.entrainements.filter(e => e.niveau === 'competences').length;
+
+        // Calculate total participations (placeholder - would come from results data)
+        const participations = this.entrainements.reduce((sum, e) => sum + (parseInt(e.participations) || 0), 0);
+
+        // Update stat cards
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statPublies').textContent = publies;
+        document.getElementById('statBrouillons').textContent = brouillons;
+        document.getElementById('statParticipations').textContent = participations;
+
+        // Update tab counts
+        document.getElementById('countAll').textContent = total;
+        document.getElementById('countConnaissances').textContent = connaissances;
+        document.getElementById('countSavoirFaire').textContent = savoirFaire;
+        document.getElementById('countCompetences').textContent = competences;
     },
 
     // ========== MODAL / WIZARD ==========

@@ -32,34 +32,43 @@
 
 /* ===== PAGE HEADER ===== */
 .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 16px;
 }
 
 .page-header h1 {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 800;
     color: var(--gray-900);
-    margin: 0;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .page-header p {
-    font-size: 14px;
+    font-size: 15px;
     color: var(--gray-500);
-    margin: 4px 0 0 0;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.page-header p a {
+    color: var(--primary, #6366f1);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.page-header p a:hover {
+    text-decoration: underline;
 }
 
 /* ===== BUTTONS ===== */
 .btn {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    border-radius: var(--radius);
+    gap: 6px;
+    padding: 12px 20px;
+    border-radius: 8px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -67,6 +76,7 @@
     border: none;
     font-family: inherit;
     text-decoration: none;
+    white-space: nowrap;
 }
 
 .btn-primary {
@@ -75,295 +85,147 @@
 }
 
 .btn-primary:hover {
-    background: var(--primary-hover, #4f46e5);
-}
-
-.btn-secondary {
-    background: white;
-    border: 2px solid var(--gray-200);
-    color: var(--gray-700);
-}
-
-.btn-secondary:hover {
-    background: var(--gray-50);
-}
-
-.btn-success {
-    background: var(--accent-green);
-    color: white;
-}
-
-.btn-success:hover {
-    background: #059669;
+    background: var(--primary-dark, #4f46e5);
+    transform: translateY(-1px);
 }
 
 .btn-warning {
-    background: var(--accent-orange);
+    background: var(--accent-red);
     color: white;
 }
 
 .btn-warning:hover {
-    background: #d97706;
+    background: #dc2626;
+    transform: translateY(-1px);
 }
 
-/* ===== STATS ROW ===== */
-.stats-row {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 32px;
-    flex-wrap: wrap;
-}
-
-.stat-item {
-    background: white;
-    border-radius: var(--radius-lg);
-    padding: 16px 24px;
-    box-shadow: var(--shadow);
+/* ===== EVAL LIST ===== */
+.eval-list {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    min-width: 100px;
+    gap: 12px;
 }
 
-.stat-value {
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--gray-900);
-}
-
-.stat-label {
-    font-size: 12px;
-    color: var(--gray-500);
-    margin-top: 4px;
-}
-
-/* ===== SECTIONS ===== */
-.section {
-    margin-bottom: 32px;
-}
-
-.section-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--gray-800);
-    margin: 0 0 16px 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.section-title.red {
-    color: var(--accent-red);
-}
-
-.section-title.red::before {
-    content: '!';
-    width: 24px;
-    height: 24px;
-    background: var(--accent-red-light);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-}
-
-.section-title.gray {
-    color: var(--gray-500);
-}
-
-.section-title.green {
-    color: var(--accent-green);
-}
-
-/* ===== EVALUATIONS GRID ===== */
-.evaluations-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 16px;
-}
-
-/* ===== EVALUATION CARD ===== */
-.evaluation-card {
+/* ===== EVAL CARD ===== */
+.eval-card {
     background: white;
     border-radius: var(--radius-lg);
     padding: 20px;
     box-shadow: var(--shadow);
-    border-left: 4px solid var(--gray-300);
+    display: flex;
+    align-items: center;
+    gap: 16px;
     transition: all 0.2s;
 }
 
-.evaluation-card:hover {
+.eval-card:hover {
     box-shadow: var(--shadow-md);
 }
 
-.evaluation-card.connaissances {
-    border-left-color: var(--accent-green);
-}
-
-.evaluation-card.savoir-faire {
-    border-left-color: var(--accent-orange);
-}
-
-.evaluation-card.competences {
-    border-left-color: var(--accent-purple);
-}
-
-.evaluation-card.bonus {
-    border-left-color: #eab308;
-}
-
-/* A repasser - highlighted */
-.evaluation-card.repasser {
-    border: 2px solid var(--accent-red);
-    background: var(--accent-red-light);
-}
-
-/* A venir - grayed out */
-.evaluation-card.avenir {
-    opacity: 0.6;
-}
-
-/* Terminee */
-.evaluation-card.terminee {
-    opacity: 0.8;
-}
-
-.card-header {
+.eval-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.card-type-badge {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 20px;
-    text-transform: uppercase;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
     flex-shrink: 0;
 }
 
-.card-type-badge.connaissances {
-    background: var(--accent-green-light);
-    color: var(--accent-green);
-}
+.eval-card-icon.green { background: var(--accent-green-light); }
+.eval-card-icon.orange { background: var(--accent-orange-light); }
+.eval-card-icon.purple { background: var(--accent-purple-light); }
+.eval-card-icon.yellow { background: #fef9c3; }
 
-.card-type-badge.savoir-faire {
-    background: var(--accent-orange-light);
-    color: var(--accent-orange);
-}
-
-.card-type-badge.competences {
-    background: var(--accent-purple-light);
-    color: var(--accent-purple);
-}
-
-.card-type-badge.bonus {
-    background: #fef9c3;
-    color: #ca8a04;
-}
-
-.card-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--gray-900);
+.eval-card-content {
     flex: 1;
+    min-width: 0;
 }
 
-.card-meta {
+.eval-card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 6px;
     display: flex;
-    gap: 16px;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.eval-card-meta {
     font-size: 13px;
     color: var(--gray-500);
-    margin-bottom: 16px;
-}
-
-.card-meta span {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
-.card-countdown {
-    font-size: 12px;
-    color: var(--gray-500);
-    background: var(--gray-100);
-    padding: 8px 12px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-    text-align: center;
+.eval-card-actions {
+    flex-shrink: 0;
 }
 
-.card-result {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    background: var(--gray-50);
-    border-radius: 8px;
-    margin-bottom: 16px;
-}
-
-.card-result-score {
-    font-size: 20px;
-    font-weight: 700;
-}
-
-.card-result-score.success {
-    color: var(--accent-green);
-}
-
-.card-result-score.failed {
-    color: var(--accent-red);
-}
-
-.card-result-label {
-    font-size: 12px;
-    color: var(--gray-500);
-}
-
-.card-validations {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.validation-badge {
+/* ===== STATUS BADGE ===== */
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
     font-size: 11px;
     font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 4px;
 }
 
-.validation-badge.earned {
-    background: var(--accent-green-light);
-    color: var(--accent-green);
-}
-
-.validation-badge.not-earned {
+.status-badge.retry {
     background: var(--accent-red-light);
     color: var(--accent-red);
 }
 
-.card-actions {
-    display: flex;
-    gap: 8px;
+/* ===== EVAL CARD VARIANTS ===== */
+
+/* À repasser (prioritaire) */
+.eval-card.retry {
+    background: linear-gradient(135deg, var(--accent-red-light) 0%, #fecaca 100%);
+    border: 2px solid var(--accent-red);
 }
 
-.card-actions .btn {
-    flex: 1;
-    justify-content: center;
+.eval-card.retry .eval-card-icon {
+    background: white;
+}
+
+/* Pas encore ouverte */
+.eval-card.upcoming {
+    opacity: 0.6;
+    background: var(--gray-50);
+}
+
+.eval-card.upcoming .eval-card-icon {
+    background: var(--gray-200);
+}
+
+.eval-card.upcoming .eval-card-title {
+    color: var(--gray-500);
+}
+
+/* Upcoming info */
+.upcoming-info {
+    font-size: 13px;
+    color: var(--gray-400);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.upcoming-info .time {
+    font-weight: 700;
+    color: var(--accent-orange);
 }
 
 /* ===== EMPTY STATE ===== */
 .empty-state {
-    text-align: center;
-    padding: 60px 20px;
     background: white;
     border-radius: var(--radius-lg);
+    padding: 48px 24px;
+    text-align: center;
     box-shadow: var(--shadow);
 }
 
@@ -374,6 +236,7 @@
 
 .empty-state h3 {
     font-size: 18px;
+    font-weight: 700;
     color: var(--gray-800);
     margin: 0 0 8px 0;
 }
@@ -413,17 +276,40 @@
 }
 
 /* ===== RESPONSIVE ===== */
-@media (max-width: 600px) {
-    .stats-row {
-        justify-content: space-between;
+@media (max-width: 640px) {
+    .page-header h1 {
+        font-size: 24px;
     }
 
-    .stat-item {
-        min-width: calc(50% - 8px);
-        padding: 12px 16px;
+    .eval-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
     }
 
-    .evaluations-grid {
-        grid-template-columns: 1fr;
+    .eval-card-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    .eval-card-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .eval-card-actions {
+        width: 100%;
+    }
+
+    .eval-card-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .eval-card-meta {
+        flex-direction: column;
+        gap: 4px;
     }
 }

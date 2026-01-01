@@ -228,66 +228,138 @@ const AdminEvaluations = {
 
     renderEvaluationCard(evaluation) {
         const chapitre = this.chapitres.find(c => c.id === evaluation.chapitre_id);
-        const chapterName = chapitre?.titre || 'Non defini';
+        const chapterName = chapitre?.titre || 'Non défini';
 
         const typeClass = evaluation.type || 'connaissances';
         const statusClass = evaluation.statut || 'brouillon';
+        const order = evaluation.ordre || this.getEvaluationOrder(evaluation);
 
-        // Type-specific info
-        let infoHtml = '';
+        // Status labels with emoji
+        const statusLabels = {
+            'brouillon': '📝 Brouillon',
+            'planifiee': '📅 Planifiée',
+            'publiee': '🟢 En cours',
+            'terminee': '✅ Terminée'
+        };
+
+        // Type icons for order badge
+        const typeIcons = {
+            'connaissances': order,
+            'savoir-faire': `B${order}`,
+            'competences': order,
+            'bonus': '⭐'
+        };
+
+        // Type-specific meta info
+        let metaItems = [];
+        let statsHtml = '';
+        let extraButtons = '';
+
         if (evaluation.type === 'connaissances') {
-            infoHtml = `
-                <div class="evaluation-info">
-                    <span class="evaluation-label">Seuil</span>
-                    <span class="evaluation-value">${evaluation.seuil || 80}%</span>
-                </div>
-                <div class="evaluation-info">
-                    <span class="evaluation-label">Chapitre</span>
-                    <span class="evaluation-value">${this.escapeHtml(chapterName)}</span>
+            metaItems = [
+                `📅 ${evaluation.date_creation || 'Non planifié'}`,
+                `🎯 ${evaluation.briques || 2} briques`,
+                `📊 Seuil: ${evaluation.seuil || 80}%`
+            ];
+            if (chapitre) {
+                extraButtons = `<a href="#" class="link-badge" onclick="return false;">📚 Voir le cours</a>`;
+            }
+            // Progress stats (mock data)
+            const validated = evaluation.validated || 0;
+            const total = this.eleves.length || 25;
+            const percent = total > 0 ? Math.round((validated / total) * 100) : 0;
+            statsHtml = `
+                <div class="eval-card-stats">
+                    <div class="eval-stat">
+                        <div class="eval-stat-value">${validated}/${total}</div>
+                        <div class="eval-stat-label">Validés</div>
+                    </div>
+                    <div class="progress-mini">
+                        <div class="progress-mini-fill" style="width: ${percent}%"></div>
+                    </div>
                 </div>
             `;
         } else if (evaluation.type === 'savoir-faire') {
             const methodo = this.bexConfig.find(b => b.id === evaluation.methodologie_id);
-            infoHtml = `
-                <div class="evaluation-info">
-                    <span class="evaluation-label">Methodologie</span>
-                    <span class="evaluation-value">${methodo?.titre || 'Non defini'}</span>
+            metaItems = [
+                `📅 ${evaluation.date_creation || 'Depuis le ...'}`,
+                `🎯 ${evaluation.briques || '1-2'} briques`,
+                `📄 ${evaluation.sujets_count || 0} sujets`
+            ];
+            if (methodo) {
+                extraButtons = `<a href="#" class="link-badge" onclick="return false;">🧠 Méthodologie</a>`;
+            }
+            const unlocked = evaluation.unlocked || 0;
+            const total = this.eleves.length || 25;
+            statsHtml = `
+                <div class="eval-card-stats">
+                    <div class="eval-stat">
+                        <div class="eval-stat-value">${unlocked}/${total}</div>
+                        <div class="eval-stat-label">Débloqué</div>
+                    </div>
                 </div>
             `;
         } else if (evaluation.type === 'competences') {
-            const methodo = this.bexConfig.find(b => b.id === evaluation.methodologie_id);
-            infoHtml = `
-                <div class="evaluation-info">
-                    <span class="evaluation-label">Methodologie</span>
-                    <span class="evaluation-value">${methodo?.titre || 'Non defini'}</span>
+            metaItems = [
+                `📅 ${evaluation.date_creation || 'Non planifié'}`,
+                `🎯 ${evaluation.competences_count || 0} compétences`
+            ];
+            const briques = evaluation.briques_attribuees || 0;
+            statsHtml = `
+                <div class="eval-card-stats">
+                    <div class="eval-stat">
+                        <div class="eval-stat-value">${briques}</div>
+                        <div class="eval-stat-label">Briques attribuées</div>
+                    </div>
+                </div>
+            `;
+        } else if (evaluation.type === 'bonus') {
+            metaItems = [
+                `🎯 ${evaluation.briques || 5} briques max`,
+                `📊 ${evaluation.validation_rule || '3 validations = 1 brique'}`
+            ];
+            const validations = evaluation.validations_count || 0;
+            statsHtml = `
+                <div class="eval-card-stats">
+                    <div class="eval-stat">
+                        <div class="eval-stat-value">${validations}</div>
+                        <div class="eval-stat-label">Validations</div>
+                    </div>
                 </div>
             `;
         }
 
         return `
-            <div class="evaluation-card ${typeClass}" data-id="${evaluation.id}">
-                <div class="evaluation-header">
-                    <div class="evaluation-title">${this.escapeHtml(evaluation.titre || 'Sans titre')}</div>
-                    <div class="evaluation-badges">
-                        <span class="evaluation-badge briques">${evaluation.briques || 3} validations</span>
-                        <span class="evaluation-badge status-${statusClass}">${statusClass}</span>
+            <div class="eval-card ${typeClass}" data-id="${evaluation.id}">
+                <div class="eval-card-main">
+                    <div class="eval-card-order ${typeClass}">${typeIcons[typeClass]}</div>
+                    <div class="eval-card-content">
+                        <div class="eval-card-title">
+                            ${this.escapeHtml(evaluation.titre || 'Sans titre')}
+                            <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
+                        </div>
+                        <div class="eval-card-meta">
+                            ${metaItems.map(item => `<span>${item}</span>`).join('')}
+                            ${extraButtons}
+                        </div>
                     </div>
-                </div>
-                <div class="evaluation-content">
-                    ${infoHtml}
-                    <div class="evaluation-info">
-                        <span class="evaluation-label">Date creation</span>
-                        <span class="evaluation-value">${evaluation.date_creation || '-'}</span>
+                    ${statsHtml}
+                    <div class="eval-card-actions">
+                        ${evaluation.type === 'connaissances' || evaluation.type === 'savoir-faire' ?
+                            `<button class="btn-icon" onclick="AdminEvaluations.openAttributionModal('${evaluation.id}')" title="Attribuer sujets">👥</button>` : ''}
+                        <button class="btn-icon" onclick="AdminEvaluations.editEvaluation('${evaluation.id}')" title="Modifier">✏️</button>
+                        ${statusClass === 'publiee' ? `<button class="btn-icon" title="Saisir résultats">📝</button>` : ''}
+                        <button class="btn-icon danger" onclick="AdminEvaluations.confirmDelete('${evaluation.id}')" title="Supprimer">🗑️</button>
                     </div>
-                </div>
-                <div class="evaluation-actions">
-                    <button class="btn btn-secondary" onclick="AdminEvaluations.editEvaluation('${evaluation.id}')">Modifier</button>
-                    ${evaluation.type === 'savoir-faire' || evaluation.type === 'competences' ?
-                        `<button class="btn btn-secondary" onclick="AdminEvaluations.openAttributionModal('${evaluation.id}')">Attribuer sujets</button>` : ''}
-                    <button class="btn btn-icon danger" onclick="AdminEvaluations.confirmDelete('${evaluation.id}')" title="Supprimer">X</button>
                 </div>
             </div>
         `;
+    },
+
+    getEvaluationOrder(evaluation) {
+        const sameType = this.evaluations.filter(e => e.type === evaluation.type);
+        const index = sameType.findIndex(e => e.id === evaluation.id);
+        return index >= 0 ? index + 1 : 1;
     },
 
     // ========== MODAL ==========

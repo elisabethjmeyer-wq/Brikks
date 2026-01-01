@@ -186,36 +186,8 @@
 }
 
 .tab-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    background: var(--gray-200);
-    color: var(--gray-600);
-}
-
-.eval-tab.green .tab-icon {
-    background: var(--accent-green-light);
-    color: var(--accent-green);
-}
-
-.eval-tab.orange .tab-icon {
-    background: var(--accent-orange-light);
-    color: var(--accent-orange);
-}
-
-.eval-tab.purple .tab-icon {
-    background: var(--accent-purple-light);
-    color: var(--accent-purple);
-}
-
-.eval-tab.yellow .tab-icon {
-    background: var(--accent-yellow-light);
-    color: var(--accent-yellow);
+    font-size: 18px;
+    line-height: 1;
 }
 
 .tab-count {
@@ -282,9 +254,215 @@
 .evaluations-list {
     display: flex;
     flex-direction: column;
+    gap: 12px;
+}
+
+/* ===== NEW EVAL CARD STYLES ===== */
+.eval-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.eval-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.eval-card-main {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
     gap: 16px;
 }
 
+.eval-card-order {
+    width: 40px;
+    height: 40px;
+    background: var(--gray-100);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-500);
+    cursor: grab;
+    flex-shrink: 0;
+}
+
+.eval-card-order:hover {
+    background: var(--gray-200);
+}
+
+.eval-card-order.connaissances {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+.eval-card-order.savoir-faire {
+    background: var(--accent-orange-light);
+    color: var(--accent-orange);
+}
+
+.eval-card-order.competences {
+    background: var(--accent-purple-light);
+    color: var(--accent-purple);
+}
+
+.eval-card-order.bonus {
+    background: var(--accent-yellow-light);
+    color: var(--accent-yellow);
+}
+
+.eval-card-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.eval-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.eval-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--gray-500);
+    flex-wrap: wrap;
+}
+
+.eval-card-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.eval-card-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-right: 16px;
+    flex-shrink: 0;
+}
+
+.eval-stat {
+    text-align: center;
+}
+
+.eval-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.eval-stat-label {
+    font-size: 11px;
+    color: var(--gray-500);
+}
+
+.eval-card-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.status-badge.brouillon {
+    background: var(--gray-100);
+    color: var(--gray-600);
+}
+
+.status-badge.planifiee {
+    background: var(--accent-blue-light);
+    color: var(--accent-blue);
+}
+
+.status-badge.publiee {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+.status-badge.terminee {
+    background: var(--accent-purple-light);
+    color: var(--accent-purple);
+}
+
+/* Link badge */
+.link-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--primary-bg, #eef2ff);
+    color: var(--primary, #6366f1);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.link-badge:hover {
+    background: var(--primary, #6366f1);
+    color: white;
+}
+
+/* Progress bar mini */
+.progress-mini {
+    width: 60px;
+    height: 6px;
+    background: var(--gray-200);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-mini-fill {
+    height: 100%;
+    background: var(--accent-green);
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .eval-card-main {
+        flex-wrap: wrap;
+    }
+
+    .eval-card-stats {
+        width: 100%;
+        margin: 12px 0 0 56px;
+    }
+
+    .eval-card-actions {
+        width: 100%;
+        margin-left: 56px;
+        padding-top: 12px;
+        border-top: 1px solid var(--gray-100);
+    }
+}
+
+/* Legacy styles for backwards compatibility */
 .evaluation-card {
     background: white;
     border-radius: var(--radius-lg);
@@ -312,100 +490,6 @@
 
 .evaluation-card.bonus {
     border-left-color: var(--accent-yellow);
-}
-
-.evaluation-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 12px;
-}
-
-.evaluation-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--gray-900);
-}
-
-.evaluation-badges {
-    display: flex;
-    gap: 8px;
-}
-
-.evaluation-badge {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 4px 10px;
-    border-radius: 20px;
-    text-transform: uppercase;
-}
-
-.evaluation-badge.status-brouillon {
-    background: var(--gray-100);
-    color: var(--gray-600);
-}
-
-.evaluation-badge.status-planifiee {
-    background: var(--accent-blue-light);
-    color: var(--accent-blue);
-}
-
-.evaluation-badge.status-publiee {
-    background: var(--accent-green-light);
-    color: var(--accent-green);
-}
-
-.evaluation-badge.status-terminee {
-    background: var(--accent-purple-light);
-    color: var(--accent-purple);
-}
-
-.evaluation-badge.briques {
-    background: var(--accent-orange-light);
-    color: var(--accent-orange);
-}
-
-.evaluation-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
-}
-
-@media (max-width: 768px) {
-    .evaluation-content {
-        grid-template-columns: 1fr;
-    }
-}
-
-.evaluation-info {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.evaluation-label {
-    font-size: 11px;
-    color: var(--gray-500);
-    text-transform: uppercase;
-}
-
-.evaluation-value {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--gray-800);
-}
-
-.evaluation-actions {
-    display: flex;
-    gap: 8px;
-    padding-top: 12px;
-    border-top: 1px solid var(--gray-100);
-}
-
-.evaluation-actions .btn {
-    padding: 8px 12px;
-    font-size: 13px;
 }
 
 /* ===== EMPTY STATE ===== */
@@ -603,36 +687,9 @@
 }
 
 .type-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 700;
-    background: var(--gray-100);
+    font-size: 28px;
     margin-bottom: 8px;
-}
-
-.type-card.green .type-icon {
-    background: var(--accent-green-light);
-    color: var(--accent-green);
-}
-
-.type-card.orange .type-icon {
-    background: var(--accent-orange-light);
-    color: var(--accent-orange);
-}
-
-.type-card.purple .type-icon {
-    background: var(--accent-purple-light);
-    color: var(--accent-purple);
-}
-
-.type-card.yellow .type-icon {
-    background: var(--accent-yellow-light);
-    color: var(--accent-yellow);
+    line-height: 1;
 }
 
 .type-name {

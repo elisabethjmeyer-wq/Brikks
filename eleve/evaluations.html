@@ -21,12 +21,9 @@
     <!-- Page Header -->
     <header class="page-header">
         <div>
-            <h1>Mes evaluations</h1>
-            <p>Retrouve ici toutes tes evaluations a passer</p>
+            <h1>📋 Mes évaluations</h1>
+            <p>Retrouve ici les évaluations numériques à passer.<br>Pour voir tes résultats et ta progression, consulte <a href="notes.html">📊 Mes notes</a>.</p>
         </div>
-        <a href="notes.html" class="btn btn-secondary">
-            Voir mes notes
-        </a>
     </header>
 
     <!-- Loader -->
@@ -37,63 +34,16 @@
 
     <!-- Contenu principal -->
     <div id="evaluations-content" style="display: none;">
-        <!-- Stats -->
-        <div class="stats-row">
-            <div class="stat-item">
-                <span class="stat-value" id="statARepasser">0</span>
-                <span class="stat-label">A repasser</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value" id="statDisponibles">0</span>
-                <span class="stat-label">Disponibles</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value" id="statAVenir">0</span>
-                <span class="stat-label">A venir</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value" id="statTerminees">0</span>
-                <span class="stat-label">Terminees</span>
-            </div>
-        </div>
-
-        <!-- Section: A repasser -->
-        <div class="section" id="sectionRepasser" style="display: none;">
-            <h2 class="section-title red">A repasser</h2>
-            <div class="evaluations-grid" id="gridRepasser">
-                <!-- Generated -->
-            </div>
-        </div>
-
-        <!-- Section: Disponibles -->
-        <div class="section" id="sectionDisponibles" style="display: none;">
-            <h2 class="section-title">Disponibles maintenant</h2>
-            <div class="evaluations-grid" id="gridDisponibles">
-                <!-- Generated -->
-            </div>
-        </div>
-
-        <!-- Section: A venir -->
-        <div class="section" id="sectionAVenir" style="display: none;">
-            <h2 class="section-title gray">A venir</h2>
-            <div class="evaluations-grid" id="gridAVenir">
-                <!-- Generated -->
-            </div>
-        </div>
-
-        <!-- Section: Terminees -->
-        <div class="section" id="sectionTerminees" style="display: none;">
-            <h2 class="section-title green">Terminees</h2>
-            <div class="evaluations-grid" id="gridTerminees">
-                <!-- Generated -->
-            </div>
+        <!-- Evaluations List -->
+        <div class="eval-list" id="evaluationsList">
+            <!-- Generated dynamically -->
         </div>
 
         <!-- Empty state -->
         <div class="empty-state" id="emptyState" style="display: none;">
-            <div class="empty-icon">?</div>
-            <h3>Aucune evaluation</h3>
-            <p>Tu n'as pas d'evaluations pour le moment.</p>
+            <div class="empty-icon">✅</div>
+            <h3>Aucune évaluation à passer</h3>
+            <p>Tu as tout passé ! Consulte tes résultats dans "Mes notes".</p>
         </div>
     </div>
 </div>
