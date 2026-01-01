@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Brikks - Banque d'elements d'entrainement">
+    <meta name="description" content="Brikks - Banque d'elements">
     <title>Banque d'elements - Administration - Brikks</title>
 
     <!-- Fonts -->
@@ -22,12 +22,12 @@
     <header class="admin-header">
         <div>
             <h1>Banque d'elements</h1>
-            <p>Gerez les questions et elements pour les entrainements</p>
+            <p>Gerez les elements utilises dans vos exercices</p>
         </div>
         <div class="header-actions">
             <button class="btn btn-primary" id="addElementBtn">
                 <span>+</span>
-                Ajouter un element
+                Nouvel element
             </button>
         </div>
     </header>
@@ -40,27 +40,42 @@
 
     <!-- Contenu principal -->
     <div id="elements-content" style="display: none;">
-        <!-- Stats Cards -->
+        <!-- Stats Cards - 5 types -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-card-icon blue">Q</div>
-                <div class="stat-card-value" id="statTotal">0</div>
-                <div class="stat-card-label">Elements total</div>
+                <div class="stat-icon blue">📝</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="statQCM">0</div>
+                    <div class="stat-label">Questions QCM</div>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-card-icon green">?</div>
-                <div class="stat-card-value" id="statQCM">0</div>
-                <div class="stat-card-label">QCM</div>
+                <div class="stat-icon orange">📅</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="statEvenement">0</div>
+                    <div class="stat-label">Evenements</div>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-card-icon purple">T</div>
-                <div class="stat-card-value" id="statTimeline">0</div>
-                <div class="stat-card-label">Timeline/Ordonner</div>
+                <div class="stat-icon green">🔗</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="statPaire">0</div>
+                    <div class="stat-label">Paires</div>
+                </div>
             </div>
             <div class="stat-card">
-                <div class="stat-card-icon teal">A</div>
-                <div class="stat-card-value" id="statAssociation">0</div>
-                <div class="stat-card-label">Association</div>
+                <div class="stat-icon teal">📍</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="statPointCarte">0</div>
+                    <div class="stat-label">Points carte</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon pink">📂</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="statItemCategorie">0</div>
+                    <div class="stat-label">Items categorie</div>
+                </div>
             </div>
         </div>
 
@@ -69,7 +84,10 @@
             <!-- Colonne gauche: Arborescence -->
             <div class="sidebar-panel">
                 <div class="panel-header">
-                    <h3>Chapitres</h3>
+                    <h3>📁 Chapitres</h3>
+                </div>
+                <div class="panel-search">
+                    <input type="text" id="searchChapter" placeholder="Rechercher un chapitre...">
                 </div>
                 <div class="chapters-tree" id="chaptersTree">
                     <!-- Arborescence generee dynamiquement -->
@@ -78,35 +96,62 @@
 
             <!-- Colonne droite: Liste des elements -->
             <div class="main-panel">
-                <!-- Filtres -->
-                <div class="filters-bar">
-                    <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="Rechercher un element...">
+                <!-- Header du chapitre selectionne -->
+                <div class="elements-header" id="elementsHeader">
+                    <div class="elements-header-left">
+                        <div class="elements-header-icon" id="headerIcon">📋</div>
+                        <div class="elements-header-info">
+                            <h2 id="selectedChapterName">Tous les chapitres</h2>
+                            <p id="selectedChapterMeta">0 elements</p>
+                        </div>
                     </div>
-                    <select class="filter-select" id="filterFormat">
-                        <option value="">Tous les formats</option>
-                        <option value="format_001">QCM</option>
-                        <option value="format_002">QCM Multiple</option>
-                        <option value="format_003">Vrai/Faux</option>
-                        <option value="format_004">Texte a trous</option>
-                        <option value="format_005">Association</option>
-                        <option value="format_006">Ordonner</option>
-                        <option value="format_007">Question ouverte</option>
-                        <option value="format_008">Image cliquable</option>
-                    </select>
-                    <select class="filter-select" id="filterDifficulte">
-                        <option value="">Toutes difficultes</option>
-                        <option value="facile">Facile</option>
-                        <option value="moyen">Moyen</option>
-                        <option value="difficile">Difficile</option>
-                    </select>
+                    <button class="btn btn-primary btn-sm" id="addElementBtnHeader">
+                        <span>+</span> Ajouter
+                    </button>
                 </div>
 
-                <!-- Chapitre selectionne -->
-                <div class="selected-chapter-bar" id="selectedChapterBar">
-                    <span class="selected-chapter-label">Chapitre :</span>
-                    <span class="selected-chapter-name" id="selectedChapterName">Tous les chapitres</span>
-                    <button class="btn-clear" id="clearChapterFilter" style="display: none;">Effacer</button>
+                <!-- Filtres par type (pills) -->
+                <div class="type-filters" id="typeFilters">
+                    <button class="type-filter active" data-type="all">
+                        <span class="type-filter-icon">📋</span>
+                        Tous
+                        <span class="type-filter-count" id="countAll">0</span>
+                    </button>
+                    <button class="type-filter" data-type="qcm">
+                        <span class="type-filter-icon">📝</span>
+                        QCM
+                        <span class="type-filter-count" id="countQCM">0</span>
+                    </button>
+                    <button class="type-filter" data-type="evenement">
+                        <span class="type-filter-icon">📅</span>
+                        Evenements
+                        <span class="type-filter-count" id="countEvenement">0</span>
+                    </button>
+                    <button class="type-filter" data-type="paire">
+                        <span class="type-filter-icon">🔗</span>
+                        Paires
+                        <span class="type-filter-count" id="countPaire">0</span>
+                    </button>
+                    <button class="type-filter" data-type="point_carte">
+                        <span class="type-filter-icon">📍</span>
+                        Points carte
+                        <span class="type-filter-count" id="countPointCarte">0</span>
+                    </button>
+                    <button class="type-filter" data-type="item_categorie">
+                        <span class="type-filter-icon">📂</span>
+                        Items
+                        <span class="type-filter-count" id="countItemCategorie">0</span>
+                    </button>
+                    <button class="type-filter" data-type="reponse_libre">
+                        <span class="type-filter-icon">💬</span>
+                        Rep. libres
+                        <span class="type-filter-count" id="countRepLibre">0</span>
+                    </button>
+                </div>
+
+                <!-- Recherche -->
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Rechercher dans les elements...">
                 </div>
 
                 <!-- Liste des elements -->
@@ -116,9 +161,10 @@
 
                 <!-- Empty state -->
                 <div class="empty-state" id="emptyState" style="display: none;">
-                    <div class="empty-icon">?</div>
+                    <div class="empty-icon">📭</div>
                     <h3>Aucun element trouve</h3>
                     <p>Modifiez vos filtres ou ajoutez un nouvel element.</p>
+                    <button class="btn btn-primary" id="addElementBtnEmpty">+ Ajouter un element</button>
                 </div>
 
                 <!-- Pagination -->
@@ -135,29 +181,195 @@
 <div class="modal-overlay hidden" id="elementModal">
     <div class="modal modal-large">
         <div class="modal-header">
-            <h2 id="elementModalTitle">Ajouter un element</h2>
+            <h2 id="elementModalTitle">➕ Nouvel element</h2>
             <button class="modal-close" id="closeElementModal">&times;</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="editElementId">
 
-            <!-- Infos generales -->
-            <div class="form-section">Informations generales</div>
+            <!-- Selection du type -->
+            <div class="form-section">Type d'element</div>
+            <div class="type-selector" id="typeSelector">
+                <button class="type-selector-btn active" data-type="qcm">
+                    <div class="type-selector-icon">📝</div>
+                    <div class="type-selector-label">QCM</div>
+                    <div class="type-selector-desc">Question a choix</div>
+                </button>
+                <button class="type-selector-btn" data-type="evenement">
+                    <div class="type-selector-icon">📅</div>
+                    <div class="type-selector-label">Evenement</div>
+                    <div class="type-selector-desc">Date + description</div>
+                </button>
+                <button class="type-selector-btn" data-type="paire">
+                    <div class="type-selector-icon">🔗</div>
+                    <div class="type-selector-label">Paire</div>
+                    <div class="type-selector-desc">Terme ↔ Terme</div>
+                </button>
+                <button class="type-selector-btn" data-type="point_carte">
+                    <div class="type-selector-icon">📍</div>
+                    <div class="type-selector-label">Point carte</div>
+                    <div class="type-selector-desc">Localisation</div>
+                </button>
+                <button class="type-selector-btn" data-type="item_categorie">
+                    <div class="type-selector-icon">📂</div>
+                    <div class="type-selector-label">Item categorie</div>
+                    <div class="type-selector-desc">Element + categorie</div>
+                </button>
+                <button class="type-selector-btn" data-type="reponse_libre">
+                    <div class="type-selector-icon">💬</div>
+                    <div class="type-selector-label">Reponse libre</div>
+                    <div class="type-selector-desc">Question ouverte</div>
+                </button>
+            </div>
 
+            <!-- Chapitre -->
+            <div class="form-section">Localisation</div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Format <span class="req">*</span></label>
-                    <select class="form-select" id="elementFormat">
-                        <option value="">Selectionner un format...</option>
-                        <option value="format_001">QCM (choix unique)</option>
-                        <option value="format_002">QCM Multiple (plusieurs reponses)</option>
-                        <option value="format_003">Vrai/Faux</option>
-                        <option value="format_004">Texte a trous</option>
-                        <option value="format_005">Association (paires)</option>
-                        <option value="format_006">Ordonner (timeline)</option>
-                        <option value="format_007">Question ouverte</option>
-                        <option value="format_008">Image cliquable</option>
+                    <label>Discipline</label>
+                    <select class="form-select" id="elementDiscipline">
+                        <option value="">Selectionner...</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Chapitre <span class="req">*</span></label>
+                    <select class="form-select" id="elementChapitre" disabled>
+                        <option value="">Selectionner d'abord une discipline...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Formulaires dynamiques selon le type -->
+            <div id="dynamicForm">
+                <!-- QCM -->
+                <div class="form-dynamic active" id="form-qcm">
+                    <div class="form-section">Question QCM</div>
+                    <div class="form-group">
+                        <label>Enonce de la question <span class="req">*</span></label>
+                        <textarea class="form-textarea" id="qcmEnonce" rows="3" placeholder="Ex: Quelle est la date du passage du cap de Bonne-Esperance ?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Reponses <span class="form-hint">(cliquez pour marquer la bonne reponse)</span></label>
+                        <div class="reponses-list" id="qcmReponses">
+                            <div class="reponse-item correct">
+                                <div class="reponse-radio">✓</div>
+                                <input type="text" class="form-input reponse-input" placeholder="Bonne reponse">
+                                <button type="button" class="reponse-delete">&times;</button>
+                            </div>
+                            <div class="reponse-item">
+                                <div class="reponse-radio"></div>
+                                <input type="text" class="form-input reponse-input" placeholder="Mauvaise reponse">
+                                <button type="button" class="reponse-delete">&times;</button>
+                            </div>
+                            <div class="reponse-item">
+                                <div class="reponse-radio"></div>
+                                <input type="text" class="form-input reponse-input" placeholder="Mauvaise reponse">
+                                <button type="button" class="reponse-delete">&times;</button>
+                            </div>
+                            <div class="reponse-item">
+                                <div class="reponse-radio"></div>
+                                <input type="text" class="form-input reponse-input" placeholder="Mauvaise reponse">
+                                <button type="button" class="reponse-delete">&times;</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-add-option" id="addQcmOption">➕ Ajouter une reponse</button>
+                    </div>
+                </div>
+
+                <!-- Evenement -->
+                <div class="form-dynamic" id="form-evenement">
+                    <div class="form-section">Evenement</div>
+                    <div class="form-group">
+                        <label>Description de l'evenement <span class="req">*</span></label>
+                        <textarea class="form-textarea" id="eventDescription" rows="2" placeholder="Ex: Bartolomeu Dias atteint le cap de Bonne-Esperance"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date <span class="req">*</span></label>
+                            <input type="text" class="form-input" id="eventDate" placeholder="Ex: 1488">
+                        </div>
+                        <div class="form-group">
+                            <label>Periode <span class="form-hint">(optionnel)</span></label>
+                            <input type="text" class="form-input" id="eventPeriode" placeholder="Ex: XVe siecle">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Paire -->
+                <div class="form-dynamic" id="form-paire">
+                    <div class="form-section">Paire (Association)</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Terme A <span class="req">*</span></label>
+                            <input type="text" class="form-input" id="paireTermeA" placeholder="Ex: Bartolomeu Dias">
+                        </div>
+                        <div class="form-group">
+                            <label>Terme B <span class="req">*</span></label>
+                            <input type="text" class="form-input" id="paireTermeB" placeholder="Ex: Cap de Bonne-Esperance">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Point carte -->
+                <div class="form-dynamic" id="form-point_carte">
+                    <div class="form-section">Point carte</div>
+                    <div class="form-group">
+                        <label>Nom du lieu <span class="req">*</span></label>
+                        <input type="text" class="form-input" id="pointNom" placeholder="Ex: Lisbonne, Goa, Cap de Bonne-Esperance...">
+                    </div>
+                    <div class="form-group">
+                        <label>Carte associee</label>
+                        <input type="text" class="form-input" id="pointCarte" placeholder="Ex: Explorations XV-XVIe siecle">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Position X (%)</label>
+                            <input type="number" class="form-input" id="pointX" placeholder="0-100" min="0" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Position Y (%)</label>
+                            <input type="number" class="form-input" id="pointY" placeholder="0-100" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Item categorie -->
+                <div class="form-dynamic" id="form-item_categorie">
+                    <div class="form-section">Item de categorisation</div>
+                    <div class="form-group">
+                        <label>Element a classer <span class="req">*</span></label>
+                        <input type="text" class="form-input" id="itemElement" placeholder="Ex: La caravelle">
+                    </div>
+                    <div class="form-group">
+                        <label>Categorie correcte <span class="req">*</span></label>
+                        <input type="text" class="form-input" id="itemCategorie" placeholder="Ex: Instruments de navigation">
+                    </div>
+                </div>
+
+                <!-- Reponse libre -->
+                <div class="form-dynamic" id="form-reponse_libre">
+                    <div class="form-section">Question a reponse libre</div>
+                    <div class="form-group">
+                        <label>Question <span class="req">*</span></label>
+                        <textarea class="form-textarea" id="libreQuestion" rows="3" placeholder="Ex: Expliquez les motivations des explorations portugaises."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Mots-cles attendus <span class="form-hint">(separes par virgules)</span></label>
+                        <input type="text" class="form-input" id="libreMotsCles" placeholder="Ex: epices, or, route des Indes, commerce">
+                    </div>
+                    <div class="form-group">
+                        <label>Reponse modele <span class="form-hint">(optionnel)</span></label>
+                        <textarea class="form-textarea" id="libreReponseModele" rows="3" placeholder="Reponse complete affichee dans le corrige..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Champs communs -->
+            <div class="form-section">Informations complementaires</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tags <span class="form-hint">(separes par virgules)</span></label>
+                    <input type="text" class="form-input" id="elementTags" placeholder="Ex: revolution, dates, roi">
                 </div>
                 <div class="form-group">
                     <label>Difficulte</label>
@@ -168,55 +380,15 @@
                     </select>
                 </div>
             </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Discipline</label>
-                    <select class="form-select" id="elementDiscipline">
-                        <option value="">Selectionner...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Theme</label>
-                    <select class="form-select" id="elementTheme" disabled>
-                        <option value="">Selectionner d'abord une discipline...</option>
-                    </select>
-                </div>
-            </div>
-
             <div class="form-group">
-                <label>Chapitre <span class="req">*</span></label>
-                <select class="form-select" id="elementChapitre" disabled>
-                    <option value="">Selectionner d'abord un theme...</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Enonce / Question <span class="req">*</span></label>
-                <textarea class="form-textarea" id="elementEnonce" rows="3" placeholder="Saisissez l'enonce ou la question..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label>Tags</label>
-                <input type="text" class="form-input" id="elementTags" placeholder="Ex: revolution, dates, roi (separes par des virgules)">
-                <div class="tags-suggestions" id="tagsSuggestions"></div>
-            </div>
-
-            <!-- Champs specifiques au format (generes dynamiquement) -->
-            <div class="form-section" id="formatFieldsSection" style="display: none;">Donnees specifiques au format</div>
-            <div id="formatFields">
-                <!-- Champs generes selon le format selectionne -->
-            </div>
-
-            <div class="form-group">
-                <label>Explication (affichee apres correction)</label>
+                <label>Explication <span class="form-hint">(affichee apres correction)</span></label>
                 <textarea class="form-textarea" id="elementExplication" rows="2" placeholder="Explication affichee apres la correction..."></textarea>
             </div>
 
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelElementBtn">Annuler</button>
-            <button class="btn btn-primary" id="saveElementBtn">Enregistrer</button>
+            <button class="btn btn-primary" id="saveElementBtn">💾 Enregistrer</button>
         </div>
     </div>
 </div>
