@@ -122,6 +122,18 @@ const EleveEntrainement = {
                 ]
             },
             {
+                format: 'chronologie',
+                titre: 'Complétez la frise',
+                description: 'Retrouvez les dates ou événements manquants',
+                items: [
+                    { date: '1488', event: 'Cap de Bonne-Espérance', blank: null },
+                    { date: '1492', event: 'Découverte de l\'Amérique', blank: 'date' },
+                    { date: '1498', event: 'Arrivée en Inde', blank: 'event' },
+                    { date: '1500', event: 'Découverte du Brésil', blank: 'date' },
+                    { date: '1519', event: 'Tour du monde', blank: null }
+                ]
+            },
+            {
                 format: 'qcm',
                 titre: 'Questions à choix unique',
                 description: 'Répondez aux questions ci-dessous',
@@ -797,6 +809,141 @@ const EleveEntrainement = {
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
         return shuffled;
+    },
+
+    // ========== FORMAT CHRONOLOGIE ==========
+    renderChronologie(step) {
+        const container = document.getElementById('exerciseContainer');
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+        const isVerified = this.results[this.currentStepIndex]?.verified;
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon chronologie">${this.getFormatIcon('chronologie')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description}</p>
+                    </div>
+                    <span class="exercise-badge">${step.items.length} éléments</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="chronologie-instruction">
+                        <span class="chronologie-instruction-icon">💡</span>
+                        <span>Complétez les dates ou événements manquants dans la frise</span>
+                    </div>
+
+                    <div class="chronologie-frise">
+                        ${step.items.map((item, index) => this.renderChronologieItem(item, index, stepAnswers, isVerified)).join('')}
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${isVerified ? `
+                            <button class="btn btn-secondary" onclick="EleveEntrainement.resetStep()">🔄 Recommencer</button>
+                            ${this.currentStepIndex < this.steps.length - 1 ? `
+                                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
+                            ` : `
+                                <button class="btn btn-success" onclick="EleveEntrainement.showResults()">🏆 Voir les résultats</button>
+                            `}
+                        ` : `
+                            <button class="btn btn-success" onclick="EleveEntrainement.verifyCurrentStep()">✓ Vérifier mes réponses</button>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderChronologieItem(item, index, stepAnswers, isVerified) {
+        const answer = stepAnswers[`item_${index}`] || '';
+        const isBlank = item.blank === 'date' || item.blank === 'event';
+        const correctAnswer = item.blank === 'date' ? item.date : item.event;
+        const isCorrect = isVerified && this.normalizeAnswer(answer) === this.normalizeAnswer(correctAnswer);
+
+        let statusClass = '';
+        if (isVerified && isBlank) {
+            statusClass = isCorrect ? 'correct' : 'incorrect';
+        }
+
+        return `
+            <div class="chronologie-item ${statusClass}">
+                <div class="chronologie-item-line"></div>
+                <div class="chronologie-item-dot"></div>
+                <div class="chronologie-item-content">
+                    <div class="chronologie-item-date">
+                        ${item.blank === 'date' ? `
+                            <input type="text"
+                                   class="chronologie-input ${statusClass}"
+                                   placeholder="Date ?"
+                                   value="${this.escapeHtml(answer)}"
+                                   ${isVerified ? 'disabled' : ''}
+                                   onchange="EleveEntrainement.setChronologieAnswer(${index}, this.value)">
+                            ${isVerified ? `<span class="chronologie-correction">${this.escapeHtml(item.date)}</span>` : ''}
+                        ` : `
+                            <span class="chronologie-date-fixed">${this.escapeHtml(item.date)}</span>
+                        `}
+                    </div>
+                    <div class="chronologie-item-event">
+                        ${item.blank === 'event' ? `
+                            <input type="text"
+                                   class="chronologie-input event ${statusClass}"
+                                   placeholder="Événement ?"
+                                   value="${this.escapeHtml(answer)}"
+                                   ${isVerified ? 'disabled' : ''}
+                                   onchange="EleveEntrainement.setChronologieAnswer(${index}, this.value)">
+                            ${isVerified ? `<span class="chronologie-correction">${this.escapeHtml(item.event)}</span>` : ''}
+                        ` : `
+                            <span class="chronologie-event-fixed">${this.escapeHtml(item.event)}</span>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    setChronologieAnswer(index, value) {
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = {};
+        }
+        this.answers[this.currentStepIndex][`item_${index}`] = value;
+    },
+
+    normalizeAnswer(text) {
+        if (!text) return '';
+        return text.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove accents
+            .replace(/[^a-z0-9]/g, '') // Remove non-alphanumeric
+            .trim();
+    },
+
+    verifyChronologie() {
+        const step = this.steps[this.currentStepIndex];
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+
+        let correct = 0;
+        let total = 0;
+
+        step.items.forEach((item, index) => {
+            if (item.blank === 'date' || item.blank === 'event') {
+                total++;
+                const answer = stepAnswers[`item_${index}`] || '';
+                const correctAnswer = item.blank === 'date' ? item.date : item.event;
+
+                if (this.normalizeAnswer(answer) === this.normalizeAnswer(correctAnswer)) {
+                    correct++;
+                }
+            }
+        });
+
+        this.results[this.currentStepIndex] = {
+            verified: true,
+            correct,
+            total,
+            score: total > 0 ? Math.round((correct / total) * 100) : 100
+        };
+
+        this.renderCurrentStep();
     },
 
     // ========== UTILS ==========
