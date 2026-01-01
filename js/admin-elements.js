@@ -7,6 +7,7 @@ const AdminElements = {
     // Data
     elements: [],
     disciplines: [],
+    themes: [],
     chapitres: [],
     cartes: [],
 
@@ -51,17 +52,30 @@ const AdminElements = {
     },
 
     async loadData() {
-        const [disciplinesData, chapitresData, questionsData, cartesData] = await Promise.all([
+        const [disciplinesData, themesData, chapitresData, questionsData, cartesData] = await Promise.all([
             SheetsAPI.getSheetData('DISCIPLINES'),
+            SheetsAPI.getSheetData('THEMES'),
             SheetsAPI.getSheetData('CHAPITRES'),
             SheetsAPI.getSheetData('QUESTIONS'),
             SheetsAPI.getSheetData('CARTES')
         ]);
 
         this.disciplines = SheetsAPI.parseSheetData(disciplinesData);
+        this.themes = SheetsAPI.parseSheetData(themesData);
         this.chapitres = SheetsAPI.parseSheetData(chapitresData);
         this.elements = SheetsAPI.parseSheetData(questionsData);
         this.cartes = SheetsAPI.parseSheetData(cartesData);
+
+        // Auto-fill discipline_id from theme if missing
+        this.chapitres = this.chapitres.map(chap => {
+            if (!chap.discipline_id && chap.theme_id) {
+                const theme = this.themes.find(t => t.id === chap.theme_id);
+                if (theme && theme.discipline_id) {
+                    chap.discipline_id = theme.discipline_id;
+                }
+            }
+            return chap;
+        });
 
         // Parse donnees JSON
         this.elements = this.elements.map(el => {
