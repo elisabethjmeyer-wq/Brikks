@@ -2555,3 +2555,121 @@
 .btn-ghost.danger:hover {
     background: #FEE2E2;
 }
+
+/* ===== GLOBAL PROGRESS BAR ===== */
+.global-progress-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.global-progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.global-progress-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+
+.global-progress-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-green, #10b981);
+}
+
+.global-progress-bar {
+    height: 10px;
+    background: var(--gray-200);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.global-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-green, #10b981), #34d399);
+    border-radius: 5px;
+    transition: width 0.3s;
+}
+
+/* ===== COMPLETION BUTTON ===== */
+.btn-complete {
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid var(--accent-green, #10b981);
+    background: white;
+    color: var(--accent-green, #10b981);
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-complete:hover {
+    background: var(--accent-green-light, #d1fae5);
+}
+
+.btn-complete.completed {
+    background: var(--accent-green, #10b981);
+    color: white;
+    cursor: default;
+}
+
+.btn-complete:disabled {
+    opacity: 0.7;
+}
+
+/* ===== CHAPTER CARD COMPLETION ===== */
+.chapter-card.completed {
+    background: var(--accent-green-light, #d1fae5);
+}
+
+.chapter-card .chapter-number.completed {
+    background: var(--accent-green, #10b981);
+    color: white;
+}
+
+.order-item.completed {
+    background: var(--accent-green-light, #d1fae5);
+}
+
+.order-item .order-number.completed {
+    background: var(--accent-green, #10b981);
+}
+
+/* Spinner small for loading state */
+.spinner-small {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 768px) {
+    .btn-complete {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .btn-complete span:not(.spinner-small) {
+        display: none;
+    }
+}

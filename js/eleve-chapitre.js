@@ -10,6 +10,8 @@ const EleveChapitre = {
     allChapitres: [],
     supports: [],
     currentSupportIndex: 0,
+    user: null,
+    isCompleted: false,
 
     // Icônes par discipline
     disciplineIcons: {
@@ -34,7 +36,9 @@ const EleveChapitre = {
         }
 
         try {
+            this.user = JSON.parse(sessionStorage.getItem(CONFIG.STORAGE_KEYS.USER));
             await this.loadData(chapitreId);
+            await this.checkCompletionStatus(chapitreId);
 
             if (!this.chapitre) {
                 this.showError();
@@ -107,6 +111,125 @@ const EleveChapitre = {
                 this.discipline = (disciplines || []).find(d => d.id === this.chapitre.discipline_id);
             }
         }
+    },
+
+    /**
+     * Vérifie si le chapitre est complété
+     */
+    async checkCompletionStatus(chapitreId) {
+        try {
+            if (!this.user) return;
+            const progression = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.PROGRESSION_LECONS);
+            if (!progression) return;
+
+            this.isCompleted = progression.some(
+                p => p.chapitre_id === chapitreId && p.eleve_id === this.user.id && p.completed === 'TRUE'
+            );
+        } catch (e) {
+            console.error('Erreur lors du chargement de la progression:', e);
+        }
+    },
+
+    /**
+     * Marque le chapitre comme terminé
+     */
+    async markAsCompleted() {
+        if (!this.user || !this.chapitre) return;
+
+        const btn = document.getElementById('btn-complete');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-small"></span> Enregistrement...';
+        }
+
+        try {
+            await this.callWebApp({
+                action: 'addProgressionLecons',
+                eleve_id: this.user.id,
+                chapitre_id: this.chapitre.id,
+                completed: 'TRUE',
+                date: new Date().toISOString().split('T')[0]
+            });
+
+            this.isCompleted = true;
+            this.updateCompletionButton();
+            this.showNotification('Chapitre marqué comme terminé !', 'success');
+        } catch (error) {
+            console.error('Erreur lors de l\'enregistrement:', error);
+            this.showNotification('Erreur lors de l\'enregistrement', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '✓ Marquer comme terminé';
+            }
+        }
+    },
+
+    /**
+     * Appel JSONP vers le WebApp
+     */
+    callWebApp(data) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+            window[callbackName] = function(response) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                if (response && response.success) {
+                    resolve(response);
+                } else {
+                    reject(response);
+                }
+            };
+
+            const params = new URLSearchParams(data);
+            params.append('callback', callbackName);
+
+            const script = document.createElement('script');
+            script.src = CONFIG.WEBAPP_URL + '?' + params.toString();
+            script.onerror = () => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('Erreur réseau'));
+            };
+            document.body.appendChild(script);
+        });
+    },
+
+    /**
+     * Met à jour le bouton de complétion
+     */
+    updateCompletionButton() {
+        const btn = document.getElementById('btn-complete');
+        if (!btn) return;
+
+        if (this.isCompleted) {
+            btn.classList.add('completed');
+            btn.disabled = true;
+            btn.innerHTML = '✓ Terminé';
+        } else {
+            btn.classList.remove('completed');
+            btn.disabled = false;
+            btn.innerHTML = '✓ Marquer comme terminé';
+        }
+    },
+
+    /**
+     * Affiche une notification
+     */
+    showNotification(message, type = 'info') {
+        const existing = document.querySelector('.notification');
+        if (existing) existing.remove();
+
+        const notif = document.createElement('div');
+        notif.className = `notification notification-${type}`;
+        notif.textContent = message;
+        document.body.appendChild(notif);
+
+        setTimeout(() => notif.classList.add('show'), 10);
+        setTimeout(() => {
+            notif.classList.remove('show');
+            setTimeout(() => notif.remove(), 300);
+        }, 3000);
     },
 
     /**
@@ -194,6 +317,9 @@ const EleveChapitre = {
         if (mainUrl) {
             document.getElementById('btn-new-tab').href = mainUrl;
         }
+
+        // Mettre à jour le bouton de complétion
+        this.updateCompletionButton();
     },
 
     /**
