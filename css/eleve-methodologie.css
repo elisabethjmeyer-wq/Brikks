@@ -141,18 +141,33 @@
 
 /* ===== TREE CONTAINER ===== */
 .tree-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ===== TREE ITEM ===== */
+/* Éléments racines (parcours séparés) */
+.tree-container > .tree-item {
     background: white;
     border-radius: var(--radius-lg);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
     overflow: hidden;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-/* ===== TREE ITEM ===== */
-.tree-item {
+.tree-container > .tree-item:hover {
+    border-color: var(--primary-light, rgba(99, 102, 241, 0.2));
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
+}
+
+/* Éléments imbriqués */
+.tree-item-children .tree-item {
     border-bottom: 1px solid var(--gray-100);
 }
 
-.tree-item:last-child {
+.tree-item-children .tree-item:last-child {
     border-bottom: none;
 }
 

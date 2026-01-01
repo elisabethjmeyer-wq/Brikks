@@ -561,11 +561,44 @@
 
 .tree-menu-children {
     display: none;
-    padding-left: 16px;
+    padding-left: 12px;
+    border-left: 2px solid var(--gray-100);
+    margin-left: 14px;
 }
 
 .tree-menu-group.open .tree-menu-children {
     display: block;
+}
+
+/* Indentation par niveau de profondeur */
+.tree-menu-item.depth-1 { padding-left: 28px; }
+.tree-menu-item.depth-2 { padding-left: 38px; }
+.tree-menu-item.depth-3 { padding-left: 48px; }
+.tree-menu-item.depth-4 { padding-left: 58px; }
+
+.tree-menu-group.depth-1 .tree-menu-folder { padding-left: 28px; }
+.tree-menu-group.depth-2 .tree-menu-folder { padding-left: 38px; }
+.tree-menu-group.depth-3 .tree-menu-folder { padding-left: 48px; }
+.tree-menu-group.depth-4 .tree-menu-folder { padding-left: 58px; }
+
+/* Sous-niveaux imbriqués - ajuster le style */
+.tree-menu-children .tree-menu-folder {
+    background: white;
+    font-size: 12px;
+}
+
+.tree-menu-children .tree-menu-item {
+    font-size: 12px;
+}
+
+.tree-menu-children .tree-menu-icon {
+    font-size: 14px;
+}
+
+.tree-menu-children .tree-menu-status {
+    width: 18px;
+    height: 18px;
+    font-size: 9px;
 }
 
 /* ===== PROGRESS SECTION ===== */
