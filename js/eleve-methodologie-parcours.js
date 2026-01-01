@@ -7,6 +7,7 @@ const EleveMethodologieParcours = {
     items: [],
     currentItem: null,
     progression: [],
+    bexConfig: [],
     user: null,
 
     async init() {
@@ -23,6 +24,7 @@ const EleveMethodologieParcours = {
             }
 
             await this.loadData();
+            this.buildBexMaps();
 
             // Trouver l'élément courant
             this.currentItem = this.items.find(i => i.id === itemId);
@@ -41,13 +43,35 @@ const EleveMethodologieParcours = {
     },
 
     async loadData() {
-        const [items, progression] = await Promise.all([
+        const [items, progression, bexConfig] = await Promise.all([
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE),
-            this.loadProgression()
+            this.loadProgression(),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.BEX_CONFIG)
         ]);
 
         this.items = (items || []).sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
         this.progression = progression || [];
+        this.bexConfig = bexConfig || [];
+    },
+
+    buildBexMaps() {
+        // Construire les maps pour les BEX à partir de la config chargée
+        this.bexBanks = {};
+        this.competenceBanks = {};
+
+        this.bexConfig.forEach(bex => {
+            if (bex.type === 'savoir-faire') {
+                this.bexBanks[bex.id] = {
+                    titre: bex.titre,
+                    url: bex.url || `entrainements-sf.html?bex=${bex.id}`
+                };
+            } else if (bex.type === 'competences') {
+                this.competenceBanks[bex.id] = {
+                    titre: bex.titre,
+                    url: bex.url || `entrainements-competences.html?comp=${bex.id}`
+                };
+            }
+        });
     },
 
     async loadProgression() {
@@ -405,20 +429,7 @@ const EleveMethodologieParcours = {
         `;
     },
 
-    // Configuration des banques BEX et Compétences
-    bexBanks: {
-        'bex1': { titre: 'BEX 1 - Se repérer dans le temps', url: 'entrainements-sf.html?bex=bex1' },
-        'bex2': { titre: 'BEX 2 - Se repérer dans l\'espace', url: 'entrainements-sf.html?bex=bex2' },
-        'bex3': { titre: 'BEX 3 - Analyser un paratexte', url: 'entrainements-sf.html?bex=bex3' },
-        'bex4': { titre: 'BEX 4 - Maîtriser le vocabulaire', url: 'entrainements-sf.html?bex=bex4' }
-    },
-
-    competenceBanks: {
-        'comp1': { titre: 'Rédiger un développement construit', url: 'entrainements-competences.html?comp=comp1' },
-        'comp2': { titre: 'Analyser des documents', url: 'entrainements-competences.html?comp=comp2' },
-        'comp3': { titre: 'Réaliser un croquis', url: 'entrainements-competences.html?comp=comp3' },
-        'comp4': { titre: 'Argumentation et esprit critique', url: 'entrainements-competences.html?comp=comp4' }
-    },
+    // bexBanks et competenceBanks sont construits dynamiquement dans buildBexMaps()
 
     renderFicheSection() {
         const ficheUrl = this.currentItem.fiche_url;

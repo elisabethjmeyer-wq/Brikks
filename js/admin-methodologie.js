@@ -5,6 +5,7 @@
 const AdminMethodologie = {
     items: [],
     progression: [],
+    bexConfig: [],
     editingItem: null,
     deletingItem: null,
 
@@ -16,6 +17,7 @@ const AdminMethodologie = {
             await this.loadData();
             this.renderStats();
             this.renderTree();
+            this.populateBexSelects();
             this.bindEvents();
             this.showContent();
         } catch (error) {
@@ -25,9 +27,10 @@ const AdminMethodologie = {
     },
 
     async loadData() {
-        const [items, progression] = await Promise.all([
+        const [items, progression, bexConfig] = await Promise.all([
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.PROGRESSION_METHODOLOGIE)
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.PROGRESSION_METHODOLOGIE),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.BEX_CONFIG)
         ]);
 
         // Filtrer les items sans ID valide et trier par ordre
@@ -42,8 +45,41 @@ const AdminMethodologie = {
             .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
 
         this.progression = progression || [];
+        this.bexConfig = bexConfig || [];
 
-        console.log('Items méthodologie chargés:', this.items.length, this.items.map(i => ({ id: i.id, titre: i.titre })));
+        console.log('Items méthodologie chargés:', this.items.length);
+        console.log('BEX config chargé:', this.bexConfig.length);
+    },
+
+    populateBexSelects() {
+        const bexSelect = document.getElementById('itemBexBank');
+        const compSelect = document.getElementById('itemCompetenceBank');
+
+        if (!bexSelect || !compSelect) return;
+
+        // Filtrer par type
+        const bexSavoirFaire = this.bexConfig.filter(b => b.type === 'savoir-faire');
+        const bexCompetences = this.bexConfig.filter(b => b.type === 'competences');
+
+        // Remplir le select BEX Savoir-faire
+        bexSelect.innerHTML = '<option value="">-- Aucune --</option>';
+        bexSavoirFaire.forEach(bex => {
+            const option = document.createElement('option');
+            option.value = bex.id;
+            option.textContent = bex.titre;
+            bexSelect.appendChild(option);
+        });
+
+        // Remplir le select BEX Compétences
+        compSelect.innerHTML = '<option value="">-- Aucune --</option>';
+        bexCompetences.forEach(bex => {
+            const option = document.createElement('option');
+            option.value = bex.id;
+            option.textContent = bex.titre;
+            compSelect.appendChild(option);
+        });
+
+        console.log('Selects BEX remplis:', bexSavoirFaire.length, 'SF,', bexCompetences.length, 'Comp');
     },
 
     showContent() {
