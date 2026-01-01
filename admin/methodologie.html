@@ -56,9 +56,9 @@
                 <div class="stat-label">Total éléments</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon-wrapper teal">🎬</div>
+                <div class="stat-icon-wrapper teal">📝</div>
                 <div class="stat-value" id="totalEtapes">0</div>
-                <div class="stat-label">Contenus vidéo</div>
+                <div class="stat-label">Contenus</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon-wrapper green">🎯</div>
@@ -116,31 +116,74 @@
             <hr class="form-divider">
             <p class="form-section-title">📹 Contenu (optionnel - laissez vide pour un dossier)</p>
 
+            <!-- Type de contenu -->
             <div class="form-group">
+                <label>Type de contenu</label>
+                <div class="content-type-selector" id="contentTypeSelector">
+                    <label class="content-type-option">
+                        <input type="radio" name="contentType" value="" checked>
+                        <span class="content-type-label">
+                            <span class="content-type-icon">📁</span>
+                            <span>Dossier (pas de contenu)</span>
+                        </span>
+                    </label>
+                    <label class="content-type-option">
+                        <input type="radio" name="contentType" value="video">
+                        <span class="content-type-label">
+                            <span class="content-type-icon">🎬</span>
+                            <span>Vidéo</span>
+                        </span>
+                    </label>
+                    <label class="content-type-option">
+                        <input type="radio" name="contentType" value="fiche">
+                        <span class="content-type-label">
+                            <span class="content-type-icon">📄</span>
+                            <span>Fiche méthode (PDF/Doc)</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Section Vidéo (visible si type=video) -->
+            <div class="form-group content-section" id="videoSection" style="display: none;">
                 <label>URL de la vidéo</label>
                 <input type="url" class="form-input" id="itemVideoUrl" placeholder="https://www.loom.com/share/... ou https://youtube.com/...">
-                <p class="form-hint">Loom, YouTube ou Vimeo - Si rempli, cet élément sera un contenu</p>
+                <p class="form-hint">Loom, YouTube ou Vimeo</p>
             </div>
 
-            <div class="form-group">
-                <label>Documents (JSON)</label>
-                <textarea class="form-textarea" id="itemDocuments" rows="2" placeholder='[{"titre":"Fiche.pdf","url":"https://...","taille":"2MB"}]'></textarea>
+            <!-- Section Fiche (visible si type=fiche) -->
+            <div class="form-group content-section" id="ficheSection" style="display: none;">
+                <label>URL du fichier (PDF, Google Doc)</label>
+                <input type="url" class="form-input" id="itemFicheUrl" placeholder="https://drive.google.com/... ou https://example.com/fiche.pdf">
+                <p class="form-hint">Lien vers un PDF ou un document Google Docs</p>
             </div>
 
-            <div class="form-group">
-                <label>Contenu HTML</label>
-                <textarea class="form-textarea" id="itemContenu" rows="3" placeholder="<p>Contenu affiché sous la vidéo...</p>"></textarea>
-            </div>
+            <hr class="form-divider">
+            <p class="form-section-title">🎯 Liens vers les entraînements (optionnel)</p>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>ID BEX (exercice)</label>
-                    <input type="text" class="form-input" id="itemBexId" placeholder="bex1">
+                    <label>Banque BEX (Savoir-faire)</label>
+                    <select class="form-input" id="itemBexBank">
+                        <option value="">-- Aucune --</option>
+                        <option value="bex1">BEX 1 - Se repérer dans le temps</option>
+                        <option value="bex2">BEX 2 - Se repérer dans l'espace</option>
+                        <option value="bex3">BEX 3 - Analyser un paratexte</option>
+                        <option value="bex4">BEX 4 - Maîtriser le vocabulaire</option>
+                    </select>
+                    <p class="form-hint">Redirige vers "Entraînements > Savoir-faire"</p>
                 </div>
 
                 <div class="form-group">
-                    <label>Titre BEX</label>
-                    <input type="text" class="form-input" id="itemBexTitre" placeholder="Exercice pratique">
+                    <label>Banque Compétences</label>
+                    <select class="form-input" id="itemCompetenceBank">
+                        <option value="">-- Aucune --</option>
+                        <option value="comp1">Rédiger un développement construit</option>
+                        <option value="comp2">Analyser des documents</option>
+                        <option value="comp3">Réaliser un croquis</option>
+                        <option value="comp4">Argumentation et esprit critique</option>
+                    </select>
+                    <p class="form-hint">Redirige vers "Entraînements > Compétences"</p>
                 </div>
             </div>
         </div>
