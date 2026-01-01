@@ -30,8 +30,20 @@ const AdminMethodologie = {
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.PROGRESSION_METHODOLOGIE)
         ]);
 
-        this.items = (items || []).sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+        // Filtrer les items sans ID valide et trier par ordre
+        this.items = (items || [])
+            .filter(item => {
+                if (!item.id || item.id.trim() === '') {
+                    console.warn('Item méthodologie ignoré car sans ID:', item);
+                    return false;
+                }
+                return true;
+            })
+            .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+
         this.progression = progression || [];
+
+        console.log('Items méthodologie chargés:', this.items.length, this.items.map(i => ({ id: i.id, titre: i.titre })));
     },
 
     showContent() {
@@ -340,12 +352,24 @@ const AdminMethodologie = {
 
     // ========== DELETE ==========
     confirmDelete(itemId) {
+        console.log('confirmDelete appelé avec itemId:', itemId);
+
+        if (!itemId || itemId === 'undefined' || itemId === 'null') {
+            console.error('ID item invalide:', itemId);
+            alert('Erreur: ID de l\'élément invalide');
+            return;
+        }
+
         const item = this.items.find(i => i.id === itemId);
-        if (!item) return;
+        if (!item) {
+            console.error('Item non trouvé pour ID:', itemId);
+            return;
+        }
 
         const descendantCount = this.countDescendants(itemId);
 
         this.deletingItem = itemId;
+        console.log('deletingItem défini à:', this.deletingItem);
 
         document.getElementById('deleteTitle').textContent = 'Supprimer cet élément ?';
         document.getElementById('deleteText').textContent = descendantCount > 0
@@ -356,13 +380,20 @@ const AdminMethodologie = {
     },
 
     async executeDelete() {
-        if (!this.deletingItem) return;
+        console.log('executeDelete appelé, deletingItem:', this.deletingItem);
+
+        if (!this.deletingItem || this.deletingItem === 'undefined') {
+            console.error('deletingItem invalide:', this.deletingItem);
+            alert('Erreur: Aucun élément sélectionné pour suppression');
+            return;
+        }
 
         const btn = document.getElementById('confirmDeleteBtn');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner">⏳</span> Suppression...';
 
         try {
+            console.log('Appel WebApp deleteMethodologie avec id:', this.deletingItem);
             await this.callWebApp('deleteMethodologie', { id: this.deletingItem });
 
             await this.loadData();

@@ -36,12 +36,20 @@ const AdminVideos = {
     async loadData() {
         const videos = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.VIDEOS);
 
-        // Trier par date de publication (plus récente en premier)
-        this.videos = (videos || []).sort((a, b) => {
-            const dateA = new Date(a.date_publication || 0);
-            const dateB = new Date(b.date_publication || 0);
-            return dateB - dateA;
-        });
+        // Filtrer les vidéos sans ID valide et trier par date
+        this.videos = (videos || [])
+            .filter(v => {
+                if (!v.id || v.id.trim() === '') {
+                    console.warn('Vidéo ignorée car sans ID:', v);
+                    return false;
+                }
+                return true;
+            })
+            .sort((a, b) => {
+                const dateA = new Date(a.date_publication || 0);
+                const dateB = new Date(b.date_publication || 0);
+                return dateB - dateA;
+            });
 
         // Déterminer la vidéo mise en avant
         const featured = this.videos.find(v => v.est_featured === 'TRUE' || v.est_featured === true);
@@ -54,7 +62,7 @@ const AdminVideos = {
             this.selectionMode = 'auto';
         }
 
-        console.log('Vidéos chargées:', this.videos.length);
+        console.log('Vidéos chargées:', this.videos.length, this.videos.map(v => ({ id: v.id, titre: v.titre })));
     },
 
     /**
@@ -456,10 +464,23 @@ const AdminVideos = {
      * Ouvre le modal de confirmation de suppression
      */
     confirmDelete(videoId) {
+        console.log('confirmDelete appelé avec videoId:', videoId);
+
+        if (!videoId || videoId === 'undefined' || videoId === 'null') {
+            console.error('ID vidéo invalide:', videoId);
+            alert('Erreur: ID de la vidéo invalide');
+            return;
+        }
+
         const video = this.videos.find(v => v.id === videoId);
-        if (!video) return;
+        if (!video) {
+            console.error('Vidéo non trouvée pour ID:', videoId);
+            return;
+        }
 
         this.deletingVideoId = videoId;
+        console.log('deletingVideoId défini à:', this.deletingVideoId);
+
         document.getElementById('deleteConfirmText').textContent =
             `Voulez-vous vraiment supprimer "${video.titre}" ?`;
         document.getElementById('deleteModal').classList.remove('hidden');
@@ -477,13 +498,20 @@ const AdminVideos = {
      * Supprime une vidéo
      */
     async deleteVideo() {
-        if (!this.deletingVideoId) return;
+        console.log('deleteVideo appelé, deletingVideoId:', this.deletingVideoId);
+
+        if (!this.deletingVideoId || this.deletingVideoId === 'undefined') {
+            console.error('deletingVideoId invalide:', this.deletingVideoId);
+            alert('Erreur: Aucune vidéo sélectionnée pour suppression');
+            return;
+        }
 
         const deleteBtn = document.getElementById('confirmDeleteBtn');
         deleteBtn.disabled = true;
         deleteBtn.textContent = 'Suppression...';
 
         try {
+            console.log('Appel WebApp deleteVideo avec id:', this.deletingVideoId);
             await this.callWebApp('deleteVideo', { id: this.deletingVideoId });
 
             // Recharger les données
