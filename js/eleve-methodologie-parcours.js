@@ -66,7 +66,8 @@ const EleveMethodologieParcours = {
     },
 
     getChildren(parentId) {
-        return this.items.filter(item => item.parent_id === parentId)
+        if (!parentId) return [];
+        return this.items.filter(item => item.parent_id === parentId && item.id !== parentId)
             .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
     },
 
@@ -85,14 +86,18 @@ const EleveMethodologieParcours = {
     },
 
     // Obtenir le chemin (breadcrumb) vers l'élément
-    getPath(itemId, path = []) {
+    getPath(itemId, path = [], visited = new Set()) {
+        // Protection contre les boucles infinies
+        if (visited.has(itemId) || path.length > 20) return path;
+        visited.add(itemId);
+
         const item = this.items.find(i => i.id === itemId);
         if (!item) return path;
 
         path.unshift(item);
 
-        if (item.parent_id) {
-            return this.getPath(item.parent_id, path);
+        if (item.parent_id && item.parent_id !== item.id) {
+            return this.getPath(item.parent_id, path, visited);
         }
 
         return path;
