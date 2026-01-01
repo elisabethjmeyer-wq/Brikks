@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entraînements Compétences | Élève - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-icon { font-size: 28px; }
+        .logo-text { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+        .logo-text span { color: var(--gray-500); font-weight: 500; }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 25px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-name { font-size: 14px; font-weight: 600; color: var(--gray-700); }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+
+        .breadcrumb a { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb .separator { color: var(--gray-300); }
+        .breadcrumb .current { color: var(--gray-600); }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header-badge {
+            padding: 6px 14px;
+            background: var(--accent-purple-light);
+            color: var(--accent-purple);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .page-header p {
+            font-size: 15px;
+            color: var(--gray-500);
+            display: none;
+        }
+
+        /* ===== STATS BAR ===== */
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 18px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-icon {
+            font-size: 20px;
+        }
+
+        .stat-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* ===== FILTER BAR ===== */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--gray-300);
+        }
+
+        .filter-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .filter-btn .btn-count {
+            background: var(--gray-100);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .filter-btn.active .btn-count {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        /* Dropdown */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 18px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            min-width: 200px;
+        }
+
+        .dropdown-toggle:hover {
+            border-color: var(--gray-300);
+        }
+
+        .dropdown-toggle .arrow {
+            margin-left: auto;
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+
+        .dropdown.open .dropdown-toggle {
+            border-color: var(--primary);
+        }
+
+        .dropdown.open .dropdown-toggle .arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-toggle.has-selection {
+            border-color: var(--accent-purple);
+            color: var(--gray-800);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            min-width: 320px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-200);
+            z-index: 100;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .dropdown.open .dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-item:hover {
+            background: var(--accent-purple-light);
+        }
+
+        .dropdown-item.selected {
+            background: var(--accent-purple-light);
+            color: var(--accent-purple);
+        }
+
+        .dropdown-item .item-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .dropdown-item .item-info {
+            flex: 1;
+        }
+
+        .dropdown-item .item-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gray-800);
+        }
+
+        .dropdown-item.selected .item-title {
+            color: var(--accent-purple);
+        }
+
+        .dropdown-item .item-subtitle {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .dropdown-item .item-count {
+            background: var(--gray-100);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .dropdown-item.selected .item-count {
+            background: var(--accent-purple);
+            color: white;
+        }
+
+        /* ===== INFO BOX ===== */
+        .info-box {
+            background: var(--accent-purple-light);
+            border-radius: var(--radius);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .info-box-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .info-box-content h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #5b21b6;
+            margin-bottom: 4px;
+        }
+
+        .info-box-content p {
+            font-size: 13px;
+            color: #7c3aed;
+        }
+
+        /* ===== COMPETENCE CARD ===== */
+        .competence-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .competence-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .competence-card.locked {
+            opacity: 0.7;
+        }
+
+        .competence-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 24px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .competence-header:hover {
+            background: var(--gray-50);
+        }
+
+        .competence-card.locked .competence-header {
+            cursor: not-allowed;
+        }
+
+        .competence-card.locked .competence-header:hover {
+            background: transparent;
+        }
+
+        .competence-number {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, var(--accent-purple), #7c3aed);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .competence-card.locked .competence-number {
+            background: linear-gradient(135deg, var(--gray-400), var(--gray-500));
+        }
+
+        .competence-info {
+            flex: 1;
+        }
+
+        .competence-info h3 {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 6px;
+        }
+
+        .competence-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+        }
+
+        .competence-count {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--gray-500);
+        }
+
+        .competence-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .competence-status.disponible {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .competence-status.locked {
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
+        .competence-progress {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .competence-progress-bar {
+            width: 80px;
+            height: 6px;
+            background: var(--gray-200);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .competence-progress-bar-fill {
+            height: 100%;
+            background: var(--accent-purple);
+            border-radius: 3px;
+        }
+
+        .competence-progress-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-purple);
+        }
+
+        .competence-toggle {
+            width: 36px;
+            height: 36px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: var(--gray-400);
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .competence-card.open .competence-toggle {
+            transform: rotate(180deg);
+            background: var(--accent-purple-light);
+            color: var(--accent-purple);
+        }
+
+        /* ===== EXERCICES LIST ===== */
+        .exercices-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .competence-card.open .exercices-list {
+            max-height: 1000px;
+        }
+
+        .exercices-container {
+            padding: 16px 24px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .exercice-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            background: white;
+            border-radius: 10px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s;
+            border: 2px solid var(--gray-200);
+        }
+
+        .exercice-item:hover {
+            border-color: var(--accent-purple);
+            transform: translateX(4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .exercice-item.locked {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .exercice-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-purple-light);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .exercice-item.locked .exercice-icon {
+            background: var(--gray-100);
+        }
+
+        .exercice-info {
+            flex: 1;
+        }
+
+        .exercice-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .exercice-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .exercice-badges {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .exercice-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .exercice-badge.brevet {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .exercice-badge.bac {
+            background: var(--accent-orange-light);
+            color: #b45309;
+        }
+
+        .exercice-badge.methode {
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        /* Exercice Status */
+        .exercice-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-badge.not-started {
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
+        .status-badge.in-progress {
+            background: var(--accent-orange-light);
+            color: #b45309;
+        }
+
+        .status-badge.completed {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .score-badge {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .exercice-arrow {
+            color: var(--gray-400);
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .exercice-item:hover .exercice-arrow {
+            transform: translateX(4px);
+            color: var(--accent-purple);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .stats-bar {
+                flex-direction: column;
+            }
+
+            .stat-item {
+                flex: 1;
+            }
+
+            .competence-header {
+                padding: 16px;
+            }
+
+            .competence-number {
+                width: 44px;
+                height: 44px;
+                font-size: 20px;
+            }
+
+            .competence-info h3 {
+                font-size: 15px;
+            }
+
+            .exercices-container {
+                padding: 12px 16px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle">☰</button>
+            <a href="#" class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">Espace cours <span>• Mme Meyer</span></span>
+            </a>
+        </div>
+        <div class="user-pill">
+            <div class="user-avatar">IA</div>
+            <span class="user-name">Ilyana A.</span>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+        <!-- BREADCRUMB -->
+        <nav class="breadcrumb">
+            <a href="#">Accueil</a>
+            <span class="separator">›</span>
+            <a href="#">Entraînements</a>
+            <span class="separator">›</span>
+            <span class="current">Compétences</span>
+        </nav>
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>
+                🎯 Entraînements
+                <span class="page-header-badge">Compétences</span>
+            </h1>
+        </div>
+
+        <!-- STATS BAR -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-icon">🎯</span>
+                <div class="stat-content">
+                    <span class="stat-value">12</span>
+                    <span class="stat-label">exercices</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">✅</span>
+                <div class="stat-content">
+                    <span class="stat-value">3</span>
+                    <span class="stat-label">terminés</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">🔄</span>
+                <div class="stat-content">
+                    <span class="stat-value">1</span>
+                    <span class="stat-label">en cours</span>
+                </div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-icon">🏆</span>
+                <div class="stat-content">
+                    <span class="stat-value">72%</span>
+                    <span class="stat-label">score moyen</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- FILTER BAR -->
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterAll()">
+                🎯 Tous
+                <span class="btn-count">12</span>
+            </button>
+            
+            <div class="dropdown" id="dropdown">
+                <button class="dropdown-toggle" onclick="toggleDropdown(event)">
+                    <span id="dropdownLabel">Choisir une compétence</span>
+                    <span class="arrow">▼</span>
+                </button>
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <div class="dropdown-item" onclick="selectCompetence(1, '✍️', 'Rédiger un développement construit')">
+                        <span class="item-icon">✍️</span>
+                        <div class="item-info">
+                            <div class="item-title">Rédiger un développement construit</div>
+                            <div class="item-subtitle">4 exercices</div>
+                        </div>
+                        <span class="item-count">4</span>
+                    </div>
+                    <div class="dropdown-item" onclick="selectCompetence(2, '📑', 'Analyser des documents')">
+                        <span class="item-icon">📑</span>
+                        <div class="item-info">
+                            <div class="item-title">Analyser des documents</div>
+                            <div class="item-subtitle">4 exercices</div>
+                        </div>
+                        <span class="item-count">4</span>
+                    </div>
+                    <div class="dropdown-item" onclick="selectCompetence(3, '🗺️', 'Réaliser un croquis')">
+                        <span class="item-icon">🗺️</span>
+                        <div class="item-info">
+                            <div class="item-title">Réaliser un croquis</div>
+                            <div class="item-subtitle">2 exercices</div>
+                        </div>
+                        <span class="item-count">2</span>
+                    </div>
+                    <div class="dropdown-item" onclick="selectCompetence(4, '💬', 'Argumentation et esprit critique')">
+                        <span class="item-icon">💬</span>
+                        <div class="item-info">
+                            <div class="item-title">Argumentation et esprit critique</div>
+                            <div class="item-subtitle">2 exercices</div>
+                        </div>
+                        <span class="item-count">2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPETENCE CARDS -->
+        
+        <!-- Compétence 1 : Rédiger un développement construit -->
+        <div class="competence-card open" onclick="toggleCompetence(this)">
+            <div class="competence-header">
+                <div class="competence-number">✍️</div>
+                <div class="competence-info">
+                    <h3>Rédiger un développement construit</h3>
+                    <div class="competence-meta">
+                        <span class="competence-count">📝 4 exercices</span>
+                        <span class="competence-status disponible">✅ Disponible</span>
+                        <div class="competence-progress">
+                            <div class="competence-progress-bar">
+                                <div class="competence-progress-bar-fill" style="width: 50%"></div>
+                            </div>
+                            <span class="competence-progress-text">2/4</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="competence-toggle">▼</div>
+            </div>
+            <div class="exercices-list">
+                <div class="exercices-container">
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>La Révolution française : causes et conséquences</h4>
+                            <div class="exercice-meta">
+                                <span>~25 min</span>
+                                <span>🏛️ Histoire</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge brevet">📋 Évaluation</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge completed">✓ Terminé</span>
+                            <span class="score-badge">75%</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>L'urbanisation en France</h4>
+                            <div class="exercice-meta">
+                                <span>~25 min</span>
+                                <span>🗺️ Géographie</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge brevet">📋 Évaluation</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge completed">✓ Terminé</span>
+                            <span class="score-badge">68%</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>La Guerre froide : un monde bipolaire</h4>
+                            <div class="exercice-meta">
+                                <span>~25 min</span>
+                                <span>🏛️ Histoire</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge brevet">📋 Évaluation</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge in-progress">🔄 En cours</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>Les valeurs de la République</h4>
+                            <div class="exercice-meta">
+                                <span>~25 min</span>
+                                <span>⚖️ EMC</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge brevet">📋 Évaluation</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge not-started">⭕ Non commencé</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compétence 2 : Analyser des documents -->
+        <div class="competence-card" onclick="toggleCompetence(this)">
+            <div class="competence-header">
+                <div class="competence-number">📑</div>
+                <div class="competence-info">
+                    <h3>Analyser des documents</h3>
+                    <div class="competence-meta">
+                        <span class="competence-count">📝 4 exercices</span>
+                        <span class="competence-status disponible">✅ Disponible</span>
+                        <div class="competence-progress">
+                            <div class="competence-progress-bar">
+                                <div class="competence-progress-bar-fill" style="width: 25%"></div>
+                            </div>
+                            <span class="competence-progress-text">1/4</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="competence-toggle">▼</div>
+            </div>
+            <div class="exercices-list">
+                <div class="exercices-container">
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>Étude d'une affiche de propagande</h4>
+                            <div class="exercice-meta">
+                                <span>~20 min</span>
+                                <span>🏛️ Histoire</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge brevet">📋 Évaluation</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge completed">✓ Terminé</span>
+                            <span class="score-badge">82%</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>Analyse d'un texte juridique</h4>
+                            <div class="exercice-meta">
+                                <span>~20 min</span>
+                                <span>⚖️ EMC</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge brevet">📋 Évaluation</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge not-started">⭕ Non commencé</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>Confronter deux documents</h4>
+                            <div class="exercice-meta">
+                                <span>~30 min</span>
+                                <span>🏛️ Histoire</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge brevet">📋 Évaluation</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge not-started">⭕ Non commencé</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>Analyse d'un paysage géographique</h4>
+                            <div class="exercice-meta">
+                                <span>~20 min</span>
+                                <span>🗺️ Géographie</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge methode">🔧 Méthode</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge not-started">⭕ Non commencé</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compétence 3 : Réaliser un croquis -->
+        <div class="competence-card" onclick="toggleCompetence(this)">
+            <div class="competence-header">
+                <div class="competence-number">🗺️</div>
+                <div class="competence-info">
+                    <h3>Réaliser un croquis</h3>
+                    <div class="competence-meta">
+                        <span class="competence-count">📝 2 exercices</span>
+                        <span class="competence-status disponible">✅ Disponible</span>
+                        <div class="competence-progress">
+                            <div class="competence-progress-bar">
+                                <div class="competence-progress-bar-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="competence-progress-text">0/2</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="competence-toggle">▼</div>
+            </div>
+            <div class="exercices-list">
+                <div class="exercices-container">
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>Croquis : L'organisation du territoire français</h4>
+                            <div class="exercice-meta">
+                                <span>~30 min</span>
+                                <span>🗺️ Géographie</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge brevet">📋 Évaluation</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge not-started">⭕ Non commencé</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>Croquis : Une aire urbaine française</h4>
+                            <div class="exercice-meta">
+                                <span>~30 min</span>
+                                <span>🗺️ Géographie</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge brevet">📋 Évaluation</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge not-started">⭕ Non commencé</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compétence 4 : Argumentation et esprit critique -->
+        <div class="competence-card" onclick="toggleCompetence(this)">
+            <div class="competence-header">
+                <div class="competence-number">💬</div>
+                <div class="competence-info">
+                    <h3>Argumentation et esprit critique</h3>
+                    <div class="competence-meta">
+                        <span class="competence-count">📝 2 exercices</span>
+                        <span class="competence-status disponible">✅ Disponible</span>
+                        <div class="competence-progress">
+                            <div class="competence-progress-bar">
+                                <div class="competence-progress-bar-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="competence-progress-text">0/2</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="competence-toggle">▼</div>
+            </div>
+            <div class="exercices-list">
+                <div class="exercices-container">
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>Construire une argumentation sur la laïcité</h4>
+                            <div class="exercice-meta">
+                                <span>~20 min</span>
+                                <span>⚖️ EMC</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge brevet">📋 Évaluation</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge not-started">⭕ Non commencé</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                    <a href="#" class="exercice-item">
+                        <div class="exercice-icon">✏️</div>
+                        <div class="exercice-info">
+                            <h4>Débattre : Fake news et esprit critique</h4>
+                            <div class="exercice-meta">
+                                <span>~15 min</span>
+                                <span>⚖️ EMC</span>
+                            </div>
+                            <div class="exercice-badges">
+                                <span class="exercice-badge methode">🔧 Méthode</span>
+                            </div>
+                        </div>
+                        <div class="exercice-status">
+                            <span class="status-badge not-started">⭕ Non commencé</span>
+                        </div>
+                        <span class="exercice-arrow">→</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compétence 5 : À venir (locked) -->
+        <div class="competence-card locked">
+            <div class="competence-header">
+                <div class="competence-number">🔒</div>
+                <div class="competence-info">
+                    <h3>Maîtriser l'oral</h3>
+                    <div class="competence-meta">
+                        <span class="competence-count">🔒 À venir</span>
+                        <span class="competence-status locked">🔒 Prochainement</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Toggle Competence accordion
+        function toggleCompetence(card) {
+            if (card.classList.contains('locked')) return;
+            card.classList.toggle('open');
+        }
+
+        // Prevent toggle when clicking on exercice items
+        document.querySelectorAll('.exercice-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        });
+
+        // Toggle dropdown
+        function toggleDropdown(e) {
+            e.stopPropagation();
+            document.getElementById('dropdown').classList.toggle('open');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const dropdown = document.getElementById('dropdown');
+            if (dropdown && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+
+        // Filter all (reset)
+        function filterAll() {
+            // Activer le bouton Tous
+            document.querySelector('.filter-btn').classList.add('active');
+            
+            // Réinitialiser le dropdown
+            document.getElementById('dropdownLabel').textContent = 'Choisir une compétence';
+            document.querySelector('.dropdown-toggle').classList.remove('has-selection');
+            
+            // Désélectionner dans le dropdown
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Afficher toutes les cartes et fermer les accordéons
+            document.querySelectorAll('.competence-card').forEach(card => {
+                card.style.display = 'block';
+                card.classList.remove('open');
+            });
+        }
+
+        // Select competence from dropdown
+        function selectCompetence(compNum, icon, title) {
+            // Désactiver le bouton Tous
+            document.querySelector('.filter-btn').classList.remove('active');
+            
+            // Mettre à jour le dropdown
+            document.getElementById('dropdownLabel').innerHTML = `${icon} ${title}`;
+            document.querySelector('.dropdown-toggle').classList.add('has-selection');
+            
+            // Marquer l'item sélectionné
+            document.querySelectorAll('.dropdown-item').forEach((item, index) => {
+                item.classList.remove('selected');
+                if (index + 1 === compNum) {
+                    item.classList.add('selected');
+                }
+            });
+            
+            // Fermer le dropdown
+            document.getElementById('dropdown').classList.remove('open');
+            
+            // Filtrer les cartes
+            document.querySelectorAll('.competence-card').forEach((card, index) => {
+                if (index + 1 === compNum) {
+                    card.style.display = 'block';
+                    if (!card.classList.contains('locked')) {
+                        card.classList.add('open');
+                    }
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>

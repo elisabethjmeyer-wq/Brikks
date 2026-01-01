@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banque d'éléments | Admin - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-pink: #ec4899;
+            --accent-pink-light: #fce7f3;
+            --accent-teal: #14b8a6;
+            --accent-teal-light: #ccfbf1;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --sidebar-width: 280px;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--gray-900);
+            padding: 24px 0;
+            z-index: 150;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed { transform: translateX(-100%); }
+
+        .sidebar-header {
+            padding: 0 24px 24px;
+            border-bottom: 1px solid var(--gray-700);
+            margin-bottom: 24px;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .sidebar-logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .sidebar-logo-text {
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            line-height: 1.3;
+        }
+
+        .sidebar-logo-text span {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--gray-400);
+        }
+
+        .sidebar-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 8px;
+        }
+
+        .sidebar-section-title {
+            color: var(--gray-500);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 24px 8px;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+            color: var(--gray-300);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .sidebar-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary-light);
+            border-left-color: var(--primary);
+        }
+
+        .sidebar-item-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* ===== MAIN ===== */
+        .main {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main.expanded { margin-left: 0; }
+
+        /* ===== TOP BAR ===== */
+        .top-bar { background: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 100; }
+        .top-bar-left { display: flex; align-items: center; gap: 16px; }
+        .toggle-sidebar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .toggle-sidebar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-500); }
+        .top-bar-breadcrumb a { color: var(--gray-500); text-decoration: none; }
+        .top-bar-breadcrumb a:hover { color: var(--primary); }
+        .top-bar-breadcrumb .separator { color: var(--gray-300); }
+        .top-bar-right { display: flex; align-items: center; gap: 12px; }
+        .top-bar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; }
+        .top-bar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-btn .notif-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--accent-red); border-radius: 50%; border: 2px solid white; }
+        .top-bar-user { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 10px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .top-bar-user:hover { background: var(--gray-100); }
+        .top-bar-user-avatar { width: 36px; height: 36px; border-radius: 8px; background: #eef2ff; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+        .top-bar-user-info { text-align: left; }
+        .top-bar-user-name { font-size: 13px; font-weight: 600; color: var(--gray-800); display: flex; align-items: center; gap: 6px; }
+        .top-bar-user-name::after { content: "▼"; font-size: 10px; color: var(--gray-400); }
+        .top-bar-user-role { font-size: 11px; color: var(--gray-500); }
+        .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid var(--gray-200); min-width: 180px; display: none; z-index: 200; overflow: hidden; }
+        .user-dropdown.show { display: block; }
+        .user-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-size: 14px; color: var(--gray-700); text-decoration: none; transition: all 0.2s; cursor: pointer; }
+        .user-dropdown-item:hover { background: var(--gray-50); }
+        .user-dropdown-item.danger { color: var(--accent-red); }
+        .user-dropdown-item.danger:hover { background: #fee2e2; }
+        .page-content { padding: 32px; flex: 1; }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .page-header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .page-header p {
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--gray-700);
+            border: 2px solid var(--gray-200);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* ===== STATS ROW ===== */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .stat-icon.blue { background: var(--accent-blue-light); }
+        .stat-icon.orange { background: var(--accent-orange-light); }
+        .stat-icon.green { background: var(--accent-green-light); }
+        .stat-icon.teal { background: var(--accent-teal-light); }
+        .stat-icon.pink { background: var(--accent-pink-light); }
+
+        .stat-content h3 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .stat-content p {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        /* ===== LAYOUT 2 COLONNES ===== */
+        .layout-two-cols {
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        /* ===== PANEL CHAPITRES (gauche) ===== */
+        .panel-chapitres {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            position: sticky;
+            top: 32px;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-header h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-search {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .panel-search input {
+            width: 100%;
+            padding: 10px 14px 10px 38px;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            font-size: 13px;
+            font-family: inherit;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'/%3E%3C/svg%3E") no-repeat 12px center;
+            background-size: 18px;
+        }
+
+        .panel-search input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .panel-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .panel-section {
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .panel-section:last-child {
+            border-bottom: none;
+        }
+
+        .panel-section-header {
+            padding: 14px 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--gray-50);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .panel-section-header:hover {
+            background: var(--gray-100);
+        }
+
+        .panel-section-header .arrow {
+            transition: transform 0.2s;
+        }
+
+        .panel-section.collapsed .arrow {
+            transform: rotate(-90deg);
+        }
+
+        .panel-section.collapsed .panel-section-items {
+            display: none;
+        }
+
+        .panel-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .panel-item:hover {
+            background: var(--gray-50);
+        }
+
+        .panel-item.active {
+            background: var(--primary-bg);
+            border-left-color: var(--primary);
+        }
+
+        .panel-item-icon {
+            font-size: 18px;
+        }
+
+        .panel-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .panel-item-info h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .panel-item.active .panel-item-info h4 {
+            color: var(--primary);
+        }
+
+        .panel-item-info p {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+
+        .panel-item-count {
+            background: var(--gray-100);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .panel-item.active .panel-item-count {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ===== PANEL ÉLÉMENTS (droite) ===== */
+        .panel-elements {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .elements-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .elements-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .elements-header-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--accent-orange-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .elements-header-info h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .elements-header-info p {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .elements-header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Filtres par type */
+        .type-filters {
+            display: flex;
+            gap: 8px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            flex-wrap: wrap;
+        }
+
+        .type-filter {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .type-filter:hover {
+            border-color: var(--gray-300);
+        }
+
+        .type-filter.active {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        .type-filter-icon {
+            font-size: 14px;
+        }
+
+        .type-filter-count {
+            background: var(--gray-200);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .type-filter.active .type-filter-count {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Liste des éléments */
+        .elements-list {
+            padding: 20px 24px;
+        }
+
+        .element-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 18px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            margin-bottom: 12px;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .element-card:hover {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow-md);
+        }
+
+        .element-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .element-type-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .element-type-badge.qcm { background: var(--accent-blue-light); }
+        .element-type-badge.evenement { background: var(--accent-orange-light); }
+        .element-type-badge.paire { background: var(--accent-green-light); }
+        .element-type-badge.point { background: var(--accent-teal-light); }
+        .element-type-badge.item { background: var(--accent-pink-light); }
+
+        .element-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .element-type-label {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--gray-500);
+            margin-bottom: 6px;
+        }
+
+        .element-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 8px;
+        }
+
+        .element-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .element-detail {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .element-detail-icon {
+            font-size: 14px;
+        }
+
+        .element-detail.correct {
+            color: var(--accent-green);
+            font-weight: 500;
+        }
+
+        .element-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .element-action-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-100);
+            color: var(--gray-500);
+        }
+
+        .element-action-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .element-action-btn.delete:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* Empty state */
+        .elements-empty {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .elements-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .elements-empty h3 {
+            font-size: 18px;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .elements-empty p {
+            color: var(--gray-500);
+            margin-bottom: 20px;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: var(--gray-100);
+            color: var(--gray-500);
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(90vh - 160px);
+        }
+
+        .modal-footer {
+            padding: 20px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Type selector in modal */
+        .type-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .type-selector-btn {
+            padding: 16px 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .type-selector-btn:hover {
+            border-color: var(--gray-300);
+        }
+
+        .type-selector-btn.active {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .type-selector-btn-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .type-selector-btn-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .type-selector-btn.active .type-selector-btn-label {
+            color: var(--primary);
+        }
+
+        .type-selector-btn-desc {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-group label span {
+            font-weight: 400;
+            color: var(--gray-400);
+            font-size: 12px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 40px;
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 24px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .form-section-title:first-child {
+            margin-top: 0;
+        }
+
+        /* QCM réponses */
+        .reponses-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .reponse-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            background: var(--gray-50);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reponse-item:hover {
+            border-color: var(--gray-300);
+        }
+
+        .reponse-item.correct {
+            border-color: var(--accent-green);
+            background: var(--accent-green-light);
+        }
+
+        .reponse-radio {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid var(--gray-300);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .reponse-item.correct .reponse-radio {
+            border-color: var(--accent-green);
+            background: var(--accent-green);
+            color: white;
+            font-size: 12px;
+        }
+
+        .reponse-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .reponse-delete {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .reponse-delete:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .add-reponse-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            border: 2px dashed var(--gray-300);
+            border-radius: var(--radius);
+            background: transparent;
+            color: var(--gray-500);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            font-family: inherit;
+        }
+
+        .add-reponse-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        /* Dynamic form (hidden by default) */
+        .form-dynamic {
+            display: none;
+        }
+
+        .form-dynamic.active {
+            display: block;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1200px) {
+            .stats-row {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .layout-two-cols {
+                grid-template-columns: 1fr;
+            }
+
+            .panel-chapitres {
+                position: static;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main {
+                margin-left: 0;
+            }
+
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .type-selector {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== SIDEBAR ===== -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <a href="#" class="sidebar-logo">
+                <div class="sidebar-logo-icon">📚</div>
+                <div class="sidebar-logo-text">Espace cours<span>Mme Meyer</span></div>
+            </a>
+            <span class="sidebar-badge">Admin</span>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">📌 Principal</div>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">🏠</span>Page d'accueil</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">📬</span>Messagerie</a>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">📚 Ressources</div>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">📖</span>Leçons</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">🧠</span>Méthodologie</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">🎬</span>Vidéos</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">💡</span>Recommandations</a>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">🎯 Exercices</div>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">📐</span>Banque de formats</a>
+            <a href="#" class="sidebar-item active"><span class="sidebar-item-icon">🧩</span>Banque d'éléments</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">📝</span>Entraînements</a>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">📊 Évaluations</div>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">📋</span>Évaluations</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">🟣</span>Compétences</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">📊</span>Notes & Suivi</a>
+        </div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">👥 Élèves</div>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">👥</span>Utilisateurs</a>
+            <a href="#" class="sidebar-item"><span class="sidebar-item-icon">❓</span>FAQ</a>
+        </div>
+    </nav>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main">
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Afficher/Masquer le menu">☰</button>
+                <div class="top-bar-breadcrumb"><a href="#">Admin</a><span class="separator">/</span><span>Banque d'éléments</span></div>
+            </div>
+            <div class="top-bar-right">
+                <button class="top-bar-btn" title="Voir le site élève">👁️</button>
+                <button class="top-bar-btn" title="Notifications">🔔<span class="notif-dot"></span></button>
+                <div class="top-bar-user" onclick="toggleUserMenu()">
+                    <div class="top-bar-user-avatar">EM</div>
+                    <div class="top-bar-user-info"><div class="top-bar-user-name">Mme Meyer</div><div class="top-bar-user-role">Professeur</div></div>
+                    <div class="user-dropdown" id="user-dropdown"><a href="#" class="user-dropdown-item danger"><span>🚪</span>Déconnexion</a></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-content">
+        <div class="page-header">
+            <div>
+                <h1>📦 Banque d'éléments</h1>
+                <p>Gérez les éléments utilisés dans vos exercices</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary">📥 Importer</button>
+                <button class="btn btn-primary" onclick="openModal()">➕ Nouvel élément</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon blue">📝</div>
+                <div class="stat-content">
+                    <h3>48</h3>
+                    <p>Questions QCM</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange">📅</div>
+                <div class="stat-content">
+                    <h3>24</h3>
+                    <p>Événements</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">🔗</div>
+                <div class="stat-content">
+                    <h3>18</h3>
+                    <p>Paires</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon teal">📍</div>
+                <div class="stat-content">
+                    <h3>15</h3>
+                    <p>Points carte</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon pink">📂</div>
+                <div class="stat-content">
+                    <h3>12</h3>
+                    <p>Items catégorie</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layout 2 colonnes -->
+        <div class="layout-two-cols">
+            
+            <!-- Panel Chapitres (gauche) -->
+            <div class="panel-chapitres">
+                <div class="panel-header">
+                    <h2>📁 Chapitres</h2>
+                </div>
+                <div class="panel-search">
+                    <input type="text" placeholder="Rechercher un chapitre...">
+                </div>
+                <div class="panel-list">
+                    
+                    <!-- Histoire -->
+                    <div class="panel-section">
+                        <div class="panel-section-header" onclick="toggleSection(this.parentElement)">
+                            <span>🏛️ Histoire</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="panel-section-items">
+                            <div class="panel-item active" onclick="selectChapitre(this)">
+                                <span class="panel-item-icon">📜</span>
+                                <div class="panel-item-info">
+                                    <h4>L1 - Les explorations portugaises</h4>
+                                    <p>Thème 1</p>
+                                </div>
+                                <span class="panel-item-count">29</span>
+                            </div>
+                            <div class="panel-item" onclick="selectChapitre(this)">
+                                <span class="panel-item-icon">📜</span>
+                                <div class="panel-item-info">
+                                    <h4>L2 - Les empires coloniaux</h4>
+                                    <p>Thème 1</p>
+                                </div>
+                                <span class="panel-item-count">18</span>
+                            </div>
+                            <div class="panel-item" onclick="selectChapitre(this)">
+                                <span class="panel-item-icon">📜</span>
+                                <div class="panel-item-info">
+                                    <h4>L3 - La traite atlantique</h4>
+                                    <p>Thème 2</p>
+                                </div>
+                                <span class="panel-item-count">22</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Géographie -->
+                    <div class="panel-section">
+                        <div class="panel-section-header" onclick="toggleSection(this.parentElement)">
+                            <span>🗺️ Géographie</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="panel-section-items">
+                            <div class="panel-item" onclick="selectChapitre(this)">
+                                <span class="panel-item-icon">🌍</span>
+                                <div class="panel-item-info">
+                                    <h4>G1 - Les espaces productifs</h4>
+                                    <p>Thème 1</p>
+                                </div>
+                                <span class="panel-item-count">15</span>
+                            </div>
+                            <div class="panel-item" onclick="selectChapitre(this)">
+                                <span class="panel-item-icon">🌍</span>
+                                <div class="panel-item-info">
+                                    <h4>G2 - Les mobilités</h4>
+                                    <p>Thème 1</p>
+                                </div>
+                                <span class="panel-item-count">12</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Littérature -->
+                    <div class="panel-section collapsed">
+                        <div class="panel-section-header" onclick="toggleSection(this.parentElement)">
+                            <span>📚 Littérature</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="panel-section-items">
+                            <div class="panel-item" onclick="selectChapitre(this)">
+                                <span class="panel-item-icon">📖</span>
+                                <div class="panel-item-info">
+                                    <h4>Lit1 - Le roman réaliste</h4>
+                                    <p>Séquence 1</p>
+                                </div>
+                                <span class="panel-item-count">8</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EMC -->
+                    <div class="panel-section collapsed">
+                        <div class="panel-section-header" onclick="toggleSection(this.parentElement)">
+                            <span>⚖️ EMC</span>
+                            <span class="arrow">▼</span>
+                        </div>
+                        <div class="panel-section-items">
+                            <div class="panel-item" onclick="selectChapitre(this)">
+                                <span class="panel-item-icon">⚖️</span>
+                                <div class="panel-item-info">
+                                    <h4>EMC1 - La citoyenneté</h4>
+                                    <p>Thème 1</p>
+                                </div>
+                                <span class="panel-item-count">10</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Panel Éléments (droite) -->
+            <div class="panel-elements">
+                <div class="elements-header">
+                    <div class="elements-header-left">
+                        <div class="elements-header-icon">📜</div>
+                        <div class="elements-header-info">
+                            <h2>L1 - Les explorations portugaises</h2>
+                            <p>29 éléments • Histoire • Thème 1</p>
+                        </div>
+                    </div>
+                    <div class="elements-header-actions">
+                        <button class="btn btn-primary" onclick="openModal()">➕ Ajouter</button>
+                    </div>
+                </div>
+
+                <!-- Filtres par type -->
+                <div class="type-filters">
+                    <button class="type-filter active" onclick="filterType(this, 'all')">
+                        <span class="type-filter-icon">📋</span>
+                        Tous
+                        <span class="type-filter-count">29</span>
+                    </button>
+                    <button class="type-filter" onclick="filterType(this, 'qcm')">
+                        <span class="type-filter-icon">📝</span>
+                        QCM
+                        <span class="type-filter-count">12</span>
+                    </button>
+                    <button class="type-filter" onclick="filterType(this, 'evenement')">
+                        <span class="type-filter-icon">📅</span>
+                        Événements
+                        <span class="type-filter-count">6</span>
+                    </button>
+                    <button class="type-filter" onclick="filterType(this, 'paire')">
+                        <span class="type-filter-icon">🔗</span>
+                        Paires
+                        <span class="type-filter-count">5</span>
+                    </button>
+                    <button class="type-filter" onclick="filterType(this, 'point')">
+                        <span class="type-filter-icon">📍</span>
+                        Points carte
+                        <span class="type-filter-count">6</span>
+                    </button>
+                </div>
+
+                <!-- Liste des éléments -->
+                <div class="elements-list">
+                    
+                    <!-- QCM -->
+                    <div class="element-card" data-type="qcm">
+                        <div class="element-type-badge qcm">📝</div>
+                        <div class="element-content">
+                            <span class="element-type-label">Question QCM</span>
+                            <h3 class="element-title">Quelle est la date du passage du cap de Bonne-Espérance par Bartolomeu Dias ?</h3>
+                            <div class="element-details">
+                                <span class="element-detail"><span class="element-detail-icon">🔢</span> 4 choix</span>
+                                <span class="element-detail correct"><span class="element-detail-icon">✓</span> 1488</span>
+                                <span class="element-detail"><span class="element-detail-icon">📊</span> Utilisé 3x</span>
+                            </div>
+                        </div>
+                        <div class="element-actions">
+                            <button class="element-action-btn" title="Modifier">✏️</button>
+                            <button class="element-action-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <div class="element-card" data-type="qcm">
+                        <div class="element-type-badge qcm">📝</div>
+                        <div class="element-content">
+                            <span class="element-type-label">Question QCM</span>
+                            <h3 class="element-title">Qui a atteint l'Inde par voie maritime en 1498 ?</h3>
+                            <div class="element-details">
+                                <span class="element-detail"><span class="element-detail-icon">🔢</span> 4 choix</span>
+                                <span class="element-detail correct"><span class="element-detail-icon">✓</span> Vasco de Gama</span>
+                                <span class="element-detail"><span class="element-detail-icon">📊</span> Utilisé 2x</span>
+                            </div>
+                        </div>
+                        <div class="element-actions">
+                            <button class="element-action-btn" title="Modifier">✏️</button>
+                            <button class="element-action-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <div class="element-card" data-type="qcm">
+                        <div class="element-type-badge qcm">📝</div>
+                        <div class="element-content">
+                            <span class="element-type-label">Question QCM</span>
+                            <h3 class="element-title">La caravelle est...</h3>
+                            <div class="element-details">
+                                <span class="element-detail"><span class="element-detail-icon">🔢</span> 4 choix</span>
+                                <span class="element-detail correct"><span class="element-detail-icon">✓</span> Un type de navire</span>
+                                <span class="element-detail"><span class="element-detail-icon">📊</span> Utilisé 1x</span>
+                            </div>
+                        </div>
+                        <div class="element-actions">
+                            <button class="element-action-btn" title="Modifier">✏️</button>
+                            <button class="element-action-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <!-- Événements -->
+                    <div class="element-card" data-type="evenement">
+                        <div class="element-type-badge evenement">📅</div>
+                        <div class="element-content">
+                            <span class="element-type-label">Événement</span>
+                            <h3 class="element-title">Passage du cap Bojador par Gil Eanes</h3>
+                            <div class="element-details">
+                                <span class="element-detail correct"><span class="element-detail-icon">📆</span> 1434</span>
+                                <span class="element-detail"><span class="element-detail-icon">🎯</span> Timeline, Frise</span>
+                                <span class="element-detail"><span class="element-detail-icon">📊</span> Utilisé 2x</span>
+                            </div>
+                        </div>
+                        <div class="element-actions">
+                            <button class="element-action-btn" title="Modifier">✏️</button>
+                            <button class="element-action-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <div class="element-card" data-type="evenement">
+                        <div class="element-type-badge evenement">📅</div>
+                        <div class="element-content">
+                            <span class="element-type-label">Événement</span>
+                            <h3 class="element-title">Bartolomeu Dias atteint le cap de Bonne-Espérance</h3>
+                            <div class="element-details">
+                                <span class="element-detail correct"><span class="element-detail-icon">📆</span> 1488</span>
+                                <span class="element-detail"><span class="element-detail-icon">🎯</span> Timeline, Frise</span>
+                                <span class="element-detail"><span class="element-detail-icon">📊</span> Utilisé 3x</span>
+                            </div>
+                        </div>
+                        <div class="element-actions">
+                            <button class="element-action-btn" title="Modifier">✏️</button>
+                            <button class="element-action-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <div class="element-card" data-type="evenement">
+                        <div class="element-type-badge evenement">📅</div>
+                        <div class="element-content">
+                            <span class="element-type-label">Événement</span>
+                            <h3 class="element-title">Vasco de Gama atteint l'Inde</h3>
+                            <div class="element-details">
+                                <span class="element-detail correct"><span class="element-detail-icon">📆</span> 1498</span>
+                                <span class="element-detail"><span class="element-detail-icon">🎯</span> Timeline, Frise</span>
+                                <span class="element-detail"><span class="element-detail-icon">📊</span> Utilisé 2x</span>
+                            </div>
+                        </div>
+                        <div class="element-actions">
+                            <button class="element-action-btn" title="Modifier">✏️</button>
+                            <button class="element-action-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <!-- Paires -->
+                    <div class="element-card" data-type="paire">
+                        <div class="element-type-badge paire">🔗</div>
+                        <div class="element-content">
+                            <span class="element-type-label">Paire</span>
+                            <h3 class="element-title">Bartolomeu Dias ↔ Cap de Bonne-Espérance</h3>
+                            <div class="element-details">
+                                <span class="element-detail"><span class="element-detail-icon">🎯</span> Association</span>
+                                <span class="element-detail"><span class="element-detail-icon">📊</span> Utilisé 2x</span>
+                            </div>
+                        </div>
+                        <div class="element-actions">
+                            <button class="element-action-btn" title="Modifier">✏️</button>
+                            <button class="element-action-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <div class="element-card" data-type="paire">
+                        <div class="element-type-badge paire">🔗</div>
+                        <div class="element-content">
+                            <span class="element-type-label">Paire</span>
+                            <h3 class="element-title">Vasco de Gama ↔ Route des Indes</h3>
+                            <div class="element-details">
+                                <span class="element-detail"><span class="element-detail-icon">🎯</span> Association</span>
+                                <span class="element-detail"><span class="element-detail-icon">📊</span> Utilisé 2x</span>
+                            </div>
+                        </div>
+                        <div class="element-actions">
+                            <button class="element-action-btn" title="Modifier">✏️</button>
+                            <button class="element-action-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <!-- Points carte -->
+                    <div class="element-card" data-type="point">
+                        <div class="element-type-badge point">📍</div>
+                        <div class="element-content">
+                            <span class="element-type-label">Point carte</span>
+                            <h3 class="element-title">Lisbonne</h3>
+                            <div class="element-details">
+                                <span class="element-detail"><span class="element-detail-icon">🗺️</span> Carte : Explorations XV-XVIe</span>
+                                <span class="element-detail"><span class="element-detail-icon">📊</span> Utilisé 1x</span>
+                            </div>
+                        </div>
+                        <div class="element-actions">
+                            <button class="element-action-btn" title="Modifier">✏️</button>
+                            <button class="element-action-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                    <div class="element-card" data-type="point">
+                        <div class="element-type-badge point">📍</div>
+                        <div class="element-content">
+                            <span class="element-type-label">Point carte</span>
+                            <h3 class="element-title">Goa (comptoir portugais)</h3>
+                            <div class="element-details">
+                                <span class="element-detail"><span class="element-detail-icon">🗺️</span> Carte : Explorations XV-XVIe</span>
+                                <span class="element-detail"><span class="element-detail-icon">📊</span> Utilisé 1x</span>
+                            </div>
+                        </div>
+                        <div class="element-actions">
+                            <button class="element-action-btn" title="Modifier">✏️</button>
+                            <button class="element-action-btn delete" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- MODAL : Nouvel élément -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>➕ Nouvel élément</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                
+                <!-- Sélection du type -->
+                <div class="form-section-title">Type d'élément</div>
+                <div class="type-selector">
+                    <button class="type-selector-btn active" onclick="selectType(this, 'qcm')">
+                        <div class="type-selector-btn-icon">📝</div>
+                        <div class="type-selector-btn-label">QCM</div>
+                        <div class="type-selector-btn-desc">Question à choix</div>
+                    </button>
+                    <button class="type-selector-btn" onclick="selectType(this, 'evenement')">
+                        <div class="type-selector-btn-icon">📅</div>
+                        <div class="type-selector-btn-label">Événement</div>
+                        <div class="type-selector-btn-desc">Date + description</div>
+                    </button>
+                    <button class="type-selector-btn" onclick="selectType(this, 'paire')">
+                        <div class="type-selector-btn-icon">🔗</div>
+                        <div class="type-selector-btn-label">Paire</div>
+                        <div class="type-selector-btn-desc">Terme ↔ Terme</div>
+                    </button>
+                    <button class="type-selector-btn" onclick="selectType(this, 'point')">
+                        <div class="type-selector-btn-icon">📍</div>
+                        <div class="type-selector-btn-label">Point carte</div>
+                        <div class="type-selector-btn-desc">Localisation</div>
+                    </button>
+                    <button class="type-selector-btn" onclick="selectType(this, 'item')">
+                        <div class="type-selector-btn-icon">📂</div>
+                        <div class="type-selector-btn-label">Item catégorie</div>
+                        <div class="type-selector-btn-desc">Élément + catégorie</div>
+                    </button>
+                    <button class="type-selector-btn" onclick="selectType(this, 'reponse')">
+                        <div class="type-selector-btn-icon">💬</div>
+                        <div class="type-selector-btn-label">Réponse libre</div>
+                        <div class="type-selector-btn-desc">Question ouverte</div>
+                    </button>
+                </div>
+
+                <!-- Formulaire QCM -->
+                <div class="form-dynamic active" id="form-qcm">
+                    <div class="form-section-title">Question QCM</div>
+                    <div class="form-group">
+                        <label>Énoncé de la question</label>
+                        <textarea class="form-input form-textarea" placeholder="Ex: Quelle est la date du passage du cap de Bonne-Espérance ?"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Réponses <span>(cliquez pour marquer la bonne réponse)</span></label>
+                        <div class="reponses-list">
+                            <div class="reponse-item correct" onclick="toggleCorrect(this)">
+                                <div class="reponse-radio">✓</div>
+                                <input type="text" class="reponse-input" value="1488" placeholder="Réponse...">
+                                <button class="reponse-delete">×</button>
+                            </div>
+                            <div class="reponse-item" onclick="toggleCorrect(this)">
+                                <div class="reponse-radio"></div>
+                                <input type="text" class="reponse-input" value="1492" placeholder="Réponse...">
+                                <button class="reponse-delete">×</button>
+                            </div>
+                            <div class="reponse-item" onclick="toggleCorrect(this)">
+                                <div class="reponse-radio"></div>
+                                <input type="text" class="reponse-input" value="1498" placeholder="Réponse...">
+                                <button class="reponse-delete">×</button>
+                            </div>
+                            <div class="reponse-item" onclick="toggleCorrect(this)">
+                                <div class="reponse-radio"></div>
+                                <input type="text" class="reponse-input" value="1500" placeholder="Réponse...">
+                                <button class="reponse-delete">×</button>
+                            </div>
+                            <button class="add-reponse-btn">➕ Ajouter une réponse</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Explication <span>(optionnel)</span></label>
+                        <textarea class="form-input form-textarea" placeholder="Explication affichée après la correction..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Formulaire Événement -->
+                <div class="form-dynamic" id="form-evenement">
+                    <div class="form-section-title">Événement</div>
+                    <div class="form-group">
+                        <label>Description de l'événement</label>
+                        <textarea class="form-input form-textarea" placeholder="Ex: Bartolomeu Dias atteint le cap de Bonne-Espérance"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="text" class="form-input" placeholder="Ex: 1488">
+                        </div>
+                        <div class="form-group">
+                            <label>Période <span>(optionnel)</span></label>
+                            <input type="text" class="form-input" placeholder="Ex: XVe siècle">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Détail complémentaire <span>(optionnel)</span></label>
+                        <textarea class="form-input form-textarea" placeholder="Information supplémentaire affichée dans le corrigé..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Formulaire Paire -->
+                <div class="form-dynamic" id="form-paire">
+                    <div class="form-section-title">Paire (Association)</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Terme A</label>
+                            <input type="text" class="form-input" placeholder="Ex: Bartolomeu Dias">
+                        </div>
+                        <div class="form-group">
+                            <label>Terme B</label>
+                            <input type="text" class="form-input" placeholder="Ex: Cap de Bonne-Espérance">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Explication <span>(optionnel)</span></label>
+                        <textarea class="form-input form-textarea" placeholder="Explication affichée après la correction..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Formulaire Point carte -->
+                <div class="form-dynamic" id="form-point">
+                    <div class="form-section-title">Point carte</div>
+                    <div class="form-group">
+                        <label>Nom du lieu</label>
+                        <input type="text" class="form-input" placeholder="Ex: Lisbonne, Goa, Cap de Bonne-Espérance...">
+                    </div>
+                    <div class="form-group">
+                        <label>Carte associée</label>
+                        <select class="form-input form-select">
+                            <option value="">— Sélectionnez une carte —</option>
+                            <option value="explo">Carte des explorations XV-XVIe siècle</option>
+                            <option value="comptoirs">Carte des comptoirs portugais</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Position sur la carte</label>
+                        <p style="font-size: 13px; color: var(--gray-500); margin-bottom: 12px;">Cliquez sur la carte pour définir la position, ou entrez les coordonnées manuellement.</p>
+                        <div style="background: var(--gray-100); border-radius: var(--radius); height: 200px; display: flex; align-items: center; justify-content: center; color: var(--gray-400);">
+                            📍 Carte interactive (à implémenter)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulaire Item catégorie -->
+                <div class="form-dynamic" id="form-item">
+                    <div class="form-section-title">Item de catégorisation</div>
+                    <div class="form-group">
+                        <label>Élément à classer</label>
+                        <input type="text" class="form-input" placeholder="Ex: La caravelle">
+                    </div>
+                    <div class="form-group">
+                        <label>Catégorie correcte</label>
+                        <input type="text" class="form-input" placeholder="Ex: Instruments de navigation">
+                    </div>
+                    <div class="form-group">
+                        <label>Explication <span>(optionnel)</span></label>
+                        <textarea class="form-input form-textarea" placeholder="Pourquoi cet élément appartient à cette catégorie..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Formulaire Réponse libre -->
+                <div class="form-dynamic" id="form-reponse">
+                    <div class="form-section-title">Question à réponse libre</div>
+                    <div class="form-group">
+                        <label>Question</label>
+                        <textarea class="form-input form-textarea" placeholder="Ex: Expliquez les motivations des explorations portugaises."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Réponses acceptées <span>(mots-clés ou réponses exactes)</span></label>
+                        <textarea class="form-input form-textarea" placeholder="Ex: épices, or, route des Indes, commerce..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Réponse modèle <span>(optionnel)</span></label>
+                        <textarea class="form-input form-textarea" placeholder="Réponse complète affichée dans le corrigé..."></textarea>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+                <button class="btn btn-primary">💾 Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modal
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // Fermer modal en cliquant à l'extérieur
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Sélection du type d'élément
+        function selectType(btn, type) {
+            // Update buttons
+            document.querySelectorAll('.type-selector-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Show corresponding form
+            document.querySelectorAll('.form-dynamic').forEach(f => f.classList.remove('active'));
+            document.getElementById('form-' + type).classList.add('active');
+        }
+
+        // Toggle correct answer (QCM)
+        function toggleCorrect(item) {
+            if (event.target.classList.contains('reponse-input') || event.target.classList.contains('reponse-delete')) return;
+            
+            document.querySelectorAll('.reponse-item').forEach(i => {
+                i.classList.remove('correct');
+                i.querySelector('.reponse-radio').textContent = '';
+            });
+            
+            item.classList.add('correct');
+            item.querySelector('.reponse-radio').textContent = '✓';
+        }
+
+        // Toggle section collapse
+        function toggleSection(section) {
+            section.classList.toggle('collapsed');
+        }
+
+        // Select chapitre
+        function selectChapitre(item) {
+            document.querySelectorAll('.panel-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+        }
+
+        // Filter by type
+        function filterType(btn, type) {
+            document.querySelectorAll('.type-filter').forEach(f => f.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('.element-card').forEach(card => {
+                if (type === 'all' || card.dataset.type === type) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+            document.querySelector('.main').classList.toggle('expanded');
+        }
+        function toggleUserMenu() { document.getElementById('user-dropdown').classList.toggle('show'); }
+        document.addEventListener('click', function(e) {
+            const userMenu = document.querySelector('.top-bar-user');
+            if (userMenu && !userMenu.contains(e.target)) document.getElementById('user-dropdown').classList.remove('show');
+        });
+    </script>
+
+</body>
+</html>

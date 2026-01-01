@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un entraînement | Admin - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-teal: #14b8a6;
+            --accent-teal-light: #ccfbf1;
+            --accent-pink: #ec4899;
+            --accent-pink-light: #fce7f3;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 20px 32px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .btn-back {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-back:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .header-title h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .header-title p {
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+
+        /* ===== WIZARD STEPS ===== */
+        .wizard-steps {
+            display: flex;
+            gap: 8px;
+            max-width: 500px;
+        }
+
+        .wizard-step {
+            flex: 1;
+            padding: 12px 20px;
+            background: var(--gray-100);
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .wizard-step:hover {
+            border-color: var(--gray-300);
+        }
+
+        .wizard-step.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .wizard-step.completed {
+            background: var(--accent-green-light);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .wizard-step-number {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .wizard-step.active .wizard-step-number {
+            opacity: 0.8;
+        }
+
+        .wizard-step-label {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        /* ===== STEP CONTENT ===== */
+        .step-content {
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        /* ===== CARDS ===== */
+        .card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-header-icon {
+            font-size: 24px;
+        }
+
+        .card-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .card-header p {
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* ===== FORM ELEMENTS ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-label span {
+            font-weight: 400;
+            color: var(--gray-400);
+            font-size: 12px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 40px;
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .form-row-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 6px;
+        }
+
+        /* ===== INFO BOX ===== */
+        .info-box {
+            background: var(--accent-blue-light);
+            border-radius: var(--radius);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .info-box-icon {
+            font-size: 20px;
+        }
+
+        .info-box-content strong {
+            color: var(--accent-blue);
+            font-size: 14px;
+        }
+
+        .info-box-content p {
+            font-size: 13px;
+            color: #1e40af;
+            margin-top: 2px;
+        }
+
+        /* ===== ÉTAPE 2 : LAYOUT ===== */
+        .step2-layout {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        /* ===== EXERCICES COMPOSÉS (gauche) ===== */
+        .exercices-panel {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .exercices-panel-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .exercices-panel-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .exercices-count-badge {
+            background: var(--primary);
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .exercices-panel-body {
+            padding: 20px;
+            min-height: 500px;
+        }
+
+        /* Exercice composé card */
+        .exercice-compose {
+            background: var(--gray-50);
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .exercice-compose:hover {
+            border-color: var(--primary-light);
+        }
+
+        .exercice-compose.dragging {
+            opacity: 0.5;
+            border-color: var(--primary);
+        }
+
+        .exercice-compose-header {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: grab;
+        }
+
+        .exercice-compose-handle {
+            color: var(--gray-400);
+            font-size: 18px;
+        }
+
+        .exercice-compose-number {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .exercice-compose-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .exercice-compose-icon.qcm { background: var(--accent-blue-light); }
+        .exercice-compose-icon.timeline { background: var(--accent-orange-light); }
+        .exercice-compose-icon.frise { background: var(--accent-purple-light); }
+        .exercice-compose-icon.association { background: var(--accent-green-light); }
+        .exercice-compose-icon.carte { background: var(--accent-teal-light); }
+        .exercice-compose-icon.categorisation { background: var(--accent-pink-light); }
+
+        .exercice-compose-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .exercice-compose-info h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+
+        .exercice-compose-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .exercice-compose-meta .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            background: white;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .exercice-compose-meta .tag.aleatoire {
+            background: var(--accent-orange-light);
+            color: #92400e;
+        }
+
+        .exercice-compose-meta .tag.manuel {
+            background: var(--accent-blue-light);
+            color: #1e40af;
+        }
+
+        .exercice-compose-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .exercice-compose-btn {
+            width: 34px;
+            height: 34px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            color: var(--gray-500);
+        }
+
+        .exercice-compose-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .exercice-compose-btn.delete:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* Détail des éléments sélectionnés */
+        .exercice-compose-detail {
+            padding: 0 16px 16px;
+            display: none;
+        }
+
+        .exercice-compose.expanded .exercice-compose-detail {
+            display: block;
+        }
+
+        .exercice-compose-elements {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .element-mini {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--gray-600);
+            transition: background 0.2s;
+        }
+
+        .element-mini:hover {
+            background: var(--gray-50);
+        }
+
+        .element-mini-icon {
+            font-size: 14px;
+        }
+
+        .element-mini-text {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Empty state */
+        .exercices-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-400);
+        }
+
+        .exercices-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .exercices-empty h4 {
+            font-size: 16px;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+        }
+
+        /* ===== PANEL AJOUTER EXERCICE (droite) ===== */
+        .add-panel {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 100px;
+            overflow: hidden;
+        }
+
+        .add-panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-100);
+            background: linear-gradient(135deg, var(--primary-bg), white);
+        }
+
+        .add-panel-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-panel-body {
+            padding: 20px;
+        }
+
+        /* Section title */
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        /* Format selector */
+        .format-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .format-option {
+            padding: 14px 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .format-option:hover {
+            border-color: var(--primary-light);
+            background: var(--gray-50);
+        }
+
+        .format-option.selected {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .format-option-icon {
+            font-size: 26px;
+            margin-bottom: 6px;
+        }
+
+        .format-option-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .format-option.selected .format-option-name {
+            color: var(--primary);
+        }
+
+        .format-option-count {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        /* Config section */
+        .config-section {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .config-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .config-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .config-row label {
+            font-size: 14px;
+            color: var(--gray-600);
+            min-width: 140px;
+        }
+
+        .config-row input[type="number"] {
+            width: 80px;
+            padding: 10px 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            text-align: center;
+            background: white;
+        }
+
+        .config-row input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .config-row .available {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-left: 8px;
+        }
+
+        /* Selection mode */
+        .selection-mode {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .selection-mode-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            font-family: inherit;
+        }
+
+        .selection-mode-btn:hover {
+            border-color: var(--primary-light);
+        }
+
+        .selection-mode-btn.active {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .selection-mode-btn-icon {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .selection-mode-btn-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .selection-mode-btn.active .selection-mode-btn-label {
+            color: var(--primary);
+        }
+
+        .selection-mode-btn-desc {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+
+        /* Elements list (pour sélection manuelle) */
+        .elements-list {
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .elements-list.show {
+            display: block;
+        }
+
+        .element-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .element-item:last-child {
+            border-bottom: none;
+        }
+
+        .element-item:hover {
+            background: var(--gray-50);
+        }
+
+        .element-item.selected {
+            background: var(--primary-bg);
+        }
+
+        .element-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .element-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .element-item-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-700);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .element-item-meta {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+
+        .elements-list-footer {
+            padding: 10px 14px;
+            background: var(--gray-50);
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        .elements-list-footer button {
+            padding: 6px 12px;
+            background: white;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .elements-list-footer button:hover {
+            background: var(--gray-100);
+        }
+
+        /* Random info */
+        .random-info {
+            background: var(--accent-orange-light);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .random-info.show {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .random-info-icon {
+            font-size: 24px;
+        }
+
+        .random-info-text {
+            font-size: 13px;
+            color: #92400e;
+        }
+
+        .random-info-text strong {
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* Add button */
+        .btn-add-exercice {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-add-exercice:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-add-exercice:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Link to banque */
+        .link-banque {
+            text-align: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .link-banque a {
+            font-size: 13px;
+            color: var(--primary);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .link-banque a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== ÉTAPE 3 : VALIDATION ===== */
+        .recap-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .recap-header {
+            padding: 24px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .recap-header h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .recap-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .recap-body {
+            padding: 24px;
+        }
+
+        .recap-section {
+            margin-bottom: 24px;
+        }
+
+        .recap-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .recap-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .recap-info-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .recap-info-item {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            padding: 16px;
+        }
+
+        .recap-info-item label {
+            font-size: 12px;
+            color: var(--gray-500);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .recap-info-item strong {
+            font-size: 15px;
+            color: var(--gray-800);
+        }
+
+        .recap-exercices {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .recap-exercice-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--gray-200);
+            background: white;
+        }
+
+        .recap-exercice-item:last-child {
+            border-bottom: none;
+        }
+
+        .recap-exercice-number {
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .recap-exercice-icon {
+            font-size: 24px;
+        }
+
+        .recap-exercice-info {
+            flex: 1;
+        }
+
+        .recap-exercice-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .recap-exercice-info p {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .recap-exercice-tags {
+            display: flex;
+            gap: 8px;
+        }
+
+        .recap-tag {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .recap-tag.format {
+            background: var(--gray-200);
+            color: var(--gray-600);
+        }
+
+        .recap-tag.aleatoire {
+            background: var(--accent-orange-light);
+            color: #92400e;
+        }
+
+        .recap-tag.manuel {
+            background: var(--accent-blue-light);
+            color: #1e40af;
+        }
+
+        .btn-preview {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--gray-100);
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-preview:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        /* ===== FOOTER ACTIONS ===== */
+        .footer-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-top: 24px;
+        }
+
+        .footer-left {
+            display: flex;
+            gap: 12px;
+        }
+
+        .footer-right {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-secondary {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-200);
+        }
+
+        .btn-outline {
+            background: white;
+            color: var(--gray-600);
+            border: 2px solid var(--gray-200);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--accent-green), #059669);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1100px) {
+            .step2-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .add-panel {
+                position: static;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-inner {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .wizard-steps {
+                max-width: 100%;
+                width: 100%;
+            }
+
+            .form-row,
+            .form-row-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .recap-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-actions {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .footer-left,
+            .footer-right {
+                width: 100%;
+            }
+
+            .footer-left .btn,
+            .footer-right .btn {
+                flex: 1;
+            }
+
+            .format-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="header-left">
+                <button class="btn-back" onclick="history.back()">← Retour</button>
+                <div class="header-title">
+                    <h1>➕ Nouvel entraînement</h1>
+                    <p>Connaissances • Créez une série d'exercices</p>
+                </div>
+            </div>
+
+            <div class="wizard-steps">
+                <div class="wizard-step active" onclick="goToStep(1)">
+                    <div class="wizard-step-number">Étape 1</div>
+                    <div class="wizard-step-label">Paramètres</div>
+                </div>
+                <div class="wizard-step" onclick="goToStep(2)">
+                    <div class="wizard-step-number">Étape 2</div>
+                    <div class="wizard-step-label">Exercices</div>
+                </div>
+                <div class="wizard-step" onclick="goToStep(3)">
+                    <div class="wizard-step-number">Étape 3</div>
+                    <div class="wizard-step-label">Validation</div>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button style="width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer;" title="Notifications">🔔</button>
+                <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px; cursor: pointer; background: var(--gray-100);">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: #eef2ff; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">EM</div>
+                    <span style="font-size: 13px; font-weight: 600; color: var(--gray-700);">Mme Meyer</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- ===== ÉTAPE 1 : PARAMÈTRES ===== -->
+        <div class="step-content active" id="step-1">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-header-icon">⚙️</span>
+                    <div>
+                        <h2>Paramètres généraux</h2>
+                        <p>Définissez les informations de base de l'entraînement</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label class="form-label">Titre de l'entraînement</label>
+                            <input type="text" class="form-input" placeholder="Ex: Les explorateurs, Vocabulaire..." value="Les explorateurs">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Type d'exercice</label>
+                            <select class="form-input form-select">
+                                <option value="connaissances" selected>✅ Connaissances</option>
+                                <option value="savoir-faire">🔧 Savoir-faire</option>
+                                <option value="competences">🎯 Compétences</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label class="form-label">Numéro de série <span>(optionnel)</span></label>
+                            <input type="text" class="form-input" placeholder="Ex: 1/3, 2/3..." value="1/3">
+                            <div class="form-hint">Si cet entraînement fait partie d'une série sur le même chapitre</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Description <span>(optionnel)</span></label>
+                            <input type="text" class="form-input" placeholder="Description courte affichée aux élèves..." value="Découvre les grands explorateurs portugais">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-header-icon">📚</span>
+                    <div>
+                        <h2>Chapitre associé</h2>
+                        <p>L'entraînement sera lié à ce chapitre et utilisera sa banque d'éléments</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Matière</label>
+                            <select class="form-input form-select">
+                                <option value="">— Sélectionnez —</option>
+                                <option value="histoire" selected>🏛️ Histoire</option>
+                                <option value="geo">🗺️ Géographie</option>
+                                <option value="litterature">📚 Littérature</option>
+                                <option value="emc">⚖️ EMC</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Thème</label>
+                            <select class="form-input form-select">
+                                <option value="">— Sélectionnez —</option>
+                                <option value="t1" selected>Thème 1 : L'expansion du monde connu</option>
+                                <option value="t2">Thème 2 : L'Amérique et l'Europe</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Chapitre</label>
+                            <select class="form-input form-select">
+                                <option value="">— Sélectionnez —</option>
+                                <option value="l1" selected>L1 - Les explorations portugaises</option>
+                                <option value="l2">L2 - Les empires coloniaux</option>
+                                <option value="l3">L3 - La traite atlantique</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <span class="info-box-icon">📦</span>
+                        <div class="info-box-content">
+                            <strong>Banque L1 - Les explorations portugaises</strong>
+                            <p>12 questions QCM • 6 événements • 5 paires • 6 points carte</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-header-icon">🎛️</span>
+                    <div>
+                        <h2>Options</h2>
+                        <p>Paramètres supplémentaires</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Durée estimée <span>(minutes)</span></label>
+                            <input type="number" class="form-input" value="10" min="1" max="60">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Statut initial</label>
+                            <select class="form-input form-select">
+                                <option value="brouillon">📝 Brouillon (non visible)</option>
+                                <option value="publie" selected>✅ Publié (visible)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Correction</label>
+                            <select class="form-input form-select">
+                                <option value="immediate" selected>Immédiate (après chaque exercice)</option>
+                                <option value="finale">À la fin (score global)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ÉTAPE 2 : EXERCICES ===== -->
+        <div class="step-content" id="step-2">
+            <div class="step2-layout">
+                
+                <!-- EXERCICES COMPOSÉS (gauche) -->
+                <div class="exercices-panel">
+                    <div class="exercices-panel-header">
+                        <h2>📋 Exercices de la série <span class="exercices-count-badge">3</span></h2>
+                        <span style="font-size: 13px; color: var(--gray-500);">Glissez pour réordonner</span>
+                    </div>
+                    <div class="exercices-panel-body" id="exercicesList">
+                        
+                        <!-- Exercice 1 : QCM -->
+                        <div class="exercice-compose expanded" draggable="true">
+                            <div class="exercice-compose-header">
+                                <span class="exercice-compose-handle">☰</span>
+                                <div class="exercice-compose-number">1</div>
+                                <div class="exercice-compose-icon qcm">📝</div>
+                                <div class="exercice-compose-info">
+                                    <h3>QCM</h3>
+                                    <div class="exercice-compose-meta">
+                                        <span>5 questions</span>
+                                        <span class="tag manuel">✋ Manuel</span>
+                                    </div>
+                                </div>
+                                <div class="exercice-compose-actions">
+                                    <button class="exercice-compose-btn" title="Modifier">✏️</button>
+                                    <button class="exercice-compose-btn" title="Monter">↑</button>
+                                    <button class="exercice-compose-btn" title="Descendre">↓</button>
+                                    <button class="exercice-compose-btn delete" title="Supprimer">🗑️</button>
+                                </div>
+                            </div>
+                            <div class="exercice-compose-detail">
+                                <div class="exercice-compose-elements">
+                                    <div class="element-mini">
+                                        <span class="element-mini-icon">✓</span>
+                                        <span class="element-mini-text">Date du cap de Bonne-Espérance ?</span>
+                                    </div>
+                                    <div class="element-mini">
+                                        <span class="element-mini-icon">✓</span>
+                                        <span class="element-mini-text">Qui a atteint l'Inde par la mer ?</span>
+                                    </div>
+                                    <div class="element-mini">
+                                        <span class="element-mini-icon">✓</span>
+                                        <span class="element-mini-text">La caravelle est...</span>
+                                    </div>
+                                    <div class="element-mini">
+                                        <span class="element-mini-icon">✓</span>
+                                        <span class="element-mini-text">Le traité de Tordesillas concerne...</span>
+                                    </div>
+                                    <div class="element-mini">
+                                        <span class="element-mini-icon">✓</span>
+                                        <span class="element-mini-text">Quel navigateur a contourné l'Afrique ?</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Exercice 2 : Timeline -->
+                        <div class="exercice-compose" draggable="true">
+                            <div class="exercice-compose-header">
+                                <span class="exercice-compose-handle">☰</span>
+                                <div class="exercice-compose-number">2</div>
+                                <div class="exercice-compose-icon timeline">📅</div>
+                                <div class="exercice-compose-info">
+                                    <h3>Timeline</h3>
+                                    <div class="exercice-compose-meta">
+                                        <span>4 événements</span>
+                                        <span class="tag aleatoire">🎲 Aléatoire</span>
+                                    </div>
+                                </div>
+                                <div class="exercice-compose-actions">
+                                    <button class="exercice-compose-btn" title="Modifier">✏️</button>
+                                    <button class="exercice-compose-btn" title="Monter">↑</button>
+                                    <button class="exercice-compose-btn" title="Descendre">↓</button>
+                                    <button class="exercice-compose-btn delete" title="Supprimer">🗑️</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Exercice 3 : Association -->
+                        <div class="exercice-compose" draggable="true">
+                            <div class="exercice-compose-header">
+                                <span class="exercice-compose-handle">☰</span>
+                                <div class="exercice-compose-number">3</div>
+                                <div class="exercice-compose-icon association">🔗</div>
+                                <div class="exercice-compose-info">
+                                    <h3>Association</h3>
+                                    <div class="exercice-compose-meta">
+                                        <span>4 paires</span>
+                                        <span class="tag aleatoire">🎲 Aléatoire</span>
+                                    </div>
+                                </div>
+                                <div class="exercice-compose-actions">
+                                    <button class="exercice-compose-btn" title="Modifier">✏️</button>
+                                    <button class="exercice-compose-btn" title="Monter">↑</button>
+                                    <button class="exercice-compose-btn" title="Descendre">↓</button>
+                                    <button class="exercice-compose-btn delete" title="Supprimer">🗑️</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- AJOUTER UN EXERCICE (droite) -->
+                <div class="add-panel">
+                    <div class="add-panel-header">
+                        <h3>➕ Ajouter un exercice</h3>
+                    </div>
+                    <div class="add-panel-body">
+                        
+                        <div class="section-title">1. Choisir le format</div>
+                        <div class="format-selector">
+                            <div class="format-option selected" onclick="selectFormat(this, 'qcm')">
+                                <div class="format-option-icon">📝</div>
+                                <div class="format-option-name">QCM</div>
+                                <div class="format-option-count">12 disponibles</div>
+                            </div>
+                            <div class="format-option" onclick="selectFormat(this, 'timeline')">
+                                <div class="format-option-icon">📅</div>
+                                <div class="format-option-name">Timeline</div>
+                                <div class="format-option-count">6 événements</div>
+                            </div>
+                            <div class="format-option" onclick="selectFormat(this, 'frise')">
+                                <div class="format-option-icon">📊</div>
+                                <div class="format-option-name">Frise</div>
+                                <div class="format-option-count">6 événements</div>
+                            </div>
+                            <div class="format-option" onclick="selectFormat(this, 'association')">
+                                <div class="format-option-icon">🔗</div>
+                                <div class="format-option-name">Association</div>
+                                <div class="format-option-count">5 paires</div>
+                            </div>
+                            <div class="format-option" onclick="selectFormat(this, 'carte')">
+                                <div class="format-option-icon">🗺️</div>
+                                <div class="format-option-name">Carte</div>
+                                <div class="format-option-count">6 points</div>
+                            </div>
+                            <div class="format-option" onclick="selectFormat(this, 'categorisation')">
+                                <div class="format-option-icon">📂</div>
+                                <div class="format-option-name">Catégorisation</div>
+                                <div class="format-option-count">0 items</div>
+                            </div>
+                        </div>
+
+                        <div class="section-title">2. Configurer</div>
+                        <div class="config-section">
+                            <div class="config-row">
+                                <label>Nombre d'éléments :</label>
+                                <input type="number" value="5" min="1" max="20" id="nbElements">
+                                <span class="available">/ 12 disponibles</span>
+                            </div>
+                        </div>
+
+                        <div class="section-title">3. Mode de sélection</div>
+                        <div class="selection-mode">
+                            <button class="selection-mode-btn" onclick="setSelectionMode('aleatoire')">
+                                <div class="selection-mode-btn-icon">🎲</div>
+                                <div class="selection-mode-btn-label">Aléatoire</div>
+                                <div class="selection-mode-btn-desc">Tirage au sort</div>
+                            </button>
+                            <button class="selection-mode-btn active" onclick="setSelectionMode('manuel')">
+                                <div class="selection-mode-btn-icon">✋</div>
+                                <div class="selection-mode-btn-label">Manuel</div>
+                                <div class="selection-mode-btn-desc">Je choisis</div>
+                            </button>
+                        </div>
+
+                        <!-- Info mode aléatoire -->
+                        <div class="random-info" id="randomInfo">
+                            <span class="random-info-icon">🎲</span>
+                            <div class="random-info-text">
+                                <strong>Tirage aléatoire</strong>
+                                5 questions seront tirées au hasard parmi les 12 disponibles à chaque session.
+                            </div>
+                        </div>
+
+                        <!-- Liste pour sélection manuelle -->
+                        <div class="elements-list show" id="elementsList">
+                            <div class="element-item selected" onclick="toggleElement(this)">
+                                <input type="checkbox" checked>
+                                <div class="element-item-content">
+                                    <div class="element-item-title">Date du cap de Bonne-Espérance ?</div>
+                                    <div class="element-item-meta">4 choix • Réponse : 1488</div>
+                                </div>
+                            </div>
+                            <div class="element-item selected" onclick="toggleElement(this)">
+                                <input type="checkbox" checked>
+                                <div class="element-item-content">
+                                    <div class="element-item-title">Qui a atteint l'Inde par la mer ?</div>
+                                    <div class="element-item-meta">4 choix • Réponse : Vasco de Gama</div>
+                                </div>
+                            </div>
+                            <div class="element-item selected" onclick="toggleElement(this)">
+                                <input type="checkbox" checked>
+                                <div class="element-item-content">
+                                    <div class="element-item-title">La caravelle est...</div>
+                                    <div class="element-item-meta">4 choix • Réponse : un navire</div>
+                                </div>
+                            </div>
+                            <div class="element-item selected" onclick="toggleElement(this)">
+                                <input type="checkbox" checked>
+                                <div class="element-item-content">
+                                    <div class="element-item-title">Le traité de Tordesillas concerne...</div>
+                                    <div class="element-item-meta">4 choix • Réponse : le partage du monde</div>
+                                </div>
+                            </div>
+                            <div class="element-item selected" onclick="toggleElement(this)">
+                                <input type="checkbox" checked>
+                                <div class="element-item-content">
+                                    <div class="element-item-title">Quel navigateur a contourné l'Afrique ?</div>
+                                    <div class="element-item-meta">4 choix • Réponse : Bartolomeu Dias</div>
+                                </div>
+                            </div>
+                            <div class="element-item" onclick="toggleElement(this)">
+                                <input type="checkbox">
+                                <div class="element-item-content">
+                                    <div class="element-item-title">Quelle épice était la plus recherchée ?</div>
+                                    <div class="element-item-meta">4 choix • Réponse : le poivre</div>
+                                </div>
+                            </div>
+                            <div class="element-item" onclick="toggleElement(this)">
+                                <input type="checkbox">
+                                <div class="element-item-content">
+                                    <div class="element-item-title">Où se trouve le comptoir de Goa ?</div>
+                                    <div class="element-item-meta">4 choix • Réponse : en Inde</div>
+                                </div>
+                            </div>
+                            <div class="elements-list-footer">
+                                <span>5 / 12 sélectionnés</span>
+                                <button onclick="selectAll()">Tout sélectionner</button>
+                            </div>
+                        </div>
+
+                        <button class="btn-add-exercice" onclick="addExercice()">
+                            ➕ Ajouter cet exercice
+                        </button>
+
+                        <div class="link-banque">
+                            <a href="#">📦 Gérer la banque d'éléments →</a>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ===== ÉTAPE 3 : VALIDATION ===== -->
+        <div class="step-content" id="step-3">
+            <div class="recap-card">
+                <div class="recap-header">
+                    <h2>📜 Les explorateurs (Série 1/3)</h2>
+                    <p>Histoire • L1 - Les explorations portugaises</p>
+                </div>
+                <div class="recap-body">
+                    
+                    <div class="recap-section">
+                        <div class="recap-section-title">Informations générales</div>
+                        <div class="recap-info-grid">
+                            <div class="recap-info-item">
+                                <label>Titre</label>
+                                <strong>Les explorateurs</strong>
+                            </div>
+                            <div class="recap-info-item">
+                                <label>Série</label>
+                                <strong>1/3</strong>
+                            </div>
+                            <div class="recap-info-item">
+                                <label>Chapitre</label>
+                                <strong>L1 - Les explorations portugaises</strong>
+                            </div>
+                            <div class="recap-info-item">
+                                <label>Durée estimée</label>
+                                <strong>~10 minutes</strong>
+                            </div>
+                            <div class="recap-info-item">
+                                <label>Statut</label>
+                                <strong style="color: var(--accent-green);">✅ Publié</strong>
+                            </div>
+                            <div class="recap-info-item">
+                                <label>Correction</label>
+                                <strong>Immédiate</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recap-section">
+                        <div class="recap-section-title">Composition (3 exercices)</div>
+                        <div class="recap-exercices">
+                            <div class="recap-exercice-item">
+                                <div class="recap-exercice-number">1</div>
+                                <span class="recap-exercice-icon">📝</span>
+                                <div class="recap-exercice-info">
+                                    <h4>QCM</h4>
+                                    <p>5 questions sélectionnées manuellement</p>
+                                </div>
+                                <div class="recap-exercice-tags">
+                                    <span class="recap-tag format">QCM</span>
+                                    <span class="recap-tag manuel">✋ Manuel</span>
+                                </div>
+                            </div>
+                            <div class="recap-exercice-item">
+                                <div class="recap-exercice-number">2</div>
+                                <span class="recap-exercice-icon">📅</span>
+                                <div class="recap-exercice-info">
+                                    <h4>Timeline</h4>
+                                    <p>4 événements tirés aléatoirement parmi 6</p>
+                                </div>
+                                <div class="recap-exercice-tags">
+                                    <span class="recap-tag format">Timeline</span>
+                                    <span class="recap-tag aleatoire">🎲 Aléatoire</span>
+                                </div>
+                            </div>
+                            <div class="recap-exercice-item">
+                                <div class="recap-exercice-number">3</div>
+                                <span class="recap-exercice-icon">🔗</span>
+                                <div class="recap-exercice-info">
+                                    <h4>Association</h4>
+                                    <p>4 paires tirées aléatoirement parmi 5</p>
+                                </div>
+                                <div class="recap-exercice-tags">
+                                    <span class="recap-tag format">Association</span>
+                                    <span class="recap-tag aleatoire">🎲 Aléatoire</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recap-section" style="display: flex; justify-content: center; gap: 16px; padding-top: 16px;">
+                        <button class="btn-preview">
+                            👁️ Prévisualiser (vue élève)
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER ACTIONS -->
+        <div class="footer-actions">
+            <div class="footer-left">
+                <button class="btn btn-outline" id="btnPrev" onclick="prevStep()" style="display: none;">
+                    ← Étape précédente
+                </button>
+            </div>
+            <div class="footer-right">
+                <button class="btn btn-secondary" id="btnDraft">
+                    📝 Enregistrer en brouillon
+                </button>
+                <button class="btn btn-primary" id="btnNext" onclick="nextStep()">
+                    Suivant : Exercices →
+                </button>
+                <button class="btn btn-success" id="btnPublish" onclick="publish()" style="display: none;">
+                    🚀 Publier l'entraînement
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let currentStep = 1;
+        let selectionMode = 'manuel';
+
+        function goToStep(step) {
+            if (step < 1 || step > 3) return;
+            currentStep = step;
+            updateWizard();
+        }
+
+        function nextStep() {
+            if (currentStep < 3) {
+                currentStep++;
+                updateWizard();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateWizard();
+            }
+        }
+
+        function updateWizard() {
+            // Update wizard steps
+            document.querySelectorAll('.wizard-step').forEach((step, i) => {
+                step.classList.remove('active', 'completed');
+                if (i + 1 < currentStep) {
+                    step.classList.add('completed');
+                } else if (i + 1 === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Update step content
+            document.querySelectorAll('.step-content').forEach((content, i) => {
+                content.classList.remove('active');
+                if (i + 1 === currentStep) {
+                    content.classList.add('active');
+                }
+            });
+
+            // Update buttons
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const btnPublish = document.getElementById('btnPublish');
+
+            btnPrev.style.display = currentStep > 1 ? 'inline-flex' : 'none';
+            
+            if (currentStep === 3) {
+                btnNext.style.display = 'none';
+                btnPublish.style.display = 'inline-flex';
+            } else {
+                btnNext.style.display = 'inline-flex';
+                btnPublish.style.display = 'none';
+                btnNext.textContent = currentStep === 1 ? 'Suivant : Exercices →' : 'Suivant : Validation →';
+            }
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function publish() {
+            alert('🎉 Entraînement publié avec succès !');
+        }
+
+        // Format selection
+        function selectFormat(element, format) {
+            document.querySelectorAll('.format-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+            
+            // Update available count based on format
+            const counts = {
+                qcm: 12,
+                timeline: 6,
+                frise: 6,
+                association: 5,
+                carte: 6,
+                categorisation: 0
+            };
+            
+            document.querySelector('.available').textContent = `/ ${counts[format]} disponibles`;
+        }
+
+        // Selection mode
+        function setSelectionMode(mode) {
+            selectionMode = mode;
+            document.querySelectorAll('.selection-mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.selection-mode-btn').classList.add('active');
+            
+            // Toggle visibility
+            document.getElementById('elementsList').classList.toggle('show', mode === 'manuel');
+            document.getElementById('randomInfo').classList.toggle('show', mode === 'aleatoire');
+        }
+
+        // Toggle element selection
+        function toggleElement(item) {
+            item.classList.toggle('selected');
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            updateSelectionCount();
+        }
+
+        function updateSelectionCount() {
+            const selected = document.querySelectorAll('.element-item.selected').length;
+            const total = document.querySelectorAll('.element-item').length - 1; // -1 for footer
+            document.querySelector('.elements-list-footer span').textContent = `${selected} / ${total} sélectionnés`;
+        }
+
+        function selectAll() {
+            const items = document.querySelectorAll('.element-item');
+            items.forEach(item => {
+                if (!item.classList.contains('selected') && item.querySelector('input')) {
+                    item.classList.add('selected');
+                    item.querySelector('input[type="checkbox"]').checked = true;
+                }
+            });
+            updateSelectionCount();
+        }
+
+        function addExercice() {
+            alert('Exercice ajouté à la série !');
+        }
+
+        // Expand/collapse exercice detail
+        document.querySelectorAll('.exercice-compose-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                if (e.target.closest('.exercice-compose-actions')) return;
+                header.parentElement.classList.toggle('expanded');
+            });
+        });
+
+        // Initialize
+        updateWizard();
+    </script>
+
+</body>
+</html>

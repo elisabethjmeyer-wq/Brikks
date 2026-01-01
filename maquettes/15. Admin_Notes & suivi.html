@@ -1,0 +1,2128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes & Suivi | Admin - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-yellow: #eab308;
+            --accent-yellow-light: #fef9c3;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ===== SIDEBAR ===== */
+        .admin-sidebar {
+            width: 280px;
+            background: var(--gray-900);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 150;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-sidebar.collapsed { transform: translateX(-100%); }
+
+        .admin-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .admin-logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-logo .badge {
+            background: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sidebar-section { margin-bottom: 24px; }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 20px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar-link .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        /* ===== MAIN ===== */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+        .main-content.expanded { margin-left: 0; }
+
+        /* ===== TOP BAR ===== */
+        .top-bar { background: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 100; }
+        .top-bar-left { display: flex; align-items: center; gap: 16px; }
+        .toggle-sidebar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .toggle-sidebar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-500); }
+        .top-bar-breadcrumb a { color: var(--gray-500); text-decoration: none; }
+        .top-bar-breadcrumb a:hover { color: var(--primary); }
+        .top-bar-breadcrumb .separator { color: var(--gray-300); }
+        .top-bar-right { display: flex; align-items: center; gap: 12px; }
+        .top-bar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; }
+        .top-bar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-btn .notif-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--accent-red); border-radius: 50%; border: 2px solid white; }
+        .top-bar-user { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 10px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .top-bar-user:hover { background: var(--gray-100); }
+        .top-bar-user-avatar { width: 36px; height: 36px; border-radius: 8px; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+        .top-bar-user-info { text-align: left; }
+        .top-bar-user-name { font-size: 13px; font-weight: 600; color: var(--gray-800); display: flex; align-items: center; gap: 6px; }
+        .top-bar-user-name::after { content: "▼"; font-size: 10px; color: var(--gray-400); }
+        .top-bar-user-role { font-size: 11px; color: var(--gray-500); }
+        .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: var(--radius); box-shadow: var(--shadow-lg); border: 1px solid var(--gray-200); min-width: 180px; display: none; z-index: 200; overflow: hidden; }
+        .user-dropdown.show { display: block; }
+        .user-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-size: 14px; color: var(--gray-700); text-decoration: none; transition: all 0.2s; cursor: pointer; }
+        .user-dropdown-item:hover { background: var(--gray-50); }
+        .user-dropdown-item.danger { color: var(--accent-red); }
+        .user-dropdown-item.danger:hover { background: var(--accent-red-light); }
+        .page-content { padding: 24px; flex: 1; }
+
+        /* ===== HEADER ===== */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .admin-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .admin-header p {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+
+        .btn-secondary {
+            background: white;
+            border: 2px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+        .btn-secondary:hover { background: var(--gray-50); }
+
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--gray-100);
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--gray-600);
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: white;
+            padding: 6px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            width: fit-content;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--gray-700);
+            background: var(--gray-50);
+        }
+
+        .tab.active {
+            color: white;
+            background: var(--primary);
+            box-shadow: var(--shadow);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ===== CONFIG CARD ===== */
+        .config-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .config-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .config-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .config-item {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            padding: 14px;
+        }
+
+        .config-item-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+
+        .config-item-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .config-item-value.editable {
+            color: var(--primary);
+            cursor: pointer;
+        }
+
+        .config-item-value.editable:hover {
+            text-decoration: underline;
+        }
+
+        .config-item-sub {
+            font-size: 11px;
+            color: var(--gray-400);
+            margin-top: 2px;
+        }
+
+        /* ===== FILTERS ===== */
+        .filters-bar {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px 10px 42px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 10px 36px 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") right 10px center no-repeat;
+            background-size: 16px;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* ===== STUDENTS TABLE ===== */
+        .students-table-wrapper {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .students-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .students-table th {
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--gray-50);
+            border-bottom: 2px solid var(--gray-200);
+            white-space: nowrap;
+        }
+
+        .students-table th.sortable {
+            cursor: pointer;
+        }
+
+        .students-table th.sortable:hover {
+            color: var(--gray-700);
+        }
+
+        .students-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            font-size: 14px;
+        }
+
+        .students-table tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        .students-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Student cell */
+        .student-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .student-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-bg);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .student-info {
+            flex: 1;
+        }
+
+        .student-name {
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .student-class {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* Progress cell */
+        .progress-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .progress-bar {
+            width: 80px;
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .progress-fill.green { background: var(--accent-green); }
+        .progress-fill.orange { background: var(--accent-orange); }
+        .progress-fill.red { background: var(--accent-red); }
+        .progress-fill.purple { background: var(--accent-purple); }
+
+        .progress-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            min-width: 45px;
+        }
+
+        /* Briques cell */
+        .briques-cell {
+            display: flex;
+            gap: 8px;
+        }
+
+        .brique-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .brique-badge.green { background: var(--accent-green-light); color: var(--accent-green); }
+        .brique-badge.orange { background: var(--accent-orange-light); color: #b45309; }
+        .brique-badge.purple { background: var(--accent-purple-light); color: var(--accent-purple); }
+        .brique-badge.yellow { background: var(--accent-yellow-light); color: #a16207; }
+
+        /* Note cell */
+        .note-cell {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .note-cell.excellent { color: var(--accent-green); }
+        .note-cell.good { color: var(--accent-blue); }
+        .note-cell.average { color: var(--accent-orange); }
+        .note-cell.low { color: var(--accent-red); }
+
+        .note-cell .overflow {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--accent-green);
+            margin-left: 4px;
+        }
+
+        /* Actions cell */
+        .actions-cell {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* ===== SAISIE RESULTATS ===== */
+        .saisie-header {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .saisie-eval-select {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .saisie-eval-select label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            white-space: nowrap;
+        }
+
+        .saisie-eval-select select {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .saisie-eval-info {
+            display: flex;
+            gap: 24px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .saisie-eval-info-item {
+            font-size: 13px;
+            color: var(--gray-600);
+        }
+
+        .saisie-eval-info-item strong {
+            color: var(--gray-900);
+        }
+
+        /* Saisie table */
+        .saisie-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .saisie-table th {
+            padding: 14px 16px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            background: var(--gray-50);
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .saisie-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            vertical-align: middle;
+        }
+
+        .saisie-table tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        /* Briques selector */
+        .briques-selector {
+            display: flex;
+            gap: 4px;
+        }
+
+        .brique-option {
+            width: 36px;
+            height: 36px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .brique-option:hover {
+            border-color: var(--gray-300);
+            background: var(--gray-50);
+        }
+
+        .brique-option.selected {
+            border-color: var(--accent-green);
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .brique-option.selected.zero {
+            border-color: var(--accent-red);
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .brique-option.selected.abs {
+            border-color: var(--gray-400);
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .brique-option.selected.nr {
+            border-color: var(--accent-orange);
+            background: var(--accent-orange-light);
+            color: #b45309;
+        }
+
+        /* Remarque button */
+        .remarque-btn {
+            padding: 8px 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            background: white;
+            font-size: 13px;
+            color: var(--gray-500);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .remarque-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .remarque-btn.has-remarque {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden { display: none; }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal.large { max-width: 900px; }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 8px;
+            font-size: 16px;
+            color: var(--gray-500);
+            cursor: pointer;
+        }
+
+        .modal-close:hover { background: var(--gray-200); }
+
+        .modal-body { padding: 24px; }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-group:last-child { margin-bottom: 0; }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* ===== STUDENT DETAIL VIEW ===== */
+        .student-detail-header {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .student-detail-avatar {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: var(--primary-bg);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .student-detail-info {
+            flex: 1;
+        }
+
+        .student-detail-name {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .student-detail-meta {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .student-detail-note {
+            text-align: center;
+            padding: 16px 24px;
+            background: var(--gray-50);
+            border-radius: var(--radius);
+        }
+
+        .student-detail-note-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .student-detail-note-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .student-detail-briques {
+            display: flex;
+            gap: 12px;
+        }
+
+        .student-detail-brique {
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .student-detail-brique.green { background: var(--accent-green-light); }
+        .student-detail-brique.orange { background: var(--accent-orange-light); }
+        .student-detail-brique.purple { background: var(--accent-purple-light); }
+        .student-detail-brique.yellow { background: var(--accent-yellow-light); }
+
+        .student-detail-brique-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .student-detail-brique.green .student-detail-brique-value { color: var(--accent-green); }
+        .student-detail-brique.orange .student-detail-brique-value { color: #b45309; }
+        .student-detail-brique.purple .student-detail-brique-value { color: var(--accent-purple); }
+        .student-detail-brique.yellow .student-detail-brique-value { color: #a16207; }
+
+        .student-detail-brique-label {
+            font-size: 11px;
+            color: var(--gray-600);
+            margin-top: 2px;
+        }
+
+        /* Detail sections */
+        .detail-section {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .detail-section-header {
+            padding: 16px 20px;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-section-body {
+            padding: 16px 20px;
+        }
+
+        /* Evaluation items in detail */
+        .eval-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .eval-item:last-child {
+            border-bottom: none;
+        }
+
+        .eval-item-status {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .eval-item-status.success { background: var(--accent-green-light); }
+        .eval-item-status.pending { background: var(--accent-orange-light); }
+        .eval-item-status.locked { background: var(--gray-100); }
+
+        .eval-item-content {
+            flex: 1;
+        }
+
+        .eval-item-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .eval-item-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .eval-item-result {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .eval-item-result.success { color: var(--accent-green); }
+        .eval-item-result.pending { color: var(--accent-orange); }
+        .eval-item-result.locked { color: var(--gray-400); }
+
+        /* Competence progress */
+        .competence-progress {
+            display: flex;
+            gap: 4px;
+        }
+
+        .competence-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--gray-200);
+        }
+
+        .competence-dot.filled {
+            background: var(--accent-purple);
+        }
+
+        /* Remarques list */
+        .remarques-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .remarque-item {
+            padding: 14px;
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            border-left: 4px solid var(--primary);
+        }
+
+        .remarque-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .remarque-item-type {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .remarque-item-date {
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        .remarque-item-content {
+            font-size: 14px;
+            color: var(--gray-700);
+            line-height: 1.5;
+        }
+
+        .remarque-item-video {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            margin-top: 8px;
+            color: var(--gray-600);
+            font-size: 13px;
+        }
+
+        /* Back button */
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+
+        .back-btn:hover {
+            background: var(--gray-50);
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="admin-sidebar">
+        <div class="admin-logo"><h1><span>📚</span>Espace cours<span class="badge">Admin</span></h1></div>
+        <nav>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📌 Principal</div>
+                <a href="#" class="sidebar-link"><span class="icon">🏠</span>Page d'accueil</a>
+                <a href="#" class="sidebar-link"><span class="icon">📬</span>Messagerie<span class="badge">3</span></a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📚 Ressources</div>
+                <a href="#" class="sidebar-link"><span class="icon">📖</span>Leçons</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧠</span>Méthodologie</a>
+                <a href="#" class="sidebar-link"><span class="icon">🎬</span>Vidéos</a>
+                <a href="#" class="sidebar-link"><span class="icon">💡</span>Recommandations</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">🎯 Exercices</div>
+                <a href="#" class="sidebar-link"><span class="icon">📐</span>Banque de formats</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧩</span>Banque d'éléments</a>
+                <a href="#" class="sidebar-link"><span class="icon">📝</span>Entraînements</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📊 Évaluations</div>
+                <a href="#" class="sidebar-link"><span class="icon">📋</span>Évaluations</a>
+                <a href="#" class="sidebar-link"><span class="icon">🟣</span>Compétences</a>
+                <a href="#" class="sidebar-link active"><span class="icon">📊</span>Notes & Suivi</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">👥 Élèves</div>
+                <a href="#" class="sidebar-link"><span class="icon">👥</span>Utilisateurs</a>
+                <a href="#" class="sidebar-link"><span class="icon">❓</span>FAQ</a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Afficher/Masquer le menu">☰</button>
+                <div class="top-bar-breadcrumb"><a href="#">Admin</a><span class="separator">/</span><span>Notes & Suivi</span></div>
+            </div>
+            <div class="top-bar-right">
+                <button class="top-bar-btn" title="Voir le site élève">👁️</button>
+                <button class="top-bar-btn" title="Notifications">🔔<span class="notif-dot"></span></button>
+                <div class="top-bar-user" onclick="toggleUserMenu()">
+                    <div class="top-bar-user-avatar">EM</div>
+                    <div class="top-bar-user-info"><div class="top-bar-user-name">Mme Meyer</div><div class="top-bar-user-role">Professeur</div></div>
+                    <div class="user-dropdown" id="user-dropdown"><a href="#" class="user-dropdown-item danger"><span>🚪</span>Déconnexion</a></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-content">
+        <!-- HEADER -->
+        <header class="admin-header">
+            <div>
+                <h1>📊 Notes & Suivi</h1>
+                <p>Suivez la progression de vos élèves et saisissez les résultats</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="openModal('config')">
+                    <span>⚙️</span>
+                    Configuration période
+                </button>
+                <button class="btn btn-primary" onclick="switchToTab('saisie')">
+                    <span>✏️</span>
+                    Saisir des résultats
+                </button>
+            </div>
+        </header>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('classe', this)">
+                <span>📊</span>
+                Vue classe
+            </button>
+            <button class="tab" onclick="switchTab('saisie', this)">
+                <span>✏️</span>
+                Saisie résultats
+            </button>
+        </div>
+
+        <!-- TAB: VUE CLASSE -->
+        <div class="tab-content active" id="tab-classe">
+            <!-- Config Summary -->
+            <div class="config-card">
+                <div class="config-card-header">
+                    <div class="config-card-title">
+                        <span>📅</span>
+                        Semestre 1 — 2024-2025
+                    </div>
+                    <button class="btn btn-sm btn-secondary" onclick="openModal('config')">Modifier</button>
+                </div>
+                <div class="config-grid">
+                    <div class="config-item">
+                        <div class="config-item-label">Période</div>
+                        <div class="config-item-value">01/09 → 31/01</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-label">Briques estimées</div>
+                        <div class="config-item-value editable" onclick="openModal('config')">50 briques</div>
+                        <div class="config-item-sub">42 en jeu actuellement</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-label">Valeur d'une brique</div>
+                        <div class="config-item-value">0.40 pts</div>
+                        <div class="config-item-sub">20 ÷ 50</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-label">Note minimale</div>
+                        <div class="config-item-value">0.5/20</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-item-label">Seuil validation (Conn.)</div>
+                        <div class="config-item-value">80%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-bar">
+                <div class="search-box">
+                    <input type="text" placeholder="Rechercher un élève...">
+                </div>
+                <select class="filter-select">
+                    <option value="">Toutes les classes</option>
+                    <option value="2mhr1">2MHR1</option>
+                    <option value="2mhr2">2MHR2</option>
+                </select>
+                <select class="filter-select">
+                    <option value="">Tous les groupes</option>
+                    <option value="a">Groupe A</option>
+                    <option value="b">Groupe B</option>
+                </select>
+                <select class="filter-select">
+                    <option value="">Trier par...</option>
+                    <option value="name">Nom</option>
+                    <option value="note-desc">Note (décroissant)</option>
+                    <option value="note-asc">Note (croissant)</option>
+                    <option value="briques">Briques totales</option>
+                </select>
+            </div>
+
+            <!-- Students Table -->
+            <div class="students-table-wrapper">
+                <table class="students-table">
+                    <thead>
+                        <tr>
+                            <th>Élève</th>
+                            <th class="sortable">Note</th>
+                            <th>🟢 Conn.</th>
+                            <th>🟠 SF</th>
+                            <th>🟣 Comp.</th>
+                            <th>⭐ Bonus</th>
+                            <th>Total briques</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr onclick="showStudentDetail()">
+                            <td>
+                                <div class="student-cell">
+                                    <div class="student-avatar">IA</div>
+                                    <div class="student-info">
+                                        <div class="student-name">Ilyana Amrani</div>
+                                        <div class="student-class">2MHR1 • Groupe A</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="note-cell excellent">
+                                    16.4
+                                    <span class="overflow">+2</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill green" style="width: 100%"></div></div>
+                                    <span class="progress-text">10/10</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill orange" style="width: 75%"></div></div>
+                                    <span class="progress-text">9/12</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill purple" style="width: 80%"></div></div>
+                                    <span class="progress-text">8/10</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill green" style="width: 100%"></div></div>
+                                    <span class="progress-text">5/5</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-weight: 700; font-size: 16px;">32</span>
+                                <span style="color: var(--gray-400); font-size: 13px;">/ 37</span>
+                            </td>
+                            <td>
+                                <div class="actions-cell">
+                                    <button class="btn-icon" title="Voir détail">👁️</button>
+                                    <button class="btn-icon" title="Ajouter remarque">💬</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="student-cell">
+                                    <div class="student-avatar">TD</div>
+                                    <div class="student-info">
+                                        <div class="student-name">Théo Dupont</div>
+                                        <div class="student-class">2MHR1 • Groupe A</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><div class="note-cell good">12.8</div></td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill orange" style="width: 70%"></div></div>
+                                    <span class="progress-text">7/10</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill orange" style="width: 58%"></div></div>
+                                    <span class="progress-text">7/12</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill purple" style="width: 60%"></div></div>
+                                    <span class="progress-text">6/10</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill green" style="width: 60%"></div></div>
+                                    <span class="progress-text">3/5</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-weight: 700; font-size: 16px;">23</span>
+                                <span style="color: var(--gray-400); font-size: 13px;">/ 37</span>
+                            </td>
+                            <td>
+                                <div class="actions-cell">
+                                    <button class="btn-icon" title="Voir détail">👁️</button>
+                                    <button class="btn-icon" title="Ajouter remarque">💬</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="student-cell">
+                                    <div class="student-avatar">LM</div>
+                                    <div class="student-info">
+                                        <div class="student-name">Léa Martin</div>
+                                        <div class="student-class">2MHR1 • Groupe B</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><div class="note-cell average">9.6</div></td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill orange" style="width: 50%"></div></div>
+                                    <span class="progress-text">5/10</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill orange" style="width: 50%"></div></div>
+                                    <span class="progress-text">6/12</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill purple" style="width: 40%"></div></div>
+                                    <span class="progress-text">4/10</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill green" style="width: 40%"></div></div>
+                                    <span class="progress-text">2/5</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-weight: 700; font-size: 16px;">17</span>
+                                <span style="color: var(--gray-400); font-size: 13px;">/ 37</span>
+                            </td>
+                            <td>
+                                <div class="actions-cell">
+                                    <button class="btn-icon" title="Voir détail">👁️</button>
+                                    <button class="btn-icon" title="Ajouter remarque">💬</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="student-cell">
+                                    <div class="student-avatar">KB</div>
+                                    <div class="student-info">
+                                        <div class="student-name">Karim Benali</div>
+                                        <div class="student-class">2MHR1 • Groupe B</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><div class="note-cell low">5.2</div></td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill red" style="width: 20%"></div></div>
+                                    <span class="progress-text">2/10</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill red" style="width: 25%"></div></div>
+                                    <span class="progress-text">3/12</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill purple" style="width: 30%"></div></div>
+                                    <span class="progress-text">3/10</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="progress-cell">
+                                    <div class="progress-bar"><div class="progress-fill green" style="width: 20%"></div></div>
+                                    <span class="progress-text">1/5</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span style="font-weight: 700; font-size: 16px;">9</span>
+                                <span style="color: var(--gray-400); font-size: 13px;">/ 37</span>
+                            </td>
+                            <td>
+                                <div class="actions-cell">
+                                    <button class="btn-icon" title="Voir détail">👁️</button>
+                                    <button class="btn-icon" title="Ajouter remarque">💬</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB: SAISIE RESULTATS -->
+        <div class="tab-content" id="tab-saisie">
+            <div class="saisie-header">
+                <div class="saisie-eval-select">
+                    <label>Évaluation :</label>
+                    <select class="filter-select" style="flex: 1;" onchange="updateSaisieInfo()">
+                        <option value="">Sélectionner une évaluation...</option>
+                        <optgroup label="🟢 Connaissances">
+                            <option value="conn-1">Chapitre 1 : La Révolution française</option>
+                            <option value="conn-2">Chapitre 2 : L'Empire napoléonien</option>
+                            <option value="conn-3" selected>Chapitre 3 : La Restauration</option>
+                        </optgroup>
+                        <optgroup label="🟠 Savoir-faire">
+                            <option value="sf-1">BEX 1 : Analyse de document simple</option>
+                            <option value="sf-2">BEX 2 : Analyse de document complexe</option>
+                        </optgroup>
+                        <optgroup label="🟣 Compétences">
+                            <option value="comp-1">TC 1 : La vie quotidienne au Moyen-Âge</option>
+                            <option value="comp-2">TC 2 : Les grandes découvertes</option>
+                        </optgroup>
+                        <optgroup label="⭐ Bonus">
+                            <option value="bonus-1">Gestion du matériel</option>
+                            <option value="bonus-2">Entrées/sorties de classe</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="saisie-eval-info" id="saisie-info">
+                    <div class="saisie-eval-info-item">
+                        <span>📅</span> Session du <strong>29/01/2025</strong>
+                    </div>
+                    <div class="saisie-eval-info-item">
+                        <span>🎯</span> <strong>2 briques</strong> en jeu
+                    </div>
+                    <div class="saisie-eval-info-item">
+                        <span>📊</span> Seuil : <strong>80%</strong>
+                    </div>
+                    <div class="saisie-eval-info-item">
+                        <span>✅</span> <strong>0/25</strong> saisis
+                    </div>
+                </div>
+            </div>
+
+            <!-- Saisie Table -->
+            <div class="students-table-wrapper">
+                <table class="saisie-table">
+                    <thead>
+                        <tr>
+                            <th>Élève</th>
+                            <th>Progression</th>
+                            <th>Sujet</th>
+                            <th>Résultat</th>
+                            <th>Remarque</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="student-cell">
+                                    <div class="student-avatar">IA</div>
+                                    <div class="student-info">
+                                        <div class="student-name">Ilyana Amrani</div>
+                                        <div class="student-class">2MHR1 • Groupe A</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="brique-badge green">✅ Chap.1-2 validés</span></td>
+                            <td><span style="font-size: 13px; color: var(--gray-600);">🔄 Révision mix</span></td>
+                            <td>
+                                <div class="briques-selector">
+                                    <div class="brique-option" onclick="selectBrique(this, 'abs')">ABS</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'nr')">NR</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'zero')">0</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'one')">1</div>
+                                    <div class="brique-option selected" onclick="selectBrique(this, 'two')">2</div>
+                                </div>
+                            </td>
+                            <td>
+                                <button class="remarque-btn" onclick="openModal('remarque')">
+                                    <span>💬</span>
+                                    Ajouter
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="student-cell">
+                                    <div class="student-avatar">TD</div>
+                                    <div class="student-info">
+                                        <div class="student-name">Théo Dupont</div>
+                                        <div class="student-class">2MHR1 • Groupe A</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="brique-badge orange">🔓 Chap.3 en cours</span></td>
+                            <td><span style="font-size: 13px; color: var(--gray-600);">Sujet A</span></td>
+                            <td>
+                                <div class="briques-selector">
+                                    <div class="brique-option" onclick="selectBrique(this, 'abs')">ABS</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'nr')">NR</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'zero')">0</div>
+                                    <div class="brique-option selected" onclick="selectBrique(this, 'one')">1</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'two')">2</div>
+                                </div>
+                            </td>
+                            <td>
+                                <button class="remarque-btn has-remarque" onclick="openModal('remarque')">
+                                    <span>💬</span>
+                                    1 remarque
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="student-cell">
+                                    <div class="student-avatar">LM</div>
+                                    <div class="student-info">
+                                        <div class="student-name">Léa Martin</div>
+                                        <div class="student-class">2MHR1 • Groupe B</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="brique-badge orange">🔓 Chap.3 en cours</span></td>
+                            <td><span style="font-size: 13px; color: var(--gray-600);">Sujet B</span></td>
+                            <td>
+                                <div class="briques-selector">
+                                    <div class="brique-option" onclick="selectBrique(this, 'abs')">ABS</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'nr')">NR</div>
+                                    <div class="brique-option selected zero" onclick="selectBrique(this, 'zero')">0</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'one')">1</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'two')">2</div>
+                                </div>
+                            </td>
+                            <td>
+                                <button class="remarque-btn" onclick="openModal('remarque')">
+                                    <span>💬</span>
+                                    Ajouter
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="student-cell">
+                                    <div class="student-avatar">KB</div>
+                                    <div class="student-info">
+                                        <div class="student-name">Karim Benali</div>
+                                        <div class="student-class">2MHR1 • Groupe B</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="brique-badge" style="background: var(--gray-100); color: var(--gray-600);">🔒 Chap.2 bloqué</span></td>
+                            <td><span style="font-size: 13px; color: var(--gray-600);">Sujet C</span></td>
+                            <td>
+                                <div class="briques-selector">
+                                    <div class="brique-option selected abs" onclick="selectBrique(this, 'abs')">ABS</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'nr')">NR</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'zero')">0</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'one')">1</div>
+                                    <div class="brique-option" onclick="selectBrique(this, 'two')">2</div>
+                                </div>
+                            </td>
+                            <td>
+                                <button class="remarque-btn" onclick="openModal('remarque')">
+                                    <span>💬</span>
+                                    Ajouter
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-secondary">Annuler</button>
+                <button class="btn btn-primary">💾 Enregistrer les résultats</button>
+            </div>
+        </div>
+
+        <!-- VUE DETAIL ELEVE -->
+        <div class="tab-content" id="tab-eleve">
+            <button class="back-btn" onclick="switchTab('classe', document.querySelector('.tab'))">
+                ← Retour à la vue classe
+            </button>
+
+            <!-- Header élève -->
+            <div class="student-detail-header">
+                <div class="student-detail-avatar">IA</div>
+                <div class="student-detail-info">
+                    <div class="student-detail-name">Ilyana Amrani</div>
+                    <div class="student-detail-meta">2MHR1 • Groupe A • 25 élèves dans la classe</div>
+                </div>
+                <div class="student-detail-note">
+                    <div class="student-detail-note-value">16.4<span style="font-size: 18px; font-weight: 500;">/20</span></div>
+                    <div class="student-detail-note-label">Note actuelle</div>
+                    <div style="font-size: 11px; color: var(--accent-green); margin-top: 4px;">+2 briques bonus</div>
+                </div>
+                <div class="student-detail-briques">
+                    <div class="student-detail-brique green">
+                        <div class="student-detail-brique-value">10/10</div>
+                        <div class="student-detail-brique-label">🟢 Conn.</div>
+                    </div>
+                    <div class="student-detail-brique orange">
+                        <div class="student-detail-brique-value">9/12</div>
+                        <div class="student-detail-brique-label">🟠 SF</div>
+                    </div>
+                    <div class="student-detail-brique purple">
+                        <div class="student-detail-brique-value">8/10</div>
+                        <div class="student-detail-brique-label">🟣 Comp.</div>
+                    </div>
+                    <div class="student-detail-brique yellow">
+                        <div class="student-detail-brique-value">5/5</div>
+                        <div class="student-detail-brique-label">⭐ Bonus</div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="openModal('remarque-generale')">
+                    💬 Ajouter remarque
+                </button>
+            </div>
+
+            <!-- Section Connaissances -->
+            <div class="detail-section">
+                <div class="detail-section-header">
+                    <div class="detail-section-title">
+                        <span>🟢</span>
+                        Connaissances
+                    </div>
+                    <span style="font-size: 13px; color: var(--gray-500);">10/10 briques • 5/5 chapitres validés</span>
+                </div>
+                <div class="detail-section-body">
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Chapitre 1 : La Révolution française</div>
+                            <div class="eval-item-meta">Validé le 15/01/2025 • 1ère tentative</div>
+                        </div>
+                        <div class="eval-item-result success">+2 briques</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Chapitre 2 : L'Empire napoléonien</div>
+                            <div class="eval-item-meta">Validé le 22/01/2025 • 2ème tentative</div>
+                        </div>
+                        <div class="eval-item-result success">+2 briques</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Chapitre 3 : La Restauration</div>
+                            <div class="eval-item-meta">Validé le 29/01/2025 • 1ère tentative</div>
+                        </div>
+                        <div class="eval-item-result success">+2 briques</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Chapitre 4 : La Monarchie de Juillet</div>
+                            <div class="eval-item-meta">Validé le 05/02/2025 • 1ère tentative</div>
+                        </div>
+                        <div class="eval-item-result success">+2 briques</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Chapitre 5 : La Seconde République</div>
+                            <div class="eval-item-meta">Validé le 12/02/2025 • 1ère tentative</div>
+                        </div>
+                        <div class="eval-item-result success">+2 briques</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status" style="background: var(--accent-blue-light);">🔄</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Révisions</div>
+                            <div class="eval-item-meta">À jour • Tombe sur des révisions mix</div>
+                        </div>
+                        <div class="eval-item-result" style="color: var(--accent-blue);">En révision</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Savoir-faire -->
+            <div class="detail-section">
+                <div class="detail-section-header">
+                    <div class="detail-section-title">
+                        <span>🟠</span>
+                        Savoir-faire
+                    </div>
+                    <span style="font-size: 13px; color: var(--gray-500);">9/12 briques • BEX 1-3 débloquées</span>
+                </div>
+                <div class="detail-section-body">
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">BEX 1 : Analyse de document simple</div>
+                            <div class="eval-item-meta">Validé le 12/01/2025 • Sujet A</div>
+                        </div>
+                        <div class="eval-item-result success">+2 briques</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">BEX 2 : Analyse de document complexe</div>
+                            <div class="eval-item-meta">Validé le 19/01/2025 • Sujet B</div>
+                        </div>
+                        <div class="eval-item-result success">+2 briques</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">BEX 3 : Développement construit court</div>
+                            <div class="eval-item-meta">Validé le 26/01/2025 • Sujet A</div>
+                        </div>
+                        <div class="eval-item-result" style="color: var(--accent-orange);">+1 brique</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status pending">🔓</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">BEX 4 : Développement construit long</div>
+                            <div class="eval-item-meta">Débloquée • Prochaine session disponible</div>
+                        </div>
+                        <div class="eval-item-result pending">En attente</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status locked">🔒</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">BEX 5 : Étude de cas</div>
+                            <div class="eval-item-meta">Bloquée • Valider BEX 4 d'abord</div>
+                        </div>
+                        <div class="eval-item-result locked">Bloquée</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Compétences -->
+            <div class="detail-section">
+                <div class="detail-section-header">
+                    <div class="detail-section-title">
+                        <span>🟣</span>
+                        Compétences
+                    </div>
+                    <span style="font-size: 13px; color: var(--gray-500);">8/10 briques • 3 compétences acquises</span>
+                </div>
+                <div class="detail-section-body">
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Présenter un document</div>
+                            <div class="eval-item-meta">Acquise définitivement</div>
+                        </div>
+                        <div class="competence-progress">
+                            <div class="competence-dot filled"></div>
+                            <div class="competence-dot filled"></div>
+                            <div class="competence-dot filled"></div>
+                        </div>
+                        <div class="eval-item-result success" style="margin-left: 12px;">+1 brique</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Rendre une copie présentable</div>
+                            <div class="eval-item-meta">Acquise définitivement</div>
+                        </div>
+                        <div class="competence-progress">
+                            <div class="competence-dot filled"></div>
+                            <div class="competence-dot filled"></div>
+                            <div class="competence-dot filled"></div>
+                        </div>
+                        <div class="eval-item-result success" style="margin-left: 12px;">+1 brique</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status success">✅</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Gestion du temps de travail</div>
+                            <div class="eval-item-meta">Acquise définitivement</div>
+                        </div>
+                        <div class="competence-progress">
+                            <div class="competence-dot filled"></div>
+                            <div class="competence-dot filled"></div>
+                            <div class="competence-dot filled"></div>
+                        </div>
+                        <div class="eval-item-result success" style="margin-left: 12px;">+1 brique</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status pending">🔶</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">S'exprimer à l'oral</div>
+                            <div class="eval-item-meta">2 validations sur 3</div>
+                        </div>
+                        <div class="competence-progress">
+                            <div class="competence-dot filled"></div>
+                            <div class="competence-dot filled"></div>
+                            <div class="competence-dot"></div>
+                        </div>
+                        <div class="eval-item-result pending" style="margin-left: 12px;">2/3</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status pending">🔶</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Comprendre un texte/consigne</div>
+                            <div class="eval-item-meta">1 validation sur 3</div>
+                        </div>
+                        <div class="competence-progress">
+                            <div class="competence-dot filled"></div>
+                            <div class="competence-dot"></div>
+                            <div class="competence-dot"></div>
+                        </div>
+                        <div class="eval-item-result pending" style="margin-left: 12px;">1/3</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status" style="background: var(--gray-100);">⚪</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Naviguer dans le temps</div>
+                            <div class="eval-item-meta">Pas encore évaluée</div>
+                        </div>
+                        <div class="competence-progress">
+                            <div class="competence-dot"></div>
+                            <div class="competence-dot"></div>
+                            <div class="competence-dot"></div>
+                        </div>
+                        <div class="eval-item-result" style="margin-left: 12px; color: var(--gray-400);">0/3</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Bonus -->
+            <div class="detail-section">
+                <div class="detail-section-header">
+                    <div class="detail-section-title">
+                        <span>⭐</span>
+                        Bonus
+                    </div>
+                    <span style="font-size: 13px; color: var(--gray-500);">5/5 briques bonus</span>
+                </div>
+                <div class="detail-section-body">
+                    <div class="eval-item">
+                        <div class="eval-item-status success">⭐</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Gestion du matériel</div>
+                            <div class="eval-item-meta">15 validations • 3 valid. = 1 brique</div>
+                        </div>
+                        <div class="eval-item-result success">+5 briques (max)</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status" style="background: var(--accent-yellow-light);">⭐</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Entrées/sorties de classe</div>
+                            <div class="eval-item-meta">6 validations • 3 valid. = 1 brique</div>
+                        </div>
+                        <div class="eval-item-result" style="color: #a16207;">+2 briques</div>
+                    </div>
+                    <div class="eval-item">
+                        <div class="eval-item-status" style="background: var(--gray-100);">⭐</div>
+                        <div class="eval-item-content">
+                            <div class="eval-item-title">Travail supplémentaire</div>
+                            <div class="eval-item-meta">0 validations</div>
+                        </div>
+                        <div class="eval-item-result" style="color: var(--gray-400);">0 brique</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Remarques -->
+            <div class="detail-section">
+                <div class="detail-section-header">
+                    <div class="detail-section-title">
+                        <span>💬</span>
+                        Remarques
+                    </div>
+                    <span style="font-size: 13px; color: var(--gray-500);">3 remarques</span>
+                </div>
+                <div class="detail-section-body">
+                    <div class="remarques-list">
+                        <div class="remarque-item">
+                            <div class="remarque-item-header">
+                                <span class="remarque-item-type">📝 Chapitre 2 : L'Empire napoléonien</span>
+                                <span class="remarque-item-date">22/01/2025</span>
+                            </div>
+                            <div class="remarque-item-content">
+                                Excellent travail sur la deuxième tentative ! Tu as bien compris les enjeux de la période napoléonienne. Continue comme ça !
+                            </div>
+                        </div>
+                        <div class="remarque-item">
+                            <div class="remarque-item-header">
+                                <span class="remarque-item-type">🎬 BEX 1 : Analyse de document simple</span>
+                                <span class="remarque-item-date">12/01/2025</span>
+                            </div>
+                            <div class="remarque-item-content">
+                                Bonne analyse mais attention à bien structurer ta réponse.
+                            </div>
+                            <div class="remarque-item-video">
+                                <span>🎬</span>
+                                <a href="#" style="color: var(--primary);">Voir la vidéo explicative (2:34)</a>
+                            </div>
+                        </div>
+                        <div class="remarque-item">
+                            <div class="remarque-item-header">
+                                <span class="remarque-item-type">📝 Remarque générale</span>
+                                <span class="remarque-item-date">05/01/2025</span>
+                            </div>
+                            <div class="remarque-item-content">
+                                Élève sérieuse et motivée. Très bonne participation en classe. À encourager pour les présentations orales.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL: Configuration période -->
+<div class="modal-overlay hidden" id="modal-config">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>⚙️ Configuration de la période</h2>
+            <button class="modal-close" onclick="closeModal('modal-config')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Type de période</label>
+                <select class="form-select">
+                    <option value="semestre" selected>Semestre (2 périodes)</option>
+                    <option value="trimestre">Trimestre (3 périodes)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Période actuelle</label>
+                <select class="form-select">
+                    <option value="1" selected>Semestre 1</option>
+                    <option value="2">Semestre 2</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date de début</label>
+                    <input type="date" class="form-input" value="2024-09-01">
+                </div>
+                <div class="form-group">
+                    <label>Date de fin</label>
+                    <input type="date" class="form-input" value="2025-01-31">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Briques estimées</label>
+                    <input type="number" class="form-input" value="50">
+                    <div class="form-help">Estimation du nombre de briques en jeu. Ajustable en fin de période.</div>
+                </div>
+                <div class="form-group">
+                    <label>Note minimale</label>
+                    <input type="number" class="form-input" value="0.5" step="0.1" min="0" max="5">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Seuil de validation (Connaissances)</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="number" class="form-input" value="80" min="0" max="100" style="width: 100px;">
+                    <span>%</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-config')">Annuler</button>
+            <button class="btn btn-primary">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Ajouter remarque -->
+<div class="modal-overlay hidden" id="modal-remarque">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>💬 Remarque pour Théo Dupont</h2>
+            <button class="modal-close" onclick="closeModal('modal-remarque')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Type de remarque</label>
+                <select class="form-select">
+                    <option value="text">📝 Texte</option>
+                    <option value="video">🎬 Vidéo</option>
+                    <option value="both">📝🎬 Texte + Vidéo</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Remarque</label>
+                <textarea class="form-textarea" placeholder="Votre remarque pour cet élève..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Lien vidéo (optionnel)</label>
+                <input type="text" class="form-input" placeholder="https://www.loom.com/share/...">
+            </div>
+
+            <div class="form-group">
+                <label>Visibilité</label>
+                <select class="form-select">
+                    <option value="published">👁️ Publiée (visible par l'élève)</option>
+                    <option value="draft">🔒 Brouillon (non visible)</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-remarque')">Annuler</button>
+            <button class="btn btn-primary">💾 Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(tab, element) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        if (element) element.classList.add('active');
+        
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    function switchToTab(tab) {
+        document.querySelectorAll('.tab').forEach(t => {
+            t.classList.remove('active');
+            if (t.textContent.toLowerCase().includes(tab)) {
+                t.classList.add('active');
+            }
+        });
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    function openModal(type) {
+        if (type === 'config') {
+            document.getElementById('modal-config').classList.remove('hidden');
+        } else if (type === 'remarque') {
+            document.getElementById('modal-remarque').classList.remove('hidden');
+        }
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function selectBrique(element, type) {
+        const parent = element.parentElement;
+        parent.querySelectorAll('.brique-option').forEach(opt => {
+            opt.classList.remove('selected', 'zero', 'abs', 'nr');
+        });
+        element.classList.add('selected');
+        if (type === 'zero') element.classList.add('zero');
+        if (type === 'abs') element.classList.add('abs');
+        if (type === 'nr') element.classList.add('nr');
+    }
+
+    function showStudentDetail() {
+        // Hide all tabs and show student detail
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-eleve').classList.add('active');
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.add('hidden');
+        });
+    });
+
+    function toggleSidebar() {
+        document.querySelector('.admin-sidebar').classList.toggle('collapsed');
+        document.querySelector('.main-content').classList.toggle('expanded');
+    }
+    function toggleUserMenu() { document.getElementById('user-dropdown').classList.toggle('show'); }
+    document.addEventListener('click', function(e) {
+        const userMenu = document.querySelector('.top-bar-user');
+        if (userMenu && !userMenu.contains(e.target)) document.getElementById('user-dropdown').classList.remove('show');
+    });
+</script>
+
+</body>
+</html>

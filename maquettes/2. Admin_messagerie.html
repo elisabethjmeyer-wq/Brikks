@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-yellow: #eab308;
+            --accent-yellow-light: #fef9c3;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ===== SIDEBAR ===== */
+        .admin-sidebar {
+            width: 280px;
+            background: var(--gray-900);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 150;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-sidebar.collapsed {
+            transform: translateX(-100%);
+        }
+
+        .admin-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .admin-logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-logo .badge {
+            background: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sidebar-section { margin-bottom: 24px; }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 20px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar-link .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        .sidebar-link .badge {
+            margin-left: auto;
+            background: var(--accent-red);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* ===== MAIN ===== */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 0;
+        }
+
+        /* ===== TOP BAR ===== */
+        .top-bar {
+            background: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .toggle-sidebar-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .toggle-sidebar-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .top-bar-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .top-bar-breadcrumb a {
+            color: var(--gray-500);
+            text-decoration: none;
+        }
+
+        .top-bar-breadcrumb a:hover {
+            color: var(--primary);
+        }
+
+        .top-bar-breadcrumb .separator {
+            color: var(--gray-300);
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-bar-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: none;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .top-bar-btn:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .top-bar-btn .notif-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-red);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .top-bar-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 12px 6px 6px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .top-bar-user:hover {
+            background: var(--gray-100);
+        }
+
+        .top-bar-user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--primary-bg);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .top-bar-user-info {
+            text-align: left;
+        }
+
+        .top-bar-user-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .top-bar-user-name::after {
+            content: "▼";
+            font-size: 10px;
+            color: var(--gray-400);
+        }
+
+        .top-bar-user-role {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            min-width: 180px;
+            display: none;
+            z-index: 200;
+            overflow: hidden;
+        }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .user-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: var(--gray-700);
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .user-dropdown-item:hover {
+            background: var(--gray-50);
+        }
+
+        .user-dropdown-item.danger {
+            color: var(--accent-red);
+        }
+
+        .user-dropdown-item.danger:hover {
+            background: var(--accent-red-light);
+        }
+
+        /* ===== PAGE CONTENT ===== */
+        .page-content {
+            padding: 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 2px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--gray-300);
+            background: var(--gray-50);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-yellow {
+            background: var(--accent-yellow);
+            color: var(--gray-900);
+        }
+
+        .btn-yellow:hover {
+            background: #ca8a04;
+        }
+
+        /* ===== MESSAGES LAYOUT ===== */
+        .messages-container {
+            display: flex;
+            gap: 24px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* ===== LEFT PANEL ===== */
+        .messages-list-panel {
+            width: 450px;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .messages-filters {
+            padding: 16px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+            background: var(--gray-100);
+            color: var(--gray-600);
+        }
+
+        .filter-tab:hover {
+            background: var(--gray-200);
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .filter-tab .count {
+            margin-left: 6px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .filter-tab:not(.active) .count {
+            background: var(--gray-200);
+        }
+
+        .messages-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .message-item {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .message-item:hover {
+            background: var(--gray-50);
+        }
+
+        .message-item.active {
+            background: var(--primary-bg);
+            border-left: 3px solid var(--primary);
+        }
+
+        .message-item.unread {
+            background: var(--accent-blue-light);
+        }
+
+        .message-item.unread.active {
+            background: var(--primary-bg);
+        }
+
+        .message-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .message-sender {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .message-item.unread .message-sender {
+            font-weight: 700;
+        }
+
+        .message-tag {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .message-tag.question {
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+        }
+
+        .message-tag.bug {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .message-time {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        .message-subject {
+            font-size: 13px;
+            color: var(--gray-700);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .message-item.unread .message-subject {
+            color: var(--gray-900);
+            font-weight: 500;
+        }
+
+        .message-preview {
+            font-size: 12px;
+            color: var(--gray-500);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .message-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .message-status {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .message-status.treated {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .message-status.pending {
+            background: var(--accent-orange-light);
+            color: var(--accent-orange);
+        }
+
+        .unread-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ===== RIGHT PANEL ===== */
+        .message-detail-panel {
+            flex: 1;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .detail-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .detail-header-left {
+            flex: 1;
+        }
+
+        .detail-tag-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .detail-subject {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .detail-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .detail-meta .author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-meta .author-avatar {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius);
+            border: 2px solid var(--gray-200);
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            border-color: var(--gray-300);
+            background: var(--gray-50);
+        }
+
+        .btn-icon.danger:hover {
+            border-color: var(--accent-red);
+            background: var(--accent-red-light);
+        }
+
+        .detail-body {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .message-bubble {
+            background: var(--gray-50);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .message-bubble p {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--gray-700);
+        }
+
+        .detail-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .detail-status.pending {
+            background: var(--accent-orange-light);
+            color: var(--accent-orange);
+        }
+
+        .detail-status.treated {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        /* ===== REPLY SECTION ===== */
+        .reply-section {
+            padding: 20px 24px;
+            border-top: 1px solid var(--gray-100);
+            background: var(--gray-50);
+        }
+
+        .reply-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .reply-header h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .reply-textarea-wrapper {
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .reply-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.2s;
+        }
+
+        .reply-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .reply-hint {
+            font-size: 12px;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        /* Attachments */
+        .attachments-section {
+            margin: 12px 0;
+        }
+
+        .attachments-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .attachments-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+        }
+
+        .attachments-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .attachment-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--gray-700);
+        }
+
+        .attachment-chip .icon {
+            font-size: 16px;
+        }
+
+        .attachment-chip .remove {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--gray-100);
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-500);
+            transition: all 0.2s;
+        }
+
+        .attachment-chip .remove:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .reply-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+        }
+
+        .reply-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* ===== MODALS ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-xl);
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.95);
+            transition: all 0.2s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--gray-100);
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* ===== FORM GROUPS ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        .form-group-optional {
+            font-size: 12px;
+            color: var(--gray-400);
+            font-weight: 400;
+            margin-left: 6px;
+        }
+
+        /* Checkbox list */
+        .checkbox-list {
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checkbox-item:last-child {
+            border-bottom: none;
+        }
+
+        .checkbox-item:hover {
+            background: var(--gray-50);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .checkbox-item-icon {
+            font-size: 18px;
+        }
+
+        .checkbox-item-info {
+            flex: 1;
+        }
+
+        .checkbox-item-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-800);
+        }
+
+        .checkbox-item-path {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* Single checkbox */
+        .checkbox-single {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-single input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-single label {
+            margin-bottom: 0;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        /* Video preview */
+        .video-preview {
+            margin-top: 12px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--gray-900);
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-preview-placeholder {
+            text-align: center;
+            color: var(--gray-400);
+        }
+
+        .video-preview-placeholder .icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .video-preview-placeholder p {
+            font-size: 13px;
+        }
+
+        .video-preview iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* ===== RESOURCE SELECTOR ===== */
+        .resource-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .resource-tab {
+            padding: 10px 16px;
+            background: var(--gray-100);
+            border: none;
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            color: var(--gray-600);
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .resource-tab:hover {
+            background: var(--gray-200);
+        }
+
+        .resource-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .resource-search {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            margin-bottom: 16px;
+        }
+
+        .resource-search:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .resource-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .resource-category {
+            margin-bottom: 16px;
+        }
+
+        .resource-category-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            padding-left: 8px;
+        }
+
+        .resource-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .resource-item:hover {
+            background: var(--gray-50);
+        }
+
+        .resource-item.selected {
+            background: var(--primary-bg);
+            border: 2px solid var(--primary);
+        }
+
+        .resource-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .resource-icon.lesson { background: var(--accent-blue-light); }
+        .resource-icon.method { background: var(--primary-bg); }
+        .resource-icon.video { background: var(--accent-red-light); }
+        .resource-icon.exercise { background: var(--accent-orange-light); }
+
+        .resource-info { flex: 1; }
+        .resource-name { font-size: 14px; font-weight: 600; color: var(--gray-800); }
+        .resource-path { font-size: 12px; color: var(--gray-500); }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1100px) {
+            .messages-list-panel {
+                width: 350px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .messages-container {
+                flex-direction: column;
+            }
+
+            .messages-list-panel {
+                width: 100%;
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="admin-sidebar">
+        <div class="admin-logo">
+            <h1>
+                <span>📚</span>
+                Espace cours
+                <span class="badge">Admin</span>
+            </h1>
+        </div>
+
+        <nav>
+            <!-- PRINCIPAL -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📌 Principal</div>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">🏠</span>
+                    Page d'accueil
+                </a>
+                <a href="#" class="sidebar-link active">
+                    <span class="icon">📬</span>
+                    Messagerie
+                    <span class="badge">3</span>
+                </a>
+            </div>
+
+            <!-- RESSOURCES -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📚 Ressources</div>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📖</span>
+                    Leçons
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">🧠</span>
+                    Méthodologie
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">🎬</span>
+                    Vidéos
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">💡</span>
+                    Recommandations
+                </a>
+            </div>
+
+            <!-- EXERCICES -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">🎯 Exercices</div>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📐</span>
+                    Banque de formats
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">🧩</span>
+                    Banque d'éléments
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📝</span>
+                    Entraînements
+                </a>
+            </div>
+
+            <!-- ÉVALUATIONS -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📊 Évaluations</div>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📋</span>
+                    Évaluations
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">🟣</span>
+                    Compétences
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">📊</span>
+                    Notes & Suivi
+                </a>
+            </div>
+
+            <!-- ÉLÈVES -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">👥 Élèves</div>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">👥</span>
+                    Utilisateurs
+                </a>
+                <a href="#" class="sidebar-link">
+                    <span class="icon">❓</span>
+                    FAQ
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <!-- TOP BAR -->
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Afficher/Masquer le menu">
+                    ☰
+                </button>
+                <div class="top-bar-breadcrumb">
+                    <a href="#">Admin</a>
+                    <span class="separator">/</span>
+                    <span>Messagerie</span>
+                </div>
+            </div>
+            <div class="top-bar-right">
+                <button class="top-bar-btn" title="Voir le site élève">
+                    👁️
+                </button>
+                <button class="top-bar-btn" title="Notifications">
+                    🔔
+                    <span class="notif-dot"></span>
+                </button>
+                <div class="top-bar-user" onclick="toggleUserMenu()">
+                    <div class="top-bar-user-avatar">EM</div>
+                    <div class="top-bar-user-info">
+                        <div class="top-bar-user-name">Mme Meyer</div>
+                        <div class="top-bar-user-role">Professeur</div>
+                    </div>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <a href="#" class="user-dropdown-item danger">
+                            <span>🚪</span>
+                            Déconnexion
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- PAGE CONTENT -->
+        <div class="page-content">
+        <header class="page-header">
+            <h1>📬 Messages</h1>
+        </header>
+
+        <div class="messages-container">
+            <!-- LEFT: MESSAGE LIST -->
+            <div class="messages-list-panel">
+                <div class="messages-filters">
+                    <div class="search-box">
+                        <input type="text" placeholder="Rechercher un message...">
+                    </div>
+                    <div class="filter-tabs">
+                        <button class="filter-tab active">Tous<span class="count">8</span></button>
+                        <button class="filter-tab">💬 Questions<span class="count">5</span></button>
+                        <button class="filter-tab">🐛 Bugs<span class="count">3</span></button>
+                        <button class="filter-tab">Non lus<span class="count">3</span></button>
+                        <button class="filter-tab">✅ Traités<span class="count">4</span></button>
+                    </div>
+                </div>
+
+                <div class="messages-list">
+                    <div class="message-item unread active">
+                        <div class="message-avatar">TD</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-sender">Théo D.</span>
+                                <span class="message-tag question">Question</span>
+                                <span class="message-time">Il y a 2h</span>
+                            </div>
+                            <div class="message-subject">Je ne comprends pas l'exercice sur les dates</div>
+                            <div class="message-preview">Bonjour Madame, j'ai essayé plusieurs fois mais je n'arrive pas à...</div>
+                            <div class="message-meta">
+                                <span class="unread-dot"></span>
+                                <span class="message-status pending">⏳ En attente</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-item unread">
+                        <div class="message-avatar">LM</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-sender">Léa M.</span>
+                                <span class="message-tag bug">Bug</span>
+                                <span class="message-time">Il y a 5h</span>
+                            </div>
+                            <div class="message-subject">La vidéo ne charge pas sur mobile</div>
+                            <div class="message-preview">Quand j'essaie de regarder la vidéo de la semaine sur mon téléphone...</div>
+                            <div class="message-meta">
+                                <span class="unread-dot"></span>
+                                <span class="message-status pending">⏳ En attente</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-item unread">
+                        <div class="message-avatar">MA</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-sender">Mohammed A.</span>
+                                <span class="message-tag question">Question</span>
+                                <span class="message-time">Hier</span>
+                            </div>
+                            <div class="message-subject">Quand est le prochain contrôle ?</div>
+                            <div class="message-preview">Bonjour, je voulais savoir si le contrôle de la semaine prochaine...</div>
+                            <div class="message-meta">
+                                <span class="unread-dot"></span>
+                                <span class="message-status pending">⏳ En attente</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-item">
+                        <div class="message-avatar">IA</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-sender">Ilyana A.</span>
+                                <span class="message-tag question">Question</span>
+                                <span class="message-time">Lundi</span>
+                            </div>
+                            <div class="message-subject">Comment réviser pour le BEX ?</div>
+                            <div class="message-preview">J'aimerais savoir comment bien me préparer pour les évaluations...</div>
+                            <div class="message-meta">
+                                <span class="message-status treated">✓ Traité</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-item">
+                        <div class="message-avatar">RB</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-sender">Raed B.</span>
+                                <span class="message-tag bug">Bug</span>
+                                <span class="message-time">Lundi</span>
+                            </div>
+                            <div class="message-subject">Impossible de me connecter</div>
+                            <div class="message-preview">Mon mot de passe ne fonctionne plus depuis ce matin...</div>
+                            <div class="message-meta">
+                                <span class="message-status treated">✓ Traité</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="message-item">
+                        <div class="message-avatar">SL</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-sender">Sarah L.</span>
+                                <span class="message-tag question">Question</span>
+                                <span class="message-time">15/12</span>
+                            </div>
+                            <div class="message-subject">Où trouver la fiche méthode ?</div>
+                            <div class="message-preview">Je n'arrive pas à retrouver la fiche sur les documents...</div>
+                            <div class="message-meta">
+                                <span class="message-status treated">✓ Traité</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: MESSAGE DETAIL -->
+            <div class="message-detail-panel">
+                <div class="detail-header">
+                    <div class="detail-header-left">
+                        <div class="detail-tag-row">
+                            <span class="message-tag question">Question</span>
+                            <span class="detail-status pending">⏳ En attente de réponse</span>
+                        </div>
+                        <h2 class="detail-subject">Je ne comprends pas l'exercice sur les dates</h2>
+                        <div class="detail-meta">
+                            <span class="author">
+                                <span class="author-avatar">TD</span>
+                                <strong>Théo D.</strong>
+                            </span>
+                            <span>•</span>
+                            <span>Aujourd'hui à 14:32</span>
+                            <span>•</span>
+                            <span>2MHR1</span>
+                        </div>
+                    </div>
+                    <div class="detail-actions">
+                        <button class="btn-icon" title="Marquer comme lu">👁️</button>
+                        <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+
+                <div class="detail-body">
+                    <div class="message-bubble">
+                        <p>Bonjour Madame,</p>
+                        <br>
+                        <p>J'ai essayé plusieurs fois l'exercice sur les dates (BEX1) mais je n'arrive pas à comprendre comment convertir les dates en siècles. Par exemple, pour 1789, je ne sais pas si c'est le 17ème ou le 18ème siècle.</p>
+                        <br>
+                        <p>Est-ce que vous pourriez m'expliquer la méthode s'il vous plaît ?</p>
+                        <br>
+                        <p>Merci d'avance,<br>Théo</p>
+                    </div>
+                </div>
+
+                <div class="reply-section">
+                    <div class="reply-header">
+                        <h4>💬 Répondre à Théo</h4>
+                    </div>
+
+                    <div class="reply-textarea-wrapper">
+                        <textarea class="reply-textarea" id="reply-textarea">Bonjour Théo,
+
+Bonne question ! Pour convertir une date en siècle, voici la méthode :
+- Tu prends les deux premiers chiffres de l'année
+- Tu ajoutes 1
+
+Exemple : 1789 → 17 + 1 = 18ème siècle
+
+Astuce : si l'année se termine par "00" (comme 1800), on n'ajoute pas 1. Donc 1800 = 18ème siècle.
+
+Je t'ai mis en pièce jointe le cours de méthodologie sur les dates, ça devrait t'aider !
+
+Mme Meyer</textarea>
+                    </div>
+                    <p class="reply-hint">💡 Les liens (https://...) seront automatiquement cliquables pour l'élève</p>
+
+                    <!-- Attachments -->
+                    <div class="attachments-section">
+                        <div class="attachments-header">
+                            <span class="attachments-label">📎 Pièces jointes</span>
+                            <button class="btn btn-outline btn-sm" id="btn-attach">+ Ajouter</button>
+                        </div>
+                        <div class="attachments-preview" id="attachments-preview">
+                            <div class="attachment-chip">
+                                <span class="icon">🧠</span>
+                                <span>Naviguer dans le temps - Niveau 1</span>
+                                <button class="remove">×</button>
+                            </div>
+                            <div class="attachment-chip">
+                                <span class="icon">🎬</span>
+                                <span>Vidéo explicative (Loom)</span>
+                                <button class="remove">×</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="reply-actions">
+                        <div class="reply-options">
+                            <button class="btn btn-yellow btn-sm" id="btn-add-faq">
+                                💡 Ajouter à la FAQ
+                            </button>
+                        </div>
+                        <div class="reply-options">
+                            <button class="btn btn-success btn-sm">✓ Marquer traité</button>
+                            <button class="btn btn-primary btn-sm">📤 Envoyer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL: Joindre ressource -->
+<div class="modal-overlay" id="modal-resource">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>📎 Joindre une ressource</h3>
+            <button class="modal-close" onclick="closeModal('modal-resource')">×</button>
+        </div>
+        <div class="modal-body">
+            <!-- Tabs -->
+            <div class="resource-tabs">
+                <button class="resource-tab active" data-tab="platform">📚 Ressource du site</button>
+                <button class="resource-tab" data-tab="drive">📁 Google Drive</button>
+                <button class="resource-tab" data-tab="external">🔗 Lien externe</button>
+            </div>
+
+            <!-- Platform resources -->
+            <div class="tab-content" id="tab-platform">
+                <input type="text" class="resource-search" placeholder="🔍 Rechercher une ressource...">
+                
+                <div class="resource-list">
+                    <div class="resource-category">
+                        <div class="resource-category-title">📖 Leçons</div>
+                        <div class="resource-item">
+                            <div class="resource-icon lesson">📖</div>
+                            <div class="resource-info">
+                                <div class="resource-name">L1 - La Révolution française</div>
+                                <div class="resource-path">Thème 1 › Chapitre 1</div>
+                            </div>
+                        </div>
+                        <div class="resource-item">
+                            <div class="resource-icon lesson">📖</div>
+                            <div class="resource-info">
+                                <div class="resource-name">L2 - Napoléon et l'Empire</div>
+                                <div class="resource-path">Thème 1 › Chapitre 2</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="resource-category">
+                        <div class="resource-category-title">🧠 Méthodologie</div>
+                        <div class="resource-item selected">
+                            <div class="resource-icon method">🧠</div>
+                            <div class="resource-info">
+                                <div class="resource-name">Naviguer dans le temps</div>
+                                <div class="resource-path">Se repérer › Niveau 1</div>
+                            </div>
+                        </div>
+                        <div class="resource-item">
+                            <div class="resource-icon method">🧠</div>
+                            <div class="resource-info">
+                                <div class="resource-name">Présenter un document</div>
+                                <div class="resource-path">Analyser › Niveau 1</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="resource-category">
+                        <div class="resource-category-title">⭐ Exercices / Entraînements</div>
+                        <div class="resource-item">
+                            <div class="resource-icon exercise">⭐</div>
+                            <div class="resource-info">
+                                <div class="resource-name">BEX1 - Se repérer dans le temps</div>
+                                <div class="resource-path">Savoir-faire › Temps</div>
+                            </div>
+                        </div>
+                        <div class="resource-item">
+                            <div class="resource-icon exercise">⭐</div>
+                            <div class="resource-info">
+                                <div class="resource-name">BEX2 - Se repérer dans l'espace</div>
+                                <div class="resource-path">Savoir-faire › Espace</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="resource-category">
+                        <div class="resource-category-title">🎬 Vidéos</div>
+                        <div class="resource-item">
+                            <div class="resource-icon video">🎬</div>
+                            <div class="resource-info">
+                                <div class="resource-name">Vidéo Semaine 12</div>
+                                <div class="resource-path">Vidéos › Archives</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Google Drive -->
+            <div class="tab-content" id="tab-drive" style="display: none;">
+                <p style="color: var(--gray-500); text-align: center; padding: 40px;">
+                    📁 Connexion à Google Drive...<br><br>
+                    <button class="btn btn-primary">Se connecter à Google Drive</button>
+                </p>
+            </div>
+
+            <!-- External link -->
+            <div class="tab-content" id="tab-external" style="display: none;">
+                <div class="form-group">
+                    <label>URL du lien</label>
+                    <input type="url" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label>Nom à afficher</label>
+                    <input type="text" placeholder="Ex: Vidéo explicative YouTube">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-resource')">Annuler</button>
+            <button class="btn btn-primary">Joindre</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Ajouter à la FAQ -->
+<div class="modal-overlay" id="modal-faq">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>💡 Créer une entrée FAQ</h3>
+            <button class="modal-close" onclick="closeModal('modal-faq')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Question</label>
+                <input type="text" value="Comment convertir une date en siècle ?" placeholder="La question telle qu'elle apparaîtra dans la FAQ">
+            </div>
+
+            <div class="form-group">
+                <label>🎬 Vidéo réponse <span class="form-group-optional">(optionnel)</span></label>
+                <input type="url" id="faq-video-url" placeholder="https://www.loom.com/share/... ou YouTube, Vimeo" value="https://www.loom.com/share/abc123exemple">
+                <p class="form-hint">💡 Colle un lien Loom, YouTube ou Vimeo - la vidéo s'affichera directement dans la FAQ</p>
+                <div class="video-preview" id="video-preview">
+                    <div class="video-preview-placeholder" id="video-placeholder" style="display: none;">
+                        <div class="icon">🎬</div>
+                        <p>Aperçu de la vidéo</p>
+                    </div>
+                    <!-- Simulated Loom preview -->
+                    <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #1a1a2e, #16213e); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+                        <div style="font-size: 48px; margin-bottom: 12px;">▶</div>
+                        <div style="font-size: 14px; font-weight: 600;">Vidéo Loom détectée</div>
+                        <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">Cliquer pour prévisualiser</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Réponse écrite <span class="form-group-optional">(optionnel si vidéo)</span></label>
+                <textarea placeholder="Explication détaillée...">Pour convertir une date en siècle, voici la méthode :
+- Tu prends les deux premiers chiffres de l'année
+- Tu ajoutes 1
+
+Exemple : 1789 → 17 + 1 = 18ème siècle
+
+Astuce : si l'année se termine par "00" (comme 1800), on n'ajoute pas 1. Donc 1800 = 18ème siècle.</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>📎 Ressources à inclure</label>
+                <div class="checkbox-list">
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked>
+                        <span class="checkbox-item-icon">🧠</span>
+                        <div class="checkbox-item-info">
+                            <div class="checkbox-item-name">Naviguer dans le temps - Niveau 1</div>
+                            <div class="checkbox-item-path">Méthodologie › Se repérer</div>
+                        </div>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked>
+                        <span class="checkbox-item-icon">🎬</span>
+                        <div class="checkbox-item-info">
+                            <div class="checkbox-item-name">Vidéo explicative (Loom)</div>
+                            <div class="checkbox-item-path">Lien externe</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Catégorie</label>
+                <select>
+                    <option>Choisir une catégorie...</option>
+                    <option selected>🧠 Méthodologie</option>
+                    <option>📖 Cours & Leçons</option>
+                    <option>⭐ Exercices & Évaluations</option>
+                    <option>🔧 Technique</option>
+                    <option>📅 Organisation</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <div class="checkbox-single">
+                    <input type="checkbox" id="faq-visible" checked>
+                    <label for="faq-visible">Rendre visible aux élèves immédiatement</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('modal-faq')">Annuler</button>
+            <button class="btn btn-primary">✓ Créer l'entrée FAQ</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal management
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+
+    // Open modals
+    document.getElementById('btn-attach').addEventListener('click', () => openModal('modal-resource'));
+    document.getElementById('btn-add-faq').addEventListener('click', () => openModal('modal-faq'));
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+    });
+
+    // Resource tabs
+    document.querySelectorAll('.resource-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.resource-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            const tabName = tab.dataset.tab;
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById('tab-' + tabName).style.display = 'block';
+        });
+    });
+
+    // Resource selection
+    document.querySelectorAll('.resource-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.querySelectorAll('.resource-item').forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+        });
+    });
+
+    // Filter tabs
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+        });
+    });
+
+    // Message selection
+    document.querySelectorAll('.message-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.querySelectorAll('.message-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+        });
+    });
+
+    // Remove attachment
+    document.querySelectorAll('.attachment-chip .remove').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.target.closest('.attachment-chip').remove();
+        });
+    });
+
+    // Toggle Sidebar
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.admin-sidebar');
+        const mainContent = document.querySelector('.main-content');
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('expanded');
+    }
+
+    // Toggle User Menu
+    function toggleUserMenu() {
+        const dropdown = document.getElementById('user-dropdown');
+        dropdown.classList.toggle('show');
+    }
+
+    // Fermer le menu si on clique ailleurs
+    document.addEventListener('click', function(e) {
+        const userMenu = document.querySelector('.top-bar-user');
+        const dropdown = document.getElementById('user-dropdown');
+        if (userMenu && !userMenu.contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+</script>
+
+</body>
+</html>

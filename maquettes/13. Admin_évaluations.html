@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Évaluations | Admin - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-yellow: #eab308;
+            --accent-yellow-light: #fef9c3;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        .layout { display: flex; min-height: 100vh; }
+
+        /* ===== SIDEBAR ===== */
+        .admin-sidebar {
+            width: 280px;
+            background: var(--gray-900);
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 150;
+            transition: transform 0.3s ease;
+        }
+
+        .admin-sidebar.collapsed { transform: translateX(-100%); }
+
+        .admin-logo {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .admin-logo h1 {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-logo .badge {
+            background: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .sidebar-section { margin-bottom: 24px; }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 20px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--gray-400);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .sidebar-link.active {
+            background: rgba(99, 102, 241, 0.2);
+            color: white;
+            border-left-color: var(--primary);
+        }
+
+        .sidebar-link .icon { font-size: 18px; width: 24px; text-align: center; }
+
+        /* ===== MAIN ===== */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+        }
+        .main-content.expanded { margin-left: 0; }
+
+        /* ===== TOP BAR ===== */
+        .top-bar { background: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--gray-200); position: sticky; top: 0; z-index: 100; }
+        .top-bar-left { display: flex; align-items: center; gap: 16px; }
+        .toggle-sidebar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .toggle-sidebar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-500); }
+        .top-bar-breadcrumb a { color: var(--gray-500); text-decoration: none; }
+        .top-bar-breadcrumb a:hover { color: var(--primary); }
+        .top-bar-breadcrumb .separator { color: var(--gray-300); }
+        .top-bar-right { display: flex; align-items: center; gap: 12px; }
+        .top-bar-btn { width: 40px; height: 40px; border-radius: 10px; border: none; background: var(--gray-100); color: var(--gray-600); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; position: relative; }
+        .top-bar-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+        .top-bar-btn .notif-dot { position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--accent-red); border-radius: 50%; border: 2px solid white; }
+        .top-bar-user { display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; border-radius: 10px; cursor: pointer; transition: all 0.2s; position: relative; }
+        .top-bar-user:hover { background: var(--gray-100); }
+        .top-bar-user-avatar { width: 36px; height: 36px; border-radius: 8px; background: var(--primary-bg); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+        .top-bar-user-info { text-align: left; }
+        .top-bar-user-name { font-size: 13px; font-weight: 600; color: var(--gray-800); display: flex; align-items: center; gap: 6px; }
+        .top-bar-user-name::after { content: "▼"; font-size: 10px; color: var(--gray-400); }
+        .top-bar-user-role { font-size: 11px; color: var(--gray-500); }
+        .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 8px; background: white; border-radius: var(--radius); box-shadow: var(--shadow-lg); border: 1px solid var(--gray-200); min-width: 180px; display: none; z-index: 200; overflow: hidden; }
+        .user-dropdown.show { display: block; }
+        .user-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-size: 14px; color: var(--gray-700); text-decoration: none; transition: all 0.2s; cursor: pointer; }
+        .user-dropdown-item:hover { background: var(--gray-50); }
+        .user-dropdown-item.danger { color: var(--accent-red); }
+        .user-dropdown-item.danger:hover { background: var(--accent-red-light); }
+        .page-content { padding: 24px; flex: 1; }
+
+        /* ===== HEADER ===== */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .admin-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        .admin-header p {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+
+        .btn-secondary {
+            background: white;
+            border: 2px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+        .btn-secondary:hover { background: var(--gray-50); }
+
+        .btn-danger { background: var(--accent-red); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--gray-100);
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--gray-600);
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        .btn-icon.danger:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: white;
+            padding: 6px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--gray-700);
+            background: var(--gray-50);
+        }
+
+        .tab.active {
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .tab.active.green { background: var(--accent-green); }
+        .tab.active.orange { background: var(--accent-orange); }
+        .tab.active.purple { background: var(--accent-purple); }
+        .tab.active.yellow { background: var(--accent-yellow); }
+
+        .tab .count {
+            background: rgba(255,255,255,0.3);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+
+        .tab.active .count {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ===== FILTERS ===== */
+        .filters-bar {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 16px 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px 10px 42px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+        }
+
+        .filter-select {
+            padding: 10px 36px 10px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") right 10px center no-repeat;
+            background-size: 16px;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* ===== EVALUATIONS LIST ===== */
+        .evaluations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .eval-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .eval-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .eval-card-main {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .eval-card-order {
+            width: 36px;
+            height: 36px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-500);
+            cursor: grab;
+        }
+
+        .eval-card-order:hover {
+            background: var(--gray-200);
+        }
+
+        .eval-card-content {
+            flex: 1;
+        }
+
+        .eval-card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .eval-card-meta {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+
+        .eval-card-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .eval-card-stats {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-right: 16px;
+        }
+
+        .eval-stat {
+            text-align: center;
+        }
+
+        .eval-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .eval-stat-label {
+            font-size: 11px;
+            color: var(--gray-500);
+        }
+
+        .eval-card-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Badge styles */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge.green { background: var(--accent-green-light); color: var(--accent-green); }
+        .badge.orange { background: var(--accent-orange-light); color: #b45309; }
+        .badge.purple { background: var(--accent-purple-light); color: var(--accent-purple); }
+        .badge.yellow { background: var(--accent-yellow-light); color: #a16207; }
+        .badge.gray { background: var(--gray-100); color: var(--gray-600); }
+        .badge.blue { background: var(--accent-blue-light); color: var(--accent-blue); }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-badge.draft { background: var(--gray-100); color: var(--gray-600); }
+        .status-badge.scheduled { background: var(--accent-blue-light); color: var(--accent-blue); }
+        .status-badge.active { background: var(--accent-green-light); color: var(--accent-green); }
+        .status-badge.completed { background: var(--accent-purple-light); color: var(--accent-purple); }
+
+        /* Link to training */
+        .link-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--primary-bg);
+            color: var(--primary);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .link-badge:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Progress bar mini */
+        .progress-mini {
+            width: 60px;
+            height: 6px;
+            background: var(--gray-200);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-mini-fill {
+            height: 100%;
+            background: var(--accent-green);
+            border-radius: 3px;
+        }
+
+        /* ===== EXPANDABLE SECTION ===== */
+        .eval-card-details {
+            display: none;
+            padding: 0 20px 16px 68px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .eval-card.expanded .eval-card-details {
+            display: block;
+        }
+
+        .eval-card-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            padding-top: 16px;
+        }
+
+        .detail-item {
+            font-size: 13px;
+        }
+
+        .detail-item-label {
+            color: var(--gray-500);
+            margin-bottom: 4px;
+        }
+
+        .detail-item-value {
+            color: var(--gray-800);
+            font-weight: 500;
+        }
+
+        /* Subject assignment preview */
+        .subjects-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .subject-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--gray-100);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--gray-600);
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 60px 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            color: var(--gray-500);
+            margin-bottom: 20px;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden { display: none; }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 700px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal.large {
+            max-width: 900px;
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 8px;
+            font-size: 16px;
+            color: var(--gray-500);
+            cursor: pointer;
+        }
+
+        .modal-close:hover { background: var(--gray-200); }
+
+        .modal-body { padding: 24px; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group:last-child { margin-bottom: 0; }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-group label .req { color: var(--accent-red); }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-help {
+            font-size: 11px;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        .form-section {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .form-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Checkbox group */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checkbox-item:hover {
+            border-color: var(--gray-300);
+        }
+
+        .checkbox-item.selected {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .checkbox-item input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        .checkbox-item-content {
+            flex: 1;
+        }
+
+        .checkbox-item-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-800);
+        }
+
+        .checkbox-item-desc {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* Subject assignment table */
+        .assignment-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .assignment-table th,
+        .assignment-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .assignment-table th {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            background: var(--gray-50);
+        }
+
+        .assignment-table td {
+            font-size: 14px;
+        }
+
+        .assignment-table select {
+            padding: 6px 10px;
+            border: 1px solid var(--gray-200);
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            width: 100%;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            position: sticky;
+            bottom: 0;
+            background: white;
+        }
+
+        /* Confirm modal */
+        .modal.confirm { max-width: 380px; text-align: center; }
+        .modal.confirm .modal-body { padding: 32px 24px; }
+
+        .confirm-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 16px;
+            background: var(--accent-red-light);
+        }
+
+        .confirm-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 8px;
+        }
+
+        .confirm-text {
+            font-size: 14px;
+            color: var(--gray-600);
+            line-height: 1.5;
+        }
+
+        .modal.confirm .modal-footer { justify-content: center; }
+
+        /* Competence search & tags */
+        .selected-competences {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+            min-height: 36px;
+        }
+
+        .competence-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--accent-purple-light);
+            color: var(--accent-purple);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .tag-remove {
+            background: none;
+            border: none;
+            color: var(--accent-purple);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            opacity: 0.7;
+        }
+
+        .tag-remove:hover {
+            opacity: 1;
+        }
+
+        .competence-search-wrapper {
+            position: relative;
+        }
+
+        .competence-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-top: none;
+            border-radius: 0 0 var(--radius) var(--radius);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: var(--shadow-md);
+        }
+
+        .competence-dropdown.show {
+            display: block;
+        }
+
+        .competence-option {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .competence-option:last-child {
+            border-bottom: none;
+        }
+
+        .competence-option:hover {
+            background: var(--gray-50);
+        }
+
+        .competence-option-name {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-800);
+        }
+
+        .competence-option-meta {
+            display: block;
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        /* Subject source options */
+        .subject-source-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .radio-card {
+            cursor: pointer;
+        }
+
+        .radio-card input {
+            display: none;
+        }
+
+        .radio-card-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 16px 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+
+        .radio-card:hover .radio-card-content {
+            border-color: var(--gray-300);
+            background: var(--gray-50);
+        }
+
+        .radio-card input:checked + .radio-card-content {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .radio-card-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .radio-card-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .radio-card-desc {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        /* Status options */
+        .status-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .status-option {
+            cursor: pointer;
+        }
+
+        .status-option input {
+            display: none;
+        }
+
+        .status-option-content {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+
+        .status-option:hover .status-option-content {
+            border-color: var(--gray-300);
+            background: var(--gray-50);
+        }
+
+        .status-option input:checked + .status-option-content {
+            border-width: 2px;
+        }
+
+        .status-option input:checked + .status-option-content.draft {
+            border-color: var(--gray-500);
+            background: var(--gray-100);
+        }
+
+        .status-option input:checked + .status-option-content.scheduled {
+            border-color: var(--accent-blue);
+            background: var(--accent-blue-light);
+        }
+
+        .status-option input:checked + .status-option-content.published {
+            border-color: var(--accent-green);
+            background: var(--accent-green-light);
+        }
+
+        .status-option input:checked + .status-option-content.completed {
+            border-color: var(--accent-purple);
+            background: var(--accent-purple-light);
+        }
+
+        .status-option-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .status-option-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .status-option-desc {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="admin-sidebar">
+        <div class="admin-logo"><h1><span>📚</span>Espace cours<span class="badge">Admin</span></h1></div>
+        <nav>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📌 Principal</div>
+                <a href="#" class="sidebar-link"><span class="icon">🏠</span>Page d'accueil</a>
+                <a href="#" class="sidebar-link"><span class="icon">📬</span>Messagerie<span class="badge">3</span></a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📚 Ressources</div>
+                <a href="#" class="sidebar-link"><span class="icon">📖</span>Leçons</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧠</span>Méthodologie</a>
+                <a href="#" class="sidebar-link"><span class="icon">🎬</span>Vidéos</a>
+                <a href="#" class="sidebar-link"><span class="icon">💡</span>Recommandations</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">🎯 Exercices</div>
+                <a href="#" class="sidebar-link"><span class="icon">📐</span>Banque de formats</a>
+                <a href="#" class="sidebar-link"><span class="icon">🧩</span>Banque d'éléments</a>
+                <a href="#" class="sidebar-link"><span class="icon">📝</span>Entraînements</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">📊 Évaluations</div>
+                <a href="#" class="sidebar-link active"><span class="icon">📋</span>Évaluations</a>
+                <a href="#" class="sidebar-link"><span class="icon">🟣</span>Compétences</a>
+                <a href="#" class="sidebar-link"><span class="icon">📊</span>Notes & Suivi</a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">👥 Élèves</div>
+                <a href="#" class="sidebar-link"><span class="icon">👥</span>Utilisateurs</a>
+                <a href="#" class="sidebar-link"><span class="icon">❓</span>FAQ</a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <button class="toggle-sidebar-btn" onclick="toggleSidebar()" title="Afficher/Masquer le menu">☰</button>
+                <div class="top-bar-breadcrumb"><a href="#">Admin</a><span class="separator">/</span><span>Évaluations</span></div>
+            </div>
+            <div class="top-bar-right">
+                <button class="top-bar-btn" title="Voir le site élève">👁️</button>
+                <button class="top-bar-btn" title="Notifications">🔔<span class="notif-dot"></span></button>
+                <div class="top-bar-user" onclick="toggleUserMenu()">
+                    <div class="top-bar-user-avatar">EM</div>
+                    <div class="top-bar-user-info"><div class="top-bar-user-name">Mme Meyer</div><div class="top-bar-user-role">Professeur</div></div>
+                    <div class="user-dropdown" id="user-dropdown"><a href="#" class="user-dropdown-item danger"><span>🚪</span>Déconnexion</a></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="page-content">
+        <!-- HEADER -->
+        <header class="admin-header">
+            <div>
+                <h1>📋 Évaluations</h1>
+                <p>Créez et gérez vos évaluations par type</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="openModal('create')">
+                    <span>➕</span>
+                    Nouvelle évaluation
+                </button>
+            </div>
+        </header>
+
+        <!-- TABS BY TYPE -->
+        <div class="tabs">
+            <button class="tab active green" onclick="switchTab('conn', this)">
+                <span>🟢</span>
+                Connaissances
+                <span class="count">10</span>
+            </button>
+            <button class="tab orange" onclick="switchTab('sf', this)">
+                <span>🟠</span>
+                Savoir-faire
+                <span class="count">8</span>
+            </button>
+            <button class="tab purple" onclick="switchTab('comp', this)">
+                <span>🟣</span>
+                Compétences
+                <span class="count">5</span>
+            </button>
+            <button class="tab yellow" onclick="switchTab('bonus', this)">
+                <span>⭐</span>
+                Bonus
+                <span class="count">3</span>
+            </button>
+        </div>
+
+        <!-- TAB: CONNAISSANCES -->
+        <div class="tab-content active" id="tab-conn">
+            <div class="filters-bar">
+                <div class="search-box">
+                    <input type="text" placeholder="Rechercher une évaluation...">
+                </div>
+                <select class="filter-select">
+                    <option value="">Tous les statuts</option>
+                    <option value="draft">🔘 Brouillon</option>
+                    <option value="scheduled">📅 Planifiée</option>
+                    <option value="active">🟢 En cours</option>
+                    <option value="completed">✅ Terminée</option>
+                </select>
+            </div>
+
+            <div class="evaluations-list">
+                <!-- Eval 1 - Active -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order">1</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                Chapitre 1 : La Révolution française
+                                <span class="status-badge active">🟢 En cours</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>📅 Session du 15/01/2025</span>
+                                <span>🎯 2 briques</span>
+                                <span>📊 Seuil: 80%</span>
+                                <a href="#" class="link-badge">📚 Voir le cours</a>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">18/25</div>
+                                <div class="eval-stat-label">Validés</div>
+                            </div>
+                            <div class="progress-mini">
+                                <div class="progress-mini-fill" style="width: 72%"></div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Attribuer sujets" onclick="openModal('assign')">👥</button>
+                            <button class="btn-icon" title="Modifier" onclick="openModal('edit-conn')">✏️</button>
+                            <button class="btn-icon" title="Saisir résultats">📝</button>
+                            <button class="btn-icon danger" title="Supprimer" onclick="openModal('delete')">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Eval 2 - Active -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order">2</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                Chapitre 2 : L'Empire napoléonien
+                                <span class="status-badge active">🟢 En cours</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>📅 Session du 22/01/2025</span>
+                                <span>🎯 2 briques</span>
+                                <span>📊 Seuil: 80%</span>
+                                <a href="#" class="link-badge">📚 Voir le cours</a>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">12/25</div>
+                                <div class="eval-stat-label">Validés</div>
+                            </div>
+                            <div class="progress-mini">
+                                <div class="progress-mini-fill" style="width: 48%"></div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Attribuer sujets" onclick="openModal('assign')">👥</button>
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon" title="Saisir résultats">📝</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Eval 3 - Scheduled -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order">3</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                Chapitre 3 : La Restauration
+                                <span class="status-badge scheduled">📅 Planifiée</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>📅 Session du 29/01/2025</span>
+                                <span>🎯 2 briques</span>
+                                <span>📊 Seuil: 80%</span>
+                                <a href="#" class="link-badge">📚 Voir le cours</a>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">0/25</div>
+                                <div class="eval-stat-label">Validés</div>
+                            </div>
+                            <div class="progress-mini">
+                                <div class="progress-mini-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Attribuer sujets" onclick="openModal('assign')">👥</button>
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon" title="Saisir résultats">📝</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Eval révision -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order">🔄</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                Révision : Mix chapitres 1-3
+                                <span class="badge blue">🔄 Révision</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>📅 Pour élèves à jour</span>
+                                <span>🎯 0 brique (consolidation)</span>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">8</div>
+                                <div class="eval-stat-label">Élèves concernés</div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: SAVOIR-FAIRE -->
+        <div class="tab-content" id="tab-sf">
+            <div class="filters-bar">
+                <div class="search-box">
+                    <input type="text" placeholder="Rechercher une évaluation...">
+                </div>
+                <select class="filter-select">
+                    <option value="">Tous les statuts</option>
+                    <option value="active">🟢 En cours</option>
+                    <option value="completed">✅ Terminée</option>
+                </select>
+            </div>
+
+            <div class="evaluations-list">
+                <!-- BEX 1 -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order" style="background: var(--accent-orange-light); color: var(--accent-orange);">B1</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                BEX 1 : Analyse de document simple
+                                <span class="status-badge active">🟢 En cours</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>📅 Depuis le 10/01/2025</span>
+                                <span>🎯 1-2 briques</span>
+                                <span>📄 4 sujets disponibles</span>
+                                <a href="#" class="link-badge">🧠 Voir méthodologie</a>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">22/25</div>
+                                <div class="eval-stat-label">Débloqué</div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Gérer sujets">📄</button>
+                            <button class="btn-icon" title="Attribuer" onclick="openModal('assign-sf')">👥</button>
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BEX 2 -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order" style="background: var(--accent-orange-light); color: var(--accent-orange);">B2</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                BEX 2 : Analyse de document complexe
+                                <span class="status-badge active">🟢 En cours</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>📅 Depuis le 17/01/2025</span>
+                                <span>🎯 1-2 briques</span>
+                                <span>📄 3 sujets disponibles</span>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">15/25</div>
+                                <div class="eval-stat-label">Débloqué</div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Gérer sujets">📄</button>
+                            <button class="btn-icon" title="Attribuer">👥</button>
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BEX 3 -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order" style="background: var(--accent-orange-light); color: var(--accent-orange);">B3</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                BEX 3 : Développement construit court
+                                <span class="status-badge scheduled">📅 Planifiée</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>📅 À partir du 24/01/2025</span>
+                                <span>🎯 1-2 briques</span>
+                                <span>📄 2 sujets disponibles</span>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">8/25</div>
+                                <div class="eval-stat-label">Débloqué</div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Gérer sujets">📄</button>
+                            <button class="btn-icon" title="Attribuer">👥</button>
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: COMPETENCES -->
+        <div class="tab-content" id="tab-comp">
+            <div class="filters-bar">
+                <div class="search-box">
+                    <input type="text" placeholder="Rechercher une évaluation...">
+                </div>
+                <select class="filter-select">
+                    <option value="">Tous les statuts</option>
+                    <option value="active">🟢 En cours</option>
+                    <option value="completed">✅ Terminée</option>
+                </select>
+            </div>
+
+            <div class="evaluations-list">
+                <!-- Eval Compétences 1 -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order" style="background: var(--accent-purple-light); color: var(--accent-purple);">1</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                TC 1 : La vie quotidienne au Moyen-Âge
+                                <span class="status-badge completed">✅ Terminée</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>📅 12/01/2025</span>
+                                <span>🎯 3 compétences évaluées</span>
+                            </div>
+                            <div class="subjects-preview">
+                                <span class="subject-tag">🟣 Présenter un document</span>
+                                <span class="subject-tag">🟣 Copie présentable</span>
+                                <span class="subject-tag">🟣 Gestion du temps</span>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">45</div>
+                                <div class="eval-stat-label">Briques attribuées</div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Voir détails">👁️</button>
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Eval Compétences 2 -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order" style="background: var(--accent-purple-light); color: var(--accent-purple);">2</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                TC 2 : Les grandes découvertes
+                                <span class="status-badge active">🟢 En cours</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>📅 26/01/2025</span>
+                                <span>🎯 2 compétences évaluées</span>
+                            </div>
+                            <div class="subjects-preview">
+                                <span class="subject-tag">🟣 S'exprimer à l'oral</span>
+                                <span class="subject-tag">🟣 Travailler en autonomie</span>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">12</div>
+                                <div class="eval-stat-label">Briques attribuées</div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Saisir résultats" onclick="openModal('saisie-comp')">📝</button>
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: BONUS -->
+        <div class="tab-content" id="tab-bonus">
+            <div class="filters-bar">
+                <div class="search-box">
+                    <input type="text" placeholder="Rechercher...">
+                </div>
+            </div>
+
+            <div class="evaluations-list">
+                <!-- Bonus 1 -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order" style="background: var(--accent-yellow-light); color: var(--accent-yellow);">⭐</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                Gestion du matériel
+                                <span class="status-badge active">🟢 En cours</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>🎯 5 briques max</span>
+                                <span>📊 3 validations = 1 brique</span>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">68</div>
+                                <div class="eval-stat-label">Validations</div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Saisir validations">📝</button>
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bonus 2 -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order" style="background: var(--accent-yellow-light); color: var(--accent-yellow);">⭐</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                Entrées/sorties de classe
+                                <span class="status-badge active">🟢 En cours</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>🎯 5 briques max</span>
+                                <span>📊 3 validations = 1 brique</span>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">112</div>
+                                <div class="eval-stat-label">Validations</div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Saisir validations">📝</button>
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bonus 3 -->
+                <div class="eval-card">
+                    <div class="eval-card-main">
+                        <div class="eval-card-order" style="background: var(--accent-yellow-light); color: var(--accent-yellow);">⭐</div>
+                        <div class="eval-card-content">
+                            <div class="eval-card-title">
+                                Travail supplémentaire
+                                <span class="status-badge active">🟢 En cours</span>
+                            </div>
+                            <div class="eval-card-meta">
+                                <span>🎯 3 briques max</span>
+                                <span>📊 1 travail rendu = 1 brique</span>
+                            </div>
+                        </div>
+                        <div class="eval-card-stats">
+                            <div class="eval-stat">
+                                <div class="eval-stat-value">8</div>
+                                <div class="eval-stat-label">Validations</div>
+                            </div>
+                        </div>
+                        <div class="eval-card-actions">
+                            <button class="btn-icon" title="Saisir validations">📝</button>
+                            <button class="btn-icon" title="Modifier">✏️</button>
+                            <button class="btn-icon danger" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL: Créer évaluation -->
+<div class="modal-overlay hidden" id="modal-create">
+    <div class="modal large">
+        <div class="modal-header">
+            <h2>➕ Nouvelle évaluation</h2>
+            <button class="modal-close" onclick="closeModal('modal-create')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Type d'évaluation <span class="req">*</span></label>
+                <select class="form-select" id="eval-type-select" onchange="toggleEvalFields()">
+                    <option value="">Choisir un type...</option>
+                    <option value="conn">🟢 Connaissances</option>
+                    <option value="sf">🟠 Savoir-faire (BEX)</option>
+                    <option value="comp">🟣 Compétences (TC)</option>
+                    <option value="bonus">⭐ Bonus</option>
+                </select>
+            </div>
+
+            <!-- Champs communs -->
+            <div class="form-group">
+                <label>Titre de l'évaluation <span class="req">*</span></label>
+                <input type="text" class="form-input" placeholder="Ex: Chapitre 1 : La Révolution française">
+            </div>
+
+            <div class="form-group">
+                <label>Date de début</label>
+                <input type="date" class="form-input">
+                <div class="form-help">Date à partir de laquelle l'évaluation est disponible. L'attribution des sujets aux élèves se fait séparément, avant chaque session.</div>
+            </div>
+
+            <div class="form-group">
+                <label>Statut <span class="req">*</span></label>
+                <div class="status-options">
+                    <label class="status-option">
+                        <input type="radio" name="eval-status" value="draft" checked>
+                        <div class="status-option-content draft">
+                            <span class="status-option-icon">📝</span>
+                            <span class="status-option-label">Brouillon</span>
+                            <span class="status-option-desc">Non visible par les élèves</span>
+                        </div>
+                    </label>
+                    <label class="status-option">
+                        <input type="radio" name="eval-status" value="scheduled">
+                        <div class="status-option-content scheduled">
+                            <span class="status-option-icon">📅</span>
+                            <span class="status-option-label">Planifiée</span>
+                            <span class="status-option-desc">Visible mais pas encore ouverte</span>
+                        </div>
+                    </label>
+                    <label class="status-option">
+                        <input type="radio" name="eval-status" value="published">
+                        <div class="status-option-content published">
+                            <span class="status-option-icon">🟢</span>
+                            <span class="status-option-label">Publiée</span>
+                            <span class="status-option-desc">Disponible pour les élèves</span>
+                        </div>
+                    </label>
+                    <label class="status-option">
+                        <input type="radio" name="eval-status" value="completed">
+                        <div class="status-option-content completed">
+                            <span class="status-option-icon">✅</span>
+                            <span class="status-option-label">Terminée</span>
+                            <span class="status-option-desc">Évaluation clôturée</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Champs CONNAISSANCES -->
+            <div class="form-section" id="fields-conn">
+                <div class="form-section-title">🟢 Paramètres Connaissances</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Briques en jeu</label>
+                        <input type="number" class="form-input" value="2" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Seuil de validation (%)</label>
+                        <input type="number" class="form-input" value="80" min="0" max="100">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Lier à une leçon</label>
+                    <select class="form-select">
+                        <option value="">Sélectionner une leçon...</option>
+                        <option value="1">📖 Chapitre 1 : La Révolution française</option>
+                        <option value="2">📖 Chapitre 2 : L'Empire napoléonien</option>
+                        <option value="3">📖 Chapitre 3 : La Restauration</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Source des sujets</label>
+                    <select class="form-select">
+                        <option value="bank">📦 Piocher dans la banque d'entraînements</option>
+                        <option value="custom">✏️ Créer un sujet spécifique</option>
+                        <option value="both">🔄 Mix des deux</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Champs SAVOIR-FAIRE -->
+            <div class="form-section" id="fields-sf" style="display: none;">
+                <div class="form-section-title">🟠 Paramètres Savoir-faire</div>
+                <div class="form-group">
+                    <label>Briques possibles</label>
+                    <select class="form-select">
+                        <option value="1">1 brique max</option>
+                        <option value="2" selected>1-2 briques</option>
+                        <option value="3">1-3 briques</option>
+                    </select>
+                    <div class="form-help">L'ordre de déblocage (BEX 1, 2, 3...) est défini par la position dans la liste. Tu peux réorganiser par glisser-déposer.</div>
+                </div>
+                <div class="form-group">
+                    <label>Lier à un cours méthodologique</label>
+                    <select class="form-select">
+                        <option value="">Sélectionner...</option>
+                        <option value="1">🧠 Analyser un document</option>
+                        <option value="2">🧠 Développement construit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sujets disponibles</label>
+                    <div class="form-help">Sélectionnez les sujets que les élèves pourront avoir</div>
+                    <div class="checkbox-group" style="margin-top: 8px;">
+                        <label class="checkbox-item selected">
+                            <input type="checkbox" checked>
+                            <div class="checkbox-item-content">
+                                <div class="checkbox-item-title">Sujet A - Affiche de propagande</div>
+                                <div class="checkbox-item-desc">Entraînement BEX1-S1</div>
+                            </div>
+                        </label>
+                        <label class="checkbox-item selected">
+                            <input type="checkbox" checked>
+                            <div class="checkbox-item-content">
+                                <div class="checkbox-item-title">Sujet B - Caricature politique</div>
+                                <div class="checkbox-item-desc">Entraînement BEX1-S2</div>
+                            </div>
+                        </label>
+                        <label class="checkbox-item">
+                            <input type="checkbox">
+                            <div class="checkbox-item-content">
+                                <div class="checkbox-item-title">Sujet C - Photographie historique</div>
+                                <div class="checkbox-item-desc">Sujet personnalisé</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Champs COMPETENCES -->
+            <div class="form-section" id="fields-comp" style="display: none;">
+                <div class="form-section-title">🟣 Paramètres Compétences</div>
+                
+                <div class="form-group">
+                    <label>Lier à un cours méthodologique</label>
+                    <select class="form-select">
+                        <option value="">Aucun (optionnel)</option>
+                        <option value="1">🧠 Analyser un document</option>
+                        <option value="2">🧠 Rédiger un développement construit</option>
+                        <option value="3">🧠 Présenter un document à l'oral</option>
+                        <option value="4">🧠 Réaliser une frise chronologique</option>
+                    </select>
+                </div>
+                
+                <!-- Sélection des compétences avec recherche -->
+                <div class="form-group">
+                    <label>Compétences évaluées <span class="req">*</span></label>
+                    
+                    <!-- Compétences sélectionnées (tags) -->
+                    <div class="selected-competences" id="selected-competences">
+                        <span class="competence-tag">
+                            Présenter un document
+                            <button class="tag-remove" onclick="removeCompetence(this)">✕</button>
+                        </span>
+                        <span class="competence-tag">
+                            Rendre une copie présentable
+                            <button class="tag-remove" onclick="removeCompetence(this)">✕</button>
+                        </span>
+                    </div>
+
+                    <!-- Recherche -->
+                    <div class="competence-search-wrapper">
+                        <input type="text" class="form-input" id="competence-search" placeholder="🔍 Rechercher une compétence..." onfocus="showCompetenceDropdown()" oninput="filterCompetences()">
+                        
+                        <!-- Dropdown résultats -->
+                        <div class="competence-dropdown" id="competence-dropdown">
+                            <div class="competence-option" onclick="selectCompetence(this, 'S\'exprimer à l\'oral')">
+                                <span class="competence-option-name">S'exprimer à l'oral</span>
+                                <span class="competence-option-meta">🎤 Oral • 5 élèves l'ont validée</span>
+                            </div>
+                            <div class="competence-option" onclick="selectCompetence(this, 'Gestion du temps de travail')">
+                                <span class="competence-option-name">Gestion du temps de travail</span>
+                                <span class="competence-option-meta">🎯 Comportement • 20 élèves l'ont validée</span>
+                            </div>
+                            <div class="competence-option" onclick="selectCompetence(this, 'Naviguer dans le temps')">
+                                <span class="competence-option-name">Naviguer dans le temps</span>
+                                <span class="competence-option-meta">📝 Méthodologie • 8 élèves l'ont validée</span>
+                            </div>
+                            <div class="competence-option" onclick="selectCompetence(this, 'Comprendre un texte/consigne')">
+                                <span class="competence-option-name">Comprendre un texte/consigne</span>
+                                <span class="competence-option-meta">📝 Méthodologie • 15 élèves l'ont validée</span>
+                            </div>
+                            <div class="competence-option" onclick="selectCompetence(this, 'Travailler en autonomie')">
+                                <span class="competence-option-name">Travailler en autonomie</span>
+                                <span class="competence-option-meta">🎯 Comportement • 10 élèves l'ont validée</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sujet de l'évaluation -->
+                <div class="form-group">
+                    <label>Sujet de l'évaluation <span class="req">*</span></label>
+                    <div class="subject-source-options">
+                        <label class="radio-card" onclick="toggleSubjectSource('external')">
+                            <input type="radio" name="subject-source" value="external">
+                            <div class="radio-card-content">
+                                <span class="radio-card-icon">🔗</span>
+                                <span class="radio-card-label">Document externe</span>
+                                <span class="radio-card-desc">URL ou fichier uploadé</span>
+                            </div>
+                        </label>
+                        <label class="radio-card" onclick="toggleSubjectSource('bank')">
+                            <input type="radio" name="subject-source" value="bank" checked>
+                            <div class="radio-card-content">
+                                <span class="radio-card-icon">📦</span>
+                                <span class="radio-card-label">Banque d'entraînements</span>
+                                <span class="radio-card-desc">Piocher un exercice existant</span>
+                            </div>
+                        </label>
+                        <label class="radio-card" onclick="toggleSubjectSource('create')">
+                            <input type="radio" name="subject-source" value="create">
+                            <div class="radio-card-content">
+                                <span class="radio-card-icon">✏️</span>
+                                <span class="radio-card-label">Créer un sujet</span>
+                                <span class="radio-card-desc">Utiliser la banque de formats</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Champ conditionnel : Document externe -->
+                <div class="form-group subject-field" id="subject-external" style="display: none;">
+                    <label>Lien ou fichier</label>
+                    <input type="text" class="form-input" placeholder="https://... ou cliquez pour uploader">
+                </div>
+
+                <!-- Champ conditionnel : Banque entraînements -->
+                <div class="form-group subject-field" id="subject-bank">
+                    <label>Sélectionner un exercice</label>
+                    <select class="form-select">
+                        <option value="">Choisir dans la banque...</option>
+                        <option value="1">📄 TC - La vie quotidienne au Moyen-Âge</option>
+                        <option value="2">📄 TC - Les grandes découvertes</option>
+                        <option value="3">📄 TC - La Révolution industrielle</option>
+                    </select>
+                </div>
+
+                <!-- Champ conditionnel : Créer sujet -->
+                <div class="form-group subject-field" id="subject-create" style="display: none;">
+                    <label>Format d'exercice</label>
+                    <select class="form-select">
+                        <option value="">Choisir un format...</option>
+                        <option value="1">📝 Analyse de document</option>
+                        <option value="2">📝 Développement construit</option>
+                        <option value="3">📝 Étude de cas</option>
+                    </select>
+                    <div class="form-help" style="margin-top: 8px;">
+                        <a href="#" style="color: var(--primary);">→ Ouvrir l'éditeur de sujet</a>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Description / Consignes (optionnel)</label>
+                    <textarea class="form-textarea" placeholder="Instructions supplémentaires pour cette évaluation..."></textarea>
+                </div>
+            </div>
+
+            <!-- Champs BONUS -->
+            <div class="form-section" id="fields-bonus" style="display: none;">
+                <div class="form-section-title">⭐ Paramètres Bonus</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Briques max</label>
+                        <input type="number" class="form-input" value="5" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Validations pour 1 brique</label>
+                        <input type="number" class="form-input" value="3" min="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Critères de validation</label>
+                    <textarea class="form-textarea" placeholder="Décrivez comment un élève obtient une validation..."></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-create')">Annuler</button>
+            <button class="btn btn-primary">💾 Créer l'évaluation</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Attribuer sujets (Connaissances) -->
+<div class="modal-overlay hidden" id="modal-assign">
+    <div class="modal large">
+        <div class="modal-header">
+            <h2>👥 Attribuer les sujets</h2>
+            <button class="modal-close" onclick="closeModal('modal-assign')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-section" style="margin-bottom: 16px; background: var(--accent-blue-light);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>Chapitre 1 : La Révolution française</strong><br>
+                        <span style="font-size: 13px; color: var(--gray-600);">3 sujets disponibles • 25 élèves</span>
+                    </div>
+                    <button class="btn btn-sm btn-secondary">🎲 Attribution aléatoire</button>
+                </div>
+            </div>
+
+            <table class="assignment-table">
+                <thead>
+                    <tr>
+                        <th>Élève</th>
+                        <th>Progression</th>
+                        <th>Sujet attribué</th>
+                        <th>Format</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Ilyana A.</strong></td>
+                        <td><span class="badge green">✅ Chap.1 validé</span></td>
+                        <td>
+                            <select>
+                                <option value="">🔄 Révision</option>
+                                <option value="a">Sujet A</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option value="num">💻 Numérique</option>
+                                <option value="papier">📄 Papier</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Théo D.</strong></td>
+                        <td><span class="badge orange">🔓 Chap.1 en cours</span></td>
+                        <td>
+                            <select>
+                                <option value="a">Sujet A</option>
+                                <option value="b">Sujet B</option>
+                                <option value="c">Sujet C</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option value="num">💻 Numérique</option>
+                                <option value="papier">📄 Papier</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Léa M.</strong></td>
+                        <td><span class="badge orange">🔓 Chap.1 en cours</span></td>
+                        <td>
+                            <select>
+                                <option value="b">Sujet B</option>
+                                <option value="a">Sujet A</option>
+                                <option value="c">Sujet C</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option value="num">💻 Numérique</option>
+                                <option value="papier">📄 Papier</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Karim B.</strong></td>
+                        <td><span class="badge gray">⏸️ Absent dernière session</span></td>
+                        <td>
+                            <select>
+                                <option value="c">Sujet C</option>
+                                <option value="a">Sujet A</option>
+                                <option value="b">Sujet B</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select>
+                                <option value="papier">📄 Papier</option>
+                                <option value="num">💻 Numérique</option>
+                            </select>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-assign')">Annuler</button>
+            <button class="btn btn-primary">💾 Enregistrer les attributions</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Confirmer suppression -->
+<div class="modal-overlay hidden" id="modal-delete">
+    <div class="modal confirm">
+        <div class="modal-header">
+            <h2></h2>
+            <button class="modal-close" onclick="closeModal('modal-delete')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="confirm-icon">🗑️</div>
+            <div class="confirm-title">Supprimer cette évaluation ?</div>
+            <div class="confirm-text">Les résultats déjà saisis seront conservés mais l'évaluation ne sera plus visible.</div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('modal-delete')">Annuler</button>
+            <button class="btn btn-danger">🗑️ Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(tab, element) {
+        // Update tabs
+        document.querySelectorAll('.tab').forEach(t => {
+            t.classList.remove('active');
+        });
+        element.classList.add('active');
+
+        // Update content
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    function openModal(type) {
+        if (type === 'create') {
+            document.getElementById('modal-create').classList.remove('hidden');
+        } else if (type === 'assign' || type === 'assign-sf') {
+            document.getElementById('modal-assign').classList.remove('hidden');
+        } else if (type === 'delete') {
+            document.getElementById('modal-delete').classList.remove('hidden');
+        } else if (type === 'edit-conn') {
+            document.getElementById('modal-create').classList.remove('hidden');
+        }
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function toggleEvalFields() {
+        const type = document.getElementById('eval-type-select').value;
+        
+        // Hide all
+        document.getElementById('fields-conn').style.display = 'none';
+        document.getElementById('fields-sf').style.display = 'none';
+        document.getElementById('fields-comp').style.display = 'none';
+        document.getElementById('fields-bonus').style.display = 'none';
+
+        // Show selected
+        if (type === 'conn') {
+            document.getElementById('fields-conn').style.display = 'block';
+        } else if (type === 'sf') {
+            document.getElementById('fields-sf').style.display = 'block';
+        } else if (type === 'comp') {
+            document.getElementById('fields-comp').style.display = 'block';
+        } else if (type === 'bonus') {
+            document.getElementById('fields-bonus').style.display = 'block';
+        }
+    }
+
+    // Competence search functions
+    function showCompetenceDropdown() {
+        document.getElementById('competence-dropdown').classList.add('show');
+    }
+
+    function hideCompetenceDropdown() {
+        setTimeout(() => {
+            document.getElementById('competence-dropdown').classList.remove('show');
+        }, 200);
+    }
+
+    function filterCompetences() {
+        const search = document.getElementById('competence-search').value.toLowerCase();
+        const options = document.querySelectorAll('.competence-option');
+        options.forEach(opt => {
+            const name = opt.querySelector('.competence-option-name').textContent.toLowerCase();
+            opt.style.display = name.includes(search) ? 'block' : 'none';
+        });
+    }
+
+    function selectCompetence(element, name) {
+        const container = document.getElementById('selected-competences');
+        const tag = document.createElement('span');
+        tag.className = 'competence-tag';
+        tag.innerHTML = `${name}<button class="tag-remove" onclick="removeCompetence(this)">✕</button>`;
+        container.appendChild(tag);
+        document.getElementById('competence-search').value = '';
+        element.style.display = 'none';
+    }
+
+    function removeCompetence(btn) {
+        btn.parentElement.remove();
+    }
+
+    // Subject source toggle
+    function toggleSubjectSource(type) {
+        document.querySelectorAll('.subject-field').forEach(f => f.style.display = 'none');
+        const field = document.getElementById('subject-' + type);
+        if (field) field.style.display = 'block';
+    }
+
+    // Close dropdown on outside click
+    document.getElementById('competence-search')?.addEventListener('blur', hideCompetenceDropdown);
+
+    // Checkbox items toggle
+    document.querySelectorAll('.checkbox-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'INPUT') {
+                const checkbox = this.querySelector('input[type="checkbox"]');
+                checkbox.checked = !checkbox.checked;
+            }
+            this.classList.toggle('selected', this.querySelector('input').checked);
+        });
+    });
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.add('hidden');
+        });
+    });
+
+    function toggleSidebar() {
+        document.querySelector('.admin-sidebar').classList.toggle('collapsed');
+        document.querySelector('.main-content').classList.toggle('expanded');
+    }
+    function toggleUserMenu() { document.getElementById('user-dropdown').classList.toggle('show'); }
+    document.addEventListener('click', function(e) {
+        const userMenu = document.querySelector('.top-bar-user');
+        if (userMenu && !userMenu.contains(e.target)) document.getElementById('user-dropdown').classList.remove('show');
+    });
+</script>
+
+</body>
+</html>

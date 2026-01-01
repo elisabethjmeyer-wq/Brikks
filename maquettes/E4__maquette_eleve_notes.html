@@ -1,0 +1,2045 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes notes - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --primary-light: #a5b4fc;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --accent-purple: #8b5cf6;
+            --accent-purple-light: #ede9fe;
+            --accent-yellow: #eab308;
+            --accent-yellow-light: #fef9c3;
+            --accent-gold: #d97706;
+            --accent-gold-light: #fef3c7;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 12px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .menu-toggle:hover { background: var(--gray-200); }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .logo-text span {
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 25px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-name { font-size: 14px; font-weight: 600; color: var(--gray-700); }
+        .user-class { font-size: 11px; color: var(--gray-400); }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* ===== BREADCRUMB ===== */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .breadcrumb a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .breadcrumb .separator { color: var(--gray-300); }
+        .breadcrumb .current { color: var(--gray-500); }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* ===== PERIOD SELECTOR ===== */
+        .period-selector {
+            display: flex;
+            background: white;
+            border-radius: var(--radius);
+            padding: 4px;
+            box-shadow: var(--shadow);
+        }
+
+        .period-btn {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .period-btn:hover { color: var(--gray-700); }
+
+        .period-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* ===== NOTE SUMMARY ===== */
+        .note-summary {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .note-summary-top {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--gray-100);
+        }
+
+        .note-summary-grade {
+            text-align: center;
+            padding-right: 24px;
+            border-right: 2px solid var(--gray-100);
+        }
+
+        .note-summary-grade-value {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .note-summary-grade-max {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--gray-400);
+        }
+
+        .note-summary-grade-label {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .note-summary-validations {
+            text-align: center;
+        }
+
+        .note-summary-validations-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--gray-700);
+        }
+
+        .note-summary-validations-label {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .note-summary-details {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .note-summary-item {
+            text-align: center;
+            padding: 14px 12px;
+            background: var(--gray-50);
+            border-radius: var(--radius);
+        }
+
+        .note-summary-item-value {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .note-summary-item-label {
+            font-size: 11px;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+
+        .note-summary-item.green .note-summary-item-value { color: var(--accent-green); }
+        .note-summary-item.orange .note-summary-item-value { color: var(--accent-orange); }
+        .note-summary-item.purple .note-summary-item-value { color: var(--accent-purple); }
+        .note-summary-item.yellow .note-summary-item-value { color: var(--accent-yellow); }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: white;
+            padding: 6px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-500);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-btn:hover { background: var(--gray-50); color: var(--gray-700); }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ===== HISTORY SECTIONS (accordion by type) ===== */
+        .history-section {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .history-section-header {
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .history-section-header:hover {
+            background: var(--gray-50);
+        }
+
+        .history-section-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .history-section-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .history-section-icon.green { background: var(--accent-green-light); }
+        .history-section-icon.orange { background: var(--accent-orange-light); }
+        .history-section-icon.purple { background: var(--accent-purple-light); }
+        .history-section-icon.yellow { background: var(--accent-yellow-light); }
+
+        .history-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .history-section-count {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .history-section-header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .history-section-validations {
+            padding: 6px 14px;
+            background: var(--gray-100);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-700);
+        }
+
+        .history-section-toggle {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--gray-400);
+            transition: transform 0.3s;
+        }
+
+        .history-section.open .history-section-toggle {
+            transform: rotate(180deg);
+        }
+
+        .history-section-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+
+        .history-section.open .history-section-body {
+            max-height: 3000px;
+        }
+
+        .history-section-body-inner {
+            padding: 0 24px 24px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        /* ===== HISTORY ITEMS ===== */
+        .history-list {
+            padding-top: 16px;
+        }
+
+        .history-item {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .history-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .history-item-main {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+        }
+
+        .history-item-status {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .history-item-status.success { background: var(--accent-green-light); color: var(--accent-green); }
+        .history-item-status.fail { background: var(--accent-red-light); color: var(--accent-red); }
+
+        .history-item-content {
+            flex: 1;
+        }
+
+        .history-item-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .history-item-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .history-item-result {
+            text-align: right;
+        }
+
+        .history-item-validations {
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .history-item-validations.success { color: var(--accent-green); }
+        .history-item-validations.fail { color: var(--accent-red); }
+
+        .history-item-validations-label {
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        .history-item-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .history-item-badge.success {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .history-item-badge.fail {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .history-item-remark-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--accent-blue-light);
+            border: 1px solid var(--accent-blue);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-blue);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+
+        .history-item-remark-btn:hover {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .history-item-remark-btn-icon {
+            font-size: 14px;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: hidden;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.show .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-header-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-blue-light);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .modal-subtitle {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-500);
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-remark-text {
+            font-size: 15px;
+            color: var(--gray-700);
+            line-height: 1.7;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* ===== PROGRESSION SECTIONS ===== */
+        .progress-section {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .progress-section-header {
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .progress-section-header:hover {
+            background: var(--gray-50);
+        }
+
+        .progress-section-header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .progress-section-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .progress-section-icon.green { background: var(--accent-green-light); }
+        .progress-section-icon.orange { background: var(--accent-orange-light); }
+        .progress-section-icon.purple { background: var(--accent-purple-light); }
+        .progress-section-icon.yellow { background: var(--accent-yellow-light); }
+
+        .progress-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .progress-section-subtitle {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .progress-section-header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .progress-section-count {
+            padding: 6px 14px;
+            background: var(--gray-100);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gray-700);
+        }
+
+        .progress-section-toggle {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--gray-400);
+            transition: transform 0.3s;
+        }
+
+        .progress-section.open .progress-section-toggle {
+            transform: rotate(180deg);
+        }
+
+        .progress-section-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+
+        .progress-section.open .progress-section-body {
+            max-height: 3000px;
+        }
+
+        .progress-section-body-inner {
+            padding: 0 24px 24px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        /* ===== PROGRESS ITEMS ===== */
+        .progress-list {
+            padding-top: 16px;
+        }
+
+        .progress-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            margin-bottom: 10px;
+        }
+
+        .progress-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .progress-item-status {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .progress-item-status.success { background: var(--accent-green-light); color: var(--accent-green); }
+        .progress-item-status.fail { background: var(--accent-red-light); color: var(--accent-red); }
+        .progress-item-status.locked { background: var(--gray-200); color: var(--gray-400); }
+
+        .progress-item-content {
+            flex: 1;
+        }
+
+        .progress-item-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .progress-item.locked .progress-item-title {
+            color: var(--gray-400);
+        }
+
+        .progress-item-meta {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .progress-item-action {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .progress-item-action.primary {
+            background: var(--primary-bg);
+            color: var(--primary);
+        }
+
+        .progress-item-action.primary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .progress-item-action.warning {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        .progress-item-action.warning:hover {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .progress-item-action.disabled {
+            background: var(--gray-100);
+            color: var(--gray-400);
+            cursor: not-allowed;
+        }
+
+        .progress-item-validations {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        /* Item en échec */
+        .progress-item.fail-highlight {
+            background: var(--accent-red-light);
+            border: 2px solid var(--accent-red);
+        }
+
+        /* ===== INFO BOX ===== */
+        .info-box {
+            background: var(--accent-blue-light);
+            border: 2px solid var(--accent-blue);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .info-box-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .info-box-text {
+            font-size: 13px;
+            color: var(--gray-700);
+            line-height: 1.5;
+        }
+
+        .info-box-text strong {
+            color: var(--accent-blue);
+        }
+
+        /* ===== COMPETENCES LIST ===== */
+        .competence-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            margin-bottom: 10px;
+        }
+
+        .competence-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .competence-item-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .competence-item-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .competence-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gray-200);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .competence-dot.filled {
+            background: var(--accent-purple);
+            color: white;
+        }
+
+        .competence-dot.complete {
+            background: var(--accent-gold);
+            color: white;
+        }
+
+        .competence-item.complete {
+            background: linear-gradient(135deg, var(--accent-gold-light) 0%, #fde68a 100%);
+            border: 2px solid var(--accent-gold);
+        }
+
+        .competence-item.complete .competence-item-name {
+            color: var(--accent-gold);
+            font-weight: 700;
+        }
+
+        .competence-complete-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: var(--accent-gold);
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 12px;
+            margin-left: 10px;
+        }
+
+        /* ===== BONUS ITEMS ===== */
+        .bonus-item {
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            margin-bottom: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .bonus-item:hover {
+            background: var(--gray-100);
+        }
+
+        .bonus-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .bonus-item.not-obtained {
+            opacity: 0.6;
+        }
+
+        .bonus-item.not-obtained:hover {
+            opacity: 0.8;
+        }
+
+        .bonus-item-main {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 16px;
+        }
+
+        .bonus-item-icon {
+            font-size: 24px;
+        }
+
+        .bonus-item-content {
+            flex: 1;
+        }
+
+        .bonus-item-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bonus-item-title .click-hint {
+            font-size: 11px;
+            color: var(--gray-400);
+            font-weight: 400;
+        }
+
+        .bonus-item-description {
+            font-size: 12px;
+            color: var(--gray-500);
+            margin-top: 2px;
+        }
+
+        .bonus-item-result {
+            text-align: right;
+        }
+
+        .bonus-item-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-yellow);
+        }
+
+        .bonus-item-value.pending {
+            color: var(--gray-300);
+        }
+
+        .bonus-item-status {
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        .bonus-item-status.obtained {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        /* Critères dépliables */
+        .bonus-item-criteria {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .bonus-item.open .bonus-item-criteria {
+            max-height: 200px;
+        }
+
+        .bonus-item-criteria-inner {
+            padding: 0 16px 16px 54px;
+        }
+
+        .bonus-item-criteria-box {
+            background: var(--accent-yellow-light);
+            border: 2px solid var(--accent-yellow);
+            border-radius: 8px;
+            padding: 12px 14px;
+        }
+
+        .bonus-item-criteria-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .bonus-item-criteria-text {
+            font-size: 13px;
+            color: var(--gray-700);
+            line-height: 1.5;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .main { padding: 16px; }
+            
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .page-header h1 { font-size: 24px; }
+
+            .note-summary-top {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .note-summary-grade {
+                padding-right: 0;
+                padding-bottom: 16px;
+                border-right: none;
+                border-bottom: 2px solid var(--gray-100);
+                width: 100%;
+            }
+
+            .note-summary-details {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .history-item-main {
+                flex-wrap: wrap;
+            }
+
+            .progress-item {
+                flex-wrap: wrap;
+            }
+
+            .competence-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .user-info { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle" id="menuToggle" title="Menu">☰</button>
+            <a href="#" class="logo">
+                <div class="logo-icon">📚</div>
+                <div class="logo-text">Espace cours <span>• Mme Meyer</span></div>
+            </a>
+        </div>
+        <div class="header-right">
+            <div class="user-pill">
+                <div class="user-avatar">ML</div>
+                <div class="user-info">
+                    <div class="user-name">Marie L.</div>
+                    <div class="user-class">2MHR1A</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <!-- BREADCRUMB -->
+        <nav class="breadcrumb">
+            <a href="#">🏠 Accueil</a>
+            <span class="separator">›</span>
+            <span class="current">📊 Mes notes</span>
+        </nav>
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>📊 Mes notes</h1>
+            <div class="period-selector">
+                <button class="period-btn active" onclick="switchPeriod('s1', this)">Semestre 1</button>
+                <button class="period-btn" onclick="switchPeriod('s2', this)">Semestre 2</button>
+            </div>
+        </div>
+
+        <!-- NOTE SUMMARY -->
+        <div class="note-summary">
+            <div class="note-summary-top">
+                <div class="note-summary-grade">
+                    <div class="note-summary-grade-value">14.8<span class="note-summary-grade-max">/20</span></div>
+                    <div class="note-summary-grade-label">Note actuelle</div>
+                </div>
+                <div class="note-summary-validations">
+                    <div class="note-summary-validations-value">27</div>
+                    <div class="note-summary-validations-label">validations obtenues</div>
+                </div>
+            </div>
+            <div class="note-summary-details">
+                <div class="note-summary-item green">
+                    <div class="note-summary-item-value">8</div>
+                    <div class="note-summary-item-label">🟢 Connaissances</div>
+                </div>
+                <div class="note-summary-item orange">
+                    <div class="note-summary-item-value">9</div>
+                    <div class="note-summary-item-label">🟠 Savoir-faire</div>
+                </div>
+                <div class="note-summary-item purple">
+                    <div class="note-summary-item-value">7</div>
+                    <div class="note-summary-item-label">🟣 Compétences</div>
+                </div>
+                <div class="note-summary-item yellow">
+                    <div class="note-summary-item-value">3</div>
+                    <div class="note-summary-item-label">⭐ Bonus</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('historique', this)">
+                <span>📅</span> Historique
+            </button>
+            <button class="tab-btn" onclick="switchTab('progression', this)">
+                <span>📈</span> Ma progression
+            </button>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB: HISTORIQUE (regroupé par type)           -->
+        <!-- ============================================== -->
+        <div class="tab-content active" id="tab-historique">
+
+            <!-- CONNAISSANCES -->
+            <div class="history-section open">
+                <div class="history-section-header" onclick="toggleHistorySection(this)">
+                    <div class="history-section-header-left">
+                        <div class="history-section-icon green">🟢</div>
+                        <div>
+                            <div class="history-section-title">Connaissances</div>
+                            <div class="history-section-count">4 évaluations passées</div>
+                        </div>
+                    </div>
+                    <div class="history-section-header-right">
+                        <div class="history-section-validations">+8 valid.</div>
+                        <div class="history-section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="history-section-body">
+                    <div class="history-section-body-inner">
+                        <div class="history-list">
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">✓</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Chapitre 4 - La Révolution française</div>
+                                        <div class="history-item-meta">📅 18 décembre 2024</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+3</div>
+                                        <div class="history-item-validations-label">validations</div>
+                                    </div>
+                                    <span class="history-item-badge success">✓ Réussi</span>
+                                </div>
+                            </div>
+
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status fail">✗</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Chapitre 3 - L'Europe des Lumières</div>
+                                        <div class="history-item-meta">📅 28 novembre 2024</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations fail">+0</div>
+                                        <div class="history-item-validations-label">validation</div>
+                                    </div>
+                                    <span class="history-item-badge fail">✗ À repasser</span>
+                                    <button class="history-item-remark-btn" onclick="openRemarkModal('Chapitre 3 - L\'Europe des Lumières', '28 novembre 2024', 'Il faut revoir les dates clés et les personnages importants. Utilise la fiche de révision et refais les exercices d\'entraînement avant de repasser l\'évaluation.')">
+                                        <span class="history-item-remark-btn-icon">💬</span>
+                                        Remarque
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">✓</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Chapitre 2 - Les grandes découvertes</div>
+                                        <div class="history-item-meta">📅 15 octobre 2024</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+2</div>
+                                        <div class="history-item-validations-label">validations</div>
+                                    </div>
+                                    <span class="history-item-badge success">✓ Réussi</span>
+                                </div>
+                            </div>
+
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">✓</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Chapitre 1 - La Renaissance</div>
+                                        <div class="history-item-meta">📅 1 octobre 2024</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+3</div>
+                                        <div class="history-item-validations-label">validations</div>
+                                    </div>
+                                    <span class="history-item-badge success">✓ Réussi</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SAVOIR-FAIRE -->
+            <div class="history-section">
+                <div class="history-section-header" onclick="toggleHistorySection(this)">
+                    <div class="history-section-header-left">
+                        <div class="history-section-icon orange">🟠</div>
+                        <div>
+                            <div class="history-section-title">Savoir-faire</div>
+                            <div class="history-section-count">2 évaluations passées</div>
+                        </div>
+                    </div>
+                    <div class="history-section-header-right">
+                        <div class="history-section-validations">+9 valid.</div>
+                        <div class="history-section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="history-section-body">
+                    <div class="history-section-body-inner">
+                        <div class="history-list">
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">✓</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Analyse de document - Texte historique</div>
+                                        <div class="history-item-meta">📅 12 décembre 2024 • Banque : Analyse de texte</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+5</div>
+                                        <div class="history-item-validations-label">validations</div>
+                                    </div>
+                                    <span class="history-item-badge success">✓ Réussi</span>
+                                </div>
+                            </div>
+
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">✓</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Analyse de document - Carte historique</div>
+                                        <div class="history-item-meta">📅 20 novembre 2024 • Banque : Analyse de carte</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+4</div>
+                                        <div class="history-item-validations-label">validations</div>
+                                    </div>
+                                    <span class="history-item-badge success">✓ Réussi</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMPÉTENCES -->
+            <div class="history-section">
+                <div class="history-section-header" onclick="toggleHistorySection(this)">
+                    <div class="history-section-header-left">
+                        <div class="history-section-icon purple">🟣</div>
+                        <div>
+                            <div class="history-section-title">Compétences</div>
+                            <div class="history-section-count">3 évaluations passées</div>
+                        </div>
+                    </div>
+                    <div class="history-section-header-right">
+                        <div class="history-section-validations">+7 valid.</div>
+                        <div class="history-section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="history-section-body">
+                    <div class="history-section-body-inner">
+                        <div class="history-list">
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">✓</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Développement construit - La citoyenneté</div>
+                                        <div class="history-item-meta">📅 20 décembre 2024</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+3</div>
+                                        <div class="history-item-validations-label">validations</div>
+                                    </div>
+                                    <span class="history-item-badge success">✓ Réussi</span>
+                                    <button class="history-item-remark-btn" onclick="openRemarkModal('Développement construit - La citoyenneté', '20 décembre 2024', 'Bon travail sur le développement construit ! Attention cependant à bien structurer ton introduction avec une problématique claire.')">
+                                        <span class="history-item-remark-btn-icon">💬</span>
+                                        Remarque
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">✓</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Développement construit - Les Lumières</div>
+                                        <div class="history-item-meta">📅 10 novembre 2024</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+2</div>
+                                        <div class="history-item-validations-label">validations</div>
+                                    </div>
+                                    <span class="history-item-badge success">✓ Réussi</span>
+                                </div>
+                            </div>
+
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">✓</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Développement construit - La Renaissance</div>
+                                        <div class="history-item-meta">📅 5 octobre 2024</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+2</div>
+                                        <div class="history-item-validations-label">validations</div>
+                                    </div>
+                                    <span class="history-item-badge success">✓ Réussi</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BONUS -->
+            <div class="history-section">
+                <div class="history-section-header" onclick="toggleHistorySection(this)">
+                    <div class="history-section-header-left">
+                        <div class="history-section-icon yellow">⭐</div>
+                        <div>
+                            <div class="history-section-title">Bonus</div>
+                            <div class="history-section-count">3 bonus obtenus</div>
+                        </div>
+                    </div>
+                    <div class="history-section-header-right">
+                        <div class="history-section-validations">+3 valid.</div>
+                        <div class="history-section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="history-section-body">
+                    <div class="history-section-body-inner">
+                        <div class="history-list">
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">🙋</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Participation active en classe</div>
+                                        <div class="history-item-meta">📅 15 décembre 2024</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+1</div>
+                                        <div class="history-item-validations-label">validation</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">🤝</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Aide apportée à un camarade</div>
+                                        <div class="history-item-meta">📅 8 décembre 2024</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+1</div>
+                                        <div class="history-item-validations-label">validation</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="history-item">
+                                <div class="history-item-main">
+                                    <div class="history-item-status success">📚</div>
+                                    <div class="history-item-content">
+                                        <div class="history-item-title">Travail supplémentaire rendu</div>
+                                        <div class="history-item-meta">📅 22 novembre 2024</div>
+                                    </div>
+                                    <div class="history-item-result">
+                                        <div class="history-item-validations success">+1</div>
+                                        <div class="history-item-validations-label">validation</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB: PROGRESSION                              -->
+        <!-- ============================================== -->
+        <div class="tab-content" id="tab-progression">
+            
+            <!-- SECTION: CONNAISSANCES -->
+            <div class="progress-section open">
+                <div class="progress-section-header" onclick="toggleSection(this)">
+                    <div class="progress-section-header-left">
+                        <div class="progress-section-icon green">🟢</div>
+                        <div>
+                            <div class="progress-section-title">Connaissances</div>
+                            <div class="progress-section-subtitle">Évaluations sur les leçons</div>
+                        </div>
+                    </div>
+                    <div class="progress-section-header-right">
+                        <div class="progress-section-count">8 validations</div>
+                        <div class="progress-section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="progress-section-body">
+                    <div class="progress-section-body-inner">
+                        <div class="progress-list">
+                            <!-- Réussi -->
+                            <div class="progress-item">
+                                <div class="progress-item-status success">✓</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Chapitre 4 - La Révolution française</div>
+                                    <div class="progress-item-meta">Réussi le 18 décembre 2024</div>
+                                </div>
+                                <span class="progress-item-validations">+3</span>
+                                <a href="#" class="progress-item-action primary">📖 Voir la leçon</a>
+                            </div>
+
+                            <!-- Échec - À repasser -->
+                            <div class="progress-item fail-highlight">
+                                <div class="progress-item-status fail">✗</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Chapitre 3 - L'Europe des Lumières</div>
+                                    <div class="progress-item-meta">⚠️ À repasser pour débloquer la suite</div>
+                                </div>
+                                <a href="#" class="progress-item-action warning">📖 Réviser</a>
+                            </div>
+
+                            <!-- Réussi -->
+                            <div class="progress-item">
+                                <div class="progress-item-status success">✓</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Chapitre 2 - Les grandes découvertes</div>
+                                    <div class="progress-item-meta">Réussi le 15 octobre 2024</div>
+                                </div>
+                                <span class="progress-item-validations">+2</span>
+                                <a href="#" class="progress-item-action primary">📖 Voir la leçon</a>
+                            </div>
+
+                            <!-- Réussi -->
+                            <div class="progress-item">
+                                <div class="progress-item-status success">✓</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Chapitre 1 - La Renaissance</div>
+                                    <div class="progress-item-meta">Réussi le 1 octobre 2024</div>
+                                </div>
+                                <span class="progress-item-validations">+3</span>
+                                <a href="#" class="progress-item-action primary">📖 Voir la leçon</a>
+                            </div>
+
+                            <!-- Verrouillé -->
+                            <div class="progress-item locked">
+                                <div class="progress-item-status locked">🔒</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Chapitre 5 - Les libertés</div>
+                                    <div class="progress-item-meta">Réussis le chapitre 3 pour débloquer</div>
+                                </div>
+                                <a href="#" class="progress-item-action disabled">🔒 Verrouillé</a>
+                            </div>
+
+                            <!-- Verrouillé -->
+                            <div class="progress-item locked">
+                                <div class="progress-item-status locked">🔒</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Chapitre 6 - La République</div>
+                                    <div class="progress-item-meta">Réussis le chapitre 5 pour débloquer</div>
+                                </div>
+                                <a href="#" class="progress-item-action disabled">🔒 Verrouillé</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: SAVOIR-FAIRE -->
+            <div class="progress-section">
+                <div class="progress-section-header" onclick="toggleSection(this)">
+                    <div class="progress-section-header-left">
+                        <div class="progress-section-icon orange">🟠</div>
+                        <div>
+                            <div class="progress-section-title">Savoir-faire</div>
+                            <div class="progress-section-subtitle">Évaluations par banque d'exercices</div>
+                        </div>
+                    </div>
+                    <div class="progress-section-header-right">
+                        <div class="progress-section-count">9 validations</div>
+                        <div class="progress-section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="progress-section-body">
+                    <div class="progress-section-body-inner">
+
+                        <!-- Info box -->
+                        <div class="info-box">
+                            <div class="info-box-icon">ℹ️</div>
+                            <div class="info-box-text">
+                                <strong>À la prochaine évaluation de savoir-faire</strong>, tu pourras tomber sur n'importe quelle banque déjà validée ou débloquée. Pense à toutes les réviser !
+                            </div>
+                        </div>
+
+                        <div class="progress-list">
+                            <!-- Réussi -->
+                            <div class="progress-item">
+                                <div class="progress-item-status success">✓</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Analyse de texte</div>
+                                    <div class="progress-item-meta">Réussi le 12 décembre 2024</div>
+                                </div>
+                                <span class="progress-item-validations">+5</span>
+                                <a href="#" class="progress-item-action primary">📝 S'entraîner</a>
+                            </div>
+
+                            <!-- Réussi -->
+                            <div class="progress-item">
+                                <div class="progress-item-status success">✓</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Analyse de carte</div>
+                                    <div class="progress-item-meta">Réussi le 20 novembre 2024</div>
+                                </div>
+                                <span class="progress-item-validations">+4</span>
+                                <a href="#" class="progress-item-action primary">📝 S'entraîner</a>
+                            </div>
+
+                            <!-- Débloqué mais pas encore passé -->
+                            <div class="progress-item fail-highlight" style="background: var(--accent-orange-light); border-color: var(--accent-orange);">
+                                <div class="progress-item-status" style="background: var(--accent-orange-light); color: var(--accent-orange);">🔓</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Frise chronologique</div>
+                                    <div class="progress-item-meta">⚡ Débloqué ! À travailler pour la prochaine évaluation</div>
+                                </div>
+                                <a href="#" class="progress-item-action primary" style="background: var(--accent-orange); color: white;">📝 S'entraîner</a>
+                            </div>
+
+                            <!-- Verrouillé -->
+                            <div class="progress-item locked">
+                                <div class="progress-item-status locked">🔒</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Analyse d'image</div>
+                                    <div class="progress-item-meta">Réussis "Frise chronologique" pour débloquer</div>
+                                </div>
+                                <a href="#" class="progress-item-action disabled">🔒 Verrouillé</a>
+                            </div>
+
+                            <!-- Verrouillé -->
+                            <div class="progress-item locked">
+                                <div class="progress-item-status locked">🔒</div>
+                                <div class="progress-item-content">
+                                    <div class="progress-item-title">Croquis géographique</div>
+                                    <div class="progress-item-meta">Réussis "Analyse d'image" pour débloquer</div>
+                                </div>
+                                <a href="#" class="progress-item-action disabled">🔒 Verrouillé</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: COMPÉTENCES -->
+            <div class="progress-section">
+                <div class="progress-section-header" onclick="toggleSection(this)">
+                    <div class="progress-section-header-left">
+                        <div class="progress-section-icon purple">🟣</div>
+                        <div>
+                            <div class="progress-section-title">Compétences</div>
+                            <div class="progress-section-subtitle">3 validations max par compétence</div>
+                        </div>
+                    </div>
+                    <div class="progress-section-header-right">
+                        <div class="progress-section-count">7 validations</div>
+                        <div class="progress-section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="progress-section-body">
+                    <div class="progress-section-body-inner">
+                        <div class="progress-list">
+                            
+                            <!-- Compétence terminée (3/3) -->
+                            <div class="competence-item complete">
+                                <div class="competence-item-name">
+                                    Structurer un paragraphe argumenté
+                                    <span class="competence-complete-badge">✓ Terminé</span>
+                                </div>
+                                <div class="competence-item-dots">
+                                    <div class="competence-dot filled">✓</div>
+                                    <div class="competence-dot filled">✓</div>
+                                    <div class="competence-dot complete">✓</div>
+                                </div>
+                            </div>
+
+                            <!-- Compétence en cours (2/3) -->
+                            <div class="competence-item">
+                                <div class="competence-item-name">Rédiger une introduction</div>
+                                <div class="competence-item-dots">
+                                    <div class="competence-dot filled">✓</div>
+                                    <div class="competence-dot filled">✓</div>
+                                    <div class="competence-dot"></div>
+                                </div>
+                            </div>
+
+                            <!-- Compétence en cours (1/3) -->
+                            <div class="competence-item">
+                                <div class="competence-item-name">Rédiger une conclusion</div>
+                                <div class="competence-item-dots">
+                                    <div class="competence-dot filled">✓</div>
+                                    <div class="competence-dot"></div>
+                                    <div class="competence-dot"></div>
+                                </div>
+                            </div>
+
+                            <!-- Compétence pas commencée (0/3) -->
+                            <div class="competence-item">
+                                <div class="competence-item-name">Utiliser des connecteurs logiques</div>
+                                <div class="competence-item-dots">
+                                    <div class="competence-dot"></div>
+                                    <div class="competence-dot"></div>
+                                    <div class="competence-dot"></div>
+                                </div>
+                            </div>
+
+                            <!-- Compétence pas commencée (0/3) -->
+                            <div class="competence-item">
+                                <div class="competence-item-name">Citer et commenter un document</div>
+                                <div class="competence-item-dots">
+                                    <div class="competence-dot"></div>
+                                    <div class="competence-dot"></div>
+                                    <div class="competence-dot"></div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION: BONUS -->
+            <div class="progress-section">
+                <div class="progress-section-header" onclick="toggleSection(this)">
+                    <div class="progress-section-header-left">
+                        <div class="progress-section-icon yellow">⭐</div>
+                        <div>
+                            <div class="progress-section-title">Bonus</div>
+                            <div class="progress-section-subtitle">Points supplémentaires à gagner</div>
+                        </div>
+                    </div>
+                    <div class="progress-section-header-right">
+                        <div class="progress-section-count">3 / 6 obtenus</div>
+                        <div class="progress-section-toggle">▼</div>
+                    </div>
+                </div>
+                <div class="progress-section-body">
+                    <div class="progress-section-body-inner">
+                        <div class="progress-list">
+                            
+                            <!-- Obtenu -->
+                            <div class="bonus-item" onclick="toggleBonus(this)">
+                                <div class="bonus-item-main">
+                                    <div class="bonus-item-icon">🙋</div>
+                                    <div class="bonus-item-content">
+                                        <div class="bonus-item-title">
+                                            Participation active en classe
+                                            <span class="click-hint">· Cliquer pour voir les critères</span>
+                                        </div>
+                                    </div>
+                                    <div class="bonus-item-result">
+                                        <div class="bonus-item-value">+1</div>
+                                        <div class="bonus-item-status obtained">✓ Obtenu</div>
+                                    </div>
+                                </div>
+                                <div class="bonus-item-criteria">
+                                    <div class="bonus-item-criteria-inner">
+                                        <div class="bonus-item-criteria-box">
+                                            <div class="bonus-item-criteria-title">📋 Comment obtenir ce bonus ?</div>
+                                            <div class="bonus-item-criteria-text">Lever la main et intervenir de manière pertinente au moins 3 fois pendant une séance. Les interventions doivent apporter quelque chose au cours (question, réponse, remarque constructive).</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Obtenu -->
+                            <div class="bonus-item" onclick="toggleBonus(this)">
+                                <div class="bonus-item-main">
+                                    <div class="bonus-item-icon">🤝</div>
+                                    <div class="bonus-item-content">
+                                        <div class="bonus-item-title">
+                                            Aide apportée à un camarade
+                                            <span class="click-hint">· Cliquer pour voir les critères</span>
+                                        </div>
+                                    </div>
+                                    <div class="bonus-item-result">
+                                        <div class="bonus-item-value">+1</div>
+                                        <div class="bonus-item-status obtained">✓ Obtenu</div>
+                                    </div>
+                                </div>
+                                <div class="bonus-item-criteria">
+                                    <div class="bonus-item-criteria-inner">
+                                        <div class="bonus-item-criteria-box">
+                                            <div class="bonus-item-criteria-title">📋 Comment obtenir ce bonus ?</div>
+                                            <div class="bonus-item-criteria-text">Aider spontanément un camarade en difficulté pendant un travail en classe. L'aide doit être efficace et bienveillante (expliquer, pas donner les réponses).</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Obtenu -->
+                            <div class="bonus-item" onclick="toggleBonus(this)">
+                                <div class="bonus-item-main">
+                                    <div class="bonus-item-icon">📚</div>
+                                    <div class="bonus-item-content">
+                                        <div class="bonus-item-title">
+                                            Travail supplémentaire rendu
+                                            <span class="click-hint">· Cliquer pour voir les critères</span>
+                                        </div>
+                                    </div>
+                                    <div class="bonus-item-result">
+                                        <div class="bonus-item-value">+1</div>
+                                        <div class="bonus-item-status obtained">✓ Obtenu</div>
+                                    </div>
+                                </div>
+                                <div class="bonus-item-criteria">
+                                    <div class="bonus-item-criteria-inner">
+                                        <div class="bonus-item-criteria-box">
+                                            <div class="bonus-item-criteria-title">📋 Comment obtenir ce bonus ?</div>
+                                            <div class="bonus-item-criteria-text">Rendre un travail facultatif proposé par le professeur. Le travail doit être soigné et complet (pas bâclé). Exemples : exercices supplémentaires, recherches, fiches de révision...</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Non obtenu -->
+                            <div class="bonus-item not-obtained" onclick="toggleBonus(this)">
+                                <div class="bonus-item-main">
+                                    <div class="bonus-item-icon">📖</div>
+                                    <div class="bonus-item-content">
+                                        <div class="bonus-item-title">
+                                            Exposé volontaire
+                                            <span class="click-hint">· Cliquer pour voir les critères</span>
+                                        </div>
+                                    </div>
+                                    <div class="bonus-item-result">
+                                        <div class="bonus-item-value pending">+1</div>
+                                        <div class="bonus-item-status">À obtenir</div>
+                                    </div>
+                                </div>
+                                <div class="bonus-item-criteria">
+                                    <div class="bonus-item-criteria-inner">
+                                        <div class="bonus-item-criteria-box">
+                                            <div class="bonus-item-criteria-title">📋 Comment obtenir ce bonus ?</div>
+                                            <div class="bonus-item-criteria-text">Préparer et présenter un exposé de 5 à 10 minutes sur un sujet en lien avec le programme. Le sujet doit être validé au préalable par le professeur. Support visuel apprécié.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Non obtenu -->
+                            <div class="bonus-item not-obtained" onclick="toggleBonus(this)">
+                                <div class="bonus-item-main">
+                                    <div class="bonus-item-icon">🎬</div>
+                                    <div class="bonus-item-content">
+                                        <div class="bonus-item-title">
+                                            Compte-rendu de film/documentaire
+                                            <span class="click-hint">· Cliquer pour voir les critères</span>
+                                        </div>
+                                    </div>
+                                    <div class="bonus-item-result">
+                                        <div class="bonus-item-value pending">+1</div>
+                                        <div class="bonus-item-status">À obtenir</div>
+                                    </div>
+                                </div>
+                                <div class="bonus-item-criteria">
+                                    <div class="bonus-item-criteria-inner">
+                                        <div class="bonus-item-criteria-box">
+                                            <div class="bonus-item-criteria-title">📋 Comment obtenir ce bonus ?</div>
+                                            <div class="bonus-item-criteria-text">Regarder un film ou documentaire historique (liste disponible sur demande) et rédiger un compte-rendu d'une page : résumé + ce que tu as appris + ton avis argumenté.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Non obtenu -->
+                            <div class="bonus-item not-obtained" onclick="toggleBonus(this)">
+                                <div class="bonus-item-main">
+                                    <div class="bonus-item-icon">🏛️</div>
+                                    <div class="bonus-item-content">
+                                        <div class="bonus-item-title">
+                                            Visite culturelle
+                                            <span class="click-hint">· Cliquer pour voir les critères</span>
+                                        </div>
+                                    </div>
+                                    <div class="bonus-item-result">
+                                        <div class="bonus-item-value pending">+1</div>
+                                        <div class="bonus-item-status">À obtenir</div>
+                                    </div>
+                                </div>
+                                <div class="bonus-item-criteria">
+                                    <div class="bonus-item-criteria-inner">
+                                        <div class="bonus-item-criteria-box">
+                                            <div class="bonus-item-criteria-title">📋 Comment obtenir ce bonus ?</div>
+                                            <div class="bonus-item-criteria-text">Visiter un musée, monument historique ou exposition en lien avec le programme. Rendre un compte-rendu avec photos ou ticket d'entrée comme preuve, et expliquer ce que tu as découvert.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- MODAL REMARQUE -->
+    <div class="modal-overlay" id="remarkModal" onclick="closeRemarkModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-header-left">
+                    <div class="modal-header-icon">💬</div>
+                    <div>
+                        <div class="modal-title" id="remarkModalTitle">Remarque</div>
+                        <div class="modal-subtitle" id="remarkModalDate">Date</div>
+                    </div>
+                </div>
+                <button class="modal-close" onclick="closeRemarkModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-remark-text" id="remarkModalText">
+                    Contenu de la remarque...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn" onclick="closeRemarkModal()">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle bonus criteria
+        function toggleBonus(element) {
+            element.classList.toggle('open');
+            
+            // Masquer le hint après le premier clic
+            const hint = element.querySelector('.click-hint');
+            if (hint) {
+                hint.style.display = 'none';
+            }
+        }
+
+        // Open remark modal
+        function openRemarkModal(title, date, text) {
+            document.getElementById('remarkModalTitle').textContent = title;
+            document.getElementById('remarkModalDate').textContent = '📅 ' + date;
+            document.getElementById('remarkModalText').textContent = text;
+            document.getElementById('remarkModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close remark modal
+        function closeRemarkModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('remarkModal').classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeRemarkModal();
+            }
+        });
+
+        // Toggle history section
+        function toggleHistorySection(header) {
+            const section = header.closest('.history-section');
+            section.classList.toggle('open');
+        }
+
+        // Toggle progress section
+        function toggleSection(header) {
+            const section = header.closest('.progress-section');
+            section.classList.toggle('open');
+        }
+
+        // Switch tabs
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        // Switch period
+        function switchPeriod(period, btn) {
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            if (period === 's2') {
+                alert('Données du Semestre 2 (à venir)');
+            }
+        }
+
+        // Menu toggle placeholder
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            alert('La sidebar sera disponible prochainement !');
+        });
+    </script>
+
+</body>
+</html>

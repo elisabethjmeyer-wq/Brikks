@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messagerie - Espace cours</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-bg: #eef2ff;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --accent-orange: #f59e0b;
+            --accent-orange-light: #fef3c7;
+            --accent-blue: #3b82f6;
+            --accent-blue-light: #dbeafe;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --radius: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: white;
+            padding: 16px 24px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .logo-icon { font-size: 28px; }
+        .logo-text { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+        .logo-text span { color: var(--gray-500); font-weight: 500; }
+
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--gray-100);
+            border-radius: 25px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .user-name { font-size: 14px; font-weight: 600; color: var(--gray-700); }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-notif {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            background: var(--gray-100);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .header-notif:hover {
+            background: var(--gray-200);
+        }
+
+        .header-notif .notif-icon {
+            font-size: 20px;
+        }
+
+        .header-notif .notif-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 20px;
+            height: 20px;
+            background: var(--accent-red);
+            color: white;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 0 6px;
+        }
+
+        .header-notif.active .notif-badge {
+            display: flex;
+        }
+
+        /* ===== MAIN ===== */
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+            height: calc(100vh - 73px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-900);
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background: white;
+            border: 2px solid var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--gray-300);
+            background: var(--gray-50);
+        }
+
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+
+        /* ===== MESSAGING LAYOUT ===== */
+        .messaging-container {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* ===== CONVERSATIONS LIST ===== */
+        .conversations-panel {
+            width: 380px;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .conversations-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-tab {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            text-align: center;
+        }
+
+        .filter-tab:hover {
+            background: var(--gray-200);
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .conversations-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid var(--gray-100);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .conversation-item:hover {
+            background: var(--gray-50);
+        }
+
+        .conversation-item.active {
+            background: var(--primary-bg);
+            border-left: 3px solid var(--primary);
+        }
+
+        .conversation-item.unread {
+            background: var(--accent-blue-light);
+        }
+
+        .conversation-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .conversation-icon.question {
+            background: var(--accent-blue-light);
+        }
+
+        .conversation-icon.bug {
+            background: var(--accent-red-light);
+        }
+
+        .conversation-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .conversation-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .conversation-subject {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-800);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conversation-item.unread .conversation-subject {
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .conversation-time {
+            font-size: 11px;
+            color: var(--gray-400);
+            flex-shrink: 0;
+        }
+
+        .conversation-preview {
+            font-size: 13px;
+            color: var(--gray-500);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 6px;
+        }
+
+        .conversation-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .conversation-status.waiting {
+            background: var(--accent-orange-light);
+            color: var(--accent-orange);
+        }
+
+        .conversation-status.answered {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .unread-badge {
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ===== CONVERSATION DETAIL ===== */
+        .conversation-detail {
+            flex: 1;
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .detail-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .detail-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .detail-icon.question {
+            background: var(--accent-blue-light);
+        }
+
+        .detail-icon.bug {
+            background: var(--accent-red-light);
+        }
+
+        .detail-info {
+            flex: 1;
+        }
+
+        .detail-subject {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 4px;
+        }
+
+        .detail-meta {
+            font-size: 13px;
+            color: var(--gray-500);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .detail-tag {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .detail-tag.question {
+            background: var(--accent-blue-light);
+            color: var(--accent-blue);
+        }
+
+        .detail-tag.bug {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* ===== MESSAGES THREAD ===== */
+        .messages-thread {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: var(--gray-50);
+        }
+
+        .message-bubble {
+            max-width: 75%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .message-bubble.student {
+            align-self: flex-end;
+        }
+
+        .message-bubble.teacher {
+            align-self: flex-start;
+        }
+
+        .message-sender {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gray-500);
+            padding: 0 12px;
+        }
+
+        .message-content {
+            padding: 14px 18px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .message-bubble.student .message-content {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message-bubble.teacher .message-content {
+            background: white;
+            color: var(--gray-800);
+            border-bottom-left-radius: 6px;
+            box-shadow: var(--shadow);
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--gray-400);
+            padding: 0 12px;
+        }
+
+        .message-bubble.student .message-time {
+            text-align: right;
+        }
+
+        /* Attachments in message */
+        .message-attachments {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .message-attachment {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            font-size: 13px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.2s;
+        }
+
+        .message-bubble.student .message-attachment {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .message-bubble.teacher .message-attachment {
+            background: var(--gray-100);
+            color: var(--gray-700);
+        }
+
+        .message-attachment:hover {
+            opacity: 0.9;
+        }
+
+        .message-attachment .icon {
+            font-size: 18px;
+        }
+
+        /* Screenshot in message */
+        .message-screenshot {
+            margin-top: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+            max-width: 300px;
+        }
+
+        .message-screenshot img {
+            width: 100%;
+            display: block;
+            cursor: pointer;
+        }
+
+        /* ===== REPLY SECTION ===== */
+        .reply-section {
+            padding: 16px 20px;
+            border-top: 1px solid var(--gray-100);
+            background: white;
+        }
+
+        .reply-box {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .reply-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .reply-textarea {
+            width: 100%;
+            min-height: 48px;
+            max-height: 150px;
+            padding: 14px 50px 14px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            transition: all 0.2s;
+        }
+
+        .reply-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .reply-toolbar {
+            position: absolute;
+            right: 12px;
+            bottom: 10px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .toolbar-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--gray-200);
+        }
+
+        .send-btn {
+            width: 48px;
+            height: 48px;
+            border: none;
+            background: var(--primary);
+            border-radius: var(--radius);
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .reply-hint {
+            font-size: 12px;
+            color: var(--gray-400);
+            margin-top: 8px;
+        }
+
+        /* Attachments preview */
+        .reply-attachments {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .reply-attachments:empty {
+            display: none;
+        }
+
+        .reply-attachment {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .reply-attachment img {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .reply-attachment .attachment-name {
+            max-width: 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--gray-700);
+        }
+
+        .reply-attachment .attachment-icon {
+            font-size: 20px;
+        }
+
+        .reply-attachment .remove {
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: var(--gray-200);
+            border-radius: 50%;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 4px;
+        }
+
+        .reply-attachment .remove:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+            color: var(--gray-400);
+        }
+
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            max-width: 300px;
+            margin-bottom: 20px;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            width: 90%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.95);
+            transition: all 0.2s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: var(--gray-100);
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--gray-100);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* ===== FORM ===== */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: var(--gray-400);
+            margin-top: 6px;
+        }
+
+        /* Type selector */
+        .type-selector {
+            display: flex;
+            gap: 12px;
+        }
+
+        .type-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .type-option input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .type-option label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .type-option input:checked + label {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .type-option .type-icon {
+            font-size: 28px;
+        }
+
+        .type-option .type-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        /* File upload zone */
+        .file-upload-zone {
+            border: 2px dashed var(--gray-200);
+            border-radius: var(--radius);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .file-upload-zone:hover {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .file-upload-zone.dragover {
+            border-color: var(--primary);
+            background: var(--primary-bg);
+        }
+
+        .file-upload-zone input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-upload-zone .upload-content .icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .file-upload-zone .upload-content p {
+            font-size: 13px;
+            color: var(--gray-600);
+            margin-bottom: 4px;
+        }
+
+        /* File preview list */
+        .file-preview-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .file-preview-list:empty {
+            display: none;
+        }
+
+        .file-preview-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius);
+        }
+
+        .file-preview-item .file-icon {
+            font-size: 24px;
+        }
+
+        .file-preview-item .file-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-preview-item .file-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--gray-700);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-preview-item .file-size {
+            font-size: 11px;
+            color: var(--gray-400);
+        }
+
+        .file-preview-item .file-thumb {
+            width: 48px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .file-preview-item .remove-file {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: var(--gray-100);
+            border-radius: 50%;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-preview-item .remove-file:hover {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .messaging-container {
+                flex-direction: column;
+            }
+
+            .conversations-panel {
+                width: 100%;
+                max-height: 300px;
+            }
+
+            .message-bubble {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="header-left">
+            <button class="menu-toggle">☰</button>
+            <a href="#" class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">Espace cours <span>• Mme Meyer</span></span>
+            </a>
+        </div>
+        <div class="header-right">
+            <!-- Notification messagerie -->
+            <a href="#" class="header-notif active" title="Messagerie - 1 nouveau message">
+                <span class="notif-icon">📬</span>
+                <span class="notif-badge">1</span>
+            </a>
+            <div class="user-pill">
+                <div class="user-avatar">IA</div>
+                <span class="user-name">Ilyana A.</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+            <h1>📬 Messagerie</h1>
+            <button class="btn btn-primary" id="btn-new-message">
+                <span>✉️</span>
+                Nouveau message
+            </button>
+        </div>
+
+        <!-- MESSAGING LAYOUT -->
+        <div class="messaging-container">
+            <!-- LEFT: CONVERSATIONS LIST -->
+            <div class="conversations-panel">
+                <div class="conversations-header">
+                    <div class="filter-tabs">
+                        <button class="filter-tab active">Tous</button>
+                        <button class="filter-tab">⏳ En attente</button>
+                        <button class="filter-tab">✅ Répondus</button>
+                    </div>
+                </div>
+
+                <div class="conversations-list">
+                    <!-- Conversation 1 - Active -->
+                    <div class="conversation-item active">
+                        <div class="conversation-icon question">💬</div>
+                        <div class="conversation-content">
+                            <div class="conversation-header">
+                                <span class="conversation-subject">Je ne comprends pas l'exercice sur les dates</span>
+                                <span class="conversation-time">Il y a 2h</span>
+                            </div>
+                            <div class="conversation-preview">Mme Meyer : Pour convertir une date en siècle...</div>
+                            <span class="conversation-status answered">✅ Répondu</span>
+                        </div>
+                    </div>
+
+                    <!-- Conversation 2 - Unread -->
+                    <div class="conversation-item unread">
+                        <div class="conversation-icon bug">🐛</div>
+                        <div class="conversation-content">
+                            <div class="conversation-header">
+                                <span class="conversation-subject">La vidéo ne charge pas sur mobile</span>
+                                <span class="conversation-time">Hier</span>
+                            </div>
+                            <div class="conversation-preview">Mme Meyer : Merci pour le signalement, j'ai corrigé...</div>
+                            <span class="conversation-status answered">✅ Répondu</span>
+                        </div>
+                        <span class="unread-badge"></span>
+                    </div>
+
+                    <!-- Conversation 3 - Waiting -->
+                    <div class="conversation-item">
+                        <div class="conversation-icon question">💬</div>
+                        <div class="conversation-content">
+                            <div class="conversation-header">
+                                <span class="conversation-subject">Quand est le prochain contrôle ?</span>
+                                <span class="conversation-time">Lundi</span>
+                            </div>
+                            <div class="conversation-preview">Vous : Bonjour, je voulais savoir si le contrôle...</div>
+                            <span class="conversation-status waiting">⏳ En attente</span>
+                        </div>
+                    </div>
+
+                    <!-- Conversation 4 -->
+                    <div class="conversation-item">
+                        <div class="conversation-icon question">💬</div>
+                        <div class="conversation-content">
+                            <div class="conversation-header">
+                                <span class="conversation-subject">Comment réviser pour le BEX ?</span>
+                                <span class="conversation-time">15/12</span>
+                            </div>
+                            <div class="conversation-preview">Mme Meyer : Je te conseille de refaire les exercices...</div>
+                            <span class="conversation-status answered">✅ Répondu</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: CONVERSATION DETAIL -->
+            <div class="conversation-detail">
+                <div class="detail-header">
+                    <div class="detail-icon question">💬</div>
+                    <div class="detail-info">
+                        <h2 class="detail-subject">Je ne comprends pas l'exercice sur les dates</h2>
+                        <div class="detail-meta">
+                            <span class="detail-tag question">Question</span>
+                            <span>Créé le 28/12/2024</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="messages-thread">
+                    <!-- Message 1 - Student -->
+                    <div class="message-bubble student">
+                        <span class="message-sender">Vous</span>
+                        <div class="message-content">
+                            <p>Bonjour Madame,</p>
+                            <p>J'ai essayé plusieurs fois l'exercice sur les dates (BEX1) mais je n'arrive pas à comprendre comment convertir les dates en siècles. Par exemple, pour 1789, je ne sais pas si c'est le 17ème ou le 18ème siècle.</p>
+                            <p>Est-ce que vous pourriez m'expliquer la méthode s'il vous plaît ?</p>
+                            <p>Merci d'avance !</p>
+                        </div>
+                        <span class="message-time">Aujourd'hui à 14:32</span>
+                    </div>
+
+                    <!-- Message 2 - Teacher -->
+                    <div class="message-bubble teacher">
+                        <span class="message-sender">Mme Meyer</span>
+                        <div class="message-content">
+                            <p>Bonjour Ilyana,</p>
+                            <p>Bonne question ! Pour convertir une date en siècle, voici la méthode :</p>
+                            <p>• Tu prends les deux premiers chiffres de l'année<br>• Tu ajoutes 1</p>
+                            <p><strong>Exemple :</strong> 1789 → 17 + 1 = 18ème siècle</p>
+                            <p><strong>Astuce :</strong> si l'année se termine par "00" (comme 1800), on n'ajoute pas 1. Donc 1800 = 18ème siècle.</p>
+                            <p>Je t'ai mis en pièce jointe le cours de méthodologie sur les dates, ça devrait t'aider !</p>
+
+                            <!-- Attachments -->
+                            <div class="message-attachments">
+                                <a href="#" class="message-attachment">
+                                    <span class="icon">🧠</span>
+                                    <span>Naviguer dans le temps - Niveau 1</span>
+                                </a>
+                            </div>
+                        </div>
+                        <span class="message-time">Aujourd'hui à 16:15</span>
+                    </div>
+
+                    <!-- Message 3 - Student reply -->
+                    <div class="message-bubble student">
+                        <span class="message-sender">Vous</span>
+                        <div class="message-content">
+                            <p>Merci beaucoup Madame ! C'est super clair maintenant 😊</p>
+                            <p>J'ai refait l'exercice et j'ai tout bon !</p>
+                        </div>
+                        <span class="message-time">Aujourd'hui à 16:45</span>
+                    </div>
+                </div>
+
+                <!-- REPLY SECTION -->
+                <div class="reply-section">
+                    <!-- Pièces jointes prévisualisées -->
+                    <div class="reply-attachments" id="reply-attachments">
+                        <!-- Exemple d'image collée -->
+                        <div class="reply-attachment" data-type="image">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect fill='%23e5e7eb' width='40' height='40'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-size='12'%3E📸%3C/text%3E%3C/svg%3E" alt="Capture">
+                            <span class="attachment-name">capture_ecran.png</span>
+                            <button class="remove" title="Supprimer">×</button>
+                        </div>
+                    </div>
+                    
+                    <div class="reply-box">
+                        <div class="reply-input-wrapper">
+                            <textarea 
+                                class="reply-textarea" 
+                                id="reply-textarea"
+                                placeholder="Écrire un message... (Ctrl+V pour coller une image)" 
+                                rows="1"
+                            ></textarea>
+                            <div class="reply-toolbar">
+                                <button class="toolbar-btn" id="attach-file-btn" title="Joindre un fichier (image, PDF, document)">📎</button>
+                                <input type="file" id="file-input" accept="image/*,.pdf,.doc,.docx" multiple style="display: none;">
+                            </div>
+                        </div>
+                        <button class="send-btn" title="Envoyer">
+                            <span style="color: white;">➤</span>
+                        </button>
+                    </div>
+                    <p class="reply-hint">💡 Tu peux coller une capture d'écran avec Ctrl+V ou Cmd+V</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL: Nouveau message -->
+    <div class="modal-overlay" id="modal-new-message">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>✉️ Nouveau message</h3>
+                <button class="modal-close" onclick="closeModal('modal-new-message')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Type de message</label>
+                    <div class="type-selector">
+                        <div class="type-option">
+                            <input type="radio" name="type" id="type-question" value="question" checked>
+                            <label for="type-question">
+                                <span class="type-icon">💬</span>
+                                <span class="type-label">Question</span>
+                            </label>
+                        </div>
+                        <div class="type-option">
+                            <input type="radio" name="type" id="type-bug" value="bug">
+                            <label for="type-bug">
+                                <span class="type-icon">🐛</span>
+                                <span class="type-label">Signaler un bug</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Sujet</label>
+                    <input type="text" placeholder="Ex: Je ne comprends pas l'exercice...">
+                </div>
+
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea placeholder="Décris ta question ou ton problème en détail..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Pièces jointes (optionnel)</label>
+                    <div class="file-upload-zone" id="file-upload-zone">
+                        <input type="file" accept="image/*,.pdf,.doc,.docx" multiple id="modal-file-input">
+                        <div class="upload-content">
+                            <div class="icon">📎</div>
+                            <p>Clique ou glisse des fichiers ici</p>
+                            <p class="form-hint">Images, PDF, documents Word • Ou colle une capture (Ctrl+V)</p>
+                        </div>
+                    </div>
+                    <div class="file-preview-list" id="file-preview-list">
+                        <!-- Dynamic file previews -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('modal-new-message')">Annuler</button>
+                <button class="btn btn-primary">📤 Envoyer</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modal management
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // New message button
+        document.getElementById('btn-new-message').addEventListener('click', () => {
+            openModal('modal-new-message');
+        });
+
+        // Close modal on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        });
+
+        // Filter tabs
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+            });
+        });
+
+        // Conversation selection
+        document.querySelectorAll('.conversation-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.conversation-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
+
+        // Auto-resize textarea
+        document.querySelector('.reply-textarea').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+        });
+
+        // ===== PASTE IMAGE IN TEXTAREA =====
+        const replyTextarea = document.getElementById('reply-textarea');
+        const replyAttachments = document.getElementById('reply-attachments');
+
+        replyTextarea.addEventListener('paste', (e) => {
+            const items = e.clipboardData.items;
+            for (let item of items) {
+                if (item.type.startsWith('image/')) {
+                    e.preventDefault();
+                    const file = item.getAsFile();
+                    addAttachmentPreview(file, replyAttachments);
+                }
+            }
+        });
+
+        // ===== FILE INPUT IN REPLY =====
+        const attachFileBtn = document.getElementById('attach-file-btn');
+        const fileInput = document.getElementById('file-input');
+
+        attachFileBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            for (let file of e.target.files) {
+                addAttachmentPreview(file, replyAttachments);
+            }
+            fileInput.value = '';
+        });
+
+        // ===== MODAL FILE UPLOAD =====
+        const modalFileInput = document.getElementById('modal-file-input');
+        const filePreviewList = document.getElementById('file-preview-list');
+        const fileUploadZone = document.getElementById('file-upload-zone');
+
+        modalFileInput.addEventListener('change', (e) => {
+            for (let file of e.target.files) {
+                addFilePreview(file);
+            }
+        });
+
+        // Drag & drop
+        fileUploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadZone.classList.add('dragover');
+        });
+
+        fileUploadZone.addEventListener('dragleave', () => {
+            fileUploadZone.classList.remove('dragover');
+        });
+
+        fileUploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadZone.classList.remove('dragover');
+            for (let file of e.dataTransfer.files) {
+                addFilePreview(file);
+            }
+        });
+
+        // Paste in modal
+        document.querySelector('#modal-new-message .modal-body').addEventListener('paste', (e) => {
+            const items = e.clipboardData.items;
+            for (let item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    addFilePreview(file);
+                }
+            }
+        });
+
+        // ===== HELPER FUNCTIONS =====
+        function addAttachmentPreview(file, container) {
+            const div = document.createElement('div');
+            div.className = 'reply-attachment';
+            
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}">
+                        <span class="attachment-name">${file.name}</span>
+                        <button class="remove" title="Supprimer">×</button>
+                    `;
+                    div.querySelector('.remove').addEventListener('click', () => div.remove());
+                };
+                reader.readAsDataURL(file);
+            } else {
+                const icon = getFileIcon(file.type);
+                div.innerHTML = `
+                    <span class="attachment-icon">${icon}</span>
+                    <span class="attachment-name">${file.name}</span>
+                    <button class="remove" title="Supprimer">×</button>
+                `;
+                div.querySelector('.remove').addEventListener('click', () => div.remove());
+            }
+            
+            container.appendChild(div);
+        }
+
+        function addFilePreview(file) {
+            const div = document.createElement('div');
+            div.className = 'file-preview-item';
+            
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="${file.name}" class="file-thumb">
+                        <div class="file-info">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-size">${formatFileSize(file.size)}</div>
+                        </div>
+                        <button class="remove-file" title="Supprimer">×</button>
+                    `;
+                    div.querySelector('.remove-file').addEventListener('click', () => div.remove());
+                };
+                reader.readAsDataURL(file);
+            } else {
+                const icon = getFileIcon(file.type);
+                div.innerHTML = `
+                    <span class="file-icon">${icon}</span>
+                    <div class="file-info">
+                        <div class="file-name">${file.name}</div>
+                        <div class="file-size">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button class="remove-file" title="Supprimer">×</button>
+                `;
+                div.querySelector('.remove-file').addEventListener('click', () => div.remove());
+            }
+            
+            filePreviewList.appendChild(div);
+        }
+
+        function getFileIcon(mimeType) {
+            if (mimeType.startsWith('image/')) return '🖼️';
+            if (mimeType === 'application/pdf') return '📄';
+            if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
+            return '📎';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' o';
+            if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' Ko';
+            return Math.round(bytes / (1024 * 1024) * 10) / 10 + ' Mo';
+        }
+
+        // Remove existing attachments
+        document.querySelectorAll('.reply-attachment .remove').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.closest('.reply-attachment').remove();
+            });
+        });
+    </script>
+
+</body>
+</html>
