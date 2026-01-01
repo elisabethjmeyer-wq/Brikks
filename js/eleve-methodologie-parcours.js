@@ -268,6 +268,21 @@ const EleveMethodologieParcours = {
         return labels[type] || 'Ressource';
     },
 
+    // Obtenir l'URL de téléchargement direct (pour Google Drive notamment)
+    getDownloadUrl(url) {
+        if (!url) return url;
+
+        // Google Drive : convertir en URL de téléchargement direct
+        if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+            const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (match) {
+                return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+            }
+        }
+
+        return url;
+    },
+
     // Obtenir l'URL embed pour vidéo
     getEmbedUrl(url) {
         if (!url) return null;
@@ -522,7 +537,7 @@ const EleveMethodologieParcours = {
                             <span class="ressource-btn-text">${this.escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type))}</span>
                             <span class="ressource-btn-actions">
                                 <span class="ressource-action view" title="Voir">👁️</span>
-                                <a href="${ressource.url}" download class="ressource-action download" title="Télécharger" onclick="event.stopPropagation();">⬇️</a>
+                                <a href="${this.getDownloadUrl(ressource.url)}" target="_blank" class="ressource-action download" title="Télécharger" onclick="event.stopPropagation();">⬇️</a>
                             </span>
                         </button>
                     `).join('')}
@@ -569,12 +584,13 @@ const EleveMethodologieParcours = {
             content = `<a href="${ressource.url}" target="_blank" class="popup-external-link">Ouvrir le lien ↗</a>`;
         }
 
+        const downloadUrl = this.getDownloadUrl(ressource.url);
         popup.innerHTML = `
             <div class="ressource-popup">
                 <div class="ressource-popup-header">
                     <h3>${this.getRessourceIcon(ressource.type)} ${this.escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type))}</h3>
                     <div class="ressource-popup-actions">
-                        <a href="${ressource.url}" download class="popup-btn download" title="Télécharger">⬇️</a>
+                        <a href="${downloadUrl}" target="_blank" class="popup-btn download" title="Télécharger">⬇️</a>
                         <a href="${ressource.url}" target="_blank" class="popup-btn external" title="Ouvrir dans un nouvel onglet">↗️</a>
                         <button class="popup-btn close" onclick="this.closest('.ressource-popup-overlay').remove()">✕</button>
                     </div>
