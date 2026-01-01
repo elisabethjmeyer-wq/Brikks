@@ -15,26 +15,59 @@ const EleveEntrainement = {
     timerInterval: null,
     timeExpired: false,
 
-    // Configuration des formats d'exercices
+    // Configuration des formats d'exercices (aligné avec Google Sheets FORMATS)
     formats: {
+        // Formats de base
         qcm: {
-            icon: '📝',
+            icon: '❓',
             label: 'QCM',
             render: 'renderQCM',
             verify: 'verifyQCM'
         },
-        timeline: {
-            icon: '📅',
-            label: 'Timeline',
-            render: 'renderTimeline',
-            verify: 'verifyTimeline'
+        qcm_multiple: {
+            icon: '☑️',
+            label: 'QCM Multiple',
+            render: 'renderQCMMultiple',
+            verify: 'verifyQCMMultiple'
         },
-        chronologie: {
-            icon: '🗓️',
-            label: 'Chronologie',
-            render: 'renderChronologie',
-            verify: 'verifyChronologie'
+        vrai_faux: {
+            icon: '✅',
+            label: 'Vrai ou Faux',
+            render: 'renderVraiFaux',
+            verify: 'verifyVraiFaux'
         },
+        trous: {
+            icon: '📝',
+            label: 'Texte à trous',
+            render: 'renderTrous',
+            verify: 'verifyTrous'
+        },
+        association: {
+            icon: '🔗',
+            label: 'Association',
+            render: 'renderAssociation',
+            verify: 'verifyAssociation'
+        },
+        ordonner: {
+            icon: '📋',
+            label: 'Ordonner',
+            render: 'renderOrdonner',
+            verify: 'verifyOrdonner'
+        },
+        // Formats avancés
+        question_ouverte: {
+            icon: '✍️',
+            label: 'Question ouverte',
+            render: 'renderQuestionOuverte',
+            verify: 'verifyQuestionOuverte'
+        },
+        image_cliquable: {
+            icon: '🗺️',
+            label: 'Image cliquable',
+            render: 'renderImageCliquable',
+            verify: 'verifyImageCliquable'
+        },
+        // Alias pour compatibilité avec anciennes données
         'question-ouverte': {
             icon: '✍️',
             label: 'Question ouverte',
@@ -46,6 +79,18 @@ const EleveEntrainement = {
             label: 'Image cliquable',
             render: 'renderImageCliquable',
             verify: 'verifyImageCliquable'
+        },
+        timeline: {
+            icon: '📅',
+            label: 'Timeline',
+            render: 'renderOrdonner',
+            verify: 'verifyOrdonner'
+        },
+        chronologie: {
+            icon: '🗓️',
+            label: 'Chronologie',
+            render: 'renderTrous',
+            verify: 'verifyTrous'
         }
     },
 
@@ -74,9 +119,176 @@ const EleveEntrainement = {
 
     // ========== CHARGEMENT DONNÉES ==========
     async loadTraining(trainingId) {
-        // TODO: Charger depuis Google Sheets
-        // Pour l'instant, utiliser les données mock
-        this.loadMockData();
+        try {
+            // Charger depuis Google Sheets via Apps Script
+            const response = await this.callAPI('getEntrainement', { id: trainingId });
+
+            if (!response.success || !response.data) {
+                throw new Error(response.error || 'Entraînement non trouvé');
+            }
+
+            const data = response.data;
+
+            // Configurer l'entraînement
+            this.training = {
+                id: data.id,
+                titre: data.titre,
+                niveau: data.niveau,
+                chapitre_id: data.chapitre_id,
+                description: data.description,
+                type: data.niveau // connaissances, savoir-faire, competences
+            };
+
+            // Convertir durée en secondes (format: "10" pour 10 minutes)
+            const dureeMinutes = parseInt(data.duree_estimee) || 10;
+            this.duration = dureeMinutes * 60;
+            this.remainingTime = this.duration;
+
+            // Convertir les questions en steps
+            this.steps = this.convertQuestionsToSteps(data.questions || []);
+
+            // Initialiser les réponses
+            this.answers = {};
+            this.results = {};
+
+        } catch (error) {
+            console.error('Erreur chargement entraînement:', error);
+            // Fallback sur données mock en cas d'erreur
+            console.warn('Fallback sur données mock');
+            this.loadMockData();
+        }
+    },
+
+    /**
+     * Appel API vers Google Apps Script
+     */
+    async callAPI(action, params = {}) {
+        const url = new URL(CONFIG.WEBAPP_URL);
+        url.searchParams.set('action', action);
+
+        // Ajouter les paramètres
+        Object.keys(params).forEach(key => {
+            url.searchParams.set(key, params[key]);
+        });
+
+        // Utiliser JSONP pour contourner CORS
+        return new Promise((resolve, reject) => {
+            const callbackName = 'entrainementCallback_' + Date.now();
+            const script = document.createElement('script');
+
+            window[callbackName] = (data) => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                resolve(data);
+            };
+
+            script.onerror = () => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('Erreur réseau'));
+            };
+
+            url.searchParams.set('callback', callbackName);
+            script.src = url.toString();
+            document.body.appendChild(script);
+
+            // Timeout après 15 secondes
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                    if (script.parentNode) {
+                        document.body.removeChild(script);
+                    }
+                    reject(new Error('Timeout'));
+                }
+            }, 15000);
+        });
+    },
+
+    /**
+     * Convertit les questions du format Sheet vers le format steps
+     */
+    convertQuestionsToSteps(questions) {
+        return questions.map(q => {
+            const formatType = q.format?.type_base || q.format_id?.replace('format_', '') || 'qcm';
+            const donnees = q.donnees || {};
+
+            // Structure de base
+            const step = {
+                format: formatType,
+                titre: q.enonce || 'Question',
+                description: q.explication || '',
+                points: q.points || 1,
+                question_id: q.id
+            };
+
+            // Adapter selon le format
+            switch (formatType) {
+                case 'qcm':
+                    step.questions = [{
+                        id: q.id,
+                        question: q.enonce,
+                        options: donnees.options || [],
+                        correctIndex: donnees.reponse_correcte,
+                        explanation: q.explication
+                    }];
+                    break;
+
+                case 'qcm_multiple':
+                    step.questions = [{
+                        id: q.id,
+                        question: q.enonce,
+                        options: donnees.options || [],
+                        correctIndices: donnees.reponses_correctes || [],
+                        explanation: q.explication
+                    }];
+                    break;
+
+                case 'vrai_faux':
+                    step.questions = [{
+                        id: q.id,
+                        question: q.enonce,
+                        correctAnswer: donnees.reponse_correcte,
+                        explanation: q.explication
+                    }];
+                    break;
+
+                case 'trous':
+                    step.texte = donnees.texte || q.enonce;
+                    step.trous = donnees.trous || [];
+                    break;
+
+                case 'association':
+                    step.paires = donnees.paires || [];
+                    break;
+
+                case 'ordonner':
+                    step.elements = donnees.elements || [];
+                    step.ordre_correct = donnees.ordre_correct || [];
+                    break;
+
+                case 'question_ouverte':
+                    step.questions = [{
+                        id: q.id,
+                        question: q.enonce,
+                        keywords: donnees.mots_cles || [],
+                        correction: q.explication
+                    }];
+                    break;
+
+                case 'image_cliquable':
+                    step.imageUrl = donnees.image_url || '';
+                    step.zones = donnees.zones || [];
+                    step.questions = donnees.questions || [];
+                    break;
+
+                default:
+                    // Format inconnu, essayer de garder les données brutes
+                    Object.assign(step, donnees);
+            }
+
+            return step;
+        });
     },
 
     loadMockData() {
@@ -735,6 +947,611 @@ const EleveEntrainement = {
         } else {
             window.history.back();
         }
+    },
+
+    // ========== FORMAT VRAI/FAUX ==========
+    renderVraiFaux(step) {
+        const container = document.getElementById('exerciseContainer');
+        const isVerified = this.results[this.currentStepIndex]?.verified;
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon vrai-faux">${this.getFormatIcon('vrai_faux')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description || 'Répondez Vrai ou Faux'}</p>
+                    </div>
+                    <span class="exercise-badge">${step.questions?.length || 1} question(s)</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="vrai-faux-list">
+                        ${(step.questions || [{ id: 'q1', question: step.titre, correctAnswer: step.correctAnswer }]).map((q, qIndex) => {
+                            const answer = stepAnswers[q.id];
+                            const isCorrect = isVerified && answer === q.correctAnswer;
+                            const isIncorrect = isVerified && answer !== undefined && answer !== q.correctAnswer;
+                            const notAnswered = isVerified && answer === undefined;
+
+                            return `
+                                <div class="vrai-faux-item ${isVerified ? (isCorrect ? 'correct' : 'incorrect') : ''}">
+                                    <div class="vrai-faux-question">
+                                        <span class="vrai-faux-number">${qIndex + 1}</span>
+                                        <span class="vrai-faux-text">${this.escapeHtml(q.question)}</span>
+                                    </div>
+                                    <div class="vrai-faux-buttons">
+                                        <button class="vrai-faux-btn vrai ${answer === true ? 'selected' : ''} ${isVerified && q.correctAnswer === true ? 'correct-answer' : ''} ${isVerified ? 'disabled' : ''}"
+                                                onclick="EleveEntrainement.selectVraiFaux('${q.id}', true)"
+                                                ${isVerified ? 'disabled' : ''}>
+                                            Vrai
+                                        </button>
+                                        <button class="vrai-faux-btn faux ${answer === false ? 'selected' : ''} ${isVerified && q.correctAnswer === false ? 'correct-answer' : ''} ${isVerified ? 'disabled' : ''}"
+                                                onclick="EleveEntrainement.selectVraiFaux('${q.id}', false)"
+                                                ${isVerified ? 'disabled' : ''}>
+                                            Faux
+                                        </button>
+                                    </div>
+                                    ${isVerified ? `
+                                        <div class="vrai-faux-feedback ${isCorrect ? 'correct' : 'incorrect'}">
+                                            ${isCorrect ? '✓ Correct' : (notAnswered ? '⚠️ Non répondu' : '✗ Incorrect')}
+                                            ${q.explanation ? `<p>${this.escapeHtml(q.explanation)}</p>` : ''}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${this.renderNavigationButtons()}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    selectVraiFaux(questionId, value) {
+        if (this.results[this.currentStepIndex]?.verified) return;
+
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = {};
+        }
+        this.answers[this.currentStepIndex][questionId] = value;
+        this.renderCurrentStep();
+    },
+
+    verifyVraiFaux() {
+        const step = this.steps[this.currentStepIndex];
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+        const questions = step.questions || [{ id: 'q1', correctAnswer: step.correctAnswer }];
+
+        let correct = 0;
+        questions.forEach(q => {
+            if (stepAnswers[q.id] === q.correctAnswer) {
+                correct++;
+            }
+        });
+
+        this.results[this.currentStepIndex] = {
+            verified: true,
+            correct,
+            total: questions.length,
+            score: Math.round((correct / questions.length) * 100)
+        };
+
+        this.renderCurrentStep();
+    },
+
+    // ========== FORMAT QCM MULTIPLE ==========
+    renderQCMMultiple(step) {
+        const container = document.getElementById('exerciseContainer');
+        const isVerified = this.results[this.currentStepIndex]?.verified;
+
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = { selections: {} };
+        }
+
+        const stepAnswers = this.answers[this.currentStepIndex];
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon qcm-multiple">${this.getFormatIcon('qcm_multiple')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description || 'Plusieurs réponses possibles'}</p>
+                    </div>
+                    <span class="exercise-badge">${step.questions?.length || 1} question(s)</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="qcm-questions-list">
+                        ${(step.questions || []).map((q, qIndex) => {
+                            const selections = stepAnswers.selections[q.id] || [];
+                            const correctIndices = q.correctIndices || [];
+
+                            return `
+                                <div class="qcm-item ${isVerified ? 'answered' : ''}" id="qcm-${q.id}">
+                                    <div class="qcm-item-header">
+                                        <div class="qcm-item-number">${qIndex + 1}</div>
+                                        <div class="qcm-item-question">${this.escapeHtml(q.question)}</div>
+                                        <span class="qcm-item-hint">Plusieurs réponses possibles</span>
+                                    </div>
+                                    <div class="qcm-options">
+                                        ${q.options.map((option, optIndex) => {
+                                            const isSelected = selections.includes(optIndex);
+                                            const isCorrectOption = correctIndices.includes(optIndex);
+                                            let optionClass = isSelected ? 'selected' : '';
+
+                                            if (isVerified) {
+                                                optionClass += ' disabled';
+                                                if (isCorrectOption) optionClass += ' correct';
+                                                else if (isSelected) optionClass += ' incorrect';
+                                            }
+
+                                            return `
+                                                <div class="qcm-option checkbox ${optionClass}"
+                                                     onclick="EleveEntrainement.toggleQCMMultiple('${q.id}', ${optIndex})">
+                                                    <div class="qcm-checkbox">
+                                                        ${isSelected ? '✓' : ''}
+                                                    </div>
+                                                    <span class="qcm-option-text">${this.escapeHtml(option)}</span>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                    ${isVerified && q.explanation ? `
+                                        <div class="qcm-item-feedback show">
+                                            <div class="qcm-item-feedback-text">${this.escapeHtml(q.explanation)}</div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${this.renderNavigationButtons()}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    toggleQCMMultiple(questionId, optionIndex) {
+        if (this.results[this.currentStepIndex]?.verified) return;
+
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = { selections: {} };
+        }
+        if (!this.answers[this.currentStepIndex].selections[questionId]) {
+            this.answers[this.currentStepIndex].selections[questionId] = [];
+        }
+
+        const selections = this.answers[this.currentStepIndex].selections[questionId];
+        const index = selections.indexOf(optionIndex);
+
+        if (index === -1) {
+            selections.push(optionIndex);
+        } else {
+            selections.splice(index, 1);
+        }
+
+        this.renderCurrentStep();
+    },
+
+    verifyQCMMultiple() {
+        const step = this.steps[this.currentStepIndex];
+        const stepAnswers = this.answers[this.currentStepIndex] || { selections: {} };
+
+        let correct = 0;
+        const questions = step.questions || [];
+
+        questions.forEach(q => {
+            const selections = stepAnswers.selections[q.id] || [];
+            const correctIndices = q.correctIndices || [];
+
+            // Vérifier si les sélections correspondent exactement
+            const isCorrect = selections.length === correctIndices.length &&
+                              selections.every(s => correctIndices.includes(s));
+
+            if (isCorrect) correct++;
+        });
+
+        this.results[this.currentStepIndex] = {
+            verified: true,
+            correct,
+            total: questions.length,
+            score: Math.round((correct / questions.length) * 100)
+        };
+
+        this.renderCurrentStep();
+    },
+
+    // ========== FORMAT TROUS (Texte à trous) ==========
+    renderTrous(step) {
+        const container = document.getElementById('exerciseContainer');
+        const isVerified = this.results[this.currentStepIndex]?.verified;
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+
+        // Parser le texte avec les trous {0}, {1}, etc.
+        let texteHtml = this.escapeHtml(step.texte || step.titre);
+        const trous = step.trous || [];
+
+        trous.forEach((trou, index) => {
+            const userAnswer = stepAnswers[`trou_${index}`] || '';
+            const isCorrect = isVerified && this.normalizeText(userAnswer) === this.normalizeText(trou.reponse);
+
+            const inputHtml = `
+                <span class="trou-wrapper ${isVerified ? (isCorrect ? 'correct' : 'incorrect') : ''}">
+                    <input type="text"
+                           class="trou-input"
+                           id="trou_${index}"
+                           value="${this.escapeHtml(userAnswer)}"
+                           placeholder="${trou.indice || '...'}"
+                           ${isVerified ? 'disabled' : ''}
+                           onchange="EleveEntrainement.updateTrou(${index}, this.value)">
+                    ${isVerified && !isCorrect ? `<span class="trou-correction">${this.escapeHtml(trou.reponse)}</span>` : ''}
+                </span>
+            `;
+
+            texteHtml = texteHtml.replace(`{${index}}`, inputHtml);
+        });
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon trous">${this.getFormatIcon('trous')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre || 'Complétez le texte'}</h2>
+                        <p>${step.description || 'Remplissez les espaces vides'}</p>
+                    </div>
+                    <span class="exercise-badge">${trous.length} trou(s)</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="trous-texte">
+                        ${texteHtml}
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${this.renderNavigationButtons()}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    updateTrou(index, value) {
+        if (this.results[this.currentStepIndex]?.verified) return;
+
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = {};
+        }
+        this.answers[this.currentStepIndex][`trou_${index}`] = value;
+    },
+
+    verifyTrous() {
+        const step = this.steps[this.currentStepIndex];
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+        const trous = step.trous || [];
+
+        let correct = 0;
+        trous.forEach((trou, index) => {
+            const userAnswer = stepAnswers[`trou_${index}`] || '';
+            if (this.normalizeText(userAnswer) === this.normalizeText(trou.reponse)) {
+                correct++;
+            }
+        });
+
+        this.results[this.currentStepIndex] = {
+            verified: true,
+            correct,
+            total: trous.length,
+            score: Math.round((correct / trous.length) * 100)
+        };
+
+        this.renderCurrentStep();
+    },
+
+    // ========== FORMAT ASSOCIATION ==========
+    renderAssociation(step) {
+        const container = document.getElementById('exerciseContainer');
+        const isVerified = this.results[this.currentStepIndex]?.verified;
+
+        if (!this.answers[this.currentStepIndex]) {
+            // Mélanger les éléments de droite
+            const rightItems = step.paires.map((p, i) => ({ text: p.droite, originalIndex: i }));
+            this.answers[this.currentStepIndex] = {
+                shuffledRight: this.shuffleArray(rightItems),
+                connections: {}
+            };
+        }
+
+        const stepAnswers = this.answers[this.currentStepIndex];
+        const paires = step.paires || [];
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon association">${this.getFormatIcon('association')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description || 'Reliez les éléments correspondants'}</p>
+                    </div>
+                    <span class="exercise-badge">${paires.length} paires</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="association-instruction">
+                        <span class="association-instruction-icon">💡</span>
+                        <span>Cliquez sur un élément à gauche puis sur son correspondant à droite</span>
+                    </div>
+
+                    <div class="association-container">
+                        <div class="association-column association-left">
+                            ${paires.map((p, index) => {
+                                const isConnected = stepAnswers.connections[index] !== undefined;
+                                const isCorrect = isVerified && stepAnswers.connections[index] === index;
+                                const isActive = stepAnswers.activeLeft === index;
+
+                                return `
+                                    <div class="association-item ${isActive ? 'active' : ''} ${isConnected ? 'connected' : ''} ${isVerified ? (isCorrect ? 'correct' : 'incorrect') : ''}"
+                                         data-index="${index}"
+                                         onclick="EleveEntrainement.selectAssociationLeft(${index})">
+                                        ${this.escapeHtml(p.gauche)}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        <div class="association-column association-right">
+                            ${stepAnswers.shuffledRight.map((item, displayIndex) => {
+                                const isConnected = Object.values(stepAnswers.connections).includes(item.originalIndex);
+                                const connectedLeft = Object.keys(stepAnswers.connections).find(k => stepAnswers.connections[k] === item.originalIndex);
+                                const isCorrect = isVerified && connectedLeft !== undefined && parseInt(connectedLeft) === item.originalIndex;
+
+                                return `
+                                    <div class="association-item ${isConnected ? 'connected' : ''} ${isVerified ? (isCorrect ? 'correct' : (isConnected ? 'incorrect' : '')) : ''}"
+                                         data-original="${item.originalIndex}"
+                                         onclick="EleveEntrainement.selectAssociationRight(${item.originalIndex})">
+                                        ${this.escapeHtml(item.text)}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${!isVerified ? `<button class="btn btn-secondary" onclick="EleveEntrainement.resetAssociations()">Réinitialiser</button>` : ''}
+                        ${this.renderNavigationButtons()}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    selectAssociationLeft(index) {
+        if (this.results[this.currentStepIndex]?.verified) return;
+
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = { shuffledRight: [], connections: {} };
+        }
+
+        this.answers[this.currentStepIndex].activeLeft = index;
+        this.renderCurrentStep();
+    },
+
+    selectAssociationRight(originalIndex) {
+        if (this.results[this.currentStepIndex]?.verified) return;
+
+        const stepAnswers = this.answers[this.currentStepIndex];
+        if (stepAnswers.activeLeft === undefined) return;
+
+        // Supprimer les anciennes connexions vers cet élément de droite
+        Object.keys(stepAnswers.connections).forEach(key => {
+            if (stepAnswers.connections[key] === originalIndex) {
+                delete stepAnswers.connections[key];
+            }
+        });
+
+        // Créer la nouvelle connexion
+        stepAnswers.connections[stepAnswers.activeLeft] = originalIndex;
+        delete stepAnswers.activeLeft;
+
+        this.renderCurrentStep();
+    },
+
+    resetAssociations() {
+        if (this.results[this.currentStepIndex]?.verified) return;
+
+        if (this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex].connections = {};
+            delete this.answers[this.currentStepIndex].activeLeft;
+        }
+        this.renderCurrentStep();
+    },
+
+    verifyAssociation() {
+        const step = this.steps[this.currentStepIndex];
+        const stepAnswers = this.answers[this.currentStepIndex] || { connections: {} };
+        const paires = step.paires || [];
+
+        let correct = 0;
+        paires.forEach((_, index) => {
+            if (stepAnswers.connections[index] === index) {
+                correct++;
+            }
+        });
+
+        this.results[this.currentStepIndex] = {
+            verified: true,
+            correct,
+            total: paires.length,
+            score: Math.round((correct / paires.length) * 100)
+        };
+
+        this.renderCurrentStep();
+    },
+
+    // ========== FORMAT ORDONNER ==========
+    renderOrdonner(step) {
+        const container = document.getElementById('exerciseContainer');
+        const isVerified = this.results[this.currentStepIndex]?.verified;
+
+        // Utiliser events (ancien format) ou elements (nouveau format)
+        const elements = step.elements || step.events?.map(e => e.titre || e.description) || [];
+        const ordreCorrect = step.ordre_correct || step.events?.map((_, i) => i) || elements.map((_, i) => i);
+
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = {
+                order: this.shuffleArray([...elements.map((_, i) => i)])
+            };
+        }
+
+        const currentOrder = this.answers[this.currentStepIndex].order;
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon ordonner">${this.getFormatIcon('ordonner')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description || 'Remettez les éléments dans le bon ordre'}</p>
+                    </div>
+                    <span class="exercise-badge">${elements.length} éléments</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="ordonner-instruction">
+                        <span class="ordonner-instruction-icon">💡</span>
+                        <span>Utilisez les flèches pour réorganiser les éléments</span>
+                    </div>
+
+                    <div class="ordonner-container ${isVerified ? 'verified' : ''}" id="ordonnerContainer">
+                        ${currentOrder.map((elementIndex, position) => {
+                            const element = elements[elementIndex];
+                            const correctPosition = ordreCorrect.indexOf(elementIndex);
+                            const isCorrectPosition = isVerified && position === correctPosition;
+
+                            return `
+                                <div class="ordonner-item ${isVerified ? (isCorrectPosition ? 'correct' : 'incorrect') : ''}"
+                                     data-index="${elementIndex}">
+                                    <span class="ordonner-position">${position + 1}</span>
+                                    <span class="ordonner-text">${this.escapeHtml(typeof element === 'object' ? element.titre || element.text : element)}</span>
+                                    ${!isVerified ? `
+                                        <div class="ordonner-controls">
+                                            <button class="ordonner-btn" onclick="EleveEntrainement.moveOrdonner(${position}, -1)" ${position === 0 ? 'disabled' : ''}>▲</button>
+                                            <button class="ordonner-btn" onclick="EleveEntrainement.moveOrdonner(${position}, 1)" ${position === currentOrder.length - 1 ? 'disabled' : ''}>▼</button>
+                                        </div>
+                                    ` : `
+                                        <span class="ordonner-status">${isCorrectPosition ? '✓' : `→ ${correctPosition + 1}`}</span>
+                                    `}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${this.renderNavigationButtons()}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Setup drag and drop si non vérifié
+        if (!isVerified) {
+            this.setupOrdonnerDragDrop();
+        }
+    },
+
+    moveOrdonner(position, direction) {
+        if (this.results[this.currentStepIndex]?.verified) return;
+
+        const order = this.answers[this.currentStepIndex].order;
+        const newPosition = position + direction;
+
+        if (newPosition < 0 || newPosition >= order.length) return;
+
+        // Échanger les positions
+        [order[position], order[newPosition]] = [order[newPosition], order[position]];
+
+        this.renderCurrentStep();
+    },
+
+    setupOrdonnerDragDrop() {
+        const container = document.getElementById('ordonnerContainer');
+        if (!container) return;
+
+        const items = container.querySelectorAll('.ordonner-item');
+        let draggedItem = null;
+
+        items.forEach(item => {
+            item.draggable = true;
+
+            item.addEventListener('dragstart', (e) => {
+                draggedItem = item;
+                item.classList.add('dragging');
+            });
+
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                draggedItem = null;
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedItem && draggedItem !== item) {
+                    item.classList.add('drag-over');
+                }
+            });
+
+            item.addEventListener('dragleave', () => {
+                item.classList.remove('drag-over');
+            });
+
+            item.addEventListener('drop', (e) => {
+                e.preventDefault();
+                item.classList.remove('drag-over');
+
+                if (draggedItem && draggedItem !== item) {
+                    const order = this.answers[this.currentStepIndex].order;
+                    const fromIndex = Array.from(container.children).indexOf(draggedItem);
+                    const toIndex = Array.from(container.children).indexOf(item);
+
+                    // Réorganiser
+                    const [moved] = order.splice(fromIndex, 1);
+                    order.splice(toIndex, 0, moved);
+
+                    this.renderCurrentStep();
+                }
+            });
+        });
+    },
+
+    verifyOrdonner() {
+        const step = this.steps[this.currentStepIndex];
+        const currentOrder = this.answers[this.currentStepIndex]?.order || [];
+
+        const elements = step.elements || step.events?.map(e => e.titre || e.description) || [];
+        const ordreCorrect = step.ordre_correct || step.events?.map((_, i) => i) || elements.map((_, i) => i);
+
+        let correct = 0;
+        currentOrder.forEach((elementIndex, position) => {
+            if (ordreCorrect[position] === elementIndex) {
+                correct++;
+            }
+        });
+
+        this.results[this.currentStepIndex] = {
+            verified: true,
+            correct,
+            total: elements.length,
+            score: Math.round((correct / elements.length) * 100)
+        };
+
+        this.renderCurrentStep();
     },
 
     // ========== FORMAT TIMELINE ==========
