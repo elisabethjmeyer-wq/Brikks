@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Evaluation">
+    <title>Evaluation - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/eleve-layout.css">
+    <link rel="stylesheet" href="../css/eleve-entrainement.css">
+    <link rel="stylesheet" href="../css/eleve-evaluation.css">
+</head>
+<body>
+
+<div id="evaluation-page">
+    <!-- Header Evaluation -->
+    <header class="evaluation-header">
+        <div class="evaluation-header-inner">
+            <div class="evaluation-header-left">
+                <button class="btn-back" onclick="EleveEvaluation.quit()" title="Quitter">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+                <div class="evaluation-header-title">
+                    <h1 id="evaluationTitle">Chargement...</h1>
+                    <p id="evaluationSubtitle"></p>
+                </div>
+            </div>
+            <div class="evaluation-header-right">
+                <div class="evaluation-stakes" id="evaluationStakes">
+                    <span class="stakes-icon">V</span>
+                    <span class="stakes-value" id="stakesValue">0</span>
+                    <span class="stakes-label">validations en jeu</span>
+                </div>
+                <span class="type-badge" id="typeBadge">Evaluation</span>
+                <div class="timer" id="timer">
+                    <span>T</span>
+                    <span id="timerValue">0:00</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement de l'evaluation...</p>
+    </div>
+
+    <!-- Main Content -->
+    <main class="evaluation-main" id="evaluationContent" style="display: none;">
+        <!-- Progress Section -->
+        <div class="progress-section" id="progressSection" style="display: none;">
+            <div class="progress-header">
+                <h2>Progression</h2>
+                <span id="progressText">Question 1/1</span>
+            </div>
+            <div class="progress-steps" id="progressSteps">
+                <!-- Filled dynamically -->
+            </div>
+        </div>
+
+        <!-- Exercise Container -->
+        <div class="exercise-container" id="exerciseContainer">
+            <!-- Filled dynamically by exercise engine -->
+        </div>
+
+        <!-- Result Container (hidden by default) -->
+        <div class="result-container" id="resultContainer" style="display: none;">
+            <!-- Filled dynamically -->
+        </div>
+    </main>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal modal-small">
+        <div class="modal-header">
+            <h2 id="confirmModalTitle">Confirmation</h2>
+            <button class="modal-close" onclick="EleveEvaluation.closeConfirmModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="confirmModalMessage">Etes-vous sur ?</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="EleveEvaluation.closeConfirmModal()">Annuler</button>
+            <button class="btn btn-primary" id="confirmModalBtn">Confirmer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/eleve-evaluation.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        EleveEvaluation.init();
+    });
+</script>
+
+</body>
+</html>
