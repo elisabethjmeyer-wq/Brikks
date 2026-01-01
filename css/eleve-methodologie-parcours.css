@@ -25,10 +25,7 @@
 
 /* ===== BREADCRUMB ===== */
 .breadcrumb-bar {
-    background: var(--gray-100);
-    padding: 12px 16px;
-    margin: -20px -20px 20px -20px;
-    border-bottom: 1px solid var(--gray-200);
+    margin-bottom: 20px;
 }
 
 .breadcrumb {
@@ -40,23 +37,21 @@
 }
 
 .breadcrumb a {
-    color: var(--gray-500);
+    color: var(--primary);
     text-decoration: none;
     font-weight: 500;
-    transition: color 0.2s;
 }
 
 .breadcrumb a:hover {
-    color: var(--primary);
+    text-decoration: underline;
 }
 
 .breadcrumb .separator {
-    color: var(--gray-400);
+    color: var(--gray-300);
 }
 
 .breadcrumb .current {
-    color: var(--gray-800);
-    font-weight: 600;
+    color: var(--gray-600);
 }
 
 /* ===== VIDEO SECTION ===== */
@@ -708,11 +703,10 @@
 
 @media (max-width: 600px) {
     .breadcrumb-bar {
-        margin: -16px -16px 16px -16px;
+        margin-bottom: 16px;
     }
 
     .breadcrumb {
-        padding: 0 16px;
         font-size: 12px;
     }
 
