@@ -25,9 +25,10 @@
 
 /* ===== BREADCRUMB ===== */
 .breadcrumb-bar {
-    background: var(--primary);
-    padding: 12px 0;
+    background: var(--gray-100);
+    padding: 12px 16px;
     margin: -20px -20px 20px -20px;
+    border-bottom: 1px solid var(--gray-200);
 }
 
 .breadcrumb {
@@ -36,26 +37,25 @@
     gap: 8px;
     font-size: 13px;
     flex-wrap: wrap;
-    padding: 0 20px;
 }
 
 .breadcrumb a {
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--gray-500);
     text-decoration: none;
     font-weight: 500;
     transition: color 0.2s;
 }
 
 .breadcrumb a:hover {
-    color: white;
+    color: var(--primary);
 }
 
 .breadcrumb .separator {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--gray-400);
 }
 
 .breadcrumb .current {
-    color: white;
+    color: var(--gray-800);
     font-weight: 600;
 }
 
