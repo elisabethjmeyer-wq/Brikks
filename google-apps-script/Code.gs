@@ -35,7 +35,14 @@ const SHEETS = {
   // Anciennes tables (conservées pour compatibilité)
   METHODOLOGIE_CATEGORIES: 'METHODOLOGIE_CATEGORIES',
   METHODOLOGIE_COMPETENCES: 'METHODOLOGIE_COMPETENCES',
-  METHODOLOGIE_ETAPES: 'METHODOLOGIE_ETAPES'
+  METHODOLOGIE_ETAPES: 'METHODOLOGIE_ETAPES',
+  // Entraînements
+  FORMATS: 'FORMATS',
+  QUESTIONS: 'QUESTIONS',
+  TAGS: 'TAGS',
+  ENTRAINEMENTS: 'ENTRAINEMENTS',
+  ENTRAINEMENT_QUESTIONS: 'ENTRAINEMENT_QUESTIONS',
+  PROGRESSION_ENTRAINEMENTS: 'PROGRESSION_ENTRAINEMENTS'
 };
 
 // ========================================
@@ -282,6 +289,45 @@ function handleRequest(e) {
       // PROGRESSION LECONS
       case 'addProgressionLecons':
         result = addProgressionLecons(request);
+        break;
+
+      // ENTRAINEMENTS
+      case 'getEntrainements':
+        result = getEntrainements(request);
+        break;
+      case 'getEntrainement':
+        result = getEntrainement(request);
+        break;
+      case 'createEntrainement':
+        result = createEntrainement(request);
+        break;
+      case 'updateEntrainement':
+        result = updateEntrainement(request);
+        break;
+      case 'deleteEntrainement':
+        result = deleteEntrainement(request);
+        break;
+
+      // QUESTIONS D'ENTRAINEMENT
+      case 'getQuestions':
+        result = getQuestions(request);
+        break;
+      case 'createQuestion':
+        result = createQuestion(request);
+        break;
+      case 'updateQuestion':
+        result = updateQuestion(request);
+        break;
+      case 'deleteQuestion':
+        result = deleteQuestion(request);
+        break;
+
+      // PROGRESSION ENTRAINEMENTS
+      case 'saveProgressionEntrainement':
+        result = saveProgressionEntrainement(request);
+        break;
+      case 'getProgressionEntrainements':
+        result = getProgressionEntrainements(request);
         break;
 
       default:
@@ -2927,4 +2973,575 @@ function addProgressionLecons(data) {
     success: true,
     message: 'Progression leçon enregistrée avec succès'
   };
+}
+
+// ========================================
+// FONCTIONS ENTRAINEMENTS
+// ========================================
+
+/**
+ * Récupère la liste des entraînements
+ * @param {Object} data - { niveau?, chapitre_id?, statut? }
+ */
+function getEntrainements(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENTS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet ENTRAINEMENTS non trouvé' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length < 2) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const entrainements = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    const item = {};
+    headers.forEach((header, index) => {
+      item[header] = row[index];
+    });
+
+    // Filtrer si paramètres fournis
+    if (data.niveau && item.niveau !== data.niveau) continue;
+    if (data.chapitre_id && item.chapitre_id !== data.chapitre_id) continue;
+    if (data.statut && item.statut !== data.statut) continue;
+
+    if (item.id) {
+      entrainements.push(item);
+    }
+  }
+
+  return { success: true, data: entrainements };
+}
+
+/**
+ * Récupère un entraînement avec ses questions
+ * @param {Object} data - { id }
+ */
+function getEntrainement(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // 1. Récupérer l'entraînement
+  const entrSheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS);
+  const entrData = entrSheet.getDataRange().getValues();
+  const entrHeaders = entrData[0].map(h => String(h).toLowerCase().trim());
+
+  let entrainement = null;
+  for (let i = 1; i < entrData.length; i++) {
+    const row = entrData[i];
+    const idCol = entrHeaders.indexOf('id');
+    if (idCol >= 0 && String(row[idCol]).trim() === String(data.id).trim()) {
+      entrainement = {};
+      entrHeaders.forEach((header, index) => {
+        entrainement[header] = row[index];
+      });
+      break;
+    }
+  }
+
+  if (!entrainement) {
+    return { success: false, error: 'Entraînement non trouvé: ' + data.id };
+  }
+
+  // 2. Récupérer les liens entrainement_questions
+  const eqSheet = ss.getSheetByName(SHEETS.ENTRAINEMENT_QUESTIONS);
+  const eqData = eqSheet.getDataRange().getValues();
+  const eqHeaders = eqData[0].map(h => String(h).toLowerCase().trim());
+
+  const questionLinks = [];
+  for (let i = 1; i < eqData.length; i++) {
+    const row = eqData[i];
+    const entrIdCol = eqHeaders.indexOf('entrainement_id');
+    if (entrIdCol >= 0 && String(row[entrIdCol]).trim() === String(data.id).trim()) {
+      const link = {};
+      eqHeaders.forEach((header, index) => {
+        link[header] = row[index];
+      });
+      questionLinks.push(link);
+    }
+  }
+
+  // Trier par ordre
+  questionLinks.sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+
+  // 3. Récupérer les questions
+  const qSheet = ss.getSheetByName(SHEETS.QUESTIONS);
+  const qData = qSheet.getDataRange().getValues();
+  const qHeaders = qData[0].map(h => String(h).toLowerCase().trim());
+
+  const questionsMap = {};
+  for (let i = 1; i < qData.length; i++) {
+    const row = qData[i];
+    const idCol = qHeaders.indexOf('id');
+    if (idCol >= 0 && row[idCol]) {
+      const question = {};
+      qHeaders.forEach((header, index) => {
+        question[header] = row[index];
+      });
+      questionsMap[String(row[idCol]).trim()] = question;
+    }
+  }
+
+  // 4. Récupérer les formats
+  const fSheet = ss.getSheetByName(SHEETS.FORMATS);
+  const fData = fSheet.getDataRange().getValues();
+  const fHeaders = fData[0].map(h => String(h).toLowerCase().trim());
+
+  const formatsMap = {};
+  for (let i = 1; i < fData.length; i++) {
+    const row = fData[i];
+    const idCol = fHeaders.indexOf('id');
+    if (idCol >= 0 && row[idCol]) {
+      const format = {};
+      fHeaders.forEach((header, index) => {
+        format[header] = row[index];
+      });
+      formatsMap[String(row[idCol]).trim()] = format;
+    }
+  }
+
+  // 5. Assembler les questions avec leurs formats
+  const questions = questionLinks.map(link => {
+    const question = questionsMap[String(link.question_id).trim()] || {};
+    const format = formatsMap[String(question.format_id).trim()] || {};
+
+    // Parser le JSON des données
+    let donnees = {};
+    if (question.donnees) {
+      try {
+        donnees = JSON.parse(question.donnees);
+      } catch (e) {
+        donnees = {};
+      }
+    }
+
+    return {
+      ...question,
+      donnees: donnees,
+      format: format,
+      ordre: link.ordre,
+      points: link.points
+    };
+  });
+
+  entrainement.questions = questions;
+
+  return { success: true, data: entrainement };
+}
+
+/**
+ * Crée un nouvel entraînement
+ * @param {Object} data - { titre, niveau, chapitre_id, description, duree_estimee, statut, ordre }
+ */
+function createEntrainement(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENTS);
+
+  if (!data.titre) {
+    return { success: false, error: 'titre requis' };
+  }
+
+  const id = 'entr_' + new Date().getTime();
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  const newRow = headers.map(header => {
+    const col = String(header).toLowerCase().trim();
+    if (col === 'id') return id;
+    if (col === 'date_creation') return new Date().toISOString().split('T')[0];
+    if (col === 'statut') return data.statut || 'brouillon';
+    return data[col] !== undefined ? data[col] : '';
+  });
+
+  sheet.appendRow(newRow);
+
+  return { success: true, id: id, message: 'Entraînement créé' };
+}
+
+/**
+ * Met à jour un entraînement
+ * @param {Object} data - { id, ...fields }
+ */
+function updateEntrainement(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENTS);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Entraînement non trouvé' };
+  }
+
+  const updates = ['titre', 'niveau', 'chapitre_id', 'description', 'duree_estimee', 'statut', 'ordre'];
+  updates.forEach(col => {
+    if (data[col] !== undefined) {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(data[col]);
+      }
+    }
+  });
+
+  return { success: true, message: 'Entraînement mis à jour' };
+}
+
+/**
+ * Supprime un entraînement
+ * @param {Object} data - { id }
+ */
+function deleteEntrainement(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Supprimer les liens entrainement_questions
+  const eqSheet = ss.getSheetByName(SHEETS.ENTRAINEMENT_QUESTIONS);
+  const eqData = eqSheet.getDataRange().getValues();
+  const eqHeaders = eqData[0].map(h => String(h).toLowerCase().trim());
+  const eqIdCol = eqHeaders.indexOf('entrainement_id');
+
+  for (let i = eqData.length - 1; i >= 1; i--) {
+    if (String(eqData[i][eqIdCol]).trim() === String(data.id).trim()) {
+      eqSheet.deleteRow(i + 1);
+    }
+  }
+
+  // Supprimer l'entraînement
+  const sheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Entraînement supprimé' };
+    }
+  }
+
+  return { success: false, error: 'Entraînement non trouvé' };
+}
+
+// ========================================
+// FONCTIONS QUESTIONS
+// ========================================
+
+/**
+ * Récupère les questions (avec filtres optionnels)
+ * @param {Object} data - { format_id?, discipline_id?, theme_id?, chapitre_id?, difficulte? }
+ */
+function getQuestions(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEETS.QUESTIONS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet QUESTIONS non trouvé' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length < 2) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+
+  // Récupérer les formats pour enrichir
+  const fSheet = ss.getSheetByName(SHEETS.FORMATS);
+  const fData = fSheet.getDataRange().getValues();
+  const fHeaders = fData[0].map(h => String(h).toLowerCase().trim());
+  const formatsMap = {};
+  for (let i = 1; i < fData.length; i++) {
+    const row = fData[i];
+    const idCol = fHeaders.indexOf('id');
+    if (idCol >= 0 && row[idCol]) {
+      const format = {};
+      fHeaders.forEach((header, index) => {
+        format[header] = row[index];
+      });
+      formatsMap[String(row[idCol]).trim()] = format;
+    }
+  }
+
+  const questions = [];
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    const item = {};
+    headers.forEach((header, index) => {
+      item[header] = row[index];
+    });
+
+    // Filtrer
+    if (data.format_id && item.format_id !== data.format_id) continue;
+    if (data.discipline_id && item.discipline_id !== data.discipline_id) continue;
+    if (data.theme_id && item.theme_id !== data.theme_id) continue;
+    if (data.chapitre_id && item.chapitre_id !== data.chapitre_id) continue;
+    if (data.difficulte && item.difficulte !== data.difficulte) continue;
+
+    if (item.id) {
+      // Parser le JSON des données
+      if (item.donnees) {
+        try {
+          item.donnees = JSON.parse(item.donnees);
+        } catch (e) {
+          item.donnees = {};
+        }
+      }
+      item.format = formatsMap[String(item.format_id).trim()] || {};
+      questions.push(item);
+    }
+  }
+
+  return { success: true, data: questions };
+}
+
+/**
+ * Crée une nouvelle question
+ * @param {Object} data - { format_id, discipline_id, theme_id, chapitre_id, enonce, donnees, explication, tags, difficulte }
+ */
+function createQuestion(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS);
+
+  if (!data.format_id || !data.enonce) {
+    return { success: false, error: 'format_id et enonce requis' };
+  }
+
+  const id = 'quest_' + new Date().getTime();
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  const newRow = headers.map(header => {
+    const col = String(header).toLowerCase().trim();
+    if (col === 'id') return id;
+    if (col === 'date_creation') return new Date().toISOString().split('T')[0];
+    if (col === 'donnees' && typeof data.donnees === 'object') {
+      return JSON.stringify(data.donnees);
+    }
+    return data[col] !== undefined ? data[col] : '';
+  });
+
+  sheet.appendRow(newRow);
+
+  return { success: true, id: id, message: 'Question créée' };
+}
+
+/**
+ * Met à jour une question
+ * @param {Object} data - { id, ...fields }
+ */
+function updateQuestion(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Question non trouvée' };
+  }
+
+  const updates = ['format_id', 'discipline_id', 'theme_id', 'chapitre_id', 'enonce', 'donnees', 'explication', 'tags', 'difficulte'];
+  updates.forEach(col => {
+    if (data[col] !== undefined) {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        let value = data[col];
+        if (col === 'donnees' && typeof value === 'object') {
+          value = JSON.stringify(value);
+        }
+        sheet.getRange(rowIndex, colIndex + 1).setValue(value);
+      }
+    }
+  });
+
+  return { success: true, message: 'Question mise à jour' };
+}
+
+/**
+ * Supprime une question
+ * @param {Object} data - { id }
+ */
+function deleteQuestion(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Supprimer les liens entrainement_questions
+  const eqSheet = ss.getSheetByName(SHEETS.ENTRAINEMENT_QUESTIONS);
+  const eqData = eqSheet.getDataRange().getValues();
+  const eqHeaders = eqData[0].map(h => String(h).toLowerCase().trim());
+  const qIdCol = eqHeaders.indexOf('question_id');
+
+  for (let i = eqData.length - 1; i >= 1; i--) {
+    if (String(eqData[i][qIdCol]).trim() === String(data.id).trim()) {
+      eqSheet.deleteRow(i + 1);
+    }
+  }
+
+  // Supprimer la question
+  const sheet = ss.getSheetByName(SHEETS.QUESTIONS);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Question supprimée' };
+    }
+  }
+
+  return { success: false, error: 'Question non trouvée' };
+}
+
+// ========================================
+// FONCTIONS PROGRESSION ENTRAINEMENTS
+// ========================================
+
+/**
+ * Sauvegarde la progression d'un entraînement
+ * @param {Object} data - { eleve_id, entrainement_id, score, temps_passe, reponses, complete }
+ */
+function saveProgressionEntrainement(data) {
+  if (!data.eleve_id || !data.entrainement_id) {
+    return { success: false, error: 'eleve_id et entrainement_id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.PROGRESSION_ENTRAINEMENTS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet PROGRESSION_ENTRAINEMENTS non trouvé' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+
+  // Vérifier si une progression existe déjà
+  const eleveIdCol = headers.indexOf('eleve_id');
+  const entrIdCol = headers.indexOf('entrainement_id');
+
+  let existingRow = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][eleveIdCol]).trim() === String(data.eleve_id).trim() &&
+        String(allData[i][entrIdCol]).trim() === String(data.entrainement_id).trim()) {
+      existingRow = i + 1;
+      break;
+    }
+  }
+
+  if (existingRow > 0) {
+    // Mettre à jour
+    const updates = ['score', 'temps_passe', 'reponses', 'complete', 'date_completion'];
+    updates.forEach(col => {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        let value = data[col];
+        if (col === 'reponses' && typeof value === 'object') {
+          value = JSON.stringify(value);
+        }
+        if (col === 'date_completion' && data.complete) {
+          value = new Date().toISOString().split('T')[0];
+        }
+        if (value !== undefined) {
+          sheet.getRange(existingRow, colIndex + 1).setValue(value);
+        }
+      }
+    });
+
+    return { success: true, message: 'Progression mise à jour' };
+  } else {
+    // Créer
+    const id = 'prog_entr_' + new Date().getTime();
+    const newRow = headers.map(header => {
+      if (header === 'id') return id;
+      if (header === 'eleve_id') return data.eleve_id;
+      if (header === 'entrainement_id') return data.entrainement_id;
+      if (header === 'score') return data.score || 0;
+      if (header === 'temps_passe') return data.temps_passe || 0;
+      if (header === 'reponses') return typeof data.reponses === 'object' ? JSON.stringify(data.reponses) : (data.reponses || '{}');
+      if (header === 'complete') return data.complete ? 'TRUE' : 'FALSE';
+      if (header === 'date_completion') return data.complete ? new Date().toISOString().split('T')[0] : '';
+      return '';
+    });
+
+    sheet.appendRow(newRow);
+    return { success: true, id: id, message: 'Progression créée' };
+  }
+}
+
+/**
+ * Récupère les progressions d'un élève
+ * @param {Object} data - { eleve_id, entrainement_id? }
+ */
+function getProgressionEntrainements(data) {
+  if (!data.eleve_id) {
+    return { success: false, error: 'eleve_id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.PROGRESSION_ENTRAINEMENTS);
+  if (!sheet) {
+    return { success: true, data: [] };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length < 2) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const progressions = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    const item = {};
+    headers.forEach((header, index) => {
+      item[header] = row[index];
+    });
+
+    if (String(item.eleve_id).trim() !== String(data.eleve_id).trim()) continue;
+    if (data.entrainement_id && String(item.entrainement_id).trim() !== String(data.entrainement_id).trim()) continue;
+
+    // Parser le JSON des réponses
+    if (item.reponses) {
+      try {
+        item.reponses = JSON.parse(item.reponses);
+      } catch (e) {
+        item.reponses = {};
+      }
+    }
+
+    progressions.push(item);
+  }
+
+  return { success: true, data: progressions };
 }
