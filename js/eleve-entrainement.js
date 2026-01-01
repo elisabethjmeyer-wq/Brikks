@@ -174,6 +174,25 @@ const EleveEntrainement = {
                         explanation: 'Le poivre était surnommé "l\'or noir" et valait son poids en or à l\'époque.'
                     }
                 ]
+            },
+            {
+                format: 'question-ouverte',
+                titre: 'Réflexion',
+                description: 'Répondez aux questions avec vos propres mots',
+                questions: [
+                    {
+                        id: 'qo1',
+                        question: 'Pourquoi les Portugais ont-ils cherché une route maritime vers l\'Inde ?',
+                        keywords: ['épices', 'commerce', 'or', 'richesse', 'Ottomans', 'routes terrestres'],
+                        correction: 'Les Portugais cherchaient à contourner les routes terrestres contrôlées par les Ottomans pour accéder directement au commerce des épices et autres richesses d\'Asie, réduisant ainsi les intermédiaires et les coûts.'
+                    },
+                    {
+                        id: 'qo2',
+                        question: 'Quelles ont été les conséquences des grandes découvertes pour les populations locales ?',
+                        keywords: ['colonisation', 'esclavage', 'maladies', 'exploitation', 'culture'],
+                        correction: 'Les grandes découvertes ont souvent eu des conséquences dramatiques pour les populations locales : colonisation, exploitation des ressources, esclavage, propagation de maladies européennes, et destruction des cultures traditionnelles.'
+                    }
+                ]
             }
         ];
 
@@ -941,6 +960,139 @@ const EleveEntrainement = {
             correct,
             total,
             score: total > 0 ? Math.round((correct / total) * 100) : 100
+        };
+
+        this.renderCurrentStep();
+    },
+
+    // ========== FORMAT QUESTION OUVERTE ==========
+    renderQuestionOuverte(step) {
+        const container = document.getElementById('exerciseContainer');
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+        const isVerified = this.results[this.currentStepIndex]?.verified;
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon question-ouverte">${this.getFormatIcon('question-ouverte')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description}</p>
+                    </div>
+                    <span class="exercise-badge">${step.questions.length} question${step.questions.length > 1 ? 's' : ''}</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="question-ouverte-list">
+                        ${step.questions.map((q, index) => this.renderQuestionOuverteItem(q, index, stepAnswers, isVerified)).join('')}
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${isVerified ? `
+                            <button class="btn btn-secondary" onclick="EleveEntrainement.resetStep()">🔄 Recommencer</button>
+                            ${this.currentStepIndex < this.steps.length - 1 ? `
+                                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante →</button>
+                            ` : `
+                                <button class="btn btn-success" onclick="EleveEntrainement.showResults()">🏆 Voir les résultats</button>
+                            `}
+                        ` : `
+                            <button class="btn btn-success" onclick="EleveEntrainement.verifyCurrentStep()">✓ Voir la correction</button>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderQuestionOuverteItem(question, index, stepAnswers, isVerified) {
+        const answer = stepAnswers[question.id] || '';
+        const keywordsFound = isVerified ? this.checkKeywords(answer, question.keywords || []) : [];
+        const hasAnswer = answer.trim().length > 0;
+
+        return `
+            <div class="question-ouverte-item ${isVerified ? 'verified' : ''}">
+                <div class="question-ouverte-header">
+                    <div class="question-ouverte-number">${index + 1}</div>
+                    <div class="question-ouverte-text">${this.escapeHtml(question.question)}</div>
+                </div>
+
+                <div class="question-ouverte-answer">
+                    <textarea
+                        class="question-ouverte-textarea"
+                        placeholder="Écrivez votre réponse ici..."
+                        ${isVerified ? 'disabled' : ''}
+                        onchange="EleveEntrainement.setQuestionOuverteAnswer('${question.id}', this.value)"
+                        oninput="EleveEntrainement.setQuestionOuverteAnswer('${question.id}', this.value)"
+                    >${this.escapeHtml(answer)}</textarea>
+
+                    ${!isVerified && question.keywords ? `
+                        <div class="question-ouverte-hint">
+                            <span>💡</span> Mots-clés attendus : ${question.keywords.length}
+                        </div>
+                    ` : ''}
+                </div>
+
+                ${isVerified ? `
+                    <div class="question-ouverte-feedback">
+                        ${question.keywords && question.keywords.length > 0 ? `
+                            <div class="question-ouverte-keywords">
+                                <div class="question-ouverte-keywords-title">Mots-clés attendus :</div>
+                                <div class="question-ouverte-keywords-list">
+                                    ${question.keywords.map(kw => {
+                                        const found = keywordsFound.includes(kw.toLowerCase());
+                                        return `<span class="keyword-tag ${found ? 'found' : 'missing'}">${found ? '✓' : '✗'} ${this.escapeHtml(kw)}</span>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${question.correction ? `
+                            <div class="question-ouverte-correction">
+                                <div class="question-ouverte-correction-title">Réponse attendue :</div>
+                                <div class="question-ouverte-correction-text">${this.escapeHtml(question.correction)}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    setQuestionOuverteAnswer(questionId, value) {
+        if (!this.answers[this.currentStepIndex]) {
+            this.answers[this.currentStepIndex] = {};
+        }
+        this.answers[this.currentStepIndex][questionId] = value;
+    },
+
+    checkKeywords(answer, keywords) {
+        const normalizedAnswer = this.normalizeAnswer(answer);
+        return keywords.filter(kw => {
+            const normalizedKw = this.normalizeAnswer(kw);
+            return normalizedAnswer.includes(normalizedKw);
+        }).map(kw => kw.toLowerCase());
+    },
+
+    verifyQuestionOuverte() {
+        const step = this.steps[this.currentStepIndex];
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+
+        let totalKeywords = 0;
+        let foundKeywords = 0;
+
+        step.questions.forEach(q => {
+            if (q.keywords && q.keywords.length > 0) {
+                totalKeywords += q.keywords.length;
+                const answer = stepAnswers[q.id] || '';
+                foundKeywords += this.checkKeywords(answer, q.keywords).length;
+            }
+        });
+
+        this.results[this.currentStepIndex] = {
+            verified: true,
+            correct: foundKeywords,
+            total: totalKeywords,
+            score: totalKeywords > 0 ? Math.round((foundKeywords / totalKeywords) * 100) : 100
         };
 
         this.renderCurrentStep();
