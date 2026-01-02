@@ -50,7 +50,8 @@ const SHEETS = {
   // Banques d'exercices (nouveau système)
   BANQUES_EXERCICES: 'BANQUES_EXERCICES',
   FORMATS_EXERCICES: 'FORMATS_EXERCICES',
-  EXERCICES: 'EXERCICES'
+  EXERCICES: 'EXERCICES',
+  RESULTATS_EXERCICES: 'RESULTATS_EXERCICES'
 };
 
 // ========================================
@@ -419,6 +420,14 @@ function handleRequest(e) {
         break;
       case 'deleteExercice':
         result = deleteExercice(request);
+        break;
+
+      // RESULTATS EXERCICES (suivi de progression)
+      case 'getResultatsEleve':
+        result = getResultatsEleve(request);
+        break;
+      case 'saveResultatExercice':
+        result = saveResultatExercice(request);
         break;
 
       default:
@@ -4862,4 +4871,120 @@ function deleteExercice(data) {
   }
 
   return { success: false, error: 'Exercice non trouvé' };
+}
+
+// ========================================
+// FONCTIONS RESULTATS EXERCICES
+// ========================================
+
+/**
+ * Récupère les résultats d'un élève
+ * @param {Object} data - { eleve_id }
+ */
+function getResultatsEleve(data) {
+  if (!data.eleve_id) {
+    return { success: false, error: 'eleve_id requis' };
+  }
+
+  const sheetName = SHEETS.RESULTATS_EXERCICES;
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
+
+  // Create sheet if it doesn't exist
+  if (!sheet) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(['id', 'eleve_id', 'exercice_id', 'banque_id', 'score', 'bonnes_reponses', 'total_questions', 'temps_passe', 'date']);
+    return { success: true, data: [] };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const eleveIdCol = headers.indexOf('eleve_id');
+
+  const results = [];
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][eleveIdCol]).trim() === String(data.eleve_id).trim()) {
+      const row = {};
+      headers.forEach((header, colIndex) => {
+        row[header] = allData[i][colIndex];
+      });
+      results.push(row);
+    }
+  }
+
+  return { success: true, data: results };
+}
+
+/**
+ * Enregistre un résultat d'exercice
+ * @param {Object} data - { eleve_id, exercice_id, banque_id, score, bonnes_reponses, total_questions, temps_passe, date }
+ */
+function saveResultatExercice(data) {
+  if (!data.eleve_id || !data.exercice_id) {
+    return { success: false, error: 'eleve_id et exercice_id requis' };
+  }
+
+  const sheetName = SHEETS.RESULTATS_EXERCICES;
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
+
+  // Create sheet if it doesn't exist
+  if (!sheet) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(['id', 'eleve_id', 'exercice_id', 'banque_id', 'score', 'bonnes_reponses', 'total_questions', 'temps_passe', 'date']);
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+
+  const eleveIdCol = headers.indexOf('eleve_id');
+  const exerciceIdCol = headers.indexOf('exercice_id');
+  const scoreCol = headers.indexOf('score');
+
+  // Check if result already exists for this student + exercise
+  let existingRowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][eleveIdCol]).trim() === String(data.eleve_id).trim() &&
+        String(allData[i][exerciceIdCol]).trim() === String(data.exercice_id).trim()) {
+      existingRowIndex = i + 1; // +1 because sheets are 1-indexed
+      break;
+    }
+  }
+
+  const id = existingRowIndex > 0
+    ? allData[existingRowIndex - 1][headers.indexOf('id')]
+    : 'res_' + new Date().getTime();
+
+  const rowData = [
+    id,
+    data.eleve_id,
+    data.exercice_id,
+    data.banque_id || '',
+    data.score || 0,
+    data.bonnes_reponses || 0,
+    data.total_questions || 0,
+    data.temps_passe || 0,
+    data.date || new Date().toISOString()
+  ];
+
+  if (existingRowIndex > 0) {
+    // Check if new score is better
+    const existingScore = Number(allData[existingRowIndex - 1][scoreCol]) || 0;
+    if (data.score > existingScore) {
+      // Update existing row with better score
+      const range = sheet.getRange(existingRowIndex, 1, 1, rowData.length);
+      range.setValues([rowData]);
+      return { success: true, message: 'Résultat mis à jour (meilleur score)', id: id };
+    } else {
+      return { success: true, message: 'Score précédent conservé (meilleur)', id: id };
+    }
+  } else {
+    // Insert new row
+    sheet.appendRow(rowData);
+    return { success: true, message: 'Résultat enregistré', id: id };
+  }
 }
