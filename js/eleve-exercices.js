@@ -11,15 +11,19 @@ const EleveExercices = {
     banques: [],
     exercices: [],
     formats: [],
+    resultats: [], // Résultats de l'élève
 
     // État
     currentBanque: null,
     currentExercise: null,
     timer: null,
     timeRemaining: 0,
+    exerciseStartTime: null, // Pour calculer le temps passé
+    currentUser: null, // Utilisateur connecté
 
     // Cache config (5 minutes TTL)
     CACHE_KEY: 'brikks_exercices_cache',
+    CACHE_RESULTATS_KEY: 'brikks_resultats_cache',
     CACHE_TTL: 5 * 60 * 1000,
 
     /**
@@ -29,25 +33,130 @@ const EleveExercices = {
     async init(type) {
         this.currentType = type;
 
+        // Get current user from auth
+        this.currentUser = await this.getCurrentUser();
+
         // Try to load from cache first for instant display
         const cached = this.loadFromCache();
         if (cached) {
             console.log('[Cache] Using cached data');
             this.applyData(cached.banques, cached.exercices, cached.formats);
+
+            // Load cached results
+            const cachedResultats = this.loadResultatsFromCache();
+            if (cachedResultats) {
+                this.resultats = cachedResultats;
+            }
+
             this.renderBanquesList();
 
             // Refresh in background (silently)
             this.refreshDataInBackground();
+            this.refreshResultatsInBackground();
         } else {
             // No cache, show loader and fetch
             this.showLoader('Chargement des exercices...');
             try {
                 await this.loadData();
+                await this.loadResultats();
                 this.renderBanquesList();
             } catch (error) {
                 console.error('Erreur lors du chargement:', error);
                 this.showError('Erreur lors du chargement des exercices');
             }
+        }
+    },
+
+    /**
+     * Get current user from auth system
+     */
+    async getCurrentUser() {
+        try {
+            if (typeof Auth !== 'undefined' && Auth.user) {
+                return Auth.user;
+            }
+            // Fallback: try to get from session
+            const session = localStorage.getItem('brikks_session');
+            if (session) {
+                return JSON.parse(session);
+            }
+            return null;
+        } catch (e) {
+            console.log('Could not get current user:', e);
+            return null;
+        }
+    },
+
+    /**
+     * Load results from cache
+     */
+    loadResultatsFromCache() {
+        try {
+            const cached = localStorage.getItem(this.CACHE_RESULTATS_KEY);
+            if (!cached) return null;
+
+            const data = JSON.parse(cached);
+            const now = Date.now();
+
+            if (data.timestamp && (now - data.timestamp) < this.CACHE_TTL) {
+                return data.resultats || [];
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    /**
+     * Save results to cache
+     */
+    saveResultatsToCache(resultats) {
+        try {
+            const data = {
+                resultats,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(this.CACHE_RESULTATS_KEY, JSON.stringify(data));
+        } catch (e) {
+            console.log('[Cache] Error saving resultats:', e);
+        }
+    },
+
+    /**
+     * Load student results from API
+     */
+    async loadResultats() {
+        if (!this.currentUser || !this.currentUser.id) {
+            console.log('No user logged in, skipping results load');
+            return;
+        }
+
+        try {
+            const result = await this.callAPI('getResultatsEleve', { eleve_id: this.currentUser.id });
+            if (result.success && result.data) {
+                this.resultats = result.data;
+                this.saveResultatsToCache(this.resultats);
+            }
+        } catch (e) {
+            console.log('Could not load results:', e);
+        }
+    },
+
+    /**
+     * Refresh results in background
+     */
+    async refreshResultatsInBackground() {
+        if (!this.currentUser || !this.currentUser.id) return;
+
+        try {
+            const result = await this.callAPI('getResultatsEleve', { eleve_id: this.currentUser.id });
+            if (result.success && result.data) {
+                this.resultats = result.data;
+                this.saveResultatsToCache(this.resultats);
+                console.log('[Cache] Results refreshed in background');
+            }
+        } catch (e) {
+            console.log('[Cache] Background results refresh failed:', e);
         }
     },
 
@@ -253,6 +362,14 @@ const EleveExercices = {
             .filter(e => e.banque_id === banqueId)
             .sort((a, b) => (a.numero || 0) - (b.numero || 0));
 
+        // Calculate progress for this banque
+        const completed = banqueExercices.filter(exo =>
+            this.resultats.some(r => r.exercice_id === exo.id)
+        ).length;
+        const progressPercent = banqueExercices.length > 0
+            ? Math.round((completed / banqueExercices.length) * 100)
+            : 0;
+
         const container = document.getElementById('exercices-content');
 
         let html = `
@@ -264,6 +381,18 @@ const EleveExercices = {
                 <h2>${this.escapeHtml(this.currentBanque.titre)}</h2>
                 ${this.currentBanque.description ? `<p>${this.escapeHtml(this.currentBanque.description)}</p>` : ''}
             </div>
+
+            ${banqueExercices.length > 0 ? `
+                <div class="progress-section">
+                    <div class="progress-header">
+                        <h3>Ta progression</h3>
+                        <span class="progress-stats">${completed}/${banqueExercices.length} exercices complétés</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
+                    </div>
+                </div>
+            ` : ''}
         `;
 
         if (banqueExercices.length === 0) {
@@ -279,6 +408,8 @@ const EleveExercices = {
 
             banqueExercices.forEach(exo => {
                 const format = this.formats.find(f => f.id === exo.format_id);
+                const result = this.getExerciseResult(exo.id);
+                const statusInfo = this.getStatusInfo(result);
 
                 html += `
                     <div class="exercice-item" onclick="EleveExercices.startExercise('${exo.id}')">
@@ -288,9 +419,10 @@ const EleveExercices = {
                             <div class="exercice-meta">
                                 ${format ? format.nom : 'Format inconnu'}
                                 ${exo.duree ? ` • ${Math.floor(exo.duree / 60)} min` : ''}
+                                ${result ? ` • Meilleur score: ${result.score}%` : ''}
                             </div>
                         </div>
-                        <span class="exercice-status new">Nouveau</span>
+                        <span class="exercice-status ${statusInfo.class}">${statusInfo.label}</span>
                     </div>
                 `;
             });
@@ -299,6 +431,30 @@ const EleveExercices = {
         }
 
         container.innerHTML = html;
+    },
+
+    /**
+     * Get the best result for an exercise
+     */
+    getExerciseResult(exerciceId) {
+        return this.resultats.find(r => r.exercice_id === exerciceId);
+    },
+
+    /**
+     * Get status info (class and label) based on result
+     */
+    getStatusInfo(result) {
+        if (!result) {
+            return { class: 'new', label: 'Nouveau' };
+        }
+
+        if (result.score === 100) {
+            return { class: 'completed', label: '✓ Parfait' };
+        } else if (result.score >= 50) {
+            return { class: 'in-progress', label: `${result.score}%` };
+        } else {
+            return { class: 'in-progress', label: `${result.score}%` };
+        }
     },
 
     /**
@@ -312,6 +468,7 @@ const EleveExercices = {
 
             if (result.success && result.data) {
                 this.currentExercise = result.data;
+                this.exerciseStartTime = Date.now(); // Track start time
                 this.renderExercise();
             } else {
                 this.showError('Exercice non trouvé');
@@ -458,7 +615,7 @@ const EleveExercices = {
     /**
      * Valide les réponses de l'exercice
      */
-    validateExercise() {
+    async validateExercise() {
         if (!this.currentExercise) return;
 
         // Arrêter le timer
@@ -515,6 +672,72 @@ const EleveExercices = {
             banner.className = 'result-banner show error';
             banner.textContent = `📊 ${correct}/${total} réponses correctes (${percent}%)`;
         }
+
+        // Save result to server
+        await this.saveResult(correct, total, percent);
+    },
+
+    /**
+     * Save exercise result to the server
+     */
+    async saveResult(correct, total, percent) {
+        if (!this.currentUser || !this.currentUser.id || !this.currentExercise) {
+            console.log('Cannot save result: no user or exercise');
+            return;
+        }
+
+        // Calculate time spent
+        const timeSpent = this.exerciseStartTime
+            ? Math.round((Date.now() - this.exerciseStartTime) / 1000)
+            : 0;
+
+        const resultData = {
+            eleve_id: this.currentUser.id,
+            exercice_id: this.currentExercise.id,
+            banque_id: this.currentExercise.banque_id,
+            score: percent,
+            bonnes_reponses: correct,
+            total_questions: total,
+            temps_passe: timeSpent,
+            date: new Date().toISOString()
+        };
+
+        try {
+            const result = await this.callAPI('saveResultatExercice', resultData);
+            if (result.success) {
+                console.log('Result saved successfully');
+                // Update local results cache
+                this.updateLocalResult(resultData);
+            } else {
+                console.log('Failed to save result:', result.error);
+            }
+        } catch (e) {
+            console.log('Error saving result:', e);
+        }
+    },
+
+    /**
+     * Update local results after saving
+     */
+    updateLocalResult(newResult) {
+        // Find existing result for this exercise
+        const existingIndex = this.resultats.findIndex(
+            r => r.exercice_id === newResult.exercice_id
+        );
+
+        if (existingIndex >= 0) {
+            // Update existing (keep best score)
+            const existing = this.resultats[existingIndex];
+            if (newResult.score > existing.score) {
+                this.resultats[existingIndex] = newResult;
+            }
+        } else {
+            // Add new result
+            this.resultats.push(newResult);
+        }
+
+        // Update cache
+        this.saveResultatsToCache(this.resultats);
     },
 
     /**
