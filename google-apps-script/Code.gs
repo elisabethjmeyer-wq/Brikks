@@ -42,7 +42,7 @@ const SHEETS = {
   TAGS: 'TAGS',
   ENTRAINEMENTS: 'ENTRAINEMENTS',
   ENTRAINEMENT_QUESTIONS: 'ENTRAINEMENT_QUESTIONS',
-  PROGRESSION_ENTRAINEMENTS: 'PROGRESSION_ENTRAINEMENTS',
+  RESULTATS_ENTRAINEMENT: 'RESULTATS_ENTRAINEMENT',
   // Evaluations
   EVALUATIONS: 'EVALUATIONS',
   EVALUATION_QUESTIONS: 'EVALUATION_QUESTIONS',
@@ -3605,23 +3605,24 @@ function deleteQuestion(data) {
 // ========================================
 
 /**
- * Sauvegarde la progression d'un entraînement
- * @param {Object} data - { eleve_id, entrainement_id, score, temps_passe, reponses, complete }
+ * Sauvegarde le résultat d'un entraînement
+ * @param {Object} data - { eleve_id, entrainement_id, score, score_max, pourcentage, termine }
+ * Colonnes GSheet: id, eleve_id, entrainement_id, score, score_max, pourcentage, termine, date
  */
 function saveProgressionEntrainement(data) {
   if (!data.eleve_id || !data.entrainement_id) {
     return { success: false, error: 'eleve_id et entrainement_id requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.PROGRESSION_ENTRAINEMENTS);
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.RESULTATS_ENTRAINEMENT);
   if (!sheet) {
-    return { success: false, error: 'Sheet PROGRESSION_ENTRAINEMENTS non trouvé' };
+    return { success: false, error: 'Sheet RESULTATS_ENTRAINEMENT non trouvé' };
   }
 
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0].map(h => String(h).toLowerCase().trim());
 
-  // Vérifier si une progression existe déjà
+  // Vérifier si un résultat existe déjà
   const eleveIdCol = headers.indexOf('eleve_id');
   const entrIdCol = headers.indexOf('entrainement_id');
 
@@ -3634,56 +3635,61 @@ function saveProgressionEntrainement(data) {
     }
   }
 
+  // Calculer le pourcentage si non fourni
+  const scoreMax = data.score_max || data.total || 1;
+  const score = data.score || 0;
+  const pourcentage = data.pourcentage !== undefined ? data.pourcentage : Math.round((score / scoreMax) * 100);
+  const termine = data.termine !== undefined ? data.termine : (data.complete ? true : false);
+
   if (existingRow > 0) {
     // Mettre à jour
-    const updates = ['score', 'temps_passe', 'reponses', 'complete', 'date_completion'];
-    updates.forEach(col => {
+    const updates = {
+      'score': score,
+      'score_max': scoreMax,
+      'pourcentage': pourcentage,
+      'termine': termine ? 'TRUE' : 'FALSE',
+      'date': new Date().toISOString().split('T')[0]
+    };
+
+    Object.keys(updates).forEach(col => {
       const colIndex = headers.indexOf(col);
       if (colIndex >= 0) {
-        let value = data[col];
-        if (col === 'reponses' && typeof value === 'object') {
-          value = JSON.stringify(value);
-        }
-        if (col === 'date_completion' && data.complete) {
-          value = new Date().toISOString().split('T')[0];
-        }
-        if (value !== undefined) {
-          sheet.getRange(existingRow, colIndex + 1).setValue(value);
-        }
+        sheet.getRange(existingRow, colIndex + 1).setValue(updates[col]);
       }
     });
 
-    return { success: true, message: 'Progression mise à jour' };
+    return { success: true, message: 'Résultat mis à jour' };
   } else {
     // Créer
-    const id = 'prog_entr_' + new Date().getTime();
+    const id = 'res_entr_' + new Date().getTime();
     const newRow = headers.map(header => {
       if (header === 'id') return id;
       if (header === 'eleve_id') return data.eleve_id;
       if (header === 'entrainement_id') return data.entrainement_id;
-      if (header === 'score') return data.score || 0;
-      if (header === 'temps_passe') return data.temps_passe || 0;
-      if (header === 'reponses') return typeof data.reponses === 'object' ? JSON.stringify(data.reponses) : (data.reponses || '{}');
-      if (header === 'complete') return data.complete ? 'TRUE' : 'FALSE';
-      if (header === 'date_completion') return data.complete ? new Date().toISOString().split('T')[0] : '';
+      if (header === 'score') return score;
+      if (header === 'score_max') return scoreMax;
+      if (header === 'pourcentage') return pourcentage;
+      if (header === 'termine') return termine ? 'TRUE' : 'FALSE';
+      if (header === 'date') return new Date().toISOString().split('T')[0];
       return '';
     });
 
     sheet.appendRow(newRow);
-    return { success: true, id: id, message: 'Progression créée' };
+    return { success: true, id: id, message: 'Résultat créé' };
   }
 }
 
 /**
- * Récupère les progressions d'un élève
+ * Récupère les résultats d'entraînement d'un élève
  * @param {Object} data - { eleve_id, entrainement_id? }
+ * Colonnes GSheet: id, eleve_id, entrainement_id, score, score_max, pourcentage, termine, date
  */
 function getProgressionEntrainements(data) {
   if (!data.eleve_id) {
     return { success: false, error: 'eleve_id requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.PROGRESSION_ENTRAINEMENTS);
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.RESULTATS_ENTRAINEMENT);
   if (!sheet) {
     return { success: true, data: [] };
   }
@@ -3694,7 +3700,7 @@ function getProgressionEntrainements(data) {
   }
 
   const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const progressions = [];
+  const resultats = [];
 
   for (let i = 1; i < allData.length; i++) {
     const row = allData[i];
@@ -3706,19 +3712,10 @@ function getProgressionEntrainements(data) {
     if (String(item.eleve_id).trim() !== String(data.eleve_id).trim()) continue;
     if (data.entrainement_id && String(item.entrainement_id).trim() !== String(data.entrainement_id).trim()) continue;
 
-    // Parser le JSON des réponses
-    if (item.reponses) {
-      try {
-        item.reponses = JSON.parse(item.reponses);
-      } catch (e) {
-        item.reponses = {};
-      }
-    }
-
-    progressions.push(item);
+    resultats.push(item);
   }
 
-  return { success: true, data: progressions };
+  return { success: true, data: resultats };
 }
 
 // ========================================
