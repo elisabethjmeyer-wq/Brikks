@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prévisualisation exercice - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .exercise-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .exercise-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+        }
+
+        .exercise-header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .exercise-meta {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+
+        .exercise-consigne {
+            background: #f8f9ff;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+            color: #4b5563;
+        }
+
+        .exercise-content {
+            padding: 2rem;
+        }
+
+        /* Tableau chronologique */
+        .tableau-exercice {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .tableau-exercice th {
+            background: #f3f4f6;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tableau-exercice td {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .tableau-exercice tr:last-child td {
+            border-bottom: none;
+        }
+
+        .tableau-exercice .date-cell {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 1.1rem;
+        }
+
+        .tableau-exercice input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .tableau-exercice input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+
+        .tableau-exercice input.correct {
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .tableau-exercice input.incorrect {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .exercise-actions {
+            padding: 1.5rem 2rem;
+            background: #f8f9ff;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 0.875rem 2rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+            background: #f3f4f6;
+        }
+
+        .result-banner {
+            padding: 1rem 2rem;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .result-banner.success {
+            background: #ecfdf5;
+            color: #059669;
+            display: block;
+        }
+
+        .result-banner.partial {
+            background: #fffbeb;
+            color: #d97706;
+            display: block;
+        }
+
+        .result-banner.error {
+            background: #fef2f2;
+            color: #dc2626;
+            display: block;
+        }
+
+        /* Loader */
+        .loader-container {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: white;
+        }
+
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Selection exercice */
+        .exercise-selector {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .exercise-selector h2 {
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        .exercise-selector select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-family: inherit;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+        }
+
+        .correction-row {
+            font-size: 0.85rem;
+            color: #059669;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="admin/banques-exercices.html" class="back-link">← Retour à l'admin</a>
+
+    <!-- Sélecteur d'exercice -->
+    <div class="exercise-selector">
+        <h2>Prévisualisation d'exercice</h2>
+        <select id="exerciceSelect">
+            <option value="">Chargement...</option>
+        </select>
+        <button class="btn btn-primary" onclick="loadSelectedExercise()">Charger l'exercice</button>
+    </div>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader" style="display: none;">
+        <div class="loader"></div>
+        <p>Chargement de l'exercice...</p>
+    </div>
+
+    <!-- Exercice -->
+    <div class="exercise-card" id="exerciseCard" style="display: none;">
+        <div class="exercise-header">
+            <h1 id="exerciseTitle">Exercice</h1>
+            <div class="exercise-meta" id="exerciseMeta"></div>
+        </div>
+
+        <div class="exercise-consigne" id="exerciseConsigne" style="display: none;"></div>
+
+        <div class="result-banner" id="resultBanner"></div>
+
+        <div class="exercise-content" id="exerciseContent">
+            <!-- Contenu dynamique -->
+        </div>
+
+        <div class="exercise-actions">
+            <button class="btn btn-secondary" onclick="resetExercise()">Recommencer</button>
+            <button class="btn btn-primary" onclick="validateExercise()">Valider</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/config.js"></script>
+<script>
+    let currentExercise = null;
+    let exercices = [];
+    let formats = [];
+    let banques = [];
+
+    // API call helper
+    function callAPI(action, params = {}) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+            const script = document.createElement('script');
+
+            window[callbackName] = function(response) {
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                resolve(response);
+            };
+
+            const queryParams = new URLSearchParams({
+                action: action,
+                callback: callbackName,
+                ...params
+            });
+
+            script.src = `${CONFIG.WEBAPP_URL}?${queryParams.toString()}`;
+            script.onerror = () => {
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                reject(new Error('API call failed'));
+            };
+
+            document.body.appendChild(script);
+        });
+    }
+
+    // Charger les données
+    async function init() {
+        try {
+            const [exoResult, formatResult, banqueResult] = await Promise.all([
+                callAPI('getExercices', {}),
+                callAPI('getFormatsExercices', {}),
+                callAPI('getBanquesExercices', {})
+            ]);
+
+            exercices = exoResult.success ? exoResult.data : [];
+            formats = formatResult.success ? formatResult.data : [];
+            banques = banqueResult.success ? banqueResult.data : [];
+
+            populateSelector();
+        } catch (error) {
+            console.error('Erreur:', error);
+        }
+    }
+
+    function populateSelector() {
+        const select = document.getElementById('exerciceSelect');
+
+        if (exercices.length === 0) {
+            select.innerHTML = '<option value="">Aucun exercice disponible</option>';
+            return;
+        }
+
+        select.innerHTML = '<option value="">Sélectionner un exercice...</option>' +
+            exercices.map(exo => {
+                const banque = banques.find(b => b.id === exo.banque_id);
+                const banqueName = banque ? banque.titre : 'Sans banque';
+                return `<option value="${exo.id}">${banqueName} - ${exo.titre || 'Exercice ' + exo.numero}</option>`;
+            }).join('');
+    }
+
+    function loadSelectedExercise() {
+        const select = document.getElementById('exerciceSelect');
+        const id = select.value;
+
+        if (!id) {
+            alert('Sélectionnez un exercice');
+            return;
+        }
+
+        loadExercise(id);
+    }
+
+    async function loadExercise(id) {
+        document.getElementById('loader').style.display = 'block';
+        document.getElementById('exerciseCard').style.display = 'none';
+
+        try {
+            const result = await callAPI('getExercice', { id });
+
+            if (result.success && result.data) {
+                currentExercise = result.data;
+                renderExercise();
+            } else {
+                alert('Erreur: ' + (result.error || 'Exercice non trouvé'));
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors du chargement');
+        }
+
+        document.getElementById('loader').style.display = 'none';
+    }
+
+    function renderExercise() {
+        const exo = currentExercise;
+        const banque = exo.banque || banques.find(b => b.id === exo.banque_id);
+        const format = exo.format || formats.find(f => f.id === exo.format_id);
+
+        document.getElementById('exerciseTitle').textContent = exo.titre || 'Exercice ' + exo.numero;
+        document.getElementById('exerciseMeta').textContent =
+            (banque ? banque.titre : '') + ' • ' + (format ? format.nom : 'Format inconnu');
+
+        if (exo.consigne) {
+            document.getElementById('exerciseConsigne').textContent = exo.consigne;
+            document.getElementById('exerciseConsigne').style.display = 'block';
+        } else {
+            document.getElementById('exerciseConsigne').style.display = 'none';
+        }
+
+        // Parse données si string
+        let donnees = exo.donnees;
+        if (typeof donnees === 'string') {
+            try {
+                donnees = JSON.parse(donnees);
+            } catch (e) {
+                donnees = {};
+            }
+        }
+
+        // Parse structure format si string
+        let structure = format ? format.structure : null;
+        if (typeof structure === 'string') {
+            try {
+                structure = JSON.parse(structure);
+            } catch (e) {
+                structure = {};
+            }
+        }
+
+        // Render selon le type
+        const typeUI = structure ? structure.type_ui : 'unknown';
+        const content = document.getElementById('exerciseContent');
+
+        if (typeUI === 'tableau_saisie') {
+            content.innerHTML = renderTableauSaisie(donnees, structure);
+        } else {
+            content.innerHTML = `
+                <div style="text-align: center; color: #6b7280; padding: 2rem;">
+                    <p>Type d'interface non supporté: ${typeUI}</p>
+                    <pre style="text-align: left; background: #f3f4f6; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; overflow: auto;">${JSON.stringify(donnees, null, 2)}</pre>
+                </div>
+            `;
+        }
+
+        document.getElementById('resultBanner').className = 'result-banner';
+        document.getElementById('resultBanner').style.display = 'none';
+        document.getElementById('exerciseCard').style.display = 'block';
+    }
+
+    function renderTableauSaisie(donnees, structure) {
+        const lignes = donnees.lignes || [];
+        const colonnes = structure.colonnes || [
+            { id: 'date', titre: 'Date', editable: false },
+            { id: 'siecle', titre: 'Siècle', editable: true }
+        ];
+
+        // Trouver la colonne de réponse (première colonne editable)
+        const reponseCol = colonnes.find(c => c.editable);
+        const questionCol = colonnes.find(c => !c.editable);
+
+        let html = `
+            <table class="tableau-exercice">
+                <thead>
+                    <tr>
+                        ${colonnes.map(col => `<th style="width: ${col.largeur || 'auto'}">${col.titre}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        lignes.forEach((ligne, index) => {
+            html += '<tr>';
+            colonnes.forEach(col => {
+                if (col.editable) {
+                    html += `
+                        <td>
+                            <input type="text"
+                                   id="input_${index}"
+                                   data-index="${index}"
+                                   placeholder="${col.placeholder || ''}"
+                                   autocomplete="off">
+                            <div class="correction-row" id="correction_${index}"></div>
+                        </td>
+                    `;
+                } else {
+                    // Afficher la date ou autre donnée non éditable
+                    const value = ligne[col.id] || ligne.date || '';
+                    html += `<td class="date-cell">${escapeHtml(value)}</td>`;
+                }
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        return html;
+    }
+
+    function validateExercise() {
+        if (!currentExercise) return;
+
+        let donnees = currentExercise.donnees;
+        if (typeof donnees === 'string') {
+            try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+        }
+
+        const lignes = donnees.lignes || [];
+        let correct = 0;
+        let total = lignes.length;
+
+        lignes.forEach((ligne, index) => {
+            const input = document.getElementById(`input_${index}`);
+            const correction = document.getElementById(`correction_${index}`);
+            if (!input) return;
+
+            const userAnswer = normalizeAnswer(input.value);
+            const correctAnswer = normalizeAnswer(ligne.reponse || ligne.siecle || '');
+
+            if (userAnswer === correctAnswer) {
+                input.className = 'correct';
+                correction.textContent = '';
+                correct++;
+            } else {
+                input.className = 'incorrect';
+                correction.textContent = '→ ' + (ligne.reponse || ligne.siecle || '');
+            }
+        });
+
+        // Afficher résultat
+        const banner = document.getElementById('resultBanner');
+        const percent = Math.round((correct / total) * 100);
+
+        if (percent === 100) {
+            banner.className = 'result-banner success';
+            banner.textContent = `Parfait ! ${correct}/${total} réponses correctes`;
+        } else if (percent >= 50) {
+            banner.className = 'result-banner partial';
+            banner.textContent = `${correct}/${total} réponses correctes (${percent}%)`;
+        } else {
+            banner.className = 'result-banner error';
+            banner.textContent = `${correct}/${total} réponses correctes (${percent}%)`;
+        }
+    }
+
+    function normalizeAnswer(str) {
+        return str.toLowerCase()
+            .trim()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '');
+    }
+
+    function resetExercise() {
+        if (!currentExercise) return;
+
+        let donnees = currentExercise.donnees;
+        if (typeof donnees === 'string') {
+            try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+        }
+
+        const lignes = donnees.lignes || [];
+
+        lignes.forEach((_, index) => {
+            const input = document.getElementById(`input_${index}`);
+            const correction = document.getElementById(`correction_${index}`);
+            if (input) {
+                input.value = '';
+                input.className = '';
+            }
+            if (correction) {
+                correction.textContent = '';
+            }
+        });
+
+        document.getElementById('resultBanner').className = 'result-banner';
+        document.getElementById('resultBanner').style.display = 'none';
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // Init
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
