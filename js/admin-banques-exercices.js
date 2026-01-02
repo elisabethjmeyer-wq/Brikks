@@ -1219,7 +1219,8 @@ const AdminBanquesExercices = {
         const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
         if (driveMatch) {
             const fileId = driveMatch[1];
-            return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            // Use lh3.googleusercontent.com format which works better for embedding
+            return `https://lh3.googleusercontent.com/d/${fileId}`;
         }
 
         // Already a direct link or other URL format
