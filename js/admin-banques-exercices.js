@@ -1115,8 +1115,9 @@ const AdminBanquesExercices = {
                 .qo-question-text { font-weight: 500; margin-bottom: 0.5rem; }
                 .qo-textarea { width: 100%; min-height: 80px; padding: 10px; border: 2px solid #dbeafe; border-radius: 6px; resize: vertical; }
             `;
+            const docImgUrl = this.convertToDirectImageUrl(donnees.document.contenu);
             const docContent = donnees.document.type === 'image'
-                ? `<img src="${this.escapeHtml(donnees.document.contenu)}" alt="Document">`
+                ? `<img src="${this.escapeHtml(docImgUrl)}" alt="Document">`
                 : `<p>${this.escapeHtml(donnees.document.contenu)}</p>`;
             contentHTML = `
                 <div class="qo-layout">
@@ -1128,6 +1129,51 @@ const AdminBanquesExercices = {
                                 <textarea class="qo-textarea" placeholder="Votre réponse..."></textarea>
                             </div>
                         `).join('')}
+                    </div>
+                </div>
+            `;
+        } else if (formatUI === 'document_tableau') {
+            // Document + Table format
+            this.readTableBuilderValues();
+            const donnees = this.buildDataFromTableBuilder();
+            const docType = document.getElementById('docTypeTableau').value;
+            const docContenu = document.getElementById('docContenuTableau').value;
+            const docImgUrl = this.convertToDirectImageUrl(docContenu);
+            extraStyles = `
+                .dt-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+                .dt-document { background: #f8f9ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #667eea; }
+                .dt-document img { max-width: 100%; height: auto; }
+                table { width: 100%; border-collapse: collapse; }
+                th { background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
+                th.editable { background: #dbeafe; color: #2563eb; }
+                td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
+                .data-cell { font-weight: 500; }
+                .input-cell input { width: 100%; padding: 8px 12px; border: 2px solid #dbeafe; border-radius: 6px; font-size: 14px; }
+            `;
+            const docContent = docType === 'image'
+                ? `<img src="${this.escapeHtml(docImgUrl)}" alt="Document">`
+                : `<p>${this.escapeHtml(docContenu)}</p>`;
+            contentHTML = `
+                <div class="dt-layout">
+                    <div class="dt-document">${docContent}</div>
+                    <div class="dt-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    ${donnees.colonnes.map(col => `<th class="${col.editable ? 'editable' : ''}">${this.escapeHtml(col.titre)}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${donnees.lignes.map(ligne => `
+                                    <tr>
+                                        ${donnees.colonnes.map((col, i) => col.editable
+                                            ? `<td class="input-cell"><input type="text" placeholder="..."></td>`
+                                            : `<td class="data-cell">${this.escapeHtml(ligne.cells[i] || '')}</td>`
+                                        ).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             `;
