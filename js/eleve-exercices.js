@@ -18,20 +18,118 @@ const EleveExercices = {
     timer: null,
     timeRemaining: 0,
 
+    // Cache config (5 minutes TTL)
+    CACHE_KEY: 'brikks_exercices_cache',
+    CACHE_TTL: 5 * 60 * 1000,
+
     /**
      * Initialise la page d'exercices
      * @param {string} type - Type d'exercices (savoir-faire, connaissances, competences)
      */
     async init(type) {
         this.currentType = type;
-        this.showLoader('Chargement des exercices...');
 
-        try {
-            await this.loadData();
+        // Try to load from cache first for instant display
+        const cached = this.loadFromCache();
+        if (cached) {
+            console.log('[Cache] Using cached data');
+            this.applyData(cached.banques, cached.exercices, cached.formats);
             this.renderBanquesList();
+
+            // Refresh in background (silently)
+            this.refreshDataInBackground();
+        } else {
+            // No cache, show loader and fetch
+            this.showLoader('Chargement des exercices...');
+            try {
+                await this.loadData();
+                this.renderBanquesList();
+            } catch (error) {
+                console.error('Erreur lors du chargement:', error);
+                this.showError('Erreur lors du chargement des exercices');
+            }
+        }
+    },
+
+    /**
+     * Load data from localStorage cache
+     */
+    loadFromCache() {
+        try {
+            const cached = localStorage.getItem(this.CACHE_KEY);
+            if (!cached) return null;
+
+            const data = JSON.parse(cached);
+            const now = Date.now();
+
+            // Check if cache is still valid
+            if (data.timestamp && (now - data.timestamp) < this.CACHE_TTL) {
+                return data;
+            }
+
+            console.log('[Cache] Cache expired');
+            return null;
+        } catch (e) {
+            console.log('[Cache] Error reading cache:', e);
+            return null;
+        }
+    },
+
+    /**
+     * Save data to localStorage cache
+     */
+    saveToCache(banques, exercices, formats) {
+        try {
+            const data = {
+                banques,
+                exercices,
+                formats,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(this.CACHE_KEY, JSON.stringify(data));
+            console.log('[Cache] Data saved to cache');
+        } catch (e) {
+            console.log('[Cache] Error saving cache:', e);
+        }
+    },
+
+    /**
+     * Apply loaded data and filter for current type
+     */
+    applyData(banques, exercices, formats) {
+        this.banques = (banques || []).filter(b =>
+            b.type === this.currentType && b.statut === 'publie'
+        );
+        this.exercices = (exercices || []).filter(e => e.statut === 'publie');
+        this.formats = formats || [];
+
+        // Trier les banques par ordre
+        this.banques.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+    },
+
+    /**
+     * Refresh data in background without blocking UI
+     */
+    async refreshDataInBackground() {
+        try {
+            const [banquesResult, exercicesResult, formatsResult] = await Promise.all([
+                this.callAPI('getBanquesExercices'),
+                this.callAPI('getExercices'),
+                this.callAPI('getFormatsExercices')
+            ]);
+
+            const banques = banquesResult.success ? banquesResult.data : [];
+            const exercices = exercicesResult.success ? exercicesResult.data : [];
+            const formats = formatsResult.success ? formatsResult.data : [];
+
+            // Save fresh data to cache
+            this.saveToCache(banques, exercices, formats);
+
+            // Update current data
+            this.applyData(banques, exercices, formats);
+            console.log('[Cache] Background refresh complete');
         } catch (error) {
-            console.error('Erreur lors du chargement:', error);
-            this.showError('Erreur lors du chargement des exercices');
+            console.log('[Cache] Background refresh failed:', error);
         }
     },
 
@@ -45,20 +143,15 @@ const EleveExercices = {
             this.callAPI('getFormatsExercices')
         ]);
 
-        this.banques = banquesResult.success ? banquesResult.data : [];
-        this.exercices = exercicesResult.success ? exercicesResult.data : [];
-        this.formats = formatsResult.success ? formatsResult.data : [];
+        const banques = banquesResult.success ? banquesResult.data : [];
+        const exercices = exercicesResult.success ? exercicesResult.data : [];
+        const formats = formatsResult.success ? formatsResult.data : [];
 
-        // Filtrer les banques par type et statut publié
-        this.banques = this.banques.filter(b =>
-            b.type === this.currentType && b.statut === 'publie'
-        );
+        // Save to cache
+        this.saveToCache(banques, exercices, formats);
 
-        // Filtrer les exercices publiés
-        this.exercices = this.exercices.filter(e => e.statut === 'publie');
-
-        // Trier les banques par ordre
-        this.banques.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        // Apply data
+        this.applyData(banques, exercices, formats);
     },
 
     /**
