@@ -3089,6 +3089,46 @@ function getEntrainement(data) {
     return { success: false, error: 'Entraînement non trouvé: ' + data.id };
   }
 
+  // 1b. Enrichir avec les infos du chapitre
+  if (entrainement.chapitre_id) {
+    const chapSheet = ss.getSheetByName(SHEETS.CHAPITRES);
+    if (chapSheet) {
+      const chapData = chapSheet.getDataRange().getValues();
+      const chapHeaders = chapData[0].map(h => String(h).toLowerCase().trim());
+      const chapIdCol = chapHeaders.indexOf('id');
+      const chapNomCol = chapHeaders.indexOf('nom');
+      const chapThemeCol = chapHeaders.indexOf('theme_id');
+
+      for (let i = 1; i < chapData.length; i++) {
+        if (String(chapData[i][chapIdCol]).trim() === String(entrainement.chapitre_id).trim()) {
+          if (chapNomCol >= 0) entrainement.chapitre_nom = chapData[i][chapNomCol];
+
+          // Récupérer le thème pour avoir la discipline
+          if (chapThemeCol >= 0) {
+            const themeId = chapData[i][chapThemeCol];
+            const themeSheet = ss.getSheetByName(SHEETS.THEMES);
+            if (themeSheet) {
+              const themeData = themeSheet.getDataRange().getValues();
+              const themeHeaders = themeData[0].map(h => String(h).toLowerCase().trim());
+              const themeIdCol = themeHeaders.indexOf('id');
+              const themeNomCol = themeHeaders.indexOf('nom');
+              const disciplineCol = themeHeaders.indexOf('discipline_id');
+
+              for (let j = 1; j < themeData.length; j++) {
+                if (String(themeData[j][themeIdCol]).trim() === String(themeId).trim()) {
+                  if (themeNomCol >= 0) entrainement.theme_nom = themeData[j][themeNomCol];
+                  if (disciplineCol >= 0) entrainement.discipline = themeData[j][disciplineCol];
+                  break;
+                }
+              }
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+
   // 2. Récupérer les liens entrainement_questions
   const eqSheet = ss.getSheetByName(SHEETS.ENTRAINEMENT_QUESTIONS);
   const eqData = eqSheet.getDataRange().getValues();
