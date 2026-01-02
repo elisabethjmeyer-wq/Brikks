@@ -17,6 +17,12 @@ const AdminBanquesExercices = {
         statut: ''
     },
 
+    // Table builder state
+    tableBuilder: {
+        columns: [],
+        rows: []
+    },
+
     // Type config
     typeConfig: {
         'savoir-faire': { icon: '&#128310;', color: 'orange', label: 'Savoir-faire' },
@@ -194,6 +200,11 @@ const AdminBanquesExercices = {
         document.getElementById('closeDeleteModal').addEventListener('click', () => this.closeDeleteModal());
         document.getElementById('cancelDeleteBtn').addEventListener('click', () => this.closeDeleteModal());
         document.getElementById('confirmDeleteBtn').addEventListener('click', () => this.confirmDelete());
+
+        // Table builder
+        document.getElementById('addColumnBtn').addEventListener('click', () => this.addColumn());
+        document.getElementById('addRowBtn').addEventListener('click', () => this.addRow());
+        document.getElementById('previewExerciceBtn').addEventListener('click', () => this.previewExercice());
 
         // Modal overlays
         ['banqueModal', 'exerciceModal', 'formatsModal', 'formatEditModal', 'deleteModal'].forEach(id => {
@@ -467,10 +478,12 @@ const AdminBanquesExercices = {
             document.getElementById('exerciceStatut').value = exercice.statut || 'brouillon';
             document.getElementById('exercicePeutTomber').checked = exercice.peut_tomber_en_eval !== false;
 
-            // Format donnees
-            const donnees = typeof exercice.donnees === 'object' ?
-                JSON.stringify(exercice.donnees, null, 2) : (exercice.donnees || '');
-            document.getElementById('exerciceDonnees').value = donnees;
+            // Load table builder data from exercice.donnees
+            let donnees = exercice.donnees;
+            if (typeof donnees === 'string') {
+                try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+            }
+            this.loadTableBuilderFromData(donnees);
         } else {
             title.textContent = 'Nouvel exercice';
             document.getElementById('editExerciceId').value = '';
@@ -487,7 +500,9 @@ const AdminBanquesExercices = {
             document.getElementById('exerciceDuree').value = 600;
             document.getElementById('exerciceStatut').value = 'brouillon';
             document.getElementById('exercicePeutTomber').checked = true;
-            document.getElementById('exerciceDonnees').value = '';
+
+            // Initialize table builder with default structure
+            this.initTableBuilder();
         }
 
         modal.classList.remove('hidden');
@@ -521,18 +536,17 @@ const AdminBanquesExercices = {
         const statut = document.getElementById('exerciceStatut').value;
         const peut_tomber_en_eval = document.getElementById('exercicePeutTomber').checked;
 
-        // Parse donnees JSON
-        let donnees;
-        const donneesStr = document.getElementById('exerciceDonnees').value.trim();
-        if (donneesStr) {
-            try {
-                donnees = JSON.parse(donneesStr);
-            } catch (e) {
-                alert('Erreur: Le JSON des donnees n\'est pas valide');
-                return;
-            }
-        } else {
-            donnees = {};
+        // Build donnees from table builder
+        const donnees = this.buildDataFromTableBuilder();
+
+        if (!donnees || donnees.colonnes.length === 0) {
+            alert('Ajoutez au moins une colonne au tableau');
+            return;
+        }
+
+        if (donnees.lignes.length === 0) {
+            alert('Ajoutez au moins une ligne au tableau');
+            return;
         }
 
         if (!format_id) {
@@ -768,6 +782,256 @@ const AdminBanquesExercices = {
             console.error('Erreur suppression:', error);
             alert('Erreur lors de la suppression');
         }
+    },
+
+    // ========== TABLE BUILDER ==========
+    initTableBuilder() {
+        // Default: 2 columns (Date = display, Siècle = editable)
+        this.tableBuilder = {
+            columns: [
+                { titre: 'Date', editable: false },
+                { titre: 'Siècle', editable: true }
+            ],
+            rows: [
+                ['', '']
+            ]
+        };
+        this.renderColumnsBuilder();
+        this.renderTableBuilder();
+    },
+
+    loadTableBuilderFromData(donnees) {
+        if (donnees && donnees.colonnes && donnees.lignes) {
+            this.tableBuilder = {
+                columns: donnees.colonnes.map(c => ({
+                    titre: c.titre || '',
+                    editable: c.editable !== false
+                })),
+                rows: donnees.lignes.map(ligne => ligne.cells || [])
+            };
+        } else if (donnees && donnees.lignes && Array.isArray(donnees.lignes)) {
+            // Legacy format: lignes with named properties
+            // Try to infer columns from first row
+            const firstRow = donnees.lignes[0];
+            const keys = Object.keys(firstRow);
+            this.tableBuilder = {
+                columns: keys.map(key => ({
+                    titre: key.charAt(0).toUpperCase() + key.slice(1),
+                    editable: key !== 'date'
+                })),
+                rows: donnees.lignes.map(ligne => keys.map(k => ligne[k] || ''))
+            };
+        } else {
+            this.initTableBuilder();
+            return;
+        }
+        this.renderColumnsBuilder();
+        this.renderTableBuilder();
+    },
+
+    buildDataFromTableBuilder() {
+        // Read current values from DOM
+        this.readTableBuilderValues();
+
+        return {
+            colonnes: this.tableBuilder.columns.map(c => ({
+                titre: c.titre,
+                editable: c.editable
+            })),
+            lignes: this.tableBuilder.rows.map(row => ({
+                cells: row
+            }))
+        };
+    },
+
+    readTableBuilderValues() {
+        // Read columns
+        const colDefs = document.querySelectorAll('.column-def');
+        this.tableBuilder.columns = Array.from(colDefs).map(def => ({
+            titre: def.querySelector('.col-title-input').value || '',
+            editable: def.querySelector('.col-editable-check').checked
+        }));
+
+        // Read rows
+        const tbody = document.getElementById('tableBuilderBody');
+        const rows = tbody.querySelectorAll('tr');
+        this.tableBuilder.rows = Array.from(rows).map(tr => {
+            const inputs = tr.querySelectorAll('input[type="text"]');
+            return Array.from(inputs).map(input => input.value || '');
+        });
+    },
+
+    renderColumnsBuilder() {
+        const container = document.getElementById('columnsBuilder');
+        container.innerHTML = this.tableBuilder.columns.map((col, index) => `
+            <div class="column-def" data-index="${index}">
+                <span class="column-num">${index + 1}</span>
+                <input type="text" class="col-title-input" value="${this.escapeHtml(col.titre)}" placeholder="Nom de la colonne">
+                <label class="column-editable">
+                    <input type="checkbox" class="col-editable-check" ${col.editable ? 'checked' : ''}>
+                    <span>Réponse élève</span>
+                </label>
+                <button type="button" class="btn-remove-col" onclick="AdminBanquesExercices.removeColumn(${index})" title="Supprimer">&times;</button>
+            </div>
+        `).join('');
+
+        // Add change listeners
+        container.querySelectorAll('.col-title-input, .col-editable-check').forEach(input => {
+            input.addEventListener('change', () => this.onColumnChange());
+        });
+    },
+
+    renderTableBuilder() {
+        const thead = document.getElementById('tableBuilderHead');
+        const tbody = document.getElementById('tableBuilderBody');
+
+        // Render headers
+        thead.innerHTML = `
+            <tr>
+                ${this.tableBuilder.columns.map((col, i) => `
+                    <th class="${col.editable ? 'editable-col' : ''}">
+                        ${this.escapeHtml(col.titre) || 'Colonne ' + (i + 1)}
+                        <span class="col-hint">${col.editable ? '(réponse)' : '(donnée)'}</span>
+                    </th>
+                `).join('')}
+                <th class="row-actions"></th>
+            </tr>
+        `;
+
+        // Ensure rows have correct number of cells
+        this.tableBuilder.rows = this.tableBuilder.rows.map(row => {
+            const newRow = [...row];
+            while (newRow.length < this.tableBuilder.columns.length) {
+                newRow.push('');
+            }
+            return newRow.slice(0, this.tableBuilder.columns.length);
+        });
+
+        // Render rows
+        if (this.tableBuilder.rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="100" class="table-builder-empty">Aucune ligne. Cliquez sur "Ajouter une ligne".</td></tr>';
+        } else {
+            tbody.innerHTML = this.tableBuilder.rows.map((row, rowIndex) => `
+                <tr data-row="${rowIndex}">
+                    ${this.tableBuilder.columns.map((col, colIndex) => `
+                        <td>
+                            <input type="text"
+                                   class="${col.editable ? 'editable-input' : ''}"
+                                   value="${this.escapeHtml(row[colIndex] || '')}"
+                                   placeholder="${col.editable ? 'Réponse attendue' : 'Donnée affichée'}">
+                        </td>
+                    `).join('')}
+                    <td class="row-actions">
+                        <button type="button" class="btn-remove-row" onclick="AdminBanquesExercices.removeRow(${rowIndex})" title="Supprimer">&times;</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    },
+
+    onColumnChange() {
+        this.readTableBuilderValues();
+        this.renderTableBuilder();
+    },
+
+    addColumn() {
+        this.readTableBuilderValues();
+        this.tableBuilder.columns.push({ titre: '', editable: true });
+        this.tableBuilder.rows = this.tableBuilder.rows.map(row => [...row, '']);
+        this.renderColumnsBuilder();
+        this.renderTableBuilder();
+    },
+
+    removeColumn(index) {
+        if (this.tableBuilder.columns.length <= 1) {
+            alert('Il faut au moins une colonne');
+            return;
+        }
+        this.readTableBuilderValues();
+        this.tableBuilder.columns.splice(index, 1);
+        this.tableBuilder.rows = this.tableBuilder.rows.map(row => {
+            row.splice(index, 1);
+            return row;
+        });
+        this.renderColumnsBuilder();
+        this.renderTableBuilder();
+    },
+
+    addRow() {
+        this.readTableBuilderValues();
+        const newRow = this.tableBuilder.columns.map(() => '');
+        this.tableBuilder.rows.push(newRow);
+        this.renderTableBuilder();
+    },
+
+    removeRow(index) {
+        if (this.tableBuilder.rows.length <= 1) {
+            alert('Il faut au moins une ligne');
+            return;
+        }
+        this.readTableBuilderValues();
+        this.tableBuilder.rows.splice(index, 1);
+        this.renderTableBuilder();
+    },
+
+    previewExercice() {
+        this.readTableBuilderValues();
+        const donnees = this.buildDataFromTableBuilder();
+        const consigne = document.getElementById('exerciceConsigne').value;
+        const titre = document.getElementById('exerciceTitre').value || 'Exercice';
+
+        // Open preview in new window
+        const previewWindow = window.open('', '_blank', 'width=800,height=600');
+        previewWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Prévisualisation - ${this.escapeHtml(titre)}</title>
+                <style>
+                    body { font-family: 'Inter', Arial, sans-serif; padding: 2rem; background: #f5f5f5; }
+                    .preview-card { background: white; border-radius: 12px; max-width: 700px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+                    .preview-header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0; }
+                    .preview-header h1 { margin: 0; font-size: 1.3rem; }
+                    .preview-consigne { background: #f8f9ff; padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb; }
+                    .preview-content { padding: 1.5rem; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th { background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
+                    th.editable { background: #dbeafe; color: #2563eb; }
+                    td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
+                    .data-cell { font-weight: 500; }
+                    .input-cell input { width: 100%; padding: 8px 12px; border: 2px solid #dbeafe; border-radius: 6px; font-size: 14px; }
+                    .input-cell input:focus { outline: none; border-color: #3b82f6; }
+                </style>
+            </head>
+            <body>
+                <div class="preview-card">
+                    <div class="preview-header">
+                        <h1>${this.escapeHtml(titre)}</h1>
+                    </div>
+                    ${consigne ? `<div class="preview-consigne">${this.escapeHtml(consigne)}</div>` : ''}
+                    <div class="preview-content">
+                        <table>
+                            <thead>
+                                <tr>
+                                    ${donnees.colonnes.map(col => `<th class="${col.editable ? 'editable' : ''}">${this.escapeHtml(col.titre)}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${donnees.lignes.map(ligne => `
+                                    <tr>
+                                        ${donnees.colonnes.map((col, i) => col.editable
+                                            ? `<td class="input-cell"><input type="text" placeholder="..."></td>`
+                                            : `<td class="data-cell">${this.escapeHtml(ligne.cells[i] || '')}</td>`
+                                        ).join('')}
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `);
     },
 
     // ========== UTILS ==========
