@@ -210,31 +210,97 @@
                 </label>
             </div>
 
-            <div class="form-section">Construction du tableau</div>
+            <!-- ===== BUILDERS PAR FORMAT ===== -->
 
-            <!-- Définition des colonnes -->
-            <div class="form-group">
-                <label>Colonnes du tableau</label>
-                <div class="columns-builder" id="columnsBuilder">
-                    <!-- Colonnes générées dynamiquement -->
+            <!-- Builder: tableau_saisie / document_tableau -->
+            <div id="builderTableau" class="format-builder">
+                <div class="form-section">Construction du tableau</div>
+
+                <!-- Document (pour document_tableau) -->
+                <div class="form-group" id="documentSectionTableau" style="display: none;">
+                    <label>Document</label>
+                    <select class="form-select" id="docTypeTableau">
+                        <option value="texte">Texte</option>
+                        <option value="image">Image (URL)</option>
+                    </select>
+                    <textarea class="form-textarea" id="docContenuTableau" rows="4" placeholder="Contenu du document ou URL de l'image..."></textarea>
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm" id="addColumnBtn">+ Ajouter une colonne</button>
+
+                <!-- Définition des colonnes -->
+                <div class="form-group">
+                    <label>Colonnes du tableau</label>
+                    <div class="columns-builder" id="columnsBuilder">
+                        <!-- Colonnes générées dynamiquement -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="addColumnBtn">+ Ajouter une colonne</button>
+                </div>
+
+                <!-- Données des lignes -->
+                <div class="form-group">
+                    <label>Lignes du tableau</label>
+                    <div class="table-builder-wrapper">
+                        <table class="table-builder" id="tableBuilder">
+                            <thead id="tableBuilderHead"></thead>
+                            <tbody id="tableBuilderBody"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>
+                </div>
             </div>
 
-            <!-- Données des lignes -->
-            <div class="form-group">
-                <label>Lignes du tableau</label>
-                <div class="table-builder-wrapper">
-                    <table class="table-builder" id="tableBuilder">
-                        <thead id="tableBuilderHead">
-                            <!-- En-têtes générés dynamiquement -->
-                        </thead>
-                        <tbody id="tableBuilderBody">
-                            <!-- Lignes générées dynamiquement -->
-                        </tbody>
-                    </table>
+            <!-- Builder: carte_cliquable -->
+            <div id="builderCarte" class="format-builder" style="display: none;">
+                <div class="form-section">Construction de la carte cliquable</div>
+
+                <div class="form-group">
+                    <label>URL de l'image de fond <span class="req">*</span></label>
+                    <input type="text" class="form-input" id="carteImageUrl" placeholder="https://...">
+                    <div class="form-help">URL de l'image (carte, schema, document...)</div>
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>
+
+                <div class="form-group">
+                    <label>Apercu et placement des marqueurs</label>
+                    <div class="carte-preview-container" id="cartePreviewContainer">
+                        <div class="carte-preview-placeholder" id="cartePreviewPlaceholder">
+                            Entrez une URL d'image ci-dessus pour voir l'apercu
+                        </div>
+                        <div class="carte-preview-wrapper" id="cartePreviewWrapper" style="display: none;">
+                            <img src="" alt="Apercu" id="cartePreviewImage">
+                            <div class="carte-preview-markers" id="cartePreviewMarkers"></div>
+                        </div>
+                    </div>
+                    <div class="form-help">Cliquez sur l'image pour placer des marqueurs</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Marqueurs</label>
+                    <div class="marqueurs-list" id="marqueursList">
+                        <!-- Generated dynamically -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="addMarqueurBtn">+ Ajouter un marqueur manuellement</button>
+                </div>
+            </div>
+
+            <!-- Builder: question_ouverte -->
+            <div id="builderQuestionOuverte" class="format-builder" style="display: none;">
+                <div class="form-section">Construction de la question ouverte</div>
+
+                <div class="form-group">
+                    <label>Document</label>
+                    <select class="form-select" id="docTypeQO">
+                        <option value="texte">Texte</option>
+                        <option value="image">Image (URL)</option>
+                    </select>
+                    <textarea class="form-textarea" id="docContenuQO" rows="4" placeholder="Contenu du document ou URL de l'image..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Questions</label>
+                    <div class="questions-list" id="questionsList">
+                        <!-- Generated dynamically -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" id="addQuestionBtn">+ Ajouter une question</button>
+                </div>
             </div>
 
             <!-- Prévisualisation -->

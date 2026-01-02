@@ -495,6 +495,371 @@
     transition: width 0.3s ease;
 }
 
+/* ========================================
+   CARTE CLIQUABLE STYLES
+======================================== */
+
+.carte-cliquable-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.carte-image-wrapper {
+    position: relative;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.carte-image {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.carte-marqueurs {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.carte-marqueur {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    background: var(--primary, #6366f1);
+    border: 3px solid white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+}
+
+.carte-marqueur:hover {
+    transform: translate(-50%, -50%) scale(1.15);
+    background: var(--primary-dark, #4f46e5);
+}
+
+.carte-marqueur.answered {
+    background: #f59e0b;
+}
+
+.carte-marqueur.correct {
+    background: #10b981;
+}
+
+.carte-marqueur.incorrect {
+    background: #ef4444;
+}
+
+.marqueur-numero {
+    color: white;
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+
+.carte-reponses {
+    background: #f9fafb;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+}
+
+.carte-reponses h4 {
+    font-size: 1rem;
+    color: #374151;
+    margin-bottom: 1rem;
+}
+
+.reponses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.reponse-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+}
+
+.reponse-item.correct {
+    border-color: #10b981;
+    background: #ecfdf5;
+}
+
+.reponse-item.incorrect {
+    border-color: #ef4444;
+    background: #fef2f2;
+}
+
+.reponse-numero {
+    width: 24px;
+    height: 24px;
+    background: var(--primary, #6366f1);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.reponse-texte {
+    flex: 1;
+    color: #1f2937;
+}
+
+.reponse-status {
+    font-size: 0.8rem;
+    color: #10b981;
+}
+
+.reponse-item.incorrect .reponse-status {
+    color: #ef4444;
+}
+
+/* Carte Modal */
+.carte-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.carte-modal-overlay.hidden {
+    display: none;
+}
+
+.carte-modal {
+    background: white;
+    border-radius: 1rem;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.carte-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.carte-modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #1f2937;
+}
+
+.carte-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.carte-modal-close:hover {
+    color: #1f2937;
+}
+
+.carte-modal-body {
+    padding: 1.5rem;
+}
+
+.carte-modal-body label {
+    display: block;
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+}
+
+.carte-modal-body input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+.carte-modal-body input:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.carte-modal-footer {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem;
+    background: #f9fafb;
+    border-radius: 0 0 1rem 1rem;
+}
+
+/* ========================================
+   DOCUMENT + TABLEAU STYLES
+======================================== */
+
+.document-tableau-container {
+    display: grid;
+    grid-template-columns: 55% 45%;
+    gap: 2rem;
+}
+
+.document-section {
+    background: #f9fafb;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+}
+
+.document-section h4,
+.tableau-section h4 {
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+}
+
+.doc-image {
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.doc-texte {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    line-height: 1.7;
+    color: #374151;
+    white-space: pre-wrap;
+}
+
+.tableau-section {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ========================================
+   QUESTION OUVERTE STYLES
+======================================== */
+
+.question-ouverte-container {
+    display: grid;
+    grid-template-columns: 55% 45%;
+    gap: 2rem;
+}
+
+.questions-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.questions-section > h4 {
+    font-size: 0.875rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0;
+}
+
+.question-ouverte-item {
+    background: #f9fafb;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+}
+
+.question-ouverte-item h4 {
+    font-size: 1rem;
+    color: #1f2937;
+    margin-bottom: 1rem;
+}
+
+.question-etape {
+    margin-bottom: 1rem;
+}
+
+.question-etape label {
+    display: block;
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.question-etape textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 60px;
+    transition: all 0.2s;
+}
+
+.question-etape textarea:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.question-etape textarea:disabled {
+    background: #f3f4f6;
+    cursor: not-allowed;
+}
+
+.correction-box {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #ecfdf5;
+    border: 1px solid #10b981;
+    border-radius: 0.5rem;
+}
+
+.correction-box.hidden {
+    display: none;
+}
+
+.correction-box h5 {
+    font-size: 0.875rem;
+    color: #059669;
+    margin-bottom: 0.5rem;
+}
+
+.correction-content {
+    color: #065f46;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .banques-grid {
@@ -526,5 +891,29 @@
     .tableau-exercice td {
         padding: 0.75rem 0.5rem;
         font-size: 0.9rem;
+    }
+
+    /* Responsive: Document + Tableau */
+    .document-tableau-container,
+    .question-ouverte-container {
+        grid-template-columns: 1fr;
+    }
+
+    .document-section {
+        order: -1;
+    }
+
+    /* Responsive: Carte cliquable */
+    .reponses-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .carte-marqueur {
+        width: 28px;
+        height: 28px;
+    }
+
+    .marqueur-numero {
+        font-size: 0.75rem;
     }
 }

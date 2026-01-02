@@ -503,6 +503,12 @@ const EleveExercices = {
 
         if (typeUI === 'tableau_saisie') {
             contentHTML = this.renderTableauSaisie(donnees, structure);
+        } else if (typeUI === 'carte_cliquable') {
+            contentHTML = this.renderCarteCliquable(donnees, structure);
+        } else if (typeUI === 'document_tableau') {
+            contentHTML = this.renderDocumentTableau(donnees, structure);
+        } else if (typeUI === 'question_ouverte') {
+            contentHTML = this.renderQuestionOuverte(donnees, structure);
         } else {
             contentHTML = `
                 <div style="text-align: center; color: #6b7280; padding: 2rem;">
@@ -613,6 +619,240 @@ const EleveExercices = {
     },
 
     /**
+     * Rend une carte cliquable (image avec marqueurs)
+     * Structure données: { image_url, marqueurs: [{id, x, y, reponse}] }
+     */
+    renderCarteCliquable(donnees, structure) {
+        const imageUrl = donnees.image_url || '';
+        const marqueurs = donnees.marqueurs || [];
+
+        let marqueursHTML = marqueurs.map((m, index) => `
+            <div class="carte-marqueur"
+                 data-id="${m.id || index}"
+                 data-reponse="${this.escapeHtml(m.reponse || '')}"
+                 style="left: ${m.x}%; top: ${m.y}%;"
+                 onclick="EleveExercices.openMarqueurModal(${index})">
+                <span class="marqueur-numero">${index + 1}</span>
+            </div>
+        `).join('');
+
+        let html = `
+            <div class="carte-cliquable-container">
+                <div class="carte-image-wrapper">
+                    <img src="${this.escapeHtml(imageUrl)}" alt="Carte" class="carte-image" id="carteImage">
+                    <div class="carte-marqueurs" id="carteMarqueurs">
+                        ${marqueursHTML}
+                    </div>
+                </div>
+
+                <div class="carte-reponses" id="carteReponses">
+                    <h4>Mes réponses</h4>
+                    <div class="reponses-grid">
+                        ${marqueurs.map((m, index) => `
+                            <div class="reponse-item" id="reponseItem_${index}">
+                                <span class="reponse-numero">${index + 1}</span>
+                                <span class="reponse-texte" id="reponseTexte_${index}">-</span>
+                                <span class="reponse-status" id="reponseStatus_${index}"></span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal pour saisir la réponse -->
+            <div class="carte-modal-overlay hidden" id="marqueurModal">
+                <div class="carte-modal">
+                    <div class="carte-modal-header">
+                        <h3>Élément n°<span id="modalMarqueurNum"></span></h3>
+                        <button class="carte-modal-close" onclick="EleveExercices.closeMarqueurModal()">&times;</button>
+                    </div>
+                    <div class="carte-modal-body">
+                        <label>Identifiez cet élément :</label>
+                        <input type="text" id="marqueurInput" placeholder="Votre réponse..." autocomplete="off">
+                    </div>
+                    <div class="carte-modal-footer">
+                        <button class="btn btn-secondary" onclick="EleveExercices.closeMarqueurModal()">Annuler</button>
+                        <button class="btn btn-primary" onclick="EleveExercices.saveMarqueurReponse()">Valider</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Store marqueurs data for later use
+        this.carteMarqueurs = marqueurs;
+        this.currentMarqueurIndex = null;
+
+        return html;
+    },
+
+    /**
+     * Ouvre le modal pour un marqueur
+     */
+    openMarqueurModal(index) {
+        this.currentMarqueurIndex = index;
+        document.getElementById('modalMarqueurNum').textContent = index + 1;
+
+        const currentAnswer = document.getElementById(`reponseTexte_${index}`).textContent;
+        document.getElementById('marqueurInput').value = currentAnswer === '-' ? '' : currentAnswer;
+
+        document.getElementById('marqueurModal').classList.remove('hidden');
+        document.getElementById('marqueurInput').focus();
+    },
+
+    /**
+     * Ferme le modal marqueur
+     */
+    closeMarqueurModal() {
+        document.getElementById('marqueurModal').classList.add('hidden');
+        this.currentMarqueurIndex = null;
+    },
+
+    /**
+     * Sauvegarde la réponse d'un marqueur
+     */
+    saveMarqueurReponse() {
+        const index = this.currentMarqueurIndex;
+        if (index === null) return;
+
+        const input = document.getElementById('marqueurInput');
+        const reponse = input.value.trim();
+
+        document.getElementById(`reponseTexte_${index}`).textContent = reponse || '-';
+
+        // Update marker visual
+        const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+        if (marqueur) {
+            marqueur.classList.toggle('answered', reponse !== '');
+        }
+
+        this.closeMarqueurModal();
+    },
+
+    /**
+     * Rend un document avec tableau à compléter
+     * Structure données: { document: {type, contenu}, colonnes: [...], lignes: [...] }
+     */
+    renderDocumentTableau(donnees, structure) {
+        const doc = donnees.document || {};
+        const colonnes = donnees.colonnes || [];
+        const lignes = donnees.lignes || [];
+
+        // Render document section
+        let documentHTML = '';
+        if (doc.type === 'image') {
+            documentHTML = `<img src="${this.escapeHtml(doc.contenu)}" alt="Document" class="doc-image">`;
+        } else {
+            documentHTML = `<div class="doc-texte">${this.escapeHtml(doc.contenu || '')}</div>`;
+        }
+
+        // Render table
+        let tableHTML = `
+            <table class="tableau-exercice">
+                <thead>
+                    <tr>
+                        ${colonnes.map(col => `<th>${this.escapeHtml(col.titre)}</th>`).join('')}
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        lignes.forEach((ligne, rowIndex) => {
+            const cells = ligne.cells || Object.values(ligne);
+            tableHTML += '<tr>';
+            colonnes.forEach((col, colIndex) => {
+                if (col.editable) {
+                    tableHTML += `
+                        <td>
+                            <input type="text"
+                                   id="input_${rowIndex}_${colIndex}"
+                                   data-row="${rowIndex}"
+                                   data-col="${colIndex}"
+                                   placeholder="..."
+                                   autocomplete="off">
+                            <div class="correction-text" id="correction_${rowIndex}_${colIndex}"></div>
+                        </td>
+                    `;
+                } else {
+                    const value = cells[colIndex] || '';
+                    tableHTML += `<td class="cell-display">${this.escapeHtml(value)}</td>`;
+                }
+            });
+            tableHTML += '</tr>';
+        });
+
+        tableHTML += '</tbody></table>';
+
+        return `
+            <div class="document-tableau-container">
+                <div class="document-section">
+                    <h4>📄 Document</h4>
+                    ${documentHTML}
+                </div>
+                <div class="tableau-section">
+                    <h4>📝 À compléter</h4>
+                    ${tableHTML}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Rend une question ouverte avec guidage
+     * Structure données: { document: {type, contenu}, questions: [{titre, etapes: [...], reponse_attendue}] }
+     */
+    renderQuestionOuverte(donnees, structure) {
+        const doc = donnees.document || {};
+        const questions = donnees.questions || [];
+
+        // Render document section
+        let documentHTML = '';
+        if (doc.type === 'image') {
+            documentHTML = `<img src="${this.escapeHtml(doc.contenu)}" alt="Document" class="doc-image">`;
+        } else {
+            documentHTML = `<div class="doc-texte">${this.escapeHtml(doc.contenu || '')}</div>`;
+        }
+
+        // Render questions
+        let questionsHTML = questions.map((q, qIndex) => {
+            const etapesHTML = (q.etapes || []).map((etape, eIndex) => `
+                <div class="question-etape">
+                    <label>${this.escapeHtml(etape)}</label>
+                    <textarea id="reponse_${qIndex}_${eIndex}"
+                              rows="2"
+                              placeholder="Votre réponse..."></textarea>
+                </div>
+            `).join('');
+
+            return `
+                <div class="question-ouverte-item" id="question_${qIndex}">
+                    <h4>${this.escapeHtml(q.titre || `Question ${qIndex + 1}`)}</h4>
+                    ${etapesHTML}
+                    <div class="correction-box hidden" id="correctionBox_${qIndex}">
+                        <h5>📝 Correction</h5>
+                        <div class="correction-content">${this.escapeHtml(q.reponse_attendue || '')}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Store questions data for validation
+        this.questionsOuvertes = questions;
+
+        return `
+            <div class="question-ouverte-container">
+                <div class="document-section">
+                    <h4>📄 Document</h4>
+                    ${documentHTML}
+                </div>
+                <div class="questions-section">
+                    <h4>❓ Questions</h4>
+                    ${questionsHTML}
+                </div>
+            </div>
+        `;
+    },
+
+    /**
      * Valide les réponses de l'exercice
      */
     async validateExercise() {
@@ -621,6 +861,49 @@ const EleveExercices = {
         // Arrêter le timer
         this.stopTimer();
 
+        const format = this.formats.find(f => f.id === this.currentExercise.format_id);
+        let structure = format ? format.structure : null;
+        if (typeof structure === 'string') {
+            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
+        }
+
+        const typeUI = structure ? structure.type_ui : 'unknown';
+        let result;
+
+        if (typeUI === 'carte_cliquable') {
+            result = this.validateCarteCliquable();
+        } else if (typeUI === 'question_ouverte') {
+            result = this.validateQuestionOuverte();
+        } else {
+            // tableau_saisie or document_tableau
+            result = this.validateTableauSaisie();
+        }
+
+        const { correct, total } = result;
+
+        // Afficher le résultat
+        const banner = document.getElementById('resultBanner');
+        const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+        if (percent === 100) {
+            banner.className = 'result-banner show success';
+            banner.textContent = `🎉 Parfait ! ${correct}/${total} réponses correctes`;
+        } else if (percent >= 50) {
+            banner.className = 'result-banner show partial';
+            banner.textContent = `📊 ${correct}/${total} réponses correctes (${percent}%)`;
+        } else {
+            banner.className = 'result-banner show error';
+            banner.textContent = `📊 ${correct}/${total} réponses correctes (${percent}%)`;
+        }
+
+        // Save result to server
+        await this.saveResult(correct, total, percent);
+    },
+
+    /**
+     * Valide un exercice de type tableau_saisie ou document_tableau
+     */
+    validateTableauSaisie() {
         let donnees = this.currentExercise.donnees;
         if (typeof donnees === 'string') {
             try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
@@ -658,23 +941,70 @@ const EleveExercices = {
             });
         });
 
-        // Afficher le résultat
-        const banner = document.getElementById('resultBanner');
-        const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
+        return { correct, total };
+    },
 
-        if (percent === 100) {
-            banner.className = 'result-banner show success';
-            banner.textContent = `🎉 Parfait ! ${correct}/${total} réponses correctes`;
-        } else if (percent >= 50) {
-            banner.className = 'result-banner show partial';
-            banner.textContent = `📊 ${correct}/${total} réponses correctes (${percent}%)`;
-        } else {
-            banner.className = 'result-banner show error';
-            banner.textContent = `📊 ${correct}/${total} réponses correctes (${percent}%)`;
-        }
+    /**
+     * Valide un exercice de type carte_cliquable
+     */
+    validateCarteCliquable() {
+        const marqueurs = this.carteMarqueurs || [];
+        let correct = 0;
+        let total = marqueurs.length;
 
-        // Save result to server
-        await this.saveResult(correct, total, percent);
+        marqueurs.forEach((m, index) => {
+            const reponseTexte = document.getElementById(`reponseTexte_${index}`);
+            const reponseItem = document.getElementById(`reponseItem_${index}`);
+            const reponseStatus = document.getElementById(`reponseStatus_${index}`);
+            const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+
+            if (!reponseTexte) return;
+
+            const userAnswer = this.normalizeAnswer(reponseTexte.textContent);
+            const correctAnswer = this.normalizeAnswer(m.reponse || '');
+
+            if (userAnswer === correctAnswer && userAnswer !== '') {
+                reponseItem.classList.add('correct');
+                reponseStatus.textContent = '✓';
+                if (marqueur) marqueur.classList.add('correct');
+                correct++;
+            } else {
+                reponseItem.classList.add('incorrect');
+                reponseStatus.textContent = '→ ' + (m.reponse || '');
+                if (marqueur) marqueur.classList.add('incorrect');
+            }
+        });
+
+        // Disable further input
+        document.querySelectorAll('.carte-marqueur').forEach(el => {
+            el.style.pointerEvents = 'none';
+        });
+
+        return { correct, total };
+    },
+
+    /**
+     * Valide un exercice de type question_ouverte (affiche simplement la correction)
+     */
+    validateQuestionOuverte() {
+        const questions = this.questionsOuvertes || [];
+
+        // Pour les questions ouvertes, on affiche la correction sans calcul de score
+        questions.forEach((q, qIndex) => {
+            const correctionBox = document.getElementById(`correctionBox_${qIndex}`);
+            if (correctionBox) {
+                correctionBox.classList.remove('hidden');
+            }
+
+            // Disable textareas
+            (q.etapes || []).forEach((_, eIndex) => {
+                const textarea = document.getElementById(`reponse_${qIndex}_${eIndex}`);
+                if (textarea) textarea.disabled = true;
+            });
+        });
+
+        // Les questions ouvertes n'ont pas de score automatique
+        return { correct: 0, total: 0 };
     },
 
     /**
@@ -757,6 +1087,35 @@ const EleveExercices = {
     resetExercise() {
         if (!this.currentExercise) return;
 
+        const format = this.formats.find(f => f.id === this.currentExercise.format_id);
+        let structure = format ? format.structure : null;
+        if (typeof structure === 'string') {
+            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
+        }
+
+        const typeUI = structure ? structure.type_ui : 'unknown';
+
+        if (typeUI === 'carte_cliquable') {
+            this.resetCarteCliquable();
+        } else if (typeUI === 'question_ouverte') {
+            this.resetQuestionOuverte();
+        } else {
+            this.resetTableauSaisie();
+        }
+
+        document.getElementById('resultBanner').className = 'result-banner';
+        this.exerciseStartTime = Date.now();
+
+        // Redémarrer le timer si durée définie
+        if (this.currentExercise.duree) {
+            this.startTimer(this.currentExercise.duree);
+        }
+    },
+
+    /**
+     * Reset pour tableau_saisie et document_tableau
+     */
+    resetTableauSaisie() {
         let donnees = this.currentExercise.donnees;
         if (typeof donnees === 'string') {
             try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
@@ -781,13 +1140,50 @@ const EleveExercices = {
                 }
             });
         });
+    },
 
-        document.getElementById('resultBanner').className = 'result-banner';
+    /**
+     * Reset pour carte_cliquable
+     */
+    resetCarteCliquable() {
+        const marqueurs = this.carteMarqueurs || [];
 
-        // Redémarrer le timer si durée définie
-        if (this.currentExercise.duree) {
-            this.startTimer(this.currentExercise.duree);
-        }
+        marqueurs.forEach((_, index) => {
+            const reponseTexte = document.getElementById(`reponseTexte_${index}`);
+            const reponseItem = document.getElementById(`reponseItem_${index}`);
+            const reponseStatus = document.getElementById(`reponseStatus_${index}`);
+            const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+
+            if (reponseTexte) reponseTexte.textContent = '-';
+            if (reponseItem) {
+                reponseItem.classList.remove('correct', 'incorrect');
+            }
+            if (reponseStatus) reponseStatus.textContent = '';
+            if (marqueur) {
+                marqueur.classList.remove('correct', 'incorrect', 'answered');
+                marqueur.style.pointerEvents = '';
+            }
+        });
+    },
+
+    /**
+     * Reset pour question_ouverte
+     */
+    resetQuestionOuverte() {
+        const questions = this.questionsOuvertes || [];
+
+        questions.forEach((q, qIndex) => {
+            const correctionBox = document.getElementById(`correctionBox_${qIndex}`);
+            if (correctionBox) correctionBox.classList.add('hidden');
+
+            (q.etapes || []).forEach((_, eIndex) => {
+                const textarea = document.getElementById(`reponse_${qIndex}_${eIndex}`);
+                if (textarea) {
+                    textarea.value = '';
+                    textarea.disabled = false;
+                }
+            });
+        });
     },
 
     /**
