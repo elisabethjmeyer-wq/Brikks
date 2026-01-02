@@ -8,14 +8,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/eleve-exercices.css">
 </head>
 <body>
 
-<div class="placeholder-content">
-    <div class="icon">🚧</div>
-    <h2>Connaissances</h2>
-    <p>Entraîne-toi sur les connaissances de base.</p>
-    <p class="hint">Bientôt disponible !</p>
+<div id="exercices-content">
+    <div class="page-loader">
+        <div class="spinner"></div>
+        <p>Chargement...</p>
+    </div>
 </div>
 
 <script src="../js/config.js"></script>
@@ -23,10 +24,12 @@
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/eleve-layout.js"></script>
+<script src="../js/eleve-exercices.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', async function() {
         await EleveLayout.init('connaissances', 'Connaissances');
+        EleveExercices.init('connaissances');
     });
 </script>
 
