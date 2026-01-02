@@ -623,7 +623,7 @@ const EleveExercices = {
      * Structure données: { image_url, marqueurs: [{id, x, y, reponse}] }
      */
     renderCarteCliquable(donnees, structure) {
-        const imageUrl = donnees.image_url || '';
+        const imageUrl = this.convertToDirectImageUrl(donnees.image_url || '');
         const marqueurs = donnees.marqueurs || [];
 
         let marqueursHTML = marqueurs.map((m, index) => `
@@ -740,7 +740,8 @@ const EleveExercices = {
         // Render document section
         let documentHTML = '';
         if (doc.type === 'image') {
-            documentHTML = `<img src="${this.escapeHtml(doc.contenu)}" alt="Document" class="doc-image">`;
+            const imgUrl = this.convertToDirectImageUrl(doc.contenu);
+            documentHTML = `<img src="${this.escapeHtml(imgUrl)}" alt="Document" class="doc-image">`;
         } else {
             documentHTML = `<div class="doc-texte">${this.escapeHtml(doc.contenu || '')}</div>`;
         }
@@ -807,7 +808,8 @@ const EleveExercices = {
         // Render document section
         let documentHTML = '';
         if (doc.type === 'image') {
-            documentHTML = `<img src="${this.escapeHtml(doc.contenu)}" alt="Document" class="doc-image">`;
+            const imgUrl = this.convertToDirectImageUrl(doc.contenu);
+            documentHTML = `<img src="${this.escapeHtml(imgUrl)}" alt="Document" class="doc-image">`;
         } else {
             documentHTML = `<div class="doc-texte">${this.escapeHtml(doc.contenu || '')}</div>`;
         }
@@ -1288,6 +1290,18 @@ const EleveExercices = {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    },
+
+    // Convert Google Drive share links to direct image URLs
+    convertToDirectImageUrl(url) {
+        if (!url) return url;
+        // Pattern: https://drive.google.com/file/d/FILE_ID/view...
+        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
+        if (driveMatch) {
+            const fileId = driveMatch[1];
+            return `https://lh3.googleusercontent.com/d/${fileId}`;
+        }
+        return url;
     }
 };
 
