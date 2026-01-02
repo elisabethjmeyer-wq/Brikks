@@ -1184,7 +1184,10 @@ const AdminBanquesExercices = {
     },
 
     updateCartePreview(url) {
+        // Convert Google Drive share links to direct image URLs
+        url = this.convertToDirectImageUrl(url);
         this.carteBuilder.imageUrl = url;
+
         const wrapper = document.getElementById('cartePreviewWrapper');
         const placeholder = document.getElementById('cartePreviewPlaceholder');
         const img = document.getElementById('cartePreviewImage');
@@ -1206,6 +1209,21 @@ const AdminBanquesExercices = {
             placeholder.style.display = 'block';
             placeholder.textContent = 'Entrez une URL d\'image ci-dessus pour voir l\'apercu';
         }
+    },
+
+    // Convert Google Drive share links to direct image URLs
+    convertToDirectImageUrl(url) {
+        if (!url) return url;
+
+        // Pattern: https://drive.google.com/file/d/FILE_ID/view...
+        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
+        if (driveMatch) {
+            const fileId = driveMatch[1];
+            return `https://drive.google.com/uc?export=view&id=${fileId}`;
+        }
+
+        // Already a direct link or other URL format
+        return url;
     },
 
     renderCarteMarkers() {
