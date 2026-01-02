@@ -70,9 +70,21 @@ const AdminBanquesExercices = {
         return new Promise((resolve, reject) => {
             const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
+            const removeScript = (script) => {
+                try {
+                    if (script && script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                } catch (e) {
+                    // Ignore removal errors
+                }
+            };
+
+            const script = document.createElement('script');
+
             window[callbackName] = function(response) {
                 delete window[callbackName];
-                document.body.removeChild(script);
+                removeScript(script);
                 resolve(response);
             };
 
@@ -82,11 +94,10 @@ const AdminBanquesExercices = {
                 ...params
             });
 
-            const script = document.createElement('script');
-            script.src = `${CONFIG.API_URL}?${queryParams.toString()}`;
+            script.src = `${CONFIG.WEBAPP_URL}?${queryParams.toString()}`;
             script.onerror = () => {
                 delete window[callbackName];
-                document.body.removeChild(script);
+                removeScript(script);
                 reject(new Error('API call failed'));
             };
 
@@ -96,6 +107,7 @@ const AdminBanquesExercices = {
             setTimeout(() => {
                 if (window[callbackName]) {
                     delete window[callbackName];
+                    removeScript(script);
                     reject(new Error('API timeout'));
                 }
             }, 15000);
