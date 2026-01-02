@@ -1066,12 +1066,104 @@ const AdminBanquesExercices = {
     },
 
     previewExercice() {
-        this.readTableBuilderValues();
-        const donnees = this.buildDataFromTableBuilder();
         const consigne = document.getElementById('exerciceConsigne').value;
         const titre = document.getElementById('exerciceTitre').value || 'Exercice';
+        const formatUI = this.currentFormatUI || 'tableau_saisie';
 
-        // Open preview in new window
+        let contentHTML = '';
+        let extraStyles = '';
+
+        if (formatUI === 'carte_cliquable') {
+            const donnees = this.buildDataFromCarteBuilder();
+            extraStyles = `
+                .carte-container { position: relative; display: inline-block; max-width: 100%; }
+                .carte-image { max-width: 100%; height: auto; display: block; }
+                .carte-marker { position: absolute; width: 32px; height: 32px; background: #3b82f6; color: white;
+                    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                    font-weight: bold; font-size: 14px; transform: translate(-50%, -50%); cursor: pointer;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+                .carte-marker:hover { background: #2563eb; transform: translate(-50%, -50%) scale(1.1); }
+                .carte-input { margin-top: 1rem; }
+                .carte-input label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
+                .carte-input select { width: 100%; padding: 10px; border: 2px solid #dbeafe; border-radius: 6px; font-size: 14px; }
+            `;
+            const imageUrl = this.convertToDirectImageUrl(donnees.imageUrl);
+            contentHTML = `
+                <div class="carte-container">
+                    <img src="${this.escapeHtml(imageUrl)}" class="carte-image" alt="Carte">
+                    ${donnees.marqueurs.map((m, i) => `
+                        <div class="carte-marker" style="left: ${m.x}%; top: ${m.y}%;" title="${this.escapeHtml(m.reponse)}">${i + 1}</div>
+                    `).join('')}
+                </div>
+                ${donnees.marqueurs.map((m, i) => `
+                    <div class="carte-input">
+                        <label>Élément ${i + 1}:</label>
+                        <select><option value="">-- Sélectionner --</option>
+                            ${donnees.marqueurs.map(opt => `<option value="${this.escapeHtml(opt.reponse)}">${this.escapeHtml(opt.reponse)}</option>`).join('')}
+                        </select>
+                    </div>
+                `).join('')}
+            `;
+        } else if (formatUI === 'question_ouverte') {
+            const donnees = this.buildDataFromQuestionBuilder();
+            extraStyles = `
+                .qo-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+                .qo-document { background: #f8f9ff; padding: 1rem; border-radius: 8px; border-left: 4px solid #667eea; }
+                .qo-document img { max-width: 100%; height: auto; }
+                .qo-questions { display: flex; flex-direction: column; gap: 1rem; }
+                .qo-question { background: #fafafa; padding: 1rem; border-radius: 8px; }
+                .qo-question-text { font-weight: 500; margin-bottom: 0.5rem; }
+                .qo-textarea { width: 100%; min-height: 80px; padding: 10px; border: 2px solid #dbeafe; border-radius: 6px; resize: vertical; }
+            `;
+            const docContent = donnees.document.type === 'image'
+                ? `<img src="${this.escapeHtml(donnees.document.contenu)}" alt="Document">`
+                : `<p>${this.escapeHtml(donnees.document.contenu)}</p>`;
+            contentHTML = `
+                <div class="qo-layout">
+                    <div class="qo-document">${docContent}</div>
+                    <div class="qo-questions">
+                        ${donnees.questions.map((q, i) => `
+                            <div class="qo-question">
+                                <div class="qo-question-text">${i + 1}. ${this.escapeHtml(q.question)}</div>
+                                <textarea class="qo-textarea" placeholder="Votre réponse..."></textarea>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } else {
+            // Default: tableau_saisie
+            this.readTableBuilderValues();
+            const donnees = this.buildDataFromTableBuilder();
+            extraStyles = `
+                table { width: 100%; border-collapse: collapse; }
+                th { background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
+                th.editable { background: #dbeafe; color: #2563eb; }
+                td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
+                .data-cell { font-weight: 500; }
+                .input-cell input { width: 100%; padding: 8px 12px; border: 2px solid #dbeafe; border-radius: 6px; font-size: 14px; }
+            `;
+            contentHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            ${donnees.colonnes.map(col => `<th class="${col.editable ? 'editable' : ''}">${this.escapeHtml(col.titre)}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${donnees.lignes.map(ligne => `
+                            <tr>
+                                ${donnees.colonnes.map((col, i) => col.editable
+                                    ? `<td class="input-cell"><input type="text" placeholder="..."></td>`
+                                    : `<td class="data-cell">${this.escapeHtml(ligne.cells[i] || '')}</td>`
+                                ).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
         const previewWindow = window.open('', '_blank', 'width=800,height=600');
         previewWindow.document.write(`
             <!DOCTYPE html>
@@ -1080,18 +1172,12 @@ const AdminBanquesExercices = {
                 <title>Prévisualisation - ${this.escapeHtml(titre)}</title>
                 <style>
                     body { font-family: 'Inter', Arial, sans-serif; padding: 2rem; background: #f5f5f5; }
-                    .preview-card { background: white; border-radius: 12px; max-width: 700px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+                    .preview-card { background: white; border-radius: 12px; max-width: 800px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
                     .preview-header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 1.5rem; border-radius: 12px 12px 0 0; }
                     .preview-header h1 { margin: 0; font-size: 1.3rem; }
                     .preview-consigne { background: #f8f9ff; padding: 1rem 1.5rem; border-bottom: 1px solid #e5e7eb; }
                     .preview-content { padding: 1.5rem; }
-                    table { width: 100%; border-collapse: collapse; }
-                    th { background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
-                    th.editable { background: #dbeafe; color: #2563eb; }
-                    td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
-                    .data-cell { font-weight: 500; }
-                    .input-cell input { width: 100%; padding: 8px 12px; border: 2px solid #dbeafe; border-radius: 6px; font-size: 14px; }
-                    .input-cell input:focus { outline: none; border-color: #3b82f6; }
+                    ${extraStyles}
                 </style>
             </head>
             <body>
@@ -1101,23 +1187,7 @@ const AdminBanquesExercices = {
                     </div>
                     ${consigne ? `<div class="preview-consigne">${this.escapeHtml(consigne)}</div>` : ''}
                     <div class="preview-content">
-                        <table>
-                            <thead>
-                                <tr>
-                                    ${donnees.colonnes.map(col => `<th class="${col.editable ? 'editable' : ''}">${this.escapeHtml(col.titre)}</th>`).join('')}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${donnees.lignes.map(ligne => `
-                                    <tr>
-                                        ${donnees.colonnes.map((col, i) => col.editable
-                                            ? `<td class="input-cell"><input type="text" placeholder="..."></td>`
-                                            : `<td class="data-cell">${this.escapeHtml(ligne.cells[i] || '')}</td>`
-                                        ).join('')}
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+                        ${contentHTML}
                     </div>
                 </div>
             </body>
@@ -1219,7 +1289,8 @@ const AdminBanquesExercices = {
         const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
         if (driveMatch) {
             const fileId = driveMatch[1];
-            return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            // Use lh3.googleusercontent.com format which works better for embedding
+            return `https://lh3.googleusercontent.com/d/${fileId}`;
         }
 
         // Already a direct link or other URL format
