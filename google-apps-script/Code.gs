@@ -46,7 +46,11 @@ const SHEETS = {
   // Evaluations
   EVALUATIONS: 'EVALUATIONS',
   EVALUATION_QUESTIONS: 'EVALUATION_QUESTIONS',
-  EVALUATION_RESULTATS: 'EVALUATION_RESULTATS'
+  EVALUATION_RESULTATS: 'EVALUATION_RESULTATS',
+  // Banques d'exercices (nouveau système)
+  BANQUES_EXERCICES: 'BANQUES_EXERCICES',
+  FORMATS_EXERCICES: 'FORMATS_EXERCICES',
+  EXERCICES: 'EXERCICES'
 };
 
 // ========================================
@@ -367,6 +371,54 @@ function handleRequest(e) {
         break;
       case 'getEleveEvaluations':
         result = getEleveEvaluations(request);
+        break;
+
+      // BANQUES D'EXERCICES
+      case 'getBanquesExercices':
+        result = getBanquesExercices(request);
+        break;
+      case 'getBanqueExercices':
+        result = getBanqueExercices(request);
+        break;
+      case 'createBanqueExercices':
+        result = createBanqueExercices(request);
+        break;
+      case 'updateBanqueExercices':
+        result = updateBanqueExercices(request);
+        break;
+      case 'deleteBanqueExercices':
+        result = deleteBanqueExercices(request);
+        break;
+
+      // FORMATS D'EXERCICES
+      case 'getFormatsExercices':
+        result = getFormatsExercices(request);
+        break;
+      case 'createFormatExercices':
+        result = createFormatExercices(request);
+        break;
+      case 'updateFormatExercices':
+        result = updateFormatExercices(request);
+        break;
+      case 'deleteFormatExercices':
+        result = deleteFormatExercices(request);
+        break;
+
+      // EXERCICES
+      case 'getExercices':
+        result = getExercices(request);
+        break;
+      case 'getExercice':
+        result = getExercice(request);
+        break;
+      case 'createExercice':
+        result = createExercice(request);
+        break;
+      case 'updateExercice':
+        result = updateExercice(request);
+        break;
+      case 'deleteExercice':
+        result = deleteExercice(request);
         break;
 
       default:
@@ -4204,4 +4256,610 @@ function getEleveEvaluations(data) {
   });
 
   return { success: true, data: enrichedEvaluations };
+}
+
+// ========================================
+// BANQUES D'EXERCICES
+// ========================================
+
+/**
+ * Récupère toutes les banques d'exercices
+ * @param {Object} data - { type? } - Filtre optionnel par type
+ */
+function getBanquesExercices(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES);
+  if (!sheet) {
+    return { success: false, error: 'Sheet BANQUES_EXERCICES non trouvé' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length < 2) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const banques = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    const item = {};
+    headers.forEach((header, index) => {
+      item[header] = row[index];
+    });
+
+    // Filtrer par type si spécifié
+    if (data.type && item.type !== data.type) continue;
+    // Filtrer par statut si spécifié
+    if (data.statut && item.statut !== data.statut) continue;
+
+    if (item.id) {
+      banques.push(item);
+    }
+  }
+
+  return { success: true, data: banques };
+}
+
+/**
+ * Récupère une banque avec ses exercices
+ * @param {Object} data - { id }
+ */
+function getBanqueExercices(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // 1. Récupérer la banque
+  const banqueSheet = ss.getSheetByName(SHEETS.BANQUES_EXERCICES);
+  const banqueData = banqueSheet.getDataRange().getValues();
+  const banqueHeaders = banqueData[0].map(h => String(h).toLowerCase().trim());
+
+  let banque = null;
+  for (let i = 1; i < banqueData.length; i++) {
+    const row = banqueData[i];
+    const idCol = banqueHeaders.indexOf('id');
+    if (String(row[idCol]).trim() === String(data.id).trim()) {
+      banque = {};
+      banqueHeaders.forEach((header, index) => {
+        banque[header] = row[index];
+      });
+      break;
+    }
+  }
+
+  if (!banque) {
+    return { success: false, error: 'Banque non trouvée' };
+  }
+
+  // 2. Récupérer les exercices de cette banque
+  const exoSheet = ss.getSheetByName(SHEETS.EXERCICES);
+  const exoData = exoSheet.getDataRange().getValues();
+  const exoHeaders = exoData[0].map(h => String(h).toLowerCase().trim());
+
+  const exercices = [];
+  for (let i = 1; i < exoData.length; i++) {
+    const row = exoData[i];
+    const item = {};
+    exoHeaders.forEach((header, index) => {
+      item[header] = row[index];
+    });
+
+    if (item.banque_id === data.id) {
+      // Parser le JSON des données si présent
+      if (item.donnees && typeof item.donnees === 'string') {
+        try {
+          item.donnees = JSON.parse(item.donnees);
+        } catch (e) {
+          // Garder comme string si erreur
+        }
+      }
+      exercices.push(item);
+    }
+  }
+
+  // Trier par numéro
+  exercices.sort((a, b) => (a.numero || 0) - (b.numero || 0));
+
+  banque.exercices = exercices;
+
+  return { success: true, data: banque };
+}
+
+/**
+ * Crée une nouvelle banque d'exercices
+ * @param {Object} data - { type, titre, description?, ordre?, statut? }
+ */
+function createBanqueExercices(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES);
+
+  if (!data.type || !data.titre) {
+    return { success: false, error: 'type et titre requis' };
+  }
+
+  const id = 'banque_' + new Date().getTime();
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  const newRow = headers.map(header => {
+    const col = String(header).toLowerCase().trim();
+    if (col === 'id') return id;
+    if (col === 'date_creation') return new Date().toISOString().split('T')[0];
+    if (col === 'statut') return data.statut || 'brouillon';
+    if (col === 'ordre') return data.ordre || 1;
+    return data[col] !== undefined ? data[col] : '';
+  });
+
+  sheet.appendRow(newRow);
+
+  return { success: true, id: id, message: 'Banque créée' };
+}
+
+/**
+ * Met à jour une banque d'exercices
+ * @param {Object} data - { id, ...fields }
+ */
+function updateBanqueExercices(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Banque non trouvée' };
+  }
+
+  const updates = ['type', 'titre', 'description', 'ordre', 'statut'];
+  updates.forEach(col => {
+    if (data[col] !== undefined) {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(data[col]);
+      }
+    }
+  });
+
+  return { success: true, message: 'Banque mise à jour' };
+}
+
+/**
+ * Supprime une banque d'exercices et ses exercices
+ * @param {Object} data - { id }
+ */
+function deleteBanqueExercices(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // 1. Supprimer les exercices liés
+  const exoSheet = ss.getSheetByName(SHEETS.EXERCICES);
+  const exoData = exoSheet.getDataRange().getValues();
+  const exoHeaders = exoData[0].map(h => String(h).toLowerCase().trim());
+  const banqueIdCol = exoHeaders.indexOf('banque_id');
+
+  for (let i = exoData.length - 1; i >= 1; i--) {
+    if (String(exoData[i][banqueIdCol]).trim() === String(data.id).trim()) {
+      exoSheet.deleteRow(i + 1);
+    }
+  }
+
+  // 2. Supprimer la banque
+  const banqueSheet = ss.getSheetByName(SHEETS.BANQUES_EXERCICES);
+  const banqueData = banqueSheet.getDataRange().getValues();
+  const banqueHeaders = banqueData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = banqueHeaders.indexOf('id');
+
+  for (let i = banqueData.length - 1; i >= 1; i--) {
+    if (String(banqueData[i][idCol]).trim() === String(data.id).trim()) {
+      banqueSheet.deleteRow(i + 1);
+      break;
+    }
+  }
+
+  return { success: true, message: 'Banque et exercices supprimés' };
+}
+
+// ========================================
+// FORMATS D'EXERCICES
+// ========================================
+
+/**
+ * Récupère tous les formats d'exercices
+ * @param {Object} data - { type_compatible? } - Filtre optionnel
+ */
+function getFormatsExercices(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.FORMATS_EXERCICES);
+  if (!sheet) {
+    return { success: false, error: 'Sheet FORMATS_EXERCICES non trouvé' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length < 2) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const formats = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    const item = {};
+    headers.forEach((header, index) => {
+      item[header] = row[index];
+    });
+
+    // Parser la structure JSON si présente
+    if (item.structure && typeof item.structure === 'string') {
+      try {
+        item.structure = JSON.parse(item.structure);
+      } catch (e) {
+        // Garder comme string si erreur
+      }
+    }
+
+    // Filtrer par type_compatible si spécifié
+    if (data.type_compatible) {
+      const types = String(item.type_compatible || '').split(',').map(t => t.trim());
+      if (!types.includes(data.type_compatible)) continue;
+    }
+
+    if (item.id) {
+      formats.push(item);
+    }
+  }
+
+  return { success: true, data: formats };
+}
+
+/**
+ * Crée un nouveau format d'exercice
+ * @param {Object} data - { nom, description?, type_compatible?, structure }
+ */
+function createFormatExercices(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.FORMATS_EXERCICES);
+
+  if (!data.nom) {
+    return { success: false, error: 'nom requis' };
+  }
+
+  const id = 'format_' + new Date().getTime();
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  const newRow = headers.map(header => {
+    const col = String(header).toLowerCase().trim();
+    if (col === 'id') return id;
+    if (col === 'date_creation') return new Date().toISOString().split('T')[0];
+    if (col === 'structure' && typeof data.structure === 'object') {
+      return JSON.stringify(data.structure);
+    }
+    return data[col] !== undefined ? data[col] : '';
+  });
+
+  sheet.appendRow(newRow);
+
+  return { success: true, id: id, message: 'Format créé' };
+}
+
+/**
+ * Met à jour un format d'exercice
+ * @param {Object} data - { id, ...fields }
+ */
+function updateFormatExercices(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.FORMATS_EXERCICES);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Format non trouvé' };
+  }
+
+  const updates = ['nom', 'description', 'type_compatible', 'structure'];
+  updates.forEach(col => {
+    if (data[col] !== undefined) {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        let value = data[col];
+        if (col === 'structure' && typeof value === 'object') {
+          value = JSON.stringify(value);
+        }
+        sheet.getRange(rowIndex, colIndex + 1).setValue(value);
+      }
+    }
+  });
+
+  return { success: true, message: 'Format mis à jour' };
+}
+
+/**
+ * Supprime un format d'exercice
+ * @param {Object} data - { id }
+ */
+function deleteFormatExercices(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.FORMATS_EXERCICES);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Format supprimé' };
+    }
+  }
+
+  return { success: false, error: 'Format non trouvé' };
+}
+
+// ========================================
+// EXERCICES
+// ========================================
+
+/**
+ * Récupère les exercices
+ * @param {Object} data - { banque_id?, format_id?, statut? } - Filtres optionnels
+ */
+function getExercices(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.EXERCICES);
+  if (!sheet) {
+    return { success: false, error: 'Sheet EXERCICES non trouvé' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length < 2) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const exercices = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    const item = {};
+    headers.forEach((header, index) => {
+      item[header] = row[index];
+    });
+
+    // Filtres
+    if (data.banque_id && item.banque_id !== data.banque_id) continue;
+    if (data.format_id && item.format_id !== data.format_id) continue;
+    if (data.statut && item.statut !== data.statut) continue;
+
+    // Parser le JSON des données si présent
+    if (item.donnees && typeof item.donnees === 'string') {
+      try {
+        item.donnees = JSON.parse(item.donnees);
+      } catch (e) {
+        // Garder comme string si erreur
+      }
+    }
+
+    if (item.id) {
+      exercices.push(item);
+    }
+  }
+
+  return { success: true, data: exercices };
+}
+
+/**
+ * Récupère un exercice avec son format
+ * @param {Object} data - { id }
+ */
+function getExercice(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // 1. Récupérer l'exercice
+  const exoSheet = ss.getSheetByName(SHEETS.EXERCICES);
+  const exoData = exoSheet.getDataRange().getValues();
+  const exoHeaders = exoData[0].map(h => String(h).toLowerCase().trim());
+
+  let exercice = null;
+  for (let i = 1; i < exoData.length; i++) {
+    const row = exoData[i];
+    const idCol = exoHeaders.indexOf('id');
+    if (String(row[idCol]).trim() === String(data.id).trim()) {
+      exercice = {};
+      exoHeaders.forEach((header, index) => {
+        exercice[header] = row[index];
+      });
+      break;
+    }
+  }
+
+  if (!exercice) {
+    return { success: false, error: 'Exercice non trouvé' };
+  }
+
+  // Parser le JSON des données
+  if (exercice.donnees && typeof exercice.donnees === 'string') {
+    try {
+      exercice.donnees = JSON.parse(exercice.donnees);
+    } catch (e) {
+      // Garder comme string si erreur
+    }
+  }
+
+  // 2. Récupérer le format associé
+  if (exercice.format_id) {
+    const formatSheet = ss.getSheetByName(SHEETS.FORMATS_EXERCICES);
+    const formatData = formatSheet.getDataRange().getValues();
+    const formatHeaders = formatData[0].map(h => String(h).toLowerCase().trim());
+
+    for (let i = 1; i < formatData.length; i++) {
+      const row = formatData[i];
+      const idCol = formatHeaders.indexOf('id');
+      if (String(row[idCol]).trim() === String(exercice.format_id).trim()) {
+        exercice.format = {};
+        formatHeaders.forEach((header, index) => {
+          exercice.format[header] = row[index];
+        });
+        // Parser la structure JSON
+        if (exercice.format.structure && typeof exercice.format.structure === 'string') {
+          try {
+            exercice.format.structure = JSON.parse(exercice.format.structure);
+          } catch (e) {}
+        }
+        break;
+      }
+    }
+  }
+
+  // 3. Récupérer la banque associée
+  if (exercice.banque_id) {
+    const banqueSheet = ss.getSheetByName(SHEETS.BANQUES_EXERCICES);
+    const banqueData = banqueSheet.getDataRange().getValues();
+    const banqueHeaders = banqueData[0].map(h => String(h).toLowerCase().trim());
+
+    for (let i = 1; i < banqueData.length; i++) {
+      const row = banqueData[i];
+      const idCol = banqueHeaders.indexOf('id');
+      if (String(row[idCol]).trim() === String(exercice.banque_id).trim()) {
+        exercice.banque = {};
+        banqueHeaders.forEach((header, index) => {
+          exercice.banque[header] = row[index];
+        });
+        break;
+      }
+    }
+  }
+
+  return { success: true, data: exercice };
+}
+
+/**
+ * Crée un nouvel exercice
+ * @param {Object} data - { banque_id, format_id, numero, titre, consigne?, duree?, donnees, peut_tomber_en_eval?, statut? }
+ */
+function createExercice(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.EXERCICES);
+
+  if (!data.banque_id || !data.format_id) {
+    return { success: false, error: 'banque_id et format_id requis' };
+  }
+
+  const id = 'exo_' + new Date().getTime();
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  const newRow = headers.map(header => {
+    const col = String(header).toLowerCase().trim();
+    if (col === 'id') return id;
+    if (col === 'date_creation') return new Date().toISOString().split('T')[0];
+    if (col === 'statut') return data.statut || 'brouillon';
+    if (col === 'peut_tomber_en_eval') return data.peut_tomber_en_eval !== undefined ? data.peut_tomber_en_eval : true;
+    if (col === 'duree') return data.duree || 600;
+    if (col === 'numero') return data.numero || 1;
+    if (col === 'donnees' && typeof data.donnees === 'object') {
+      return JSON.stringify(data.donnees);
+    }
+    return data[col] !== undefined ? data[col] : '';
+  });
+
+  sheet.appendRow(newRow);
+
+  return { success: true, id: id, message: 'Exercice créé' };
+}
+
+/**
+ * Met à jour un exercice
+ * @param {Object} data - { id, ...fields }
+ */
+function updateExercice(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.EXERCICES);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Exercice non trouvé' };
+  }
+
+  const updates = ['banque_id', 'format_id', 'numero', 'titre', 'consigne', 'duree', 'donnees', 'peut_tomber_en_eval', 'statut'];
+  updates.forEach(col => {
+    if (data[col] !== undefined) {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        let value = data[col];
+        if (col === 'donnees' && typeof value === 'object') {
+          value = JSON.stringify(value);
+        }
+        sheet.getRange(rowIndex, colIndex + 1).setValue(value);
+      }
+    }
+  });
+
+  return { success: true, message: 'Exercice mis à jour' };
+}
+
+/**
+ * Supprime un exercice
+ * @param {Object} data - { id }
+ */
+function deleteExercice(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.EXERCICES);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Exercice supprimé' };
+    }
+  }
+
+  return { success: false, error: 'Exercice non trouvé' };
 }
