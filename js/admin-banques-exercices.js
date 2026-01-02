@@ -23,6 +23,21 @@ const AdminBanquesExercices = {
         rows: []
     },
 
+    // Carte cliquable builder state
+    carteBuilder: {
+        imageUrl: '',
+        marqueurs: []
+    },
+
+    // Question ouverte builder state
+    questionBuilder: {
+        document: { type: 'texte', contenu: '' },
+        questions: []
+    },
+
+    // Current format type_ui
+    currentFormatUI: 'tableau_saisie',
+
     // Type config
     typeConfig: {
         'savoir-faire': { icon: '&#128310;', color: 'orange', label: 'Savoir-faire' },
@@ -205,6 +220,16 @@ const AdminBanquesExercices = {
         document.getElementById('addColumnBtn').addEventListener('click', () => this.addColumn());
         document.getElementById('addRowBtn').addEventListener('click', () => this.addRow());
         document.getElementById('previewExerciceBtn').addEventListener('click', () => this.previewExercice());
+
+        // Format change - switch builders
+        document.getElementById('exerciceFormat').addEventListener('change', (e) => this.onFormatChange(e.target.value));
+
+        // Carte cliquable builder
+        document.getElementById('carteImageUrl').addEventListener('input', (e) => this.updateCartePreview(e.target.value));
+        document.getElementById('addMarqueurBtn').addEventListener('click', () => this.addMarqueurManual());
+
+        // Question ouverte builder
+        document.getElementById('addQuestionBtn').addEventListener('click', () => this.addQuestion());
 
         // Modal overlays
         ['banqueModal', 'exerciceModal', 'formatsModal', 'formatEditModal', 'deleteModal'].forEach(id => {
@@ -466,6 +491,10 @@ const AdminBanquesExercices = {
         // Populate formats dropdown
         this.populateFormatsDropdown();
 
+        // Hide all builders first
+        document.querySelectorAll('.format-builder').forEach(el => el.style.display = 'none');
+        document.getElementById('documentSectionTableau').style.display = 'none';
+
         if (exercice) {
             title.textContent = 'Modifier l\'exercice';
             document.getElementById('editExerciceId').value = exercice.id;
@@ -478,12 +507,40 @@ const AdminBanquesExercices = {
             document.getElementById('exerciceStatut').value = exercice.statut || 'brouillon';
             document.getElementById('exercicePeutTomber').checked = exercice.peut_tomber_en_eval !== false;
 
-            // Load table builder data from exercice.donnees
+            // Parse donnees
             let donnees = exercice.donnees;
             if (typeof donnees === 'string') {
                 try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
             }
-            this.loadTableBuilderFromData(donnees);
+
+            // Get format type_ui
+            const format = this.formats.find(f => f.id === exercice.format_id);
+            let structure = format ? format.structure : null;
+            if (typeof structure === 'string') {
+                try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
+            }
+            const typeUI = structure ? structure.type_ui : 'tableau_saisie';
+            this.currentFormatUI = typeUI;
+
+            // Load data into appropriate builder
+            if (typeUI === 'carte_cliquable') {
+                document.getElementById('builderCarte').style.display = 'block';
+                this.loadCarteBuilderFromData(donnees);
+            } else if (typeUI === 'question_ouverte') {
+                document.getElementById('builderQuestionOuverte').style.display = 'block';
+                this.loadQuestionBuilderFromData(donnees);
+            } else if (typeUI === 'document_tableau') {
+                document.getElementById('builderTableau').style.display = 'block';
+                document.getElementById('documentSectionTableau').style.display = 'block';
+                if (donnees.document) {
+                    document.getElementById('docTypeTableau').value = donnees.document.type || 'texte';
+                    document.getElementById('docContenuTableau').value = donnees.document.contenu || '';
+                }
+                this.loadTableBuilderFromData(donnees);
+            } else {
+                document.getElementById('builderTableau').style.display = 'block';
+                this.loadTableBuilderFromData(donnees);
+            }
         } else {
             title.textContent = 'Nouvel exercice';
             document.getElementById('editExerciceId').value = '';
@@ -501,7 +558,9 @@ const AdminBanquesExercices = {
             document.getElementById('exerciceStatut').value = 'brouillon';
             document.getElementById('exercicePeutTomber').checked = true;
 
-            // Initialize table builder with default structure
+            // Reset to default format
+            this.currentFormatUI = 'tableau_saisie';
+            document.getElementById('builderTableau').style.display = 'block';
             this.initTableBuilder();
         }
 
@@ -536,22 +595,54 @@ const AdminBanquesExercices = {
         const statut = document.getElementById('exerciceStatut').value;
         const peut_tomber_en_eval = document.getElementById('exercicePeutTomber').checked;
 
-        // Build donnees from table builder
-        const donnees = this.buildDataFromTableBuilder();
-
-        if (!donnees || donnees.colonnes.length === 0) {
-            alert('Ajoutez au moins une colonne au tableau');
-            return;
-        }
-
-        if (donnees.lignes.length === 0) {
-            alert('Ajoutez au moins une ligne au tableau');
-            return;
-        }
-
         if (!format_id) {
             alert('Le format est requis');
             return;
+        }
+
+        // Build donnees from the appropriate builder
+        let donnees;
+        if (this.currentFormatUI === 'carte_cliquable') {
+            donnees = this.buildDataFromCarteBuilder();
+            if (!donnees.image_url) {
+                alert('L\'URL de l\'image est requise');
+                return;
+            }
+            if (donnees.marqueurs.length === 0) {
+                alert('Ajoutez au moins un marqueur');
+                return;
+            }
+        } else if (this.currentFormatUI === 'question_ouverte') {
+            donnees = this.buildDataFromQuestionBuilder();
+            if (donnees.questions.length === 0) {
+                alert('Ajoutez au moins une question');
+                return;
+            }
+        } else if (this.currentFormatUI === 'document_tableau') {
+            donnees = this.buildDataFromTableBuilder();
+            donnees.document = {
+                type: document.getElementById('docTypeTableau').value,
+                contenu: document.getElementById('docContenuTableau').value
+            };
+            if (!donnees || donnees.colonnes.length === 0) {
+                alert('Ajoutez au moins une colonne au tableau');
+                return;
+            }
+            if (donnees.lignes.length === 0) {
+                alert('Ajoutez au moins une ligne au tableau');
+                return;
+            }
+        } else {
+            // Default: tableau_saisie
+            donnees = this.buildDataFromTableBuilder();
+            if (!donnees || donnees.colonnes.length === 0) {
+                alert('Ajoutez au moins une colonne au tableau');
+                return;
+            }
+            if (donnees.lignes.length === 0) {
+                alert('Ajoutez au moins une ligne au tableau');
+                return;
+            }
         }
 
         const data = {
@@ -1032,6 +1123,271 @@ const AdminBanquesExercices = {
             </body>
             </html>
         `);
+    },
+
+    // ========== FORMAT SWITCHING ==========
+    onFormatChange(formatId) {
+        const format = this.formats.find(f => f.id === formatId);
+        let structure = format ? format.structure : null;
+        if (typeof structure === 'string') {
+            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
+        }
+
+        const typeUI = structure ? structure.type_ui : 'tableau_saisie';
+        this.currentFormatUI = typeUI;
+
+        // Hide all builders
+        document.querySelectorAll('.format-builder').forEach(el => el.style.display = 'none');
+
+        // Show appropriate builder
+        if (typeUI === 'carte_cliquable') {
+            document.getElementById('builderCarte').style.display = 'block';
+            this.initCarteBuilder();
+        } else if (typeUI === 'question_ouverte') {
+            document.getElementById('builderQuestionOuverte').style.display = 'block';
+            this.initQuestionBuilder();
+        } else if (typeUI === 'document_tableau') {
+            document.getElementById('builderTableau').style.display = 'block';
+            document.getElementById('documentSectionTableau').style.display = 'block';
+            this.initTableBuilder();
+        } else {
+            // Default: tableau_saisie
+            document.getElementById('builderTableau').style.display = 'block';
+            document.getElementById('documentSectionTableau').style.display = 'none';
+            this.initTableBuilder();
+        }
+    },
+
+    // ========== CARTE CLIQUABLE BUILDER ==========
+    initCarteBuilder() {
+        this.carteBuilder = { imageUrl: '', marqueurs: [] };
+        document.getElementById('carteImageUrl').value = '';
+        document.getElementById('cartePreviewWrapper').style.display = 'none';
+        document.getElementById('cartePreviewPlaceholder').style.display = 'block';
+        this.renderMarqueursList();
+    },
+
+    loadCarteBuilderFromData(donnees) {
+        this.carteBuilder = {
+            imageUrl: donnees.image_url || '',
+            marqueurs: (donnees.marqueurs || []).map(m => ({
+                x: m.x,
+                y: m.y,
+                reponse: m.reponse || ''
+            }))
+        };
+        document.getElementById('carteImageUrl').value = this.carteBuilder.imageUrl;
+        if (this.carteBuilder.imageUrl) {
+            this.updateCartePreview(this.carteBuilder.imageUrl);
+        }
+        this.renderMarqueursList();
+    },
+
+    updateCartePreview(url) {
+        this.carteBuilder.imageUrl = url;
+        const wrapper = document.getElementById('cartePreviewWrapper');
+        const placeholder = document.getElementById('cartePreviewPlaceholder');
+        const img = document.getElementById('cartePreviewImage');
+
+        if (url) {
+            img.src = url;
+            img.onload = () => {
+                wrapper.style.display = 'block';
+                placeholder.style.display = 'none';
+                this.renderCarteMarkers();
+            };
+            img.onerror = () => {
+                wrapper.style.display = 'none';
+                placeholder.style.display = 'block';
+                placeholder.textContent = 'Erreur de chargement de l\'image';
+            };
+        } else {
+            wrapper.style.display = 'none';
+            placeholder.style.display = 'block';
+            placeholder.textContent = 'Entrez une URL d\'image ci-dessus pour voir l\'apercu';
+        }
+    },
+
+    renderCarteMarkers() {
+        const container = document.getElementById('cartePreviewMarkers');
+        container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => `
+            <div class="carte-marker-preview"
+                 style="left: ${m.x}%; top: ${m.y}%;"
+                 title="Marqueur ${i + 1}: ${this.escapeHtml(m.reponse)}">
+                ${i + 1}
+            </div>
+        `).join('');
+
+        // Add click handler to image for adding markers
+        const wrapper = document.getElementById('cartePreviewWrapper');
+        wrapper.onclick = (e) => {
+            const rect = wrapper.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+            const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+            this.addMarqueur(parseFloat(x), parseFloat(y));
+        };
+    },
+
+    addMarqueur(x, y) {
+        this.carteBuilder.marqueurs.push({ x, y, reponse: '' });
+        this.renderCarteMarkers();
+        this.renderMarqueursList();
+    },
+
+    addMarqueurManual() {
+        this.carteBuilder.marqueurs.push({ x: 50, y: 50, reponse: '' });
+        this.renderCarteMarkers();
+        this.renderMarqueursList();
+    },
+
+    removeMarqueur(index) {
+        this.carteBuilder.marqueurs.splice(index, 1);
+        this.renderCarteMarkers();
+        this.renderMarqueursList();
+    },
+
+    renderMarqueursList() {
+        const container = document.getElementById('marqueursList');
+        if (this.carteBuilder.marqueurs.length === 0) {
+            container.innerHTML = '<div class="exercices-empty">Aucun marqueur. Cliquez sur l\'image ou ajoutez manuellement.</div>';
+            return;
+        }
+
+        container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => `
+            <div class="marqueur-item">
+                <span class="marqueur-num">${i + 1}</span>
+                <div class="marqueur-coords">X: ${m.x}% Y: ${m.y}%</div>
+                <input type="text" class="form-input marqueur-reponse" data-index="${i}"
+                       value="${this.escapeHtml(m.reponse)}" placeholder="Reponse attendue...">
+                <button type="button" class="btn-icon danger" onclick="AdminBanquesExercices.removeMarqueur(${i})">&times;</button>
+            </div>
+        `).join('');
+
+        // Add listeners for reponse inputs
+        container.querySelectorAll('.marqueur-reponse').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const idx = parseInt(e.target.dataset.index);
+                this.carteBuilder.marqueurs[idx].reponse = e.target.value;
+            });
+        });
+    },
+
+    buildDataFromCarteBuilder() {
+        return {
+            image_url: this.carteBuilder.imageUrl,
+            marqueurs: this.carteBuilder.marqueurs.map((m, i) => ({
+                id: i,
+                x: m.x,
+                y: m.y,
+                reponse: m.reponse
+            }))
+        };
+    },
+
+    // ========== QUESTION OUVERTE BUILDER ==========
+    initQuestionBuilder() {
+        this.questionBuilder = {
+            document: { type: 'texte', contenu: '' },
+            questions: []
+        };
+        document.getElementById('docTypeQO').value = 'texte';
+        document.getElementById('docContenuQO').value = '';
+        this.renderQuestionsList();
+    },
+
+    loadQuestionBuilderFromData(donnees) {
+        this.questionBuilder = {
+            document: donnees.document || { type: 'texte', contenu: '' },
+            questions: (donnees.questions || []).map(q => ({
+                titre: q.titre || '',
+                etapes: q.etapes || [],
+                reponse_attendue: q.reponse_attendue || ''
+            }))
+        };
+        document.getElementById('docTypeQO').value = this.questionBuilder.document.type || 'texte';
+        document.getElementById('docContenuQO').value = this.questionBuilder.document.contenu || '';
+        this.renderQuestionsList();
+    },
+
+    addQuestion() {
+        this.questionBuilder.questions.push({
+            titre: 'Question ' + (this.questionBuilder.questions.length + 1),
+            etapes: [''],
+            reponse_attendue: ''
+        });
+        this.renderQuestionsList();
+    },
+
+    removeQuestion(index) {
+        this.questionBuilder.questions.splice(index, 1);
+        this.renderQuestionsList();
+    },
+
+    addEtape(qIndex) {
+        this.readQuestionsFromDOM();
+        this.questionBuilder.questions[qIndex].etapes.push('');
+        this.renderQuestionsList();
+    },
+
+    removeEtape(qIndex, eIndex) {
+        this.readQuestionsFromDOM();
+        this.questionBuilder.questions[qIndex].etapes.splice(eIndex, 1);
+        this.renderQuestionsList();
+    },
+
+    readQuestionsFromDOM() {
+        const container = document.getElementById('questionsList');
+        const items = container.querySelectorAll('.question-item');
+
+        this.questionBuilder.questions = Array.from(items).map((item, qIndex) => {
+            const titre = item.querySelector('.question-titre').value;
+            const etapes = Array.from(item.querySelectorAll('.etape-input')).map(inp => inp.value);
+            const reponse = item.querySelector('.question-correction').value;
+            return { titre, etapes, reponse_attendue: reponse };
+        });
+    },
+
+    renderQuestionsList() {
+        const container = document.getElementById('questionsList');
+        if (this.questionBuilder.questions.length === 0) {
+            container.innerHTML = '<div class="exercices-empty">Aucune question. Cliquez sur "Ajouter une question".</div>';
+            return;
+        }
+
+        container.innerHTML = this.questionBuilder.questions.map((q, qIndex) => `
+            <div class="question-item" data-index="${qIndex}">
+                <div class="question-header">
+                    <span class="question-num">${qIndex + 1}</span>
+                    <input type="text" class="form-input question-titre" value="${this.escapeHtml(q.titre)}" placeholder="Titre de la question">
+                    <button type="button" class="btn-icon danger" onclick="AdminBanquesExercices.removeQuestion(${qIndex})">&times;</button>
+                </div>
+                <div class="question-etapes">
+                    <label>Etapes/Guidage</label>
+                    ${q.etapes.map((e, eIndex) => `
+                        <div class="etape-row">
+                            <input type="text" class="form-input etape-input" value="${this.escapeHtml(e)}" placeholder="Ex: Identifiez les elements cles...">
+                            <button type="button" class="btn-icon danger" onclick="AdminBanquesExercices.removeEtape(${qIndex}, ${eIndex})">&times;</button>
+                        </div>
+                    `).join('')}
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices.addEtape(${qIndex})">+ Etape</button>
+                </div>
+                <div class="question-correction-wrap">
+                    <label>Correction attendue</label>
+                    <textarea class="form-textarea question-correction" rows="3" placeholder="Reponse modele...">${this.escapeHtml(q.reponse_attendue)}</textarea>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    buildDataFromQuestionBuilder() {
+        this.readQuestionsFromDOM();
+        return {
+            document: {
+                type: document.getElementById('docTypeQO').value,
+                contenu: document.getElementById('docContenuQO').value
+            },
+            questions: this.questionBuilder.questions
+        };
     },
 
     // ========== UTILS ==========
