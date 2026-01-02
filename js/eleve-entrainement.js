@@ -136,7 +136,10 @@ const EleveEntrainement = {
                 niveau: data.niveau,
                 chapitre_id: data.chapitre_id,
                 description: data.description,
-                type: data.niveau // connaissances, savoir-faire, competences
+                type: data.niveau, // connaissances, savoir-faire, competences
+                matiere: data.discipline || data.matiere || '',
+                chapitre: data.chapitre_nom || data.chapitre || '',
+                theme: data.theme_nom || ''
             };
 
             // Convertir durée en secondes (format: "10" pour 10 minutes)
@@ -560,8 +563,13 @@ const EleveEntrainement = {
     renderHeader() {
         document.getElementById('trainingTitle').textContent =
             `${this.getFormatIcon(this.steps[0]?.format)} ${this.training.titre}`;
-        document.getElementById('trainingSubtitle').textContent =
-            `${this.training.matiere} • ${this.training.chapitre}`;
+
+        // Build subtitle with available info
+        const subtitleParts = [];
+        if (this.training.matiere) subtitleParts.push(this.training.matiere);
+        if (this.training.chapitre) subtitleParts.push(this.training.chapitre);
+        const subtitle = subtitleParts.length > 0 ? subtitleParts.join(' • ') : (this.training.description || '');
+        document.getElementById('trainingSubtitle').textContent = subtitle;
 
         const badge = document.getElementById('typeBadge');
         badge.textContent = this.getTypeLabel(this.training.type);
