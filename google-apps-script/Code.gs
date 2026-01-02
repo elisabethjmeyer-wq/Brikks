@@ -311,6 +311,15 @@ function handleRequest(e) {
       case 'deleteEntrainement':
         result = deleteEntrainement(request);
         break;
+      case 'createEntrainementQuestion':
+        result = createEntrainementQuestion(request);
+        break;
+      case 'deleteEntrainementQuestions':
+        result = deleteEntrainementQuestions(request);
+        break;
+      case 'deleteEntrainementQuestion':
+        result = deleteEntrainementQuestion(request);
+        break;
 
       // QUESTIONS D'ENTRAINEMENT
       case 'getQuestions':
@@ -3270,6 +3279,99 @@ function deleteEntrainement(data) {
   }
 
   return { success: false, error: 'Entraînement non trouvé' };
+}
+
+/**
+ * Crée un lien entre un entraînement et une question
+ * @param {Object} data - { entrainement_id, question_id, format_id, ordre }
+ */
+function createEntrainementQuestion(data) {
+  if (!data.entrainement_id) {
+    return { success: false, error: 'entrainement_id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENT_QUESTIONS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet ENTRAINEMENT_QUESTIONS non trouvé' };
+  }
+
+  const id = 'eq_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 9);
+  const ordre = data.ordre || 1;
+
+  // Colonnes : id | entrainement_id | question_id | format_id | ordre
+  sheet.appendRow([
+    id,
+    data.entrainement_id,
+    data.question_id || '',
+    data.format_id || '',
+    ordre
+  ]);
+
+  return {
+    success: true,
+    id: id,
+    message: 'Lien entraînement-question créé'
+  };
+}
+
+/**
+ * Supprime tous les liens pour un entraînement
+ * @param {Object} data - { entrainement_id }
+ */
+function deleteEntrainementQuestions(data) {
+  if (!data.entrainement_id) {
+    return { success: false, error: 'entrainement_id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENT_QUESTIONS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet ENTRAINEMENT_QUESTIONS non trouvé' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const entrIdCol = headers.indexOf('entrainement_id');
+
+  let deletedCount = 0;
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][entrIdCol]).trim() === String(data.entrainement_id).trim()) {
+      sheet.deleteRow(i + 1);
+      deletedCount++;
+    }
+  }
+
+  return {
+    success: true,
+    message: deletedCount + ' liens supprimés'
+  };
+}
+
+/**
+ * Supprime un lien entraînement-question par son ID
+ * @param {Object} data - { id }
+ */
+function deleteEntrainementQuestion(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENT_QUESTIONS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet ENTRAINEMENT_QUESTIONS non trouvé' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Lien supprimé' };
+    }
+  }
+
+  return { success: false, error: 'Lien non trouvé' };
 }
 
 // ========================================
