@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Gestion des banques d'exercices">
+    <title>Banques d'exercices - Administration - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-banques-exercices.css">
+</head>
+<body>
+
+<div id="banques-page">
+    <!-- Page Header -->
+    <header class="admin-header">
+        <div>
+            <h1>Banques d'exercices</h1>
+            <p>Gerez vos banques d'exercices par type</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" id="manageFormatsBtn">
+                <span>&#9881;</span>
+                Formats
+            </button>
+            <button class="btn btn-primary" id="addBanqueBtn">
+                <span>+</span>
+                Nouvelle banque
+            </button>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des banques...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="banques-content" style="display: none;">
+        <!-- Tabs -->
+        <div class="type-tabs">
+            <button class="type-tab active green" data-type="savoir-faire">
+                <span class="tab-icon">&#128310;</span>
+                Savoir-faire
+                <span class="tab-count" id="countSavoirFaire">0</span>
+            </button>
+            <button class="type-tab orange" data-type="connaissances">
+                <span class="tab-icon">&#128994;</span>
+                Connaissances
+                <span class="tab-count" id="countConnaissances">0</span>
+            </button>
+            <button class="type-tab purple" data-type="competences">
+                <span class="tab-icon">&#128995;</span>
+                Competences
+                <span class="tab-count" id="countCompetences">0</span>
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-bar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Rechercher une banque...">
+            </div>
+            <select class="filter-select" id="filterStatut">
+                <option value="">Tous les statuts</option>
+                <option value="publie">Publies</option>
+                <option value="brouillon">Brouillons</option>
+            </select>
+        </div>
+
+        <!-- Banques List -->
+        <div class="banques-list" id="banquesList">
+            <!-- Generated dynamically -->
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">&#128218;</div>
+            <h3>Aucune banque trouvee</h3>
+            <p>Creez une nouvelle banque d'exercices pour ce type.</p>
+            <button class="btn btn-primary" id="addBanqueBtnEmpty">+ Nouvelle banque</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Creer/Modifier banque -->
+<div class="modal-overlay hidden" id="banqueModal">
+    <div class="modal modal-medium">
+        <div class="modal-header">
+            <h2 id="banqueModalTitle">Nouvelle banque</h2>
+            <button class="modal-close" id="closeBanqueModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editBanqueId">
+
+            <div class="form-group">
+                <label>Type <span class="req">*</span></label>
+                <div class="type-selector-row">
+                    <label class="type-option green selected" data-type="savoir-faire">
+                        <input type="radio" name="banqueType" value="savoir-faire" checked>
+                        <span class="type-option-icon">&#128310;</span>
+                        <span class="type-option-label">Savoir-faire</span>
+                    </label>
+                    <label class="type-option orange" data-type="connaissances">
+                        <input type="radio" name="banqueType" value="connaissances">
+                        <span class="type-option-icon">&#128994;</span>
+                        <span class="type-option-label">Connaissances</span>
+                    </label>
+                    <label class="type-option purple" data-type="competences">
+                        <input type="radio" name="banqueType" value="competences">
+                        <span class="type-option-icon">&#128995;</span>
+                        <span class="type-option-label">Competences</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Titre <span class="req">*</span></label>
+                <input type="text" class="form-input" id="banqueTitre" placeholder="Ex: Se reperer dans le temps">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea class="form-textarea" id="banqueDescription" rows="2" placeholder="Description de la banque..."></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Ordre d'affichage</label>
+                    <input type="number" class="form-input" id="banqueOrdre" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Statut</label>
+                    <select class="form-select" id="banqueStatut">
+                        <option value="brouillon">Brouillon</option>
+                        <option value="publie">Publie</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelBanqueBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveBanqueBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Creer/Modifier exercice -->
+<div class="modal-overlay hidden" id="exerciceModal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h2 id="exerciceModalTitle">Nouvel exercice</h2>
+            <button class="modal-close" id="closeExerciceModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editExerciceId">
+            <input type="hidden" id="exerciceBanqueId">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Numero <span class="req">*</span></label>
+                    <input type="number" class="form-input" id="exerciceNumero" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Titre</label>
+                    <input type="text" class="form-input" id="exerciceTitre" placeholder="Ex: Exercice 1">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Format <span class="req">*</span></label>
+                <select class="form-select" id="exerciceFormat">
+                    <option value="">Selectionner un format...</option>
+                    <!-- Generated dynamically -->
+                </select>
+                <div class="form-help">Le format determine la structure de l'exercice</div>
+            </div>
+
+            <div class="form-group">
+                <label>Consigne</label>
+                <textarea class="form-textarea" id="exerciceConsigne" rows="2" placeholder="Pour chaque date, trouve le siecle..."></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Duree (secondes)</label>
+                    <input type="number" class="form-input" id="exerciceDuree" value="600" min="60">
+                    <div class="form-help">600 = 10 minutes</div>
+                </div>
+                <div class="form-group">
+                    <label>Statut</label>
+                    <select class="form-select" id="exerciceStatut">
+                        <option value="brouillon">Brouillon</option>
+                        <option value="publie">Publie</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="exercicePeutTomber" checked>
+                    <span>Peut tomber en evaluation</span>
+                </label>
+            </div>
+
+            <div class="form-section">Donnees de l'exercice</div>
+            <div class="form-group">
+                <label>Donnees (JSON) <span class="req">*</span></label>
+                <textarea class="form-textarea code-textarea" id="exerciceDonnees" rows="10" placeholder='{"lignes": [...]}'></textarea>
+                <div class="form-help">Structure JSON selon le format choisi</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelExerciceBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveExerciceBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Gestion des formats -->
+<div class="modal-overlay hidden" id="formatsModal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h2>Formats d'exercices</h2>
+            <button class="modal-close" id="closeFormatsModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="formats-header">
+                <p>Les formats definissent la structure des exercices (tableau, QCM, etc.)</p>
+                <button class="btn btn-primary btn-sm" id="addFormatBtn">+ Nouveau format</button>
+            </div>
+            <div class="formats-list" id="formatsList">
+                <!-- Generated dynamically -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="closeFormatsBtn">Fermer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Creer/Modifier format -->
+<div class="modal-overlay hidden" id="formatEditModal">
+    <div class="modal modal-medium">
+        <div class="modal-header">
+            <h2 id="formatEditModalTitle">Nouveau format</h2>
+            <button class="modal-close" id="closeFormatEditModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editFormatId">
+
+            <div class="form-group">
+                <label>Nom <span class="req">*</span></label>
+                <input type="text" class="form-input" id="formatNom" placeholder="Ex: Tableau chronologique">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea class="form-textarea" id="formatDescription" rows="2" placeholder="Description du format..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Types compatibles</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="formatTypes" value="savoir-faire" checked>
+                        <span>Savoir-faire</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="formatTypes" value="connaissances">
+                        <span>Connaissances</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="formatTypes" value="competences">
+                        <span>Competences</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Structure (JSON) <span class="req">*</span></label>
+                <textarea class="form-textarea code-textarea" id="formatStructure" rows="8" placeholder='{"type_ui": "tableau_saisie", ...}'></textarea>
+                <div class="form-help">Definit la structure du format</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelFormatBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveFormatBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmation suppression -->
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal modal-small">
+        <div class="modal-header">
+            <h2>Confirmer la suppression</h2>
+            <button class="modal-close" id="closeDeleteModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="deleteMessage">Etes-vous sur de vouloir supprimer cet element ?</p>
+            <p class="delete-warning">Cette action est irreversible.</p>
+            <input type="hidden" id="deleteType">
+            <input type="hidden" id="deleteId">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Annuler</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/app.js"></script>
+<script src="../components/admin-layout.js"></script>
+<script src="../js/admin-banques-exercices.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        AdminLayout.init('banques-exercices', 'Banques d\'exercices');
+    });
+</script>
+
+</body>
+</html>

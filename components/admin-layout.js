@@ -28,6 +28,7 @@ const AdminLayout = {
         {
             section: '🎯 Exercices',
             items: [
+                { icon: '📚', label: "Banques d'exercices", href: '/Brikks/admin/banques-exercices.html', id: 'banques-exercices' },
                 { icon: '🧩', label: "Banque d'éléments", href: '/Brikks/admin/elements.html', id: 'elements' },
                 { icon: '📝', label: 'Entraînements', href: '/Brikks/admin/entrainements.html', id: 'entrainements' }
             ]
