@@ -449,43 +449,44 @@
     }
 
     function renderTableauSaisie(donnees, structure) {
-        const lignes = donnees.lignes || [];
-        const colonnes = structure.colonnes || [
-            { id: 'date', titre: 'Date', editable: false },
-            { id: 'siecle', titre: 'Siècle', editable: true }
+        // Support both new format (colonnes in donnees) and legacy format
+        let colonnes = donnees.colonnes || structure.colonnes || [
+            { titre: 'Date', editable: false },
+            { titre: 'Réponse', editable: true }
         ];
 
-        // Trouver la colonne de réponse (première colonne editable)
-        const reponseCol = colonnes.find(c => c.editable);
-        const questionCol = colonnes.find(c => !c.editable);
+        const lignes = donnees.lignes || [];
 
         let html = `
             <table class="tableau-exercice">
                 <thead>
                     <tr>
-                        ${colonnes.map(col => `<th style="width: ${col.largeur || 'auto'}">${col.titre}</th>`).join('')}
+                        ${colonnes.map(col => `<th>${col.titre}</th>`).join('')}
                     </tr>
                 </thead>
                 <tbody>
         `;
 
-        lignes.forEach((ligne, index) => {
+        lignes.forEach((ligne, rowIndex) => {
+            // Support both new format (cells array) and legacy format (named properties)
+            const cells = ligne.cells || Object.values(ligne);
+
             html += '<tr>';
-            colonnes.forEach(col => {
+            colonnes.forEach((col, colIndex) => {
                 if (col.editable) {
                     html += `
                         <td>
                             <input type="text"
-                                   id="input_${index}"
-                                   data-index="${index}"
-                                   placeholder="${col.placeholder || ''}"
+                                   id="input_${rowIndex}_${colIndex}"
+                                   data-row="${rowIndex}"
+                                   data-col="${colIndex}"
+                                   placeholder="..."
                                    autocomplete="off">
-                            <div class="correction-row" id="correction_${index}"></div>
+                            <div class="correction-row" id="correction_${rowIndex}_${colIndex}"></div>
                         </td>
                     `;
                 } else {
-                    // Afficher la date ou autre donnée non éditable
-                    const value = ligne[col.id] || ligne.date || '';
+                    const value = cells[colIndex] || '';
                     html += `<td class="date-cell">${escapeHtml(value)}</td>`;
                 }
             });
@@ -504,31 +505,39 @@
             try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
         }
 
+        const colonnes = donnees.colonnes || [];
         const lignes = donnees.lignes || [];
         let correct = 0;
-        let total = lignes.length;
+        let total = 0;
 
-        lignes.forEach((ligne, index) => {
-            const input = document.getElementById(`input_${index}`);
-            const correction = document.getElementById(`correction_${index}`);
-            if (!input) return;
+        lignes.forEach((ligne, rowIndex) => {
+            const cells = ligne.cells || Object.values(ligne);
 
-            const userAnswer = normalizeAnswer(input.value);
-            const correctAnswer = normalizeAnswer(ligne.reponse || ligne.siecle || '');
+            colonnes.forEach((col, colIndex) => {
+                if (col.editable) {
+                    total++;
+                    const input = document.getElementById(`input_${rowIndex}_${colIndex}`);
+                    const correction = document.getElementById(`correction_${rowIndex}_${colIndex}`);
+                    if (!input) return;
 
-            if (userAnswer === correctAnswer) {
-                input.className = 'correct';
-                correction.textContent = '';
-                correct++;
-            } else {
-                input.className = 'incorrect';
-                correction.textContent = '→ ' + (ligne.reponse || ligne.siecle || '');
-            }
+                    const userAnswer = normalizeAnswer(input.value);
+                    const correctAnswer = normalizeAnswer(cells[colIndex] || '');
+
+                    if (userAnswer === correctAnswer) {
+                        input.className = 'correct';
+                        if (correction) correction.textContent = '';
+                        correct++;
+                    } else {
+                        input.className = 'incorrect';
+                        if (correction) correction.textContent = '→ ' + (cells[colIndex] || '');
+                    }
+                }
+            });
         });
 
         // Afficher résultat
         const banner = document.getElementById('resultBanner');
-        const percent = Math.round((correct / total) * 100);
+        const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
 
         if (percent === 100) {
             banner.className = 'result-banner success';
@@ -558,18 +567,23 @@
             try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
         }
 
+        const colonnes = donnees.colonnes || [];
         const lignes = donnees.lignes || [];
 
-        lignes.forEach((_, index) => {
-            const input = document.getElementById(`input_${index}`);
-            const correction = document.getElementById(`correction_${index}`);
-            if (input) {
-                input.value = '';
-                input.className = '';
-            }
-            if (correction) {
-                correction.textContent = '';
-            }
+        lignes.forEach((_, rowIndex) => {
+            colonnes.forEach((col, colIndex) => {
+                if (col.editable) {
+                    const input = document.getElementById(`input_${rowIndex}_${colIndex}`);
+                    const correction = document.getElementById(`correction_${rowIndex}_${colIndex}`);
+                    if (input) {
+                        input.value = '';
+                        input.className = '';
+                    }
+                    if (correction) {
+                        correction.textContent = '';
+                    }
+                }
+            });
         });
 
         document.getElementById('resultBanner').className = 'result-banner';

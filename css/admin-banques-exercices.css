@@ -844,6 +844,184 @@
     gap: 4px;
 }
 
+/* ===== TABLE BUILDER ===== */
+.columns-builder {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.column-def {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+}
+
+.column-def .column-num {
+    width: 24px;
+    height: 24px;
+    background: var(--gray-200);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-600);
+    flex-shrink: 0;
+}
+
+.column-def input[type="text"] {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+}
+
+.column-def input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+}
+
+.column-def .column-editable {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--gray-600);
+    white-space: nowrap;
+}
+
+.column-def .column-editable input {
+    width: 16px;
+    height: 16px;
+}
+
+.column-def .btn-remove-col {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--gray-400);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.column-def .btn-remove-col:hover {
+    background: var(--accent-red-light);
+    color: var(--accent-red);
+}
+
+.table-builder-wrapper {
+    overflow-x: auto;
+    margin-bottom: 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+}
+
+.table-builder {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 400px;
+}
+
+.table-builder th {
+    background: var(--gray-100);
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-600);
+    border-bottom: 1px solid var(--gray-200);
+    white-space: nowrap;
+}
+
+.table-builder th.editable-col {
+    background: var(--accent-blue-light);
+    color: var(--accent-blue);
+}
+
+.table-builder th .col-hint {
+    font-weight: 400;
+    font-size: 10px;
+    display: block;
+    margin-top: 2px;
+}
+
+.table-builder td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.table-builder tr:last-child td {
+    border-bottom: none;
+}
+
+.table-builder input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.table-builder input:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+}
+
+.table-builder input.editable-input {
+    background: var(--accent-blue-light);
+    border-color: var(--accent-blue);
+}
+
+.table-builder .row-actions {
+    width: 40px;
+    text-align: center;
+}
+
+.table-builder .btn-remove-row {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--gray-400);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    margin: 0 auto;
+}
+
+.table-builder .btn-remove-row:hover {
+    background: var(--accent-red-light);
+    color: var(--accent-red);
+}
+
+.table-builder-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--gray-500);
+    font-size: 13px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .type-tabs {

@@ -210,12 +210,40 @@
                 </label>
             </div>
 
-            <div class="form-section">Donnees de l'exercice</div>
+            <div class="form-section">Construction du tableau</div>
+
+            <!-- Définition des colonnes -->
             <div class="form-group">
-                <label>Donnees (JSON) <span class="req">*</span></label>
-                <textarea class="form-textarea code-textarea" id="exerciceDonnees" rows="10" placeholder='{"lignes": [...]}'></textarea>
-                <div class="form-help">Structure JSON selon le format choisi</div>
+                <label>Colonnes du tableau</label>
+                <div class="columns-builder" id="columnsBuilder">
+                    <!-- Colonnes générées dynamiquement -->
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="addColumnBtn">+ Ajouter une colonne</button>
             </div>
+
+            <!-- Données des lignes -->
+            <div class="form-group">
+                <label>Lignes du tableau</label>
+                <div class="table-builder-wrapper">
+                    <table class="table-builder" id="tableBuilder">
+                        <thead id="tableBuilderHead">
+                            <!-- En-têtes générés dynamiquement -->
+                        </thead>
+                        <tbody id="tableBuilderBody">
+                            <!-- Lignes générées dynamiquement -->
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>
+            </div>
+
+            <!-- Prévisualisation -->
+            <div class="form-group">
+                <button type="button" class="btn btn-secondary" id="previewExerciceBtn">Prévisualiser l'exercice</button>
+            </div>
+
+            <!-- Champ caché pour stocker le JSON (pour compatibilité) -->
+            <input type="hidden" id="exerciceDonnees">
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelExerciceBtn">Annuler</button>
