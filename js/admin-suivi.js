@@ -28,7 +28,7 @@ const AdminSuivi = {
             ]);
 
             if (elevesResult.success) {
-                this.eleves = (elevesResult.data || []).filter(u => u.role === 'eleve');
+                this.eleves = (elevesResult.data || []).filter(u => (u.role || '').toLowerCase() === 'eleve');
                 // Extract unique classes
                 this.classes = [...new Set(this.eleves.map(e => e.classe_id).filter(Boolean))].sort();
             }
