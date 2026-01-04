@@ -2362,6 +2362,9 @@ const AdminBanquesExercices = {
     }
 };
 
+// Make globally accessible for inline handlers
+window.AdminBanquesExercices = AdminBanquesExercices;
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     AdminBanquesExercices.init();
