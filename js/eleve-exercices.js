@@ -1546,6 +1546,7 @@ const EleveExercices = {
     // Data for tâches complexes
     tachesComplexes: [],
     competencesReferentiel: [],
+    criteresReussite: [],
     eleveTachesProgress: [],
     currentTacheComplexe: null,
     tacheTimer: null,
@@ -1554,10 +1555,11 @@ const EleveExercices = {
     async initCompetences() {
         this.showLoader('Chargement des taches complexes...');
         try {
-            // Load tâches complexes, referentiel, and student progress in parallel
-            const [tachesResult, compRefResult, progressResult] = await Promise.all([
+            // Load tâches complexes, referentiel, critères and student progress in parallel
+            const [tachesResult, compRefResult, criteresResult, progressResult] = await Promise.all([
                 this.callAPI('getTachesComplexes', {}),
                 this.callAPI('getCompetencesReferentiel', {}),
+                this.callAPI('getCriteresReussite', {}),
                 this.currentUser ? this.callAPI('getEleveTachesComplexes', { eleve_id: this.currentUser.id }) : { success: true, data: [] }
             ]);
 
@@ -1566,6 +1568,9 @@ const EleveExercices = {
             }
             if (compRefResult.success) {
                 this.competencesReferentiel = compRefResult.data || [];
+            }
+            if (criteresResult.success) {
+                this.criteresReussite = criteresResult.data || [];
             }
             if (progressResult.success) {
                 this.eleveTachesProgress = progressResult.data || [];
@@ -1838,28 +1843,41 @@ const EleveExercices = {
         this.currentTacheComplexe = tache;
         this.currentTacheMode = mode;
 
-        // Parse competences with full data (including description for criteria)
+        // Parse competences with full data and their individual criteria
         const compIds = (tache.competences_ids || '').split(',').filter(id => id.trim());
         const competences = compIds.map(id => {
             const comp = this.competencesReferentiel.find(c => c.id === id.trim());
-            return comp ? { id: comp.id, nom: comp.nom, description: comp.description || '' } : null;
+            if (!comp) return null;
+            // Get criteria for this competence, sorted by ordre
+            const criteres = this.criteresReussite
+                .filter(cr => cr.competence_id === comp.id)
+                .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+            return { id: comp.id, nom: comp.nom, description: comp.description || '', criteres };
         }).filter(Boolean);
 
         // Generate competences list with expandable criteria
-        const competencesHTML = competences.map((c, index) => `
-            <div class="competence-item-v2">
-                <div class="competence-header-v2" onclick="EleveExercices.toggleCompetenceCriteria(${index})">
-                    <span class="competence-bullet">●</span>
-                    <span class="competence-name-v2">${this.escapeHtml(c.nom)}</span>
-                    ${c.description ? `<span class="competence-chevron" id="compExpand${index}">▼</span>` : ''}
-                </div>
-                ${c.description ? `
-                    <div class="competence-criteria-v2 hidden" id="compCriteria${index}">
-                        ${this.formatCriteria(c.description)}
+        const competencesHTML = competences.map((c, index) => {
+            const hasCriteria = c.criteres && c.criteres.length > 0;
+            const criteriaHTML = hasCriteria
+                ? `<ul class="criteria-list">${c.criteres.map(cr => `<li>${this.escapeHtml(cr.libelle)}</li>`).join('')}</ul>`
+                : (c.description ? this.formatCriteria(c.description) : '');
+            const showExpand = hasCriteria || c.description;
+
+            return `
+                <div class="competence-item-v2">
+                    <div class="competence-header-v2" onclick="EleveExercices.toggleCompetenceCriteria(${index})">
+                        <span class="competence-bullet">●</span>
+                        <span class="competence-name-v2">${this.escapeHtml(c.nom)}</span>
+                        ${showExpand ? `<span class="competence-chevron" id="compExpand${index}">▼</span>` : ''}
                     </div>
-                ` : ''}
-            </div>
-        `).join('');
+                    ${showExpand ? `
+                        <div class="competence-criteria-v2 hidden" id="compCriteria${index}">
+                            ${criteriaHTML}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
 
         // Convert document URL for iframe embedding
         const iframeUrl = this.getEmbedUrl(tache.document_url);
