@@ -315,7 +315,7 @@ const AdminLayout = {
     callAPI(action, params = {}) {
         return new Promise((resolve, reject) => {
             const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            const url = new URL(CONFIG.API_URL);
+            const url = new URL(CONFIG.WEBAPP_URL);
             url.searchParams.append('action', action);
             url.searchParams.append('callback', callbackName);
             Object.keys(params).forEach(key => {
