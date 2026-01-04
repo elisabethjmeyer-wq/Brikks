@@ -1686,7 +1686,7 @@ const AdminBanquesExercices = {
     // ========== DOCUMENT MIXTE BUILDER ==========
     initDocumentMixteBuilder() {
         this.mixteBuilder = {
-            document: { actif: true, url: '', titre: '', legende: '' },
+            document: { actif: true, type: 'url', url: '', texte: '', titre: '', legende: '' },
             tableau: { actif: false, titre: '', elements: [] },
             questions: { actif: false, liste: [] },
             sectionOrder: ['document', 'tableau', 'questions'],
@@ -1705,6 +1705,13 @@ const AdminBanquesExercices = {
         document.getElementById('tableauElementsList').innerHTML = '';
         document.getElementById('questionsListMixte').innerHTML = '';
 
+        // Reset document type toggle
+        const docTypeUrl = document.querySelector('input[name="docType"][value="url"]');
+        if (docTypeUrl) docTypeUrl.checked = true;
+        const docTexteEl = document.getElementById('docTexteMixte');
+        if (docTexteEl) docTexteEl.value = '';
+        this.toggleDocType('url');
+
         // Show/hide sections
         document.getElementById('sectionDocument').style.display = 'block';
         document.getElementById('sectionTableau').style.display = 'none';
@@ -1714,6 +1721,25 @@ const AdminBanquesExercices = {
         this.initMixteDragDrop();
 
         // Update preview
+        this.updateMixtePreview();
+    },
+
+    toggleDocType(type) {
+        const urlSection = document.getElementById('docUrlSection');
+        const texteSection = document.getElementById('docTexteSection');
+
+        if (type === 'url') {
+            if (urlSection) urlSection.style.display = 'block';
+            if (texteSection) texteSection.style.display = 'none';
+        } else {
+            if (urlSection) urlSection.style.display = 'none';
+            if (texteSection) texteSection.style.display = 'block';
+        }
+
+        if (this.mixteBuilder && this.mixteBuilder.document) {
+            this.mixteBuilder.document.type = type;
+        }
+
         this.updateMixtePreview();
     },
 
@@ -1735,8 +1761,17 @@ const AdminBanquesExercices = {
             tableauData.elements = this.convertOldTableauFormat(tableauData);
         }
 
+        const docData = donnees.document || { actif: true, type: 'url', url: '', texte: '', titre: '', legende: '' };
+
         this.mixteBuilder = {
-            document: donnees.document || { actif: true, url: '', titre: '', legende: '' },
+            document: {
+                actif: docData.actif !== undefined ? docData.actif : true,
+                type: docData.type || 'url',
+                url: docData.url || '',
+                texte: docData.texte || '',
+                titre: docData.titre || '',
+                legende: docData.legende || ''
+            },
             tableau: {
                 actif: tableauData.actif || false,
                 titre: tableauData.titre || '',
@@ -1753,8 +1788,16 @@ const AdminBanquesExercices = {
         document.getElementById('toggleQuestions').checked = this.mixteBuilder.questions.actif;
         document.getElementById('mixteLayoutSelect').value = this.mixteBuilder.layout;
 
+        // Set document type toggle
+        const docType = this.mixteBuilder.document.type || 'url';
+        const docTypeRadio = document.querySelector(`input[name="docType"][value="${docType}"]`);
+        if (docTypeRadio) docTypeRadio.checked = true;
+        this.toggleDocType(docType);
+
         // Set document fields
         document.getElementById('docUrlMixte').value = this.mixteBuilder.document.url || '';
+        const docTexteEl = document.getElementById('docTexteMixte');
+        if (docTexteEl) docTexteEl.value = this.mixteBuilder.document.texte || '';
         document.getElementById('docTitreMixte').value = this.mixteBuilder.document.titre || '';
         document.getElementById('docLegendeMixte').value = this.mixteBuilder.document.legende || '';
 
@@ -2264,7 +2307,7 @@ const AdminBanquesExercices = {
 
         // Ensure all nested objects exist
         if (!this.mixteBuilder.document) {
-            this.mixteBuilder.document = { actif: false, url: '', titre: '', legende: '' };
+            this.mixteBuilder.document = { actif: false, type: 'url', url: '', texte: '', titre: '', legende: '' };
         }
         if (!this.mixteBuilder.tableau) {
             this.mixteBuilder.tableau = { actif: false, titre: '', elements: [] };
@@ -2281,19 +2324,28 @@ const AdminBanquesExercices = {
 
         // Read current values from DOM
         const docUrlEl = document.getElementById('docUrlMixte');
+        const docTexteEl = document.getElementById('docTexteMixte');
         const docTitreEl = document.getElementById('docTitreMixte');
         const docLegendeEl = document.getElementById('docLegendeMixte');
         const tableauTitreEl = document.getElementById('tableauTitreMixte');
         const layoutEl = document.getElementById('mixteLayoutSelect');
 
+        // Get document type from radio buttons
+        const docTypeRadio = document.querySelector('input[name="docType"]:checked');
+        if (docTypeRadio) this.mixteBuilder.document.type = docTypeRadio.value;
+
         if (docUrlEl) this.mixteBuilder.document.url = docUrlEl.value;
+        if (docTexteEl) this.mixteBuilder.document.texte = docTexteEl.value;
         if (docTitreEl) this.mixteBuilder.document.titre = docTitreEl.value;
         if (docLegendeEl) this.mixteBuilder.document.legende = docLegendeEl.value;
         if (tableauTitreEl) this.mixteBuilder.tableau.titre = tableauTitreEl.value;
         if (layoutEl) this.mixteBuilder.layout = layoutEl.value;
 
         return {
-            document: this.mixteBuilder.document,
+            document: {
+                ...this.mixteBuilder.document,
+                type: this.mixteBuilder.document.type || 'url'
+            },
             tableau: { ...this.mixteBuilder.tableau, elements: this.mixteBuilder.tableau.elements || [] },
             questions: { ...this.mixteBuilder.questions, liste: this.mixteBuilder.questions.liste || [] },
             sectionOrder: this.mixteBuilder.sectionOrder || ['document', 'tableau', 'questions'],

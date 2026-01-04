@@ -195,8 +195,9 @@
 
 /* Vue exercice en cours */
 .exercise-view {
-    max-width: 900px;
+    max-width: 1400px;
     margin: 0 auto;
+    padding: 0 1rem;
 }
 
 .exercise-back-btn {
@@ -966,16 +967,27 @@
 /* Horizontal Layout for Document Mixte */
 .document-mixte-container.horizontal-layout {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 55fr 45fr;
     gap: 1.5rem;
-    align-items: start;
+    align-items: stretch;
 }
 
 .mixte-left-column,
 .mixte-right-column {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+}
+
+.mixte-left-column .mixte-section,
+.mixte-right-column .mixte-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.mixte-left-column .mixte-doc-content,
+.mixte-right-column .mixte-tableau-content {
+    flex: 1;
 }
 
 .document-mixte-container.horizontal-layout .mixte-section {
@@ -984,11 +996,13 @@
 
 /* Adjust document section for horizontal layout */
 .document-mixte-container.horizontal-layout .mixte-doc-content {
-    padding: 1rem;
+    padding: 1.5rem;
+    overflow-y: auto;
 }
 
 .document-mixte-container.horizontal-layout .mixte-doc-iframe {
-    height: 400px;
+    height: 100%;
+    min-height: 400px;
 }
 
 .document-mixte-container.horizontal-layout .mixte-doc-image {
@@ -998,7 +1012,7 @@
 }
 
 /* Responsive: Horizontal layout becomes vertical on smaller screens */
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
     .document-mixte-container.horizontal-layout {
         grid-template-columns: 1fr;
     }
@@ -1074,6 +1088,28 @@
     color: #374151;
     max-height: 500px;
     overflow-y: auto;
+}
+
+/* Text content styling for document */
+.doc-text-content {
+    background: white;
+    padding: 1.5rem 2rem;
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #1f2937;
+}
+
+.doc-text-content p {
+    margin-bottom: 1rem;
+    text-align: justify;
+}
+
+.doc-text-content p:last-child {
+    margin-bottom: 0;
+}
+
+.doc-text-content em {
+    font-style: italic;
 }
 
 .mixte-doc-legend {

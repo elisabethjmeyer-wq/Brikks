@@ -343,9 +343,30 @@
                         </div>
                         <div class="section-content">
                             <div class="form-row">
+                                <label>Type de document</label>
+                                <div class="doc-type-toggle">
+                                    <label class="toggle-option">
+                                        <input type="radio" name="docType" value="url" checked onchange="AdminBanquesExercices.toggleDocType('url')">
+                                        <span>🔗 Image/URL</span>
+                                    </label>
+                                    <label class="toggle-option">
+                                        <input type="radio" name="docType" value="texte" onchange="AdminBanquesExercices.toggleDocType('texte')">
+                                        <span>📝 Texte</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="docUrlSection" class="form-row">
                                 <label>URL du document</label>
                                 <input type="text" class="form-input" id="docUrlMixte" placeholder="Lien Google Drive, image, PDF...">
                                 <div class="form-help">Collez un lien Google Drive (image, PDF, Doc) ou une URL directe</div>
+                            </div>
+                            <div id="docTexteSection" class="form-row" style="display: none;">
+                                <label>Contenu du texte</label>
+                                <textarea class="form-textarea" id="docTexteMixte" rows="10" placeholder="Collez votre texte ici...
+
+Les paragraphes sont créés automatiquement avec les sauts de ligne.
+Utilisez *texte* pour mettre en italique."></textarea>
+                                <div class="form-help">Collez simplement votre texte. Les paragraphes seront créés automatiquement.</div>
                             </div>
                             <div class="form-row">
                                 <label>Titre du document</label>

@@ -932,38 +932,70 @@ const EleveExercices = {
     },
 
     renderMixteDocumentSection(doc) {
+        const docType = doc.type || 'url';
         const url = doc.url || '';
+        const texte = doc.texte || '';
         const titre = doc.titre || '';
         const legende = doc.legende || '';
 
         // Parse legende for italics
         const legendeHTML = this.escapeHtml(legende).replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-        // Convert Google URL
-        const converted = this.convertGoogleUrl(url);
         let contentHTML = '';
 
-        if (converted.type === 'empty') {
-            contentHTML = '<div class="doc-placeholder">Document non disponible</div>';
-        } else if (converted.type === 'drive_file') {
-            contentHTML = `
-                <img src="${converted.imageUrl}" alt="Document" class="mixte-doc-image"
-                     onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
-                <iframe src="${converted.iframeUrl}" class="mixte-doc-iframe" style="display:none;"></iframe>
-            `;
-        } else if (converted.iframeUrl) {
-            contentHTML = `<iframe src="${converted.iframeUrl}" class="mixte-doc-iframe"></iframe>`;
+        if (docType === 'texte' && texte) {
+            // Convert plain text to HTML paragraphs
+            contentHTML = this.textToHtml(texte);
+        } else if (url) {
+            // Convert Google URL for images/iframes
+            const converted = this.convertGoogleUrl(url);
+
+            if (converted.type === 'empty') {
+                contentHTML = '<div class="doc-placeholder">Document non disponible</div>';
+            } else if (converted.type === 'drive_file') {
+                contentHTML = `
+                    <img src="${converted.imageUrl}" alt="Document" class="mixte-doc-image"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                    <iframe src="${converted.iframeUrl}" class="mixte-doc-iframe" style="display:none;"></iframe>
+                `;
+            } else if (converted.iframeUrl) {
+                contentHTML = `<iframe src="${converted.iframeUrl}" class="mixte-doc-iframe"></iframe>`;
+            } else {
+                contentHTML = `<img src="${this.convertToDirectImageUrl(url)}" alt="Document" class="mixte-doc-image">`;
+            }
         } else {
-            contentHTML = `<img src="${this.convertToDirectImageUrl(url)}" alt="Document" class="mixte-doc-image">`;
+            contentHTML = '<div class="doc-placeholder">Aucun document</div>';
         }
 
         return `
             <div class="mixte-section mixte-document">
                 ${titre ? `<div class="mixte-section-header doc-header">${this.escapeHtml(titre)}</div>` : ''}
-                <div class="mixte-doc-content">${contentHTML}</div>
+                <div class="mixte-doc-content ${docType === 'texte' ? 'doc-text-content' : ''}">${contentHTML}</div>
                 ${legende ? `<div class="mixte-doc-legend">${legendeHTML}</div>` : ''}
             </div>
         `;
+    },
+
+    /**
+     * Convert plain text to HTML with paragraphs and italics
+     */
+    textToHtml(text) {
+        if (!text) return '';
+
+        // Escape HTML first
+        let html = this.escapeHtml(text);
+
+        // Convert *text* to <em>text</em> for italics
+        html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+        // Split by double newlines for paragraphs, single newlines for line breaks
+        const paragraphs = html.split(/\n\s*\n/);
+
+        return paragraphs.map(p => {
+            // Replace single newlines with <br>
+            const withBreaks = p.trim().replace(/\n/g, '<br>');
+            return `<p>${withBreaks}</p>`;
+        }).join('');
     },
 
     renderMixteTableauSection(tableau) {
