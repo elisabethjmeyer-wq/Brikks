@@ -35,6 +35,12 @@ const EleveExercices = {
         this.currentType = type;
         this.currentUser = await this.getCurrentUser();
 
+        // Handle competences differently (tâches complexes)
+        if (type === 'competences') {
+            await this.initCompetences();
+            return;
+        }
+
         // Try cache first
         const cached = this.loadFromCache();
         if (cached) {
@@ -1494,6 +1500,410 @@ const EleveExercices = {
             'competences': '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#7c3aed" width="28" height="28"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>'
         };
         return icons[this.currentType] || icons['connaissances'];
+    },
+
+    // ===============================
+    // TACHES COMPLEXES (Compétences)
+    // ===============================
+
+    // Data for tâches complexes
+    tachesComplexes: [],
+    competencesReferentiel: [],
+    eleveTachesProgress: [],
+    currentTacheComplexe: null,
+    tacheTimer: null,
+    tacheTimeRemaining: 0,
+
+    async initCompetences() {
+        this.showLoader('Chargement des taches complexes...');
+        try {
+            // Load tâches complexes, referentiel, and student progress in parallel
+            const [tachesResult, compRefResult, progressResult] = await Promise.all([
+                this.callAPI('getTachesComplexes', {}),
+                this.callAPI('getCompetencesReferentiel', {}),
+                this.currentUser ? this.callAPI('getEleveTachesComplexes', { eleve_id: this.currentUser.id }) : { success: true, data: [] }
+            ]);
+
+            if (tachesResult.success) {
+                this.tachesComplexes = (tachesResult.data || []).filter(t => t.statut === 'publie');
+            }
+            if (compRefResult.success) {
+                this.competencesReferentiel = compRefResult.data || [];
+            }
+            if (progressResult.success) {
+                this.eleveTachesProgress = progressResult.data || [];
+            }
+
+            this.renderTachesComplexesList();
+        } catch (error) {
+            console.error('Erreur chargement taches complexes:', error);
+            this.showError('Erreur lors du chargement des taches complexes');
+        }
+    },
+
+    renderTachesComplexesList() {
+        const container = document.getElementById('exercices-content');
+
+        if (this.tachesComplexes.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="48" height="48">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                        </svg>
+                    </div>
+                    <h3>Aucune tache complexe disponible</h3>
+                    <p>Les taches complexes seront bientot disponibles.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Sort by ordre
+        this.tachesComplexes.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        container.innerHTML = `
+            <div class="taches-complexes-header">
+                <h2>Taches complexes</h2>
+                <p class="taches-intro">Choisissez une tache pour vous entrainer ou obtenir des points bonus.</p>
+            </div>
+            <div class="taches-complexes-list">
+                ${this.tachesComplexes.map(tache => this.renderTacheComplexeCard(tache)).join('')}
+            </div>
+        `;
+    },
+
+    renderTacheComplexeCard(tache) {
+        // Get student progress for this tache
+        const progress = this.eleveTachesProgress.find(p => p.tache_id === tache.id);
+
+        // Parse competences
+        const compIds = (tache.competences_ids || '').split(',').filter(id => id.trim());
+        const competences = compIds.map(id => {
+            const comp = this.competencesReferentiel.find(c => c.id === id.trim());
+            return comp ? comp.nom : null;
+        }).filter(Boolean);
+
+        const dureeMin = Math.round((tache.duree || 2700) / 60);
+
+        let statusBadge = '';
+        let actionButton = '';
+
+        if (progress) {
+            if (progress.statut === 'termine') {
+                if (progress.mode === 'entrainement') {
+                    statusBadge = '<span class="tache-status entrainement">Termine (entrainement)</span>';
+                    actionButton = tache.correction_url
+                        ? `<a href="${this.escapeHtml(tache.correction_url)}" target="_blank" class="btn btn-secondary">Voir la correction</a>`
+                        : '<span class="no-correction">Correction non disponible</span>';
+                } else {
+                    statusBadge = '<span class="tache-status points-bonus">Rendu pour points bonus</span>';
+                    actionButton = '<span class="attente-correction">En attente de correction</span>';
+                }
+            } else {
+                // En cours
+                statusBadge = '<span class="tache-status en-cours">En cours</span>';
+                actionButton = `<button class="btn btn-primary" onclick="EleveExercices.resumeTacheComplexe('${tache.id}')">Reprendre</button>`;
+            }
+        } else {
+            // Not started
+            actionButton = `<button class="btn btn-primary" onclick="EleveExercices.openTacheChoiceModal('${tache.id}')">Commencer</button>`;
+        }
+
+        return `
+            <div class="tache-complexe-card" data-id="${tache.id}">
+                <div class="tache-card-header">
+                    <div class="tache-card-icon">&#128995;</div>
+                    <div class="tache-card-info">
+                        <h3 class="tache-card-title">${this.escapeHtml(tache.titre)}</h3>
+                        ${statusBadge}
+                    </div>
+                    <div class="tache-card-duration">
+                        <span class="duration-icon">&#9202;</span>
+                        <span>${dureeMin} min</span>
+                    </div>
+                </div>
+                ${tache.description ? `<p class="tache-card-description">${this.escapeHtml(tache.description)}</p>` : ''}
+                <div class="tache-card-competences">
+                    <strong>Competences evaluees :</strong>
+                    <ul>
+                        ${competences.map(c => `<li>${this.escapeHtml(c)}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="tache-card-actions">
+                    ${actionButton}
+                </div>
+            </div>
+        `;
+    },
+
+    openTacheChoiceModal(tacheId) {
+        const tache = this.tachesComplexes.find(t => t.id === tacheId);
+        if (!tache) return;
+
+        this.currentTacheComplexe = tache;
+        const dureeMin = Math.round((tache.duree || 2700) / 60);
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.id = 'tacheChoiceModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal modal-medium">
+                <div class="modal-header">
+                    <h2>Choisissez votre mode</h2>
+                    <button class="modal-close" onclick="EleveExercices.closeTacheChoiceModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="tache-choice-info">
+                        <h3>${this.escapeHtml(tache.titre)}</h3>
+                        <p class="tache-choice-duration">Duree : <strong>${dureeMin} minutes</strong></p>
+                    </div>
+
+                    <div class="tache-choice-options">
+                        <div class="choice-option" onclick="EleveExercices.startTacheComplexe('points_bonus')">
+                            <div class="choice-icon">&#127919;</div>
+                            <div class="choice-content">
+                                <h4>Rendre pour points bonus</h4>
+                                <p>Faites le travail seul(e). Vous pourrez rendre votre copie au professeur pour obtenir des points bonus.</p>
+                                <p class="choice-warning">Vous ne pourrez pas voir la correction.</p>
+                            </div>
+                        </div>
+
+                        <div class="choice-option" onclick="EleveExercices.startTacheComplexe('entrainement')">
+                            <div class="choice-icon">&#128218;</div>
+                            <div class="choice-content">
+                                <h4>M'entrainer</h4>
+                                <p>Faites le travail pour vous entrainer. Vous pourrez voir la correction a la fin.</p>
+                                <p class="choice-warning">Vous ne pourrez pas demander de points bonus.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="choice-note"><strong>Attention :</strong> Ce choix est definitif et ne peut pas etre modifie.</p>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+    },
+
+    closeTacheChoiceModal() {
+        const modal = document.getElementById('tacheChoiceModal');
+        if (modal) modal.remove();
+        this.currentTacheComplexe = null;
+    },
+
+    async startTacheComplexe(mode) {
+        if (!this.currentTacheComplexe || !this.currentUser) return;
+
+        const tache = this.currentTacheComplexe;
+
+        // Register choice in database
+        try {
+            const result = await this.callAPI('startEleveTacheComplexe', {
+                eleve_id: this.currentUser.id,
+                tache_id: tache.id,
+                mode: mode
+            });
+
+            if (!result.success) {
+                if (result.existing) {
+                    alert('Vous avez deja fait un choix pour cette tache.');
+                    this.closeTacheChoiceModal();
+                    this.initCompetences(); // Refresh
+                    return;
+                }
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                return;
+            }
+
+            // Add to local progress
+            this.eleveTachesProgress.push({
+                eleve_id: this.currentUser.id,
+                tache_id: tache.id,
+                mode: mode,
+                statut: 'en_cours',
+                date_debut: new Date().toISOString()
+            });
+
+            this.closeTacheChoiceModal();
+            this.showTacheComplexeExercise(tache, mode);
+        } catch (error) {
+            console.error('Erreur demarrage tache:', error);
+            alert('Erreur lors du demarrage');
+        }
+    },
+
+    resumeTacheComplexe(tacheId) {
+        const tache = this.tachesComplexes.find(t => t.id === tacheId);
+        const progress = this.eleveTachesProgress.find(p => p.tache_id === tacheId);
+        if (!tache || !progress) return;
+
+        this.showTacheComplexeExercise(tache, progress.mode);
+    },
+
+    showTacheComplexeExercise(tache, mode) {
+        const container = document.getElementById('exercices-content');
+        const duree = tache.duree || 2700;
+        this.tacheTimeRemaining = duree;
+        this.currentTacheComplexe = tache;
+
+        // Parse competences
+        const compIds = (tache.competences_ids || '').split(',').filter(id => id.trim());
+        const competences = compIds.map(id => {
+            const comp = this.competencesReferentiel.find(c => c.id === id.trim());
+            return comp ? comp.nom : null;
+        }).filter(Boolean);
+
+        container.innerHTML = `
+            <div class="tache-exercise-view">
+                <div class="tache-exercise-header">
+                    <div class="tache-title-section">
+                        <h2>${this.escapeHtml(tache.titre)}</h2>
+                        <span class="mode-badge ${mode}">${mode === 'entrainement' ? 'Entrainement' : 'Points bonus'}</span>
+                    </div>
+                    <div class="tache-timer" id="tacheTimer">
+                        ${this.formatTime(this.tacheTimeRemaining)}
+                    </div>
+                </div>
+
+                ${tache.description ? `
+                    <div class="tache-consigne">
+                        <strong>Consignes :</strong>
+                        <p>${this.escapeHtml(tache.description)}</p>
+                    </div>
+                ` : ''}
+
+                <div class="tache-document-section">
+                    <h3>Document</h3>
+                    <div class="document-actions">
+                        <a href="${this.escapeHtml(tache.document_url)}" target="_blank" class="btn btn-primary">
+                            Ouvrir le document
+                        </a>
+                        <a href="${this.escapeHtml(tache.document_url)}" download class="btn btn-secondary">
+                            Telecharger
+                        </a>
+                    </div>
+                </div>
+
+                <div class="tache-competences-section">
+                    <h3>Competences evaluees</h3>
+                    <ul class="competences-checklist">
+                        ${competences.map(c => `<li><span class="check-icon">&#10003;</span> ${this.escapeHtml(c)}</li>`).join('')}
+                    </ul>
+                </div>
+
+                <div class="tache-work-note">
+                    <p>&#128221; Travaillez sur papier. Quand vous avez termine, cliquez sur le bouton ci-dessous.</p>
+                </div>
+
+                <div class="tache-exercise-actions">
+                    <button class="btn btn-success btn-large" onclick="EleveExercices.finishTacheComplexe('${mode}')">
+                        J'ai termine
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Start timer
+        this.startTacheTimer();
+    },
+
+    startTacheTimer() {
+        if (this.tacheTimer) clearInterval(this.tacheTimer);
+
+        this.tacheTimer = setInterval(() => {
+            this.tacheTimeRemaining--;
+            const timerEl = document.getElementById('tacheTimer');
+            if (timerEl) {
+                timerEl.textContent = this.formatTime(this.tacheTimeRemaining);
+                if (this.tacheTimeRemaining <= 300) {
+                    timerEl.classList.add('warning');
+                }
+                if (this.tacheTimeRemaining <= 60) {
+                    timerEl.classList.add('danger');
+                }
+            }
+
+            if (this.tacheTimeRemaining <= 0) {
+                clearInterval(this.tacheTimer);
+                this.tacheTimer = null;
+                // Auto finish
+                const progress = this.eleveTachesProgress.find(p => p.tache_id === this.currentTacheComplexe.id);
+                this.finishTacheComplexe(progress ? progress.mode : 'entrainement');
+            }
+        }, 1000);
+    },
+
+    async finishTacheComplexe(mode) {
+        if (this.tacheTimer) {
+            clearInterval(this.tacheTimer);
+            this.tacheTimer = null;
+        }
+
+        const tache = this.currentTacheComplexe;
+        if (!tache || !this.currentUser) return;
+
+        // Update in database
+        try {
+            await this.callAPI('finishEleveTacheComplexe', {
+                eleve_id: this.currentUser.id,
+                tache_id: tache.id
+            });
+
+            // Update local progress
+            const progress = this.eleveTachesProgress.find(p => p.tache_id === tache.id);
+            if (progress) {
+                progress.statut = 'termine';
+                progress.date_fin = new Date().toISOString();
+            }
+        } catch (error) {
+            console.error('Erreur fin tache:', error);
+        }
+
+        // Show completion screen
+        this.showTacheComplexeComplete(tache, mode);
+    },
+
+    showTacheComplexeComplete(tache, mode) {
+        const container = document.getElementById('exercices-content');
+
+        let resultContent = '';
+        if (mode === 'entrainement') {
+            resultContent = `
+                <p>Vous pouvez maintenant consulter la correction.</p>
+                ${tache.correction_url ? `
+                    <a href="${this.escapeHtml(tache.correction_url)}" target="_blank" class="btn btn-primary btn-large">
+                        Voir la correction
+                    </a>
+                ` : '<p class="no-correction">La correction n\'est pas encore disponible.</p>'}
+            `;
+        } else {
+            resultContent = `
+                <p>Rendez votre copie au professeur pour obtenir vos points bonus.</p>
+                <p class="info-note">Votre participation a ete enregistree.</p>
+            `;
+        }
+
+        container.innerHTML = `
+            <div class="tache-complete-view">
+                <div class="complete-icon">&#10004;</div>
+                <h2>Travail termine !</h2>
+                <h3>${this.escapeHtml(tache.titre)}</h3>
+                <div class="complete-mode">
+                    Mode : <span class="mode-badge ${mode}">${mode === 'entrainement' ? 'Entrainement' : 'Points bonus'}</span>
+                </div>
+                <div class="complete-content">
+                    ${resultContent}
+                </div>
+                <div class="complete-actions">
+                    <button class="btn btn-secondary" onclick="EleveExercices.initCompetences()">
+                        Retour aux taches
+                    </button>
+                </div>
+            </div>
+        `;
     },
 
     showLoader(message) {

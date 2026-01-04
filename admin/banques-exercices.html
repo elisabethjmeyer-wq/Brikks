@@ -551,14 +551,20 @@ Utilisez *texte* pour mettre en italique."></textarea>
             </div>
 
             <div class="form-group">
-                <label>Description</label>
-                <textarea class="form-textarea" id="tacheDescription" rows="2" placeholder="Description de la tache complexe..."></textarea>
+                <label>Description / Consignes</label>
+                <textarea class="form-textarea" id="tacheDescription" rows="3" placeholder="Consignes pour l'eleve..."></textarea>
             </div>
 
             <div class="form-group">
-                <label>URL du document</label>
+                <label>URL du document (sujet)</label>
                 <input type="text" class="form-input" id="tacheDocumentUrl" placeholder="Lien Google Drive, PDF, image...">
                 <div class="form-help">Collez un lien vers le document (Google Drive, PDF, image)</div>
+            </div>
+
+            <div class="form-group">
+                <label>URL de la correction <span class="optional">(optionnel)</span></label>
+                <input type="text" class="form-input" id="tacheCorrectionUrl" placeholder="Lien vers la correction...">
+                <div class="form-help">Visible uniquement pour les eleves en mode entrainement</div>
             </div>
 
             <div class="form-group">
@@ -569,6 +575,11 @@ Utilisez *texte* pour mettre en italique."></textarea>
             </div>
 
             <div class="form-row">
+                <div class="form-group">
+                    <label>Duree (minutes)</label>
+                    <input type="number" class="form-input" id="tacheDuree" value="45" min="5" max="180">
+                    <div class="form-help">45 min par defaut</div>
+                </div>
                 <div class="form-group">
                     <label>Ordre d'affichage</label>
                     <input type="number" class="form-input" id="tacheOrdre" value="1" min="1">

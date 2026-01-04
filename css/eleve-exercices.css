@@ -1408,3 +1408,479 @@ textarea.answered {
         border-bottom: 1px solid #e5e7eb;
     }
 }
+
+
+/* ========== TACHES COMPLEXES (Compétences) ========== */
+
+.taches-complexes-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.taches-complexes-header h2 {
+    font-size: 1.75rem;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.taches-intro {
+    color: #6b7280;
+    font-size: 1rem;
+}
+
+.taches-complexes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.tache-complexe-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    transition: all 0.2s;
+}
+
+.tache-complexe-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border-color: #c4b5fd;
+}
+
+.tache-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.tache-card-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.tache-card-info {
+    flex: 1;
+}
+
+.tache-card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+}
+
+.tache-status {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.tache-status.entrainement {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.tache-status.points-bonus {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.tache-status.en-cours {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.tache-card-duration {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+    background: #f3f4f6;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+}
+
+.duration-icon {
+    font-size: 1rem;
+}
+
+.tache-card-description {
+    color: #6b7280;
+    margin: 0 0 1rem 0;
+    font-size: 0.9375rem;
+}
+
+.tache-card-competences {
+    background: #faf5ff;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.tache-card-competences strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #6b21a8;
+    font-size: 0.875rem;
+}
+
+.tache-card-competences ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.tache-card-competences li {
+    font-size: 0.875rem;
+    color: #581c87;
+    padding-left: 1.25rem;
+    position: relative;
+}
+
+.tache-card-competences li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #9333ea;
+}
+
+.tache-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.attente-correction,
+.no-correction {
+    color: #9ca3af;
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+/* Choice Modal */
+.tache-choice-info {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.tache-choice-info h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+}
+
+.tache-choice-duration {
+    color: #6b7280;
+}
+
+.tache-choice-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.choice-option {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.choice-option:hover {
+    border-color: #8b5cf6;
+    background: #faf5ff;
+}
+
+.choice-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.choice-content h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.125rem;
+    color: #1f2937;
+}
+
+.choice-content p {
+    margin: 0 0 0.5rem 0;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.choice-warning {
+    color: #dc2626 !important;
+    font-weight: 500;
+}
+
+.choice-note {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.875rem;
+    background: #fef3c7;
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+/* Exercise View */
+.tache-exercise-view {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.tache-exercise-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.tache-title-section h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+}
+
+.mode-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.mode-badge.entrainement {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.mode-badge.points_bonus {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.tache-timer {
+    font-size: 2rem;
+    font-weight: 700;
+    font-family: monospace;
+    background: #1f2937;
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    min-width: 120px;
+    text-align: center;
+}
+
+.tache-timer.warning {
+    background: #f59e0b;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.tache-timer.danger {
+    background: #ef4444;
+    animation: pulse 0.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.tache-consigne {
+    background: #ecfdf5;
+    border-left: 4px solid #10b981;
+    padding: 1rem 1.25rem;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 1.5rem;
+}
+
+.tache-consigne strong {
+    color: #065f46;
+}
+
+.tache-consigne p {
+    margin: 0.5rem 0 0 0;
+    color: #047857;
+}
+
+.tache-document-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.tache-document-section h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.125rem;
+}
+
+.document-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.tache-competences-section {
+    background: #faf5ff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.tache-competences-section h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.125rem;
+    color: #6b21a8;
+}
+
+.competences-checklist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.competences-checklist li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #581c87;
+}
+
+.check-icon {
+    color: #9333ea;
+    font-weight: bold;
+}
+
+.tache-work-note {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.tache-work-note p {
+    margin: 0;
+    color: #9a3412;
+}
+
+.tache-exercise-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+}
+
+.btn-success {
+    background: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+/* Complete View */
+.tache-complete-view {
+    max-width: 600px;
+    margin: 2rem auto;
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.complete-icon {
+    font-size: 4rem;
+    color: #10b981;
+    margin-bottom: 1rem;
+}
+
+.tache-complete-view h2 {
+    color: #10b981;
+    margin: 0 0 0.5rem 0;
+}
+
+.tache-complete-view h3 {
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+    font-weight: 500;
+}
+
+.complete-mode {
+    margin-bottom: 1.5rem;
+}
+
+.complete-content {
+    margin-bottom: 2rem;
+    color: #6b7280;
+}
+
+.complete-content .no-correction {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.info-note {
+    color: #059669;
+    font-weight: 500;
+}
+
+.complete-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .tache-exercise-header {
+        flex-direction: column;
+    }
+
+    .tache-timer {
+        align-self: flex-end;
+    }
+
+    .choice-option {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .document-actions {
+        flex-direction: column;
+    }
+
+    .document-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
