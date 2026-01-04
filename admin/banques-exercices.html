@@ -310,20 +310,29 @@
                 <!-- Toggles pour activer les sections -->
                 <div class="mixte-toggles">
                     <label class="toggle-label">
-                        <input type="checkbox" id="toggleDocument" checked>
+                        <input type="checkbox" id="toggleDocument" checked onchange="AdminBanquesExercices.onMixteToggle('document', this.checked)">
                         <span class="toggle-text">📄 Document</span>
                     </label>
                     <label class="toggle-label">
-                        <input type="checkbox" id="toggleTableau">
+                        <input type="checkbox" id="toggleTableau" onchange="AdminBanquesExercices.onMixteToggle('tableau', this.checked)">
                         <span class="toggle-text">📊 Tableau à compléter</span>
                     </label>
                     <label class="toggle-label">
-                        <input type="checkbox" id="toggleQuestions">
+                        <input type="checkbox" id="toggleQuestions" onchange="AdminBanquesExercices.onMixteToggle('questions', this.checked)">
                         <span class="toggle-text">❓ Questions ouvertes</span>
                     </label>
                 </div>
 
-                <!-- Sections du builder (empilées verticalement) -->
+                <!-- Option de layout -->
+                <div class="mixte-layout-option">
+                    <label>Disposition :</label>
+                    <select id="mixteLayoutSelect" onchange="AdminBanquesExercices.onLayoutChange(this.value)">
+                        <option value="vertical">Vertical (empilé)</option>
+                        <option value="horizontal">Horizontal (document à gauche)</option>
+                    </select>
+                </div>
+
+                <!-- Sections du builder -->
                 <div class="mixte-builder-sections" id="mixteBuilderSections">
 
                     <!-- Section Document -->
@@ -367,8 +376,8 @@
                                 <label>Éléments du tableau</label>
                                 <div class="tableau-elements-list" id="tableauElementsList"></div>
                                 <div class="tableau-add-buttons">
-                                    <button type="button" class="btn btn-secondary btn-sm" id="addTableauSectionBtn">+ Section</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" id="addTableauRowBtn">+ Ligne</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices.addTableauElement('section')">+ Section</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices.addTableauElement('row')">+ Ligne</button>
                                 </div>
                             </div>
                         </div>
@@ -382,7 +391,7 @@
                         </div>
                         <div class="section-content">
                             <div class="questions-list-mixte" id="questionsListMixte"></div>
-                            <button type="button" class="btn btn-secondary btn-sm" id="addQuestionMixteBtn">+ Ajouter une question</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices.addQuestionMixte()">+ Ajouter une question</button>
                         </div>
                     </div>
 

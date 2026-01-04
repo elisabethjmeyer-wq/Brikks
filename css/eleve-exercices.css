@@ -958,6 +958,47 @@
     gap: 2rem;
 }
 
+/* Horizontal Layout for Document Mixte */
+.document-mixte-container.horizontal-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.mixte-left-column,
+.mixte-right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.document-mixte-container.horizontal-layout .mixte-section {
+    margin-bottom: 0;
+}
+
+/* Adjust document section for horizontal layout */
+.document-mixte-container.horizontal-layout .mixte-doc-content {
+    padding: 1rem;
+}
+
+.document-mixte-container.horizontal-layout .mixte-doc-iframe {
+    height: 400px;
+}
+
+.document-mixte-container.horizontal-layout .mixte-doc-image {
+    max-height: 500px;
+    width: auto;
+    max-width: 100%;
+}
+
+/* Responsive: Horizontal layout becomes vertical on smaller screens */
+@media (max-width: 900px) {
+    .document-mixte-container.horizontal-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
 .mixte-section {
     background: #fff;
     border-radius: 12px;
