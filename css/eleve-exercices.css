@@ -4,7 +4,167 @@
  */
 
 /* ============================================
-   HEADER DE TYPE (Savoir-faire, Connaissances, Compétences)
+   HEADER BANNER (Savoir-faire, Connaissances, Compétences)
+   ============================================ */
+
+.type-header-banner {
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    color: white;
+}
+
+/* Banner colors by type */
+.type-header-banner.savoir-faire {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.type-header-banner.connaissances {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.type-header-banner.competences {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.type-header-banner .type-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.type-icon-emoji {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.type-header-banner .type-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+}
+
+.type-header-banner .type-header-stats {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.type-header-banner .type-stat {
+    text-align: center;
+}
+
+.type-header-banner .type-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+}
+
+.type-header-banner .type-stat-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.85);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================
+   TRAINING TOOLBAR (Search + Progress)
+   ============================================ */
+
+.training-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    flex: 0 0 280px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.search-box .search-icon {
+    font-size: 1rem;
+    opacity: 0.6;
+}
+
+.search-box input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.9rem;
+    width: 100%;
+    color: #374151;
+}
+
+.search-box input::placeholder {
+    color: #9ca3af;
+}
+
+.global-progress {
+    flex: 1;
+    min-width: 200px;
+}
+
+.global-progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.global-progress-label span:first-child {
+    color: #6b7280;
+}
+
+.global-progress-value {
+    font-weight: 600;
+    color: #374151;
+}
+
+.global-progress-bar {
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.global-progress-bar.savoir-faire .global-progress-fill {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.global-progress-bar.connaissances .global-progress-fill {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.global-progress-bar.competences .global-progress-fill {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.global-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+/* ============================================
+   OLD TYPE HEADER (keeping for backwards compatibility)
    ============================================ */
 
 .type-header {
@@ -41,11 +201,11 @@
 }
 
 .type-icon.connaissances {
-    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
 }
 
 .type-icon.competences {
-    background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
 }
 
 .type-title {
@@ -86,8 +246,8 @@
 
 /* Couleurs spécifiques par type */
 .type-header.savoir-faire .type-stat-value { color: #f59e0b; }
-.type-header.connaissances .type-stat-value { color: #10b981; }
-.type-header.competences .type-stat-value { color: #8b5cf6; }
+.type-header.connaissances .type-stat-value { color: #3b82f6; }
+.type-header.competences .type-stat-value { color: #ef4444; }
 
 /* ============================================
    ACCORDÉON - BANQUES
@@ -1428,12 +1588,20 @@ textarea.answered {
     font-size: 1rem;
 }
 
+/* Old centered list */
 .taches-complexes-list {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
     max-width: 800px;
     margin: 0 auto;
+}
+
+/* New grid layout (aligned, not centered) */
+.taches-complexes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.25rem;
 }
 
 .tache-complexe-card {
@@ -1447,7 +1615,7 @@ textarea.answered {
 
 .tache-complexe-card:hover {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    border-color: #c4b5fd;
+    border-color: #fca5a5;
 }
 
 .tache-card-header {
