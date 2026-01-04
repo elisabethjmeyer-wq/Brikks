@@ -2720,6 +2720,8 @@ const AdminBanquesExercices = {
             document.getElementById('tacheTitre').value = tache.titre || '';
             document.getElementById('tacheDescription').value = tache.description || '';
             document.getElementById('tacheDocumentUrl').value = tache.document_url || '';
+            document.getElementById('tacheCorrectionUrl').value = tache.correction_url || '';
+            document.getElementById('tacheDuree').value = Math.round((tache.duree || 2700) / 60);
             document.getElementById('tacheOrdre').value = tache.ordre || 1;
             document.getElementById('tacheStatut').value = tache.statut || 'brouillon';
 
@@ -2734,6 +2736,8 @@ const AdminBanquesExercices = {
             document.getElementById('tacheTitre').value = '';
             document.getElementById('tacheDescription').value = '';
             document.getElementById('tacheDocumentUrl').value = '';
+            document.getElementById('tacheCorrectionUrl').value = '';
+            document.getElementById('tacheDuree').value = 45;
             document.getElementById('tacheOrdre').value = this.tachesComplexes.length + 1;
             document.getElementById('tacheStatut').value = 'brouillon';
 
@@ -2797,6 +2801,9 @@ const AdminBanquesExercices = {
         const titre = document.getElementById('tacheTitre').value.trim();
         const description = document.getElementById('tacheDescription').value.trim();
         const documentUrl = document.getElementById('tacheDocumentUrl').value.trim();
+        const correctionUrl = document.getElementById('tacheCorrectionUrl').value.trim();
+        const dureeMinutes = parseInt(document.getElementById('tacheDuree').value) || 45;
+        const duree = dureeMinutes * 60; // Convert to seconds
         const ordre = parseInt(document.getElementById('tacheOrdre').value) || 1;
         const statut = document.getElementById('tacheStatut').value;
 
@@ -2814,6 +2821,8 @@ const AdminBanquesExercices = {
             titre,
             description,
             document_url: documentUrl,
+            correction_url: correctionUrl,
+            duree,
             competences_ids: competencesIds,
             ordre,
             statut
