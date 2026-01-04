@@ -550,11 +550,14 @@ const EleveExercices = {
                     </div>
 
                     <div class="exercise-actions">
+                        <button class="btn btn-primary" onclick="EleveExercices.validateExercise()">
+                            Vérifier mes réponses
+                        </button>
+                        <button class="btn btn-corrige hidden" id="voirCorrigeBtn" onclick="EleveExercices.showCorrige()">
+                            Voir le corrigé
+                        </button>
                         <button class="btn btn-secondary" onclick="EleveExercices.resetExercise()">
                             Recommencer
-                        </button>
-                        <button class="btn btn-primary" onclick="EleveExercices.validateExercise()">
-                            Valider mes réponses
                         </button>
                     </div>
                 </div>
@@ -633,6 +636,7 @@ const EleveExercices = {
                  style="left: ${m.x}%; top: ${m.y}%;"
                  onclick="EleveExercices.openMarqueurModal(${index})">
                 <span class="marqueur-numero">${index + 1}</span>
+                <span class="marqueur-reponse-badge hidden" id="badge_${index}"></span>
             </div>
         `).join('');
 
@@ -642,19 +646,6 @@ const EleveExercices = {
                     <img src="${this.escapeHtml(imageUrl)}" alt="Carte" class="carte-image" id="carteImage">
                     <div class="carte-marqueurs" id="carteMarqueurs">
                         ${marqueursHTML}
-                    </div>
-                </div>
-
-                <div class="carte-reponses" id="carteReponses">
-                    <h4>Mes réponses</h4>
-                    <div class="reponses-grid">
-                        ${marqueurs.map((m, index) => `
-                            <div class="reponse-item" id="reponseItem_${index}">
-                                <span class="reponse-numero">${index + 1}</span>
-                                <span class="reponse-texte" id="reponseTexte_${index}">-</span>
-                                <span class="reponse-status" id="reponseStatus_${index}"></span>
-                            </div>
-                        `).join('')}
                     </div>
                 </div>
             </div>
@@ -671,15 +662,16 @@ const EleveExercices = {
                         <input type="text" id="marqueurInput" placeholder="Votre réponse..." autocomplete="off">
                     </div>
                     <div class="carte-modal-footer">
-                        <button class="btn btn-secondary" onclick="EleveExercices.closeMarqueurModal()">Annuler</button>
-                        <button class="btn btn-primary" onclick="EleveExercices.saveMarqueurReponse()">Valider</button>
+                        <button class="btn btn-cancel" onclick="EleveExercices.closeMarqueurModal()">Annuler</button>
+                        <button class="btn btn-validate" onclick="EleveExercices.saveMarqueurReponse()">Valider</button>
                     </div>
                 </div>
             </div>
         `;
 
-        // Store marqueurs data for later use
+        // Store marqueurs data and user answers for later use
         this.carteMarqueurs = marqueurs;
+        this.carteReponses = new Array(marqueurs.length).fill('');
         this.currentMarqueurIndex = null;
 
         return html;
@@ -692,8 +684,9 @@ const EleveExercices = {
         this.currentMarqueurIndex = index;
         document.getElementById('modalMarqueurNum').textContent = index + 1;
 
-        const currentAnswer = document.getElementById(`reponseTexte_${index}`).textContent;
-        document.getElementById('marqueurInput').value = currentAnswer === '-' ? '' : currentAnswer;
+        // Get current answer from stored data
+        const currentAnswer = this.carteReponses[index] || '';
+        document.getElementById('marqueurInput').value = currentAnswer;
 
         document.getElementById('marqueurModal').classList.remove('hidden');
         document.getElementById('marqueurInput').focus();
@@ -717,15 +710,46 @@ const EleveExercices = {
         const input = document.getElementById('marqueurInput');
         const reponse = input.value.trim();
 
-        document.getElementById(`reponseTexte_${index}`).textContent = reponse || '-';
+        // Store the answer
+        this.carteReponses[index] = reponse;
 
-        // Update marker visual
+        // Update badge on marker
+        const badge = document.getElementById(`badge_${index}`);
+        if (badge) {
+            if (reponse) {
+                badge.textContent = reponse;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // Update marker visual to show answered
         const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
         if (marqueur) {
             marqueur.classList.toggle('answered', reponse !== '');
         }
 
         this.closeMarqueurModal();
+    },
+
+    /**
+     * Affiche le corrigé pour carte_cliquable
+     */
+    showCarteCorrige() {
+        const marqueurs = this.carteMarqueurs || [];
+        marqueurs.forEach((m, index) => {
+            const badge = document.getElementById(`badge_${index}`);
+            if (badge) {
+                badge.textContent = m.reponse || '';
+                badge.classList.remove('hidden');
+                badge.classList.add('correction');
+            }
+            const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+            if (marqueur) {
+                marqueur.classList.add('show-correction');
+            }
+        });
     },
 
     /**
@@ -951,29 +975,26 @@ const EleveExercices = {
      */
     validateCarteCliquable() {
         const marqueurs = this.carteMarqueurs || [];
+        const reponses = this.carteReponses || [];
         let correct = 0;
         let total = marqueurs.length;
 
         marqueurs.forEach((m, index) => {
-            const reponseTexte = document.getElementById(`reponseTexte_${index}`);
-            const reponseItem = document.getElementById(`reponseItem_${index}`);
-            const reponseStatus = document.getElementById(`reponseStatus_${index}`);
             const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+            const badge = document.getElementById(`badge_${index}`);
 
-            if (!reponseTexte) return;
-
-            const userAnswer = this.normalizeAnswer(reponseTexte.textContent);
+            const userAnswer = this.normalizeAnswer(reponses[index] || '');
             const correctAnswer = this.normalizeAnswer(m.reponse || '');
 
             if (userAnswer === correctAnswer && userAnswer !== '') {
-                reponseItem.classList.add('correct');
-                reponseStatus.textContent = '✓';
+                // Correct answer - green
                 if (marqueur) marqueur.classList.add('correct');
+                if (badge) badge.classList.add('correct');
                 correct++;
             } else {
-                reponseItem.classList.add('incorrect');
-                reponseStatus.textContent = '→ ' + (m.reponse || '');
+                // Wrong or empty - red
                 if (marqueur) marqueur.classList.add('incorrect');
+                if (badge) badge.classList.add('incorrect');
             }
         });
 
@@ -981,6 +1002,10 @@ const EleveExercices = {
         document.querySelectorAll('.carte-marqueur').forEach(el => {
             el.style.pointerEvents = 'none';
         });
+
+        // Show "Voir le corrigé" button
+        const corrigeBtn = document.getElementById('voirCorrigeBtn');
+        if (corrigeBtn) corrigeBtn.classList.remove('hidden');
 
         return { correct, total };
     },
@@ -1084,6 +1109,23 @@ const EleveExercices = {
     },
 
     /**
+     * Affiche le corrigé selon le type d'exercice
+     */
+    showCorrige() {
+        const format = this.formats.find(f => f.id === this.currentExercise.format_id);
+        let structure = format ? format.structure : null;
+        if (typeof structure === 'string') {
+            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
+        }
+        const typeUI = structure ? structure.type_ui : 'tableau_saisie';
+
+        if (typeUI === 'carte_cliquable') {
+            this.showCarteCorrige();
+        }
+        // Add other format corrections here if needed
+    },
+
+    /**
      * Réinitialise l'exercice
      */
     resetExercise() {
@@ -1150,22 +1192,27 @@ const EleveExercices = {
     resetCarteCliquable() {
         const marqueurs = this.carteMarqueurs || [];
 
-        marqueurs.forEach((_, index) => {
-            const reponseTexte = document.getElementById(`reponseTexte_${index}`);
-            const reponseItem = document.getElementById(`reponseItem_${index}`);
-            const reponseStatus = document.getElementById(`reponseStatus_${index}`);
-            const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+        // Reset stored answers
+        this.carteReponses = new Array(marqueurs.length).fill('');
 
-            if (reponseTexte) reponseTexte.textContent = '-';
-            if (reponseItem) {
-                reponseItem.classList.remove('correct', 'incorrect');
+        marqueurs.forEach((_, index) => {
+            const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+            const badge = document.getElementById(`badge_${index}`);
+
+            if (badge) {
+                badge.textContent = '';
+                badge.classList.add('hidden');
+                badge.classList.remove('correct', 'incorrect', 'correction');
             }
-            if (reponseStatus) reponseStatus.textContent = '';
             if (marqueur) {
-                marqueur.classList.remove('correct', 'incorrect', 'answered');
+                marqueur.classList.remove('correct', 'incorrect', 'answered', 'show-correction');
                 marqueur.style.pointerEvents = '';
             }
         });
+
+        // Hide "Voir le corrigé" button
+        const corrigeBtn = document.getElementById('voirCorrigeBtn');
+        if (corrigeBtn) corrigeBtn.classList.add('hidden');
     },
 
     /**
