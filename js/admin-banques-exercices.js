@@ -650,15 +650,20 @@ const AdminBanquesExercices = {
         } else if (this.currentFormatUI === 'document_mixte') {
             donnees = this.buildDataFromDocumentMixte();
             // Validate: at least one section must be active
-            const hasContent = donnees.document.actif || donnees.tableau.actif || donnees.questions.actif;
+            const hasContent = (donnees.document && donnees.document.actif) ||
+                               (donnees.tableau && donnees.tableau.actif) ||
+                               (donnees.questions && donnees.questions.actif);
             if (!hasContent) {
                 alert('Activez au moins une section (Document, Tableau ou Questions)');
                 return;
             }
             // Validate tableau if active (new format uses elements)
-            if (donnees.tableau.actif && (!donnees.tableau.elements || donnees.tableau.elements.length === 0)) {
-                alert('Le tableau nécessite au moins une section ou ligne');
-                return;
+            if (donnees.tableau && donnees.tableau.actif) {
+                const elements = donnees.tableau.elements || [];
+                if (elements.length === 0) {
+                    alert('Le tableau nécessite au moins une section ou ligne');
+                    return;
+                }
             }
         } else {
             // Default: tableau_saisie
@@ -2250,19 +2255,42 @@ const AdminBanquesExercices = {
             this.initDocumentMixteBuilder();
         }
 
+        // Ensure all nested objects exist
+        if (!this.mixteBuilder.document) {
+            this.mixteBuilder.document = { actif: false, url: '', titre: '', legende: '' };
+        }
+        if (!this.mixteBuilder.tableau) {
+            this.mixteBuilder.tableau = { actif: false, titre: '', elements: [] };
+        }
+        if (!this.mixteBuilder.tableau.elements) {
+            this.mixteBuilder.tableau.elements = [];
+        }
+        if (!this.mixteBuilder.questions) {
+            this.mixteBuilder.questions = { actif: false, liste: [] };
+        }
+        if (!this.mixteBuilder.questions.liste) {
+            this.mixteBuilder.questions.liste = [];
+        }
+
         // Read current values from DOM
-        this.mixteBuilder.document.url = document.getElementById('docUrlMixte').value;
-        this.mixteBuilder.document.titre = document.getElementById('docTitreMixte').value;
-        this.mixteBuilder.document.legende = document.getElementById('docLegendeMixte').value;
-        this.mixteBuilder.tableau.titre = document.getElementById('tableauTitreMixte').value;
-        this.mixteBuilder.layout = document.getElementById('mixteLayoutSelect').value;
+        const docUrlEl = document.getElementById('docUrlMixte');
+        const docTitreEl = document.getElementById('docTitreMixte');
+        const docLegendeEl = document.getElementById('docLegendeMixte');
+        const tableauTitreEl = document.getElementById('tableauTitreMixte');
+        const layoutEl = document.getElementById('mixteLayoutSelect');
+
+        if (docUrlEl) this.mixteBuilder.document.url = docUrlEl.value;
+        if (docTitreEl) this.mixteBuilder.document.titre = docTitreEl.value;
+        if (docLegendeEl) this.mixteBuilder.document.legende = docLegendeEl.value;
+        if (tableauTitreEl) this.mixteBuilder.tableau.titre = tableauTitreEl.value;
+        if (layoutEl) this.mixteBuilder.layout = layoutEl.value;
 
         return {
             document: this.mixteBuilder.document,
-            tableau: this.mixteBuilder.tableau,
-            questions: this.mixteBuilder.questions,
-            sectionOrder: this.mixteBuilder.sectionOrder,
-            layout: this.mixteBuilder.layout
+            tableau: { ...this.mixteBuilder.tableau, elements: this.mixteBuilder.tableau.elements || [] },
+            questions: { ...this.mixteBuilder.questions, liste: this.mixteBuilder.questions.liste || [] },
+            sectionOrder: this.mixteBuilder.sectionOrder || ['document', 'tableau', 'questions'],
+            layout: this.mixteBuilder.layout || 'vertical'
         };
     },
 
