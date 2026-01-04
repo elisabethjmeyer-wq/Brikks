@@ -444,6 +444,23 @@ function handleRequest(e) {
         result = deleteCompetenceReferentiel(request);
         break;
 
+      // CRITERES DE REUSSITE
+      case 'getCriteresReussite':
+        result = getCriteresReussite(request);
+        break;
+      case 'getCriteresForCompetence':
+        result = getCriteresForCompetence(request);
+        break;
+      case 'createCritereReussite':
+        result = createCritereReussite(request);
+        break;
+      case 'updateCritereReussite':
+        result = updateCritereReussite(request);
+        break;
+      case 'deleteCritereReussite':
+        result = deleteCritereReussite(request);
+        break;
+
       // TACHES COMPLEXES (Compétences)
       case 'getTachesComplexes':
         result = getTachesComplexes(request);
@@ -5159,6 +5176,161 @@ function deleteCompetenceReferentiel(data) {
   }
 
   return { success: false, error: 'Compétence non trouvée' };
+}
+
+// ========================================
+// CRITERES DE REUSSITE
+// ========================================
+
+/**
+ * Récupère tous les critères de réussite
+ */
+function getCriteresReussite(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('CriteresReussite');
+
+  if (!sheet) {
+    return { success: true, data: [] };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0];
+  const result = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    const item = {};
+    headers.forEach((header, index) => {
+      item[header] = row[index];
+    });
+    result.push(item);
+  }
+
+  return { success: true, data: result };
+}
+
+/**
+ * Récupère les critères pour une compétence spécifique
+ */
+function getCriteresForCompetence(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('CriteresReussite');
+
+  if (!sheet || !data.competence_id) {
+    return { success: true, data: [] };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0];
+  const compIdCol = headers.indexOf('competence_id');
+  const result = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    if (String(row[compIdCol]) === String(data.competence_id)) {
+      const item = {};
+      headers.forEach((header, index) => {
+        item[header] = row[index];
+      });
+      result.push(item);
+    }
+  }
+
+  // Trier par ordre
+  result.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+  return { success: true, data: result };
+}
+
+/**
+ * Crée un nouveau critère de réussite
+ */
+function createCritereReussite(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('CriteresReussite');
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    sheet = ss.insertSheet('CriteresReussite');
+    sheet.appendRow(['id', 'competence_id', 'libelle', 'ordre']);
+  }
+
+  const id = 'crit_' + new Date().getTime();
+  const rowData = [
+    id,
+    data.competence_id || '',
+    data.libelle || '',
+    data.ordre || 1
+  ];
+
+  sheet.appendRow(rowData);
+  return { success: true, id: id };
+}
+
+/**
+ * Met à jour un critère de réussite
+ */
+function updateCritereReussite(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('CriteresReussite');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(data.id)) {
+      const rowData = [
+        data.id,
+        data.competence_id || allData[i][headers.indexOf('competence_id')],
+        data.libelle || allData[i][headers.indexOf('libelle')],
+        data.ordre !== undefined ? data.ordre : allData[i][headers.indexOf('ordre')]
+      ];
+
+      const range = sheet.getRange(i + 1, 1, 1, rowData.length);
+      range.setValues([rowData]);
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Critère non trouvé' };
+}
+
+/**
+ * Supprime un critère de réussite
+ */
+function deleteCritereReussite(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('CriteresReussite');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(data.id)) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Critère non trouvé' };
 }
 
 // ========================================
