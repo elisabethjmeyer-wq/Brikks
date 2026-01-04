@@ -1925,7 +1925,291 @@ textarea.answered {
     gap: 1rem;
 }
 
-/* Responsive */
+/* ============================================
+   NEW TACHE COMPLEXE VIEW V2
+   ============================================ */
+
+.tache-exercise-view-v2 {
+    padding: 1rem;
+}
+
+.tache-exercise-view-v2 .exercise-back-btn {
+    margin-bottom: 1rem;
+}
+
+.tache-exercise-view-v2 .exercise-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Mode badge inline */
+.mode-badge-inline {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mode-badge-inline.entrainement {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+}
+
+.mode-badge-inline.points_bonus {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+}
+
+/* Main content - Two columns */
+.tache-main-content {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    min-height: 70vh;
+}
+
+/* Document panel - Left side */
+.tache-document-panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #e5e7eb;
+}
+
+.document-iframe-container {
+    flex: 1;
+    position: relative;
+    min-height: 500px;
+    background: #f3f4f6;
+}
+
+.document-iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.document-fallback {
+    padding: 0.75rem;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+.document-fallback .btn {
+    font-size: 0.875rem;
+}
+
+/* Sidebar - Right side */
+.tache-sidebar {
+    display: flex;
+    flex-direction: column;
+    background: #faf5ff;
+}
+
+.competences-panel {
+    padding: 1.25rem;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.competences-panel h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: #6b21a8;
+    font-weight: 600;
+}
+
+.competences-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin: 0 0 1rem 0;
+    font-style: italic;
+}
+
+.competences-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Competence item with expandable criteria */
+.competence-item {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.competence-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.competence-header:hover {
+    background: #f5f3ff;
+}
+
+.competence-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #581c87;
+    font-weight: 500;
+}
+
+.competence-icon {
+    color: #8b5cf6;
+    font-size: 0.5rem;
+}
+
+.competence-expand {
+    color: #9ca3af;
+    font-size: 0.7rem;
+    transition: transform 0.2s;
+}
+
+.competence-criteria {
+    border-top: 1px solid #e5e7eb;
+    background: #fefce8;
+}
+
+.competence-criteria.hidden {
+    display: none;
+}
+
+.criteria-content {
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    color: #713f12;
+    line-height: 1.5;
+}
+
+/* Time's up view */
+.tache-timeup-view {
+    max-width: 600px;
+    margin: 2rem auto;
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.timeup-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.tache-timeup-view h2 {
+    color: #dc2626;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.75rem;
+}
+
+.tache-timeup-view h3 {
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+    font-weight: 500;
+}
+
+.timeup-mode {
+    margin-bottom: 1.5rem;
+}
+
+.timeup-content {
+    margin-bottom: 2rem;
+    color: #4b5563;
+}
+
+.timeup-content p {
+    margin: 0 0 1rem 0;
+}
+
+.submit-instructions {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+
+.submit-instructions h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: #166534;
+}
+
+.submit-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.submit-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 8px;
+}
+
+.submit-icon {
+    font-size: 1.5rem;
+}
+
+.submit-option strong {
+    display: block;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.submit-option p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.timeup-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+/* Responsive for V2 layout */
+@media (max-width: 900px) {
+    .tache-main-content {
+        grid-template-columns: 1fr;
+    }
+
+    .tache-document-panel {
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .document-iframe-container {
+        min-height: 400px;
+    }
+
+    .tache-sidebar {
+        max-height: 300px;
+    }
+}
+
+/* Responsive - old styles */
 @media (max-width: 640px) {
     .tache-exercise-header {
         flex-direction: column;
@@ -1947,5 +2231,14 @@ textarea.answered {
     .document-actions .btn {
         width: 100%;
         justify-content: center;
+    }
+
+    .submit-options {
+        gap: 0.75rem;
+    }
+
+    .submit-option {
+        flex-direction: column;
+        text-align: center;
     }
 }
