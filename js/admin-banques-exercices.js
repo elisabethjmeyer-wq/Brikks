@@ -1275,9 +1275,10 @@ const AdminBanquesExercices = {
                     if (el.type === 'section') {
                         return `<div class="tableau-section-row">${this.escapeHtml(el.text)}</div>`;
                     } else {
+                        // Show empty input like student will see
                         return `<div class="tableau-row">
                             <div class="label">${this.escapeHtml(el.label)}</div>
-                            <div class="input"><input type="text" placeholder="${this.escapeHtml(el.placeholder)}"></div>
+                            <div class="input"><input type="text" placeholder=""></div>
                         </div>`;
                     }
                 }).join('');
@@ -1897,7 +1898,7 @@ const AdminBanquesExercices = {
             this.mixteBuilder.tableau.elements.push({
                 type: 'row',
                 label: '',
-                placeholder: ''
+                reponse: ''
             });
         }
         this.renderTableauElements();
@@ -1943,9 +1944,9 @@ const AdminBanquesExercices = {
                                 <input type="text" class="label-input" value="${this.escapeHtml(el.label)}"
                                        placeholder="Label (ex: Auteur)"
                                        onchange="AdminBanquesExercices.updateTableauElement(${i}, 'label', this.value)">
-                                <input type="text" class="placeholder-input" value="${this.escapeHtml(el.placeholder)}"
-                                       placeholder="Placeholder pour l'élève"
-                                       onchange="AdminBanquesExercices.updateTableauElement(${i}, 'placeholder', this.value)">
+                                <input type="text" class="answer-input" value="${this.escapeHtml(el.reponse || '')}"
+                                       placeholder="Réponse attendue"
+                                       onchange="AdminBanquesExercices.updateTableauElement(${i}, 'reponse', this.value)">
                             </div>
                         </div>
                         <button type="button" class="btn-remove" onclick="AdminBanquesExercices.removeTableauElement(${i})">×</button>
@@ -2212,10 +2213,16 @@ const AdminBanquesExercices = {
             if (el.type === 'section') {
                 return `<div class="preview-tableau-section">${this.escapeHtml(el.text) || 'Section...'}</div>`;
             } else {
+                // Show empty input like student will see, with answer in tooltip
+                const reponse = el.reponse || '';
+                const label = el.label || 'Label...';
                 return `
                     <div class="preview-tableau-row">
-                        <div class="row-label">${this.escapeHtml(el.label) || 'Label...'}</div>
-                        <div class="row-input">${this.escapeHtml(el.placeholder) || 'Réponse élève...'}</div>
+                        <div class="row-label">${this.escapeHtml(label)}</div>
+                        <div class="row-input-preview" title="Réponse attendue: ${this.escapeHtml(reponse)}">
+                            <input type="text" disabled placeholder="Champ élève" class="preview-input">
+                            ${reponse ? `<span class="answer-hint">✓ ${this.escapeHtml(reponse)}</span>` : '<span class="answer-missing">⚠ Réponse manquante</span>'}
+                        </div>
                     </div>
                 `;
             }
