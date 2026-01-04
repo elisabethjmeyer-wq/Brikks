@@ -1,6 +1,7 @@
 /**
  * Exercices Élève - Logique JavaScript
  * Gestion des exercices d'entraînement pour les élèves
+ * Design accordéon avec vue unifiée
  */
 
 const EleveExercices = {
@@ -11,15 +12,16 @@ const EleveExercices = {
     banques: [],
     exercices: [],
     formats: [],
-    resultats: [], // Résultats de l'élève
+    resultats: [],
 
     // État
     currentBanque: null,
     currentExercise: null,
     timer: null,
     timeRemaining: 0,
-    exerciseStartTime: null, // Pour calculer le temps passé
-    currentUser: null, // Utilisateur connecté
+    exerciseStartTime: null,
+    currentUser: null,
+    expandedBanques: new Set(), // Track which banques are expanded
 
     // Cache config (5 minutes TTL)
     CACHE_KEY: 'brikks_exercices_cache',
@@ -28,38 +30,26 @@ const EleveExercices = {
 
     /**
      * Initialise la page d'exercices
-     * @param {string} type - Type d'exercices (savoir-faire, connaissances, competences)
      */
     async init(type) {
         this.currentType = type;
-
-        // Get current user from auth
         this.currentUser = await this.getCurrentUser();
 
-        // Try to load from cache first for instant display
+        // Try cache first
         const cached = this.loadFromCache();
         if (cached) {
-            console.log('[Cache] Using cached data');
             this.applyData(cached.banques, cached.exercices, cached.formats);
-
-            // Load cached results
             const cachedResultats = this.loadResultatsFromCache();
-            if (cachedResultats) {
-                this.resultats = cachedResultats;
-            }
-
-            this.renderBanquesList();
-
-            // Refresh in background (silently)
+            if (cachedResultats) this.resultats = cachedResultats;
+            this.renderAccordionView();
             this.refreshDataInBackground();
             this.refreshResultatsInBackground();
         } else {
-            // No cache, show loader and fetch
             this.showLoader('Chargement des exercices...');
             try {
                 await this.loadData();
                 await this.loadResultats();
-                this.renderBanquesList();
+                this.renderAccordionView();
             } catch (error) {
                 console.error('Erreur lors du chargement:', error);
                 this.showError('Erreur lors du chargement des exercices');
@@ -68,157 +58,93 @@ const EleveExercices = {
     },
 
     /**
-     * Get current user from auth system
+     * Get current user
      */
     async getCurrentUser() {
         try {
-            if (typeof Auth !== 'undefined' && Auth.user) {
-                return Auth.user;
-            }
-            // Fallback: try to get from session
+            if (typeof Auth !== 'undefined' && Auth.user) return Auth.user;
             const session = localStorage.getItem('brikks_session');
-            if (session) {
-                return JSON.parse(session);
-            }
+            if (session) return JSON.parse(session);
             return null;
         } catch (e) {
-            console.log('Could not get current user:', e);
             return null;
         }
     },
 
-    /**
-     * Load results from cache
-     */
+    // Cache methods
     loadResultatsFromCache() {
         try {
             const cached = localStorage.getItem(this.CACHE_RESULTATS_KEY);
             if (!cached) return null;
-
             const data = JSON.parse(cached);
-            const now = Date.now();
-
-            if (data.timestamp && (now - data.timestamp) < this.CACHE_TTL) {
+            if (data.timestamp && (Date.now() - data.timestamp) < this.CACHE_TTL) {
                 return data.resultats || [];
             }
             return null;
-        } catch (e) {
-            return null;
-        }
+        } catch (e) { return null; }
     },
 
-    /**
-     * Save results to cache
-     */
     saveResultatsToCache(resultats) {
         try {
-            const data = {
+            localStorage.setItem(this.CACHE_RESULTATS_KEY, JSON.stringify({
                 resultats,
                 timestamp: Date.now()
-            };
-            localStorage.setItem(this.CACHE_RESULTATS_KEY, JSON.stringify(data));
-        } catch (e) {
-            console.log('[Cache] Error saving resultats:', e);
-        }
+            }));
+        } catch (e) {}
     },
 
-    /**
-     * Load student results from API
-     */
     async loadResultats() {
-        if (!this.currentUser || !this.currentUser.id) {
-            console.log('No user logged in, skipping results load');
-            return;
-        }
-
+        if (!this.currentUser || !this.currentUser.id) return;
         try {
             const result = await this.callAPI('getResultatsEleve', { eleve_id: this.currentUser.id });
             if (result.success && result.data) {
                 this.resultats = result.data;
                 this.saveResultatsToCache(this.resultats);
             }
-        } catch (e) {
-            console.log('Could not load results:', e);
-        }
+        } catch (e) {}
     },
 
-    /**
-     * Refresh results in background
-     */
     async refreshResultatsInBackground() {
         if (!this.currentUser || !this.currentUser.id) return;
-
         try {
             const result = await this.callAPI('getResultatsEleve', { eleve_id: this.currentUser.id });
             if (result.success && result.data) {
                 this.resultats = result.data;
                 this.saveResultatsToCache(this.resultats);
-                console.log('[Cache] Results refreshed in background');
             }
-        } catch (e) {
-            console.log('[Cache] Background results refresh failed:', e);
-        }
+        } catch (e) {}
     },
 
-    /**
-     * Load data from localStorage cache
-     */
     loadFromCache() {
         try {
             const cached = localStorage.getItem(this.CACHE_KEY);
             if (!cached) return null;
-
             const data = JSON.parse(cached);
-            const now = Date.now();
-
-            // Check if cache is still valid
-            if (data.timestamp && (now - data.timestamp) < this.CACHE_TTL) {
+            if (data.timestamp && (Date.now() - data.timestamp) < this.CACHE_TTL) {
                 return data;
             }
-
-            console.log('[Cache] Cache expired');
             return null;
-        } catch (e) {
-            console.log('[Cache] Error reading cache:', e);
-            return null;
-        }
+        } catch (e) { return null; }
     },
 
-    /**
-     * Save data to localStorage cache
-     */
     saveToCache(banques, exercices, formats) {
         try {
-            const data = {
-                banques,
-                exercices,
-                formats,
+            localStorage.setItem(this.CACHE_KEY, JSON.stringify({
+                banques, exercices, formats,
                 timestamp: Date.now()
-            };
-            localStorage.setItem(this.CACHE_KEY, JSON.stringify(data));
-            console.log('[Cache] Data saved to cache');
-        } catch (e) {
-            console.log('[Cache] Error saving cache:', e);
-        }
+            }));
+        } catch (e) {}
     },
 
-    /**
-     * Apply loaded data and filter for current type
-     */
     applyData(banques, exercices, formats) {
         this.banques = (banques || []).filter(b =>
             b.type === this.currentType && b.statut === 'publie'
         );
         this.exercices = (exercices || []).filter(e => e.statut === 'publie');
         this.formats = formats || [];
-
-        // Trier les banques par ordre
         this.banques.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
     },
 
-    /**
-     * Refresh data in background without blocking UI
-     */
     async refreshDataInBackground() {
         try {
             const [banquesResult, exercicesResult, formatsResult] = await Promise.all([
@@ -226,92 +152,68 @@ const EleveExercices = {
                 this.callAPI('getExercices'),
                 this.callAPI('getFormatsExercices')
             ]);
-
             const banques = banquesResult.success ? banquesResult.data : [];
             const exercices = exercicesResult.success ? exercicesResult.data : [];
             const formats = formatsResult.success ? formatsResult.data : [];
-
-            // Save fresh data to cache
             this.saveToCache(banques, exercices, formats);
-
-            // Update current data
             this.applyData(banques, exercices, formats);
-            console.log('[Cache] Background refresh complete');
-        } catch (error) {
-            console.log('[Cache] Background refresh failed:', error);
-        }
+        } catch (error) {}
     },
 
-    /**
-     * Charge les données depuis l'API
-     */
     async loadData() {
         const [banquesResult, exercicesResult, formatsResult] = await Promise.all([
             this.callAPI('getBanquesExercices'),
             this.callAPI('getExercices'),
             this.callAPI('getFormatsExercices')
         ]);
-
         const banques = banquesResult.success ? banquesResult.data : [];
         const exercices = exercicesResult.success ? exercicesResult.data : [];
         const formats = formatsResult.success ? formatsResult.data : [];
-
-        // Save to cache
         this.saveToCache(banques, exercices, formats);
-
-        // Apply data
         this.applyData(banques, exercices, formats);
     },
 
-    /**
-     * Appel API avec JSONP
-     */
     callAPI(action, params = {}) {
         return new Promise((resolve, reject) => {
             const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             const script = document.createElement('script');
-
             window[callbackName] = function(response) {
                 delete window[callbackName];
                 if (script.parentNode) script.parentNode.removeChild(script);
                 resolve(response);
             };
-
-            const queryParams = new URLSearchParams({
-                action: action,
-                callback: callbackName,
-                ...params
-            });
-
+            const queryParams = new URLSearchParams({ action, callback: callbackName, ...params });
             script.src = `${CONFIG.WEBAPP_URL}?${queryParams.toString()}`;
             script.onerror = () => {
                 delete window[callbackName];
                 if (script.parentNode) script.parentNode.removeChild(script);
                 reject(new Error('API call failed'));
             };
-
             document.body.appendChild(script);
         });
     },
 
     /**
-     * Affiche la liste des banques
+     * Render the accordion view with type header and expandable banques
      */
-    renderBanquesList() {
+    renderAccordionView() {
         const container = document.getElementById('exercices-content');
 
         if (this.banques.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📚</div>
-                    <h3>Aucun exercice disponible</h3>
-                    <p>Les exercices de ${this.getTypeLabel()} seront bientôt disponibles.</p>
-                </div>
-            `;
+            container.innerHTML = this.renderEmptyState();
             return;
         }
 
-        // Compte des exercices par banque
+        // Calculate global stats
+        const totalExercises = this.exercices.filter(e =>
+            this.banques.some(b => b.id === e.banque_id)
+        ).length;
+        const completedExercises = this.exercices.filter(e =>
+            this.banques.some(b => b.id === e.banque_id) &&
+            this.resultats.some(r => r.exercice_id === e.id)
+        ).length;
+
+        // Group exercises by banque
         const exercicesByBanque = {};
         this.exercices.forEach(exo => {
             if (!exercicesByBanque[exo.banque_id]) {
@@ -320,28 +222,76 @@ const EleveExercices = {
             exercicesByBanque[exo.banque_id].push(exo);
         });
 
+        // Sort exercises within each banque
+        Object.keys(exercicesByBanque).forEach(banqueId => {
+            exercicesByBanque[banqueId].sort((a, b) => (a.numero || 0) - (b.numero || 0));
+        });
+
         let html = `
-            <div class="type-header">
-                <h2>${this.getTypeIcon()} ${this.getTypeLabel()}</h2>
-                <p>Entraîne-toi sur les ${this.getTypeLabel().toLowerCase()}</p>
+            <div class="type-header ${this.currentType}">
+                <div class="type-header-left">
+                    <div class="type-icon ${this.currentType}">
+                        ${this.getTypeIconSVG()}
+                    </div>
+                    <div>
+                        <h2 class="type-title">${this.getTypeLabel()}</h2>
+                        <p class="type-subtitle">Entraîne-toi sur les ${this.getTypeLabel().toLowerCase()}</p>
+                    </div>
+                </div>
+                <div class="type-header-stats">
+                    <div class="type-stat">
+                        <div class="type-stat-value">${this.banques.length}</div>
+                        <div class="type-stat-label">Banques</div>
+                    </div>
+                    <div class="type-stat">
+                        <div class="type-stat-value">${completedExercises}/${totalExercises}</div>
+                        <div class="type-stat-label">Exercices</div>
+                    </div>
+                </div>
             </div>
-            <div class="banques-grid">
+
+            <div class="banques-accordion">
         `;
 
         this.banques.forEach(banque => {
-            const exoCount = exercicesByBanque[banque.id] ? exercicesByBanque[banque.id].length : 0;
+            const banqueExercices = exercicesByBanque[banque.id] || [];
+            const completed = banqueExercices.filter(exo =>
+                this.resultats.some(r => r.exercice_id === exo.id)
+            ).length;
+            const total = banqueExercices.length;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+            const isExpanded = this.expandedBanques.has(banque.id);
+
+            // Progress ring calculation (circumference = 2 * PI * radius)
+            const radius = 18;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (percent / 100) * circumference;
 
             html += `
-                <div class="banque-card" onclick="EleveExercices.openBanque('${banque.id}')">
-                    <div class="banque-card-header">
-                        <div class="banque-card-title">${this.escapeHtml(banque.titre)}</div>
-                        ${banque.description ? `<div class="banque-card-desc">${this.escapeHtml(banque.description)}</div>` : ''}
-                    </div>
-                    <div class="banque-card-footer">
-                        <div class="banque-exo-count">
-                            <strong>${exoCount}</strong> exercice${exoCount !== 1 ? 's' : ''}
+                <div class="banque-accordion-item ${this.currentType}${isExpanded ? ' expanded' : ''}" data-banque-id="${banque.id}">
+                    <button class="banque-accordion-header" onclick="EleveExercices.toggleBanque('${banque.id}')">
+                        <div class="banque-chevron">▶</div>
+                        <div class="banque-info">
+                            <div class="banque-title">${this.escapeHtml(banque.titre)}</div>
+                            <div class="banque-meta">${total} exercice${total !== 1 ? 's' : ''}</div>
                         </div>
-                        <button class="banque-btn">S'entraîner →</button>
+                        <div class="banque-progress">
+                            <div class="progress-ring">
+                                <svg viewBox="0 0 44 44">
+                                    <circle class="progress-ring-bg" cx="22" cy="22" r="${radius}"/>
+                                    <circle class="progress-ring-fill" cx="22" cy="22" r="${radius}"
+                                        stroke-dasharray="${circumference}"
+                                        stroke-dashoffset="${offset}"/>
+                                </svg>
+                                <span class="progress-ring-text">${percent}%</span>
+                            </div>
+                            <span class="progress-count">${completed}/${total}</span>
+                        </div>
+                    </button>
+                    <div class="banque-accordion-content">
+                        <div class="exercices-accordion-list">
+                            ${this.renderExercisesList(banqueExercices)}
+                        </div>
                     </div>
                 </div>
             `;
@@ -352,123 +302,108 @@ const EleveExercices = {
     },
 
     /**
-     * Ouvre une banque et affiche ses exercices
+     * Render exercises list for a banque
      */
-    openBanque(banqueId) {
-        this.currentBanque = this.banques.find(b => b.id === banqueId);
-        if (!this.currentBanque) return;
-
-        const banqueExercices = this.exercices
-            .filter(e => e.banque_id === banqueId)
-            .sort((a, b) => (a.numero || 0) - (b.numero || 0));
-
-        // Calculate progress for this banque
-        const completed = banqueExercices.filter(exo =>
-            this.resultats.some(r => r.exercice_id === exo.id)
-        ).length;
-        const progressPercent = banqueExercices.length > 0
-            ? Math.round((completed / banqueExercices.length) * 100)
-            : 0;
-
-        const container = document.getElementById('exercices-content');
-
-        let html = `
-            <button class="exercise-back-btn" onclick="EleveExercices.renderBanquesList()">
-                ← Retour aux banques
-            </button>
-
-            <div class="type-header">
-                <h2>${this.escapeHtml(this.currentBanque.titre)}</h2>
-                ${this.currentBanque.description ? `<p>${this.escapeHtml(this.currentBanque.description)}</p>` : ''}
-            </div>
-
-            ${banqueExercices.length > 0 ? `
-                <div class="progress-section">
-                    <div class="progress-header">
-                        <h3>Ta progression</h3>
-                        <span class="progress-stats">${completed}/${banqueExercices.length} exercices complétés</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
-                    </div>
-                </div>
-            ` : ''}
-        `;
-
-        if (banqueExercices.length === 0) {
-            html += `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📝</div>
-                    <h3>Aucun exercice dans cette banque</h3>
-                    <p>Des exercices seront bientôt ajoutés.</p>
-                </div>
-            `;
-        } else {
-            html += '<div class="exercices-list">';
-
-            banqueExercices.forEach(exo => {
-                const format = this.formats.find(f => f.id === exo.format_id);
-                const result = this.getExerciseResult(exo.id);
-                const statusInfo = this.getStatusInfo(result);
-
-                html += `
-                    <div class="exercice-item" onclick="EleveExercices.startExercise('${exo.id}')">
-                        <div class="exercice-numero">${exo.numero || '?'}</div>
-                        <div class="exercice-info">
-                            <div class="exercice-titre">${this.escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</div>
-                            <div class="exercice-meta">
-                                ${format ? format.nom : 'Format inconnu'}
-                                ${exo.duree ? ` • ${Math.floor(exo.duree / 60)} min` : ''}
-                                ${result ? ` • Meilleur score: ${result.score}%` : ''}
-                            </div>
-                        </div>
-                        <span class="exercice-status ${statusInfo.class}">${statusInfo.label}</span>
-                    </div>
-                `;
-            });
-
-            html += '</div>';
+    renderExercisesList(exercices) {
+        if (exercices.length === 0) {
+            return '<div class="empty-state" style="padding: 2rem;"><p>Aucun exercice dans cette banque</p></div>';
         }
 
-        container.innerHTML = html;
+        return exercices.map(exo => {
+            const format = this.formats.find(f => f.id === exo.format_id);
+            const result = this.getExerciseResult(exo.id);
+            const statusInfo = this.getStatusInfo(result);
+            const isCompleted = result && result.score === 100;
+
+            return `
+                <div class="exercice-item ${this.currentType}${isCompleted ? ' completed' : ''}"
+                     onclick="EleveExercices.startExercise('${exo.id}')">
+                    <div class="exercice-numero">${exo.numero || '?'}</div>
+                    <div class="exercice-info">
+                        <div class="exercice-titre">${this.escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</div>
+                        <div class="exercice-meta">
+                            ${format ? format.nom : 'Format inconnu'}
+                            ${exo.duree ? ` • ${Math.floor(exo.duree / 60)} min` : ''}
+                            ${result && result.score < 100 ? ` • Meilleur: ${result.score}%` : ''}
+                        </div>
+                    </div>
+                    <span class="exercice-status ${statusInfo.class}">${statusInfo.label}</span>
+                    <span class="exercice-arrow">→</span>
+                </div>
+            `;
+        }).join('');
     },
 
     /**
-     * Get the best result for an exercise
+     * Toggle banque accordion
      */
+    toggleBanque(banqueId) {
+        const item = document.querySelector(`.banque-accordion-item[data-banque-id="${banqueId}"]`);
+        if (!item) return;
+
+        if (this.expandedBanques.has(banqueId)) {
+            this.expandedBanques.delete(banqueId);
+            item.classList.remove('expanded');
+        } else {
+            this.expandedBanques.add(banqueId);
+            item.classList.add('expanded');
+        }
+    },
+
+    /**
+     * Render empty state with SVG icon
+     */
+    renderEmptyState() {
+        return `
+            <div class="type-header ${this.currentType}">
+                <div class="type-header-left">
+                    <div class="type-icon ${this.currentType}">
+                        ${this.getTypeIconSVG()}
+                    </div>
+                    <div>
+                        <h2 class="type-title">${this.getTypeLabel()}</h2>
+                        <p class="type-subtitle">Entraîne-toi sur les ${this.getTypeLabel().toLowerCase()}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                    </svg>
+                </div>
+                <h3>Aucun exercice disponible</h3>
+                <p>Les exercices de ${this.getTypeLabel().toLowerCase()} seront bientôt disponibles.</p>
+            </div>
+        `;
+    },
+
     getExerciseResult(exerciceId) {
         return this.resultats.find(r => r.exercice_id === exerciceId);
     },
 
-    /**
-     * Get status info (class and label) based on result
-     */
     getStatusInfo(result) {
         if (!result) {
             return { class: 'new', label: 'Nouveau' };
         }
-
         if (result.score === 100) {
-            return { class: 'completed', label: '✓ Parfait' };
-        } else if (result.score >= 50) {
-            return { class: 'in-progress', label: `${result.score}%` };
-        } else {
-            return { class: 'in-progress', label: `${result.score}%` };
+            return { class: 'completed', label: 'Parfait' };
         }
+        return { class: 'in-progress', label: `${result.score}%` };
     },
 
     /**
-     * Démarre un exercice
+     * Start exercise
      */
     async startExercise(exerciceId) {
         this.showLoader('Chargement de l\'exercice...');
 
         try {
             const result = await this.callAPI('getExercice', { id: exerciceId });
-
             if (result.success && result.data) {
                 this.currentExercise = result.data;
-                this.exerciseStartTime = Date.now(); // Track start time
+                this.currentBanque = this.banques.find(b => b.id === this.currentExercise.banque_id);
+                this.exerciseStartTime = Date.now();
                 this.renderExercise();
             } else {
                 this.showError('Exercice non trouvé');
@@ -480,14 +415,13 @@ const EleveExercices = {
     },
 
     /**
-     * Affiche l'exercice
+     * Render exercise view
      */
     renderExercise() {
         const exo = this.currentExercise;
-        const banque = this.currentBanque || this.banques.find(b => b.id === exo.banque_id);
+        const banque = this.currentBanque;
         const format = this.formats.find(f => f.id === exo.format_id);
 
-        // Parse des données
         let donnees = exo.donnees;
         if (typeof donnees === 'string') {
             try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
@@ -522,7 +456,7 @@ const EleveExercices = {
         const container = document.getElementById('exercices-content');
         container.innerHTML = `
             <div class="exercise-view">
-                <button class="exercise-back-btn" onclick="EleveExercices.backToExercices()">
+                <button class="exercise-back-btn" onclick="EleveExercices.backToList()">
                     ← Retour aux exercices
                 </button>
 
@@ -534,7 +468,7 @@ const EleveExercices = {
                         </div>
                         ${exo.duree ? `
                             <div class="exercise-timer" id="exerciseTimer">
-                                ⏱️ <span id="timerDisplay">${this.formatTime(exo.duree)}</span>
+                                <span id="timerDisplay">${this.formatTime(exo.duree)}</span>
                             </div>
                         ` : ''}
                     </div>
@@ -566,22 +500,29 @@ const EleveExercices = {
             </div>
         `;
 
-        // Démarrer le timer si durée définie
         if (exo.duree) {
             this.startTimer(exo.duree);
         }
     },
 
     /**
-     * Rend un tableau de saisie
+     * Back to accordion list
      */
+    backToList() {
+        this.stopTimer();
+        this.currentExercise = null;
+        this.renderAccordionView();
+    },
+
+    // ===============================
+    // RENDER EXERCISE TYPES
+    // ===============================
+
     renderTableauSaisie(donnees, structure) {
-        // Support du nouveau format (colonnes dans donnees) et de l'ancien format
         let colonnes = donnees.colonnes || structure.colonnes || [
             { titre: 'Date', editable: false },
             { titre: 'Réponse', editable: true }
         ];
-
         const lignes = donnees.lignes || [];
 
         let html = `
@@ -596,18 +537,14 @@ const EleveExercices = {
 
         lignes.forEach((ligne, rowIndex) => {
             const cells = ligne.cells || Object.values(ligne);
-
             html += '<tr>';
             colonnes.forEach((col, colIndex) => {
                 if (col.editable) {
                     html += `
                         <td>
-                            <input type="text"
-                                   id="input_${rowIndex}_${colIndex}"
-                                   data-row="${rowIndex}"
-                                   data-col="${colIndex}"
-                                   placeholder="..."
-                                   autocomplete="off">
+                            <input type="text" id="input_${rowIndex}_${colIndex}"
+                                   data-row="${rowIndex}" data-col="${colIndex}"
+                                   placeholder="..." autocomplete="off">
                             <div class="correction-text" id="correction_${rowIndex}_${colIndex}"></div>
                         </td>
                     `;
@@ -623,17 +560,12 @@ const EleveExercices = {
         return html;
     },
 
-    /**
-     * Rend une carte cliquable (image avec marqueurs)
-     * Structure données: { image_url, marqueurs: [{id, x, y, reponse}] }
-     */
     renderCarteCliquable(donnees, structure) {
         const imageUrl = this.convertToDirectImageUrl(donnees.image_url || '');
         const marqueurs = donnees.marqueurs || [];
 
         let marqueursHTML = marqueurs.map((m, index) => `
-            <div class="carte-marqueur"
-                 data-id="${m.id || index}"
+            <div class="carte-marqueur" data-id="${m.id || index}"
                  data-reponse="${this.escapeHtml(m.reponse || '')}"
                  style="left: ${m.x}%; top: ${m.y}%;"
                  onclick="EleveExercices.openMarqueurModal(${index})">
@@ -642,80 +574,56 @@ const EleveExercices = {
             </div>
         `).join('');
 
-        let html = `
+        this.carteMarqueurs = marqueurs;
+        this.carteReponses = new Array(marqueurs.length).fill('');
+        this.currentMarqueurIndex = null;
+
+        return `
             <div class="carte-cliquable-container">
                 <div class="carte-image-wrapper">
-                    <img src="${this.escapeHtml(imageUrl)}" alt="Carte" class="carte-image" id="carteImage">
-                    <div class="carte-marqueurs" id="carteMarqueurs">
-                        ${marqueursHTML}
-                    </div>
+                    <img src="${this.escapeHtml(imageUrl)}" alt="Carte" class="carte-image">
+                    <div class="carte-marqueurs">${marqueursHTML}</div>
                 </div>
             </div>
-
-            <!-- Modal pour saisir la réponse -->
             <div class="carte-modal-overlay hidden" id="marqueurModal">
                 <div class="carte-modal">
                     <div class="carte-modal-header">
                         <h3>Élément n°<span id="modalMarqueurNum"></span></h3>
-                        <button class="carte-modal-close" onclick="EleveExercices.closeMarqueurModal()">&times;</button>
+                        <button class="carte-modal-close" onclick="EleveExercices.closeMarqueurModal()">×</button>
                     </div>
                     <div class="carte-modal-body">
                         <label>Identifiez cet élément :</label>
                         <input type="text" id="marqueurInput" placeholder="Votre réponse..." autocomplete="off">
                     </div>
                     <div class="carte-modal-footer">
-                        <button class="btn btn-cancel" onclick="EleveExercices.closeMarqueurModal()">Annuler</button>
-                        <button class="btn btn-validate" onclick="EleveExercices.saveMarqueurReponse()">Valider</button>
+                        <button class="btn-cancel" onclick="EleveExercices.closeMarqueurModal()">Annuler</button>
+                        <button class="btn-validate" onclick="EleveExercices.saveMarqueurReponse()">Valider</button>
                     </div>
                 </div>
             </div>
         `;
-
-        // Store marqueurs data and user answers for later use
-        this.carteMarqueurs = marqueurs;
-        this.carteReponses = new Array(marqueurs.length).fill('');
-        this.currentMarqueurIndex = null;
-
-        return html;
     },
 
-    /**
-     * Ouvre le modal pour un marqueur
-     */
     openMarqueurModal(index) {
         this.currentMarqueurIndex = index;
         document.getElementById('modalMarqueurNum').textContent = index + 1;
-
-        // Get current answer from stored data
-        const currentAnswer = this.carteReponses[index] || '';
-        document.getElementById('marqueurInput').value = currentAnswer;
-
+        document.getElementById('marqueurInput').value = this.carteReponses[index] || '';
         document.getElementById('marqueurModal').classList.remove('hidden');
         document.getElementById('marqueurInput').focus();
     },
 
-    /**
-     * Ferme le modal marqueur
-     */
     closeMarqueurModal() {
         document.getElementById('marqueurModal').classList.add('hidden');
         this.currentMarqueurIndex = null;
     },
 
-    /**
-     * Sauvegarde la réponse d'un marqueur
-     */
     saveMarqueurReponse() {
         const index = this.currentMarqueurIndex;
         if (index === null) return;
 
-        const input = document.getElementById('marqueurInput');
-        const reponse = input.value.trim();
-
-        // Store the answer
+        const reponse = document.getElementById('marqueurInput').value.trim();
         this.carteReponses[index] = reponse;
 
-        // Update badge on marker
         const badge = document.getElementById(`badge_${index}`);
         if (badge) {
             if (reponse) {
@@ -726,7 +634,6 @@ const EleveExercices = {
             }
         }
 
-        // Update marker visual to show answered
         const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
         if (marqueur) {
             marqueur.classList.toggle('answered', reponse !== '');
@@ -735,35 +642,11 @@ const EleveExercices = {
         this.closeMarqueurModal();
     },
 
-    /**
-     * Affiche le corrigé pour carte_cliquable
-     */
-    showCarteCorrige() {
-        const marqueurs = this.carteMarqueurs || [];
-        marqueurs.forEach((m, index) => {
-            const badge = document.getElementById(`badge_${index}`);
-            if (badge) {
-                badge.textContent = m.reponse || '';
-                badge.classList.remove('hidden');
-                badge.classList.add('correction');
-            }
-            const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
-            if (marqueur) {
-                marqueur.classList.add('show-correction');
-            }
-        });
-    },
-
-    /**
-     * Rend un document avec tableau à compléter
-     * Structure données: { document: {type, contenu}, colonnes: [...], lignes: [...] }
-     */
     renderDocumentTableau(donnees, structure) {
         const doc = donnees.document || {};
         const colonnes = donnees.colonnes || [];
         const lignes = donnees.lignes || [];
 
-        // Render document section
         let documentHTML = '';
         if (doc.type === 'image') {
             const imgUrl = this.convertToDirectImageUrl(doc.contenu);
@@ -772,14 +655,9 @@ const EleveExercices = {
             documentHTML = `<div class="doc-texte">${this.escapeHtml(doc.contenu || '')}</div>`;
         }
 
-        // Render table
         let tableHTML = `
             <table class="tableau-exercice">
-                <thead>
-                    <tr>
-                        ${colonnes.map(col => `<th>${this.escapeHtml(col.titre)}</th>`).join('')}
-                    </tr>
-                </thead>
+                <thead><tr>${colonnes.map(col => `<th>${this.escapeHtml(col.titre)}</th>`).join('')}</tr></thead>
                 <tbody>
         `;
 
@@ -790,18 +668,14 @@ const EleveExercices = {
                 if (col.editable) {
                     tableHTML += `
                         <td>
-                            <input type="text"
-                                   id="input_${rowIndex}_${colIndex}"
-                                   data-row="${rowIndex}"
-                                   data-col="${colIndex}"
-                                   placeholder="..."
-                                   autocomplete="off">
+                            <input type="text" id="input_${rowIndex}_${colIndex}"
+                                   data-row="${rowIndex}" data-col="${colIndex}"
+                                   placeholder="..." autocomplete="off">
                             <div class="correction-text" id="correction_${rowIndex}_${colIndex}"></div>
                         </td>
                     `;
                 } else {
-                    const value = cells[colIndex] || '';
-                    tableHTML += `<td class="cell-display">${this.escapeHtml(value)}</td>`;
+                    tableHTML += `<td class="cell-display">${this.escapeHtml(cells[colIndex] || '')}</td>`;
                 }
             });
             tableHTML += '</tr>';
@@ -811,27 +685,16 @@ const EleveExercices = {
 
         return `
             <div class="document-tableau-container">
-                <div class="document-section">
-                    <h4>📄 Document</h4>
-                    ${documentHTML}
-                </div>
-                <div class="tableau-section">
-                    <h4>📝 À compléter</h4>
-                    ${tableHTML}
-                </div>
+                <div class="document-section"><h4>Document</h4>${documentHTML}</div>
+                <div class="tableau-section"><h4>À compléter</h4>${tableHTML}</div>
             </div>
         `;
     },
 
-    /**
-     * Rend une question ouverte avec guidage
-     * Structure données: { document: {type, contenu}, questions: [{titre, etapes: [...], reponse_attendue}] }
-     */
     renderQuestionOuverte(donnees, structure) {
         const doc = donnees.document || {};
         const questions = donnees.questions || [];
 
-        // Render document section
         let documentHTML = '';
         if (doc.type === 'image') {
             const imgUrl = this.convertToDirectImageUrl(doc.contenu);
@@ -840,14 +703,11 @@ const EleveExercices = {
             documentHTML = `<div class="doc-texte">${this.escapeHtml(doc.contenu || '')}</div>`;
         }
 
-        // Render questions
         let questionsHTML = questions.map((q, qIndex) => {
             const etapesHTML = (q.etapes || []).map((etape, eIndex) => `
                 <div class="question-etape">
                     <label>${this.escapeHtml(etape)}</label>
-                    <textarea id="reponse_${qIndex}_${eIndex}"
-                              rows="2"
-                              placeholder="Votre réponse..."></textarea>
+                    <textarea id="reponse_${qIndex}_${eIndex}" rows="2" placeholder="Votre réponse..."></textarea>
                 </div>
             `).join('');
 
@@ -856,34 +716,23 @@ const EleveExercices = {
                     <h4>${this.escapeHtml(q.titre || `Question ${qIndex + 1}`)}</h4>
                     ${etapesHTML}
                     <div class="correction-box hidden" id="correctionBox_${qIndex}">
-                        <h5>📝 Correction</h5>
+                        <h5>Correction</h5>
                         <div class="correction-content">${this.escapeHtml(q.reponse_attendue || '')}</div>
                     </div>
                 </div>
             `;
         }).join('');
 
-        // Store questions data for validation
         this.questionsOuvertes = questions;
 
         return `
             <div class="question-ouverte-container">
-                <div class="document-section">
-                    <h4>📄 Document</h4>
-                    ${documentHTML}
-                </div>
-                <div class="questions-section">
-                    <h4>❓ Questions</h4>
-                    ${questionsHTML}
-                </div>
+                <div class="document-section"><h4>Document</h4>${documentHTML}</div>
+                <div class="questions-section"><h4>Questions</h4>${questionsHTML}</div>
             </div>
         `;
     },
 
-    /**
-     * Rend un exercice document_mixte (format unifié)
-     * Structure: { document: {...}, tableau: {...}, questions: {...}, sectionOrder: [...], layout: 'vertical'|'horizontal' }
-     */
     renderDocumentMixte(donnees, structure) {
         const doc = donnees.document || { actif: false };
         const tableau = donnees.tableau || { actif: false };
@@ -891,14 +740,10 @@ const EleveExercices = {
         const sectionOrder = donnees.sectionOrder || ['document', 'tableau', 'questions'];
         const layout = donnees.layout || 'vertical';
 
-        // Store data for validation
         this.mixteData = donnees;
 
-        // Check for horizontal layout with document active
         if (layout === 'horizontal' && doc.actif) {
             const docHTML = this.renderMixteDocumentSection(doc);
-
-            // Build right side content (other sections)
             let rightHTML = '';
             sectionOrder.forEach(section => {
                 if (section === 'tableau' && tableau.actif) {
@@ -916,7 +761,6 @@ const EleveExercices = {
             `;
         }
 
-        // Vertical layout (default)
         let sectionsHTML = '';
         sectionOrder.forEach(section => {
             if (section === 'document' && doc.actif) {
@@ -938,18 +782,14 @@ const EleveExercices = {
         const titre = doc.titre || '';
         const legende = doc.legende || '';
 
-        // Parse legende for italics
         const legendeHTML = this.escapeHtml(legende).replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
         let contentHTML = '';
 
         if (docType === 'texte' && texte) {
-            // Convert plain text to HTML paragraphs
             contentHTML = this.textToHtml(texte);
         } else if (url) {
-            // Convert Google URL for images/iframes
             const converted = this.convertGoogleUrl(url);
-
             if (converted.type === 'empty') {
                 contentHTML = '<div class="doc-placeholder">Document non disponible</div>';
             } else if (converted.type === 'drive_file') {
@@ -976,48 +816,33 @@ const EleveExercices = {
         `;
     },
 
-    /**
-     * Convert plain text to HTML with paragraphs and italics
-     */
     textToHtml(text) {
         if (!text) return '';
-
-        // Escape HTML first
         let html = this.escapeHtml(text);
-
-        // Convert *text* to <em>text</em> for italics
         html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-
-        // Split by double newlines for paragraphs, single newlines for line breaks
         const paragraphs = html.split(/\n\s*\n/);
-
         return paragraphs.map(p => {
-            // Replace single newlines with <br>
             const withBreaks = p.trim().replace(/\n/g, '<br>');
             return `<p>${withBreaks}</p>`;
         }).join('');
     },
 
     renderMixteTableauSection(tableau) {
-        const titre = tableau.titre || 'À COMPLÉTER';
+        const titre = tableau.titre || 'À compléter';
 
-        // Handle both old format (colonnes/lignes) and new format (elements)
         if (tableau.elements && tableau.elements.length > 0) {
-            // New flexible format
             this.mixteTableauElements = tableau.elements;
 
             const elementsHTML = tableau.elements.map((el, idx) => {
                 if (el.type === 'section') {
                     return `<div class="mixte-tableau-section-row">${this.escapeHtml(el.text)}</div>`;
                 } else {
-                    // Show empty input - the reponse is stored in data attribute for validation
-                    const placeholder = el.placeholder || '';
                     return `
                         <div class="mixte-tableau-row">
                             <div class="row-label">${this.escapeHtml(el.label)}</div>
                             <div class="row-input">
                                 <input type="text" class="cell-input" id="mixte_element_${idx}"
-                                       placeholder="${this.escapeHtml(placeholder)}" data-index="${idx}"
+                                       placeholder="${this.escapeHtml(el.placeholder || '')}" data-index="${idx}"
                                        data-reponse="${this.escapeHtml(el.reponse || '')}">
                             </div>
                         </div>
@@ -1032,7 +857,6 @@ const EleveExercices = {
                 </div>
             `;
         } else {
-            // Old format fallback (colonnes/lignes)
             const colonnes = tableau.colonnes || [];
             const lignes = tableau.lignes || [];
 
@@ -1071,8 +895,6 @@ const EleveExercices = {
 
     renderMixteQuestionsSection(questions) {
         const liste = questions.liste || [];
-
-        // Store for validation
         this.mixteQuestions = liste;
 
         const questionsHTML = liste.map((q, idx) => `
@@ -1093,7 +915,6 @@ const EleveExercices = {
         `;
     },
 
-    // Convert various Google URLs (same as admin)
     convertGoogleUrl(url) {
         if (!url) return { type: 'empty', url: '' };
 
@@ -1126,13 +947,13 @@ const EleveExercices = {
         return { type: 'direct_url', url: url, imageUrl: url };
     },
 
-    /**
-     * Valide les réponses de l'exercice
-     */
+    // ===============================
+    // VALIDATION
+    // ===============================
+
     async validateExercise() {
         if (!this.currentExercise) return;
 
-        // Arrêter le timer
         this.stopTimer();
 
         const format = this.formats.find(f => f.id === this.currentExercise.format_id);
@@ -1151,34 +972,27 @@ const EleveExercices = {
         } else if (typeUI === 'document_mixte') {
             result = this.validateDocumentMixte();
         } else {
-            // tableau_saisie or document_tableau
             result = this.validateTableauSaisie();
         }
 
         const { correct, total } = result;
-
-        // Afficher le résultat
         const banner = document.getElementById('resultBanner');
         const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
 
         if (percent === 100) {
             banner.className = 'result-banner show success';
-            banner.textContent = `🎉 Parfait ! ${correct}/${total} réponses correctes`;
+            banner.textContent = `Parfait ! ${correct}/${total} réponses correctes`;
         } else if (percent >= 50) {
             banner.className = 'result-banner show partial';
-            banner.textContent = `📊 ${correct}/${total} réponses correctes (${percent}%)`;
+            banner.textContent = `${correct}/${total} réponses correctes (${percent}%)`;
         } else {
             banner.className = 'result-banner show error';
-            banner.textContent = `📊 ${correct}/${total} réponses correctes (${percent}%)`;
+            banner.textContent = `${correct}/${total} réponses correctes (${percent}%)`;
         }
 
-        // Save result to server
         await this.saveResult(correct, total, percent);
     },
 
-    /**
-     * Valide un exercice de type tableau_saisie ou document_tableau
-     */
     validateTableauSaisie() {
         let donnees = this.currentExercise.donnees;
         if (typeof donnees === 'string') {
@@ -1187,12 +1001,10 @@ const EleveExercices = {
 
         const colonnes = donnees.colonnes || [];
         const lignes = donnees.lignes || [];
-        let correct = 0;
-        let total = 0;
+        let correct = 0, total = 0;
 
         lignes.forEach((ligne, rowIndex) => {
             const cells = ligne.cells || Object.values(ligne);
-
             colonnes.forEach((col, colIndex) => {
                 if (col.editable) {
                     total++;
@@ -1211,7 +1023,6 @@ const EleveExercices = {
                         input.className = 'incorrect';
                         if (correction) correction.textContent = '→ ' + (cells[colIndex] || '');
                     }
-
                     input.disabled = true;
                 }
             });
@@ -1220,14 +1031,10 @@ const EleveExercices = {
         return { correct, total };
     },
 
-    /**
-     * Valide un exercice de type carte_cliquable
-     */
     validateCarteCliquable() {
         const marqueurs = this.carteMarqueurs || [];
         const reponses = this.carteReponses || [];
-        let correct = 0;
-        let total = marqueurs.length;
+        let correct = 0, total = marqueurs.length;
 
         marqueurs.forEach((m, index) => {
             const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
@@ -1237,64 +1044,46 @@ const EleveExercices = {
             const correctAnswer = this.normalizeAnswer(m.reponse || '');
 
             if (userAnswer === correctAnswer && userAnswer !== '') {
-                // Correct answer - green
                 if (marqueur) marqueur.classList.add('correct');
                 if (badge) badge.classList.add('correct');
                 correct++;
             } else {
-                // Wrong or empty - red
                 if (marqueur) marqueur.classList.add('incorrect');
                 if (badge) badge.classList.add('incorrect');
             }
         });
 
-        // Disable further input
         document.querySelectorAll('.carte-marqueur').forEach(el => {
             el.style.pointerEvents = 'none';
         });
 
-        // Show "Voir le corrigé" button
         const corrigeBtn = document.getElementById('voirCorrigeBtn');
         if (corrigeBtn) corrigeBtn.classList.remove('hidden');
 
         return { correct, total };
     },
 
-    /**
-     * Valide un exercice de type question_ouverte (affiche simplement la correction)
-     */
     validateQuestionOuverte() {
         const questions = this.questionsOuvertes || [];
 
-        // Pour les questions ouvertes, on affiche la correction sans calcul de score
         questions.forEach((q, qIndex) => {
             const correctionBox = document.getElementById(`correctionBox_${qIndex}`);
-            if (correctionBox) {
-                correctionBox.classList.remove('hidden');
-            }
+            if (correctionBox) correctionBox.classList.remove('hidden');
 
-            // Disable textareas
             (q.etapes || []).forEach((_, eIndex) => {
                 const textarea = document.getElementById(`reponse_${qIndex}_${eIndex}`);
                 if (textarea) textarea.disabled = true;
             });
         });
 
-        // Les questions ouvertes n'ont pas de score automatique
         return { correct: 0, total: 0 };
     },
 
-    /**
-     * Valide un exercice de type document_mixte
-     */
     validateDocumentMixte() {
-        let correct = 0;
-        let total = 0;
+        let correct = 0, total = 0;
         const data = this.mixteData || {};
 
-        // Validate tableau if active
         if (data.tableau && data.tableau.actif) {
-            // New flexible format with elements
             if (this.mixteTableauElements && this.mixteTableauElements.length > 0) {
                 this.mixteTableauElements.forEach((el, idx) => {
                     if (el.type === 'row' && el.reponse) {
@@ -1309,14 +1098,12 @@ const EleveExercices = {
                                 correct++;
                             } else {
                                 input.classList.add('incorrect');
-                                // Don't show answer here - will be shown via "Voir le corrigé"
                             }
                             input.disabled = true;
                         }
                     }
                 });
             } else {
-                // Old format with colonnes/lignes
                 const colonnes = this.mixteTableauColonnes || [];
                 const lignes = this.mixteTableauLignes || [];
 
@@ -1344,41 +1131,26 @@ const EleveExercices = {
             }
         }
 
-        // Show question corrections (no scoring for open questions)
         if (data.questions && data.questions.actif) {
             const questions = this.mixteQuestions || [];
             questions.forEach((q, idx) => {
                 const correction = document.getElementById(`mixte_correction_${idx}`);
-                if (correction) {
-                    correction.classList.remove('hidden');
-                }
+                if (correction) correction.classList.remove('hidden');
                 const textarea = document.getElementById(`mixte_answer_${idx}`);
-                if (textarea) {
-                    textarea.disabled = true;
-                }
+                if (textarea) textarea.disabled = true;
             });
         }
 
-        // Show "Voir le corrigé" button
         const corrigeBtn = document.getElementById('voirCorrigeBtn');
         if (corrigeBtn) corrigeBtn.classList.remove('hidden');
 
         return { correct, total };
     },
 
-    /**
-     * Save exercise result to the server
-     */
     async saveResult(correct, total, percent) {
-        if (!this.currentUser || !this.currentUser.id || !this.currentExercise) {
-            console.log('Cannot save result: no user or exercise');
-            return;
-        }
+        if (!this.currentUser || !this.currentUser.id || !this.currentExercise) return;
 
-        // Calculate time spent
-        const timeSpent = this.exerciseStartTime
-            ? Math.round((Date.now() - this.exerciseStartTime) / 1000)
-            : 0;
+        const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
 
         const resultData = {
             eleve_id: this.currentUser.id,
@@ -1394,55 +1166,33 @@ const EleveExercices = {
         try {
             const result = await this.callAPI('saveResultatExercice', resultData);
             if (result.success) {
-                console.log('Result saved successfully');
-                // Update local results cache
                 this.updateLocalResult(resultData);
-            } else {
-                console.log('Failed to save result:', result.error);
             }
-        } catch (e) {
-            console.log('Error saving result:', e);
-        }
+        } catch (e) {}
     },
 
-    /**
-     * Update local results after saving
-     */
     updateLocalResult(newResult) {
-        // Find existing result for this exercise
-        const existingIndex = this.resultats.findIndex(
-            r => r.exercice_id === newResult.exercice_id
-        );
-
+        const existingIndex = this.resultats.findIndex(r => r.exercice_id === newResult.exercice_id);
         if (existingIndex >= 0) {
-            // Update existing (keep best score)
-            const existing = this.resultats[existingIndex];
-            if (newResult.score > existing.score) {
+            if (newResult.score > this.resultats[existingIndex].score) {
                 this.resultats[existingIndex] = newResult;
             }
         } else {
-            // Add new result
             this.resultats.push(newResult);
         }
-
-        // Update cache
         this.saveResultatsToCache(this.resultats);
     },
 
-    /**
-     * Normalise une réponse pour comparaison
-     */
     normalizeAnswer(str) {
-        return String(str).toLowerCase()
-            .trim()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
+        return String(str).toLowerCase().trim()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-z0-9]/g, '');
     },
 
-    /**
-     * Affiche le corrigé selon le type d'exercice
-     */
+    // ===============================
+    // SHOW CORRIGE
+    // ===============================
+
     showCorrige() {
         const format = this.formats.find(f => f.id === this.currentExercise.format_id);
         let structure = format ? format.structure : null;
@@ -1460,19 +1210,28 @@ const EleveExercices = {
         }
     },
 
-    /**
-     * Affiche le corrigé pour document_mixte
-     */
+    showCarteCorrige() {
+        const marqueurs = this.carteMarqueurs || [];
+        marqueurs.forEach((m, index) => {
+            const badge = document.getElementById(`badge_${index}`);
+            if (badge) {
+                badge.textContent = m.reponse || '';
+                badge.classList.remove('hidden');
+                badge.classList.add('correction');
+            }
+            const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+            if (marqueur) marqueur.classList.add('show-correction');
+        });
+    },
+
     showDocumentMixteCorrige() {
         const data = this.mixteData || {};
 
-        // Show tableau corrections
         if (data.tableau && data.tableau.actif && this.mixteTableauElements) {
             this.mixteTableauElements.forEach((el, idx) => {
                 if (el.type === 'row' && el.reponse) {
                     const input = document.getElementById(`mixte_element_${idx}`);
                     if (input) {
-                        // Replace input value with correct answer
                         input.value = el.reponse;
                         input.classList.remove('incorrect');
                         input.classList.add('corrected');
@@ -1482,7 +1241,6 @@ const EleveExercices = {
             });
         }
 
-        // Show questions corrections
         if (data.questions && data.questions.actif && this.mixteQuestions) {
             this.mixteQuestions.forEach((q, idx) => {
                 const textarea = document.getElementById(`mixte_question_${idx}`);
@@ -1495,15 +1253,11 @@ const EleveExercices = {
             });
         }
 
-        // Update result banner
         const banner = document.getElementById('resultBanner');
         banner.className = 'result-banner show info';
-        banner.textContent = 'Voici le corrigé complet. Étudie bien les éléments du paratexte !';
+        banner.textContent = 'Voici le corrigé complet.';
     },
 
-    /**
-     * Affiche le corrigé pour tableau_saisie
-     */
     showTableauCorrige() {
         let donnees = this.currentExercise.donnees;
         if (typeof donnees === 'string') {
@@ -1532,9 +1286,10 @@ const EleveExercices = {
         banner.textContent = 'Voici le corrigé complet.';
     },
 
-    /**
-     * Réinitialise l'exercice
-     */
+    // ===============================
+    // RESET
+    // ===============================
+
     resetExercise() {
         if (!this.currentExercise) return;
 
@@ -1559,23 +1314,17 @@ const EleveExercices = {
         document.getElementById('resultBanner').className = 'result-banner';
         this.exerciseStartTime = Date.now();
 
-        // Hide "Voir le corrigé" button
         const corrigeBtn = document.getElementById('voirCorrigeBtn');
         if (corrigeBtn) corrigeBtn.classList.add('hidden');
 
-        // Redémarrer le timer si durée définie
         if (this.currentExercise.duree) {
             this.startTimer(this.currentExercise.duree);
         }
     },
 
-    /**
-     * Reset pour document_mixte
-     */
     resetDocumentMixte() {
         const data = this.mixteData || {};
 
-        // Reset tableau inputs
         if (data.tableau && data.tableau.actif && this.mixteTableauElements) {
             this.mixteTableauElements.forEach((el, idx) => {
                 if (el.type === 'row') {
@@ -1589,7 +1338,6 @@ const EleveExercices = {
             });
         }
 
-        // Reset question textareas
         if (data.questions && data.questions.actif && this.mixteQuestions) {
             this.mixteQuestions.forEach((q, idx) => {
                 const textarea = document.getElementById(`mixte_question_${idx}`);
@@ -1606,9 +1354,6 @@ const EleveExercices = {
         }
     },
 
-    /**
-     * Reset pour tableau_saisie et document_tableau
-     */
     resetTableauSaisie() {
         let donnees = this.currentExercise.donnees;
         if (typeof donnees === 'string') {
@@ -1628,21 +1373,14 @@ const EleveExercices = {
                         input.className = '';
                         input.disabled = false;
                     }
-                    if (correction) {
-                        correction.textContent = '';
-                    }
+                    if (correction) correction.textContent = '';
                 }
             });
         });
     },
 
-    /**
-     * Reset pour carte_cliquable
-     */
     resetCarteCliquable() {
         const marqueurs = this.carteMarqueurs || [];
-
-        // Reset stored answers
         this.carteReponses = new Array(marqueurs.length).fill('');
 
         marqueurs.forEach((_, index) => {
@@ -1659,15 +1397,8 @@ const EleveExercices = {
                 marqueur.style.pointerEvents = '';
             }
         });
-
-        // Hide "Voir le corrigé" button
-        const corrigeBtn = document.getElementById('voirCorrigeBtn');
-        if (corrigeBtn) corrigeBtn.classList.add('hidden');
     },
 
-    /**
-     * Reset pour question_ouverte
-     */
     resetQuestionOuverte() {
         const questions = this.questionsOuvertes || [];
 
@@ -1685,21 +1416,10 @@ const EleveExercices = {
         });
     },
 
-    /**
-     * Retour aux exercices de la banque
-     */
-    backToExercices() {
-        this.stopTimer();
-        if (this.currentBanque) {
-            this.openBanque(this.currentBanque.id);
-        } else {
-            this.renderBanquesList();
-        }
-    },
+    // ===============================
+    // TIMER
+    // ===============================
 
-    /**
-     * Timer
-     */
     startTimer(seconds) {
         this.stopTimer();
         this.timeRemaining = seconds;
@@ -1726,12 +1446,8 @@ const EleveExercices = {
     updateTimerDisplay() {
         const display = document.getElementById('timerDisplay');
         const timerEl = document.getElementById('exerciseTimer');
-        if (display) {
-            display.textContent = this.formatTime(this.timeRemaining);
-        }
-        if (timerEl && this.timeRemaining <= 60) {
-            timerEl.classList.add('warning');
-        }
+        if (display) display.textContent = this.formatTime(this.timeRemaining);
+        if (timerEl && this.timeRemaining <= 60) timerEl.classList.add('warning');
     },
 
     formatTime(seconds) {
@@ -1740,9 +1456,10 @@ const EleveExercices = {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     },
 
-    /**
-     * Helpers
-     */
+    // ===============================
+    // HELPERS
+    // ===============================
+
     getTypeLabel() {
         const labels = {
             'savoir-faire': 'Savoir-faire',
@@ -1752,13 +1469,14 @@ const EleveExercices = {
         return labels[this.currentType] || this.currentType;
     },
 
-    getTypeIcon() {
+    getTypeIconSVG() {
+        // Simple SVG icons for each type
         const icons = {
-            'savoir-faire': '🟠',
-            'connaissances': '🟢',
-            'competences': '🟣'
+            'savoir-faire': '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#d97706" width="28" height="28"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" /></svg>',
+            'connaissances': '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#059669" width="28" height="28"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>',
+            'competences': '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#7c3aed" width="28" height="28"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>'
         };
-        return icons[this.currentType] || '📚';
+        return icons[this.currentType] || icons['connaissances'];
     },
 
     showLoader(message) {
@@ -1775,7 +1493,11 @@ const EleveExercices = {
         const container = document.getElementById('exercices-content');
         container.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon">❌</div>
+                <div class="empty-state-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                    </svg>
+                </div>
                 <h3>Erreur</h3>
                 <p>${message}</p>
             </div>
@@ -1789,14 +1511,11 @@ const EleveExercices = {
         return div.innerHTML;
     },
 
-    // Convert Google Drive share links to direct image URLs
     convertToDirectImageUrl(url) {
         if (!url) return url;
-        // Pattern: https://drive.google.com/file/d/FILE_ID/view...
         const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
         if (driveMatch) {
-            const fileId = driveMatch[1];
-            return `https://lh3.googleusercontent.com/d/${fileId}`;
+            return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
         }
         return url;
     }
