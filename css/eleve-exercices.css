@@ -370,6 +370,11 @@
     color: #dc2626;
 }
 
+.result-banner.info {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
 /* Actions */
 .exercise-actions {
     padding: 1.5rem 2rem;
@@ -1028,7 +1033,10 @@
 }
 
 .mixte-doc-content {
-    padding: 1.5rem;
+    padding: 1rem;
+    max-height: 600px;
+    overflow-y: auto;
+    background: #fafafa;
 }
 
 .mixte-doc-title {
@@ -1050,18 +1058,33 @@
 
 .mixte-doc-iframe {
     width: 100%;
-    height: 500px;
-    border: none;
+    height: 450px;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: white;
+}
+
+.mixte-doc-text {
+    background: white;
+    padding: 1.25rem 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #374151;
+    max-height: 500px;
+    overflow-y: auto;
 }
 
 .mixte-doc-legend {
     margin-top: 1rem;
+    padding: 0.75rem 1rem;
     text-align: center;
     font-style: italic;
     color: #6b7280;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    background: #f9fafb;
+    border-radius: 6px;
 }
 
 /* Tableau Section */
@@ -1210,6 +1233,25 @@
     background: #f3f4f6;
     border-color: #9ca3af;
     color: #374151;
+}
+
+.mixte-tableau-row .cell-input.correct {
+    background: #dcfce7;
+    border-color: #22c55e;
+    color: #166534;
+}
+
+.mixte-tableau-row .cell-input.incorrect {
+    background: #fee2e2;
+    border-color: #ef4444;
+    color: #dc2626;
+}
+
+.mixte-tableau-row .cell-input.corrected {
+    background: #dbeafe;
+    border-color: #3b82f6;
+    color: #1e40af;
+    font-weight: 500;
 }
 
 /* Questions Section */
