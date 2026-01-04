@@ -1847,17 +1847,15 @@ const EleveExercices = {
 
         // Generate competences list with expandable criteria
         const competencesHTML = competences.map((c, index) => `
-            <div class="competence-item">
-                <div class="competence-header" onclick="EleveExercices.toggleCompetenceCriteria(${index})">
-                    <span class="competence-name">
-                        <span class="competence-icon">&#9679;</span>
-                        ${this.escapeHtml(c.nom)}
-                    </span>
-                    ${c.description ? `<span class="competence-expand" id="compExpand${index}">&#9660;</span>` : ''}
+            <div class="competence-item-v2">
+                <div class="competence-header-v2" onclick="EleveExercices.toggleCompetenceCriteria(${index})">
+                    <span class="competence-bullet">●</span>
+                    <span class="competence-name-v2">${this.escapeHtml(c.nom)}</span>
+                    ${c.description ? `<span class="competence-chevron" id="compExpand${index}">▼</span>` : ''}
                 </div>
                 ${c.description ? `
-                    <div class="competence-criteria hidden" id="compCriteria${index}">
-                        <div class="criteria-content">${this.escapeHtml(c.description)}</div>
+                    <div class="competence-criteria-v2 hidden" id="compCriteria${index}">
+                        ${this.formatCriteria(c.description)}
                     </div>
                 ` : ''}
             </div>
@@ -1866,13 +1864,27 @@ const EleveExercices = {
         // Convert document URL for iframe embedding
         const iframeUrl = this.getEmbedUrl(tache.document_url);
 
+        // Correction button for training mode
+        const correctionBtn = mode === 'entrainement' ? `
+            <div class="correction-section">
+                ${tache.correction_url
+                    ? `<a href="${this.escapeHtml(tache.correction_url)}" target="_blank" class="btn btn-correction">
+                        📝 Voir la correction
+                       </a>`
+                    : `<button class="btn btn-correction-disabled" disabled>
+                        📝 Correction non disponible
+                       </button>`
+                }
+            </div>
+        ` : '';
+
         container.innerHTML = `
-            <div class="tache-exercise-view-v2">
+            <div class="tache-exercise-view-v3">
                 <button class="exercise-back-btn" onclick="EleveExercices.backToCompetencesList()">
                     ← Retour aux entrainements
                 </button>
 
-                <div class="exercise-card">
+                <div class="exercise-card-v3">
                     <div class="exercise-header competences">
                         <div class="exercise-header-left">
                             <div class="exercise-header-info">
@@ -1883,36 +1895,49 @@ const EleveExercices = {
                             </div>
                         </div>
                         <div class="exercise-timer" id="tacheTimer">
+                            <span class="timer-icon">⏱</span>
                             <span id="timerDisplay">${this.formatTime(this.tacheTimeRemaining)}</span>
                         </div>
                     </div>
 
                     ${tache.description ? `
-                        <div class="exercise-consigne">
-                            ${this.escapeHtml(tache.description)}
+                        <div class="consigne-box">
+                            <div class="consigne-label">CONSIGNE</div>
+                            <div class="consigne-text">${this.escapeHtml(tache.description)}</div>
                         </div>
                     ` : ''}
 
-                    <div class="tache-main-content">
-                        <div class="tache-document-panel">
-                            <div class="document-iframe-container">
-                                <iframe src="${iframeUrl}" class="document-iframe" allowfullscreen></iframe>
+                    <div class="tache-layout-v3">
+                        <div class="document-section">
+                            <div class="document-toolbar">
+                                <span class="document-title">Document</span>
+                                <div class="document-actions-v3">
+                                    <a href="${this.escapeHtml(tache.document_url)}" download class="doc-btn" title="Télécharger">
+                                        ⬇️
+                                    </a>
+                                    <button class="doc-btn" onclick="EleveExercices.toggleFullscreen()" title="Plein écran">
+                                        ⛶
+                                    </button>
+                                    <a href="${this.escapeHtml(tache.document_url)}" target="_blank" class="doc-btn" title="Nouvel onglet">
+                                        ↗️
+                                    </a>
+                                </div>
                             </div>
-                            <div class="document-fallback">
-                                <a href="${this.escapeHtml(tache.document_url)}" target="_blank" class="btn btn-primary">
-                                    Ouvrir dans un nouvel onglet
-                                </a>
+                            <div class="document-frame-wrapper" id="documentWrapper">
+                                <iframe src="${iframeUrl}" class="document-frame" id="documentIframe" allowfullscreen></iframe>
                             </div>
                         </div>
 
-                        <div class="tache-sidebar">
-                            <div class="competences-panel">
-                                <h3>Competences evaluees</h3>
-                                <p class="competences-hint">Cliquez sur une competence pour voir les criteres de reussite</p>
-                                <div class="competences-list">
+                        <div class="sidebar-section">
+                            <div class="sidebar-panel competences-panel-v2">
+                                <h3>Compétences évaluées</h3>
+                                <p class="panel-hint">Cliquez pour voir les critères</p>
+                                <div class="competences-list-v2">
                                     ${competencesHTML}
                                 </div>
                             </div>
+
+                            ${correctionBtn}
                         </div>
                     </div>
                 </div>
@@ -1921,6 +1946,28 @@ const EleveExercices = {
 
         // Start timer
         this.startTacheTimer();
+    },
+
+    formatCriteria(description) {
+        // Split by line breaks or dashes to create list items
+        const lines = description.split(/[\n\r]+|(?=\s*-\s)/).filter(line => line.trim());
+        if (lines.length <= 1) {
+            return `<div class="criteria-text">${this.escapeHtml(description)}</div>`;
+        }
+        return `<ul class="criteria-list">
+            ${lines.map(line => {
+                const cleanLine = line.replace(/^[\s-]+/, '').trim();
+                return cleanLine ? `<li>${this.escapeHtml(cleanLine)}</li>` : '';
+            }).join('')}
+        </ul>`;
+    },
+
+    toggleFullscreen() {
+        const wrapper = document.getElementById('documentWrapper');
+        if (wrapper) {
+            wrapper.classList.toggle('fullscreen');
+            document.body.classList.toggle('document-fullscreen-active');
+        }
     },
 
     toggleCompetenceCriteria(index) {
@@ -1936,6 +1983,22 @@ const EleveExercices = {
 
     getEmbedUrl(url) {
         if (!url) return '';
+
+        // Publuu flip-book - convert to embed URL
+        if (url.includes('publuu.com/flip-book')) {
+            // Format: https://publuu.com/flip-book/USER_ID/BOOK_ID
+            // Embed: https://publuu.com/flip-book/USER_ID/BOOK_ID/page/1?embed
+            const match = url.match(/publuu\.com\/flip-book\/(\d+)\/(\d+)/);
+            if (match) {
+                return `https://publuu.com/flip-book/${match[1]}/${match[2]}/page/1?embed`;
+            }
+            // Already has page number, just add ?embed if missing
+            if (!url.includes('?embed')) {
+                return url + (url.includes('/page/') ? '?embed' : '/page/1?embed');
+            }
+            return url;
+        }
+
         // Google Drive file - convert to embed URL
         if (url.includes('drive.google.com')) {
             // Handle /file/d/ format
@@ -1975,6 +2038,7 @@ const EleveExercices = {
 
     startTacheTimer() {
         if (this.tacheTimer) clearInterval(this.tacheTimer);
+        this.timerExpiredShown = false;
 
         this.tacheTimer = setInterval(() => {
             this.tacheTimeRemaining--;
@@ -1982,24 +2046,132 @@ const EleveExercices = {
             const timerDisplay = document.getElementById('timerDisplay');
 
             if (timerDisplay) {
-                timerDisplay.textContent = this.formatTime(this.tacheTimeRemaining);
+                // Show negative time for training mode
+                if (this.tacheTimeRemaining < 0 && this.currentTacheMode === 'entrainement') {
+                    timerDisplay.textContent = '+' + this.formatTime(Math.abs(this.tacheTimeRemaining));
+                } else {
+                    timerDisplay.textContent = this.formatTime(Math.max(0, this.tacheTimeRemaining));
+                }
             }
             if (timerEl) {
-                if (this.tacheTimeRemaining <= 300) {
+                if (this.tacheTimeRemaining <= 300 && this.tacheTimeRemaining > 60) {
                     timerEl.classList.add('warning');
+                    timerEl.classList.remove('danger');
                 }
                 if (this.tacheTimeRemaining <= 60) {
                     timerEl.classList.add('danger');
+                    timerEl.classList.remove('warning');
+                }
+                if (this.tacheTimeRemaining < 0) {
+                    timerEl.classList.add('overtime');
                 }
             }
 
-            if (this.tacheTimeRemaining <= 0) {
-                clearInterval(this.tacheTimer);
-                this.tacheTimer = null;
-                // Timer expired - show time's up screen
-                this.showTimeExpired();
+            if (this.tacheTimeRemaining <= 0 && !this.timerExpiredShown) {
+                this.timerExpiredShown = true;
+
+                if (this.currentTacheMode === 'points_bonus') {
+                    // Points bonus mode: BLOCK and redirect
+                    clearInterval(this.tacheTimer);
+                    this.tacheTimer = null;
+                    this.showTimeExpiredPointsBonus();
+                } else {
+                    // Training mode: Just show a non-blocking notification
+                    this.showTimerExpiredNotification();
+                    // Timer continues counting in overtime
+                }
             }
         }, 1000);
+    },
+
+    showTimerExpiredNotification() {
+        // Create a non-blocking notification for training mode
+        const notification = document.createElement('div');
+        notification.className = 'timer-notification';
+        notification.innerHTML = `
+            <div class="timer-notification-content">
+                <span class="notification-icon">⏱</span>
+                <span>Temps écoulé ! Vous pouvez continuer à travailler.</span>
+                <button onclick="this.parentElement.parentElement.remove()">✕</button>
+            </div>
+        `;
+        document.body.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    },
+
+    async showTimeExpiredPointsBonus() {
+        const tache = this.currentTacheComplexe;
+
+        // Update in database if user is connected
+        if (tache && this.currentUser) {
+            try {
+                await this.callAPI('finishEleveTacheComplexe', {
+                    eleve_id: this.currentUser.id,
+                    tache_id: tache.id
+                });
+
+                const progress = this.eleveTachesProgress.find(p => p.tache_id === tache.id);
+                if (progress) {
+                    progress.statut = 'termine';
+                    progress.date_fin = new Date().toISOString();
+                }
+            } catch (error) {
+                console.error('Erreur fin tache:', error);
+            }
+        }
+
+        // Show blocking screen for points bonus mode
+        const container = document.getElementById('exercices-content');
+
+        container.innerHTML = `
+            <div class="tache-timeup-view points-bonus-expired">
+                <div class="timeup-icon">⏰</div>
+                <h2>Temps écoulé !</h2>
+                <h3>${tache ? this.escapeHtml(tache.titre) : ''}</h3>
+                <div class="timeup-mode">
+                    <span class="mode-badge points_bonus">Évaluation - Points bonus</span>
+                </div>
+
+                <div class="timeup-content">
+                    <p class="important-message">L'épreuve est terminée. Vous devez maintenant rendre votre travail.</p>
+
+                    <div class="submit-instructions">
+                        <h3>📤 Comment rendre votre travail ?</h3>
+                        <div class="submit-options">
+                            <div class="submit-option">
+                                <span class="submit-icon">📧</span>
+                                <div>
+                                    <strong>Par mail (format numérique)</strong>
+                                    <p>Envoyez votre travail <strong>dans les 30 minutes</strong></p>
+                                </div>
+                            </div>
+                            <div class="submit-option">
+                                <span class="submit-icon">📄</span>
+                                <div>
+                                    <strong>En format papier</strong>
+                                    <p>Déposez votre copie <strong>dans le casier du professeur le lendemain</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="info-note">✅ Votre participation a été enregistrée.</p>
+                    <p class="info-note secondary">Une fois votre copie corrigée, vous pourrez accéder au mode "Entraînement" pour cette tâche.</p>
+                </div>
+
+                <div class="timeup-actions">
+                    <button class="btn btn-primary" onclick="EleveExercices.initCompetences()">
+                        Retour aux entraînements
+                    </button>
+                </div>
+            </div>
+        `;
     },
 
     async showTimeExpired() {
