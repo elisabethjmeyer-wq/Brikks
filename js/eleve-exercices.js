@@ -1638,6 +1638,10 @@ const EleveExercices = {
     },
 
     openTacheChoiceModal(tacheId) {
+        // Prevent multiple modals
+        const existingModal = document.getElementById('tacheChoiceModal');
+        if (existingModal) existingModal.remove();
+
         const tache = this.tachesComplexes.find(t => t.id === tacheId);
         if (!tache) return;
 
@@ -1649,7 +1653,7 @@ const EleveExercices = {
         modal.id = 'tacheChoiceModal';
         modal.className = 'modal-overlay';
         modal.innerHTML = `
-            <div class="modal modal-medium">
+            <div class="modal modal-choice">
                 <div class="modal-header">
                     <h2>Choisissez votre mode</h2>
                     <button class="modal-close" onclick="EleveExercices.closeTacheChoiceModal()">&times;</button>
@@ -1686,18 +1690,29 @@ const EleveExercices = {
         `;
 
         document.body.appendChild(modal);
+        // Prevent body scroll when modal is open
+        document.body.style.overflow = 'hidden';
     },
 
     closeTacheChoiceModal() {
         const modal = document.getElementById('tacheChoiceModal');
         if (modal) modal.remove();
         this.currentTacheComplexe = null;
+        document.body.style.overflow = '';
     },
 
     async startTacheComplexe(mode) {
-        if (!this.currentTacheComplexe || !this.currentUser) return;
+        if (!this.currentTacheComplexe) return;
 
         const tache = this.currentTacheComplexe;
+
+        // Check if user is connected (allow preview mode for admin)
+        if (!this.currentUser) {
+            // Preview mode - skip API call, just show exercise
+            this.closeTacheChoiceModal();
+            this.showTacheComplexeExercise(tache, mode);
+            return;
+        }
 
         // Register choice in database
         try {
