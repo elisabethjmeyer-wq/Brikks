@@ -100,8 +100,24 @@
             </div>
 
             <div class="form-group">
-                <label for="competenceDescription">Description (optionnel)</label>
-                <textarea id="competenceDescription" rows="3" placeholder="Description détaillée de la compétence..."></textarea>
+                <label for="competenceDescription">Description générale (optionnel)</label>
+                <textarea id="competenceDescription" rows="2" placeholder="Description courte de la compétence..."></textarea>
+            </div>
+
+            <!-- Section Critères de réussite -->
+            <div class="form-group criteres-section">
+                <label>Critères de réussite</label>
+                <p class="form-hint">Ajoutez les critères qui permettront d'évaluer cette compétence</p>
+                <div class="criteres-list" id="criteresList">
+                    <!-- Généré dynamiquement -->
+                </div>
+                <button type="button" class="btn btn-add-critere" onclick="AdminCompetences.addCritereField()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Ajouter un critère
+                </button>
             </div>
 
             <div class="form-row">
