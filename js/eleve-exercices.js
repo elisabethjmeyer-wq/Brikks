@@ -509,6 +509,8 @@ const EleveExercices = {
             contentHTML = this.renderDocumentTableau(donnees, structure);
         } else if (typeUI === 'question_ouverte') {
             contentHTML = this.renderQuestionOuverte(donnees, structure);
+        } else if (typeUI === 'document_mixte') {
+            contentHTML = this.renderDocumentMixte(donnees, structure);
         } else {
             contentHTML = `
                 <div style="text-align: center; color: #6b7280; padding: 2rem;">
@@ -879,6 +881,165 @@ const EleveExercices = {
     },
 
     /**
+     * Rend un exercice document_mixte (format unifié)
+     * Structure: { document: {...}, tableau: {...}, questions: {...}, sectionOrder: [...] }
+     */
+    renderDocumentMixte(donnees, structure) {
+        const doc = donnees.document || { actif: false };
+        const tableau = donnees.tableau || { actif: false };
+        const questions = donnees.questions || { actif: false };
+        const sectionOrder = donnees.sectionOrder || ['document', 'tableau', 'questions'];
+
+        let sectionsHTML = '';
+
+        // Store data for validation
+        this.mixteData = donnees;
+
+        // Render sections in order
+        sectionOrder.forEach(section => {
+            if (section === 'document' && doc.actif) {
+                sectionsHTML += this.renderMixteDocumentSection(doc);
+            } else if (section === 'tableau' && tableau.actif) {
+                sectionsHTML += this.renderMixteTableauSection(tableau);
+            } else if (section === 'questions' && questions.actif) {
+                sectionsHTML += this.renderMixteQuestionsSection(questions);
+            }
+        });
+
+        return `<div class="document-mixte-container">${sectionsHTML}</div>`;
+    },
+
+    renderMixteDocumentSection(doc) {
+        const url = doc.url || '';
+        const titre = doc.titre || '';
+        const legende = doc.legende || '';
+
+        // Parse legende for italics
+        const legendeHTML = this.escapeHtml(legende).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+        // Convert Google URL
+        const converted = this.convertGoogleUrl(url);
+        let contentHTML = '';
+
+        if (converted.type === 'empty') {
+            contentHTML = '<div class="doc-placeholder">Document non disponible</div>';
+        } else if (converted.type === 'drive_file') {
+            contentHTML = `
+                <img src="${converted.imageUrl}" alt="Document" class="mixte-doc-image"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                <iframe src="${converted.iframeUrl}" class="mixte-doc-iframe" style="display:none;"></iframe>
+            `;
+        } else if (converted.iframeUrl) {
+            contentHTML = `<iframe src="${converted.iframeUrl}" class="mixte-doc-iframe"></iframe>`;
+        } else {
+            contentHTML = `<img src="${this.convertToDirectImageUrl(url)}" alt="Document" class="mixte-doc-image">`;
+        }
+
+        return `
+            <div class="mixte-section mixte-document">
+                ${titre ? `<div class="mixte-section-header doc-header">${this.escapeHtml(titre)}</div>` : ''}
+                <div class="mixte-doc-content">${contentHTML}</div>
+                ${legende ? `<div class="mixte-doc-legend">${legendeHTML}</div>` : ''}
+            </div>
+        `;
+    },
+
+    renderMixteTableauSection(tableau) {
+        const titre = tableau.titre || 'À COMPLÉTER';
+        const colonnes = tableau.colonnes || [];
+        const lignes = tableau.lignes || [];
+
+        // Store for validation
+        this.mixteTableauColonnes = colonnes;
+        this.mixteTableauLignes = lignes;
+
+        const headerHTML = colonnes.map(col =>
+            `<th class="${col.editable ? 'editable-header' : ''}">${this.escapeHtml(col.titre)}</th>`
+        ).join('');
+
+        const bodyHTML = lignes.map((ligne, rowIdx) =>
+            `<tr>${colonnes.map((col, colIdx) => {
+                if (col.editable) {
+                    return `<td class="cell-editable">
+                        <input type="text" class="cell-input" id="mixte_cell_${rowIdx}_${colIdx}" placeholder="..." data-row="${rowIdx}" data-col="${colIdx}">
+                    </td>`;
+                } else {
+                    return `<td>${this.escapeHtml(ligne.cells[colIdx] || '')}</td>`;
+                }
+            }).join('')}</tr>`
+        ).join('');
+
+        return `
+            <div class="mixte-section mixte-tableau">
+                <div class="mixte-section-header tableau-header">${this.escapeHtml(titre)}</div>
+                <div class="mixte-tableau-content">
+                    <table class="mixte-table">
+                        <thead><tr>${headerHTML}</tr></thead>
+                        <tbody>${bodyHTML}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    },
+
+    renderMixteQuestionsSection(questions) {
+        const liste = questions.liste || [];
+
+        // Store for validation
+        this.mixteQuestions = liste;
+
+        const questionsHTML = liste.map((q, idx) => `
+            <div class="mixte-question-item" id="mixte_question_${idx}">
+                <div class="mixte-question-text">${idx + 1}. ${this.escapeHtml(q.question)}</div>
+                <textarea id="mixte_answer_${idx}" class="mixte-question-textarea" placeholder="Votre réponse..." rows="3"></textarea>
+                <div class="mixte-correction hidden" id="mixte_correction_${idx}">
+                    <strong>Correction:</strong> ${this.escapeHtml(q.reponse_attendue || '')}
+                </div>
+            </div>
+        `).join('');
+
+        return `
+            <div class="mixte-section mixte-questions">
+                <div class="mixte-section-header questions-header">Questions</div>
+                <div class="mixte-questions-content">${questionsHTML}</div>
+            </div>
+        `;
+    },
+
+    // Convert various Google URLs (same as admin)
+    convertGoogleUrl(url) {
+        if (!url) return { type: 'empty', url: '' };
+
+        const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
+        if (driveFileMatch) {
+            const fileId = driveFileMatch[1];
+            return {
+                type: 'drive_file',
+                id: fileId,
+                imageUrl: `https://lh3.googleusercontent.com/d/${fileId}`,
+                iframeUrl: `https://drive.google.com/file/d/${fileId}/preview`
+            };
+        }
+
+        const docsMatch = url.match(/docs\.google\.com\/document\/d\/([^\/]+)/);
+        if (docsMatch) {
+            return { type: 'google_doc', id: docsMatch[1], iframeUrl: `https://docs.google.com/document/d/${docsMatch[1]}/preview` };
+        }
+
+        const sheetsMatch = url.match(/docs\.google\.com\/spreadsheets\/d\/([^\/]+)/);
+        if (sheetsMatch) {
+            return { type: 'google_sheet', id: sheetsMatch[1], iframeUrl: `https://docs.google.com/spreadsheets/d/${sheetsMatch[1]}/preview` };
+        }
+
+        const slidesMatch = url.match(/docs\.google\.com\/presentation\/d\/([^\/]+)/);
+        if (slidesMatch) {
+            return { type: 'google_slide', id: slidesMatch[1], iframeUrl: `https://docs.google.com/presentation/d/${slidesMatch[1]}/embed` };
+        }
+
+        return { type: 'direct_url', url: url, imageUrl: url };
+    },
+
+    /**
      * Valide les réponses de l'exercice
      */
     async validateExercise() {
@@ -900,6 +1061,8 @@ const EleveExercices = {
             result = this.validateCarteCliquable();
         } else if (typeUI === 'question_ouverte') {
             result = this.validateQuestionOuverte();
+        } else if (typeUI === 'document_mixte') {
+            result = this.validateDocumentMixte();
         } else {
             // tableau_saisie or document_tableau
             result = this.validateTableauSaisie();
@@ -1032,6 +1195,65 @@ const EleveExercices = {
 
         // Les questions ouvertes n'ont pas de score automatique
         return { correct: 0, total: 0 };
+    },
+
+    /**
+     * Valide un exercice de type document_mixte
+     */
+    validateDocumentMixte() {
+        let correct = 0;
+        let total = 0;
+        const data = this.mixteData || {};
+
+        // Validate tableau if active
+        if (data.tableau && data.tableau.actif) {
+            const colonnes = this.mixteTableauColonnes || [];
+            const lignes = this.mixteTableauLignes || [];
+
+            lignes.forEach((ligne, rowIdx) => {
+                colonnes.forEach((col, colIdx) => {
+                    if (col.editable) {
+                        total++;
+                        const input = document.getElementById(`mixte_cell_${rowIdx}_${colIdx}`);
+                        if (input) {
+                            const userAnswer = this.normalizeAnswer(input.value);
+                            const correctAnswer = this.normalizeAnswer(ligne.cells[colIdx] || '');
+
+                            if (userAnswer === correctAnswer && userAnswer !== '') {
+                                input.classList.add('correct');
+                                correct++;
+                            } else {
+                                input.classList.add('incorrect');
+                                // Show correct answer
+                                input.value = ligne.cells[colIdx] || '';
+                            }
+                            input.disabled = true;
+                        }
+                    }
+                });
+            });
+        }
+
+        // Show question corrections (no scoring for open questions)
+        if (data.questions && data.questions.actif) {
+            const questions = this.mixteQuestions || [];
+            questions.forEach((q, idx) => {
+                const correction = document.getElementById(`mixte_correction_${idx}`);
+                if (correction) {
+                    correction.classList.remove('hidden');
+                }
+                const textarea = document.getElementById(`mixte_answer_${idx}`);
+                if (textarea) {
+                    textarea.disabled = true;
+                }
+            });
+        }
+
+        // Show "Voir le corrigé" button
+        const corrigeBtn = document.getElementById('voirCorrigeBtn');
+        if (corrigeBtn) corrigeBtn.classList.remove('hidden');
+
+        return { correct, total };
     },
 
     /**
