@@ -1552,8 +1552,8 @@ const EleveExercices = {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                         </svg>
                     </div>
-                    <h3>Aucune tache complexe disponible</h3>
-                    <p>Les taches complexes seront bientot disponibles.</p>
+                    <h3>Aucun entrainement disponible</h3>
+                    <p>Les entrainements de competences seront bientot disponibles.</p>
                 </div>
             `;
             return;
@@ -1564,8 +1564,8 @@ const EleveExercices = {
 
         container.innerHTML = `
             <div class="taches-complexes-header">
-                <h2>Taches complexes</h2>
-                <p class="taches-intro">Choisissez une tache pour vous entrainer ou obtenir des points bonus.</p>
+                <h2>Entrainements de competences</h2>
+                <p class="taches-intro">Choisissez un entrainement pour vous exercer ou obtenir des points bonus.</p>
             </div>
             <div class="taches-complexes-list">
                 ${this.tachesComplexes.map(tache => this.renderTacheComplexeCard(tache)).join('')}
