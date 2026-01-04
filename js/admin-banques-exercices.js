@@ -8,6 +8,8 @@ const AdminBanquesExercices = {
     banques: [],
     formats: [],
     exercices: [],
+    tachesComplexes: [],
+    competencesReferentiel: [],
 
     // Cache configuration
     CACHE_KEY: 'brikks_admin_banques_cache',
@@ -59,6 +61,8 @@ const AdminBanquesExercices = {
                 this.banques = cached.banques || [];
                 this.formats = cached.formats || [];
                 this.exercices = cached.exercices || [];
+                this.tachesComplexes = cached.tachesComplexes || [];
+                this.competencesReferentiel = cached.competencesReferentiel || [];
                 this.setupEventListeners();
                 this.updateCounts();
                 this.renderBanques();
@@ -101,6 +105,8 @@ const AdminBanquesExercices = {
                 banques: this.banques,
                 formats: this.formats,
                 exercices: this.exercices,
+                tachesComplexes: this.tachesComplexes,
+                competencesReferentiel: this.competencesReferentiel,
                 timestamp: Date.now()
             }));
         } catch (e) {
@@ -133,10 +139,12 @@ const AdminBanquesExercices = {
     async loadDataFromAPI() {
         try {
             // PARALLEL API calls - much faster!
-            const [banquesResult, formatsResult, exercicesResult] = await Promise.all([
+            const [banquesResult, formatsResult, exercicesResult, tachesResult, compRefResult] = await Promise.all([
                 this.callAPI('getBanquesExercices', {}),
                 this.callAPI('getFormatsExercices', {}),
-                this.callAPI('getExercices', {})
+                this.callAPI('getExercices', {}),
+                this.callAPI('getTachesComplexes', {}),
+                this.callAPI('getCompetencesReferentiel', {})
             ]);
 
             if (banquesResult.success) {
@@ -148,6 +156,12 @@ const AdminBanquesExercices = {
             if (exercicesResult.success) {
                 this.exercices = exercicesResult.data || [];
             }
+            if (tachesResult.success) {
+                this.tachesComplexes = tachesResult.data || [];
+            }
+            if (compRefResult.success) {
+                this.competencesReferentiel = compRefResult.data || [];
+            }
 
             // Save to cache
             this.saveToCache();
@@ -157,6 +171,8 @@ const AdminBanquesExercices = {
             this.banques = [];
             this.formats = [];
             this.exercices = [];
+            this.tachesComplexes = [];
+            this.competencesReferentiel = [];
         }
     },
 
@@ -225,11 +241,23 @@ const AdminBanquesExercices = {
 
     // ========== EVENT LISTENERS ==========
     setupEventListeners() {
-        // Add banque buttons
-        document.getElementById('addBanqueBtn').addEventListener('click', () => this.openBanqueModal());
+        // Add banque buttons (or tache complexe if on competences tab)
+        document.getElementById('addBanqueBtn').addEventListener('click', () => {
+            if (this.currentType === 'competences') {
+                this.openTacheComplexeModal();
+            } else {
+                this.openBanqueModal();
+            }
+        });
         const addBtnEmpty = document.getElementById('addBanqueBtnEmpty');
         if (addBtnEmpty) {
-            addBtnEmpty.addEventListener('click', () => this.openBanqueModal());
+            addBtnEmpty.addEventListener('click', () => {
+                if (this.currentType === 'competences') {
+                    this.openTacheComplexeModal();
+                } else {
+                    this.openBanqueModal();
+                }
+            });
         }
 
         // Manage formats button
@@ -337,23 +365,44 @@ const AdminBanquesExercices = {
             }
         });
 
+        // Update button text and visibility based on tab
+        const addBtn = document.getElementById('addBanqueBtn');
+        const formatsBtn = document.getElementById('manageFormatsBtn');
+
+        if (type === 'competences') {
+            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle tache complexe';
+            if (formatsBtn) formatsBtn.style.display = 'none';
+        } else {
+            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
+            if (formatsBtn) formatsBtn.style.display = '';
+        }
+
         this.renderBanques();
     },
 
     updateCounts() {
-        const types = ['savoir-faire', 'connaissances', 'competences'];
-        types.forEach(type => {
+        // Count savoir-faire and connaissances from banques
+        ['savoir-faire', 'connaissances'].forEach(type => {
             const count = this.banques.filter(b => b.type === type).length;
             const id = 'count' + type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
             const el = document.getElementById(id);
             if (el) el.textContent = count;
         });
+        // Count competences from tâches complexes
+        const compEl = document.getElementById('countCompetences');
+        if (compEl) compEl.textContent = this.tachesComplexes.length;
     },
 
     // ========== RENDER ==========
     renderBanques() {
         const container = document.getElementById('banquesList');
         const emptyState = document.getElementById('emptyState');
+
+        // For competences tab, render tâches complexes instead
+        if (this.currentType === 'competences') {
+            this.renderTachesComplexes(container, emptyState);
+            return;
+        }
 
         // Filter banques
         let filtered = this.banques.filter(b => b.type === this.currentType);
@@ -1047,6 +1096,7 @@ const AdminBanquesExercices = {
         const backupBanques = [...this.banques];
         const backupExercices = [...this.exercices];
         const backupFormats = [...this.formats];
+        const backupTaches = [...this.tachesComplexes];
 
         // Remove from local data immediately
         if (type === 'banque') {
@@ -1057,6 +1107,8 @@ const AdminBanquesExercices = {
             this.exercices = this.exercices.filter(e => e.id !== id);
         } else if (type === 'format') {
             this.formats = this.formats.filter(f => f.id !== id);
+        } else if (type === 'tacheComplexe') {
+            this.tachesComplexes = this.tachesComplexes.filter(t => t.id !== id);
         }
 
         // Update UI immediately
@@ -1076,6 +1128,8 @@ const AdminBanquesExercices = {
                 result = await this.callAPI('deleteExercice', { id });
             } else if (type === 'format') {
                 result = await this.callAPI('deleteFormatExercices', { id });
+            } else if (type === 'tacheComplexe') {
+                result = await this.callAPI('deleteTacheComplexe', { id });
             }
 
             if (result && result.success) {
@@ -1086,6 +1140,7 @@ const AdminBanquesExercices = {
                 this.banques = backupBanques;
                 this.exercices = backupExercices;
                 this.formats = backupFormats;
+                this.tachesComplexes = backupTaches;
                 this.updateCounts();
                 this.renderBanques();
                 if (type === 'format') {
@@ -1098,6 +1153,7 @@ const AdminBanquesExercices = {
             this.banques = backupBanques;
             this.exercices = backupExercices;
             this.formats = backupFormats;
+            this.tachesComplexes = backupTaches;
             this.updateCounts();
             this.renderBanques();
             if (type === 'format') {
@@ -2551,6 +2607,252 @@ const AdminBanquesExercices = {
             sectionOrder: this.mixteBuilder.sectionOrder || ['document', 'tableau', 'questions'],
             layout: this.mixteBuilder.layout || 'vertical'
         };
+    },
+
+    // ========== TACHES COMPLEXES (Competences) ==========
+    renderTachesComplexes(container, emptyState) {
+        // Filter tâches complexes
+        let filtered = this.tachesComplexes;
+
+        if (this.filters.search) {
+            filtered = filtered.filter(t =>
+                (t.titre || '').toLowerCase().includes(this.filters.search) ||
+                (t.description || '').toLowerCase().includes(this.filters.search)
+            );
+        }
+
+        if (this.filters.statut) {
+            filtered = filtered.filter(t => t.statut === this.filters.statut);
+        }
+
+        // Sort by ordre
+        filtered.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        if (filtered.length === 0) {
+            container.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        container.innerHTML = filtered.map(tache => {
+            // Parse competences_ids (stored as comma-separated string)
+            const compIds = (tache.competences_ids || '').split(',').filter(id => id.trim());
+            const competences = compIds.map(id => {
+                const comp = this.competencesReferentiel.find(c => c.id === id.trim());
+                return comp ? comp.nom : null;
+            }).filter(Boolean);
+
+            return `
+                <div class="banque-card tache-complexe-card" data-id="${tache.id}">
+                    <div class="banque-card-header" onclick="AdminBanquesExercices.toggleTache('${tache.id}')">
+                        <div class="banque-card-icon competences">&#128995;</div>
+                        <div class="banque-card-content">
+                            <div class="banque-card-title">
+                                ${this.escapeHtml(tache.titre || 'Sans titre')}
+                                <span class="status-badge ${tache.statut}">${tache.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
+                            </div>
+                            <div class="banque-card-meta">
+                                ${tache.description ? this.escapeHtml(tache.description) : 'Aucune description'}
+                            </div>
+                        </div>
+                        <div class="banque-card-stats">
+                            <div class="banque-stat">
+                                <div class="banque-stat-value">${competences.length}</div>
+                                <div class="banque-stat-label">competences</div>
+                            </div>
+                        </div>
+                        <div class="banque-card-actions">
+                            <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editTacheComplexe('${tache.id}')" title="Modifier">&#9998;</button>
+                            <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteTacheComplexe('${tache.id}')" title="Supprimer">&#128465;</button>
+                        </div>
+                        <div class="banque-card-toggle">&#9660;</div>
+                    </div>
+                    <div class="banque-exercices tache-details">
+                        <div class="tache-details-content">
+                            ${tache.document_url ? `
+                                <div class="tache-document">
+                                    <strong>Document :</strong>
+                                    <a href="${this.escapeHtml(tache.document_url)}" target="_blank" rel="noopener">
+                                        ${this.escapeHtml(tache.document_url)}
+                                    </a>
+                                </div>
+                            ` : ''}
+                            <div class="tache-competences">
+                                <strong>Competences evaluees :</strong>
+                                ${competences.length > 0 ? `
+                                    <ul class="competences-list-preview">
+                                        ${competences.map(c => `<li>&#10003; ${this.escapeHtml(c)}</li>`).join('')}
+                                    </ul>
+                                ` : '<em>Aucune competence selectionnee</em>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    toggleTache(id) {
+        const card = document.querySelector(`.tache-complexe-card[data-id="${id}"]`);
+        if (card) {
+            card.classList.toggle('expanded');
+        }
+    },
+
+    // ========== TACHE COMPLEXE MODAL ==========
+    openTacheComplexeModal(tache = null) {
+        const modal = document.getElementById('tacheComplexeModal');
+        if (!modal) {
+            console.error('Modal tacheComplexeModal not found');
+            return;
+        }
+
+        const title = document.getElementById('tacheModalTitle');
+
+        // Populate competences checkboxes
+        this.renderCompetencesCheckboxes();
+
+        if (tache) {
+            title.textContent = 'Modifier la tache complexe';
+            document.getElementById('editTacheId').value = tache.id;
+            document.getElementById('tacheTitre').value = tache.titre || '';
+            document.getElementById('tacheDescription').value = tache.description || '';
+            document.getElementById('tacheDocumentUrl').value = tache.document_url || '';
+            document.getElementById('tacheOrdre').value = tache.ordre || 1;
+            document.getElementById('tacheStatut').value = tache.statut || 'brouillon';
+
+            // Check selected competences
+            const compIds = (tache.competences_ids || '').split(',').map(id => id.trim());
+            document.querySelectorAll('#competencesCheckboxes input[type="checkbox"]').forEach(cb => {
+                cb.checked = compIds.includes(cb.value);
+            });
+        } else {
+            title.textContent = 'Nouvelle tache complexe';
+            document.getElementById('editTacheId').value = '';
+            document.getElementById('tacheTitre').value = '';
+            document.getElementById('tacheDescription').value = '';
+            document.getElementById('tacheDocumentUrl').value = '';
+            document.getElementById('tacheOrdre').value = this.tachesComplexes.length + 1;
+            document.getElementById('tacheStatut').value = 'brouillon';
+
+            // Uncheck all competences
+            document.querySelectorAll('#competencesCheckboxes input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+
+        modal.classList.remove('hidden');
+    },
+
+    closeTacheComplexeModal() {
+        const modal = document.getElementById('tacheComplexeModal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    },
+
+    renderCompetencesCheckboxes() {
+        const container = document.getElementById('competencesCheckboxes');
+        if (!container) return;
+
+        const activeCompetences = this.competencesReferentiel.filter(c => c.statut === 'actif');
+        activeCompetences.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        if (activeCompetences.length === 0) {
+            container.innerHTML = `
+                <div class="empty-competences">
+                    <p>Aucune competence active dans le referentiel.</p>
+                    <a href="competences.html" class="btn btn-secondary btn-sm">Gerer les competences</a>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = activeCompetences.map(comp => `
+            <label class="competence-checkbox">
+                <input type="checkbox" name="tacheCompetences" value="${comp.id}">
+                <span class="competence-checkbox-label">
+                    <span class="competence-checkbox-icon">&#10003;</span>
+                    ${this.escapeHtml(comp.nom)}
+                </span>
+            </label>
+        `).join('');
+    },
+
+    addTacheComplexe() {
+        this.openTacheComplexeModal(null);
+    },
+
+    editTacheComplexe(id) {
+        const tache = this.tachesComplexes.find(t => t.id === id);
+        if (tache) {
+            this.openTacheComplexeModal(tache);
+        }
+    },
+
+    async saveTacheComplexe() {
+        const id = document.getElementById('editTacheId').value;
+        const titre = document.getElementById('tacheTitre').value.trim();
+        const description = document.getElementById('tacheDescription').value.trim();
+        const documentUrl = document.getElementById('tacheDocumentUrl').value.trim();
+        const ordre = parseInt(document.getElementById('tacheOrdre').value) || 1;
+        const statut = document.getElementById('tacheStatut').value;
+
+        // Get selected competences
+        const selectedComps = Array.from(document.querySelectorAll('#competencesCheckboxes input[type="checkbox"]:checked'))
+            .map(cb => cb.value);
+        const competencesIds = selectedComps.join(',');
+
+        if (!titre) {
+            alert('Le titre est requis');
+            return;
+        }
+
+        const data = {
+            titre,
+            description,
+            document_url: documentUrl,
+            competences_ids: competencesIds,
+            ordre,
+            statut
+        };
+
+        try {
+            let result;
+            if (id) {
+                data.id = id;
+                result = await this.callAPI('updateTacheComplexe', data);
+            } else {
+                result = await this.callAPI('createTacheComplexe', data);
+            }
+
+            if (result.success) {
+                // Reload data and re-render
+                await this.loadDataFromAPI();
+                this.updateCounts();
+                this.renderBanques();
+                this.closeTacheComplexeModal();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde tache:', error);
+            alert('Erreur lors de la sauvegarde');
+        }
+    },
+
+    deleteTacheComplexe(id) {
+        const tache = this.tachesComplexes.find(t => t.id === id);
+        if (!tache) return;
+
+        // Reuse the existing delete modal
+        document.getElementById('deleteType').value = 'tacheComplexe';
+        document.getElementById('deleteId').value = id;
+        document.getElementById('deleteMessage').textContent =
+            `Etes-vous sur de vouloir supprimer la tache "${tache.titre}" ?`;
+        document.getElementById('deleteModal').classList.remove('hidden');
     },
 
     // ========== UTILS ==========

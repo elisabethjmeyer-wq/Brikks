@@ -430,6 +430,37 @@ function handleRequest(e) {
         result = saveResultatExercice(request);
         break;
 
+      // REFERENTIEL COMPETENCES
+      case 'getCompetencesReferentiel':
+        result = getCompetencesReferentiel(request);
+        break;
+      case 'createCompetenceReferentiel':
+        result = createCompetenceReferentiel(request);
+        break;
+      case 'updateCompetenceReferentiel':
+        result = updateCompetenceReferentiel(request);
+        break;
+      case 'deleteCompetenceReferentiel':
+        result = deleteCompetenceReferentiel(request);
+        break;
+
+      // TACHES COMPLEXES (Compétences)
+      case 'getTachesComplexes':
+        result = getTachesComplexes(request);
+        break;
+      case 'getTacheComplexe':
+        result = getTacheComplexe(request);
+        break;
+      case 'createTacheComplexe':
+        result = createTacheComplexe(request);
+        break;
+      case 'updateTacheComplexe':
+        result = updateTacheComplexe(request);
+        break;
+      case 'deleteTacheComplexe':
+        result = deleteTacheComplexe(request);
+        break;
+
       default:
         result = { success: false, error: 'Action non reconnue: ' + action };
     }
@@ -4987,4 +5018,311 @@ function saveResultatExercice(data) {
     sheet.appendRow(rowData);
     return { success: true, message: 'Résultat enregistré', id: id };
   }
+}
+
+// ========================================
+// REFERENTIEL COMPETENCES
+// ========================================
+
+/**
+ * Récupère toutes les compétences du référentiel
+ */
+function getCompetencesReferentiel(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('CompetencesReferentiel');
+
+  if (!sheet) {
+    return { success: true, data: [] };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0];
+  const competences = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    if (!row[0]) continue;
+
+    const competence = {};
+    headers.forEach((header, index) => {
+      competence[header] = row[index];
+    });
+    competences.push(competence);
+  }
+
+  return { success: true, data: competences };
+}
+
+/**
+ * Crée une nouvelle compétence dans le référentiel
+ */
+function createCompetenceReferentiel(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('CompetencesReferentiel');
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    sheet = ss.insertSheet('CompetencesReferentiel');
+    sheet.appendRow(['id', 'nom', 'description', 'categorie', 'ordre', 'statut']);
+  }
+
+  const id = 'comp_' + new Date().getTime();
+  const rowData = [
+    id,
+    data.nom || '',
+    data.description || '',
+    data.categorie || '',
+    data.ordre || 1,
+    data.statut || 'actif'
+  ];
+
+  sheet.appendRow(rowData);
+  return { success: true, id: id };
+}
+
+/**
+ * Met à jour une compétence du référentiel
+ */
+function updateCompetenceReferentiel(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('CompetencesReferentiel');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(data.id)) {
+      const rowData = [
+        data.id,
+        data.nom || allData[i][headers.indexOf('nom')],
+        data.description || allData[i][headers.indexOf('description')],
+        data.categorie || allData[i][headers.indexOf('categorie')],
+        data.ordre !== undefined ? data.ordre : allData[i][headers.indexOf('ordre')],
+        data.statut || allData[i][headers.indexOf('statut')]
+      ];
+
+      const range = sheet.getRange(i + 1, 1, 1, rowData.length);
+      range.setValues([rowData]);
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Compétence non trouvée' };
+}
+
+/**
+ * Supprime une compétence du référentiel
+ */
+function deleteCompetenceReferentiel(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('CompetencesReferentiel');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(data.id)) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Compétence non trouvée' };
+}
+
+// ========================================
+// TACHES COMPLEXES (Exercices Compétences)
+// ========================================
+
+/**
+ * Récupère toutes les tâches complexes
+ */
+function getTachesComplexes(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('TachesComplexes');
+
+  if (!sheet) {
+    return { success: true, data: [] };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0];
+  const taches = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    if (!row[0]) continue;
+
+    const tache = {};
+    headers.forEach((header, index) => {
+      // Parse JSON fields
+      if (header === 'competences_ids' && row[index]) {
+        try {
+          tache[header] = JSON.parse(row[index]);
+        } catch (e) {
+          tache[header] = [];
+        }
+      } else {
+        tache[header] = row[index];
+      }
+    });
+    taches.push(tache);
+  }
+
+  // Filter by chapitre_id if provided
+  if (data && data.chapitre_id) {
+    return {
+      success: true,
+      data: taches.filter(t => t.chapitre_id === data.chapitre_id)
+    };
+  }
+
+  return { success: true, data: taches };
+}
+
+/**
+ * Récupère une tâche complexe par son ID
+ */
+function getTacheComplexe(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('TachesComplexes');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(data.id)) {
+      const tache = {};
+      headers.forEach((header, index) => {
+        if (header === 'competences_ids' && allData[i][index]) {
+          try {
+            tache[header] = JSON.parse(allData[i][index]);
+          } catch (e) {
+            tache[header] = [];
+          }
+        } else {
+          tache[header] = allData[i][index];
+        }
+      });
+      return { success: true, data: tache };
+    }
+  }
+
+  return { success: false, error: 'Tâche non trouvée' };
+}
+
+/**
+ * Crée une nouvelle tâche complexe
+ */
+function createTacheComplexe(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('TachesComplexes');
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    sheet = ss.insertSheet('TachesComplexes');
+    sheet.appendRow(['id', 'titre', 'chapitre_id', 'description', 'document_url', 'competences_ids', 'ordre', 'statut', 'date_creation']);
+  }
+
+  const id = 'tc_' + new Date().getTime();
+  const rowData = [
+    id,
+    data.titre || '',
+    data.chapitre_id || '',
+    data.description || '',
+    data.document_url || '',
+    JSON.stringify(data.competences_ids || []),
+    data.ordre || 1,
+    data.statut || 'brouillon',
+    new Date().toISOString()
+  ];
+
+  sheet.appendRow(rowData);
+  return { success: true, id: id };
+}
+
+/**
+ * Met à jour une tâche complexe
+ */
+function updateTacheComplexe(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('TachesComplexes');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(data.id)) {
+      const rowData = [
+        data.id,
+        data.titre !== undefined ? data.titre : allData[i][headers.indexOf('titre')],
+        data.chapitre_id !== undefined ? data.chapitre_id : allData[i][headers.indexOf('chapitre_id')],
+        data.description !== undefined ? data.description : allData[i][headers.indexOf('description')],
+        data.document_url !== undefined ? data.document_url : allData[i][headers.indexOf('document_url')],
+        data.competences_ids !== undefined ? JSON.stringify(data.competences_ids) : allData[i][headers.indexOf('competences_ids')],
+        data.ordre !== undefined ? data.ordre : allData[i][headers.indexOf('ordre')],
+        data.statut !== undefined ? data.statut : allData[i][headers.indexOf('statut')],
+        allData[i][headers.indexOf('date_creation')]
+      ];
+
+      const range = sheet.getRange(i + 1, 1, 1, rowData.length);
+      range.setValues([rowData]);
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Tâche non trouvée' };
+}
+
+/**
+ * Supprime une tâche complexe
+ */
+function deleteTacheComplexe(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('TachesComplexes');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(data.id)) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Tâche non trouvée' };
 }

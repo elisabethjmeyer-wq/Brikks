@@ -3,19 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compétences - Admin Brikks</title>
+    <meta name="description" content="Brikks - Référentiel des compétences">
+    <title>Référentiel Compétences - Administration - Brikks</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-competences.css">
 </head>
 <body>
 
-<div class="placeholder-content">
-    <div class="icon">🚧</div>
-    <h2>Compétences</h2>
-    <p>Cette fonctionnalité est en cours de développement.</p>
-    <p class="hint">Bientôt disponible !</p>
+<!-- Contenu de la page -->
+<div id="competences-page">
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="page-header-left">
+            <h1><span class="header-icon">🎯</span> Référentiel des compétences</h1>
+            <p class="page-subtitle">Gérez les compétences évaluées dans les tâches complexes</p>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn btn-primary" id="addCompetenceBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Ajouter une compétence
+            </button>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des compétences...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="competences-content" style="display: none;">
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon-wrapper purple">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <div class="stat-value" id="totalCompetences">0</div>
+                <div class="stat-label">Compétences</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon-wrapper green">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                        <line x1="9" y1="9" x2="9.01" y2="9"/>
+                        <line x1="15" y1="9" x2="15.01" y2="9"/>
+                    </svg>
+                </div>
+                <div class="stat-value" id="totalActives">0</div>
+                <div class="stat-label">Actives</div>
+            </div>
+        </div>
+
+        <!-- Liste des compétences -->
+        <div class="competences-list-section">
+            <div class="section-header">
+                <h2>Liste des compétences</h2>
+            </div>
+            <div class="competences-list" id="competencesList">
+                <!-- Généré dynamiquement -->
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal Ajouter/Modifier Compétence -->
+<div class="modal-overlay hidden" id="competenceModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modalTitle">Ajouter une compétence</h3>
+            <button class="modal-close" onclick="AdminCompetences.closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editCompetenceId">
+
+            <div class="form-group">
+                <label for="competenceNom">Nom de la compétence *</label>
+                <input type="text" id="competenceNom" placeholder="Ex: Rendre une copie lisible et soignée">
+            </div>
+
+            <div class="form-group">
+                <label for="competenceDescription">Description (optionnel)</label>
+                <textarea id="competenceDescription" rows="3" placeholder="Description détaillée de la compétence..."></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="competenceCategorie">Catégorie</label>
+                    <select id="competenceCategorie">
+                        <option value="">-- Aucune --</option>
+                        <option value="methodologie">Méthodologie</option>
+                        <option value="connaissances">Connaissances</option>
+                        <option value="analyse">Analyse</option>
+                        <option value="redaction">Rédaction</option>
+                        <option value="oral">Oral</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="competenceOrdre">Ordre</label>
+                    <input type="number" id="competenceOrdre" value="1" min="1">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="competenceStatut">Statut</label>
+                <select id="competenceStatut">
+                    <option value="actif">Actif</option>
+                    <option value="inactif">Inactif</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminCompetences.closeModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="AdminCompetences.saveCompetence()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmation Suppression -->
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal modal-small">
+        <div class="modal-header">
+            <h3>Confirmer la suppression</h3>
+            <button class="modal-close" onclick="AdminCompetences.closeDeleteModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <p id="deleteMessage">Êtes-vous sûr de vouloir supprimer cette compétence ?</p>
+            <input type="hidden" id="deleteId">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminCompetences.closeDeleteModal()">Annuler</button>
+            <button class="btn btn-danger" onclick="AdminCompetences.confirmDelete()">Supprimer</button>
+        </div>
+    </div>
 </div>
 
 <script src="../js/config.js"></script>
@@ -23,10 +160,12 @@
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/admin-layout.js"></script>
+<script src="../js/admin-competences.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         AdminLayout.init('competences', 'Compétences');
+        AdminCompetences.init();
     });
 </script>
 
