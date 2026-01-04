@@ -1277,11 +1277,7 @@ const EleveExercices = {
                                 correct++;
                             } else {
                                 input.classList.add('incorrect');
-                                // Show the correct answer
-                                const correctionSpan = document.createElement('span');
-                                correctionSpan.className = 'expected-answer';
-                                correctionSpan.textContent = el.reponse;
-                                input.parentNode.appendChild(correctionSpan);
+                                // Don't show answer here - will be shown via "Voir le corrigé"
                             }
                             input.disabled = true;
                         }
@@ -1425,8 +1421,83 @@ const EleveExercices = {
 
         if (typeUI === 'carte_cliquable') {
             this.showCarteCorrige();
+        } else if (typeUI === 'document_mixte') {
+            this.showDocumentMixteCorrige();
+        } else if (typeUI === 'tableau_saisie' || typeUI === 'document_tableau') {
+            this.showTableauCorrige();
         }
-        // Add other format corrections here if needed
+    },
+
+    /**
+     * Affiche le corrigé pour document_mixte
+     */
+    showDocumentMixteCorrige() {
+        const data = this.mixteData || {};
+
+        // Show tableau corrections
+        if (data.tableau && data.tableau.actif && this.mixteTableauElements) {
+            this.mixteTableauElements.forEach((el, idx) => {
+                if (el.type === 'row' && el.reponse) {
+                    const input = document.getElementById(`mixte_element_${idx}`);
+                    if (input) {
+                        // Replace input value with correct answer
+                        input.value = el.reponse;
+                        input.classList.remove('incorrect');
+                        input.classList.add('corrected');
+                        input.disabled = true;
+                    }
+                }
+            });
+        }
+
+        // Show questions corrections
+        if (data.questions && data.questions.actif && this.mixteQuestions) {
+            this.mixteQuestions.forEach((q, idx) => {
+                const textarea = document.getElementById(`mixte_question_${idx}`);
+                const correctionDiv = document.getElementById(`mixte_correction_${idx}`);
+                if (textarea) textarea.disabled = true;
+                if (correctionDiv && q.reponse_attendue) {
+                    correctionDiv.innerHTML = `<strong>Réponse attendue :</strong> ${this.escapeHtml(q.reponse_attendue)}`;
+                    correctionDiv.style.display = 'block';
+                }
+            });
+        }
+
+        // Update result banner
+        const banner = document.getElementById('resultBanner');
+        banner.className = 'result-banner show info';
+        banner.textContent = 'Voici le corrigé complet. Étudie bien les éléments du paratexte !';
+    },
+
+    /**
+     * Affiche le corrigé pour tableau_saisie
+     */
+    showTableauCorrige() {
+        let donnees = this.currentExercise.donnees;
+        if (typeof donnees === 'string') {
+            try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+        }
+
+        const colonnes = donnees.colonnes || [];
+        const lignes = donnees.lignes || [];
+
+        lignes.forEach((ligne, rowIdx) => {
+            colonnes.forEach((col, colIdx) => {
+                if (col.editable) {
+                    const input = document.getElementById(`input_${rowIdx}_${colIdx}`);
+                    if (input) {
+                        input.value = ligne.cells[colIdx] || '';
+                        input.classList.remove('incorrect');
+                        input.classList.add('corrected');
+                        input.disabled = true;
+                    }
+                }
+            });
+        });
+
+        const banner = document.getElementById('resultBanner');
+        banner.className = 'result-banner show info';
+        banner.textContent = 'Voici le corrigé complet.';
     },
 
     /**
@@ -1447,6 +1518,8 @@ const EleveExercices = {
             this.resetCarteCliquable();
         } else if (typeUI === 'question_ouverte') {
             this.resetQuestionOuverte();
+        } else if (typeUI === 'document_mixte') {
+            this.resetDocumentMixte();
         } else {
             this.resetTableauSaisie();
         }
@@ -1454,9 +1527,50 @@ const EleveExercices = {
         document.getElementById('resultBanner').className = 'result-banner';
         this.exerciseStartTime = Date.now();
 
+        // Hide "Voir le corrigé" button
+        const corrigeBtn = document.getElementById('voirCorrigeBtn');
+        if (corrigeBtn) corrigeBtn.classList.add('hidden');
+
         // Redémarrer le timer si durée définie
         if (this.currentExercise.duree) {
             this.startTimer(this.currentExercise.duree);
+        }
+    },
+
+    /**
+     * Reset pour document_mixte
+     */
+    resetDocumentMixte() {
+        const data = this.mixteData || {};
+
+        // Reset tableau inputs
+        if (data.tableau && data.tableau.actif && this.mixteTableauElements) {
+            this.mixteTableauElements.forEach((el, idx) => {
+                if (el.type === 'row') {
+                    const input = document.getElementById(`mixte_element_${idx}`);
+                    if (input) {
+                        input.value = '';
+                        input.className = 'cell-input';
+                        input.disabled = false;
+                    }
+                }
+            });
+        }
+
+        // Reset question textareas
+        if (data.questions && data.questions.actif && this.mixteQuestions) {
+            this.mixteQuestions.forEach((q, idx) => {
+                const textarea = document.getElementById(`mixte_question_${idx}`);
+                const correctionDiv = document.getElementById(`mixte_correction_${idx}`);
+                if (textarea) {
+                    textarea.value = '';
+                    textarea.disabled = false;
+                }
+                if (correctionDiv) {
+                    correctionDiv.style.display = 'none';
+                    correctionDiv.innerHTML = '';
+                }
+            });
         }
     },
 
