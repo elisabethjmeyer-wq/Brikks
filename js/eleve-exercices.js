@@ -2126,21 +2126,26 @@ const EleveExercices = {
     async showTimeExpiredPointsBonus() {
         const tache = this.currentTacheComplexe;
 
-        // Update in database if user is connected
+        // Submit for correction in database if user is connected
         if (tache && this.currentUser) {
             try {
-                await this.callAPI('finishEleveTacheComplexe', {
+                // Calculate time spent (total duration since timer counts down from duree)
+                const duree = tache.duree || 2700;
+                const tempsPasse = duree; // Full duration for points bonus mode
+
+                await this.callAPI('submitEleveTacheComplexe', {
                     eleve_id: this.currentUser.id,
-                    tache_id: tache.id
+                    tache_id: tache.id,
+                    temps_passe: tempsPasse
                 });
 
                 const progress = this.eleveTachesProgress.find(p => p.tache_id === tache.id);
                 if (progress) {
-                    progress.statut = 'termine';
-                    progress.date_fin = new Date().toISOString();
+                    progress.statut = 'soumis';
+                    progress.date_soumission = new Date().toISOString();
                 }
             } catch (error) {
-                console.error('Erreur fin tache:', error);
+                console.error('Erreur soumission tache:', error);
             }
         }
 
