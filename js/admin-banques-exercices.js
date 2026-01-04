@@ -1275,14 +1275,27 @@ const AdminBanquesExercices = {
 
     // ========== FORMAT SWITCHING ==========
     onFormatChange(formatId) {
-        const format = this.formats.find(f => f.id === formatId);
+        // Compare as strings to handle type mismatch
+        const format = this.formats.find(f => String(f.id) === String(formatId));
         let structure = format ? format.structure : null;
+
+        // Handle double-stringified JSON from Google Sheets
         if (typeof structure === 'string') {
-            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
+            try {
+                structure = JSON.parse(structure);
+                // Check if it's still a string (double-encoded)
+                if (typeof structure === 'string') {
+                    structure = JSON.parse(structure);
+                }
+            } catch (e) {
+                structure = {};
+            }
         }
 
         const typeUI = structure ? structure.type_ui : 'tableau_saisie';
         this.currentFormatUI = typeUI;
+
+        console.log('Format change:', { formatId, format, structure, typeUI });
 
         // Hide all builders
         document.querySelectorAll('.format-builder').forEach(el => el.style.display = 'none');
