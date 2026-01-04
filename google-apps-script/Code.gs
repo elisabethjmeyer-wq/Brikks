@@ -495,6 +495,26 @@ function handleRequest(e) {
         result = finishEleveTacheComplexe(request);
         break;
 
+      case 'submitEleveTacheComplexe':
+        result = submitEleveTacheComplexe(request);
+        break;
+
+      case 'updateEleveTacheComplexe':
+        result = updateEleveTacheComplexe(request);
+        break;
+
+      case 'trackEleveConnexion':
+        result = trackEleveConnexion(request);
+        break;
+
+      case 'getEleveConnexions':
+        result = getEleveConnexions(request);
+        break;
+
+      case 'getEleveStats':
+        result = getEleveStats(request);
+        break;
+
       default:
         result = { success: false, error: 'Action non reconnue: ' + action };
     }
@@ -5671,4 +5691,258 @@ function finishEleveTacheComplexe(data) {
   }
 
   return { success: false, error: 'Enregistrement non trouvé' };
+}
+
+/**
+ * Soumet une tâche complexe pour correction (mode points_bonus)
+ * @param {Object} data - {eleve_id, tache_id, temps_passe}
+ */
+function submitEleveTacheComplexe(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('EleveTachesComplexes');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const eleveIdCol = headers.indexOf('eleve_id');
+  const tacheIdCol = headers.indexOf('tache_id');
+  const statutCol = headers.indexOf('statut');
+
+  // Ajouter colonnes si nécessaire
+  let dateSoumissionCol = headers.indexOf('date_soumission');
+  let tempsPasseCol = headers.indexOf('temps_passe');
+
+  if (dateSoumissionCol === -1) {
+    dateSoumissionCol = headers.length;
+    sheet.getRange(1, dateSoumissionCol + 1).setValue('date_soumission');
+  }
+  if (tempsPasseCol === -1) {
+    tempsPasseCol = headers.length + (dateSoumissionCol === headers.length ? 1 : 0);
+    sheet.getRange(1, tempsPasseCol + 1).setValue('temps_passe');
+  }
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][eleveIdCol]) === String(data.eleve_id) &&
+        String(allData[i][tacheIdCol]) === String(data.tache_id)) {
+      // Mettre à jour le statut à 'soumis' (en attente de correction)
+      sheet.getRange(i + 1, statutCol + 1).setValue('soumis');
+      sheet.getRange(i + 1, dateSoumissionCol + 1).setValue(new Date().toISOString());
+      if (data.temps_passe) {
+        sheet.getRange(i + 1, tempsPasseCol + 1).setValue(data.temps_passe);
+      }
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Enregistrement non trouvé' };
+}
+
+/**
+ * Met à jour une tâche complexe élève (admin)
+ * @param {Object} data - {id, statut, date_correction, ...}
+ */
+function updateEleveTacheComplexe(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('EleveTachesComplexes');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  // Ajouter date_correction si nécessaire
+  let dateCorrectionCol = headers.indexOf('date_correction');
+  if (dateCorrectionCol === -1 && data.date_correction) {
+    dateCorrectionCol = headers.length;
+    sheet.getRange(1, dateCorrectionCol + 1).setValue('date_correction');
+  }
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(data.id)) {
+      // Mettre à jour les champs fournis
+      if (data.statut !== undefined) {
+        const statutCol = headers.indexOf('statut');
+        if (statutCol !== -1) {
+          sheet.getRange(i + 1, statutCol + 1).setValue(data.statut);
+        }
+      }
+      if (data.date_correction !== undefined && dateCorrectionCol !== -1) {
+        sheet.getRange(i + 1, dateCorrectionCol + 1).setValue(data.date_correction);
+      }
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Enregistrement non trouvé' };
+}
+
+/**
+ * Enregistre une connexion/visite d'élève
+ * @param {Object} data - {eleve_id, page, action}
+ */
+function trackEleveConnexion(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName('EleveConnexions');
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    sheet = ss.insertSheet('EleveConnexions');
+    sheet.appendRow(['id', 'eleve_id', 'page', 'action', 'timestamp', 'user_agent']);
+  }
+
+  const id = 'conn_' + new Date().getTime();
+  sheet.appendRow([
+    id,
+    data.eleve_id,
+    data.page || '',
+    data.action || 'visit',
+    new Date().toISOString(),
+    data.user_agent || ''
+  ]);
+
+  // Mettre à jour la dernière connexion de l'utilisateur
+  updateUserLastConnexion(data.eleve_id);
+
+  return { success: true, id: id };
+}
+
+/**
+ * Met à jour la dernière connexion d'un utilisateur
+ */
+function updateUserLastConnexion(userId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('Utilisateurs');
+  if (!sheet) return;
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idCol = headers.indexOf('id');
+
+  let lastConnexionCol = headers.indexOf('derniere_connexion');
+  if (lastConnexionCol === -1) {
+    lastConnexionCol = headers.length;
+    sheet.getRange(1, lastConnexionCol + 1).setValue('derniere_connexion');
+  }
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(userId)) {
+      sheet.getRange(i + 1, lastConnexionCol + 1).setValue(new Date().toISOString());
+      break;
+    }
+  }
+}
+
+/**
+ * Récupère les connexions d'un élève
+ * @param {Object} data - {eleve_id} ou {} pour toutes
+ */
+function getEleveConnexions(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('EleveConnexions');
+
+  if (!sheet) {
+    return { success: true, data: [] };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0];
+  const records = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    if (!row[0]) continue;
+
+    const record = {};
+    headers.forEach((header, index) => {
+      record[header] = row[index];
+    });
+
+    if (data && data.eleve_id) {
+      if (String(record.eleve_id) === String(data.eleve_id)) {
+        records.push(record);
+      }
+    } else {
+      records.push(record);
+    }
+  }
+
+  return { success: true, data: records };
+}
+
+/**
+ * Récupère les statistiques d'un élève
+ * @param {Object} data - {eleve_id}
+ */
+function getEleveStats(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Stats de connexions
+  const connexionsSheet = ss.getSheetByName('EleveConnexions');
+  let totalConnexions = 0;
+  let pagesVisitees = {};
+  let derniereConnexion = null;
+
+  if (connexionsSheet) {
+    const connData = connexionsSheet.getDataRange().getValues();
+    const connHeaders = connData[0];
+    const eleveIdCol = connHeaders.indexOf('eleve_id');
+    const pageCol = connHeaders.indexOf('page');
+    const timestampCol = connHeaders.indexOf('timestamp');
+
+    for (let i = 1; i < connData.length; i++) {
+      if (String(connData[i][eleveIdCol]) === String(data.eleve_id)) {
+        totalConnexions++;
+        const page = connData[i][pageCol];
+        pagesVisitees[page] = (pagesVisitees[page] || 0) + 1;
+
+        const timestamp = connData[i][timestampCol];
+        if (!derniereConnexion || new Date(timestamp) > new Date(derniereConnexion)) {
+          derniereConnexion = timestamp;
+        }
+      }
+    }
+  }
+
+  // Stats de tâches complexes
+  const tachesSheet = ss.getSheetByName('EleveTachesComplexes');
+  let tachesStats = { total: 0, en_cours: 0, termine: 0, soumis: 0 };
+
+  if (tachesSheet) {
+    const tachesData = tachesSheet.getDataRange().getValues();
+    const tachesHeaders = tachesData[0];
+    const eleveIdCol = tachesHeaders.indexOf('eleve_id');
+    const statutCol = tachesHeaders.indexOf('statut');
+
+    for (let i = 1; i < tachesData.length; i++) {
+      if (String(tachesData[i][eleveIdCol]) === String(data.eleve_id)) {
+        tachesStats.total++;
+        const statut = tachesData[i][statutCol];
+        if (tachesStats[statut] !== undefined) {
+          tachesStats[statut]++;
+        }
+      }
+    }
+  }
+
+  return {
+    success: true,
+    data: {
+      connexions: {
+        total: totalConnexions,
+        derniere: derniereConnexion,
+        pages: pagesVisitees
+      },
+      taches: tachesStats
+    }
+  };
 }

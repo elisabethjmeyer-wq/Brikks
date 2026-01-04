@@ -375,6 +375,61 @@ const EleveLayout = {
         // Afficher le contenu (layout prêt)
         body.classList.remove('loading-layout');
         body.classList.add('layout-ready');
+
+        // Tracker la visite de page (non bloquant)
+        this.trackPageVisit(user, pageId);
+    },
+
+    /**
+     * Enregistre la visite de page pour le suivi
+     */
+    async trackPageVisit(user, pageId) {
+        // Ne pas tracker en mode prévisualisation
+        if (this.isPreviewMode()) return;
+
+        try {
+            await this.callAPI('trackEleveConnexion', {
+                eleve_id: user.id,
+                page: pageId || window.location.pathname,
+                action: 'visit',
+                user_agent: navigator.userAgent.substring(0, 200)
+            });
+        } catch (error) {
+            // Ignorer les erreurs de tracking
+            console.log('[EleveLayout] Track error:', error);
+        }
+    },
+
+    /**
+     * Appel API simplifié
+     */
+    callAPI(action, params = {}) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const url = new URL(CONFIG.API_URL);
+            url.searchParams.append('action', action);
+            url.searchParams.append('callback', callbackName);
+            Object.keys(params).forEach(key => {
+                if (params[key] !== undefined && params[key] !== null) {
+                    url.searchParams.append(key, params[key]);
+                }
+            });
+
+            window[callbackName] = (response) => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                resolve(response);
+            };
+
+            const script = document.createElement('script');
+            script.src = url.toString();
+            script.onerror = () => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('Erreur réseau'));
+            };
+            document.body.appendChild(script);
+        });
     },
 
     /**
