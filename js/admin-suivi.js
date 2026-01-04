@@ -20,29 +20,44 @@ const AdminSuivi = {
 
     async loadData() {
         try {
-            const [elevesResult, connexionsResult, eleveTachesResult, tachesResult] = await Promise.all([
-                this.callAPI('getUtilisateurs', {}),
-                this.callAPI('getEleveConnexions', {}),
-                this.callAPI('getEleveTachesComplexes', {}),
-                this.callAPI('getTachesComplexes', {})
+            // Charger les données directement depuis Google Sheets (comme les autres pages admin)
+            const [utilisateurs, connexions, eleveTaches, tachesComplexes] = await Promise.all([
+                SheetsAPI.fetchAndParse(CONFIG.SHEETS.UTILISATEURS),
+                this.fetchSheetSafe('EleveConnexions'),
+                this.fetchSheetSafe('EleveTachesComplexes'),
+                this.fetchSheetSafe('TachesComplexes')
             ]);
 
-            if (elevesResult.success) {
-                this.eleves = (elevesResult.data || []).filter(u => (u.role || '').toLowerCase() === 'eleve');
-                // Extract unique classes
-                this.classes = [...new Set(this.eleves.map(e => e.classe_id).filter(Boolean))].sort();
-            }
-            if (connexionsResult.success) {
-                this.connexions = connexionsResult.data || [];
-            }
-            if (eleveTachesResult.success) {
-                this.eleveTaches = eleveTachesResult.data || [];
-            }
-            if (tachesResult.success) {
-                this.tachesComplexes = tachesResult.data || [];
-            }
+            // Filtrer les élèves
+            this.eleves = (utilisateurs || []).filter(u => (u.role || '').toLowerCase() === 'eleve');
+            // Extraire les classes uniques
+            this.classes = [...new Set(this.eleves.map(e => e.classe_id).filter(Boolean))].sort();
+
+            this.connexions = connexions || [];
+            this.eleveTaches = eleveTaches || [];
+            this.tachesComplexes = tachesComplexes || [];
+
+            console.log('[AdminSuivi] Données chargées:', {
+                eleves: this.eleves.length,
+                connexions: this.connexions.length,
+                eleveTaches: this.eleveTaches.length,
+                tachesComplexes: this.tachesComplexes.length
+            });
         } catch (error) {
             console.error('Erreur chargement données suivi:', error);
+        }
+    },
+
+    /**
+     * Charge une feuille en gérant le cas où elle n'existe pas encore
+     */
+    async fetchSheetSafe(sheetName) {
+        try {
+            return await SheetsAPI.fetchAndParse(sheetName);
+        } catch (error) {
+            // La feuille n'existe pas encore (sera créée au premier tracking)
+            console.log(`[AdminSuivi] Feuille ${sheetName} non trouvée (normal si pas encore de données)`);
+            return [];
         }
     },
 
