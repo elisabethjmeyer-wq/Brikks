@@ -462,9 +462,11 @@ const EleveExercices = {
 
                 <div class="exercise-card">
                     <div class="exercise-header ${this.currentType}">
-                        <h1>${this.escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</h1>
-                        <div class="exercise-header-meta">
-                            ${banque ? this.escapeHtml(banque.titre) : ''} • ${format ? format.nom : 'Format inconnu'}
+                        <div class="exercise-header-left">
+                            <div class="exercise-header-info">
+                                <h1>${banque ? this.escapeHtml(banque.titre) : ''} - ${this.escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</h1>
+                                <div class="exercise-header-meta">${format ? format.nom : ''}</div>
+                            </div>
                         </div>
                         ${exo.duree ? `
                             <div class="exercise-timer" id="exerciseTimer">
@@ -479,20 +481,20 @@ const EleveExercices = {
                         </div>
                     ` : ''}
 
-                    <div class="result-banner" id="resultBanner"></div>
-
                     <div class="exercise-content">
                         ${contentHTML}
                     </div>
 
+                    <div class="result-banner" id="resultBanner"></div>
+
                     <div class="exercise-actions">
-                        <button class="btn btn-primary" onclick="EleveExercices.validateExercise()">
+                        <button class="btn btn-verifier" onclick="EleveExercices.validateExercise()">
                             Vérifier mes réponses
                         </button>
-                        <button class="btn btn-corrige hidden" id="voirCorrigeBtn" onclick="EleveExercices.showCorrige()">
+                        <button class="btn btn-corrige" onclick="EleveExercices.showCorrige()">
                             Voir le corrigé
                         </button>
-                        <button class="btn btn-secondary" onclick="EleveExercices.resetExercise()">
+                        <button class="btn btn-restart" onclick="EleveExercices.resetExercise()">
                             Recommencer
                         </button>
                     </div>
@@ -1009,7 +1011,6 @@ const EleveExercices = {
                 if (col.editable) {
                     total++;
                     const input = document.getElementById(`input_${rowIndex}_${colIndex}`);
-                    const correction = document.getElementById(`correction_${rowIndex}_${colIndex}`);
                     if (!input) return;
 
                     const userAnswer = this.normalizeAnswer(input.value);
@@ -1017,13 +1018,12 @@ const EleveExercices = {
 
                     if (userAnswer === correctAnswer) {
                         input.className = 'correct';
-                        if (correction) correction.textContent = '';
                         correct++;
                     } else {
                         input.className = 'incorrect';
-                        if (correction) correction.textContent = '→ ' + (cells[colIndex] || '');
+                        // DON'T show correction here - only mark as incorrect
                     }
-                    input.disabled = true;
+                    // Don't disable input so student can retry
                 }
             });
         });
@@ -1053,29 +1053,27 @@ const EleveExercices = {
             }
         });
 
-        document.querySelectorAll('.carte-marqueur').forEach(el => {
-            el.style.pointerEvents = 'none';
-        });
-
-        const corrigeBtn = document.getElementById('voirCorrigeBtn');
-        if (corrigeBtn) corrigeBtn.classList.remove('hidden');
+        // Don't disable markers - student can still modify and retry
 
         return { correct, total };
     },
 
     validateQuestionOuverte() {
+        // Question ouverte: no auto-correction possible, just mark as answered
         const questions = this.questionsOuvertes || [];
+        let hasAnswers = false;
 
         questions.forEach((q, qIndex) => {
-            const correctionBox = document.getElementById(`correctionBox_${qIndex}`);
-            if (correctionBox) correctionBox.classList.remove('hidden');
-
             (q.etapes || []).forEach((_, eIndex) => {
                 const textarea = document.getElementById(`reponse_${qIndex}_${eIndex}`);
-                if (textarea) textarea.disabled = true;
+                if (textarea && textarea.value.trim()) {
+                    hasAnswers = true;
+                    textarea.classList.add('answered');
+                }
             });
         });
 
+        // Don't show correction boxes yet - wait for "Voir le corrigé"
         return { correct: 0, total: 0 };
     },
 
@@ -1095,11 +1093,13 @@ const EleveExercices = {
 
                             if (userAnswer === correctAnswer && userAnswer !== '') {
                                 input.classList.add('correct');
+                                input.classList.remove('incorrect');
                                 correct++;
                             } else {
                                 input.classList.add('incorrect');
+                                input.classList.remove('correct');
                             }
-                            input.disabled = true;
+                            // Don't disable - allow retry
                         }
                     }
                 });
@@ -1118,12 +1118,14 @@ const EleveExercices = {
 
                                 if (userAnswer === correctAnswer && userAnswer !== '') {
                                     input.classList.add('correct');
+                                    input.classList.remove('incorrect');
                                     correct++;
                                 } else {
                                     input.classList.add('incorrect');
-                                    input.value = ligne.cells[colIdx] || '';
+                                    input.classList.remove('correct');
+                                    // DON'T show correction - only mark as incorrect
                                 }
-                                input.disabled = true;
+                                // Don't disable - allow retry
                             }
                         }
                     });
@@ -1134,15 +1136,13 @@ const EleveExercices = {
         if (data.questions && data.questions.actif) {
             const questions = this.mixteQuestions || [];
             questions.forEach((q, idx) => {
-                const correction = document.getElementById(`mixte_correction_${idx}`);
-                if (correction) correction.classList.remove('hidden');
-                const textarea = document.getElementById(`mixte_answer_${idx}`);
-                if (textarea) textarea.disabled = true;
+                const textarea = document.getElementById(`mixte_question_${idx}`);
+                if (textarea && textarea.value.trim()) {
+                    textarea.classList.add('answered');
+                }
+                // DON'T show correction yet - wait for "Voir le corrigé"
             });
         }
-
-        const corrigeBtn = document.getElementById('voirCorrigeBtn');
-        if (corrigeBtn) corrigeBtn.classList.remove('hidden');
 
         return { correct, total };
     },
@@ -1194,6 +1194,8 @@ const EleveExercices = {
     // ===============================
 
     showCorrige() {
+        this.stopTimer(); // Stop timer when showing correction
+
         const format = this.formats.find(f => f.id === this.currentExercise.format_id);
         let structure = format ? format.structure : null;
         if (typeof structure === 'string') {
@@ -1205,9 +1207,15 @@ const EleveExercices = {
             this.showCarteCorrige();
         } else if (typeUI === 'document_mixte') {
             this.showDocumentMixteCorrige();
+        } else if (typeUI === 'question_ouverte') {
+            this.showQuestionOuverteCorrige();
         } else if (typeUI === 'tableau_saisie' || typeUI === 'document_tableau') {
             this.showTableauCorrige();
         }
+
+        const banner = document.getElementById('resultBanner');
+        banner.className = 'result-banner show info';
+        banner.textContent = 'Voici le corrigé complet.';
     },
 
     showCarteCorrige() {
@@ -1216,11 +1224,27 @@ const EleveExercices = {
             const badge = document.getElementById(`badge_${index}`);
             if (badge) {
                 badge.textContent = m.reponse || '';
-                badge.classList.remove('hidden');
+                badge.classList.remove('hidden', 'incorrect');
                 badge.classList.add('correction');
             }
             const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
-            if (marqueur) marqueur.classList.add('show-correction');
+            if (marqueur) {
+                marqueur.classList.remove('incorrect');
+                marqueur.classList.add('show-correction');
+            }
+        });
+    },
+
+    showQuestionOuverteCorrige() {
+        const questions = this.questionsOuvertes || [];
+        questions.forEach((q, qIndex) => {
+            const correctionBox = document.getElementById(`correctionBox_${qIndex}`);
+            if (correctionBox) correctionBox.classList.remove('hidden');
+
+            (q.etapes || []).forEach((_, eIndex) => {
+                const textarea = document.getElementById(`reponse_${qIndex}_${eIndex}`);
+                if (textarea) textarea.disabled = true;
+            });
         });
     },
 
@@ -1233,7 +1257,7 @@ const EleveExercices = {
                     const input = document.getElementById(`mixte_element_${idx}`);
                     if (input) {
                         input.value = el.reponse;
-                        input.classList.remove('incorrect');
+                        input.classList.remove('incorrect', 'correct');
                         input.classList.add('corrected');
                         input.disabled = true;
                     }
@@ -1252,10 +1276,6 @@ const EleveExercices = {
                 }
             });
         }
-
-        const banner = document.getElementById('resultBanner');
-        banner.className = 'result-banner show info';
-        banner.textContent = 'Voici le corrigé complet.';
     },
 
     showTableauCorrige() {
@@ -1273,17 +1293,13 @@ const EleveExercices = {
                     const input = document.getElementById(`input_${rowIdx}_${colIdx}`);
                     if (input) {
                         input.value = ligne.cells[colIdx] || '';
-                        input.classList.remove('incorrect');
+                        input.classList.remove('incorrect', 'correct');
                         input.classList.add('corrected');
                         input.disabled = true;
                     }
                 }
             });
         });
-
-        const banner = document.getElementById('resultBanner');
-        banner.className = 'result-banner show info';
-        banner.textContent = 'Voici le corrigé complet.';
     },
 
     // ===============================
@@ -1311,12 +1327,13 @@ const EleveExercices = {
             this.resetTableauSaisie();
         }
 
+        // Hide result banner
         document.getElementById('resultBanner').className = 'result-banner';
+
+        // Reset start time for tracking
         this.exerciseStartTime = Date.now();
 
-        const corrigeBtn = document.getElementById('voirCorrigeBtn');
-        if (corrigeBtn) corrigeBtn.classList.add('hidden');
-
+        // Restart timer
         if (this.currentExercise.duree) {
             this.startTimer(this.currentExercise.duree);
         }
