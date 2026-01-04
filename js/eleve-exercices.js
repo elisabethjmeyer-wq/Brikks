@@ -946,40 +946,70 @@ const EleveExercices = {
 
     renderMixteTableauSection(tableau) {
         const titre = tableau.titre || 'À COMPLÉTER';
-        const colonnes = tableau.colonnes || [];
-        const lignes = tableau.lignes || [];
 
-        // Store for validation
-        this.mixteTableauColonnes = colonnes;
-        this.mixteTableauLignes = lignes;
+        // Handle both old format (colonnes/lignes) and new format (elements)
+        if (tableau.elements && tableau.elements.length > 0) {
+            // New flexible format
+            this.mixteTableauElements = tableau.elements;
 
-        const headerHTML = colonnes.map(col =>
-            `<th class="${col.editable ? 'editable-header' : ''}">${this.escapeHtml(col.titre)}</th>`
-        ).join('');
-
-        const bodyHTML = lignes.map((ligne, rowIdx) =>
-            `<tr>${colonnes.map((col, colIdx) => {
-                if (col.editable) {
-                    return `<td class="cell-editable">
-                        <input type="text" class="cell-input" id="mixte_cell_${rowIdx}_${colIdx}" placeholder="..." data-row="${rowIdx}" data-col="${colIdx}">
-                    </td>`;
+            const elementsHTML = tableau.elements.map((el, idx) => {
+                if (el.type === 'section') {
+                    return `<div class="mixte-tableau-section-row">${this.escapeHtml(el.text)}</div>`;
                 } else {
-                    return `<td>${this.escapeHtml(ligne.cells[colIdx] || '')}</td>`;
+                    return `
+                        <div class="mixte-tableau-row">
+                            <div class="row-label">${this.escapeHtml(el.label)}</div>
+                            <div class="row-input">
+                                <input type="text" class="cell-input" id="mixte_element_${idx}"
+                                       placeholder="${this.escapeHtml(el.placeholder)}" data-index="${idx}">
+                            </div>
+                        </div>
+                    `;
                 }
-            }).join('')}</tr>`
-        ).join('');
+            }).join('');
 
-        return `
-            <div class="mixte-section mixte-tableau">
-                <div class="mixte-section-header tableau-header">${this.escapeHtml(titre)}</div>
-                <div class="mixte-tableau-content">
-                    <table class="mixte-table">
-                        <thead><tr>${headerHTML}</tr></thead>
-                        <tbody>${bodyHTML}</tbody>
-                    </table>
+            return `
+                <div class="mixte-section mixte-tableau">
+                    <div class="mixte-section-header tableau-header">${this.escapeHtml(titre)}</div>
+                    <div class="mixte-tableau-content">${elementsHTML}</div>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            // Old format fallback (colonnes/lignes)
+            const colonnes = tableau.colonnes || [];
+            const lignes = tableau.lignes || [];
+
+            this.mixteTableauColonnes = colonnes;
+            this.mixteTableauLignes = lignes;
+
+            const headerHTML = colonnes.map(col =>
+                `<th class="${col.editable ? 'editable-header' : ''}">${this.escapeHtml(col.titre)}</th>`
+            ).join('');
+
+            const bodyHTML = lignes.map((ligne, rowIdx) =>
+                `<tr>${colonnes.map((col, colIdx) => {
+                    if (col.editable) {
+                        return `<td class="cell-editable">
+                            <input type="text" class="cell-input" id="mixte_cell_${rowIdx}_${colIdx}" placeholder="..." data-row="${rowIdx}" data-col="${colIdx}">
+                        </td>`;
+                    } else {
+                        return `<td>${this.escapeHtml(ligne.cells[colIdx] || '')}</td>`;
+                    }
+                }).join('')}</tr>`
+            ).join('');
+
+            return `
+                <div class="mixte-section mixte-tableau">
+                    <div class="mixte-section-header tableau-header">${this.escapeHtml(titre)}</div>
+                    <div class="mixte-tableau-content">
+                        <table class="mixte-table">
+                            <thead><tr>${headerHTML}</tr></thead>
+                            <tbody>${bodyHTML}</tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
     },
 
     renderMixteQuestionsSection(questions) {
@@ -1207,31 +1237,50 @@ const EleveExercices = {
 
         // Validate tableau if active
         if (data.tableau && data.tableau.actif) {
-            const colonnes = this.mixteTableauColonnes || [];
-            const lignes = this.mixteTableauLignes || [];
-
-            lignes.forEach((ligne, rowIdx) => {
-                colonnes.forEach((col, colIdx) => {
-                    if (col.editable) {
+            // New flexible format with elements
+            if (this.mixteTableauElements && this.mixteTableauElements.length > 0) {
+                this.mixteTableauElements.forEach((el, idx) => {
+                    if (el.type === 'row') {
                         total++;
-                        const input = document.getElementById(`mixte_cell_${rowIdx}_${colIdx}`);
+                        const input = document.getElementById(`mixte_element_${idx}`);
                         if (input) {
-                            const userAnswer = this.normalizeAnswer(input.value);
-                            const correctAnswer = this.normalizeAnswer(ligne.cells[colIdx] || '');
-
-                            if (userAnswer === correctAnswer && userAnswer !== '') {
-                                input.classList.add('correct');
-                                correct++;
-                            } else {
-                                input.classList.add('incorrect');
-                                // Show correct answer
-                                input.value = ligne.cells[colIdx] || '';
-                            }
+                            // For flexible format, we just show the placeholder as expected answer
+                            // (Since there's no "correct" answer stored, we just disable the input)
                             input.disabled = true;
+                            // Mark as completed (no right/wrong for free text)
+                            input.classList.add('completed');
                         }
                     }
                 });
-            });
+                // Reset total for flexible format (no scoring)
+                total = 0;
+            } else {
+                // Old format with colonnes/lignes
+                const colonnes = this.mixteTableauColonnes || [];
+                const lignes = this.mixteTableauLignes || [];
+
+                lignes.forEach((ligne, rowIdx) => {
+                    colonnes.forEach((col, colIdx) => {
+                        if (col.editable) {
+                            total++;
+                            const input = document.getElementById(`mixte_cell_${rowIdx}_${colIdx}`);
+                            if (input) {
+                                const userAnswer = this.normalizeAnswer(input.value);
+                                const correctAnswer = this.normalizeAnswer(ligne.cells[colIdx] || '');
+
+                                if (userAnswer === correctAnswer && userAnswer !== '') {
+                                    input.classList.add('correct');
+                                    correct++;
+                                } else {
+                                    input.classList.add('incorrect');
+                                    input.value = ligne.cells[colIdx] || '';
+                                }
+                                input.disabled = true;
+                            }
+                        }
+                    });
+                });
+            }
         }
 
         // Show question corrections (no scoring for open questions)

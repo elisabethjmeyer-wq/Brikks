@@ -239,8 +239,8 @@ const AdminBanquesExercices = {
         document.getElementById('docTitreMixte')?.addEventListener('input', () => this.updateMixtePreview());
         document.getElementById('docLegendeMixte')?.addEventListener('input', () => this.updateMixtePreview());
         document.getElementById('tableauTitreMixte')?.addEventListener('input', () => this.updateMixtePreview());
-        document.getElementById('addColumnMixteBtn')?.addEventListener('click', () => this.addColumnMixte());
-        document.getElementById('addRowMixteBtn')?.addEventListener('click', () => this.addRowMixte());
+        document.getElementById('addTableauSectionBtn')?.addEventListener('click', () => this.addTableauElement('section'));
+        document.getElementById('addTableauRowBtn')?.addEventListener('click', () => this.addTableauElement('row'));
         document.getElementById('addQuestionMixteBtn')?.addEventListener('click', () => this.addQuestionMixte());
 
         // Modal overlays
@@ -1209,6 +1209,97 @@ const AdminBanquesExercices = {
                     </div>
                 </div>
             `;
+        } else if (formatUI === 'document_mixte') {
+            // Document Mixte format
+            const donnees = this.buildDataFromDocumentMixte();
+            extraStyles = `
+                .mixte-container { display: flex; flex-direction: column; gap: 1.5rem; }
+                .mixte-section { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+                .mixte-section-header { padding: 0.75rem 1rem; font-weight: 600; }
+                .doc-header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+                .tableau-header { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; }
+                .questions-header { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
+                .mixte-doc-content { padding: 1rem; }
+                .mixte-doc-content img { max-width: 100%; height: auto; border-radius: 4px; }
+                .mixte-doc-content iframe { width: 100%; height: 300px; border: none; }
+                .mixte-doc-legend { padding: 0.75rem 1rem; font-size: 0.9rem; color: #666; border-top: 1px solid #eee; }
+                .tableau-section-row { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 0.6rem 1rem; font-weight: 600; }
+                .tableau-row { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #e5e7eb; }
+                .tableau-row:last-child { border-bottom: none; }
+                .tableau-row .label { padding: 0.75rem 1rem; background: #f9fafb; font-weight: 500; border-right: 1px solid #e5e7eb; }
+                .tableau-row .input { padding: 0.75rem 1rem; background: #fef3c7; }
+                .tableau-row .input input { width: 100%; padding: 0.5rem; border: 1px solid #fbbf24; border-radius: 4px; }
+                .question-item { padding: 1rem; border-bottom: 1px solid #eee; }
+                .question-item:last-child { border-bottom: none; }
+                .question-text { font-weight: 500; margin-bottom: 0.5rem; }
+                .question-textarea { width: 100%; min-height: 80px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; resize: vertical; }
+            `;
+
+            let sectionsHTML = '';
+            const sectionOrder = donnees.sectionOrder || ['document', 'tableau', 'questions'];
+
+            sectionOrder.forEach(section => {
+                if (section === 'document' && donnees.document?.actif) {
+                    const doc = donnees.document;
+                    const converted = this.convertGoogleUrl(doc.url);
+                    let docContent = '';
+                    if (converted.type === 'drive_file') {
+                        docContent = `<img src="${converted.imageUrl}" alt="Document" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                            <iframe src="${converted.iframeUrl}" style="display:none;"></iframe>`;
+                    } else if (converted.iframeUrl) {
+                        docContent = `<iframe src="${converted.iframeUrl}"></iframe>`;
+                    } else if (doc.url) {
+                        docContent = `<img src="${this.convertToDirectImageUrl(doc.url)}" alt="Document">`;
+                    }
+                    sectionsHTML += `
+                        <div class="mixte-section">
+                            ${doc.titre ? `<div class="mixte-section-header doc-header">${this.escapeHtml(doc.titre)}</div>` : ''}
+                            <div class="mixte-doc-content">${docContent || '<div style="color:#999;">Aucun document</div>'}</div>
+                            ${doc.legende ? `<div class="mixte-doc-legend">${this.escapeHtml(doc.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                if (section === 'tableau' && donnees.tableau?.actif) {
+                    const elements = donnees.tableau.elements || [];
+                    let tableContent = elements.map(el => {
+                        if (el.type === 'section') {
+                            return `<div class="tableau-section-row">${this.escapeHtml(el.text)}</div>`;
+                        } else {
+                            return `<div class="tableau-row">
+                                <div class="label">${this.escapeHtml(el.label)}</div>
+                                <div class="input"><input type="text" placeholder="${this.escapeHtml(el.placeholder)}"></div>
+                            </div>`;
+                        }
+                    }).join('');
+
+                    sectionsHTML += `
+                        <div class="mixte-section">
+                            <div class="mixte-section-header tableau-header">${this.escapeHtml(donnees.tableau.titre) || 'À COMPLÉTER'}</div>
+                            ${tableContent || '<div style="padding:1rem;color:#999;">Aucun élément</div>'}
+                        </div>
+                    `;
+                }
+
+                if (section === 'questions' && donnees.questions?.actif) {
+                    const questions = donnees.questions.liste || [];
+                    let questionsContent = questions.map((q, i) => `
+                        <div class="question-item">
+                            <div class="question-text">${i + 1}. ${this.escapeHtml(q.question)}</div>
+                            <textarea class="question-textarea" placeholder="Votre réponse..."></textarea>
+                        </div>
+                    `).join('');
+
+                    sectionsHTML += `
+                        <div class="mixte-section">
+                            <div class="mixte-section-header questions-header">Questions ouvertes</div>
+                            ${questionsContent || '<div style="padding:1rem;color:#999;">Aucune question</div>'}
+                        </div>
+                    `;
+                }
+            });
+
+            contentHTML = `<div class="mixte-container">${sectionsHTML}</div>`;
         } else {
             // Default: tableau_saisie
             this.readTableBuilderValues();
@@ -1577,7 +1668,7 @@ const AdminBanquesExercices = {
     initDocumentMixteBuilder() {
         this.mixteBuilder = {
             document: { actif: true, url: '', titre: '', legende: '' },
-            tableau: { actif: false, titre: '', colonnes: [], lignes: [] },
+            tableau: { actif: false, titre: '', elements: [] },
             questions: { actif: false, liste: [] },
             sectionOrder: ['document', 'tableau', 'questions']
         };
@@ -1590,18 +1681,13 @@ const AdminBanquesExercices = {
         document.getElementById('docTitreMixte').value = '';
         document.getElementById('docLegendeMixte').value = '';
         document.getElementById('tableauTitreMixte').value = '';
-        document.getElementById('columnsBuilderMixte').innerHTML = '';
-        document.getElementById('tableBuilderMixteHead').innerHTML = '';
-        document.getElementById('tableBuilderMixteBody').innerHTML = '';
+        document.getElementById('tableauElementsList').innerHTML = '';
         document.getElementById('questionsListMixte').innerHTML = '';
 
         // Show/hide sections
         document.getElementById('sectionDocument').style.display = 'block';
         document.getElementById('sectionTableau').style.display = 'none';
         document.getElementById('sectionQuestions').style.display = 'none';
-
-        // Add default column
-        this.addColumnMixte();
 
         // Initialize drag and drop
         this.initMixteDragDrop();
@@ -1613,9 +1699,21 @@ const AdminBanquesExercices = {
     loadDocumentMixteFromData(donnees) {
         if (!donnees) return;
 
+        // Handle both old format (colonnes/lignes) and new format (elements)
+        let tableauData = donnees.tableau || { actif: false, titre: '', elements: [] };
+
+        // Convert old format to new format if needed
+        if (tableauData.colonnes && !tableauData.elements) {
+            tableauData.elements = this.convertOldTableauFormat(tableauData);
+        }
+
         this.mixteBuilder = {
             document: donnees.document || { actif: true, url: '', titre: '', legende: '' },
-            tableau: donnees.tableau || { actif: false, titre: '', colonnes: [], lignes: [] },
+            tableau: {
+                actif: tableauData.actif || false,
+                titre: tableauData.titre || '',
+                elements: tableauData.elements || []
+            },
             questions: donnees.questions || { actif: false, liste: [] },
             sectionOrder: donnees.sectionOrder || ['document', 'tableau', 'questions']
         };
@@ -1632,8 +1730,7 @@ const AdminBanquesExercices = {
 
         // Set tableau fields
         document.getElementById('tableauTitreMixte').value = this.mixteBuilder.tableau.titre || '';
-        this.renderMixteColumns();
-        this.renderMixteTable();
+        this.renderTableauElements();
 
         // Set questions
         this.renderMixteQuestions();
@@ -1648,6 +1745,25 @@ const AdminBanquesExercices = {
 
         this.initMixteDragDrop();
         this.updateMixtePreview();
+    },
+
+    // Convert old colonnes/lignes format to new elements format
+    convertOldTableauFormat(oldTableau) {
+        const elements = [];
+        const colonnes = oldTableau.colonnes || [];
+        const lignes = oldTableau.lignes || [];
+
+        // If we have 2 columns (label/response pattern), convert to rows
+        if (colonnes.length === 2 && colonnes[1].editable) {
+            lignes.forEach(ligne => {
+                elements.push({
+                    type: 'row',
+                    label: ligne.cells[0] || '',
+                    placeholder: ligne.cells[1] || ''
+                });
+            });
+        }
+        return elements;
     },
 
     onMixteToggle(section, checked) {
@@ -1733,96 +1849,135 @@ const AdminBanquesExercices = {
         });
     },
 
-    // Columns for mixte tableau
-    addColumnMixte() {
-        const colonnes = this.mixteBuilder.tableau.colonnes;
-        colonnes.push({ titre: '', editable: false });
-        this.renderMixteColumns();
-        this.renderMixteTable();
-        this.updateMixtePreview();
-    },
-
-    removeColumnMixte(index) {
-        this.mixteBuilder.tableau.colonnes.splice(index, 1);
-        this.mixteBuilder.tableau.lignes.forEach(ligne => {
-            ligne.cells.splice(index, 1);
-        });
-        this.renderMixteColumns();
-        this.renderMixteTable();
-        this.updateMixtePreview();
-    },
-
-    renderMixteColumns() {
-        const container = document.getElementById('columnsBuilderMixte');
-        container.innerHTML = this.mixteBuilder.tableau.colonnes.map((col, i) => `
-            <div class="column-item-mixte">
-                <span>${i + 1}</span>
-                <input type="text" value="${this.escapeHtml(col.titre)}" placeholder="Titre colonne"
-                       onchange="AdminBanquesExercices.updateMixteColumn(${i}, 'titre', this.value)">
-                <label>
-                    <input type="checkbox" ${col.editable ? 'checked' : ''}
-                           onchange="AdminBanquesExercices.updateMixteColumn(${i}, 'editable', this.checked)">
-                    Réponse élève
-                </label>
-                <button type="button" class="btn-icon" onclick="AdminBanquesExercices.removeColumnMixte(${i})">×</button>
-            </div>
-        `).join('');
-    },
-
-    updateMixteColumn(index, field, value) {
-        this.mixteBuilder.tableau.colonnes[index][field] = value;
-        if (field === 'titre') {
-            this.renderMixteTable();
+    // Flexible Tableau Elements
+    addTableauElement(type) {
+        if (type === 'section') {
+            this.mixteBuilder.tableau.elements.push({
+                type: 'section',
+                text: ''
+            });
+        } else if (type === 'row') {
+            this.mixteBuilder.tableau.elements.push({
+                type: 'row',
+                label: '',
+                placeholder: ''
+            });
         }
+        this.renderTableauElements();
+        this.initTableauElementsDragDrop();
         this.updateMixtePreview();
     },
 
-    // Rows for mixte tableau
-    addRowMixte() {
-        const numCols = this.mixteBuilder.tableau.colonnes.length;
-        this.mixteBuilder.tableau.lignes.push({
-            cells: new Array(numCols).fill('')
+    removeTableauElement(index) {
+        this.mixteBuilder.tableau.elements.splice(index, 1);
+        this.renderTableauElements();
+        this.initTableauElementsDragDrop();
+        this.updateMixtePreview();
+    },
+
+    renderTableauElements() {
+        const container = document.getElementById('tableauElementsList');
+        const elements = this.mixteBuilder.tableau.elements;
+
+        if (elements.length === 0) {
+            container.innerHTML = '<div style="color:#999;font-style:italic;padding:1rem;text-align:center;">Ajoutez des sections et des lignes</div>';
+            return;
+        }
+
+        container.innerHTML = elements.map((el, i) => {
+            if (el.type === 'section') {
+                return `
+                    <div class="tableau-element section-element" data-index="${i}" draggable="true">
+                        <span class="drag-handle-small">⋮⋮</span>
+                        <div class="element-content">
+                            <input type="text" class="section-input" value="${this.escapeHtml(el.text)}"
+                                   placeholder="Titre de la section (ex: OEUVRE D'ORIGINE)"
+                                   onchange="AdminBanquesExercices.updateTableauElement(${i}, 'text', this.value)">
+                        </div>
+                        <button type="button" class="btn-remove" onclick="AdminBanquesExercices.removeTableauElement(${i})">×</button>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="tableau-element row-element" data-index="${i}" draggable="true">
+                        <span class="drag-handle-small">⋮⋮</span>
+                        <div class="element-content">
+                            <div class="row-inputs">
+                                <input type="text" class="label-input" value="${this.escapeHtml(el.label)}"
+                                       placeholder="Label (ex: Auteur)"
+                                       onchange="AdminBanquesExercices.updateTableauElement(${i}, 'label', this.value)">
+                                <input type="text" class="placeholder-input" value="${this.escapeHtml(el.placeholder)}"
+                                       placeholder="Placeholder pour l'élève"
+                                       onchange="AdminBanquesExercices.updateTableauElement(${i}, 'placeholder', this.value)">
+                            </div>
+                        </div>
+                        <button type="button" class="btn-remove" onclick="AdminBanquesExercices.removeTableauElement(${i})">×</button>
+                    </div>
+                `;
+            }
+        }).join('');
+    },
+
+    updateTableauElement(index, field, value) {
+        this.mixteBuilder.tableau.elements[index][field] = value;
+        this.updateMixtePreview();
+    },
+
+    initTableauElementsDragDrop() {
+        const container = document.getElementById('tableauElementsList');
+        const items = container.querySelectorAll('.tableau-element');
+
+        items.forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                item.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', item.dataset.index);
+            });
+
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                this.updateTableauElementsOrder();
+                this.updateMixtePreview();
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const dragging = container.querySelector('.dragging');
+                if (dragging && dragging !== item) {
+                    item.classList.add('drag-over');
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        container.insertBefore(dragging, item);
+                    } else {
+                        container.insertBefore(dragging, item.nextSibling);
+                    }
+                }
+            });
+
+            item.addEventListener('dragleave', () => {
+                item.classList.remove('drag-over');
+            });
+
+            item.addEventListener('drop', () => {
+                item.classList.remove('drag-over');
+            });
         });
-        this.renderMixteTable();
-        this.updateMixtePreview();
     },
 
-    removeRowMixte(index) {
-        this.mixteBuilder.tableau.lignes.splice(index, 1);
-        this.renderMixteTable();
-        this.updateMixtePreview();
-    },
+    updateTableauElementsOrder() {
+        const container = document.getElementById('tableauElementsList');
+        const items = container.querySelectorAll('.tableau-element');
+        const oldElements = [...this.mixteBuilder.tableau.elements];
+        const newElements = [];
 
-    renderMixteTable() {
-        const colonnes = this.mixteBuilder.tableau.colonnes;
-        const lignes = this.mixteBuilder.tableau.lignes;
+        items.forEach(item => {
+            const oldIndex = parseInt(item.dataset.index);
+            newElements.push(oldElements[oldIndex]);
+        });
 
-        document.getElementById('tableBuilderMixteHead').innerHTML = `
-            <tr>
-                ${colonnes.map(col => `<th>${this.escapeHtml(col.titre) || '...'}</th>`).join('')}
-                <th style="width:40px"></th>
-            </tr>
-        `;
-
-        document.getElementById('tableBuilderMixteBody').innerHTML = lignes.map((ligne, rowIdx) => `
-            <tr>
-                ${colonnes.map((col, colIdx) => `
-                    <td class="${col.editable ? 'editable-cell' : ''}">
-                        <input type="text" value="${this.escapeHtml(ligne.cells[colIdx] || '')}"
-                               placeholder="${col.editable ? 'Réponse attendue' : '...'}"
-                               onchange="AdminBanquesExercices.updateMixteCell(${rowIdx}, ${colIdx}, this.value)">
-                    </td>
-                `).join('')}
-                <td>
-                    <button type="button" class="btn-icon" onclick="AdminBanquesExercices.removeRowMixte(${rowIdx})">×</button>
-                </td>
-            </tr>
-        `).join('');
-    },
-
-    updateMixteCell(rowIdx, colIdx, value) {
-        this.mixteBuilder.tableau.lignes[rowIdx].cells[colIdx] = value;
-        this.updateMixtePreview();
+        this.mixteBuilder.tableau.elements = newElements;
+        this.renderTableauElements();
+        this.initTableauElementsDragDrop();
     },
 
     // Questions for mixte
@@ -1982,34 +2137,29 @@ const AdminBanquesExercices = {
 
     renderMixteTableauPreview() {
         const titre = document.getElementById('tableauTitreMixte').value;
-        const colonnes = this.mixteBuilder.tableau.colonnes;
-        const lignes = this.mixteBuilder.tableau.lignes;
+        const elements = this.mixteBuilder.tableau.elements;
 
-        if (colonnes.length === 0) {
-            return '<div class="preview-tableau"><div class="preview-tableau-header">Tableau</div><div style="padding:1rem;color:#999;">Ajoutez des colonnes</div></div>';
+        if (elements.length === 0) {
+            return '<div class="preview-tableau"><div class="preview-tableau-header">Tableau</div><div style="padding:1rem;color:#999;">Ajoutez des sections et des lignes</div></div>';
         }
+
+        let contentHTML = elements.map(el => {
+            if (el.type === 'section') {
+                return `<div class="preview-tableau-section">${this.escapeHtml(el.text) || 'Section...'}</div>`;
+            } else {
+                return `
+                    <div class="preview-tableau-row">
+                        <div class="row-label">${this.escapeHtml(el.label) || 'Label...'}</div>
+                        <div class="row-input">${this.escapeHtml(el.placeholder) || 'Réponse élève...'}</div>
+                    </div>
+                `;
+            }
+        }).join('');
 
         return `
             <div class="preview-tableau">
                 <div class="preview-tableau-header">${this.escapeHtml(titre) || 'À COMPLÉTER'}</div>
-                <table>
-                    <thead>
-                        <tr>
-                            ${colonnes.map(col => `<th>${this.escapeHtml(col.titre) || '...'}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${lignes.map(ligne => `
-                            <tr>
-                                ${colonnes.map((col, i) => `
-                                    <td class="${col.editable ? 'editable-cell' : ''}">
-                                        ${col.editable ? '<em style="color:#999;">Réponse élève</em>' : this.escapeHtml(ligne.cells[i] || '')}
-                                    </td>
-                                `).join('')}
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+                ${contentHTML}
             </div>
         `;
     },
