@@ -1077,32 +1077,36 @@ const AdminBanquesExercices = {
             const donnees = this.buildDataFromCarteBuilder();
             extraStyles = `
                 .carte-container { position: relative; display: inline-block; max-width: 100%; }
-                .carte-image { max-width: 100%; height: auto; display: block; }
-                .carte-marker { position: absolute; width: 32px; height: 32px; background: #3b82f6; color: white;
-                    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                .carte-image { max-width: 100%; height: auto; display: block; border-radius: 8px; }
+                .carte-marker { position: absolute; width: 32px; height: 32px; background: #6366f1; color: white;
+                    border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;
                     font-weight: bold; font-size: 14px; transform: translate(-50%, -50%); cursor: pointer;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-                .carte-marker:hover { background: #2563eb; transform: translate(-50%, -50%) scale(1.1); }
-                .carte-input { margin-top: 1rem; }
-                .carte-input label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
-                .carte-input select { width: 100%; padding: 10px; border: 2px solid #dbeafe; border-radius: 6px; font-size: 14px; }
+                .carte-marker:hover { background: #4f46e5; transform: translate(-50%, -50%) scale(1.1); }
+                .carte-marker .badge { position: absolute; top: -8px; left: 100%; margin-left: 4px; background: white;
+                    color: #374151; padding: 2px 6px; border-radius: 4px; font-size: 11px; white-space: nowrap;
+                    box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+                .preview-note { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin-top: 1rem;
+                    font-size: 0.875rem; color: #92400e; }
             `;
             const imageUrl = this.convertToDirectImageUrl(donnees.imageUrl);
             contentHTML = `
                 <div class="carte-container">
-                    <img src="${this.escapeHtml(imageUrl)}" class="carte-image" alt="Carte">
+                    <img src="${this.escapeHtml(imageUrl)}" class="carte-image" alt="Carte" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div style="display:none; padding: 2rem; background: #fee2e2; color: #991b1b; border-radius: 8px; text-align: center;">
+                        ⚠️ Impossible de charger l'image. Vérifiez le lien.
+                    </div>
                     ${donnees.marqueurs.map((m, i) => `
-                        <div class="carte-marker" style="left: ${m.x}%; top: ${m.y}%;" title="${this.escapeHtml(m.reponse)}">${i + 1}</div>
+                        <div class="carte-marker" style="left: ${m.x}%; top: ${m.y}%;">
+                            ${i + 1}
+                            <span class="badge">${this.escapeHtml(m.reponse)}</span>
+                        </div>
                     `).join('')}
                 </div>
-                ${donnees.marqueurs.map((m, i) => `
-                    <div class="carte-input">
-                        <label>Élément ${i + 1}:</label>
-                        <select><option value="">-- Sélectionner --</option>
-                            ${donnees.marqueurs.map(opt => `<option value="${this.escapeHtml(opt.reponse)}">${this.escapeHtml(opt.reponse)}</option>`).join('')}
-                        </select>
-                    </div>
-                `).join('')}
+                <div class="preview-note">
+                    <strong>Aperçu admin:</strong> Les élèves cliqueront sur les numéros pour saisir leur réponse dans un popup.
+                    Les réponses attendues (${donnees.marqueurs.length}) sont affichées ici à titre indicatif.
+                </div>
             `;
         } else if (formatUI === 'question_ouverte') {
             const donnees = this.buildDataFromQuestionBuilder();
