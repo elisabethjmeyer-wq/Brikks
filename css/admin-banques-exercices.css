@@ -1791,6 +1791,134 @@
     resize: vertical;
 }
 
+/* ========== TACHES COMPLEXES (Competences Tab) ========== */
+.tache-complexe-card .tache-details {
+    padding: 1.25rem;
+    background: #faf5ff;
+}
+
+.tache-details-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.tache-document {
+    padding: 0.75rem 1rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9d5ff;
+}
+
+.tache-document a {
+    color: var(--primary);
+    word-break: break-all;
+}
+
+.tache-document a:hover {
+    text-decoration: underline;
+}
+
+.tache-competences {
+    padding: 0.75rem 1rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9d5ff;
+}
+
+.competences-list-preview {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.competences-list-preview li {
+    padding: 0.375rem 0.625rem;
+    background: #f3e8ff;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: #6b21a8;
+}
+
+/* Competences Checkboxes in Modal */
+.competences-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.competence-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.competence-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.competence-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: #374151;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.competence-checkbox-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: transparent;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.competence-checkbox input[type="checkbox"]:checked + .competence-checkbox-label {
+    border-color: var(--primary);
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.competence-checkbox input[type="checkbox"]:checked + .competence-checkbox-label .competence-checkbox-icon {
+    background: var(--primary);
+    color: white;
+}
+
+.competence-checkbox:hover .competence-checkbox-label {
+    border-color: #c4b5fd;
+}
+
+.empty-competences {
+    text-align: center;
+    padding: 1.5rem;
+    color: #6b7280;
+}
+
+.empty-competences p {
+    margin: 0 0 1rem 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .type-tabs {

@@ -535,6 +535,60 @@ Utilisez *texte* pour mettre en italique."></textarea>
     </div>
 </div>
 
+<!-- Modal: Creer/Modifier tache complexe (Competences) -->
+<div class="modal-overlay hidden" id="tacheComplexeModal">
+    <div class="modal modal-medium">
+        <div class="modal-header">
+            <h2 id="tacheModalTitle">Nouvelle tache complexe</h2>
+            <button class="modal-close" onclick="AdminBanquesExercices.closeTacheComplexeModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editTacheId">
+
+            <div class="form-group">
+                <label>Titre <span class="req">*</span></label>
+                <input type="text" class="form-input" id="tacheTitre" placeholder="Ex: Analyse d'un texte historique">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea class="form-textarea" id="tacheDescription" rows="2" placeholder="Description de la tache complexe..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>URL du document</label>
+                <input type="text" class="form-input" id="tacheDocumentUrl" placeholder="Lien Google Drive, PDF, image...">
+                <div class="form-help">Collez un lien vers le document (Google Drive, PDF, image)</div>
+            </div>
+
+            <div class="form-group">
+                <label>Competences evaluees</label>
+                <div class="competences-checkboxes" id="competencesCheckboxes">
+                    <!-- Generated dynamically -->
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Ordre d'affichage</label>
+                    <input type="number" class="form-input" id="tacheOrdre" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Statut</label>
+                    <select class="form-select" id="tacheStatut">
+                        <option value="brouillon">Brouillon</option>
+                        <option value="publie">Publie</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeTacheComplexeModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="AdminBanquesExercices.saveTacheComplexe()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
 <!-- Scripts -->
 <script src="../js/config.js"></script>
 <script src="../js/sheets.js"></script>
