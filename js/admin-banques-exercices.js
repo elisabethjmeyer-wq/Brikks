@@ -655,9 +655,9 @@ const AdminBanquesExercices = {
                 alert('Activez au moins une section (Document, Tableau ou Questions)');
                 return;
             }
-            // Validate tableau if active
-            if (donnees.tableau.actif && donnees.tableau.colonnes.length === 0) {
-                alert('Le tableau nécessite au moins une colonne');
+            // Validate tableau if active (new format uses elements)
+            if (donnees.tableau.actif && (!donnees.tableau.elements || donnees.tableau.elements.length === 0)) {
+                alert('Le tableau nécessite au moins une section ou ligne');
                 return;
             }
         } else {
@@ -1212,8 +1212,12 @@ const AdminBanquesExercices = {
         } else if (formatUI === 'document_mixte') {
             // Document Mixte format
             const donnees = this.buildDataFromDocumentMixte();
+            const layout = donnees.layout || 'vertical';
+
             extraStyles = `
                 .mixte-container { display: flex; flex-direction: column; gap: 1.5rem; }
+                .mixte-container.horizontal { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+                .mixte-container.horizontal .mixte-left, .mixte-container.horizontal .mixte-right { display: flex; flex-direction: column; gap: 1rem; }
                 .mixte-section { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
                 .mixte-section-header { padding: 0.75rem 1rem; font-weight: 600; }
                 .doc-header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
@@ -1235,71 +1239,80 @@ const AdminBanquesExercices = {
                 .question-textarea { width: 100%; min-height: 80px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; resize: vertical; }
             `;
 
-            let sectionsHTML = '';
-            const sectionOrder = donnees.sectionOrder || ['document', 'tableau', 'questions'];
+            // Build document HTML
+            let docHTML = '';
+            if (donnees.document?.actif) {
+                const doc = donnees.document;
+                const converted = this.convertGoogleUrl(doc.url);
+                let docContent = '';
+                if (converted.type === 'drive_file') {
+                    docContent = `<img src="${converted.imageUrl}" alt="Document" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                        <iframe src="${converted.iframeUrl}" style="display:none;"></iframe>`;
+                } else if (converted.iframeUrl) {
+                    docContent = `<iframe src="${converted.iframeUrl}"></iframe>`;
+                } else if (doc.url) {
+                    docContent = `<img src="${this.convertToDirectImageUrl(doc.url)}" alt="Document">`;
+                }
+                docHTML = `
+                    <div class="mixte-section">
+                        ${doc.titre ? `<div class="mixte-section-header doc-header">${this.escapeHtml(doc.titre)}</div>` : ''}
+                        <div class="mixte-doc-content">${docContent || '<div style="color:#999;">Aucun document</div>'}</div>
+                        ${doc.legende ? `<div class="mixte-doc-legend">${this.escapeHtml(doc.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>` : ''}
+                    </div>
+                `;
+            }
 
-            sectionOrder.forEach(section => {
-                if (section === 'document' && donnees.document?.actif) {
-                    const doc = donnees.document;
-                    const converted = this.convertGoogleUrl(doc.url);
-                    let docContent = '';
-                    if (converted.type === 'drive_file') {
-                        docContent = `<img src="${converted.imageUrl}" alt="Document" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
-                            <iframe src="${converted.iframeUrl}" style="display:none;"></iframe>`;
-                    } else if (converted.iframeUrl) {
-                        docContent = `<iframe src="${converted.iframeUrl}"></iframe>`;
-                    } else if (doc.url) {
-                        docContent = `<img src="${this.convertToDirectImageUrl(doc.url)}" alt="Document">`;
+            // Build tableau HTML
+            let tableauHTML = '';
+            if (donnees.tableau?.actif) {
+                const elements = donnees.tableau.elements || [];
+                let tableContent = elements.map(el => {
+                    if (el.type === 'section') {
+                        return `<div class="tableau-section-row">${this.escapeHtml(el.text)}</div>`;
+                    } else {
+                        return `<div class="tableau-row">
+                            <div class="label">${this.escapeHtml(el.label)}</div>
+                            <div class="input"><input type="text" placeholder="${this.escapeHtml(el.placeholder)}"></div>
+                        </div>`;
                     }
-                    sectionsHTML += `
-                        <div class="mixte-section">
-                            ${doc.titre ? `<div class="mixte-section-header doc-header">${this.escapeHtml(doc.titre)}</div>` : ''}
-                            <div class="mixte-doc-content">${docContent || '<div style="color:#999;">Aucun document</div>'}</div>
-                            ${doc.legende ? `<div class="mixte-doc-legend">${this.escapeHtml(doc.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>` : ''}
-                        </div>
-                    `;
-                }
+                }).join('');
 
-                if (section === 'tableau' && donnees.tableau?.actif) {
-                    const elements = donnees.tableau.elements || [];
-                    let tableContent = elements.map(el => {
-                        if (el.type === 'section') {
-                            return `<div class="tableau-section-row">${this.escapeHtml(el.text)}</div>`;
-                        } else {
-                            return `<div class="tableau-row">
-                                <div class="label">${this.escapeHtml(el.label)}</div>
-                                <div class="input"><input type="text" placeholder="${this.escapeHtml(el.placeholder)}"></div>
-                            </div>`;
-                        }
-                    }).join('');
+                tableauHTML = `
+                    <div class="mixte-section">
+                        <div class="mixte-section-header tableau-header">${this.escapeHtml(donnees.tableau.titre) || 'À COMPLÉTER'}</div>
+                        ${tableContent || '<div style="padding:1rem;color:#999;">Aucun élément</div>'}
+                    </div>
+                `;
+            }
 
-                    sectionsHTML += `
-                        <div class="mixte-section">
-                            <div class="mixte-section-header tableau-header">${this.escapeHtml(donnees.tableau.titre) || 'À COMPLÉTER'}</div>
-                            ${tableContent || '<div style="padding:1rem;color:#999;">Aucun élément</div>'}
-                        </div>
-                    `;
-                }
+            // Build questions HTML
+            let questionsHTML = '';
+            if (donnees.questions?.actif) {
+                const questions = donnees.questions.liste || [];
+                let questionsContent = questions.map((q, i) => `
+                    <div class="question-item">
+                        <div class="question-text">${i + 1}. ${this.escapeHtml(q.question)}</div>
+                        <textarea class="question-textarea" placeholder="Votre réponse..."></textarea>
+                    </div>
+                `).join('');
 
-                if (section === 'questions' && donnees.questions?.actif) {
-                    const questions = donnees.questions.liste || [];
-                    let questionsContent = questions.map((q, i) => `
-                        <div class="question-item">
-                            <div class="question-text">${i + 1}. ${this.escapeHtml(q.question)}</div>
-                            <textarea class="question-textarea" placeholder="Votre réponse..."></textarea>
-                        </div>
-                    `).join('');
+                questionsHTML = `
+                    <div class="mixte-section">
+                        <div class="mixte-section-header questions-header">Questions ouvertes</div>
+                        ${questionsContent || '<div style="padding:1rem;color:#999;">Aucune question</div>'}
+                    </div>
+                `;
+            }
 
-                    sectionsHTML += `
-                        <div class="mixte-section">
-                            <div class="mixte-section-header questions-header">Questions ouvertes</div>
-                            ${questionsContent || '<div style="padding:1rem;color:#999;">Aucune question</div>'}
-                        </div>
-                    `;
-                }
-            });
-
-            contentHTML = `<div class="mixte-container">${sectionsHTML}</div>`;
+            // Combine based on layout
+            if (layout === 'horizontal' && docHTML && (tableauHTML || questionsHTML)) {
+                contentHTML = `<div class="mixte-container horizontal">
+                    <div class="mixte-left">${docHTML}</div>
+                    <div class="mixte-right">${tableauHTML}${questionsHTML}</div>
+                </div>`;
+            } else {
+                contentHTML = `<div class="mixte-container">${docHTML}${tableauHTML}${questionsHTML}</div>`;
+            }
         } else {
             // Default: tableau_saisie
             this.readTableBuilderValues();
@@ -1670,13 +1683,15 @@ const AdminBanquesExercices = {
             document: { actif: true, url: '', titre: '', legende: '' },
             tableau: { actif: false, titre: '', elements: [] },
             questions: { actif: false, liste: [] },
-            sectionOrder: ['document', 'tableau', 'questions']
+            sectionOrder: ['document', 'tableau', 'questions'],
+            layout: 'vertical'
         };
 
         // Reset UI
         document.getElementById('toggleDocument').checked = true;
         document.getElementById('toggleTableau').checked = false;
         document.getElementById('toggleQuestions').checked = false;
+        document.getElementById('mixteLayoutSelect').value = 'vertical';
         document.getElementById('docUrlMixte').value = '';
         document.getElementById('docTitreMixte').value = '';
         document.getElementById('docLegendeMixte').value = '';
@@ -1693,6 +1708,13 @@ const AdminBanquesExercices = {
         this.initMixteDragDrop();
 
         // Update preview
+        this.updateMixtePreview();
+    },
+
+    onLayoutChange(layout) {
+        if (this.mixteBuilder) {
+            this.mixteBuilder.layout = layout;
+        }
         this.updateMixtePreview();
     },
 
@@ -1715,13 +1737,15 @@ const AdminBanquesExercices = {
                 elements: tableauData.elements || []
             },
             questions: donnees.questions || { actif: false, liste: [] },
-            sectionOrder: donnees.sectionOrder || ['document', 'tableau', 'questions']
+            sectionOrder: donnees.sectionOrder || ['document', 'tableau', 'questions'],
+            layout: donnees.layout || 'vertical'
         };
 
         // Set toggles
         document.getElementById('toggleDocument').checked = this.mixteBuilder.document.actif;
         document.getElementById('toggleTableau').checked = this.mixteBuilder.tableau.actif;
         document.getElementById('toggleQuestions').checked = this.mixteBuilder.questions.actif;
+        document.getElementById('mixteLayoutSelect').value = this.mixteBuilder.layout;
 
         // Set document fields
         document.getElementById('docUrlMixte').value = this.mixteBuilder.document.url || '';
@@ -1851,6 +1875,14 @@ const AdminBanquesExercices = {
 
     // Flexible Tableau Elements
     addTableauElement(type) {
+        // Ensure mixteBuilder is initialized
+        if (!this.mixteBuilder) {
+            this.initDocumentMixteBuilder();
+        }
+        if (!this.mixteBuilder.tableau.elements) {
+            this.mixteBuilder.tableau.elements = [];
+        }
+
         if (type === 'section') {
             this.mixteBuilder.tableau.elements.push({
                 type: 'section',
@@ -2077,25 +2109,53 @@ const AdminBanquesExercices = {
 
     updateMixtePreview() {
         const preview = document.getElementById('mixtePreviewContent');
-        let html = '';
+        if (!this.mixteBuilder) return;
+
+        const layout = this.mixteBuilder.layout || 'vertical';
 
         // Get active sections in order
-        const activeSections = this.mixteBuilder.sectionOrder.filter(s => this.mixteBuilder[s].actif);
+        const activeSections = this.mixteBuilder.sectionOrder.filter(s => this.mixteBuilder[s]?.actif);
 
         if (activeSections.length === 0) {
             preview.innerHTML = '<div class="preview-placeholder">Activez des sections pour voir l\'aperçu</div>';
             return;
         }
 
-        activeSections.forEach(section => {
-            if (section === 'document') {
-                html += this.renderMixteDocumentPreview();
-            } else if (section === 'tableau') {
-                html += this.renderMixteTableauPreview();
-            } else if (section === 'questions') {
-                html += this.renderMixteQuestionsPreview();
+        let html = '';
+
+        if (layout === 'horizontal' && activeSections.includes('document')) {
+            // Horizontal layout: document on left, rest on right
+            const docHTML = this.renderMixteDocumentPreview();
+            const otherSections = activeSections.filter(s => s !== 'document');
+            let rightHTML = '';
+            otherSections.forEach(section => {
+                if (section === 'tableau') {
+                    rightHTML += this.renderMixteTableauPreview();
+                } else if (section === 'questions') {
+                    rightHTML += this.renderMixteQuestionsPreview();
+                }
+            });
+
+            if (rightHTML) {
+                html = `<div class="preview-horizontal-layout">
+                    <div class="preview-left">${docHTML}</div>
+                    <div class="preview-right">${rightHTML}</div>
+                </div>`;
+            } else {
+                html = docHTML;
             }
-        });
+        } else {
+            // Vertical layout
+            activeSections.forEach(section => {
+                if (section === 'document') {
+                    html += this.renderMixteDocumentPreview();
+                } else if (section === 'tableau') {
+                    html += this.renderMixteTableauPreview();
+                } else if (section === 'questions') {
+                    html += this.renderMixteQuestionsPreview();
+                }
+            });
+        }
 
         preview.innerHTML = html;
     },
@@ -2185,17 +2245,24 @@ const AdminBanquesExercices = {
     },
 
     buildDataFromDocumentMixte() {
+        // Ensure mixteBuilder is initialized
+        if (!this.mixteBuilder) {
+            this.initDocumentMixteBuilder();
+        }
+
         // Read current values from DOM
         this.mixteBuilder.document.url = document.getElementById('docUrlMixte').value;
         this.mixteBuilder.document.titre = document.getElementById('docTitreMixte').value;
         this.mixteBuilder.document.legende = document.getElementById('docLegendeMixte').value;
         this.mixteBuilder.tableau.titre = document.getElementById('tableauTitreMixte').value;
+        this.mixteBuilder.layout = document.getElementById('mixteLayoutSelect').value;
 
         return {
             document: this.mixteBuilder.document,
             tableau: this.mixteBuilder.tableau,
             questions: this.mixteBuilder.questions,
-            sectionOrder: this.mixteBuilder.sectionOrder
+            sectionOrder: this.mixteBuilder.sectionOrder,
+            layout: this.mixteBuilder.layout
         };
     },
 

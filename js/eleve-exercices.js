@@ -882,20 +882,42 @@ const EleveExercices = {
 
     /**
      * Rend un exercice document_mixte (format unifié)
-     * Structure: { document: {...}, tableau: {...}, questions: {...}, sectionOrder: [...] }
+     * Structure: { document: {...}, tableau: {...}, questions: {...}, sectionOrder: [...], layout: 'vertical'|'horizontal' }
      */
     renderDocumentMixte(donnees, structure) {
         const doc = donnees.document || { actif: false };
         const tableau = donnees.tableau || { actif: false };
         const questions = donnees.questions || { actif: false };
         const sectionOrder = donnees.sectionOrder || ['document', 'tableau', 'questions'];
-
-        let sectionsHTML = '';
+        const layout = donnees.layout || 'vertical';
 
         // Store data for validation
         this.mixteData = donnees;
 
-        // Render sections in order
+        // Check for horizontal layout with document active
+        if (layout === 'horizontal' && doc.actif) {
+            const docHTML = this.renderMixteDocumentSection(doc);
+
+            // Build right side content (other sections)
+            let rightHTML = '';
+            sectionOrder.forEach(section => {
+                if (section === 'tableau' && tableau.actif) {
+                    rightHTML += this.renderMixteTableauSection(tableau);
+                } else if (section === 'questions' && questions.actif) {
+                    rightHTML += this.renderMixteQuestionsSection(questions);
+                }
+            });
+
+            return `
+                <div class="document-mixte-container horizontal-layout">
+                    <div class="mixte-left-column">${docHTML}</div>
+                    <div class="mixte-right-column">${rightHTML}</div>
+                </div>
+            `;
+        }
+
+        // Vertical layout (default)
+        let sectionsHTML = '';
         sectionOrder.forEach(section => {
             if (section === 'document' && doc.actif) {
                 sectionsHTML += this.renderMixteDocumentSection(doc);
