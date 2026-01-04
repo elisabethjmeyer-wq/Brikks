@@ -38,7 +38,8 @@ const AdminLayout = {
             items: [
                 { icon: '📋', label: 'Évaluations', href: '/Brikks/admin/evaluations.html', id: 'evaluations' },
                 { icon: '🟣', label: 'Compétences', href: '/Brikks/admin/competences.html', id: 'competences' },
-                { icon: '📊', label: 'Notes & Suivi', href: '/Brikks/admin/notes.html', id: 'notes' }
+                { icon: '📊', label: 'Notes', href: '/Brikks/admin/notes.html', id: 'notes' },
+                { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi', badge: true }
             ]
         },
         {
@@ -64,6 +65,7 @@ const AdminLayout = {
                         <a href="${item.href}" class="sidebar-link" data-page="${item.id}">
                             <span class="icon">${item.icon}</span>
                             ${item.label}
+                            ${item.badge ? `<span class="menu-badge" id="badge-${item.id}" style="display:none;">0</span>` : ''}
                         </a>
                     `).join('')}
                 </div>
@@ -106,8 +108,9 @@ const AdminLayout = {
                     <button class="top-bar-btn" title="Prévisualiser le site élève" onclick="AdminLayout.openPreview()">
                         👁️
                     </button>
-                    <button class="top-bar-btn" title="Notifications">
+                    <button class="top-bar-btn notification-btn" title="Notifications" onclick="AdminLayout.goToSuivi()">
                         🔔
+                        <span class="notification-badge" id="header-notification-badge" style="display:none;">0</span>
                     </button>
                     <div class="top-bar-user" onclick="AdminLayout.toggleUserMenu()">
                         <div class="top-bar-user-avatar" id="user-avatar">--</div>
@@ -174,6 +177,9 @@ const AdminLayout = {
         if (updatedUser) {
             this.displayUserInfo(updatedUser);
         }
+
+        // Vérifier les notifications (copies à corriger, etc.)
+        this.checkPendingActivities();
     },
 
     /**
@@ -250,6 +256,89 @@ const AdminLayout = {
         sessionStorage.setItem('brikks_preview', 'true');
         // Rediriger vers l'espace élève
         window.location.href = '/Brikks/eleve/';
+    },
+
+    /**
+     * Redirige vers la page Suivi
+     */
+    goToSuivi() {
+        window.location.href = '/Brikks/admin/suivi.html';
+    },
+
+    /**
+     * Met à jour les badges de notification
+     */
+    updateNotificationBadges(count) {
+        // Badge dans le header
+        const headerBadge = document.getElementById('header-notification-badge');
+        if (headerBadge) {
+            if (count > 0) {
+                headerBadge.textContent = count > 99 ? '99+' : count;
+                headerBadge.style.display = 'flex';
+            } else {
+                headerBadge.style.display = 'none';
+            }
+        }
+
+        // Badge dans le menu Suivi
+        const menuBadge = document.getElementById('badge-suivi');
+        if (menuBadge) {
+            if (count > 0) {
+                menuBadge.textContent = count > 99 ? '99+' : count;
+                menuBadge.style.display = 'flex';
+            } else {
+                menuBadge.style.display = 'none';
+            }
+        }
+    },
+
+    /**
+     * Vérifie les activités en attente (copies à corriger, etc.)
+     */
+    async checkPendingActivities() {
+        try {
+            // Récupérer les tâches complexes en attente de correction
+            const result = await this.callAPI('getEleveTachesComplexes', {});
+            if (result.success && result.data) {
+                // Compter les copies en attente de correction (statut = soumis)
+                const pendingCount = result.data.filter(t => t.statut === 'soumis').length;
+                this.updateNotificationBadges(pendingCount);
+            }
+        } catch (error) {
+            console.error('Erreur vérification activités:', error);
+        }
+    },
+
+    /**
+     * Appel API simplifié
+     */
+    callAPI(action, params = {}) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const url = new URL(CONFIG.API_URL);
+            url.searchParams.append('action', action);
+            url.searchParams.append('callback', callbackName);
+            Object.keys(params).forEach(key => {
+                if (params[key] !== undefined && params[key] !== null) {
+                    url.searchParams.append(key, params[key]);
+                }
+            });
+
+            window[callbackName] = (response) => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                resolve(response);
+            };
+
+            const script = document.createElement('script');
+            script.src = url.toString();
+            script.onerror = () => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('Erreur réseau'));
+            };
+            document.body.appendChild(script);
+        });
     }
 };
 
