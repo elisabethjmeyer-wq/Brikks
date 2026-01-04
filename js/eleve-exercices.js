@@ -218,6 +218,7 @@ const EleveExercices = {
             this.banques.some(b => b.id === e.banque_id) &&
             this.resultats.some(r => r.exercice_id === e.id)
         ).length;
+        const progressPercent = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
 
         // Group exercises by banque
         const exercicesByBanque = {};
@@ -234,14 +235,11 @@ const EleveExercices = {
         });
 
         let html = `
-            <div class="type-header ${this.currentType}">
+            <div class="type-header-banner ${this.currentType}">
                 <div class="type-header-left">
-                    <div class="type-icon ${this.currentType}">
-                        ${this.getTypeIconSVG()}
-                    </div>
+                    <div class="type-icon-emoji">${this.getTypeEmoji()}</div>
                     <div>
-                        <h2 class="type-title">${this.getTypeLabel()}</h2>
-                        <p class="type-subtitle">Entraîne-toi sur les ${this.getTypeLabel().toLowerCase()}</p>
+                        <h2 class="type-title">Entraînement de ${this.getTypeLabel().toLowerCase()}</h2>
                     </div>
                 </div>
                 <div class="type-header-stats">
@@ -250,8 +248,24 @@ const EleveExercices = {
                         <div class="type-stat-label">Banques</div>
                     </div>
                     <div class="type-stat">
-                        <div class="type-stat-value">${completedExercises}/${totalExercises}</div>
+                        <div class="type-stat-value">${totalExercises}</div>
                         <div class="type-stat-label">Exercices</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="training-toolbar">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="banqueSearch" placeholder="Rechercher une banque..." oninput="EleveExercices.filterBanques(this.value)">
+                </div>
+                <div class="global-progress">
+                    <div class="global-progress-label">
+                        <span>Progression globale</span>
+                        <span class="global-progress-value">${completedExercises}/${totalExercises} exercices</span>
+                    </div>
+                    <div class="global-progress-bar ${this.currentType}">
+                        <div class="global-progress-fill" style="width: ${progressPercent}%;"></div>
                     </div>
                 </div>
             </div>
@@ -361,14 +375,11 @@ const EleveExercices = {
      */
     renderEmptyState() {
         return `
-            <div class="type-header ${this.currentType}">
+            <div class="type-header-banner ${this.currentType}">
                 <div class="type-header-left">
-                    <div class="type-icon ${this.currentType}">
-                        ${this.getTypeIconSVG()}
-                    </div>
+                    <div class="type-icon-emoji">${this.getTypeEmoji()}</div>
                     <div>
-                        <h2 class="type-title">${this.getTypeLabel()}</h2>
-                        <p class="type-subtitle">Entraîne-toi sur les ${this.getTypeLabel().toLowerCase()}</p>
+                        <h2 class="type-title">Entraînement de ${this.getTypeLabel().toLowerCase()}</h2>
                     </div>
                 </div>
             </div>
@@ -1492,6 +1503,32 @@ const EleveExercices = {
         return labels[this.currentType] || this.currentType;
     },
 
+    getTypeEmoji() {
+        const emojis = {
+            'savoir-faire': '🔧',
+            'connaissances': '📚',
+            'competences': '🎯'
+        };
+        return emojis[this.currentType] || '📝';
+    },
+
+    filterBanques(searchTerm) {
+        const term = searchTerm.toLowerCase().trim();
+        const items = document.querySelectorAll('.banque-accordion-item');
+
+        items.forEach(item => {
+            const title = item.querySelector('.banque-title');
+            if (title) {
+                const text = title.textContent.toLowerCase();
+                if (term === '' || text.includes(term)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            }
+        });
+    },
+
     getTypeIconSVG() {
         // Simple SVG icons for each type
         const icons = {
@@ -1544,8 +1581,21 @@ const EleveExercices = {
     renderTachesComplexesList() {
         const container = document.getElementById('exercices-content');
 
-        if (this.tachesComplexes.length === 0) {
+        // Calculate stats
+        const totalTaches = this.tachesComplexes.length;
+        const completedTaches = this.eleveTachesProgress.filter(p => p.statut === 'termine').length;
+        const progressPercent = totalTaches > 0 ? Math.round((completedTaches / totalTaches) * 100) : 0;
+
+        if (totalTaches === 0) {
             container.innerHTML = `
+                <div class="type-header-banner competences">
+                    <div class="type-header-left">
+                        <div class="type-icon-emoji">🎯</div>
+                        <div>
+                            <h2 class="type-title">Entraînement de compétences</h2>
+                        </div>
+                    </div>
+                </div>
                 <div class="empty-state">
                     <div class="empty-state-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="48" height="48">
@@ -1563,11 +1613,34 @@ const EleveExercices = {
         this.tachesComplexes.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         container.innerHTML = `
-            <div class="taches-complexes-header">
-                <h2>Entrainements de competences</h2>
-                <p class="taches-intro">Choisissez un entrainement pour vous exercer ou obtenir des points bonus.</p>
+            <div class="type-header-banner competences">
+                <div class="type-header-left">
+                    <div class="type-icon-emoji">🎯</div>
+                    <div>
+                        <h2 class="type-title">Entraînement de compétences</h2>
+                    </div>
+                </div>
+                <div class="type-header-stats">
+                    <div class="type-stat">
+                        <div class="type-stat-value">${totalTaches}</div>
+                        <div class="type-stat-label">Tâches</div>
+                    </div>
+                </div>
             </div>
-            <div class="taches-complexes-list">
+
+            <div class="training-toolbar">
+                <div class="global-progress">
+                    <div class="global-progress-label">
+                        <span>Progression globale</span>
+                        <span class="global-progress-value">${completedTaches}/${totalTaches} tâches terminées</span>
+                    </div>
+                    <div class="global-progress-bar competences">
+                        <div class="global-progress-fill" style="width: ${progressPercent}%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="taches-complexes-grid">
                 ${this.tachesComplexes.map(tache => this.renderTacheComplexeCard(tache)).join('')}
             </div>
         `;

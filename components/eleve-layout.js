@@ -29,9 +29,9 @@ const EleveLayout = {
             section: "📝 S'entraîner",
             sectionId: 'entrainement',
             items: [
-                { icon: '🟢', label: 'Connaissances', href: '/Brikks/eleve/connaissances.html', id: 'connaissances' },
+                { icon: '🔵', label: 'Connaissances', href: '/Brikks/eleve/connaissances.html', id: 'connaissances' },
                 { icon: '🟠', label: 'Savoir-faire', href: '/Brikks/eleve/savoir-faire.html', id: 'savoir-faire' },
-                { icon: '🟣', label: 'Compétences', href: '/Brikks/eleve/competences.html', id: 'competences' }
+                { icon: '🔴', label: 'Compétences', href: '/Brikks/eleve/competences.html', id: 'competences' }
             ]
         },
         {
