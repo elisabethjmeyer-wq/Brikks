@@ -4,10 +4,14 @@
 
 const AdminSuivi = {
     eleves: [],
+    classes: [],
     connexions: [],
     eleveTaches: [],
     tachesComplexes: [],
     currentTab: 'overview',
+    selectedClass: 'all',
+    selectedPeriod: 'today',
+    selectedStudent: null,
 
     async init() {
         await this.loadData();
@@ -25,6 +29,8 @@ const AdminSuivi = {
 
             if (elevesResult.success) {
                 this.eleves = (elevesResult.data || []).filter(u => u.role === 'eleve');
+                // Extract unique classes
+                this.classes = [...new Set(this.eleves.map(e => e.classe_id).filter(Boolean))].sort();
             }
             if (connexionsResult.success) {
                 this.connexions = connexionsResult.data || [];
@@ -40,18 +46,67 @@ const AdminSuivi = {
         }
     },
 
+    getFilteredEleves() {
+        if (this.selectedClass === 'all') return this.eleves;
+        return this.eleves.filter(e => e.classe_id === this.selectedClass);
+    },
+
+    getFilteredConnexions() {
+        const start = this.getPeriodStart();
+        let connexions = this.connexions.filter(c => new Date(c.timestamp) >= start);
+
+        if (this.selectedClass !== 'all') {
+            const eleveIds = this.getFilteredEleves().map(e => e.id);
+            connexions = connexions.filter(c => eleveIds.includes(c.eleve_id));
+        }
+        return connexions;
+    },
+
+    getPeriodStart() {
+        const now = new Date();
+        switch (this.selectedPeriod) {
+            case 'today':
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            case 'week':
+                const weekAgo = new Date(now);
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                return weekAgo;
+            case 'month':
+                const monthAgo = new Date(now);
+                monthAgo.setMonth(monthAgo.getMonth() - 1);
+                return monthAgo;
+            default:
+                return new Date(0);
+        }
+    },
+
+    getPeriodLabel() {
+        switch (this.selectedPeriod) {
+            case 'today': return "aujourd'hui";
+            case 'week': return 'cette semaine';
+            case 'month': return 'ce mois';
+            default: return '';
+        }
+    },
+
     render() {
         const container = document.getElementById('suivi-content');
 
-        // Calculate global stats
-        const today = new Date().toDateString();
-        const connexionsToday = this.connexions.filter(c =>
-            new Date(c.timestamp).toDateString() === today
-        );
-        const uniqueElevesToday = [...new Set(connexionsToday.map(c => c.eleve_id))].length;
-        const totalVisitsToday = connexionsToday.length;
+        // If showing student detail, render that instead
+        if (this.selectedStudent) {
+            this.renderStudentDetail(container);
+            return;
+        }
+
+        // Calculate stats based on filters
+        const filteredConnexions = this.getFilteredConnexions();
+        const filteredEleves = this.getFilteredEleves();
+        const uniqueElevesConnected = [...new Set(filteredConnexions.map(c => c.eleve_id))].length;
+        const totalVisits = filteredConnexions.length;
         const pendingCorrections = this.eleveTaches.filter(t => t.statut === 'soumis').length;
-        const activeStudents = this.eleves.filter(e => e.derniere_connexion).length;
+
+        // Get inactive students (no connection in 7+ days)
+        const inactiveStudents = this.getInactiveStudents();
 
         container.innerHTML = `
             <div class="page-header">
@@ -64,6 +119,27 @@ const AdminSuivi = {
                 </button>
             </div>
 
+            <!-- Filtres -->
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <label>Classe</label>
+                    <select id="classFilter" onchange="AdminSuivi.setClassFilter(this.value)">
+                        <option value="all" ${this.selectedClass === 'all' ? 'selected' : ''}>Toutes les classes</option>
+                        ${this.classes.map(c => `
+                            <option value="${c}" ${this.selectedClass === c ? 'selected' : ''}>${c}</option>
+                        `).join('')}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Période</label>
+                    <select id="periodFilter" onchange="AdminSuivi.setPeriodFilter(this.value)">
+                        <option value="today" ${this.selectedPeriod === 'today' ? 'selected' : ''}>Aujourd'hui</option>
+                        <option value="week" ${this.selectedPeriod === 'week' ? 'selected' : ''}>Cette semaine</option>
+                        <option value="month" ${this.selectedPeriod === 'month' ? 'selected' : ''}>Ce mois</option>
+                    </select>
+                </div>
+            </div>
+
             <!-- Stats globales -->
             <div class="stats-grid">
                 <div class="stat-card clickable" onclick="AdminSuivi.setTab('students')">
@@ -72,18 +148,18 @@ const AdminSuivi = {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                         </svg>
                     </div>
-                    <div class="stat-value">${uniqueElevesToday}</div>
-                    <div class="stat-label">Élèves connectés aujourd'hui</div>
+                    <div class="stat-value">${uniqueElevesConnected}</div>
+                    <div class="stat-label">Élèves connectés ${this.getPeriodLabel()}</div>
                 </div>
-                <div class="stat-card clickable" onclick="AdminSuivi.setTab('activity')">
+                <div class="stat-card clickable" onclick="AdminSuivi.setTab('overview')">
                     <div class="stat-icon-wrapper green">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="24" height="24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </div>
-                    <div class="stat-value">${totalVisitsToday}</div>
-                    <div class="stat-label">Visites de pages aujourd'hui</div>
+                    <div class="stat-value">${totalVisits}</div>
+                    <div class="stat-label">Visites ${this.getPeriodLabel()}</div>
                 </div>
                 <div class="stat-card ${pendingCorrections > 0 ? 'highlight' : ''} clickable" onclick="AdminSuivi.setTab('corrections')">
                     <div class="stat-icon-wrapper ${pendingCorrections > 0 ? 'red' : 'gray'}">
@@ -100,8 +176,8 @@ const AdminSuivi = {
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
                         </svg>
                     </div>
-                    <div class="stat-value">${this.eleves.length}</div>
-                    <div class="stat-label">Élèves inscrits</div>
+                    <div class="stat-value">${filteredEleves.length}</div>
+                    <div class="stat-label">Élèves ${this.selectedClass !== 'all' ? `(${this.selectedClass})` : ''}</div>
                 </div>
             </div>
 
@@ -109,9 +185,6 @@ const AdminSuivi = {
             <div class="suivi-tabs">
                 <button class="suivi-tab ${this.currentTab === 'overview' ? 'active' : ''}" onclick="AdminSuivi.setTab('overview')">
                     📊 Vue d'ensemble
-                </button>
-                <button class="suivi-tab ${this.currentTab === 'activity' ? 'active' : ''}" onclick="AdminSuivi.setTab('activity')">
-                    📜 Activité récente
                 </button>
                 <button class="suivi-tab ${this.currentTab === 'students' ? 'active' : ''}" onclick="AdminSuivi.setTab('students')">
                     👥 Élèves
@@ -122,68 +195,53 @@ const AdminSuivi = {
             </div>
 
             <!-- Contenu de l'onglet -->
-            <div class="suivi-content">
-                ${this.renderTabContent()}
+            <div class="suivi-tab-content">
+                ${this.renderTabContent(inactiveStudents)}
             </div>
         `;
     },
 
-    renderTabContent() {
+    renderTabContent(inactiveStudents) {
         switch (this.currentTab) {
             case 'overview':
-                return this.renderOverview();
-            case 'activity':
-                return this.renderActivityFeed();
+                return this.renderOverview(inactiveStudents);
             case 'students':
                 return this.renderStudentsList();
             case 'corrections':
                 return this.renderCorrections();
             default:
-                return this.renderOverview();
+                return this.renderOverview(inactiveStudents);
         }
     },
 
-    renderOverview() {
-        // Recent activity (last 10)
+    renderOverview(inactiveStudents) {
         const recentActivity = this.getRecentActivity(10);
-
-        // Students with recent connections
-        const recentStudents = this.getStudentsWithStats()
-            .sort((a, b) => new Date(b.lastConnection || 0) - new Date(a.lastConnection || 0))
-            .slice(0, 5);
-
-        // Page visit stats
         const pageStats = this.getPageVisitStats();
 
         return `
+            ${inactiveStudents.length > 0 ? `
+                <div class="alert-banner warning">
+                    <span class="alert-icon">⚠️</span>
+                    <div class="alert-content">
+                        <strong>${inactiveStudents.length} élève${inactiveStudents.length > 1 ? 's' : ''} inactif${inactiveStudents.length > 1 ? 's' : ''}</strong>
+                        <span>Non connecté${inactiveStudents.length > 1 ? 's' : ''} depuis plus de 7 jours :
+                            ${inactiveStudents.slice(0, 3).map(s => s.name).join(', ')}${inactiveStudents.length > 3 ? ` et ${inactiveStudents.length - 3} autres` : ''}
+                        </span>
+                    </div>
+                    <button class="alert-action" onclick="AdminSuivi.showInactiveStudents()">Voir tous</button>
+                </div>
+            ` : ''}
+
             <div class="overview-grid">
                 <div class="overview-section">
                     <h3>🕐 Activité récente</h3>
-                    <div class="activity-feed mini">
+                    <div class="activity-feed">
                         ${recentActivity.length > 0 ? recentActivity.map(a => this.renderActivityItem(a)).join('') :
                             '<p class="empty-text">Aucune activité récente</p>'}
                     </div>
-                    ${recentActivity.length > 0 ? `<button class="btn-link" onclick="AdminSuivi.setTab('activity')">Voir tout →</button>` : ''}
                 </div>
 
                 <div class="overview-section">
-                    <h3>👥 Dernières connexions</h3>
-                    <div class="students-mini-list">
-                        ${recentStudents.length > 0 ? recentStudents.map(s => `
-                            <div class="student-mini-item">
-                                <div class="student-avatar">${this.getInitials(s.name)}</div>
-                                <div class="student-info">
-                                    <div class="student-name">${this.escapeHtml(s.name)}</div>
-                                    <div class="student-last">${s.lastConnection ? this.formatRelativeTime(s.lastConnection) : 'Jamais connecté'}</div>
-                                </div>
-                                <div class="student-visits">${s.totalVisits} visites</div>
-                            </div>
-                        `).join('') : '<p class="empty-text">Aucun élève connecté</p>'}
-                    </div>
-                    ${recentStudents.length > 0 ? `<button class="btn-link" onclick="AdminSuivi.setTab('students')">Voir tous →</button>` : ''}
-                </div>
-
-                <div class="overview-section full-width">
                     <h3>📊 Pages les plus visitées</h3>
                     <div class="page-stats-list">
                         ${pageStats.length > 0 ? pageStats.slice(0, 8).map(p => `
@@ -201,43 +259,9 @@ const AdminSuivi = {
         `;
     },
 
-    renderActivityFeed() {
-        const allActivity = this.getRecentActivity(50);
-
-        if (allActivity.length === 0) {
-            return `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📜</div>
-                    <h3>Aucune activité</h3>
-                    <p>L'activité des élèves apparaîtra ici.</p>
-                </div>
-            `;
-        }
-
-        // Group by date
-        const grouped = {};
-        allActivity.forEach(a => {
-            const dateKey = new Date(a.timestamp).toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long'
-            });
-            if (!grouped[dateKey]) grouped[dateKey] = [];
-            grouped[dateKey].push(a);
-        });
-
-        return Object.entries(grouped).map(([date, activities]) => `
-            <div class="activity-date-group">
-                <h3 class="activity-date">${date}</h3>
-                <div class="activity-feed">
-                    ${activities.map(a => this.renderActivityItem(a)).join('')}
-                </div>
-            </div>
-        `).join('');
-    },
-
     renderStudentsList() {
         const students = this.getStudentsWithStats()
+            .filter(s => this.selectedClass === 'all' || s.classe === this.selectedClass)
             .sort((a, b) => new Date(b.lastConnection || 0) - new Date(a.lastConnection || 0));
 
         if (students.length === 0) {
@@ -258,14 +282,14 @@ const AdminSuivi = {
                             <th>Élève</th>
                             <th>Classe</th>
                             <th>Dernière connexion</th>
-                            <th>Visites totales</th>
-                            <th>Pages vues</th>
+                            <th>Visites</th>
                             <th>Entraînements</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${students.map(s => `
-                            <tr>
+                            <tr class="${this.isInactive(s.lastConnection) ? 'inactive-row' : ''}">
                                 <td>
                                     <div class="student-cell">
                                         <div class="student-avatar small">${this.getInitials(s.name)}</div>
@@ -275,22 +299,143 @@ const AdminSuivi = {
                                 <td>${s.classe || '-'}</td>
                                 <td>
                                     ${s.lastConnection ? `
-                                        <span class="connection-status ${this.isRecentConnection(s.lastConnection) ? 'recent' : ''}">
+                                        <span class="connection-status ${this.isRecentConnection(s.lastConnection) ? 'recent' : ''} ${this.isInactive(s.lastConnection) ? 'inactive' : ''}">
                                             ${this.formatRelativeTime(s.lastConnection)}
                                         </span>
                                     ` : '<span class="connection-status never">Jamais</span>'}
                                 </td>
                                 <td>${s.totalVisits}</td>
-                                <td>${Object.keys(s.pagesVisited).length}</td>
                                 <td>
                                     <span class="training-stats">
-                                        ${s.trainingsCompleted}/${s.trainingsStarted} terminés
+                                        ${s.trainingsCompleted}/${s.trainingsStarted}
                                     </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline" onclick="AdminSuivi.showStudentDetail('${s.id}')">
+                                        Détails
+                                    </button>
                                 </td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
+            </div>
+        `;
+    },
+
+    renderStudentDetail(container) {
+        const student = this.eleves.find(e => e.id === this.selectedStudent);
+        if (!student) {
+            this.selectedStudent = null;
+            this.render();
+            return;
+        }
+
+        const stats = this.getStudentFullStats(student.id);
+        const studentName = `${student.prenom || ''} ${student.nom || ''}`.trim() || student.identifiant;
+
+        container.innerHTML = `
+            <div class="page-header">
+                <div class="header-with-back">
+                    <button class="btn-back" onclick="AdminSuivi.closeStudentDetail()">
+                        ← Retour
+                    </button>
+                    <div>
+                        <h1>
+                            <div class="student-avatar large">${this.getInitials(studentName)}</div>
+                            ${this.escapeHtml(studentName)}
+                        </h1>
+                        <p class="page-subtitle">${student.classe_id || 'Classe non définie'} • Dernière connexion : ${stats.lastConnection ? this.formatRelativeTime(stats.lastConnection) : 'Jamais'}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats élève -->
+            <div class="stats-grid small">
+                <div class="stat-card mini">
+                    <div class="stat-value">${stats.totalVisits}</div>
+                    <div class="stat-label">Visites totales</div>
+                </div>
+                <div class="stat-card mini">
+                    <div class="stat-value">${Object.keys(stats.pagesVisited).length}</div>
+                    <div class="stat-label">Pages différentes</div>
+                </div>
+                <div class="stat-card mini">
+                    <div class="stat-value">${stats.trainingsStarted}</div>
+                    <div class="stat-label">Entraînements</div>
+                </div>
+                <div class="stat-card mini">
+                    <div class="stat-value">${stats.trainingsCompleted}</div>
+                    <div class="stat-label">Terminés</div>
+                </div>
+            </div>
+
+            <div class="detail-sections">
+                <!-- Pages consultées -->
+                <div class="detail-section">
+                    <h3>📄 Pages consultées</h3>
+                    ${Object.keys(stats.pagesVisited).length > 0 ? `
+                        <div class="pages-list">
+                            ${Object.entries(stats.pagesVisited)
+                                .sort((a, b) => b[1] - a[1])
+                                .map(([page, count]) => `
+                                    <div class="page-item">
+                                        <span class="page-name">${this.formatPageName(page)}</span>
+                                        <span class="page-count">${count} visite${count > 1 ? 's' : ''}</span>
+                                    </div>
+                                `).join('')}
+                        </div>
+                    ` : '<p class="empty-text">Aucune page consultée</p>'}
+                </div>
+
+                <!-- Historique des connexions -->
+                <div class="detail-section">
+                    <h3>🕐 Historique récent</h3>
+                    ${stats.recentConnexions.length > 0 ? `
+                        <div class="connexion-history">
+                            ${stats.recentConnexions.slice(0, 20).map(c => `
+                                <div class="connexion-item">
+                                    <span class="connexion-page">${this.formatPageName(c.page)}</span>
+                                    <span class="connexion-time">${this.formatDate(c.timestamp)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<p class="empty-text">Aucune connexion enregistrée</p>'}
+                </div>
+
+                <!-- Entraînements -->
+                <div class="detail-section full-width">
+                    <h3>🎯 Entraînements de compétences</h3>
+                    ${stats.taches.length > 0 ? `
+                        <div class="trainings-list">
+                            ${stats.taches.map(t => {
+                                const tache = this.tachesComplexes.find(tc => tc.id === t.tache_id);
+                                const statusConfig = {
+                                    'en_cours': { label: 'En cours', class: 'status-progress' },
+                                    'soumis': { label: 'Soumis', class: 'status-pending' },
+                                    'termine': { label: 'Terminé', class: 'status-done' },
+                                    'corrige': { label: 'Corrigé', class: 'status-done' }
+                                };
+                                const status = statusConfig[t.statut] || { label: t.statut, class: '' };
+
+                                return `
+                                    <div class="training-item">
+                                        <div class="training-info">
+                                            <div class="training-name">${tache ? this.escapeHtml(tache.titre) : 'Tâche inconnue'}</div>
+                                            <div class="training-meta">
+                                                <span class="mode-badge ${t.mode === 'points_bonus' ? 'bonus' : 'training'}">
+                                                    ${t.mode === 'points_bonus' ? '⭐ Points bonus' : '📚 Entraînement'}
+                                                </span>
+                                                <span>Commencé le ${this.formatDate(t.date_debut)}</span>
+                                            </div>
+                                        </div>
+                                        <span class="status-badge ${status.class}">${status.label}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    ` : '<p class="empty-text">Aucun entraînement commencé</p>'}
+                </div>
             </div>
         `;
     },
@@ -384,13 +529,10 @@ const AdminSuivi = {
         } else if (activity.type === 'tache_submit') {
             icon = '📤';
             action = `a soumis <strong>${activity.tacheName || 'un travail'}</strong>`;
-        } else if (activity.type === 'tache_finish') {
-            icon = '✅';
-            action = `a terminé <strong>${activity.tacheName || 'un entraînement'}</strong>`;
         }
 
         return `
-            <div class="activity-item">
+            <div class="activity-item" onclick="AdminSuivi.showStudentDetail('${activity.eleve_id}')">
                 <span class="activity-icon">${icon}</span>
                 <div class="activity-content">
                     <span class="activity-student">${this.escapeHtml(eleveName)}</span>
@@ -402,41 +544,57 @@ const AdminSuivi = {
     },
 
     // Data helpers
+    getInactiveStudents() {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        return this.getStudentsWithStats()
+            .filter(s => this.selectedClass === 'all' || s.classe === this.selectedClass)
+            .filter(s => !s.lastConnection || new Date(s.lastConnection) < sevenDaysAgo)
+            .map(s => ({ id: s.id, name: s.name }));
+    },
+
     getRecentActivity(limit = 20) {
         const activities = [];
+        const start = this.getPeriodStart();
+        const filteredEleveIds = this.selectedClass === 'all' ? null : this.getFilteredEleves().map(e => e.id);
 
         // Add connexions
-        this.connexions.forEach(c => {
-            activities.push({
-                type: 'connexion',
-                eleve_id: c.eleve_id,
-                page: c.page,
-                timestamp: c.timestamp
+        this.connexions
+            .filter(c => new Date(c.timestamp) >= start)
+            .filter(c => !filteredEleveIds || filteredEleveIds.includes(c.eleve_id))
+            .forEach(c => {
+                activities.push({
+                    type: 'connexion',
+                    eleve_id: c.eleve_id,
+                    page: c.page,
+                    timestamp: c.timestamp
+                });
             });
-        });
 
         // Add tache activities
-        this.eleveTaches.forEach(t => {
-            const tache = this.tachesComplexes.find(tc => tc.id === t.tache_id);
-            if (t.date_debut) {
-                activities.push({
-                    type: 'tache_start',
-                    eleve_id: t.eleve_id,
-                    tacheName: tache?.titre,
-                    timestamp: t.date_debut
-                });
-            }
-            if (t.date_soumission) {
-                activities.push({
-                    type: 'tache_submit',
-                    eleve_id: t.eleve_id,
-                    tacheName: tache?.titre,
-                    timestamp: t.date_soumission
-                });
-            }
-        });
+        this.eleveTaches
+            .filter(t => !filteredEleveIds || filteredEleveIds.includes(t.eleve_id))
+            .forEach(t => {
+                const tache = this.tachesComplexes.find(tc => tc.id === t.tache_id);
+                if (t.date_debut && new Date(t.date_debut) >= start) {
+                    activities.push({
+                        type: 'tache_start',
+                        eleve_id: t.eleve_id,
+                        tacheName: tache?.titre,
+                        timestamp: t.date_debut
+                    });
+                }
+                if (t.date_soumission && new Date(t.date_soumission) >= start) {
+                    activities.push({
+                        type: 'tache_submit',
+                        eleve_id: t.eleve_id,
+                        tacheName: tache?.titre,
+                        timestamp: t.date_soumission
+                    });
+                }
+            });
 
-        // Sort by timestamp and limit
         return activities
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
             .slice(0, limit);
@@ -466,12 +624,40 @@ const AdminSuivi = {
         });
     },
 
+    getStudentFullStats(studentId) {
+        const studentConnexions = this.connexions
+            .filter(c => c.eleve_id === studentId)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        const studentTaches = this.eleveTaches.filter(t => t.eleve_id === studentId);
+
+        const pagesVisited = {};
+        studentConnexions.forEach(c => {
+            pagesVisited[c.page] = (pagesVisited[c.page] || 0) + 1;
+        });
+
+        const eleve = this.eleves.find(e => e.id === studentId);
+
+        return {
+            lastConnection: eleve?.derniere_connexion || (studentConnexions.length > 0 ? studentConnexions[0].timestamp : null),
+            totalVisits: studentConnexions.length,
+            pagesVisited,
+            recentConnexions: studentConnexions,
+            taches: studentTaches,
+            trainingsStarted: studentTaches.length,
+            trainingsCompleted: studentTaches.filter(t => t.statut === 'termine' || t.statut === 'corrige').length
+        };
+    },
+
     getPageVisitStats() {
         const stats = {};
-        this.connexions.forEach(c => {
+        const filteredConnexions = this.getFilteredConnexions();
+
+        filteredConnexions.forEach(c => {
             const page = c.page || 'unknown';
             stats[page] = (stats[page] || 0) + 1;
         });
+
         return Object.entries(stats)
             .map(([page, count]) => ({ page, count }))
             .sort((a, b) => b.count - a.count);
@@ -481,6 +667,33 @@ const AdminSuivi = {
     setTab(tab) {
         this.currentTab = tab;
         this.render();
+    },
+
+    setClassFilter(value) {
+        this.selectedClass = value;
+        this.render();
+    },
+
+    setPeriodFilter(value) {
+        this.selectedPeriod = value;
+        this.render();
+    },
+
+    showStudentDetail(studentId) {
+        this.selectedStudent = studentId;
+        this.render();
+    },
+
+    closeStudentDetail() {
+        this.selectedStudent = null;
+        this.render();
+    },
+
+    showInactiveStudents() {
+        this.currentTab = 'students';
+        this.render();
+        // Scroll to top
+        window.scrollTo(0, 0);
     },
 
     async refreshData() {
@@ -519,6 +732,19 @@ const AdminSuivi = {
     },
 
     // Utility functions
+    isInactive(dateStr) {
+        if (!dateStr) return true;
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        return new Date(dateStr) < sevenDaysAgo;
+    },
+
+    isRecentConnection(dateStr) {
+        if (!dateStr) return false;
+        const diffMs = new Date() - new Date(dateStr);
+        return diffMs < 24 * 60 * 60 * 1000;
+    },
+
     getInitials(name) {
         return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) || '?';
     },
@@ -578,12 +804,6 @@ const AdminSuivi = {
             return `${hours}h${mins % 60}`;
         }
         return `${mins} min`;
-    },
-
-    isRecentConnection(dateStr) {
-        if (!dateStr) return false;
-        const diffMs = new Date() - new Date(dateStr);
-        return diffMs < 24 * 60 * 60 * 1000; // Last 24h
     },
 
     escapeHtml(text) {
