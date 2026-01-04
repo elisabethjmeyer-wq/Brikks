@@ -1,5 +1,6 @@
 /**
  * Admin Banques d'exercices - Gestion des banques, formats et exercices
+ * Optimisé avec cache et appels parallèles
  */
 
 const AdminBanquesExercices = {
@@ -7,6 +8,10 @@ const AdminBanquesExercices = {
     banques: [],
     formats: [],
     exercices: [],
+
+    // Cache configuration
+    CACHE_KEY: 'brikks_admin_banques_cache',
+    CACHE_TTL: 3 * 60 * 1000, // 3 minutes pour admin (refresh plus fréquent)
 
     // Current tab type
     currentType: 'savoir-faire',
@@ -48,36 +53,104 @@ const AdminBanquesExercices = {
     // ========== INITIALIZATION ==========
     async init() {
         try {
-            await this.loadData();
-            this.setupEventListeners();
-            this.updateCounts();
-            this.renderBanques();
-            this.showContent();
+            // Try loading from cache first for instant display
+            const cached = this.loadFromCache();
+            if (cached) {
+                this.banques = cached.banques || [];
+                this.formats = cached.formats || [];
+                this.exercices = cached.exercices || [];
+                this.setupEventListeners();
+                this.updateCounts();
+                this.renderBanques();
+                this.showContent();
+                // Refresh in background
+                this.refreshDataInBackground();
+            } else {
+                // No cache, load fresh data
+                await this.loadData();
+                this.setupEventListeners();
+                this.updateCounts();
+                this.renderBanques();
+                this.showContent();
+            }
         } catch (error) {
             console.error('Erreur initialisation:', error);
             this.showError('Erreur lors du chargement des donnees');
         }
     },
 
-    async loadData() {
+    // ========== CACHE MANAGEMENT ==========
+    loadFromCache() {
         try {
-            // Load banques via API
-            const banquesResult = await this.callAPI('getBanquesExercices', {});
+            const cached = localStorage.getItem(this.CACHE_KEY);
+            if (!cached) return null;
+            const data = JSON.parse(cached);
+            if (data.timestamp && (Date.now() - data.timestamp) < this.CACHE_TTL) {
+                console.log('[Cache] Loaded from cache');
+                return data;
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    saveToCache() {
+        try {
+            localStorage.setItem(this.CACHE_KEY, JSON.stringify({
+                banques: this.banques,
+                formats: this.formats,
+                exercices: this.exercices,
+                timestamp: Date.now()
+            }));
+        } catch (e) {
+            console.warn('[Cache] Failed to save:', e);
+        }
+    },
+
+    clearCache() {
+        try {
+            localStorage.removeItem(this.CACHE_KEY);
+        } catch (e) {}
+    },
+
+    async refreshDataInBackground() {
+        try {
+            console.log('[Background] Refreshing data...');
+            await this.loadDataFromAPI();
+            this.updateCounts();
+            this.renderBanques();
+            console.log('[Background] Data refreshed');
+        } catch (e) {
+            console.warn('[Background] Refresh failed:', e);
+        }
+    },
+
+    async loadData() {
+        await this.loadDataFromAPI();
+    },
+
+    async loadDataFromAPI() {
+        try {
+            // PARALLEL API calls - much faster!
+            const [banquesResult, formatsResult, exercicesResult] = await Promise.all([
+                this.callAPI('getBanquesExercices', {}),
+                this.callAPI('getFormatsExercices', {}),
+                this.callAPI('getExercices', {})
+            ]);
+
             if (banquesResult.success) {
                 this.banques = banquesResult.data || [];
             }
-
-            // Load formats via API
-            const formatsResult = await this.callAPI('getFormatsExercices', {});
             if (formatsResult.success) {
                 this.formats = formatsResult.data || [];
             }
-
-            // Load exercices via API
-            const exercicesResult = await this.callAPI('getExercices', {});
             if (exercicesResult.success) {
                 this.exercices = exercicesResult.data || [];
             }
+
+            // Save to cache
+            this.saveToCache();
         } catch (error) {
             console.error('Erreur chargement donnees:', error);
             // Initialize with empty arrays if API fails
@@ -457,6 +530,27 @@ const AdminBanquesExercices = {
 
         const data = { type, titre, description, ordre, statut };
 
+        // OPTIMISTIC UI: Update immediately, sync in background
+        const tempId = id || 'temp_' + Date.now();
+        const optimisticBanque = { ...data, id: tempId };
+
+        if (id) {
+            // Update existing
+            const index = this.banques.findIndex(b => b.id === id);
+            if (index >= 0) {
+                this.banques[index] = { ...this.banques[index], ...data };
+            }
+        } else {
+            // Add new (temporarily)
+            this.banques.push(optimisticBanque);
+        }
+
+        // Update UI immediately
+        this.updateCounts();
+        this.renderBanques();
+        this.closeBanqueModal();
+
+        // Now sync with server in background
         try {
             let result;
             if (id) {
@@ -467,12 +561,21 @@ const AdminBanquesExercices = {
             }
 
             if (result.success) {
-                await this.loadData();
+                // If new item, replace temp ID with real ID
+                if (!id && result.id) {
+                    const tempIndex = this.banques.findIndex(b => b.id === tempId);
+                    if (tempIndex >= 0) {
+                        this.banques[tempIndex].id = result.id;
+                    }
+                }
+                // Save updated data to cache
+                this.saveToCache();
+            } else {
+                // Rollback on error
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                await this.loadDataFromAPI();
                 this.updateCounts();
                 this.renderBanques();
-                this.closeBanqueModal();
-            } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
             }
         } catch (error) {
             console.error('Erreur sauvegarde banque:', error);
@@ -684,6 +787,26 @@ const AdminBanquesExercices = {
             peut_tomber_en_eval, statut
         };
 
+        // OPTIMISTIC UI: Update immediately, sync in background
+        const tempId = id || 'temp_' + Date.now();
+        const optimisticExercice = { ...data, id: tempId, donnees };
+
+        if (id) {
+            // Update existing
+            const index = this.exercices.findIndex(e => e.id === id);
+            if (index >= 0) {
+                this.exercices[index] = { ...this.exercices[index], ...optimisticExercice };
+            }
+        } else {
+            // Add new (temporarily)
+            this.exercices.push(optimisticExercice);
+        }
+
+        // Update UI immediately
+        this.renderBanques();
+        this.closeExerciceModal();
+
+        // Now sync with server in background
         try {
             let result;
             if (id) {
@@ -694,11 +817,20 @@ const AdminBanquesExercices = {
             }
 
             if (result.success) {
-                await this.loadData();
-                this.renderBanques();
-                this.closeExerciceModal();
+                // If new item, replace temp ID with real ID
+                if (!id && result.id) {
+                    const tempIndex = this.exercices.findIndex(e => e.id === tempId);
+                    if (tempIndex >= 0) {
+                        this.exercices[tempIndex].id = result.id;
+                    }
+                }
+                // Save updated data to cache
+                this.saveToCache();
             } else {
+                // Rollback on error
                 alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                await this.loadDataFromAPI();
+                this.renderBanques();
             }
         } catch (error) {
             console.error('Erreur sauvegarde exercice:', error);
@@ -839,6 +971,26 @@ const AdminBanquesExercices = {
 
         const data = { nom, description, type_compatible, structure: JSON.stringify(structure) };
 
+        // OPTIMISTIC UI: Update immediately, sync in background
+        const tempId = id || 'temp_' + Date.now();
+        const optimisticFormat = { ...data, id: tempId, structure };
+
+        if (id) {
+            // Update existing
+            const index = this.formats.findIndex(f => f.id === id);
+            if (index >= 0) {
+                this.formats[index] = { ...this.formats[index], ...optimisticFormat };
+            }
+        } else {
+            // Add new (temporarily)
+            this.formats.push(optimisticFormat);
+        }
+
+        // Update UI immediately
+        this.renderFormatsList();
+        this.closeFormatEditModal();
+
+        // Now sync with server in background
         try {
             let result;
             if (id) {
@@ -849,11 +1001,20 @@ const AdminBanquesExercices = {
             }
 
             if (result.success) {
-                await this.loadData();
-                this.renderFormatsList();
-                this.closeFormatEditModal();
+                // If new item, replace temp ID with real ID
+                if (!id && result.id) {
+                    const tempIndex = this.formats.findIndex(f => f.id === tempId);
+                    if (tempIndex >= 0) {
+                        this.formats[tempIndex].id = result.id;
+                    }
+                }
+                // Save updated data to cache
+                this.saveToCache();
             } else {
+                // Rollback on error
                 alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                await this.loadDataFromAPI();
+                this.renderFormatsList();
             }
         } catch (error) {
             console.error('Erreur sauvegarde format:', error);
@@ -881,6 +1042,32 @@ const AdminBanquesExercices = {
         const type = document.getElementById('deleteType').value;
         const id = document.getElementById('deleteId').value;
 
+        // OPTIMISTIC UI: Remove immediately, sync in background
+        // Save backup for rollback
+        const backupBanques = [...this.banques];
+        const backupExercices = [...this.exercices];
+        const backupFormats = [...this.formats];
+
+        // Remove from local data immediately
+        if (type === 'banque') {
+            this.banques = this.banques.filter(b => b.id !== id);
+            // Also remove associated exercices
+            this.exercices = this.exercices.filter(e => e.banque_id !== id);
+        } else if (type === 'exercice') {
+            this.exercices = this.exercices.filter(e => e.id !== id);
+        } else if (type === 'format') {
+            this.formats = this.formats.filter(f => f.id !== id);
+        }
+
+        // Update UI immediately
+        this.updateCounts();
+        this.renderBanques();
+        if (type === 'format') {
+            this.renderFormatsList();
+        }
+        this.closeDeleteModal();
+
+        // Now sync with server in background
         try {
             let result;
             if (type === 'banque') {
@@ -892,17 +1079,30 @@ const AdminBanquesExercices = {
             }
 
             if (result && result.success) {
-                await this.loadData();
+                // Save updated data to cache
+                this.saveToCache();
+            } else {
+                // Rollback on error
+                this.banques = backupBanques;
+                this.exercices = backupExercices;
+                this.formats = backupFormats;
                 this.updateCounts();
                 this.renderBanques();
                 if (type === 'format') {
                     this.renderFormatsList();
                 }
-                this.closeDeleteModal();
-            } else {
                 alert('Erreur: ' + (result?.error || 'Erreur inconnue'));
             }
         } catch (error) {
+            // Rollback on error
+            this.banques = backupBanques;
+            this.exercices = backupExercices;
+            this.formats = backupFormats;
+            this.updateCounts();
+            this.renderBanques();
+            if (type === 'format') {
+                this.renderFormatsList();
+            }
             console.error('Erreur suppression:', error);
             alert('Erreur lors de la suppression');
         }
