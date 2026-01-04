@@ -212,7 +212,7 @@
 
             <!-- ===== BUILDERS PAR FORMAT ===== -->
 
-            <!-- Builder: tableau_saisie / document_tableau -->
+            <!-- Builder: tableau_saisie (simple tableau sans document) -->
             <div id="builderTableau" class="format-builder">
                 <div class="form-section">Construction du tableau</div>
 
@@ -281,7 +281,7 @@
                 </div>
             </div>
 
-            <!-- Builder: question_ouverte -->
+            <!-- Builder: question_ouverte (ancien, gardé pour compatibilité) -->
             <div id="builderQuestionOuverte" class="format-builder" style="display: none;">
                 <div class="form-section">Construction de la question ouverte</div>
 
@@ -300,6 +300,108 @@
                         <!-- Generated dynamically -->
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" id="addQuestionBtn">+ Ajouter une question</button>
+                </div>
+            </div>
+
+            <!-- Builder: document_mixte (nouveau format unifié) -->
+            <div id="builderDocumentMixte" class="format-builder" style="display: none;">
+                <div class="form-section">Construction de l'exercice</div>
+
+                <!-- Toggles pour activer les sections -->
+                <div class="mixte-toggles">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="toggleDocument" checked>
+                        <span class="toggle-text">📄 Document</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="toggleTableau">
+                        <span class="toggle-text">📊 Tableau à compléter</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="toggleQuestions">
+                        <span class="toggle-text">❓ Questions ouvertes</span>
+                    </label>
+                </div>
+
+                <!-- Layout principal: builder + preview -->
+                <div class="mixte-layout">
+                    <!-- Sections du builder (gauche) -->
+                    <div class="mixte-builder-sections" id="mixteBuilderSections">
+
+                        <!-- Section Document -->
+                        <div id="sectionDocument" class="mixte-section" data-section="document">
+                            <div class="section-header">
+                                <span class="drag-handle" title="Glisser pour réorganiser">⋮⋮</span>
+                                <h4>📄 Document</h4>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-row">
+                                    <label>URL du document</label>
+                                    <input type="text" class="form-input" id="docUrlMixte" placeholder="Lien Google Drive, image, PDF...">
+                                    <div class="form-help">Collez un lien Google Drive (image, PDF, Doc) ou une URL directe</div>
+                                </div>
+                                <div class="form-row">
+                                    <label>Titre du document</label>
+                                    <input type="text" class="form-input" id="docTitreMixte" placeholder="Ex: Doc. 1 - Titre du document">
+                                </div>
+                                <div class="form-row">
+                                    <label>Légende <span class="optional">(optionnel)</span></label>
+                                    <textarea class="form-textarea" id="docLegendeMixte" rows="2" placeholder="Légende du document..."></textarea>
+                                    <div class="form-help">Utilisez *texte* pour mettre en italique</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section Tableau -->
+                        <div id="sectionTableau" class="mixte-section" data-section="tableau" style="display: none;">
+                            <div class="section-header">
+                                <span class="drag-handle" title="Glisser pour réorganiser">⋮⋮</span>
+                                <h4>📊 Tableau à compléter</h4>
+                            </div>
+                            <div class="section-content">
+                                <div class="form-row">
+                                    <label>Titre du tableau <span class="optional">(optionnel)</span></label>
+                                    <input type="text" class="form-input" id="tableauTitreMixte" placeholder="Ex: À COMPLÉTER">
+                                </div>
+                                <div class="form-row">
+                                    <label>Colonnes</label>
+                                    <div class="columns-builder-mixte" id="columnsBuilderMixte"></div>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="addColumnMixteBtn">+ Colonne</button>
+                                </div>
+                                <div class="form-row">
+                                    <label>Lignes</label>
+                                    <div class="table-builder-wrapper">
+                                        <table class="table-builder" id="tableBuilderMixte">
+                                            <thead id="tableBuilderMixteHead"></thead>
+                                            <tbody id="tableBuilderMixteBody"></tbody>
+                                        </table>
+                                    </div>
+                                    <button type="button" class="btn btn-secondary btn-sm" id="addRowMixteBtn">+ Ligne</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section Questions -->
+                        <div id="sectionQuestions" class="mixte-section" data-section="questions" style="display: none;">
+                            <div class="section-header">
+                                <span class="drag-handle" title="Glisser pour réorganiser">⋮⋮</span>
+                                <h4>❓ Questions ouvertes</h4>
+                            </div>
+                            <div class="section-content">
+                                <div class="questions-list-mixte" id="questionsListMixte"></div>
+                                <button type="button" class="btn btn-secondary btn-sm" id="addQuestionMixteBtn">+ Ajouter une question</button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Aperçu en direct (droite) -->
+                    <div class="mixte-preview">
+                        <h4>Aperçu</h4>
+                        <div class="mixte-preview-content" id="mixtePreviewContent">
+                            <div class="preview-placeholder">Activez des sections pour voir l'aperçu</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
