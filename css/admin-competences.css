@@ -2,6 +2,41 @@
  * Admin Competences - Référentiel des compétences
  */
 
+/* Page Header */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.page-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-icon {
+    font-size: 1.5rem;
+}
+
+.page-subtitle {
+    color: #6b7280;
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9375rem;
+}
+
+.page-header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
 /* Stats Grid */
 .stats-grid {
     display: grid;
