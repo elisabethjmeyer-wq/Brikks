@@ -1625,7 +1625,7 @@
     color: rgba(255, 255, 255, 0.6);
 }
 
-/* Row element (label + placeholder) */
+/* Row element (label + answer) */
 .row-element .row-inputs {
     flex: 1;
     display: grid;
@@ -1644,13 +1644,13 @@
     background: var(--gray-50);
 }
 
-.row-element .placeholder-input {
-    background: #fef3c7;
-    border-color: #fbbf24;
+.row-element .answer-input {
+    background: #dcfce7;
+    border-color: #22c55e;
 }
 
-.row-element .placeholder-input::placeholder {
-    color: #92400e;
+.row-element .answer-input::placeholder {
+    color: #166534;
 }
 
 .tableau-element .btn-remove {
@@ -1723,6 +1723,35 @@
     color: #92400e;
     font-size: 0.85rem;
     font-style: italic;
+}
+
+.preview-tableau-row .row-input-preview {
+    padding: 0.5rem 1rem;
+    background: #f9fafb;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.preview-tableau-row .preview-input {
+    width: 100%;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    background: white;
+}
+
+.preview-tableau-row .answer-hint {
+    font-size: 0.75rem;
+    color: #16a34a;
+    font-weight: 500;
+}
+
+.preview-tableau-row .answer-missing {
+    font-size: 0.75rem;
+    color: #dc2626;
+    font-weight: 500;
 }
 
 /* Responsive */

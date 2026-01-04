@@ -978,12 +978,15 @@ const EleveExercices = {
                 if (el.type === 'section') {
                     return `<div class="mixte-tableau-section-row">${this.escapeHtml(el.text)}</div>`;
                 } else {
+                    // Show empty input - the reponse is stored in data attribute for validation
+                    const placeholder = el.placeholder || '';
                     return `
                         <div class="mixte-tableau-row">
                             <div class="row-label">${this.escapeHtml(el.label)}</div>
                             <div class="row-input">
                                 <input type="text" class="cell-input" id="mixte_element_${idx}"
-                                       placeholder="${this.escapeHtml(el.placeholder)}" data-index="${idx}">
+                                       placeholder="${this.escapeHtml(placeholder)}" data-index="${idx}"
+                                       data-reponse="${this.escapeHtml(el.reponse || '')}">
                             </div>
                         </div>
                     `;
@@ -1262,20 +1265,28 @@ const EleveExercices = {
             // New flexible format with elements
             if (this.mixteTableauElements && this.mixteTableauElements.length > 0) {
                 this.mixteTableauElements.forEach((el, idx) => {
-                    if (el.type === 'row') {
+                    if (el.type === 'row' && el.reponse) {
                         total++;
                         const input = document.getElementById(`mixte_element_${idx}`);
                         if (input) {
-                            // For flexible format, we just show the placeholder as expected answer
-                            // (Since there's no "correct" answer stored, we just disable the input)
+                            const userAnswer = this.normalizeAnswer(input.value);
+                            const correctAnswer = this.normalizeAnswer(el.reponse);
+
+                            if (userAnswer === correctAnswer && userAnswer !== '') {
+                                input.classList.add('correct');
+                                correct++;
+                            } else {
+                                input.classList.add('incorrect');
+                                // Show the correct answer
+                                const correctionSpan = document.createElement('span');
+                                correctionSpan.className = 'expected-answer';
+                                correctionSpan.textContent = el.reponse;
+                                input.parentNode.appendChild(correctionSpan);
+                            }
                             input.disabled = true;
-                            // Mark as completed (no right/wrong for free text)
-                            input.classList.add('completed');
                         }
                     }
                 });
-                // Reset total for flexible format (no scoring)
-                total = 0;
             } else {
                 // Old format with colonnes/lignes
                 const colonnes = this.mixteTableauColonnes || [];
