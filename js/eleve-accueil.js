@@ -95,7 +95,7 @@ const EleveAccueil = {
                     </div>
                     <div class="slide-content">
                         <h3 class="slide-title">${this.escapeHtml(v.titre)}</h3>
-                        <p class="slide-desc">${this.escapeHtml(this.truncate(v.description, 150))}</p>
+                        <p class="slide-desc">${this.escapeHtml(this.truncate(v.description, 300))}</p>
                         <span class="slide-date">📅 ${this.formatDate(v.date_publication)}</span>
                     </div>
                 </div>
@@ -120,7 +120,7 @@ const EleveAccueil = {
                     </div>
                     <div class="slide-content">
                         <h3 class="slide-title">${this.escapeHtml(r.titre)}</h3>
-                        <p class="slide-desc">${this.escapeHtml(this.truncate(r.description, 150))}</p>
+                        <p class="slide-desc">${this.escapeHtml(this.truncate(r.description, 300))}</p>
                         <span class="slide-date">📅 ${this.formatDate(r.date_publication)}</span>
                     </div>
                 </div>
