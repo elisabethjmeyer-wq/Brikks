@@ -123,9 +123,9 @@ const EleveVideos = {
         const messageText = document.getElementById('messageText');
 
         if (messageSection && messageText) {
-            if (video.description && video.description.trim()) {
+            if ((video.description && video.description.trim()) || (video.description_html && video.description_html.trim())) {
                 messageSection.style.display = 'flex';
-                messageText.innerHTML = this.formatDescription(video.description);
+                messageText.innerHTML = this.formatDescription(video.description, video.description_html);
             } else {
                 messageSection.style.display = 'none';
             }
@@ -161,27 +161,46 @@ const EleveVideos = {
         if (list) {
             list.innerHTML = archiveVideos.map(video => {
                 const isWatched = this.isVideoWatched(video.id);
+                const hasDesc = (video.description && video.description.trim()) || (video.description_html && video.description_html.trim());
 
                 return `
-                    <div class="video-item" onclick="EleveVideos.openVideo('${video.id}')">
-                        <div class="video-thumb">
-                            <div class="play">▶</div>
-                        </div>
-                        <div class="video-info">
-                            <div class="video-title">${this.escapeHtml(video.titre)}</div>
-                            <div class="video-meta">
-                                <span>${this.formatDate(video.date_publication)}</span>
-                                ${video.tags ? `<span>•</span><span>${this.escapeHtml(video.tags)}</span>` : ''}
+                    <div class="video-item-container">
+                        <div class="video-item" onclick="EleveVideos.openVideo('${video.id}')">
+                            <div class="video-thumb">
+                                <div class="play">▶</div>
                             </div>
+                            <div class="video-info">
+                                <div class="video-title">${this.escapeHtml(video.titre)}</div>
+                                <div class="video-meta">
+                                    <span>${this.formatDate(video.date_publication)}</span>
+                                    ${video.tags ? `<span>•</span><span>${this.escapeHtml(video.tags)}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="video-status ${isWatched ? 'watched' : 'not-watched'}">
+                                <span>${isWatched ? '✓' : '○'}</span>
+                                ${isWatched ? 'Vue' : ''}
+                            </div>
+                            ${hasDesc ? `<button class="video-expand" onclick="event.stopPropagation(); EleveVideos.toggleDescription('${video.id}')" title="Voir le message">📝</button>` : ''}
+                            <span class="video-arrow">→</span>
                         </div>
-                        <div class="video-status ${isWatched ? 'watched' : 'not-watched'}">
-                            <span>${isWatched ? '✓' : '○'}</span>
-                            ${isWatched ? 'Vue' : ''}
-                        </div>
-                        <span class="video-arrow">→</span>
+                        ${hasDesc ? `
+                            <div class="video-description collapsed" id="desc-${video.id}">
+                                <div class="video-description-content">${this.formatDescription(video.description, video.description_html)}</div>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('');
+        }
+    },
+
+    /**
+     * Affiche/masque la description d'une vidéo
+     */
+    toggleDescription(videoId) {
+        const descEl = document.getElementById(`desc-${videoId}`);
+        if (descEl) {
+            descEl.classList.toggle('collapsed');
         }
     },
 
@@ -376,9 +395,14 @@ const EleveVideos = {
     },
 
     /**
-     * Formate la description
+     * Formate la description (supporte HTML enrichi ou texte simple)
      */
-    formatDescription(text) {
+    formatDescription(text, htmlContent) {
+        // Si du HTML enrichi est disponible, l'utiliser directement
+        if (htmlContent && htmlContent.trim()) {
+            return htmlContent;
+        }
+        // Sinon, formater le texte simple
         if (!text) return '';
         return this.escapeHtml(text).replace(/\n/g, '<br>');
     },
