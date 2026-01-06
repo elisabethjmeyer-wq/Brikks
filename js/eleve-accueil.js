@@ -86,8 +86,8 @@ const EleveAccueil = {
             slides.push(`
                 <div class="slide slide-video" data-type="video">
                     <div class="slide-visual-container">
-                        <div class="slide-visual" style="background-image: url('${thumb}')" onclick="EleveAccueil.playVideo(this)" data-embed="${embedUrl || ''}">
-                            <div class="slide-overlay">
+                        <div class="slide-visual ${thumb ? '' : 'no-thumb'}" ${thumb ? `style="background-image: url('${thumb}')"` : ''} onclick="EleveAccueil.playVideo(this)" data-embed="${embedUrl || ''}">
+                            <div class="slide-overlay ${thumb ? '' : 'always-visible'}">
                                 <div class="play-btn">▶</div>
                             </div>
                             <span class="slide-badge video">🎬 Vidéo de la semaine</span>
@@ -95,8 +95,11 @@ const EleveAccueil = {
                     </div>
                     <div class="slide-content">
                         <h3 class="slide-title">${this.escapeHtml(v.titre)}</h3>
-                        <p class="slide-desc">${this.escapeHtml(this.truncate(v.description, 150))}</p>
-                        <span class="slide-date">📅 ${this.formatDate(v.date_publication)}</span>
+                        <p class="slide-desc">${this.formatDescription(v.description, 300)}</p>
+                        <div class="slide-footer">
+                            <span class="slide-date">📅 ${this.formatDate(v.date_publication)}</span>
+                            <a href="videos.html" class="slide-archive-link">Toutes les vidéos →</a>
+                        </div>
                     </div>
                 </div>
             `);
@@ -107,21 +110,26 @@ const EleveAccueil = {
             const r = this.featuredReco;
             const icon = this.typeIcons[r.type] || '📌';
             const img = this.getDirectImageUrl(r.image_url);
+            const isVideo = r.type === 'video' || r.type === 'podcast';
+            const playIcon = isVideo ? '▶' : icon;
             slides.push(`
                 <div class="slide slide-reco" data-type="reco">
                     <div class="slide-visual-container" onclick="EleveAccueil.openReco()">
                         <div class="slide-visual ${img ? '' : 'no-image'}" ${img ? `style="background-image: url('${img}')"` : ''}>
                             ${!img ? `<span class="slide-icon">${icon}</span>` : ''}
-                            <div class="slide-overlay">
-                                <div class="play-btn">${icon}</div>
+                            <div class="slide-overlay ${isVideo ? 'video-overlay' : ''}">
+                                <div class="play-btn">${playIcon}</div>
                             </div>
-                            <span class="slide-badge reco">💡 Recommandation</span>
+                            <span class="slide-badge reco">${icon} Recommandation</span>
                         </div>
                     </div>
                     <div class="slide-content">
                         <h3 class="slide-title">${this.escapeHtml(r.titre)}</h3>
-                        <p class="slide-desc">${this.escapeHtml(this.truncate(r.description, 150))}</p>
-                        <span class="slide-date">📅 ${this.formatDate(r.date_publication)}</span>
+                        <p class="slide-desc">${this.formatDescription(r.description, 300)}</p>
+                        <div class="slide-footer">
+                            <span class="slide-date">📅 ${this.formatDate(r.date_publication)}</span>
+                            <a href="recommandations.html" class="slide-archive-link">Toutes les recos →</a>
+                        </div>
                     </div>
                 </div>
             `);
@@ -155,19 +163,6 @@ const EleveAccueil = {
                         <button class="carousel-arrow next" onclick="EleveAccueil.nextSlide()">›</button>
                     </div>
                 ` : ''}
-            </div>
-
-            <div class="quick-links">
-                <a href="videos.html" class="quick-link">
-                    <span class="quick-icon">🎬</span>
-                    <span class="quick-text">Toutes les vidéos</span>
-                    <span class="quick-arrow">→</span>
-                </a>
-                <a href="recommandations.html" class="quick-link">
-                    <span class="quick-icon">💡</span>
-                    <span class="quick-text">Toutes les recommandations</span>
-                    <span class="quick-arrow">→</span>
-                </a>
             </div>
         `;
     },
@@ -278,8 +273,15 @@ const EleveAccueil = {
     // Helpers
     getThumbnail(url) {
         if (!url) return '';
+        // Loom
+        const loom = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+        if (loom) return `https://cdn.loom.com/sessions/thumbnails/${loom[1]}-with-play.gif`;
+        // YouTube
         const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
         if (yt) return `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;
+        // Vimeo (placeholder)
+        const vimeo = url.match(/vimeo\.com\/(\d+)/);
+        if (vimeo) return `https://vumbnail.com/${vimeo[1]}.jpg`;
         return '';
     },
 
@@ -316,6 +318,33 @@ const EleveAccueil = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    /**
+     * Formate la description avec sauts de ligne et formatage basique
+     * Supporte: **gras**, *italique*, _souligné_, sauts de ligne
+     */
+    formatDescription(text, maxLength = 300) {
+        if (!text) return '';
+
+        // Tronquer si nécessaire
+        let truncated = text.length > maxLength ? text.substring(0, maxLength).trim() + '...' : text;
+
+        // Échapper le HTML d'abord
+        truncated = this.escapeHtml(truncated);
+
+        // Convertir les sauts de ligne en <br>
+        truncated = truncated.replace(/\n/g, '<br>');
+
+        // Formatage basique (après escape pour éviter XSS)
+        // **texte** → gras
+        truncated = truncated.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        // *texte* → italique
+        truncated = truncated.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        // _texte_ → souligné
+        truncated = truncated.replace(/_(.+?)_/g, '<u>$1</u>');
+
+        return truncated;
     }
 };
 
