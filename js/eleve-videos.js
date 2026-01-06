@@ -78,73 +78,58 @@ const EleveVideos = {
             return;
         }
 
-        if (featuredSection) featuredSection.style.display = 'flex';
+        if (featuredSection) featuredSection.style.display = 'block';
 
         const video = this.featuredVideo;
         const isWatched = this.isVideoWatched(video.id);
-        const thumbnail = this.getThumbnail(video.url);
+        const embedUrl = this.getEmbedUrl(video.url);
 
-        // Image/Thumbnail
-        const imageContainer = document.getElementById('featuredImage');
-        if (imageContainer) {
-            if (thumbnail) {
-                imageContainer.innerHTML = `
-                    <img src="${thumbnail}" alt="${this.escapeHtml(video.titre)}">
-                    <div class="featured-play-btn">▶</div>
-                `;
+        // Video placeholder
+        const placeholder = document.getElementById('videoPlaceholder');
+        const container = document.getElementById('videoContainer');
+
+        if (placeholder && container) {
+            document.getElementById('placeholderTitle').textContent = video.titre;
+            document.getElementById('placeholderSubtitle').textContent = this.formatDate(video.date_publication);
+
+            placeholder.onclick = () => {
+                if (embedUrl) {
+                    container.innerHTML = `<iframe src="${embedUrl}" allowfullscreen></iframe>`;
+                    this.markAsWatched(video.id);
+                    this.renderArchivesList(); // Mettre à jour le statut dans la liste
+                } else {
+                    this.openPopup(video.url, video.titre);
+                }
+            };
+        }
+
+        // Info section
+        const info = document.getElementById('featuredInfo');
+        if (info) {
+            info.innerHTML = `
+                <div class="featured-meta">
+                    <span class="featured-title">${this.escapeHtml(video.titre)}</span>
+                    <span class="featured-date">${this.formatDate(video.date_publication)}</span>
+                </div>
+                <div class="watch-status ${isWatched ? 'watched' : 'not-watched'}">
+                    <span>${isWatched ? '✓' : '○'}</span>
+                    ${isWatched ? 'Vue' : 'Pas encore vue'}
+                </div>
+            `;
+        }
+
+        // Message joint
+        const messageSection = document.getElementById('featuredMessage');
+        const messageText = document.getElementById('messageText');
+
+        if (messageSection && messageText) {
+            if ((video.description && video.description.trim()) || (video.description_html && video.description_html.trim())) {
+                messageSection.style.display = 'flex';
+                messageText.innerHTML = this.formatDescription(video.description, video.description_html);
             } else {
-                imageContainer.innerHTML = `
-                    <span class="featured-icon">🎬</span>
-                    <div class="featured-play-btn">▶</div>
-                `;
+                messageSection.style.display = 'none';
             }
         }
-
-        // Titre
-        const titleEl = document.getElementById('featuredTitle');
-        if (titleEl) titleEl.textContent = video.titre;
-
-        // Description
-        const descEl = document.getElementById('featuredDescription');
-        if (descEl) {
-            descEl.innerHTML = this.formatDescription(video.description, video.description_html);
-        }
-
-        // Date
-        const dateEl = document.getElementById('featuredDate');
-        if (dateEl) dateEl.textContent = this.formatDate(video.date_publication);
-
-        // Statut
-        const statusEl = document.getElementById('featuredWatchStatus');
-        if (statusEl) {
-            statusEl.className = `watch-status ${isWatched ? 'watched' : 'not-watched'}`;
-            statusEl.innerHTML = isWatched ? '✓ Vue' : '○ Pas encore vue';
-        }
-
-        // Click pour ouvrir en popup
-        featuredSection.onclick = () => {
-            this.markAsWatched(video.id);
-            this.openPopup(video.url, video.titre);
-            this.renderFeaturedVideo(); // Mettre à jour le statut
-            this.renderArchivesList();
-        };
-    },
-
-    /**
-     * Récupère la miniature d'une vidéo
-     */
-    getThumbnail(url) {
-        if (!url) return '';
-        // Loom
-        const loom = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
-        if (loom) return `https://cdn.loom.com/sessions/thumbnails/${loom[1]}-00001.jpg`;
-        // YouTube
-        const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
-        if (yt) return `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;
-        // Vimeo
-        const vimeo = url.match(/vimeo\.com\/(\d+)/);
-        if (vimeo) return `https://vumbnail.com/${vimeo[1]}.jpg`;
-        return '';
     },
 
     /**
