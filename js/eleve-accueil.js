@@ -87,7 +87,7 @@ const EleveAccueil = {
                 <div class="slide slide-video" data-type="video">
                     <div class="slide-visual-container">
                         <div class="slide-visual ${thumb ? '' : 'no-thumb'}" ${thumb ? `style="background-image: url('${thumb}')"` : ''} onclick="EleveAccueil.playVideo(this)" data-embed="${embedUrl || ''}">
-                            <div class="slide-overlay ${thumb ? '' : 'always-visible'}">
+                            <div class="slide-overlay always-visible">
                                 <div class="play-btn">▶</div>
                             </div>
                             <span class="slide-badge video">🎬 Vidéo de la semaine</span>
@@ -95,7 +95,7 @@ const EleveAccueil = {
                     </div>
                     <div class="slide-content">
                         <h3 class="slide-title">${this.escapeHtml(v.titre)}</h3>
-                        <p class="slide-desc">${this.formatDescription(v.description, 300)}</p>
+                        <p class="slide-desc">${this.formatDescription(v.description, 500)}</p>
                         <div class="slide-footer">
                             <span class="slide-date">📅 ${this.formatDate(v.date_publication)}</span>
                             <a href="videos.html" class="slide-archive-link">Toutes les vidéos →</a>
@@ -125,10 +125,10 @@ const EleveAccueil = {
                     </div>
                     <div class="slide-content">
                         <h3 class="slide-title">${this.escapeHtml(r.titre)}</h3>
-                        <p class="slide-desc">${this.formatDescription(r.description, 300)}</p>
+                        <p class="slide-desc">${this.formatDescription(r.description, 500)}</p>
                         <div class="slide-footer">
                             <span class="slide-date">📅 ${this.formatDate(r.date_publication)}</span>
-                            <a href="recommandations.html" class="slide-archive-link">Toutes les recos →</a>
+                            <a href="recommandations.html" class="slide-archive-link">Toutes les recommandations →</a>
                         </div>
                     </div>
                 </div>
@@ -273,9 +273,12 @@ const EleveAccueil = {
     // Helpers
     getThumbnail(url) {
         if (!url) return '';
-        // Loom
+        // Loom - utilise l'API oembed pour obtenir la vraie miniature
         const loom = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
-        if (loom) return `https://cdn.loom.com/sessions/thumbnails/${loom[1]}-with-play.gif`;
+        if (loom) {
+            // Format standard Loom thumbnail
+            return `https://cdn.loom.com/sessions/thumbnails/${loom[1]}-00001.jpg`;
+        }
         // YouTube
         const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
         if (yt) return `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;

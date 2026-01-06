@@ -300,6 +300,33 @@ const AdminVideos = {
                 }
             });
         });
+
+        // Éditeur de texte enrichi
+        this.initRichTextEditor();
+    },
+
+    /**
+     * Initialise l'éditeur de texte enrichi
+     */
+    initRichTextEditor() {
+        // Boutons de la barre d'outils
+        document.querySelectorAll('.editor-btn[data-cmd]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const cmd = btn.dataset.cmd;
+                document.execCommand(cmd, false, null);
+                document.getElementById('videoDescription')?.focus();
+            });
+        });
+
+        // Sélecteur de couleur
+        document.getElementById('textColor')?.addEventListener('change', (e) => {
+            if (e.target.value) {
+                document.execCommand('foreColor', false, e.target.value);
+                e.target.value = ''; // Reset
+                document.getElementById('videoDescription')?.focus();
+            }
+        });
     },
 
     /**
@@ -321,7 +348,7 @@ const AdminVideos = {
         document.getElementById('videoId').value = '';
         document.getElementById('videoTitre').value = '';
         document.getElementById('videoUrl').value = '';
-        document.getElementById('videoDescription').value = '';
+        document.getElementById('videoDescription').innerHTML = '';
         document.getElementById('videoDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('videoTags').value = '';
 
@@ -341,12 +368,26 @@ const AdminVideos = {
         document.getElementById('videoId').value = video.id;
         document.getElementById('videoTitre').value = video.titre || '';
         document.getElementById('videoUrl').value = video.url || '';
-        document.getElementById('videoDescription').value = video.description || '';
+        // Support pour HTML enrichi ou texte simple
+        const descEl = document.getElementById('videoDescription');
+        if (video.description_html) {
+            descEl.innerHTML = video.description_html;
+        } else {
+            descEl.innerHTML = this.textToHtml(video.description || '');
+        }
         document.getElementById('videoDate').value = video.date_publication || '';
         document.getElementById('videoTags').value = video.tags || '';
 
         this.updatePreview(video.url || '');
         document.getElementById('videoModal').classList.remove('hidden');
+    },
+
+    /**
+     * Convertit du texte simple en HTML (pour la rétrocompatibilité)
+     */
+    textToHtml(text) {
+        if (!text) return '';
+        return this.escapeHtml(text).replace(/\n/g, '<br>');
     },
 
     /**
@@ -412,7 +453,10 @@ const AdminVideos = {
     async saveVideo() {
         const titre = document.getElementById('videoTitre').value.trim();
         const url = document.getElementById('videoUrl').value.trim();
-        const description = document.getElementById('videoDescription').value.trim();
+        const descEl = document.getElementById('videoDescription');
+        const descriptionHtml = descEl.innerHTML.trim();
+        // Extraire le texte brut pour compatibilité
+        const description = descEl.innerText.trim();
         const date = document.getElementById('videoDate').value;
         const tags = document.getElementById('videoTags').value.trim();
 
@@ -430,6 +474,7 @@ const AdminVideos = {
                 titre,
                 url,
                 description,
+                description_html: descriptionHtml,
                 date_publication: date,
                 tags,
                 est_featured: 'FALSE'

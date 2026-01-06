@@ -136,11 +136,30 @@
 
             <div class="form-group">
                 <label>📝 Message / Infos importantes (optionnel)</label>
-                <textarea class="form-textarea" id="videoDescription" rows="5" placeholder="Ex:
+                <div class="editor-toolbar">
+                    <button type="button" class="editor-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+                    <button type="button" class="editor-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+                    <button type="button" class="editor-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
+                    <span class="editor-separator"></span>
+                    <button type="button" class="editor-btn" data-cmd="justifyLeft" title="Aligner à gauche">⬅</button>
+                    <button type="button" class="editor-btn" data-cmd="justifyCenter" title="Centrer">⬌</button>
+                    <button type="button" class="editor-btn" data-cmd="justifyRight" title="Aligner à droite">➡</button>
+                    <span class="editor-separator"></span>
+                    <button type="button" class="editor-btn" data-cmd="insertUnorderedList" title="Liste à puces">•</button>
+                    <select class="editor-color" id="textColor" title="Couleur du texte">
+                        <option value="">Couleur</option>
+                        <option value="#ef4444">Rouge</option>
+                        <option value="#f59e0b">Orange</option>
+                        <option value="#10b981">Vert</option>
+                        <option value="#3b82f6">Bleu</option>
+                        <option value="#8b5cf6">Violet</option>
+                    </select>
+                </div>
+                <div class="editor-content" id="videoDescription" contenteditable="true" placeholder="Ex:
 • Contrôle d'histoire vendredi sur le chapitre 3
 • Penser à rendre le DM de géographie
-• Réviser les dates clés de la Révolution"></textarea>
-                <p class="form-help">💡 Ce texte s'affichera sous la vidéo côté élève</p>
+• Réviser les dates clés de la Révolution"></div>
+                <p class="form-help">💡 Ce texte s'affichera sous la vidéo côté élève. Utilisez les boutons pour la mise en forme.</p>
             </div>
 
             <div class="form-row">
