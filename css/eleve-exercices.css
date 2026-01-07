@@ -1232,11 +1232,14 @@ textarea.answered {
     margin-top: 1rem;
     padding: 0.75rem 1rem;
     text-align: center;
-    font-style: italic;
     color: #6b7280;
     font-size: 0.9rem;
     background: #f9fafb;
     border-radius: 6px;
+}
+
+.mixte-doc-legend em {
+    font-style: italic;
 }
 
 .doc-text-content {

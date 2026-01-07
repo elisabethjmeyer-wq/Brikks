@@ -13,7 +13,10 @@ const AdminBanquesExercices = {
 
     // Cache configuration
     CACHE_KEY: 'brikks_admin_banques_cache',
-    CACHE_TTL: 3 * 60 * 1000, // 3 minutes pour admin (refresh plus fréquent)
+    CACHE_TTL: 10 * 60 * 1000, // 10 minutes pour admin (optimisation performance)
+
+    // Debounce timer
+    searchDebounceTimer: null,
 
     // Current tab type
     currentType: 'savoir-faire',
@@ -271,10 +274,14 @@ const AdminBanquesExercices = {
             });
         });
 
-        // Search
+        // Search with debounce for better performance
         document.getElementById('searchInput').addEventListener('input', (e) => {
             this.filters.search = e.target.value.toLowerCase();
-            this.renderBanques();
+            // Debounce: wait 300ms before re-rendering
+            clearTimeout(this.searchDebounceTimer);
+            this.searchDebounceTimer = setTimeout(() => {
+                this.renderBanques();
+            }, 300);
         });
 
         // Filter statut
@@ -349,6 +356,80 @@ const AdminBanquesExercices = {
             document.getElementById(id).addEventListener('click', (e) => {
                 if (e.target.classList.contains('modal-overlay')) {
                     document.getElementById(id).classList.add('hidden');
+                }
+            });
+        });
+
+        // Initialize WYSIWYG editors
+        this.initWysiwygEditor();
+    },
+
+    // ========== WYSIWYG EDITOR ==========
+    initWysiwygEditor() {
+        // Apply formatting commands from toolbar buttons
+        document.querySelectorAll('.editor-toolbar .editor-btn[data-cmd]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const cmd = btn.dataset.cmd;
+                document.execCommand(cmd, false, null);
+                // Keep focus in editor
+                const toolbar = btn.closest('.editor-toolbar');
+                const editor = toolbar?.nextElementSibling;
+                if (editor && editor.classList.contains('editor-content')) {
+                    editor.focus();
+                }
+                this.updateMixtePreview();
+            });
+        });
+
+        // Color selectors
+        document.querySelectorAll('.editor-color').forEach(select => {
+            select.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    document.execCommand('foreColor', false, e.target.value);
+                    e.target.value = '';
+                    const toolbar = select.closest('.editor-toolbar');
+                    const editor = toolbar?.nextElementSibling;
+                    if (editor && editor.classList.contains('editor-content')) {
+                        editor.focus();
+                    }
+                    this.updateMixtePreview();
+                }
+            });
+        });
+
+        // Update preview on input in editors
+        const docTexteEditor = document.getElementById('docTexteMixte');
+        if (docTexteEditor) {
+            docTexteEditor.addEventListener('input', () => this.updateMixtePreview());
+        }
+    },
+
+    // Initialize WYSIWYG for dynamically created question editors
+    initQuestionWysiwyg(container) {
+        container.querySelectorAll('.editor-btn[data-cmd]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const cmd = btn.dataset.cmd;
+                document.execCommand(cmd, false, null);
+                const toolbar = btn.closest('.editor-toolbar');
+                const editor = toolbar?.nextElementSibling;
+                if (editor && editor.classList.contains('editor-content')) {
+                    editor.focus();
+                }
+            });
+        });
+
+        container.querySelectorAll('.editor-color').forEach(select => {
+            select.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    document.execCommand('foreColor', false, e.target.value);
+                    e.target.value = '';
+                    const toolbar = select.closest('.editor-toolbar');
+                    const editor = toolbar?.nextElementSibling;
+                    if (editor && editor.classList.contains('editor-content')) {
+                        editor.focus();
+                    }
                 }
             });
         });
@@ -564,6 +645,22 @@ const AdminBanquesExercices = {
         }
     },
 
+    // Set loading state on a button
+    setButtonLoading(btnId, loading) {
+        const btn = document.getElementById(btnId);
+        if (!btn) return;
+        if (loading) {
+            btn.disabled = true;
+            btn.dataset.originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="btn-spinner"></span> Chargement...';
+        } else {
+            btn.disabled = false;
+            if (btn.dataset.originalText) {
+                btn.innerHTML = btn.dataset.originalText;
+            }
+        }
+    },
+
     async saveBanque() {
         const id = document.getElementById('editBanqueId').value;
         const type = document.querySelector('input[name="banqueType"]:checked').value;
@@ -576,6 +673,9 @@ const AdminBanquesExercices = {
             alert('Le titre est requis');
             return;
         }
+
+        // Show loading state
+        this.setButtonLoading('saveBanqueBtn', true);
 
         const data = { type, titre, description, ordre, statut };
 
@@ -1965,7 +2065,7 @@ const AdminBanquesExercices = {
         const docTypeUrl = document.querySelector('input[name="docType"][value="url"]');
         if (docTypeUrl) docTypeUrl.checked = true;
         const docTexteEl = document.getElementById('docTexteMixte');
-        if (docTexteEl) docTexteEl.value = '';
+        if (docTexteEl) docTexteEl.innerHTML = '';
         this.toggleDocType('url');
 
         // Show/hide sections
@@ -2053,7 +2153,7 @@ const AdminBanquesExercices = {
         // Set document fields
         document.getElementById('docUrlMixte').value = this.mixteBuilder.document.url || '';
         const docTexteEl = document.getElementById('docTexteMixte');
-        if (docTexteEl) docTexteEl.value = this.mixteBuilder.document.texte || '';
+        if (docTexteEl) docTexteEl.innerHTML = this.mixteBuilder.document.texte || '';
         document.getElementById('docTitreMixte').value = this.mixteBuilder.document.titre || '';
         document.getElementById('docLegendeMixte').value = this.mixteBuilder.document.legende || '';
 
@@ -2336,18 +2436,68 @@ const AdminBanquesExercices = {
     renderMixteQuestions() {
         const container = document.getElementById('questionsListMixte');
         container.innerHTML = this.mixteBuilder.questions.liste.map((q, i) => `
-            <div class="question-item-mixte">
+            <div class="question-item-mixte" data-index="${i}">
                 <div class="question-header">
                     <span class="question-label">Question ${i + 1}</span>
                     <button type="button" class="btn-icon" onclick="AdminBanquesExercices.removeQuestionMixte(${i})">×</button>
                 </div>
-                <textarea placeholder="Texte de la question..."
-                          onchange="AdminBanquesExercices.updateMixteQuestion(${i}, 'question', this.value)">${this.escapeHtml(q.question)}</textarea>
+                <div class="wysiwyg-editor-container">
+                    <div class="editor-toolbar">
+                        <button type="button" class="editor-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+                        <button type="button" class="editor-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+                        <button type="button" class="editor-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
+                        <span class="editor-separator"></span>
+                        <button type="button" class="editor-btn" data-cmd="justifyLeft" title="Gauche">⬅</button>
+                        <button type="button" class="editor-btn" data-cmd="justifyCenter" title="Centre">⬌</button>
+                        <button type="button" class="editor-btn" data-cmd="justifyRight" title="Droite">➡</button>
+                        <span class="editor-separator"></span>
+                        <select class="editor-color" title="Couleur">
+                            <option value="">🎨</option>
+                            <option value="#ef4444">Rouge</option>
+                            <option value="#f59e0b">Orange</option>
+                            <option value="#10b981">Vert</option>
+                            <option value="#3b82f6">Bleu</option>
+                        </select>
+                    </div>
+                    <div class="editor-content" contenteditable="true" placeholder="Texte de la question..."
+                         data-field="question" data-index="${i}">${q.question || ''}</div>
+                </div>
                 <div class="question-label" style="margin-top:0.5rem;">Réponse attendue (pour correction)</div>
-                <textarea placeholder="Réponse modèle..."
-                          onchange="AdminBanquesExercices.updateMixteQuestion(${i}, 'reponse_attendue', this.value)">${this.escapeHtml(q.reponse_attendue)}</textarea>
+                <div class="wysiwyg-editor-container">
+                    <div class="editor-toolbar">
+                        <button type="button" class="editor-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+                        <button type="button" class="editor-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+                        <button type="button" class="editor-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
+                        <span class="editor-separator"></span>
+                        <button type="button" class="editor-btn" data-cmd="justifyLeft" title="Gauche">⬅</button>
+                        <button type="button" class="editor-btn" data-cmd="justifyCenter" title="Centre">⬌</button>
+                        <button type="button" class="editor-btn" data-cmd="justifyRight" title="Droite">➡</button>
+                        <span class="editor-separator"></span>
+                        <select class="editor-color" title="Couleur">
+                            <option value="">🎨</option>
+                            <option value="#ef4444">Rouge</option>
+                            <option value="#f59e0b">Orange</option>
+                            <option value="#10b981">Vert</option>
+                            <option value="#3b82f6">Bleu</option>
+                        </select>
+                    </div>
+                    <div class="editor-content" contenteditable="true" placeholder="Réponse modèle..."
+                         data-field="reponse_attendue" data-index="${i}">${q.reponse_attendue || ''}</div>
+                </div>
             </div>
         `).join('');
+
+        // Initialize WYSIWYG for newly created editors
+        this.initQuestionWysiwyg(container);
+
+        // Add input listeners to update data
+        container.querySelectorAll('.editor-content').forEach(editor => {
+            editor.addEventListener('input', () => {
+                const index = parseInt(editor.dataset.index);
+                const field = editor.dataset.field;
+                this.mixteBuilder.questions.liste[index][field] = editor.innerHTML;
+            });
+        });
     },
 
     updateMixteQuestion(index, field, value) {
@@ -2591,7 +2741,7 @@ const AdminBanquesExercices = {
         if (docTypeRadio) this.mixteBuilder.document.type = docTypeRadio.value;
 
         if (docUrlEl) this.mixteBuilder.document.url = docUrlEl.value;
-        if (docTexteEl) this.mixteBuilder.document.texte = docTexteEl.value;
+        if (docTexteEl) this.mixteBuilder.document.texte = docTexteEl.innerHTML;
         if (docTitreEl) this.mixteBuilder.document.titre = docTitreEl.value;
         if (docLegendeEl) this.mixteBuilder.document.legende = docLegendeEl.value;
         if (tableauTitreEl) this.mixteBuilder.tableau.titre = tableauTitreEl.value;
