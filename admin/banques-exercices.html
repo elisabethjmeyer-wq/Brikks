@@ -362,30 +362,11 @@
                             </div>
                             <div id="docTexteSection" class="form-row" style="display: none;">
                                 <label>Contenu du texte</label>
-                                <div class="wysiwyg-editor-container">
-                                    <div class="editor-toolbar" id="docTexteToolbar">
-                                        <button type="button" class="editor-btn" data-cmd="bold" title="Gras"><b>G</b></button>
-                                        <button type="button" class="editor-btn" data-cmd="italic" title="Italique"><i>I</i></button>
-                                        <button type="button" class="editor-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
-                                        <span class="editor-separator"></span>
-                                        <button type="button" class="editor-btn" data-cmd="justifyLeft" title="Aligner à gauche">⬅</button>
-                                        <button type="button" class="editor-btn" data-cmd="justifyCenter" title="Centrer">⬌</button>
-                                        <button type="button" class="editor-btn" data-cmd="justifyRight" title="Aligner à droite">➡</button>
-                                        <button type="button" class="editor-btn" data-cmd="justifyFull" title="Justifier">☰</button>
-                                        <span class="editor-separator"></span>
-                                        <button type="button" class="editor-btn" data-cmd="insertUnorderedList" title="Liste à puces">•</button>
-                                        <select class="editor-color" data-editor="docTexteMixte" title="Couleur du texte">
-                                            <option value="">🎨</option>
-                                            <option value="#ef4444">Rouge</option>
-                                            <option value="#f59e0b">Orange</option>
-                                            <option value="#10b981">Vert</option>
-                                            <option value="#3b82f6">Bleu</option>
-                                            <option value="#8b5cf6">Violet</option>
-                                        </select>
-                                    </div>
-                                    <div class="editor-content" id="docTexteMixte" contenteditable="true" placeholder="Collez votre texte ici..."></div>
-                                </div>
-                                <div class="form-help">Utilisez les boutons pour la mise en forme. Saut de ligne = Shift+Entrée, nouveau paragraphe = Entrée.</div>
+                                <textarea class="form-textarea" id="docTexteMixte" rows="10" placeholder="Collez votre texte ici...
+
+Les paragraphes sont créés automatiquement avec les sauts de ligne.
+Utilisez *texte* pour mettre en italique."></textarea>
+                                <div class="form-help">Collez simplement votre texte. Les paragraphes seront créés automatiquement.</div>
                             </div>
                             <div class="form-row">
                                 <label>Titre du document</label>
