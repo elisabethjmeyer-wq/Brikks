@@ -362,11 +362,27 @@
                             </div>
                             <div id="docTexteSection" class="form-row" style="display: none;">
                                 <label>Contenu du texte</label>
-                                <textarea class="form-textarea" id="docTexteMixte" rows="10" placeholder="Collez votre texte ici...
-
-Les paragraphes sont créés automatiquement avec les sauts de ligne.
-Utilisez *texte* pour mettre en italique."></textarea>
-                                <div class="form-help">Collez simplement votre texte. Les paragraphes seront créés automatiquement.</div>
+                                <div class="wysiwyg-container">
+                                    <div class="wysiwyg-toolbar">
+                                        <button type="button" class="wysiwyg-btn" data-cmd="bold" title="Gras (Ctrl+B)"><b>G</b></button>
+                                        <button type="button" class="wysiwyg-btn" data-cmd="italic" title="Italique (Ctrl+I)"><i>I</i></button>
+                                        <button type="button" class="wysiwyg-btn" data-cmd="underline" title="Souligné (Ctrl+U)"><u>S</u></button>
+                                        <span class="wysiwyg-sep"></span>
+                                        <button type="button" class="wysiwyg-btn" data-cmd="justifyLeft" title="Aligner à gauche">◀</button>
+                                        <button type="button" class="wysiwyg-btn" data-cmd="justifyCenter" title="Centrer">◆</button>
+                                        <button type="button" class="wysiwyg-btn" data-cmd="justifyRight" title="Aligner à droite">▶</button>
+                                        <span class="wysiwyg-sep"></span>
+                                        <select class="wysiwyg-color" data-cmd="foreColor" title="Couleur">
+                                            <option value="">Couleur</option>
+                                            <option value="#000000">Noir</option>
+                                            <option value="#dc2626">Rouge</option>
+                                            <option value="#2563eb">Bleu</option>
+                                            <option value="#16a34a">Vert</option>
+                                        </select>
+                                    </div>
+                                    <div class="wysiwyg-editor" id="docTexteMixte" contenteditable="true" data-placeholder="Saisissez votre texte ici..."></div>
+                                </div>
+                                <div class="form-help">Utilisez la barre d'outils pour le formatage (gras, italique, couleurs...)</div>
                             </div>
                             <div class="form-row">
                                 <label>Titre du document</label>

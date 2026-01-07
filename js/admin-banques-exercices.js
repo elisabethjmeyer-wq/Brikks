@@ -374,12 +374,33 @@ const AdminBanquesExercices = {
             if (target.classList.contains('modal-overlay')) {
                 target.classList.add('hidden');
             }
+
+            // WYSIWYG toolbar buttons
+            if (target.closest('.wysiwyg-btn')) {
+                const btn = target.closest('.wysiwyg-btn');
+                const cmd = btn.dataset.cmd;
+                if (cmd) {
+                    e.preventDefault();
+                    document.execCommand(cmd, false, null);
+                }
+            }
         });
 
         // Change events (need separate listener)
         document.addEventListener('change', (e) => {
             const target = e.target;
             const id = target.id;
+
+            // WYSIWYG color select
+            if (target.classList.contains('wysiwyg-color')) {
+                const cmd = target.dataset.cmd;
+                const value = target.value;
+                if (cmd && value) {
+                    document.execCommand(cmd, false, value);
+                    target.value = ''; // Reset select
+                }
+                return;
+            }
 
             switch (id) {
                 case 'exerciceFormat':
@@ -2035,7 +2056,7 @@ const AdminBanquesExercices = {
         const docTypeUrl = document.querySelector('input[name="docType"][value="url"]');
         if (docTypeUrl) docTypeUrl.checked = true;
         const docTexteEl = document.getElementById('docTexteMixte');
-        if (docTexteEl) docTexteEl.value = '';
+        if (docTexteEl) docTexteEl.innerHTML = '';
         this.toggleDocType('url');
 
         // Show/hide sections
@@ -2123,7 +2144,7 @@ const AdminBanquesExercices = {
         // Set document fields
         document.getElementById('docUrlMixte').value = this.mixteBuilder.document.url || '';
         const docTexteEl = document.getElementById('docTexteMixte');
-        if (docTexteEl) docTexteEl.value = this.mixteBuilder.document.texte || '';
+        if (docTexteEl) docTexteEl.innerHTML = this.mixteBuilder.document.texte || '';
         document.getElementById('docTitreMixte').value = this.mixteBuilder.document.titre || '';
         document.getElementById('docLegendeMixte').value = this.mixteBuilder.document.legende || '';
 
@@ -2661,7 +2682,7 @@ const AdminBanquesExercices = {
         if (docTypeRadio) this.mixteBuilder.document.type = docTypeRadio.value;
 
         if (docUrlEl) this.mixteBuilder.document.url = docUrlEl.value;
-        if (docTexteEl) this.mixteBuilder.document.texte = docTexteEl.value;
+        if (docTexteEl) this.mixteBuilder.document.texte = docTexteEl.innerHTML;
         if (docTitreEl) this.mixteBuilder.document.titre = docTitreEl.value;
         if (docLegendeEl) this.mixteBuilder.document.legende = docLegendeEl.value;
         if (tableauTitreEl) this.mixteBuilder.tableau.titre = tableauTitreEl.value;
