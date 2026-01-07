@@ -241,27 +241,34 @@ const AdminBanquesExercices = {
 
     // ========== EVENT LISTENERS ==========
     setupEventListeners() {
+        // Helper function to safely add event listener
+        const addListener = (id, event, handler) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener(event, handler);
+            } else {
+                console.warn(`[Event] Element not found: ${id}`);
+            }
+        };
+
         // Add banque buttons (or tache complexe if on competences tab)
-        document.getElementById('addBanqueBtn').addEventListener('click', () => {
+        addListener('addBanqueBtn', 'click', () => {
             if (this.currentType === 'competences') {
                 this.openTacheComplexeModal();
             } else {
                 this.openBanqueModal();
             }
         });
-        const addBtnEmpty = document.getElementById('addBanqueBtnEmpty');
-        if (addBtnEmpty) {
-            addBtnEmpty.addEventListener('click', () => {
-                if (this.currentType === 'competences') {
-                    this.openTacheComplexeModal();
-                } else {
-                    this.openBanqueModal();
-                }
-            });
-        }
+        addListener('addBanqueBtnEmpty', 'click', () => {
+            if (this.currentType === 'competences') {
+                this.openTacheComplexeModal();
+            } else {
+                this.openBanqueModal();
+            }
+        });
 
         // Manage formats button
-        document.getElementById('manageFormatsBtn').addEventListener('click', () => this.openFormatsModal());
+        addListener('manageFormatsBtn', 'click', () => this.openFormatsModal());
 
         // Tab clicks
         document.querySelectorAll('.type-tab').forEach(tab => {
@@ -272,85 +279,89 @@ const AdminBanquesExercices = {
         });
 
         // Search
-        document.getElementById('searchInput').addEventListener('input', (e) => {
+        addListener('searchInput', 'input', (e) => {
             this.filters.search = e.target.value.toLowerCase();
             this.renderBanques();
         });
 
         // Filter statut
-        document.getElementById('filterStatut').addEventListener('change', (e) => {
+        addListener('filterStatut', 'change', (e) => {
             this.filters.statut = e.target.value;
             this.renderBanques();
         });
 
         // Banque modal
-        document.getElementById('closeBanqueModal').addEventListener('click', () => this.closeBanqueModal());
-        document.getElementById('cancelBanqueBtn').addEventListener('click', () => this.closeBanqueModal());
-        document.getElementById('saveBanqueBtn').addEventListener('click', () => this.saveBanque());
+        addListener('closeBanqueModal', 'click', () => this.closeBanqueModal());
+        addListener('cancelBanqueBtn', 'click', () => this.closeBanqueModal());
+        addListener('saveBanqueBtn', 'click', () => this.saveBanque());
 
         // Type selection in banque modal
         document.querySelectorAll('.type-option').forEach(option => {
             option.addEventListener('click', () => {
                 document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
                 option.classList.add('selected');
-                option.querySelector('input').checked = true;
+                const input = option.querySelector('input');
+                if (input) input.checked = true;
             });
         });
 
         // Exercice modal
-        document.getElementById('closeExerciceModal').addEventListener('click', () => this.closeExerciceModal());
-        document.getElementById('cancelExerciceBtn').addEventListener('click', () => this.closeExerciceModal());
-        document.getElementById('saveExerciceBtn').addEventListener('click', () => this.saveExercice());
+        addListener('closeExerciceModal', 'click', () => this.closeExerciceModal());
+        addListener('cancelExerciceBtn', 'click', () => this.closeExerciceModal());
+        addListener('saveExerciceBtn', 'click', () => this.saveExercice());
 
         // Formats modal
-        document.getElementById('closeFormatsModal').addEventListener('click', () => this.closeFormatsModal());
-        document.getElementById('closeFormatsBtn').addEventListener('click', () => this.closeFormatsModal());
-        document.getElementById('addFormatBtn').addEventListener('click', () => this.openFormatEditModal());
+        addListener('closeFormatsModal', 'click', () => this.closeFormatsModal());
+        addListener('closeFormatsBtn', 'click', () => this.closeFormatsModal());
+        addListener('addFormatBtn', 'click', () => this.openFormatEditModal());
 
         // Format edit modal
-        document.getElementById('closeFormatEditModal').addEventListener('click', () => this.closeFormatEditModal());
-        document.getElementById('cancelFormatBtn').addEventListener('click', () => this.closeFormatEditModal());
-        document.getElementById('saveFormatBtn').addEventListener('click', () => this.saveFormat());
+        addListener('closeFormatEditModal', 'click', () => this.closeFormatEditModal());
+        addListener('cancelFormatBtn', 'click', () => this.closeFormatEditModal());
+        addListener('saveFormatBtn', 'click', () => this.saveFormat());
 
         // Delete modal
-        document.getElementById('closeDeleteModal').addEventListener('click', () => this.closeDeleteModal());
-        document.getElementById('cancelDeleteBtn').addEventListener('click', () => this.closeDeleteModal());
-        document.getElementById('confirmDeleteBtn').addEventListener('click', () => this.confirmDelete());
+        addListener('closeDeleteModal', 'click', () => this.closeDeleteModal());
+        addListener('cancelDeleteBtn', 'click', () => this.closeDeleteModal());
+        addListener('confirmDeleteBtn', 'click', () => this.confirmDelete());
 
         // Table builder
-        document.getElementById('addColumnBtn').addEventListener('click', () => this.addColumn());
-        document.getElementById('addRowBtn').addEventListener('click', () => this.addRow());
-        document.getElementById('previewExerciceBtn').addEventListener('click', () => this.previewExercice());
+        addListener('addColumnBtn', 'click', () => this.addColumn());
+        addListener('addRowBtn', 'click', () => this.addRow());
+        addListener('previewExerciceBtn', 'click', () => this.previewExercice());
 
         // Format change - switch builders
-        document.getElementById('exerciceFormat').addEventListener('change', (e) => this.onFormatChange(e.target.value));
+        addListener('exerciceFormat', 'change', (e) => this.onFormatChange(e.target.value));
 
         // Carte cliquable builder
-        document.getElementById('carteImageUrl').addEventListener('input', (e) => this.updateCartePreview(e.target.value));
-        document.getElementById('addMarqueurBtn').addEventListener('click', () => this.addMarqueurManual());
+        addListener('carteImageUrl', 'input', (e) => this.updateCartePreview(e.target.value));
+        addListener('addMarqueurBtn', 'click', () => this.addMarqueurManual());
 
         // Question ouverte builder
-        document.getElementById('addQuestionBtn').addEventListener('click', () => this.addQuestion());
+        addListener('addQuestionBtn', 'click', () => this.addQuestion());
 
         // Document mixte builder
-        document.getElementById('toggleDocument')?.addEventListener('change', (e) => this.onMixteToggle('document', e.target.checked));
-        document.getElementById('toggleTableau')?.addEventListener('change', (e) => this.onMixteToggle('tableau', e.target.checked));
-        document.getElementById('toggleQuestions')?.addEventListener('change', (e) => this.onMixteToggle('questions', e.target.checked));
-        document.getElementById('docUrlMixte')?.addEventListener('input', () => this.updateMixtePreview());
-        document.getElementById('docTitreMixte')?.addEventListener('input', () => this.updateMixtePreview());
-        document.getElementById('docLegendeMixte')?.addEventListener('input', () => this.updateMixtePreview());
-        document.getElementById('tableauTitreMixte')?.addEventListener('input', () => this.updateMixtePreview());
-        document.getElementById('addTableauSectionBtn')?.addEventListener('click', () => this.addTableauElement('section'));
-        document.getElementById('addTableauRowBtn')?.addEventListener('click', () => this.addTableauElement('row'));
-        document.getElementById('addQuestionMixteBtn')?.addEventListener('click', () => this.addQuestionMixte());
+        addListener('toggleDocument', 'change', (e) => this.onMixteToggle('document', e.target.checked));
+        addListener('toggleTableau', 'change', (e) => this.onMixteToggle('tableau', e.target.checked));
+        addListener('toggleQuestions', 'change', (e) => this.onMixteToggle('questions', e.target.checked));
+        addListener('docUrlMixte', 'input', () => this.updateMixtePreview());
+        addListener('docTitreMixte', 'input', () => this.updateMixtePreview());
+        addListener('docLegendeMixte', 'input', () => this.updateMixtePreview());
+        addListener('tableauTitreMixte', 'input', () => this.updateMixtePreview());
+        addListener('addTableauSectionBtn', 'click', () => this.addTableauElement('section'));
+        addListener('addTableauRowBtn', 'click', () => this.addTableauElement('row'));
+        addListener('addQuestionMixteBtn', 'click', () => this.addQuestionMixte());
 
         // Modal overlays
         ['banqueModal', 'exerciceModal', 'formatsModal', 'formatEditModal', 'deleteModal'].forEach(id => {
-            document.getElementById(id).addEventListener('click', (e) => {
-                if (e.target.classList.contains('modal-overlay')) {
-                    document.getElementById(id).classList.add('hidden');
-                }
-            });
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('modal-overlay')) {
+                        modal.classList.add('hidden');
+                    }
+                });
+            }
         });
     },
 
