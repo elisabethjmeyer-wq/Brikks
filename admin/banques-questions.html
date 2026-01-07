@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Gestion des banques de questions">
+    <title>Banques de questions - Administration - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-banques-questions.css">
+</head>
+<body>
+
+<div id="banques-questions-page">
+    <!-- Page Header -->
+    <header class="admin-header">
+        <div>
+            <h1>📚 Banques de questions</h1>
+            <p>Créez des banques de questions pour les entraînements de connaissances</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" id="addBanqueBtn">
+                <span>+</span>
+                Nouvelle banque
+            </button>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des banques...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="banques-content" style="display: none;">
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-item">
+                <span class="stat-value" id="statBanques">0</span>
+                <span class="stat-label">Banques</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="statQuestions">0</span>
+                <span class="stat-label">Questions</span>
+            </div>
+        </div>
+
+        <!-- Liste des banques -->
+        <div class="banques-list" id="banquesList">
+            <!-- Généré dynamiquement -->
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-icon">📚</div>
+            <h3>Aucune banque de questions</h3>
+            <p>Créez votre première banque pour commencer à ajouter des questions.</p>
+            <button class="btn btn-primary" id="addBanqueBtnEmpty">+ Nouvelle banque</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Créer/Modifier banque -->
+<div class="modal-overlay hidden" id="banqueModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="banqueModalTitle">Nouvelle banque</h2>
+            <button class="modal-close" id="closeBanqueModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editBanqueId">
+
+            <div class="form-group">
+                <label>Titre <span class="req">*</span></label>
+                <input type="text" class="form-input" id="banqueTitre" placeholder="Ex: Questions sur la Révolution française">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea class="form-textarea" id="banqueDescription" rows="2" placeholder="Description optionnelle..."></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Thème</label>
+                    <select class="form-select" id="banqueTheme">
+                        <option value="">Sélectionner...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Chapitre</label>
+                    <select class="form-select" id="banqueChapitre" disabled>
+                        <option value="">Sélectionner d'abord un thème...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelBanqueBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveBanqueBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Questions de la banque -->
+<div class="modal-overlay hidden" id="questionsModal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h2 id="questionsModalTitle">Questions</h2>
+            <button class="modal-close" id="closeQuestionsModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="currentBanqueId">
+
+            <!-- Tabs pour les types de questions -->
+            <div class="question-types-tabs">
+                <button class="type-tab active" data-type="qcm">QCM</button>
+                <button class="type-tab" data-type="vrai_faux">Vrai/Faux</button>
+                <button class="type-tab" data-type="chronologie">Chronologie</button>
+                <button class="type-tab" data-type="timeline">Timeline</button>
+                <button class="type-tab" data-type="association">Association</button>
+                <button class="type-tab" data-type="texte_trou">Texte à trous</button>
+            </div>
+
+            <!-- Liste des questions -->
+            <div class="questions-list" id="questionsList">
+                <!-- Généré dynamiquement -->
+            </div>
+
+            <!-- Bouton ajouter question -->
+            <button class="btn btn-secondary btn-full" id="addQuestionBtn">
+                + Ajouter une question
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Créer/Modifier question -->
+<div class="modal-overlay hidden" id="questionModal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h2 id="questionModalTitle">Nouvelle question</h2>
+            <button class="modal-close" id="closeQuestionModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editQuestionId">
+            <input type="hidden" id="questionBanqueId">
+
+            <div class="form-group">
+                <label>Type de question <span class="req">*</span></label>
+                <select class="form-select" id="questionType">
+                    <option value="qcm">QCM (choix unique)</option>
+                    <option value="vrai_faux">Vrai / Faux</option>
+                    <option value="chronologie">Chronologie (dates ↔ événements)</option>
+                    <option value="timeline">Timeline (ordonner)</option>
+                    <option value="association">Association (paires)</option>
+                    <option value="texte_trou">Texte à trous</option>
+                </select>
+            </div>
+
+            <!-- Builder QCM -->
+            <div class="question-builder" id="builderQcm">
+                <div class="form-group">
+                    <label>Question <span class="req">*</span></label>
+                    <textarea class="form-textarea" id="qcmQuestion" rows="2" placeholder="Entrez la question..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Options de réponse</label>
+                    <div class="qcm-options" id="qcmOptions">
+                        <!-- Généré dynamiquement -->
+                    </div>
+                    <button type="button" class="btn btn-sm btn-secondary" id="addQcmOption">+ Ajouter une option</button>
+                </div>
+                <div class="form-group">
+                    <label>Explication (optionnel)</label>
+                    <textarea class="form-textarea" id="qcmExplication" rows="2" placeholder="Explication affichée après la réponse..."></textarea>
+                </div>
+            </div>
+
+            <!-- Builder Vrai/Faux -->
+            <div class="question-builder hidden" id="builderVraiFaux">
+                <div class="form-group">
+                    <label>Affirmation <span class="req">*</span></label>
+                    <textarea class="form-textarea" id="vfQuestion" rows="2" placeholder="Entrez l'affirmation..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Réponse correcte</label>
+                    <div class="radio-group">
+                        <label class="radio-item">
+                            <input type="radio" name="vfReponse" value="vrai" checked>
+                            <span>Vrai</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="vfReponse" value="faux">
+                            <span>Faux</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Explication (optionnel)</label>
+                    <textarea class="form-textarea" id="vfExplication" rows="2" placeholder="Explication..."></textarea>
+                </div>
+            </div>
+
+            <!-- Builder Chronologie -->
+            <div class="question-builder hidden" id="builderChronologie">
+                <div class="form-group">
+                    <label>Consigne</label>
+                    <input type="text" class="form-input" id="chronoConsigne" value="Associez chaque date à l'événement correspondant">
+                </div>
+                <div class="form-group">
+                    <label>Mode</label>
+                    <select class="form-select" id="chronoMode">
+                        <option value="date_vers_evenement">Donner la date → Trouver l'événement</option>
+                        <option value="evenement_vers_date">Donner l'événement → Trouver la date</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Paires date/événement</label>
+                    <div class="chrono-pairs" id="chronoPairs">
+                        <!-- Généré dynamiquement -->
+                    </div>
+                    <button type="button" class="btn btn-sm btn-secondary" id="addChronoPair">+ Ajouter une paire</button>
+                </div>
+            </div>
+
+            <!-- Builder Timeline -->
+            <div class="question-builder hidden" id="builderTimeline">
+                <div class="form-group">
+                    <label>Consigne</label>
+                    <input type="text" class="form-input" id="timelineConsigne" value="Remettez ces événements dans l'ordre chronologique">
+                </div>
+                <div class="form-group">
+                    <label>Événements (dans l'ordre correct)</label>
+                    <div class="timeline-events" id="timelineEvents">
+                        <!-- Généré dynamiquement -->
+                    </div>
+                    <button type="button" class="btn btn-sm btn-secondary" id="addTimelineEvent">+ Ajouter un événement</button>
+                </div>
+            </div>
+
+            <!-- Builder Association -->
+            <div class="question-builder hidden" id="builderAssociation">
+                <div class="form-group">
+                    <label>Consigne</label>
+                    <input type="text" class="form-input" id="assocConsigne" value="Associez chaque élément à son correspondant">
+                </div>
+                <div class="form-group">
+                    <label>Paires à associer</label>
+                    <div class="assoc-pairs" id="assocPairs">
+                        <!-- Généré dynamiquement -->
+                    </div>
+                    <button type="button" class="btn btn-sm btn-secondary" id="addAssocPair">+ Ajouter une paire</button>
+                </div>
+            </div>
+
+            <!-- Builder Texte à trous -->
+            <div class="question-builder hidden" id="builderTexteTrou">
+                <div class="form-group">
+                    <label>Texte avec trous <span class="req">*</span></label>
+                    <textarea class="form-textarea" id="textetrouTexte" rows="4" placeholder="Utilisez {mot} pour créer un trou. Ex: En {1492}, Christophe Colomb découvre l'{Amérique}."></textarea>
+                    <div class="form-help">Utilisez {mot} pour créer un trou. Le mot entre accolades sera la réponse attendue.</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Difficulté</label>
+                <select class="form-select" id="questionDifficulte">
+                    <option value="facile">Facile</option>
+                    <option value="moyen" selected>Moyen</option>
+                    <option value="difficile">Difficile</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelQuestionBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveQuestionBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmation suppression -->
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal modal-small">
+        <div class="modal-header">
+            <h2>Confirmer la suppression</h2>
+            <button class="modal-close" id="closeDeleteModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="deleteMessage">Êtes-vous sûr de vouloir supprimer cet élément ?</p>
+            <input type="hidden" id="deleteId">
+            <input type="hidden" id="deleteType">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelDeleteBtn">Annuler</button>
+            <button class="btn btn-danger" id="confirmDeleteBtn">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/app.js"></script>
+<script src="../components/admin-layout.js"></script>
+<script src="../js/admin-banques-questions.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        AdminLayout.init('banques-questions', 'Banques de questions');
+    });
+</script>
+
+</body>
+</html>
