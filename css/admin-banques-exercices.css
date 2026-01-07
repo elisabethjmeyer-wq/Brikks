@@ -386,6 +386,27 @@
     margin: 0;
 }
 
+.exercices-header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-success {
+    background: var(--success, #10b981);
+    color: white;
+    border: none;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-success:disabled {
+    background: var(--gray-300);
+    cursor: not-allowed;
+}
+
 .exercices-list {
     display: flex;
     flex-direction: column;

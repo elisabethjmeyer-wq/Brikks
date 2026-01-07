@@ -579,6 +579,60 @@
     </div>
 </div>
 
+<!-- Modal: Créer entraînement de connaissances -->
+<div class="modal-overlay hidden" id="entrainementConnModal">
+    <div class="modal modal-medium">
+        <div class="modal-header">
+            <h2>Créer un entraînement</h2>
+            <button class="modal-close" onclick="AdminBanquesExercices.closeEntrainementModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="entrainementBanqueId">
+
+            <div class="form-group">
+                <label>Titre de l'entraînement <span class="req">*</span></label>
+                <input type="text" class="form-input" id="entrainementTitre" placeholder="Ex: Quiz sur la mondialisation">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea class="form-textarea" id="entrainementDescription" rows="2" placeholder="Description optionnelle..."></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nombre de questions</label>
+                    <input type="number" class="form-input" id="entrainementNbQuestions" value="10" min="1" max="50">
+                    <div class="form-help">Questions tirées aléatoirement</div>
+                </div>
+                <div class="form-group">
+                    <label>Seuil de validation (%)</label>
+                    <input type="number" class="form-input" id="entrainementSeuil" value="80" min="50" max="100">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Types de questions à inclure</label>
+                <div class="checkbox-group" id="entrainementTypesQuestions">
+                    <!-- Généré dynamiquement selon les questions disponibles -->
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Statut</label>
+                <select class="form-select" id="entrainementStatut">
+                    <option value="brouillon">Brouillon</option>
+                    <option value="publie">Publié</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeEntrainementModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="AdminBanquesExercices.saveEntrainement()">Créer l'entraînement</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Confirmation suppression -->
 <div class="modal-overlay hidden" id="deleteModal">
     <div class="modal modal-small">
