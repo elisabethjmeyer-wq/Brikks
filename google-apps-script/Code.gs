@@ -3573,13 +3573,15 @@ function createEntrainementQuestion(data) {
   const id = 'eq_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 9);
   const ordre = data.ordre || 1;
 
-  // Colonnes : id | entrainement_id | question_id | format_id | ordre
+  // Colonnes : id | entrainement_id | question_id | format_id | ordre | banque_id | question_type
   sheet.appendRow([
     id,
     data.entrainement_id,
     data.question_id || '',
     data.format_id || '',
-    ordre
+    ordre,
+    data.banque_id || '',
+    data.question_type || ''
   ]);
 
   return {
