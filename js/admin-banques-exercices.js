@@ -11,6 +11,10 @@ const AdminBanquesExercices = {
     tachesComplexes: [],
     competencesReferentiel: [],
 
+    // Data pour connaissances (nouveau système)
+    banquesQuestions: [],
+    questionsConnaissances: [],
+
     // Cache configuration
     CACHE_KEY: 'brikks_admin_banques_cache',
     CACHE_TTL: 3 * 60 * 1000, // 3 minutes pour admin (refresh plus fréquent)
@@ -63,6 +67,8 @@ const AdminBanquesExercices = {
                 this.exercices = cached.exercices || [];
                 this.tachesComplexes = cached.tachesComplexes || [];
                 this.competencesReferentiel = cached.competencesReferentiel || [];
+                this.banquesQuestions = cached.banquesQuestions || [];
+                this.questionsConnaissances = cached.questionsConnaissances || [];
                 this.setupEventListeners();
                 this.updateCounts();
                 this.renderBanques();
@@ -107,6 +113,8 @@ const AdminBanquesExercices = {
                 exercices: this.exercices,
                 tachesComplexes: this.tachesComplexes,
                 competencesReferentiel: this.competencesReferentiel,
+                banquesQuestions: this.banquesQuestions,
+                questionsConnaissances: this.questionsConnaissances,
                 timestamp: Date.now()
             }));
         } catch (e) {
@@ -139,12 +147,14 @@ const AdminBanquesExercices = {
     async loadDataFromAPI() {
         try {
             // PARALLEL API calls - much faster!
-            const [banquesResult, formatsResult, exercicesResult, tachesResult, compRefResult] = await Promise.all([
+            const [banquesResult, formatsResult, exercicesResult, tachesResult, compRefResult, banquesQResult, questionsConnResult] = await Promise.all([
                 this.callAPI('getBanquesExercices', {}),
                 this.callAPI('getFormatsExercices', {}),
                 this.callAPI('getExercices', {}),
                 this.callAPI('getTachesComplexes', {}),
-                this.callAPI('getCompetencesReferentiel', {})
+                this.callAPI('getCompetencesReferentiel', {}),
+                this.callAPI('getBanquesQuestions', {}),
+                this.callAPI('getQuestionsConnaissances', {})
             ]);
 
             if (banquesResult.success) {
@@ -162,6 +172,19 @@ const AdminBanquesExercices = {
             if (compRefResult.success) {
                 this.competencesReferentiel = compRefResult.data || [];
             }
+            if (banquesQResult.success) {
+                this.banquesQuestions = banquesQResult.data || [];
+            }
+            if (questionsConnResult.success) {
+                this.questionsConnaissances = questionsConnResult.data || [];
+                // Parse JSON donnees
+                this.questionsConnaissances = this.questionsConnaissances.map(q => {
+                    if (q.donnees && typeof q.donnees === 'string') {
+                        try { q.donnees = JSON.parse(q.donnees); } catch(e) { q.donnees = {}; }
+                    }
+                    return q;
+                });
+            }
 
             // Save to cache
             this.saveToCache();
@@ -173,6 +196,8 @@ const AdminBanquesExercices = {
             this.exercices = [];
             this.tachesComplexes = [];
             this.competencesReferentiel = [];
+            this.banquesQuestions = [];
+            this.questionsConnaissances = [];
         }
     },
 
@@ -257,6 +282,8 @@ const AdminBanquesExercices = {
                 case 'addBanqueBtnEmpty':
                     if (this.currentType === 'competences') {
                         this.openTacheComplexeModal();
+                    } else if (this.currentType === 'connaissances') {
+                        this.addBanqueQuestions();
                     } else {
                         this.openBanqueModal();
                     }
@@ -463,6 +490,9 @@ const AdminBanquesExercices = {
         if (type === 'competences') {
             if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle tache complexe';
             if (formatsBtn) formatsBtn.style.display = 'none';
+        } else if (type === 'connaissances') {
+            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
+            if (formatsBtn) formatsBtn.style.display = 'none'; // Pas de formats pour connaissances
         } else {
             if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
             if (formatsBtn) formatsBtn.style.display = '';
@@ -472,13 +502,15 @@ const AdminBanquesExercices = {
     },
 
     updateCounts() {
-        // Count savoir-faire and connaissances from banques
-        ['savoir-faire', 'connaissances'].forEach(type => {
-            const count = this.banques.filter(b => b.type === type).length;
-            const id = 'count' + type.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
-            const el = document.getElementById(id);
-            if (el) el.textContent = count;
-        });
+        // Count savoir-faire from banques
+        const sfCount = this.banques.filter(b => b.type === 'savoir-faire').length;
+        const sfEl = document.getElementById('countSavoirFaire');
+        if (sfEl) sfEl.textContent = sfCount;
+
+        // Count connaissances from banquesQuestions (nouveau système)
+        const connEl = document.getElementById('countConnaissances');
+        if (connEl) connEl.textContent = this.banquesQuestions.length;
+
         // Count competences from tâches complexes
         const compEl = document.getElementById('countCompetences');
         if (compEl) compEl.textContent = this.tachesComplexes.length;
@@ -492,6 +524,12 @@ const AdminBanquesExercices = {
         // For competences tab, render tâches complexes instead
         if (this.currentType === 'competences') {
             this.renderTachesComplexes(container, emptyState);
+            return;
+        }
+
+        // For connaissances tab, render banques de questions
+        if (this.currentType === 'connaissances') {
+            this.renderBanquesQuestions(container, emptyState);
             return;
         }
 
@@ -2728,6 +2766,504 @@ const AdminBanquesExercices = {
             sectionOrder: this.mixteBuilder.sectionOrder || ['document', 'tableau', 'questions'],
             layout: this.mixteBuilder.layout || 'vertical'
         };
+    },
+
+    // ========== BANQUES DE QUESTIONS (Connaissances) ==========
+    questionTypeNames: {
+        'qcm': 'QCM',
+        'vrai_faux': 'Vrai/Faux',
+        'chronologie': 'Chronologie',
+        'timeline': 'Timeline',
+        'association': 'Association',
+        'texte_trou': 'Texte à trous'
+    },
+
+    renderBanquesQuestions(container, emptyState) {
+        // Filter banques de questions
+        let filtered = this.banquesQuestions;
+
+        if (this.filters.search) {
+            filtered = filtered.filter(b =>
+                (b.titre || '').toLowerCase().includes(this.filters.search) ||
+                (b.description || '').toLowerCase().includes(this.filters.search)
+            );
+        }
+
+        // Sort by date_creation desc
+        filtered.sort((a, b) => (b.date_creation || '').localeCompare(a.date_creation || ''));
+
+        if (filtered.length === 0) {
+            container.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        container.innerHTML = filtered.map(banque => {
+            const questions = this.questionsConnaissances.filter(q => q.banque_id === banque.id);
+            const questionsByType = {};
+            questions.forEach(q => {
+                questionsByType[q.type] = (questionsByType[q.type] || 0) + 1;
+            });
+
+            return `
+                <div class="banque-card" data-id="${banque.id}">
+                    <div class="banque-card-header" onclick="AdminBanquesExercices.toggleBanque('${banque.id}')">
+                        <div class="banque-card-icon connaissances">&#128994;</div>
+                        <div class="banque-card-content">
+                            <div class="banque-card-title">
+                                ${this.escapeHtml(banque.titre || 'Sans titre')}
+                            </div>
+                            <div class="banque-card-meta">
+                                ${banque.description ? this.escapeHtml(banque.description) : 'Aucune description'}
+                            </div>
+                        </div>
+                        <div class="banque-card-stats">
+                            <div class="banque-stat">
+                                <div class="banque-stat-value">${questions.length}</div>
+                                <div class="banque-stat-label">questions</div>
+                            </div>
+                        </div>
+                        <div class="banque-card-actions">
+                            <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editBanqueQuestions('${banque.id}')" title="Modifier">&#9998;</button>
+                            <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteBanqueQuestions('${banque.id}')" title="Supprimer">&#128465;</button>
+                        </div>
+                        <div class="banque-card-toggle">&#9660;</div>
+                    </div>
+                    <div class="banque-exercices">
+                        <div class="exercices-header">
+                            <h4>Questions</h4>
+                            <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addQuestionConnaissances('${banque.id}')">+ Ajouter</button>
+                        </div>
+                        ${this.renderQuestionsConnaissances(questions, banque.id)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    renderQuestionsConnaissances(questions, banqueId) {
+        if (questions.length === 0) {
+            return '<div class="exercices-empty">Aucune question dans cette banque</div>';
+        }
+
+        return `
+            <div class="exercices-list">
+                ${questions.map(q => {
+                    const typeName = this.questionTypeNames[q.type] || q.type;
+                    const preview = this.getQuestionPreview(q);
+
+                    return `
+                        <div class="exercice-item" data-id="${q.id}">
+                            <div class="exercice-numero">${typeName.charAt(0)}</div>
+                            <div class="exercice-info">
+                                <div class="exercice-title">${this.escapeHtml(preview)}</div>
+                                <div class="exercice-meta">${typeName}</div>
+                            </div>
+                            <div class="exercice-actions">
+                                <button class="btn-icon" onclick="AdminBanquesExercices.editQuestionConnaissances('${q.id}')" title="Modifier">&#9998;</button>
+                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteQuestionConnaissances('${q.id}')" title="Supprimer">&#128465;</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
+    getQuestionPreview(question) {
+        if (!question.donnees) return 'Question sans contenu';
+
+        switch (question.type) {
+            case 'qcm':
+            case 'vrai_faux':
+                return (question.donnees.question || '').substring(0, 60) || 'Question sans texte';
+            case 'chronologie':
+            case 'association':
+                return (question.donnees.consigne || '').substring(0, 60) || 'Exercice d\'association';
+            case 'timeline':
+                return (question.donnees.consigne || '').substring(0, 60) || 'Exercice de timeline';
+            case 'texte_trou':
+                return (question.donnees.texte || '').substring(0, 60) || 'Texte à trous';
+            default:
+                return 'Question';
+        }
+    },
+
+    // CRUD pour Banques de Questions
+    async addBanqueQuestions() {
+        const titre = prompt('Titre de la banque de questions:');
+        if (!titre) return;
+
+        const description = prompt('Description (optionnel):') || '';
+
+        try {
+            const result = await this.callAPI('createBanqueQuestions', { titre, description });
+            if (result.success) {
+                await this.loadDataFromAPI();
+                this.renderBanques();
+                this.updateCounts();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (e) {
+            alert('Erreur lors de la création');
+        }
+    },
+
+    async editBanqueQuestions(id) {
+        const banque = this.banquesQuestions.find(b => b.id === id);
+        if (!banque) return;
+
+        const titre = prompt('Titre:', banque.titre);
+        if (!titre) return;
+
+        const description = prompt('Description:', banque.description || '') || '';
+
+        try {
+            const result = await this.callAPI('updateBanqueQuestions', { id, titre, description });
+            if (result.success) {
+                await this.loadDataFromAPI();
+                this.renderBanques();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (e) {
+            alert('Erreur lors de la modification');
+        }
+    },
+
+    async deleteBanqueQuestions(id) {
+        if (!confirm('Supprimer cette banque et toutes ses questions ?')) return;
+
+        try {
+            const result = await this.callAPI('deleteBanqueQuestions', { id });
+            if (result.success) {
+                await this.loadDataFromAPI();
+                this.renderBanques();
+                this.updateCounts();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (e) {
+            alert('Erreur lors de la suppression');
+        }
+    },
+
+    // CRUD pour Questions de Connaissances
+    addQuestionConnaissances(banqueId) {
+        this.currentQuestionBanqueId = banqueId;
+        this.currentQuestionId = null;
+        this.openQuestionModal();
+    },
+
+    editQuestionConnaissances(questionId) {
+        const question = this.questionsConnaissances.find(q => q.id === questionId);
+        if (!question) return;
+
+        this.currentQuestionBanqueId = question.banque_id;
+        this.currentQuestionId = questionId;
+        this.openQuestionModal(question);
+    },
+
+    async deleteQuestionConnaissances(id) {
+        if (!confirm('Supprimer cette question ?')) return;
+
+        try {
+            const result = await this.callAPI('deleteQuestionConnaissances', { id });
+            if (result.success) {
+                await this.loadDataFromAPI();
+                this.renderBanques();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (e) {
+            alert('Erreur lors de la suppression');
+        }
+    },
+
+    openQuestionModal(question = null) {
+        // Ouvrir le modal pour créer/éditer une question
+        const modal = document.getElementById('questionConnaissancesModal');
+        if (!modal) {
+            alert('Modal non trouvé. Veuillez rafraîchir la page.');
+            return;
+        }
+
+        const titleEl = document.getElementById('questionModalTitle');
+        const typeSelect = document.getElementById('questionType');
+        const builderContainer = document.getElementById('questionBuilder');
+
+        titleEl.textContent = question ? 'Modifier la question' : 'Nouvelle question';
+
+        if (question) {
+            typeSelect.value = question.type || 'qcm';
+            this.renderQuestionBuilder(question.type, question.donnees);
+        } else {
+            typeSelect.value = 'qcm';
+            this.renderQuestionBuilder('qcm', {});
+        }
+
+        modal.classList.remove('hidden');
+    },
+
+    closeQuestionModal() {
+        const modal = document.getElementById('questionConnaissancesModal');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    renderQuestionBuilder(type, data = {}) {
+        const container = document.getElementById('questionBuilder');
+        if (!container) return;
+
+        let html = '';
+
+        switch (type) {
+            case 'qcm':
+                html = `
+                    <div class="form-group">
+                        <label>Question</label>
+                        <textarea id="qcmQuestion" class="form-textarea" rows="3">${this.escapeHtml(data.question || '')}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Options (une par ligne)</label>
+                        <textarea id="qcmOptions" class="form-textarea" rows="4">${(data.options || []).join('\n')}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Index de la bonne réponse (0, 1, 2...)</label>
+                        <input type="number" id="qcmCorrect" class="form-input" value="${data.reponse_correcte || 0}" min="0">
+                    </div>
+                `;
+                break;
+
+            case 'vrai_faux':
+                html = `
+                    <div class="form-group">
+                        <label>Question</label>
+                        <textarea id="vfQuestion" class="form-textarea" rows="3">${this.escapeHtml(data.question || '')}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Réponse correcte</label>
+                        <select id="vfReponse" class="form-select">
+                            <option value="vrai" ${data.reponse === 'vrai' ? 'selected' : ''}>Vrai</option>
+                            <option value="faux" ${data.reponse === 'faux' ? 'selected' : ''}>Faux</option>
+                        </select>
+                    </div>
+                `;
+                break;
+
+            case 'chronologie':
+                const pairesChronologie = data.paires || [{ date: '', evenement: '' }];
+                html = `
+                    <div class="form-group">
+                        <label>Consigne</label>
+                        <input type="text" id="chronoConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Associez les dates aux événements')}">
+                    </div>
+                    <div class="form-group">
+                        <label>Paires (date - événement)</label>
+                        <div id="chronoPaires">
+                            ${pairesChronologie.map((p, i) => `
+                                <div class="pair-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                    <input type="text" class="form-input chrono-date" placeholder="Date" value="${this.escapeHtml(p.date || '')}" style="width: 100px;">
+                                    <input type="text" class="form-input chrono-event" placeholder="Événement" value="${this.escapeHtml(p.evenement || '')}">
+                                    <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addChronoPair()">+ Ajouter une paire</button>
+                    </div>
+                `;
+                break;
+
+            case 'timeline':
+                const evenements = data.evenements || [''];
+                html = `
+                    <div class="form-group">
+                        <label>Consigne</label>
+                        <input type="text" id="timelineConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Remettez dans l\'ordre chronologique')}">
+                    </div>
+                    <div class="form-group">
+                        <label>Événements (dans l'ordre correct)</label>
+                        <div id="timelineEvents">
+                            ${evenements.map((e, i) => `
+                                <div class="event-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                    <span style="padding: 8px;">${i + 1}.</span>
+                                    <input type="text" class="form-input timeline-event" placeholder="Événement" value="${this.escapeHtml(e || '')}">
+                                    <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addTimelineEvent()">+ Ajouter un événement</button>
+                    </div>
+                `;
+                break;
+
+            case 'association':
+                const pairesAssoc = data.paires || [{ element1: '', element2: '' }];
+                html = `
+                    <div class="form-group">
+                        <label>Consigne</label>
+                        <input type="text" id="assocConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Associez les éléments')}">
+                    </div>
+                    <div class="form-group">
+                        <label>Paires à associer</label>
+                        <div id="assocPaires">
+                            ${pairesAssoc.map((p, i) => `
+                                <div class="pair-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
+                                    <input type="text" class="form-input assoc-left" placeholder="Élément 1" value="${this.escapeHtml(p.element1 || '')}">
+                                    <span style="padding: 8px;">↔</span>
+                                    <input type="text" class="form-input assoc-right" placeholder="Élément 2" value="${this.escapeHtml(p.element2 || '')}">
+                                    <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addAssocPair()">+ Ajouter une paire</button>
+                    </div>
+                `;
+                break;
+
+            case 'texte_trou':
+                html = `
+                    <div class="form-group">
+                        <label>Texte (utilisez {mot} pour les trous)</label>
+                        <textarea id="texteATrous" class="form-textarea" rows="6" placeholder="Ex: La {capitale} de la France est {Paris}.">${this.escapeHtml(data.texte || '')}</textarea>
+                        <small style="color: var(--gray-500);">Les mots entre {accolades} seront les trous à compléter.</small>
+                    </div>
+                `;
+                break;
+
+            default:
+                html = '<p>Type de question non supporté</p>';
+        }
+
+        container.innerHTML = html;
+    },
+
+    addChronoPair() {
+        const container = document.getElementById('chronoPaires');
+        if (!container) return;
+        const div = document.createElement('div');
+        div.className = 'pair-row';
+        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px;';
+        div.innerHTML = `
+            <input type="text" class="form-input chrono-date" placeholder="Date" style="width: 100px;">
+            <input type="text" class="form-input chrono-event" placeholder="Événement">
+            <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+        `;
+        container.appendChild(div);
+    },
+
+    addTimelineEvent() {
+        const container = document.getElementById('timelineEvents');
+        if (!container) return;
+        const count = container.children.length + 1;
+        const div = document.createElement('div');
+        div.className = 'event-row';
+        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px;';
+        div.innerHTML = `
+            <span style="padding: 8px;">${count}.</span>
+            <input type="text" class="form-input timeline-event" placeholder="Événement">
+            <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+        `;
+        container.appendChild(div);
+    },
+
+    addAssocPair() {
+        const container = document.getElementById('assocPaires');
+        if (!container) return;
+        const div = document.createElement('div');
+        div.className = 'pair-row';
+        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px;';
+        div.innerHTML = `
+            <input type="text" class="form-input assoc-left" placeholder="Élément 1">
+            <span style="padding: 8px;">↔</span>
+            <input type="text" class="form-input assoc-right" placeholder="Élément 2">
+            <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+        `;
+        container.appendChild(div);
+    },
+
+    async saveQuestionConnaissances() {
+        const type = document.getElementById('questionType').value;
+        let donnees = {};
+
+        switch (type) {
+            case 'qcm':
+                donnees = {
+                    question: document.getElementById('qcmQuestion').value,
+                    options: document.getElementById('qcmOptions').value.split('\n').filter(o => o.trim()),
+                    reponse_correcte: parseInt(document.getElementById('qcmCorrect').value) || 0
+                };
+                break;
+
+            case 'vrai_faux':
+                donnees = {
+                    question: document.getElementById('vfQuestion').value,
+                    reponse: document.getElementById('vfReponse').value
+                };
+                break;
+
+            case 'chronologie':
+                donnees = {
+                    consigne: document.getElementById('chronoConsigne').value,
+                    paires: Array.from(document.querySelectorAll('#chronoPaires .pair-row')).map(row => ({
+                        date: row.querySelector('.chrono-date').value,
+                        evenement: row.querySelector('.chrono-event').value
+                    })).filter(p => p.date && p.evenement)
+                };
+                break;
+
+            case 'timeline':
+                donnees = {
+                    consigne: document.getElementById('timelineConsigne').value,
+                    evenements: Array.from(document.querySelectorAll('#timelineEvents .timeline-event')).map(input => input.value).filter(e => e)
+                };
+                break;
+
+            case 'association':
+                donnees = {
+                    consigne: document.getElementById('assocConsigne').value,
+                    paires: Array.from(document.querySelectorAll('#assocPaires .pair-row')).map(row => ({
+                        element1: row.querySelector('.assoc-left').value,
+                        element2: row.querySelector('.assoc-right').value
+                    })).filter(p => p.element1 && p.element2)
+                };
+                break;
+
+            case 'texte_trou':
+                donnees = {
+                    texte: document.getElementById('texteATrous').value
+                };
+                break;
+        }
+
+        try {
+            let result;
+            if (this.currentQuestionId) {
+                result = await this.callAPI('updateQuestionConnaissances', {
+                    id: this.currentQuestionId,
+                    type: type,
+                    donnees: JSON.stringify(donnees)
+                });
+            } else {
+                result = await this.callAPI('createQuestionConnaissances', {
+                    banque_id: this.currentQuestionBanqueId,
+                    type: type,
+                    donnees: JSON.stringify(donnees)
+                });
+            }
+
+            if (result.success) {
+                this.closeQuestionModal();
+                await this.loadDataFromAPI();
+                this.renderBanques();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (e) {
+            alert('Erreur lors de la sauvegarde');
+        }
     },
 
     // ========== TACHES COMPLEXES (Competences) ==========
