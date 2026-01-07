@@ -11,6 +11,10 @@ const AdminEntrainements = {
     themes: [],
     chapitres: [],
 
+    // Data pour connaissances
+    banquesQuestions: [],
+    questionsConnaissances: [],
+
     // Filters
     filters: {
         search: '',
@@ -22,6 +26,17 @@ const AdminEntrainements = {
     // Wizard state
     currentStep: 1,
     composedExercises: [],
+    composedEtapes: [], // Pour les entraînements de connaissances
+
+    // Noms des types de questions connaissances
+    questionTypeNames: {
+        'qcm': 'QCM',
+        'vrai_faux': 'Vrai/Faux',
+        'chronologie': 'Chronologie',
+        'timeline': 'Timeline',
+        'association': 'Association',
+        'texte_trou': 'Texte à trous'
+    },
 
     // Format names
     formatNames: {
@@ -80,14 +95,18 @@ const AdminEntrainements = {
             chapitresData,
             entrainementsData,
             entrainementQuestionsData,
-            questionsData
+            questionsData,
+            banquesQuestionsData,
+            questionsConnaissancesData
         ] = await Promise.all([
             SheetsAPI.getSheetData('DISCIPLINES'),
             SheetsAPI.getSheetData('THEMES'),
             SheetsAPI.getSheetData('CHAPITRES'),
             SheetsAPI.getSheetData('ENTRAINEMENTS'),
             SheetsAPI.getSheetData('ENTRAINEMENT_QUESTIONS'),
-            SheetsAPI.getSheetData('QUESTIONS')
+            SheetsAPI.getSheetData('QUESTIONS'),
+            SheetsAPI.getSheetData('BANQUES_QUESTIONS'),
+            SheetsAPI.getSheetData('QUESTIONS_CONNAISSANCES')
         ]);
 
         this.disciplines = SheetsAPI.parseSheetData(disciplinesData);
@@ -96,9 +115,23 @@ const AdminEntrainements = {
         this.entrainements = SheetsAPI.parseSheetData(entrainementsData);
         this.entrainementQuestions = SheetsAPI.parseSheetData(entrainementQuestionsData);
         this.questions = SheetsAPI.parseSheetData(questionsData);
+        this.banquesQuestions = SheetsAPI.parseSheetData(banquesQuestionsData);
+        this.questionsConnaissances = SheetsAPI.parseSheetData(questionsConnaissancesData);
 
         // Parse donnees JSON
         this.questions = this.questions.map(q => {
+            if (q.donnees && typeof q.donnees === 'string') {
+                try {
+                    q.donnees = JSON.parse(q.donnees);
+                } catch (e) {
+                    q.donnees = {};
+                }
+            }
+            return q;
+        });
+
+        // Parse données JSON des questions de connaissances
+        this.questionsConnaissances = this.questionsConnaissances.map(q => {
             if (q.donnees && typeof q.donnees === 'string') {
                 try {
                     q.donnees = JSON.parse(q.donnees);
@@ -208,6 +241,221 @@ const AdminEntrainements = {
         document.getElementById('deleteModal').addEventListener('click', (e) => {
             if (e.target.classList.contains('modal-overlay')) this.closeDeleteModal();
         });
+
+        // ========== CONNAISSANCES - Event listeners ==========
+        // Type change - basculer entre les deux interfaces
+        document.getElementById('entrainementType').addEventListener('change', (e) => {
+            this.onTypeChange(e.target.value);
+        });
+
+        // Banque de questions change
+        document.getElementById('connBanque').addEventListener('change', (e) => {
+            this.onBanqueChange(e.target.value);
+        });
+
+        // Type de question connaissances change
+        document.getElementById('connQuestionType').addEventListener('change', () => {
+            this.updateConnQuestionsAvailable();
+        });
+
+        // Mode de sélection connaissances
+        document.querySelectorAll('input[name="connSelectionMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.toggleConnManualSelection(e.target.value === 'manual');
+            });
+        });
+
+        // Ajouter une étape
+        document.getElementById('addEtapeBtn').addEventListener('click', () => this.addEtape());
+    },
+
+    // ========== TYPE CHANGE ==========
+    onTypeChange(type) {
+        const step2Standard = document.getElementById('step2Standard');
+        const step2Connaissances = document.getElementById('step2Connaissances');
+
+        if (type === 'connaissances') {
+            step2Standard.style.display = 'none';
+            step2Connaissances.style.display = 'grid';
+            this.populateBanquesQuestions();
+        } else {
+            step2Standard.style.display = 'grid';
+            step2Connaissances.style.display = 'none';
+        }
+    },
+
+    // ========== CONNAISSANCES - Méthodes ==========
+    populateBanquesQuestions() {
+        const select = document.getElementById('connBanque');
+        const chapitreId = document.getElementById('entrainementChapitre').value;
+
+        // Filtrer les banques par chapitre si un chapitre est sélectionné
+        let banques = this.banquesQuestions;
+        if (chapitreId) {
+            banques = banques.filter(b => b.chapitre_id === chapitreId || !b.chapitre_id);
+        }
+
+        select.innerHTML = '<option value="">Sélectionner une banque...</option>' +
+            banques.map(b => `<option value="${b.id}">${this.escapeHtml(b.titre || 'Sans titre')}</option>`).join('');
+    },
+
+    onBanqueChange(banqueId) {
+        this.updateConnQuestionsAvailable();
+    },
+
+    updateConnQuestionsAvailable() {
+        const banqueId = document.getElementById('connBanque').value;
+        const questionType = document.getElementById('connQuestionType').value;
+        const isManual = document.querySelector('input[name="connSelectionMode"]:checked')?.value === 'manual';
+
+        // Filtrer les questions par banque et type
+        const available = this.questionsConnaissances.filter(q =>
+            q.banque_id === banqueId && q.type === questionType
+        );
+
+        // Mettre à jour le compteur
+        document.getElementById('connQuestionsInfo').innerHTML =
+            `<span class="conn-available">${available.length} questions disponibles</span>`;
+
+        // Mettre à jour le max du champ nombre
+        const countInput = document.getElementById('connQuestionCount');
+        if (available.length > 0) {
+            countInput.max = available.length;
+            if (parseInt(countInput.value) > available.length) {
+                countInput.value = available.length;
+            }
+        }
+
+        // Si mode manuel, afficher les questions
+        if (isManual) {
+            this.renderConnQuestionsCheckboxes(available);
+        }
+    },
+
+    toggleConnManualSelection(show) {
+        const container = document.getElementById('connQuestionsAvailable');
+        container.style.display = show ? 'block' : 'none';
+        if (show) {
+            this.updateConnQuestionsAvailable();
+        }
+    },
+
+    renderConnQuestionsCheckboxes(questions) {
+        const container = document.getElementById('connQuestionsCheckboxes');
+
+        if (questions.length === 0) {
+            container.innerHTML = '<p style="padding: 16px; color: var(--gray-500); text-align: center;">Aucune question disponible</p>';
+        } else {
+            container.innerHTML = questions.map(q => {
+                const preview = this.getQuestionPreview(q);
+                return `
+                    <label class="element-checkbox">
+                        <input type="checkbox" value="${q.id}">
+                        <span class="element-checkbox-label">${this.escapeHtml(preview)}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+    },
+
+    getQuestionPreview(question) {
+        if (!question.donnees) return 'Question sans contenu';
+
+        switch (question.type) {
+            case 'qcm':
+            case 'vrai_faux':
+                return question.donnees.question?.substring(0, 80) || 'Question sans texte';
+            case 'chronologie':
+            case 'association':
+                return question.donnees.consigne?.substring(0, 80) || 'Exercice d\'association';
+            case 'timeline':
+                return question.donnees.consigne?.substring(0, 80) || 'Exercice de timeline';
+            case 'texte_trou':
+                return question.donnees.texte?.substring(0, 80) || 'Texte à trous';
+            default:
+                return 'Question';
+        }
+    },
+
+    addEtape() {
+        const banqueId = document.getElementById('connBanque').value;
+        const questionType = document.getElementById('connQuestionType').value;
+        const count = parseInt(document.getElementById('connQuestionCount').value) || 5;
+        const mode = document.querySelector('input[name="connSelectionMode"]:checked')?.value || 'random';
+
+        if (!banqueId) {
+            alert('Veuillez sélectionner une banque de questions');
+            return;
+        }
+
+        // Vérifier qu'il y a assez de questions
+        const available = this.questionsConnaissances.filter(q =>
+            q.banque_id === banqueId && q.type === questionType
+        );
+
+        if (available.length === 0) {
+            alert('Aucune question disponible pour ce type dans cette banque');
+            return;
+        }
+
+        let selectedQuestions = [];
+        if (mode === 'manual') {
+            selectedQuestions = Array.from(document.querySelectorAll('#connQuestionsCheckboxes input:checked'))
+                .map(cb => cb.value);
+            if (selectedQuestions.length === 0) {
+                alert('Veuillez sélectionner au moins une question');
+                return;
+            }
+        }
+
+        // Récupérer le nom de la banque
+        const banque = this.banquesQuestions.find(b => b.id === banqueId);
+
+        this.composedEtapes.push({
+            banque_id: banqueId,
+            banque_titre: banque?.titre || 'Banque',
+            type: questionType,
+            count: mode === 'manual' ? selectedQuestions.length : Math.min(count, available.length),
+            mode: mode,
+            questions: selectedQuestions
+        });
+
+        this.renderEtapesList();
+
+        // Reset form
+        document.getElementById('connQuestionCount').value = 5;
+        document.querySelector('input[name="connSelectionMode"][value="random"]').checked = true;
+        this.toggleConnManualSelection(false);
+    },
+
+    removeEtape(index) {
+        this.composedEtapes.splice(index, 1);
+        this.renderEtapesList();
+    },
+
+    renderEtapesList() {
+        const container = document.getElementById('etapesList');
+        const empty = document.getElementById('etapesEmpty');
+        const countEl = document.getElementById('etapesCount');
+
+        if (this.composedEtapes.length === 0) {
+            container.innerHTML = '';
+            empty.style.display = 'block';
+            countEl.textContent = '0 étapes';
+        } else {
+            empty.style.display = 'none';
+            countEl.textContent = `${this.composedEtapes.length} étapes`;
+
+            container.innerHTML = this.composedEtapes.map((etape, i) => `
+                <div class="exercise-item">
+                    <div class="exercise-info">
+                        <div class="exercise-format">Étape ${i + 1}: ${this.questionTypeNames[etape.type] || etape.type}</div>
+                        <div class="exercise-details">${etape.count} questions - ${etape.mode === 'random' ? 'Aléatoire' : 'Manuel'}</div>
+                    </div>
+                    <button class="exercise-remove" onclick="AdminEntrainements.removeEtape(${i})">X</button>
+                </div>
+            `).join('');
+        }
     },
 
     // ========== RENDER ENTRAINEMENTS ==========
@@ -374,6 +622,7 @@ const AdminEntrainements = {
         // Reset wizard
         this.currentStep = 1;
         this.composedExercises = [];
+        this.composedEtapes = [];
         this.updateWizardUI();
 
         // Populate disciplines
@@ -406,25 +655,53 @@ const AdminEntrainements = {
                 }
             }
 
-            // Load composed exercises
+            // Load composed exercises ou étapes selon le type
             const exercises = this.entrainementQuestions.filter(eq => eq.entrainement_id === entrainement.id);
-            this.composedExercises = exercises.map(ex => ({
-                format_id: ex.format_id,
-                count: 1,
-                mode: ex.question_id ? 'manual' : 'random',
-                questions: ex.question_id ? [ex.question_id] : []
-            }));
-            // Group by format
-            const grouped = {};
-            exercises.forEach(ex => {
-                const key = ex.format_id;
-                if (!grouped[key]) {
-                    grouped[key] = { format_id: key, count: 0, mode: 'manual', questions: [] };
-                }
-                grouped[key].count++;
-                if (ex.question_id) grouped[key].questions.push(ex.question_id);
-            });
-            this.composedExercises = Object.values(grouped);
+
+            if (entrainement.niveau === 'connaissances') {
+                // Charger les étapes de connaissances
+                // Group by type de question
+                const groupedEtapes = {};
+                exercises.forEach(ex => {
+                    const key = `${ex.banque_id || ''}_${ex.question_type || ''}`;
+                    if (!groupedEtapes[key]) {
+                        const banque = this.banquesQuestions.find(b => b.id === ex.banque_id);
+                        groupedEtapes[key] = {
+                            banque_id: ex.banque_id,
+                            banque_titre: banque?.titre || 'Banque',
+                            type: ex.question_type,
+                            count: 0,
+                            mode: ex.question_id ? 'manual' : 'random',
+                            questions: []
+                        };
+                    }
+                    groupedEtapes[key].count++;
+                    if (ex.question_id) groupedEtapes[key].questions.push(ex.question_id);
+                });
+                this.composedEtapes = Object.values(groupedEtapes);
+            } else {
+                // Load composed exercises standard
+                this.composedExercises = exercises.map(ex => ({
+                    format_id: ex.format_id,
+                    count: 1,
+                    mode: ex.question_id ? 'manual' : 'random',
+                    questions: ex.question_id ? [ex.question_id] : []
+                }));
+                // Group by format
+                const grouped = {};
+                exercises.forEach(ex => {
+                    const key = ex.format_id;
+                    if (!grouped[key]) {
+                        grouped[key] = { format_id: key, count: 0, mode: 'manual', questions: [] };
+                    }
+                    grouped[key].count++;
+                    if (ex.question_id) grouped[key].questions.push(ex.question_id);
+                });
+                this.composedExercises = Object.values(grouped);
+            }
+
+            // Afficher la bonne interface selon le type
+            this.onTypeChange(entrainement.niveau || 'connaissances');
         } else {
             title.textContent = 'Creer un entrainement';
             document.getElementById('editEntrainementId').value = '';
@@ -439,9 +716,13 @@ const AdminEntrainements = {
             document.getElementById('entrainementTheme').disabled = true;
             document.getElementById('entrainementChapitre').innerHTML = '<option value="">Selectionner d\'abord un theme...</option>';
             document.getElementById('entrainementChapitre').disabled = true;
+
+            // Par défaut, afficher l'interface connaissances
+            this.onTypeChange('connaissances');
         }
 
         this.renderExercisesList();
+        this.renderEtapesList();
         modal.classList.remove('hidden');
     },
 
@@ -667,22 +948,45 @@ const AdminEntrainements = {
 
         const chapitre = this.chapitres.find(c => c.id === chapitreId);
 
+        // Type labels
+        const typeLabels = {
+            'connaissances': 'Connaissances',
+            'savoir-faire': 'Savoir-faire',
+            'competences': 'Compétences'
+        };
+
         document.getElementById('recapTitre').textContent = titre || '-';
-        document.getElementById('recapType').textContent = type || '-';
+        document.getElementById('recapType').textContent = typeLabels[type] || type || '-';
         document.getElementById('recapChapitre').textContent = chapitre?.titre || '-';
         document.getElementById('recapDuree').textContent = `${duree || 15} min`;
         document.getElementById('recapStatut').textContent = statut || 'brouillon';
 
         const exercisesContainer = document.getElementById('recapExercises');
-        if (this.composedExercises.length === 0) {
-            exercisesContainer.innerHTML = '<p style="color: var(--gray-500);">Aucun exercice compose</p>';
+
+        if (type === 'connaissances') {
+            // Récapitulatif des étapes de connaissances
+            if (this.composedEtapes.length === 0) {
+                exercisesContainer.innerHTML = '<p style="color: var(--gray-500);">Aucune étape composée</p>';
+            } else {
+                exercisesContainer.innerHTML = this.composedEtapes.map((etape, i) => `
+                    <div class="recap-exercise">
+                        <span class="recap-exercise-name">Étape ${i + 1}: ${this.questionTypeNames[etape.type] || etape.type}</span>
+                        <span class="recap-exercise-count">${etape.count} questions</span>
+                    </div>
+                `).join('');
+            }
         } else {
-            exercisesContainer.innerHTML = this.composedExercises.map(ex => `
-                <div class="recap-exercise">
-                    <span class="recap-exercise-name">${this.formatNames[ex.format_id] || ex.format_id}</span>
-                    <span class="recap-exercise-count">${ex.count} elements</span>
-                </div>
-            `).join('');
+            // Récapitulatif des exercices standard
+            if (this.composedExercises.length === 0) {
+                exercisesContainer.innerHTML = '<p style="color: var(--gray-500);">Aucun exercice compose</p>';
+            } else {
+                exercisesContainer.innerHTML = this.composedExercises.map(ex => `
+                    <div class="recap-exercise">
+                        <span class="recap-exercise-name">${this.formatNames[ex.format_id] || ex.format_id}</span>
+                        <span class="recap-exercise-count">${ex.count} elements</span>
+                    </div>
+                `).join('');
+            }
         }
     },
 
@@ -718,6 +1022,16 @@ const AdminEntrainements = {
             return;
         }
 
+        // Validation selon le type
+        if (type === 'connaissances' && this.composedEtapes.length === 0) {
+            alert('Veuillez ajouter au moins une étape');
+            return;
+        }
+        if (type !== 'connaissances' && this.composedExercises.length === 0) {
+            alert('Veuillez ajouter au moins un exercice');
+            return;
+        }
+
         const data = {
             titre,
             niveau: type,
@@ -744,8 +1058,12 @@ const AdminEntrainements = {
             if (result.success) {
                 const entrainementId = result.id || id;
 
-                // Save exercises (entrainement_questions)
-                await this.saveExercises(entrainementId);
+                // Save exercises ou étapes selon le type
+                if (type === 'connaissances') {
+                    await this.saveEtapes(entrainementId);
+                } else {
+                    await this.saveExercises(entrainementId);
+                }
 
                 this.closeModal();
                 await this.loadData();
@@ -794,6 +1112,46 @@ const AdminEntrainements = {
                         entrainement_id: entrainementId,
                         question_id: '', // Empty = random selection at runtime
                         format_id: exercise.format_id,
+                        ordre: ordre++
+                    });
+                }
+            }
+        }
+    },
+
+    async saveEtapes(entrainementId) {
+        // Delete existing questions for this entrainement first
+        const existingQuestions = this.entrainementQuestions.filter(eq => eq.entrainement_id === entrainementId);
+        for (const eq of existingQuestions) {
+            try {
+                await this.callAPI('deleteEntrainementQuestion', { id: eq.id });
+            } catch (e) {
+                console.warn('Could not delete question:', e);
+            }
+        }
+
+        // Add new étapes (questions de connaissances)
+        let ordre = 1;
+        for (const etape of this.composedEtapes) {
+            if (etape.mode === 'manual' && etape.questions.length > 0) {
+                // Manual selection - use specific questions
+                for (const questionId of etape.questions) {
+                    await this.callAPI('createEntrainementQuestion', {
+                        entrainement_id: entrainementId,
+                        question_id: questionId,
+                        banque_id: etape.banque_id,
+                        question_type: etape.type,
+                        ordre: ordre++
+                    });
+                }
+            } else {
+                // Random selection - store banque and type with count
+                for (let i = 0; i < etape.count; i++) {
+                    await this.callAPI('createEntrainementQuestion', {
+                        entrainement_id: entrainementId,
+                        question_id: '', // Empty = random selection at runtime
+                        banque_id: etape.banque_id,
+                        question_type: etape.type,
                         ordre: ordre++
                     });
                 }

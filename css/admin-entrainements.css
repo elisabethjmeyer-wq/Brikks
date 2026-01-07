@@ -1000,3 +1000,28 @@
     color: var(--accent-red);
     font-weight: 500;
 }
+
+/* ===== CONNAISSANCES INFO ===== */
+.conn-questions-info {
+    padding: 12px;
+    background: var(--gray-100);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.conn-available {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+/* ===== ETAPES STYLING ===== */
+.exercise-item .exercise-format {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.exercise-item.etape .exercise-format::before {
+    content: '📋';
+}
