@@ -205,9 +205,10 @@
                 </div>
             </div>
 
-            <!-- Step 2: Exercices -->
+            <!-- Step 2: Exercices (pour savoir-faire et compétences) -->
             <div class="wizard-content" id="step2" style="display: none;">
-                <div class="exercises-layout">
+                <!-- Version standard (savoir-faire, compétences) -->
+                <div class="exercises-layout" id="step2Standard">
                     <!-- Left: List of composed exercises -->
                     <div class="exercises-list-panel">
                         <div class="panel-header">
@@ -272,6 +273,89 @@
 
                             <button class="btn btn-primary btn-full" id="addExerciseBtn">
                                 + Ajouter l'exercice
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Version connaissances (questions de banques) -->
+                <div class="exercises-layout" id="step2Connaissances" style="display: none;">
+                    <!-- Left: Liste des étapes composées -->
+                    <div class="exercises-list-panel">
+                        <div class="panel-header">
+                            <h3>Étapes de l'entraînement</h3>
+                            <span class="exercises-count" id="etapesCount">0 étapes</span>
+                        </div>
+                        <div class="exercises-list" id="etapesList">
+                            <!-- Generated dynamically -->
+                        </div>
+                        <div class="exercises-empty" id="etapesEmpty">
+                            <p>Aucune étape ajoutée</p>
+                            <p class="hint">Sélectionnez une banque et ajoutez des types de questions</p>
+                        </div>
+                    </div>
+
+                    <!-- Right: Ajouter une étape -->
+                    <div class="add-exercise-panel">
+                        <div class="panel-header">
+                            <h3>Ajouter une étape</h3>
+                        </div>
+                        <div class="add-exercise-form">
+                            <div class="form-group">
+                                <label>Banque de questions <span class="req">*</span></label>
+                                <select class="form-select" id="connBanque">
+                                    <option value="">Sélectionner une banque...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Type de questions</label>
+                                <select class="form-select" id="connQuestionType">
+                                    <option value="qcm">QCM (choix unique)</option>
+                                    <option value="vrai_faux">Vrai / Faux</option>
+                                    <option value="chronologie">Chronologie (dates ↔ événements)</option>
+                                    <option value="timeline">Timeline (ordonner)</option>
+                                    <option value="association">Association (paires)</option>
+                                    <option value="texte_trou">Texte à trous</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Questions disponibles</label>
+                                <div class="conn-questions-info" id="connQuestionsInfo">
+                                    <span class="conn-available">0 questions disponibles</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nombre de questions</label>
+                                <input type="number" class="form-input" id="connQuestionCount" value="5" min="1" max="20">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Mode de sélection</label>
+                                <div class="radio-group">
+                                    <label class="radio-item">
+                                        <input type="radio" name="connSelectionMode" value="random" checked>
+                                        <span>Aléatoire</span>
+                                    </label>
+                                    <label class="radio-item">
+                                        <input type="radio" name="connSelectionMode" value="manual">
+                                        <span>Sélection manuelle</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Questions disponibles pour sélection manuelle -->
+                            <div class="elements-available" id="connQuestionsAvailable" style="display: none;">
+                                <label>Questions à sélectionner</label>
+                                <div class="elements-checkboxes" id="connQuestionsCheckboxes">
+                                    <!-- Generated -->
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary btn-full" id="addEtapeBtn">
+                                + Ajouter l'étape
                             </button>
                         </div>
                     </div>

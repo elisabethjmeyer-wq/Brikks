@@ -1,0 +1,354 @@
+/**
+ * Admin Banques de questions - Styles
+ */
+
+/* Stats row */
+.stats-row {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    padding: 1rem 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.stat-label {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+/* Banques list */
+.banques-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.banque-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.banque-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.banque-info {
+    flex: 1;
+}
+
+.banque-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 0.25rem;
+}
+
+.banque-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+
+.banque-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.banque-actions .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+/* Question types tabs */
+.question-types-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.question-types-tabs .type-tab {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--gray-300);
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.15s;
+}
+
+.question-types-tabs .type-tab:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.question-types-tabs .type-tab.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+/* Questions list */
+.questions-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.question-item {
+    background: var(--gray-50);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.question-content {
+    flex: 1;
+}
+
+.question-type-badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.question-type-badge.qcm { background: #dbeafe; color: #1d4ed8; }
+.question-type-badge.vrai_faux { background: #dcfce7; color: #166534; }
+.question-type-badge.chronologie { background: #fef3c7; color: #92400e; }
+.question-type-badge.timeline { background: #fce7f3; color: #9d174d; }
+.question-type-badge.association { background: #e0e7ff; color: #4338ca; }
+.question-type-badge.texte_trou { background: #f3e8ff; color: #7c3aed; }
+
+.question-text {
+    font-size: 0.95rem;
+    color: var(--gray-800);
+    line-height: 1.5;
+}
+
+.question-actions {
+    display: flex;
+    gap: 0.25rem;
+    margin-left: 1rem;
+}
+
+.question-actions .btn-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--gray-500);
+    transition: all 0.15s;
+}
+
+.question-actions .btn-icon:hover {
+    background: var(--gray-200);
+    color: var(--gray-700);
+}
+
+.question-actions .btn-icon.delete:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Question builders */
+.question-builder {
+    padding: 1rem;
+    background: var(--gray-50);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.question-builder.hidden {
+    display: none;
+}
+
+/* QCM options */
+.qcm-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.qcm-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qcm-option input[type="radio"] {
+    flex-shrink: 0;
+}
+
+.qcm-option input[type="text"] {
+    flex: 1;
+}
+
+.qcm-option .btn-remove {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--gray-400);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.qcm-option .btn-remove:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Chrono pairs */
+.chrono-pairs, .assoc-pairs, .timeline-events {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.chrono-pair, .assoc-pair {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.chrono-pair input, .assoc-pair input {
+    flex: 1;
+}
+
+.timeline-event {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.timeline-event .drag-handle {
+    cursor: grab;
+    color: var(--gray-400);
+    padding: 0.25rem;
+}
+
+.timeline-event input {
+    flex: 1;
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 12px;
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    color: var(--gray-700);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--gray-500);
+    margin-bottom: 1.5rem;
+}
+
+/* Modal sizes */
+.modal-large {
+    max-width: 800px;
+    width: 95%;
+}
+
+.modal-small {
+    max-width: 400px;
+}
+
+/* Buttons */
+.btn-full {
+    width: 100%;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+.btn-danger {
+    background: #dc2626;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #b91c1c;
+}
+
+/* Radio group */
+.radio-group {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.radio-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.radio-item input {
+    cursor: pointer;
+}
+
+/* Form help */
+.form-help {
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    margin-top: 0.25rem;
+}
+
+/* Questions empty */
+.questions-empty {
+    text-align: center;
+    padding: 2rem;
+    color: var(--gray-500);
+}

@@ -251,8 +251,8 @@ const EleveEntrainement = {
             // Structure de base
             const step = {
                 format: formatType,
-                titre: q.enonce || 'Question',
-                description: q.explication || '',
+                titre: q.enonce || donnees.question || donnees.consigne || 'Question',
+                description: q.explication || donnees.explication || '',
                 points: q.points || 1,
                 question_id: q.id
             };
@@ -260,41 +260,83 @@ const EleveEntrainement = {
             // Adapter selon le format
             switch (formatType) {
                 case 'qcm':
+                    // Format connaissances: donnees.question, donnees.options, donnees.reponse_correcte
                     step.questions = [{
                         id: q.id,
-                        question: q.enonce,
+                        question: donnees.question || q.enonce,
                         options: donnees.options || [],
                         correctIndex: donnees.reponse_correcte,
-                        explanation: q.explication
+                        explanation: donnees.explication || q.explication
                     }];
                     break;
 
                 case 'qcm_multiple':
                     step.questions = [{
                         id: q.id,
-                        question: q.enonce,
+                        question: donnees.question || q.enonce,
                         options: donnees.options || [],
                         correctIndices: donnees.reponses_correctes || [],
-                        explanation: q.explication
+                        explanation: donnees.explication || q.explication
                     }];
                     break;
 
                 case 'vrai_faux':
+                    // Format connaissances: donnees.question, donnees.reponse (vrai/faux)
                     step.questions = [{
                         id: q.id,
-                        question: q.enonce,
-                        correctAnswer: donnees.reponse_correcte,
-                        explanation: q.explication
+                        question: donnees.question || q.enonce,
+                        correctAnswer: donnees.reponse === 'vrai' || donnees.reponse_correcte === true || donnees.reponse_correcte === 'vrai',
+                        explanation: donnees.explication || q.explication
                     }];
                     break;
 
                 case 'trous':
+                case 'texte_trou':
+                    // Format connaissances: donnees.texte avec {mot}
+                    step.format = 'trous';
                     step.texte = donnees.texte || q.enonce;
-                    step.trous = donnees.trous || [];
+                    // Extraire les trous du texte format {mot}
+                    const matches = (donnees.texte || '').match(/\{([^}]+)\}/g) || [];
+                    step.trous = matches.map((m, i) => ({
+                        id: `trou_${i}`,
+                        answer: m.replace(/[{}]/g, '')
+                    }));
                     break;
 
                 case 'association':
-                    step.paires = donnees.paires || [];
+                    // Format connaissances: donnees.paires [{element1, element2}]
+                    step.consigne = donnees.consigne || 'Associez les éléments';
+                    step.paires = (donnees.paires || []).map((p, i) => ({
+                        id: `pair_${i}`,
+                        left: p.element1 || p.left,
+                        right: p.element2 || p.right
+                    }));
+                    break;
+
+                case 'chronologie':
+                    // Format connaissances: donnees.paires [{date, evenement}], donnees.mode
+                    step.format = 'chronologie';
+                    step.consigne = donnees.consigne || 'Complétez la chronologie';
+                    step.mode = donnees.mode || 'date_vers_evenement';
+                    step.items = (donnees.paires || []).map((p, i) => {
+                        const blankType = step.mode === 'date_vers_evenement' ? 'event' : 'date';
+                        return {
+                            date: p.date,
+                            event: p.evenement,
+                            blank: i > 0 ? blankType : null // Première ligne visible, les autres à compléter
+                        };
+                    });
+                    break;
+
+                case 'timeline':
+                    // Format connaissances: donnees.evenements []
+                    step.format = 'ordonner';
+                    step.consigne = donnees.consigne || 'Remettez dans l\'ordre chronologique';
+                    step.elements = (donnees.evenements || []).map((e, i) => ({
+                        id: `evt_${i}`,
+                        text: typeof e === 'string' ? e : e.titre || e.text || ''
+                    }));
+                    step.ordre_correct = step.elements.map((_, i) => i);
                     break;
 
                 case 'ordonner':
@@ -305,9 +347,9 @@ const EleveEntrainement = {
                 case 'question_ouverte':
                     step.questions = [{
                         id: q.id,
-                        question: q.enonce,
+                        question: donnees.question || q.enonce,
                         keywords: donnees.mots_cles || [],
-                        correction: q.explication
+                        correction: donnees.explication || q.explication
                     }];
                     break;
 
@@ -865,18 +907,36 @@ const EleveEntrainement = {
         });
 
         const globalScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+        const isConnaissances = this.training.type === 'connaissances' || this.training.niveau === 'connaissances';
+        const passThreshold = 80;
+        const isPassed = globalScore >= passThreshold;
+
         let headerClass = 'success';
         let icon = '🏆';
         let message = 'Bravo, entraînement terminé !';
 
-        if (globalScore < 50) {
-            headerClass = 'failure';
-            icon = '💪';
-            message = 'Continue tes efforts !';
-        } else if (globalScore < 80) {
-            headerClass = 'partial';
-            icon = '👍';
-            message = 'Bien joué !';
+        if (isConnaissances) {
+            // Pour les entraînements de connaissances, indiquer clairement réussi/échoué
+            if (isPassed) {
+                headerClass = 'success';
+                icon = '🎉';
+                message = 'Entraînement réussi !';
+            } else {
+                headerClass = 'failure';
+                icon = '💪';
+                message = 'Entraînement non validé';
+            }
+        } else {
+            // Pour les autres types, comportement original
+            if (globalScore < 50) {
+                headerClass = 'failure';
+                icon = '💪';
+                message = 'Continue tes efforts !';
+            } else if (globalScore < 80) {
+                headerClass = 'partial';
+                icon = '👍';
+                message = 'Bien joué !';
+            }
         }
 
         document.getElementById('exerciseContainer').style.display = 'none';
@@ -892,10 +952,31 @@ const EleveEntrainement = {
                     <p>Tu as complété "${this.training.titre}"</p>
                 </div>
                 <div class="final-result-body">
+                    ${isConnaissances ? `
+                        <div class="threshold-indicator ${isPassed ? 'passed' : 'failed'}">
+                            <div class="threshold-bar">
+                                <div class="threshold-fill" style="width: ${Math.min(globalScore, 100)}%"></div>
+                                <div class="threshold-marker" style="left: ${passThreshold}%">
+                                    <span class="threshold-label">${passThreshold}%</span>
+                                </div>
+                            </div>
+                            <p class="threshold-message">
+                                ${isPassed
+                                    ? `✓ Tu as atteint le seuil de ${passThreshold}% requis pour valider !`
+                                    : `✗ Il te faut ${passThreshold}% pour valider (${passThreshold - globalScore}% de plus)`
+                                }
+                            </p>
+                        </div>
+                    ` : ''}
+
                     <div class="final-score">
                         <div class="final-score-item">
-                            <div class="final-score-value">${globalScore}%</div>
+                            <div class="final-score-value ${isPassed && isConnaissances ? 'passed' : ''}">${globalScore}%</div>
                             <div class="final-score-label">Score global</div>
+                        </div>
+                        <div class="final-score-item">
+                            <div class="final-score-value">${totalCorrect}/${totalQuestions}</div>
+                            <div class="final-score-label">Bonnes réponses</div>
                         </div>
                         <div class="final-score-item">
                             <div class="final-score-value">${this.formatTime(elapsed)}</div>
