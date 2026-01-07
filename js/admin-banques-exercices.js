@@ -244,6 +244,8 @@ const AdminBanquesExercices = {
 
     // ========== EVENT LISTENERS ==========
     setupEventListeners() {
+        console.log('[Debug] Setting up event listeners...');
+
         // Add banque buttons (or tache complexe if on competences tab)
         document.getElementById('addBanqueBtn').addEventListener('click', () => {
             if (this.currentType === 'competences') {
@@ -361,7 +363,9 @@ const AdminBanquesExercices = {
         });
 
         // Initialize WYSIWYG editors
+        console.log('[Debug] About to init WYSIWYG...');
         this.initWysiwygEditor();
+        console.log('[Debug] Event listeners setup complete!');
     },
 
     // ========== WYSIWYG EDITOR ==========
