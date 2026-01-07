@@ -3328,54 +3328,111 @@ function getEntrainement(data) {
   // Trier par ordre
   questionLinks.sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
 
-  // 3. Récupérer les questions
-  const qSheet = ss.getSheetByName(SHEETS.QUESTIONS);
-  const qData = qSheet.getDataRange().getValues();
-  const qHeaders = qData[0].map(h => String(h).toLowerCase().trim());
+  // 3. Récupérer les questions (selon le type d'entraînement)
+  const isConnaissances = entrainement.niveau === 'connaissances';
 
-  const questionsMap = {};
-  for (let i = 1; i < qData.length; i++) {
-    const row = qData[i];
-    const idCol = qHeaders.indexOf('id');
-    if (idCol >= 0 && row[idCol]) {
-      const question = {};
-      qHeaders.forEach((header, index) => {
-        question[header] = row[index];
-      });
-      questionsMap[String(row[idCol]).trim()] = question;
+  // Pour connaissances, on utilise QUESTIONS_CONNAISSANCES sinon QUESTIONS
+  const qSheetName = isConnaissances ? SHEETS.QUESTIONS_CONNAISSANCES : SHEETS.QUESTIONS;
+  const qSheet = ss.getSheetByName(qSheetName);
+
+  let questionsMap = {};
+  if (qSheet) {
+    const qData = qSheet.getDataRange().getValues();
+    const qHeaders = qData[0].map(h => String(h).toLowerCase().trim());
+
+    for (let i = 1; i < qData.length; i++) {
+      const row = qData[i];
+      const idCol = qHeaders.indexOf('id');
+      if (idCol >= 0 && row[idCol]) {
+        const question = {};
+        qHeaders.forEach((header, index) => {
+          question[header] = row[index];
+        });
+        questionsMap[String(row[idCol]).trim()] = question;
+      }
     }
   }
 
-  // 4. Récupérer les formats
-  const fSheet = ss.getSheetByName(SHEETS.FORMATS);
-  const fData = fSheet.getDataRange().getValues();
-  const fHeaders = fData[0].map(h => String(h).toLowerCase().trim());
+  // 4. Récupérer les formats (seulement pour entraînements non-connaissances)
+  let formatsMap = {};
+  if (!isConnaissances) {
+    const fSheet = ss.getSheetByName(SHEETS.FORMATS);
+    if (fSheet) {
+      const fData = fSheet.getDataRange().getValues();
+      const fHeaders = fData[0].map(h => String(h).toLowerCase().trim());
 
-  const formatsMap = {};
-  for (let i = 1; i < fData.length; i++) {
-    const row = fData[i];
-    const idCol = fHeaders.indexOf('id');
-    if (idCol >= 0 && row[idCol]) {
-      const format = {};
-      fHeaders.forEach((header, index) => {
-        format[header] = row[index];
-      });
-      formatsMap[String(row[idCol]).trim()] = format;
+      for (let i = 1; i < fData.length; i++) {
+        const row = fData[i];
+        const idCol = fHeaders.indexOf('id');
+        if (idCol >= 0 && row[idCol]) {
+          const format = {};
+          fHeaders.forEach((header, index) => {
+            format[header] = row[index];
+          });
+          formatsMap[String(row[idCol]).trim()] = format;
+        }
+      }
     }
   }
 
-  // 5. Assembler les questions avec leurs formats
+  // 5. Assembler les questions
   const questions = questionLinks.map(link => {
-    const question = questionsMap[String(link.question_id).trim()] || {};
-    const format = formatsMap[String(question.format_id).trim()] || {};
-
-    // Parser le JSON des données
+    const questionId = String(link.question_id || '').trim();
+    let question = {};
     let donnees = {};
-    if (question.donnees) {
-      try {
-        donnees = JSON.parse(question.donnees);
-      } catch (e) {
-        donnees = {};
+    let format = {};
+
+    if (isConnaissances) {
+      // Pour les entraînements de connaissances
+      if (questionId && questionsMap[questionId]) {
+        question = questionsMap[questionId];
+
+        // Parser le JSON des données
+        if (question.donnees) {
+          try {
+            donnees = JSON.parse(question.donnees);
+          } catch (e) {
+            donnees = {};
+          }
+        }
+      } else {
+        // Sélection aléatoire si question_id est vide
+        const banqueId = link.banque_id;
+        const questionType = link.question_type;
+
+        // Trouver les questions de cette banque et type
+        const candidates = Object.values(questionsMap).filter(q =>
+          String(q.banque_id || '').trim() === String(banqueId).trim() &&
+          String(q.type || '').trim() === String(questionType).trim()
+        );
+
+        if (candidates.length > 0) {
+          question = candidates[Math.floor(Math.random() * candidates.length)];
+          if (question.donnees) {
+            try {
+              donnees = JSON.parse(question.donnees);
+            } catch (e) {
+              donnees = {};
+            }
+          }
+        }
+      }
+
+      // Pour connaissances, le type est dans le champ 'type' de la question
+      format = { type_base: question.type || link.question_type || 'qcm' };
+
+    } else {
+      // Pour les autres types d'entraînements
+      question = questionsMap[questionId] || {};
+      format = formatsMap[String(question.format_id).trim()] || {};
+
+      // Parser le JSON des données
+      if (question.donnees) {
+        try {
+          donnees = JSON.parse(question.donnees);
+        } catch (e) {
+          donnees = {};
+        }
       }
     }
 
@@ -3384,7 +3441,7 @@ function getEntrainement(data) {
       donnees: donnees,
       format: format,
       ordre: link.ordre,
-      points: link.points
+      points: link.points || 1
     };
   });
 
