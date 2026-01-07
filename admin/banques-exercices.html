@@ -522,6 +522,33 @@
     </div>
 </div>
 
+<!-- Modal: Banque de questions -->
+<div class="modal-overlay hidden" id="banqueQuestionsModal">
+    <div class="modal modal-medium">
+        <div class="modal-header">
+            <h2 id="banqueQuestionsModalTitle">Nouvelle banque de questions</h2>
+            <button class="modal-close" onclick="AdminBanquesExercices.closeBanqueQuestionsModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editBanqueQuestionsId">
+
+            <div class="form-group">
+                <label>Titre <span class="req">*</span></label>
+                <input type="text" class="form-input" id="banqueQuestionsTitre" placeholder="Ex: Les grandes dates de l'Histoire">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea class="form-textarea" id="banqueQuestionsDescription" rows="3" placeholder="Description de la banque de questions..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeBanqueQuestionsModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="AdminBanquesExercices.saveBanqueQuestions()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Question de connaissances -->
 <div class="modal-overlay hidden" id="questionConnaissancesModal">
     <div class="modal modal-medium">
