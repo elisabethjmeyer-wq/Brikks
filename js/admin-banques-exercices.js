@@ -2834,7 +2834,10 @@ const AdminBanquesExercices = {
                     <div class="banque-exercices">
                         <div class="exercices-header">
                             <h4>Questions</h4>
-                            <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addQuestionConnaissances('${banque.id}')">+ Ajouter</button>
+                            <div class="exercices-header-actions">
+                                <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addQuestionConnaissances('${banque.id}')">+ Ajouter</button>
+                                <button class="btn btn-success btn-sm" onclick="AdminBanquesExercices.openEntrainementModal('${banque.id}')" ${questions.length === 0 ? 'disabled title="Ajoutez des questions d\'abord"' : ''}>🎯 Créer entraînement</button>
+                            </div>
                         </div>
                         ${this.renderQuestionsConnaissances(questions, banque.id)}
                     </div>
@@ -3541,6 +3544,129 @@ const AdminBanquesExercices = {
         document.getElementById('deleteMessage').textContent =
             `Etes-vous sur de vouloir supprimer la tache "${tache.titre}" ?`;
         document.getElementById('deleteModal').classList.remove('hidden');
+    },
+
+    // ========== ENTRAINEMENTS CONNAISSANCES ==========
+    openEntrainementModal(banqueId) {
+        const banque = this.banquesQuestions.find(b => b.id === banqueId);
+        if (!banque) return;
+
+        const questions = this.questionsConnaissances.filter(q => q.banque_id === banqueId);
+        if (questions.length === 0) {
+            alert('Ajoutez des questions à cette banque avant de créer un entraînement.');
+            return;
+        }
+
+        // Populate modal
+        document.getElementById('entrainementBanqueId').value = banqueId;
+        document.getElementById('entrainementTitre').value = 'Entraînement - ' + (banque.titre || '');
+        document.getElementById('entrainementDescription').value = '';
+        document.getElementById('entrainementNbQuestions').value = Math.min(10, questions.length);
+        document.getElementById('entrainementNbQuestions').max = questions.length;
+        document.getElementById('entrainementSeuil').value = 80;
+        document.getElementById('entrainementStatut').value = 'brouillon';
+
+        // Count questions by type
+        const questionsByType = {};
+        questions.forEach(q => {
+            questionsByType[q.type] = (questionsByType[q.type] || 0) + 1;
+        });
+
+        // Generate checkboxes for question types
+        const typesContainer = document.getElementById('entrainementTypesQuestions');
+        typesContainer.innerHTML = Object.entries(questionsByType).map(([type, count]) => {
+            const typeName = this.questionTypeNames[type] || type;
+            return `
+                <label class="checkbox-label">
+                    <input type="checkbox" name="questionTypes" value="${type}" checked>
+                    <span>${typeName} (${count})</span>
+                </label>
+            `;
+        }).join('');
+
+        document.getElementById('entrainementConnModal').classList.remove('hidden');
+    },
+
+    closeEntrainementModal() {
+        document.getElementById('entrainementConnModal').classList.add('hidden');
+    },
+
+    async saveEntrainement() {
+        const banqueId = document.getElementById('entrainementBanqueId').value;
+        const titre = document.getElementById('entrainementTitre').value.trim();
+        const description = document.getElementById('entrainementDescription').value.trim();
+        const nbQuestions = parseInt(document.getElementById('entrainementNbQuestions').value) || 10;
+        const seuil = parseInt(document.getElementById('entrainementSeuil').value) || 80;
+        const statut = document.getElementById('entrainementStatut').value;
+
+        if (!titre) {
+            alert('Le titre est requis');
+            return;
+        }
+
+        // Get selected question types
+        const selectedTypes = Array.from(document.querySelectorAll('input[name="questionTypes"]:checked'))
+            .map(cb => cb.value);
+
+        if (selectedTypes.length === 0) {
+            alert('Sélectionnez au moins un type de question');
+            return;
+        }
+
+        // Filter questions by selected types
+        const availableQuestions = this.questionsConnaissances.filter(q =>
+            q.banque_id === banqueId && selectedTypes.includes(q.type)
+        );
+
+        if (availableQuestions.length === 0) {
+            alert('Aucune question disponible avec les types sélectionnés');
+            return;
+        }
+
+        const actualNbQuestions = Math.min(nbQuestions, availableQuestions.length);
+
+        try {
+            // Create the entrainement
+            const entrainementData = {
+                titre: titre,
+                description: description,
+                niveau: 'connaissances',
+                duree_estimee: Math.ceil(actualNbQuestions * 1.5), // ~1.5 min per question
+                statut: statut,
+                seuil_validation: seuil
+            };
+
+            const result = await this.callAPI('createEntrainement', entrainementData);
+
+            if (!result.success) {
+                alert('Erreur: ' + (result.error || 'Erreur création entraînement'));
+                return;
+            }
+
+            const entrainementId = result.id;
+
+            // Add questions to the entrainement (random selection)
+            const shuffled = [...availableQuestions].sort(() => Math.random() - 0.5);
+            const selected = shuffled.slice(0, actualNbQuestions);
+
+            for (let i = 0; i < selected.length; i++) {
+                const q = selected[i];
+                await this.callAPI('createEntrainementQuestion', {
+                    entrainement_id: entrainementId,
+                    question_id: q.id,
+                    banque_id: banqueId,
+                    question_type: q.type,
+                    ordre: i + 1
+                });
+            }
+
+            this.closeEntrainementModal();
+            alert(`Entraînement créé avec ${selected.length} questions !`);
+
+        } catch (error) {
+            console.error('Erreur création entraînement:', error);
+            alert('Erreur lors de la création de l\'entraînement');
+        }
     },
 
     // ========== UTILS ==========
