@@ -2892,15 +2892,59 @@ const AdminBanquesExercices = {
     },
 
     // CRUD pour Banques de Questions
-    async addBanqueQuestions() {
-        const titre = prompt('Titre de la banque de questions:');
-        if (!titre) return;
+    addBanqueQuestions() {
+        this.openBanqueQuestionsModal();
+    },
 
-        const description = prompt('Description (optionnel):') || '';
+    editBanqueQuestions(id) {
+        const banque = this.banquesQuestions.find(b => b.id === id);
+        if (!banque) return;
+        this.openBanqueQuestionsModal(banque);
+    },
+
+    openBanqueQuestionsModal(banque = null) {
+        const modal = document.getElementById('banqueQuestionsModal');
+        const title = document.getElementById('banqueQuestionsModalTitle');
+
+        if (banque) {
+            title.textContent = 'Modifier la banque de questions';
+            document.getElementById('editBanqueQuestionsId').value = banque.id;
+            document.getElementById('banqueQuestionsTitre').value = banque.titre || '';
+            document.getElementById('banqueQuestionsDescription').value = banque.description || '';
+        } else {
+            title.textContent = 'Nouvelle banque de questions';
+            document.getElementById('editBanqueQuestionsId').value = '';
+            document.getElementById('banqueQuestionsTitre').value = '';
+            document.getElementById('banqueQuestionsDescription').value = '';
+        }
+
+        modal.classList.remove('hidden');
+    },
+
+    closeBanqueQuestionsModal() {
+        document.getElementById('banqueQuestionsModal').classList.add('hidden');
+    },
+
+    async saveBanqueQuestions() {
+        const id = document.getElementById('editBanqueQuestionsId').value;
+        const titre = document.getElementById('banqueQuestionsTitre').value.trim();
+        const description = document.getElementById('banqueQuestionsDescription').value.trim();
+
+        if (!titre) {
+            alert('Le titre est requis');
+            return;
+        }
 
         try {
-            const result = await this.callAPI('createBanqueQuestions', { titre, description });
+            let result;
+            if (id) {
+                result = await this.callAPI('updateBanqueQuestions', { id, titre, description });
+            } else {
+                result = await this.callAPI('createBanqueQuestions', { titre, description });
+            }
+
             if (result.success) {
+                this.closeBanqueQuestionsModal();
                 await this.loadDataFromAPI();
                 this.renderBanques();
                 this.updateCounts();
@@ -2908,29 +2952,7 @@ const AdminBanquesExercices = {
                 alert('Erreur: ' + (result.error || 'Erreur inconnue'));
             }
         } catch (e) {
-            alert('Erreur lors de la création');
-        }
-    },
-
-    async editBanqueQuestions(id) {
-        const banque = this.banquesQuestions.find(b => b.id === id);
-        if (!banque) return;
-
-        const titre = prompt('Titre:', banque.titre);
-        if (!titre) return;
-
-        const description = prompt('Description:', banque.description || '') || '';
-
-        try {
-            const result = await this.callAPI('updateBanqueQuestions', { id, titre, description });
-            if (result.success) {
-                await this.loadDataFromAPI();
-                this.renderBanques();
-            } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
-            }
-        } catch (e) {
-            alert('Erreur lors de la modification');
+            alert('Erreur lors de la sauvegarde');
         }
     },
 

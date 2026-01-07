@@ -6248,11 +6248,11 @@ function createQuestionConnaissances(data) {
   if (!sheet) {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     sheet = ss.insertSheet(SHEETS.QUESTIONS_CONNAISSANCES);
-    sheet.appendRow(['id', 'banque_id', 'type', 'question', 'options', 'reponse_correcte', 'explication', 'difficulte', 'date_creation']);
+    sheet.appendRow(['id', 'banque_id', 'type', 'donnees', 'difficulte', 'date_creation']);
   }
 
-  if (!data.banque_id || !data.type || !data.question) {
-    return { success: false, error: 'banque_id, type et question requis' };
+  if (!data.banque_id || !data.type || !data.donnees) {
+    return { success: false, error: 'banque_id, type et donnees requis' };
   }
 
   const id = 'qc_' + new Date().getTime();
@@ -6263,11 +6263,6 @@ function createQuestionConnaissances(data) {
     const col = String(header).toLowerCase().trim();
     if (col === 'id') return id;
     if (col === 'date_creation') return new Date().toISOString().split('T')[0];
-    if (col === 'options' || col === 'reponse_correcte') {
-      // Stocker en JSON si c'est un objet/array
-      const val = data[col];
-      return typeof val === 'object' ? JSON.stringify(val) : (val || '');
-    }
     return data[col] !== undefined ? data[col] : '';
   });
 
@@ -6305,16 +6300,12 @@ function updateQuestionConnaissances(data) {
     return { success: false, error: 'Question non trouvée' };
   }
 
-  const updates = ['type', 'question', 'options', 'reponse_correcte', 'explication', 'difficulte'];
+  const updates = ['type', 'donnees', 'difficulte'];
   updates.forEach(col => {
     if (data[col] !== undefined) {
       const colIndex = headers.indexOf(col);
       if (colIndex >= 0) {
-        let value = data[col];
-        if ((col === 'options' || col === 'reponse_correcte') && typeof value === 'object') {
-          value = JSON.stringify(value);
-        }
-        sheet.getRange(rowIndex, colIndex + 1).setValue(value);
+        sheet.getRange(rowIndex, colIndex + 1).setValue(data[col]);
       }
     }
   });
