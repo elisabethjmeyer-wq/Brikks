@@ -2038,3 +2038,32 @@
 .wysiwyg-editor p {
     margin-bottom: 0.5em;
 }
+
+/* Mini version for questions/answers */
+.wysiwyg-mini {
+    margin-bottom: 8px;
+}
+
+.wysiwyg-mini .wysiwyg-toolbar {
+    padding: 4px 8px;
+    gap: 2px;
+}
+
+.wysiwyg-mini .wysiwyg-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+}
+
+.wysiwyg-mini .wysiwyg-color {
+    height: 26px;
+    padding: 0 4px;
+    font-size: 12px;
+}
+
+.wysiwyg-mini .wysiwyg-editor {
+    min-height: 60px;
+    max-height: 150px;
+    padding: 8px 12px;
+    font-size: 13px;
+}

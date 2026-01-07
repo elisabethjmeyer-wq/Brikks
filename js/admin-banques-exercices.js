@@ -2432,11 +2432,41 @@ const AdminBanquesExercices = {
                     <span class="question-label">Question ${i + 1}</span>
                     <button type="button" class="btn-icon" onclick="AdminBanquesExercices.removeQuestionMixte(${i})">×</button>
                 </div>
-                <textarea placeholder="Texte de la question..."
-                          onchange="AdminBanquesExercices.updateMixteQuestion(${i}, 'question', this.value)">${this.escapeHtml(q.question)}</textarea>
+                <div class="wysiwyg-container wysiwyg-mini">
+                    <div class="wysiwyg-toolbar">
+                        <button type="button" class="wysiwyg-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+                        <button type="button" class="wysiwyg-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+                        <button type="button" class="wysiwyg-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
+                        <select class="wysiwyg-color" data-cmd="foreColor" title="Couleur">
+                            <option value="">🎨</option>
+                            <option value="#dc2626">Rouge</option>
+                            <option value="#2563eb">Bleu</option>
+                            <option value="#16a34a">Vert</option>
+                        </select>
+                    </div>
+                    <div class="wysiwyg-editor" contenteditable="true"
+                         data-index="${i}" data-field="question"
+                         data-placeholder="Texte de la question..."
+                         oninput="AdminBanquesExercices.updateMixteQuestion(${i}, 'question', this.innerHTML)">${q.question || ''}</div>
+                </div>
                 <div class="question-label" style="margin-top:0.5rem;">Réponse attendue (pour correction)</div>
-                <textarea placeholder="Réponse modèle..."
-                          onchange="AdminBanquesExercices.updateMixteQuestion(${i}, 'reponse_attendue', this.value)">${this.escapeHtml(q.reponse_attendue)}</textarea>
+                <div class="wysiwyg-container wysiwyg-mini">
+                    <div class="wysiwyg-toolbar">
+                        <button type="button" class="wysiwyg-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+                        <button type="button" class="wysiwyg-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+                        <button type="button" class="wysiwyg-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
+                        <select class="wysiwyg-color" data-cmd="foreColor" title="Couleur">
+                            <option value="">🎨</option>
+                            <option value="#dc2626">Rouge</option>
+                            <option value="#2563eb">Bleu</option>
+                            <option value="#16a34a">Vert</option>
+                        </select>
+                    </div>
+                    <div class="wysiwyg-editor" contenteditable="true"
+                         data-index="${i}" data-field="reponse_attendue"
+                         data-placeholder="Réponse modèle..."
+                         oninput="AdminBanquesExercices.updateMixteQuestion(${i}, 'reponse_attendue', this.innerHTML)">${q.reponse_attendue || ''}</div>
+                </div>
             </div>
         `).join('');
     },
