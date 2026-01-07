@@ -108,17 +108,8 @@
                         <span class="type-option-icon">&#128310;</span>
                         <span class="type-option-label">Savoir-faire</span>
                     </label>
-                    <label class="type-option orange" data-type="connaissances">
-                        <input type="radio" name="banqueType" value="connaissances">
-                        <span class="type-option-icon">&#128994;</span>
-                        <span class="type-option-label">Connaissances</span>
-                    </label>
-                    <label class="type-option purple" data-type="competences">
-                        <input type="radio" name="banqueType" value="competences">
-                        <span class="type-option-icon">&#128995;</span>
-                        <span class="type-option-label">Competences</span>
-                    </label>
                 </div>
+                <div class="form-help">Les Connaissances et Competences ont leur propre systeme de gestion.</div>
             </div>
 
             <div class="form-group">
@@ -527,6 +518,36 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelFormatBtn">Annuler</button>
             <button class="btn btn-primary" id="saveFormatBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Question de connaissances -->
+<div class="modal-overlay hidden" id="questionConnaissancesModal">
+    <div class="modal modal-medium">
+        <div class="modal-header">
+            <h2 id="questionModalTitle">Nouvelle question</h2>
+            <button class="modal-close" onclick="AdminBanquesExercices.closeQuestionModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Type de question</label>
+                <select id="questionType" class="form-select" onchange="AdminBanquesExercices.renderQuestionBuilder(this.value, {})">
+                    <option value="qcm">QCM</option>
+                    <option value="vrai_faux">Vrai/Faux</option>
+                    <option value="chronologie">Chronologie</option>
+                    <option value="timeline">Timeline</option>
+                    <option value="association">Association</option>
+                    <option value="texte_trou">Texte a trous</option>
+                </select>
+            </div>
+            <div id="questionBuilder">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeQuestionModal()">Annuler</button>
+            <button class="btn btn-primary" onclick="AdminBanquesExercices.saveQuestionConnaissances()">Enregistrer</button>
         </div>
     </div>
 </div>
