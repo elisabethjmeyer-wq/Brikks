@@ -51,7 +51,11 @@ const SHEETS = {
   BANQUES_EXERCICES: 'BANQUES_EXERCICES',
   FORMATS_EXERCICES: 'FORMATS_EXERCICES',
   EXERCICES: 'EXERCICES',
-  RESULTATS_EXERCICES: 'RESULTATS_EXERCICES'
+  RESULTATS_EXERCICES: 'RESULTATS_EXERCICES',
+  // Banques de questions (entraînements connaissances)
+  BANQUES_QUESTIONS: 'BANQUES_QUESTIONS',
+  QUESTIONS_CONNAISSANCES: 'QUESTIONS_CONNAISSANCES',
+  ENTRAINEMENTS_CONNAISSANCES: 'ENTRAINEMENTS_CONNAISSANCES'
 };
 
 // ========================================
@@ -513,6 +517,34 @@ function handleRequest(e) {
 
       case 'getEleveStats':
         result = getEleveStats(request);
+        break;
+
+      // BANQUES DE QUESTIONS (entraînements connaissances)
+      case 'getBanquesQuestions':
+        result = getBanquesQuestions(request);
+        break;
+      case 'createBanqueQuestions':
+        result = createBanqueQuestions(request);
+        break;
+      case 'updateBanqueQuestions':
+        result = updateBanqueQuestions(request);
+        break;
+      case 'deleteBanqueQuestions':
+        result = deleteBanqueQuestions(request);
+        break;
+
+      // QUESTIONS CONNAISSANCES
+      case 'getQuestionsConnaissances':
+        result = getQuestionsConnaissances(request);
+        break;
+      case 'createQuestionConnaissances':
+        result = createQuestionConnaissances(request);
+        break;
+      case 'updateQuestionConnaissances':
+        result = updateQuestionConnaissances(request);
+        break;
+      case 'deleteQuestionConnaissances':
+        result = deleteQuestionConnaissances(request);
         break;
 
       default:
@@ -5945,4 +5977,315 @@ function getEleveStats(data) {
       taches: tachesStats
     }
   };
+}
+
+// ========================================
+// BANQUES DE QUESTIONS (entraînements connaissances)
+// ========================================
+
+/**
+ * Récupère toutes les banques de questions
+ */
+function getBanquesQuestions() {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_QUESTIONS);
+  if (!sheet) {
+    return { success: true, data: [] };
+  }
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    return { success: true, data: [] };
+  }
+
+  const headers = data[0].map(h => String(h).toLowerCase().trim());
+  const banques = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = {};
+    headers.forEach((h, j) => {
+      row[h] = data[i][j];
+    });
+    banques.push(row);
+  }
+
+  return { success: true, data: banques };
+}
+
+/**
+ * Crée une banque de questions
+ */
+function createBanqueQuestions(data) {
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_QUESTIONS);
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    sheet = ss.insertSheet(SHEETS.BANQUES_QUESTIONS);
+    sheet.appendRow(['id', 'titre', 'description', 'theme_id', 'chapitre_id', 'date_creation', 'statut']);
+  }
+
+  if (!data.titre) {
+    return { success: false, error: 'titre requis' };
+  }
+
+  const id = 'bq_' + new Date().getTime();
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  const newRow = headers.map(header => {
+    const col = String(header).toLowerCase().trim();
+    if (col === 'id') return id;
+    if (col === 'date_creation') return new Date().toISOString().split('T')[0];
+    if (col === 'statut') return data.statut || 'brouillon';
+    return data[col] !== undefined ? data[col] : '';
+  });
+
+  sheet.appendRow(newRow);
+
+  return { success: true, id: id, message: 'Banque de questions créée' };
+}
+
+/**
+ * Met à jour une banque de questions
+ */
+function updateBanqueQuestions(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_QUESTIONS);
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Banque non trouvée' };
+  }
+
+  const updates = ['titre', 'description', 'theme_id', 'chapitre_id', 'statut'];
+  updates.forEach(col => {
+    if (data[col] !== undefined) {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        sheet.getRange(rowIndex, colIndex + 1).setValue(data[col]);
+      }
+    }
+  });
+
+  return { success: true, message: 'Banque mise à jour' };
+}
+
+/**
+ * Supprime une banque de questions et ses questions
+ */
+function deleteBanqueQuestions(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // 1. Supprimer les questions liées
+  const questionsSheet = ss.getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
+  if (questionsSheet) {
+    const questionsData = questionsSheet.getDataRange().getValues();
+    const questionsHeaders = questionsData[0].map(h => String(h).toLowerCase().trim());
+    const banqueIdCol = questionsHeaders.indexOf('banque_id');
+
+    for (let i = questionsData.length - 1; i >= 1; i--) {
+      if (String(questionsData[i][banqueIdCol]).trim() === String(data.id).trim()) {
+        questionsSheet.deleteRow(i + 1);
+      }
+    }
+  }
+
+  // 2. Supprimer la banque
+  const banqueSheet = ss.getSheetByName(SHEETS.BANQUES_QUESTIONS);
+  if (banqueSheet) {
+    const banqueData = banqueSheet.getDataRange().getValues();
+    const banqueHeaders = banqueData[0].map(h => String(h).toLowerCase().trim());
+    const idCol = banqueHeaders.indexOf('id');
+
+    for (let i = banqueData.length - 1; i >= 1; i--) {
+      if (String(banqueData[i][idCol]).trim() === String(data.id).trim()) {
+        banqueSheet.deleteRow(i + 1);
+        break;
+      }
+    }
+  }
+
+  return { success: true, message: 'Banque supprimée' };
+}
+
+// ========================================
+// QUESTIONS CONNAISSANCES
+// ========================================
+
+/**
+ * Récupère les questions (optionnellement filtrées par banque_id et/ou type)
+ */
+function getQuestionsConnaissances(data) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
+  if (!sheet) {
+    return { success: true, data: [] };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const banqueIdCol = headers.indexOf('banque_id');
+  const typeCol = headers.indexOf('type');
+
+  const questions = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    // Filtrer par banque_id si fourni
+    if (data && data.banque_id && banqueIdCol >= 0) {
+      if (String(allData[i][banqueIdCol]).trim() !== String(data.banque_id).trim()) {
+        continue;
+      }
+    }
+
+    // Filtrer par type si fourni
+    if (data && data.type && typeCol >= 0) {
+      if (String(allData[i][typeCol]).trim() !== String(data.type).trim()) {
+        continue;
+      }
+    }
+
+    const row = {};
+    headers.forEach((h, j) => {
+      row[h] = allData[i][j];
+    });
+    questions.push(row);
+  }
+
+  return { success: true, data: questions };
+}
+
+/**
+ * Crée une question de connaissances
+ * Types supportés: qcm, vrai_faux, chronologie, timeline, association, texte_trou
+ */
+function createQuestionConnaissances(data) {
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    sheet = ss.insertSheet(SHEETS.QUESTIONS_CONNAISSANCES);
+    sheet.appendRow(['id', 'banque_id', 'type', 'question', 'options', 'reponse_correcte', 'explication', 'difficulte', 'date_creation']);
+  }
+
+  if (!data.banque_id || !data.type || !data.question) {
+    return { success: false, error: 'banque_id, type et question requis' };
+  }
+
+  const id = 'qc_' + new Date().getTime();
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  const newRow = headers.map(header => {
+    const col = String(header).toLowerCase().trim();
+    if (col === 'id') return id;
+    if (col === 'date_creation') return new Date().toISOString().split('T')[0];
+    if (col === 'options' || col === 'reponse_correcte') {
+      // Stocker en JSON si c'est un objet/array
+      const val = data[col];
+      return typeof val === 'object' ? JSON.stringify(val) : (val || '');
+    }
+    return data[col] !== undefined ? data[col] : '';
+  });
+
+  sheet.appendRow(newRow);
+
+  return { success: true, id: id, message: 'Question créée' };
+}
+
+/**
+ * Met à jour une question de connaissances
+ */
+function updateQuestionConnaissances(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  let rowIndex = -1;
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: 'Question non trouvée' };
+  }
+
+  const updates = ['type', 'question', 'options', 'reponse_correcte', 'explication', 'difficulte'];
+  updates.forEach(col => {
+    if (data[col] !== undefined) {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        let value = data[col];
+        if ((col === 'options' || col === 'reponse_correcte') && typeof value === 'object') {
+          value = JSON.stringify(value);
+        }
+        sheet.getRange(rowIndex, colIndex + 1).setValue(value);
+      }
+    }
+  });
+
+  return { success: true, message: 'Question mise à jour' };
+}
+
+/**
+ * Supprime une question de connaissances
+ */
+function deleteQuestionConnaissances(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Question supprimée' };
+    }
+  }
+
+  return { success: false, error: 'Question non trouvée' };
 }
