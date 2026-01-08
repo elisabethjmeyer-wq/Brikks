@@ -321,7 +321,12 @@ const AdminBanquesExercices = {
                     if (this.currentType === 'competences') {
                         this.openTacheComplexeModal();
                     } else if (this.currentType === 'connaissances') {
-                        this.addBanqueQuestions();
+                        // Selon la sous-vue active
+                        if (this.connaissancesSubView === 'questions') {
+                            this.addBanqueQuestions();
+                        } else {
+                            this.addBanqueExercicesConn();
+                        }
                     } else {
                         this.openBanqueModal();
                     }
@@ -2821,100 +2826,277 @@ const AdminBanquesExercices = {
 
     /**
      * Vue principale de l'onglet Connaissances
-     * Affiche deux sections: Banques de questions + Banques d'exercices
+     * Affiche un toggle pour switcher entre Entraînements et Banques de questions
      */
     renderConnaissancesView(container, emptyState) {
         emptyState.style.display = 'none';
 
+        // Sous-vue par défaut : entrainements
+        if (!this.connaissancesSubView) {
+            this.connaissancesSubView = 'entrainements';
+        }
+
+        const entrainementsCount = this.banquesExercicesConn.length;
         const questionsCount = this.banquesQuestions.length;
-        const exercicesCount = this.banquesExercicesConn.length;
 
         container.innerHTML = `
-            <div class="connaissances-wrapper">
-                <!-- Section Banques de questions -->
-                <section class="conn-section">
-                    <div class="conn-section-header">
-                        <div class="conn-section-title">
-                            <span class="conn-section-icon">📋</span>
-                            <h3>Banques de questions</h3>
-                            <span class="conn-section-count">${questionsCount}</span>
-                        </div>
-                        <p class="conn-section-desc">Pools de questions réutilisables dans les entraînements</p>
-                        <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addBanqueQuestions()">
-                            + Nouvelle banque
-                        </button>
-                    </div>
-                    <div class="conn-section-content" id="banquesQuestionsList">
-                        ${this.renderBanquesQuestionsCards()}
-                    </div>
-                </section>
+            <div class="conn-toggle-container">
+                <div class="conn-toggle">
+                    <button class="conn-toggle-btn ${this.connaissancesSubView === 'entrainements' ? 'active' : ''}"
+                            onclick="AdminBanquesExercices.switchConnaissancesView('entrainements')">
+                        Entraînements
+                        <span class="conn-toggle-count">${entrainementsCount}</span>
+                    </button>
+                    <button class="conn-toggle-btn ${this.connaissancesSubView === 'questions' ? 'active' : ''}"
+                            onclick="AdminBanquesExercices.switchConnaissancesView('questions')">
+                        Banques de questions
+                        <span class="conn-toggle-count">${questionsCount}</span>
+                    </button>
+                </div>
+            </div>
 
-                <!-- Section Banques d'exercices -->
-                <section class="conn-section">
-                    <div class="conn-section-header">
-                        <div class="conn-section-title">
-                            <span class="conn-section-icon">📚</span>
-                            <h3>Banques d'exercices</h3>
-                            <span class="conn-section-count">${exercicesCount}</span>
-                        </div>
-                        <p class="conn-section-desc">Conteneurs d'entraînements (1 par leçon ou pour révisions)</p>
-                        <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addBanqueExercicesConn()">
-                            + Nouvelle banque
-                        </button>
-                    </div>
-                    <div class="conn-section-content" id="banquesExercicesConnList">
-                        ${this.renderBanquesExercicesConnCards()}
-                    </div>
-                </section>
+            <div class="banques-list" id="connaissancesContent">
+                ${this.connaissancesSubView === 'entrainements' ?
+                    this.renderEntrainementsAccordions() :
+                    this.renderBanquesQuestionsAccordions()}
             </div>
         `;
     },
 
     /**
-     * Cartes des banques de questions
+     * Switch entre les sous-vues de Connaissances
      */
-    renderBanquesQuestionsCards() {
-        if (this.banquesQuestions.length === 0) {
-            return '<div class="conn-empty">Aucune banque de questions. Créez-en une pour commencer.</div>';
-        }
-
-        return `<div class="conn-cards-grid">
-            ${this.banquesQuestions.map(banque => {
-                const questions = this.questionsConnaissances.filter(q => q.banque_id === banque.id);
-                const typesCounts = {};
-                questions.forEach(q => {
-                    typesCounts[q.type] = (typesCounts[q.type] || 0) + 1;
-                });
-                const typesStr = Object.entries(typesCounts)
-                    .map(([t, c]) => `${this.questionTypeNames[t] || t}: ${c}`)
-                    .join(', ') || 'Vide';
-
-                return `
-                    <div class="conn-card" data-id="${banque.id}">
-                        <div class="conn-card-header">
-                            <h4 class="conn-card-title">${this.escapeHtml(banque.titre || 'Sans titre')}</h4>
-                            <div class="conn-card-actions">
-                                <button class="btn-icon" onclick="AdminBanquesExercices.viewBanqueQuestions('${banque.id}')" title="Voir les questions">👁️</button>
-                                <button class="btn-icon" onclick="AdminBanquesExercices.editBanqueQuestions('${banque.id}')" title="Modifier">✏️</button>
-                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteBanqueQuestions('${banque.id}')" title="Supprimer">🗑️</button>
-                            </div>
-                        </div>
-                        <div class="conn-card-body">
-                            <div class="conn-card-stat">
-                                <span class="conn-card-stat-value">${questions.length}</span>
-                                <span class="conn-card-stat-label">questions</span>
-                            </div>
-                            <div class="conn-card-meta">${typesStr}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
-        </div>`;
+    switchConnaissancesView(subView) {
+        this.connaissancesSubView = subView;
+        this.renderBanques();
     },
 
     /**
-     * Cartes des banques d'exercices
+     * Accordéons des banques d'exercices (Entraînements)
      */
+    renderEntrainementsAccordions() {
+        if (this.banquesExercicesConn.length === 0) {
+            return `
+                <div class="empty-state">
+                    <div class="empty-icon">📚</div>
+                    <h3>Aucune banque d'exercices</h3>
+                    <p>Créez votre première banque pour organiser vos entraînements</p>
+                    <button class="btn btn-primary" onclick="AdminBanquesExercices.addBanqueExercicesConn()">
+                        + Nouvelle banque d'exercices
+                    </button>
+                </div>
+            `;
+        }
+
+        return this.banquesExercicesConn.map(banque => {
+            const entrainements = this.entrainementsConn.filter(e => e.banque_exercice_id === banque.id);
+            const publies = entrainements.filter(e => e.statut === 'publie').length;
+
+            return `
+                <div class="banque-card" data-id="${banque.id}">
+                    <div class="banque-card-header" onclick="AdminBanquesExercices.toggleBanque('${banque.id}')">
+                        <div class="banque-card-icon connaissances">📚</div>
+                        <div class="banque-card-content">
+                            <div class="banque-card-title">
+                                ${this.escapeHtml(banque.titre || 'Sans titre')}
+                                ${banque.type === 'revision' ? '<span class="status-badge" style="background:#fef3c7;color:#d97706;margin-left:8px;">Révision</span>' : ''}
+                            </div>
+                            <div class="banque-card-meta">
+                                ${banque.description ? this.escapeHtml(banque.description) : 'Aucune description'}
+                            </div>
+                        </div>
+                        <div class="banque-card-stats">
+                            <div class="banque-stat">
+                                <div class="banque-stat-value">${entrainements.length}</div>
+                                <div class="banque-stat-label">entraînement${entrainements.length > 1 ? 's' : ''}</div>
+                            </div>
+                            <div class="banque-stat">
+                                <div class="banque-stat-value">${publies}</div>
+                                <div class="banque-stat-label">publié${publies > 1 ? 's' : ''}</div>
+                            </div>
+                        </div>
+                        <div class="banque-card-actions">
+                            <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editBanqueExercicesConn('${banque.id}')" title="Modifier la banque">✏️</button>
+                            <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteBanqueExercicesConn('${banque.id}')" title="Supprimer">🗑️</button>
+                        </div>
+                        <div class="banque-card-toggle">▼</div>
+                    </div>
+                    <div class="banque-exercices">
+                        <div class="exercices-header">
+                            <h4>Entraînements</h4>
+                            <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addEntrainementConn('${banque.id}')">
+                                + Nouvel entraînement
+                            </button>
+                        </div>
+                        ${this.renderEntrainementsList(entrainements, banque.id)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    /**
+     * Liste des entraînements dans une banque
+     */
+    renderEntrainementsList(entrainements, banqueId) {
+        if (entrainements.length === 0) {
+            return '<div class="exercices-empty">Aucun entraînement. Cliquez sur "+ Nouvel entraînement" pour commencer.</div>';
+        }
+
+        return `
+            <div class="exercices-list">
+                ${entrainements.map(entr => {
+                    const etapes = this.etapesConn.filter(e => e.entrainement_id === entr.id);
+                    const etapesStr = etapes.length > 0 ?
+                        etapes.map(e => {
+                            const format = this.formatsQuestions.find(f => f.code === e.format_code);
+                            return format ? format.nom : e.format_code;
+                        }).join(', ') : 'Aucune étape';
+
+                    return `
+                        <div class="exercice-item entrainement-item-row" data-id="${entr.id}">
+                            <div class="exercice-numero">🎯</div>
+                            <div class="exercice-info">
+                                <div class="exercice-title">${this.escapeHtml(entr.titre || 'Sans titre')}</div>
+                                <div class="exercice-meta">
+                                    <span>⏱️ ${entr.duree || 15} min</span>
+                                    <span>🎯 ${entr.seuil || 80}%</span>
+                                    <span>${etapes.length} étape${etapes.length > 1 ? 's' : ''}</span>
+                                    <span class="status-badge ${entr.statut === 'publie' ? 'publie' : 'brouillon'}">
+                                        ${entr.statut === 'publie' ? '✅ Publié' : '📝 Brouillon'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="exercice-actions entrainement-actions-row">
+                                <button class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.openEntrainementConnEditPage(AdminBanquesExercices.entrainementsConn.find(e => e.id === '${entr.id}'))">
+                                    Configurer les étapes
+                                </button>
+                                <button class="btn-icon" onclick="AdminBanquesExercices.editEntrainementConnModal('${entr.id}')" title="Modifier">✏️</button>
+                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteEntrainementConn('${entr.id}')" title="Supprimer">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
+    /**
+     * Accordéons des banques de questions
+     */
+    renderBanquesQuestionsAccordions() {
+        if (this.banquesQuestions.length === 0) {
+            return `
+                <div class="empty-state">
+                    <div class="empty-icon">📋</div>
+                    <h3>Aucune banque de questions</h3>
+                    <p>Créez votre première banque pour stocker vos questions</p>
+                    <button class="btn btn-primary" onclick="AdminBanquesExercices.addBanqueQuestions()">
+                        + Nouvelle banque de questions
+                    </button>
+                </div>
+            `;
+        }
+
+        return this.banquesQuestions.map(banque => {
+            const questions = this.questionsConnaissances.filter(q => q.banque_id === banque.id);
+            const typesCounts = {};
+            questions.forEach(q => {
+                typesCounts[q.type] = (typesCounts[q.type] || 0) + 1;
+            });
+
+            return `
+                <div class="banque-card" data-id="${banque.id}">
+                    <div class="banque-card-header" onclick="AdminBanquesExercices.toggleBanque('${banque.id}')">
+                        <div class="banque-card-icon connaissances">📋</div>
+                        <div class="banque-card-content">
+                            <div class="banque-card-title">
+                                ${this.escapeHtml(banque.titre || 'Sans titre')}
+                            </div>
+                            <div class="banque-card-meta">
+                                ${banque.description ? this.escapeHtml(banque.description) : 'Aucune description'}
+                            </div>
+                        </div>
+                        <div class="banque-card-stats">
+                            <div class="banque-stat">
+                                <div class="banque-stat-value">${questions.length}</div>
+                                <div class="banque-stat-label">question${questions.length > 1 ? 's' : ''}</div>
+                            </div>
+                        </div>
+                        <div class="banque-card-actions">
+                            <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editBanqueQuestions('${banque.id}')" title="Modifier la banque">✏️</button>
+                            <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteBanqueQuestions('${banque.id}')" title="Supprimer">🗑️</button>
+                        </div>
+                        <div class="banque-card-toggle">▼</div>
+                    </div>
+                    <div class="banque-exercices">
+                        <div class="exercices-header">
+                            <h4>Questions</h4>
+                            <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addQuestionConnaissances('${banque.id}')">
+                                + Ajouter une question
+                            </button>
+                        </div>
+                        ${this.renderQuestionsListAccordion(questions, banque.id)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    /**
+     * Liste des questions dans un accordéon
+     */
+    renderQuestionsListAccordion(questions, banqueId) {
+        if (questions.length === 0) {
+            return '<div class="exercices-empty">Aucune question. Cliquez sur "+ Ajouter une question" pour commencer.</div>';
+        }
+
+        return `
+            <div class="exercices-list">
+                ${questions.map((q, index) => {
+                    const typeName = this.questionTypeNames[q.type] || q.type;
+                    const preview = this.getQuestionPreview(q);
+
+                    return `
+                        <div class="exercice-item" data-id="${q.id}">
+                            <div class="exercice-numero" style="background:var(--accent-blue-light);color:var(--accent-blue);font-size:11px;">${typeName.substring(0, 3).toUpperCase()}</div>
+                            <div class="exercice-info">
+                                <div class="exercice-title">${this.escapeHtml(preview)}</div>
+                                <div class="exercice-meta">${typeName}</div>
+                            </div>
+                            <div class="exercice-actions">
+                                <button class="btn-icon" onclick="AdminBanquesExercices.editQuestionConnaissances('${q.id}')" title="Modifier">✏️</button>
+                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteQuestionConnaissances('${q.id}')" title="Supprimer">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
+    /**
+     * Ajouter un nouvel entraînement à une banque
+     */
+    addEntrainementConn(banqueId) {
+        this.openEntrainementConnModal(null, banqueId);
+    },
+
+    /**
+     * Modifier un entraînement existant (ouvre le modal)
+     */
+    editEntrainementConnModal(entrainementId) {
+        const entr = this.entrainementsConn.find(e => e.id === entrainementId);
+        if (!entr) return;
+        this.openEntrainementConnModal(entr, entr.banque_exercice_id);
+    },
+
+    // Anciennes fonctions conservées pour compatibilité
+    renderBanquesQuestionsCards() {
+        // Redirige vers la nouvelle fonction
+        return this.renderBanquesQuestionsAccordions();
+    },
+
     renderBanquesExercicesConnCards() {
         if (this.banquesExercicesConn.length === 0) {
             return '<div class="conn-empty">Aucune banque d\'exercices. Créez-en une pour organiser vos entraînements.</div>';

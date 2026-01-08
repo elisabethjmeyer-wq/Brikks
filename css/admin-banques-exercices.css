@@ -2171,6 +2171,84 @@
 
 /* ===== NOUVEAU SYSTÈME CONNAISSANCES ===== */
 
+/* Toggle pour switcher entre Entraînements et Banques de questions */
+.conn-toggle-container {
+    margin-bottom: 20px;
+}
+
+.conn-toggle {
+    display: inline-flex;
+    background: var(--gray-100);
+    border-radius: var(--radius);
+    padding: 4px;
+    gap: 4px;
+}
+
+.conn-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.conn-toggle-btn:hover {
+    color: var(--gray-800);
+}
+
+.conn-toggle-btn.active {
+    background: white;
+    color: var(--gray-900);
+    box-shadow: var(--shadow);
+}
+
+.conn-toggle-count {
+    background: var(--gray-200);
+    color: var(--gray-600);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.conn-toggle-btn.active .conn-toggle-count {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+/* Styles pour les items d'entraînement dans l'accordéon */
+.entrainement-item-row {
+    flex-wrap: wrap;
+}
+
+.entrainement-item-row .exercice-info {
+    min-width: 200px;
+}
+
+.entrainement-item-row .exercice-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.entrainement-item-row .exercice-meta span {
+    white-space: nowrap;
+}
+
+.entrainement-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 /* Wrapper principal avec deux sections */
 .connaissances-wrapper {
     display: flex;
