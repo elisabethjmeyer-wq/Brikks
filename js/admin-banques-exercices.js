@@ -3557,6 +3557,15 @@ const AdminBanquesExercices = {
             return;
         }
 
+        // Vérifier que le modal existe (problème de cache possible)
+        const modal = document.getElementById('entrainementConnModal');
+        const etapesContainer = document.getElementById('entrainementEtapesConfig');
+
+        if (!modal || !etapesContainer) {
+            alert('Erreur : Veuillez rafraîchir la page (Ctrl+Shift+R) pour charger la nouvelle version.');
+            return;
+        }
+
         // Populate modal
         document.getElementById('entrainementBanqueId').value = banqueId;
         document.getElementById('entrainementTitre').value = 'Entraînement - ' + (banque.titre || '');
@@ -3569,9 +3578,6 @@ const AdminBanquesExercices = {
         questions.forEach(q => {
             questionsByType[q.type] = (questionsByType[q.type] || 0) + 1;
         });
-
-        // Generate etapes configuration (one row per question type)
-        const etapesContainer = document.getElementById('entrainementEtapesConfig');
         let etapeNum = 1;
         etapesContainer.innerHTML = Object.entries(questionsByType).map(([type, count]) => {
             const typeName = this.questionTypeNames[type] || type;
