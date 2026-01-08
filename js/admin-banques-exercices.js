@@ -2942,7 +2942,7 @@ const AdminBanquesExercices = {
             <div class="exercices-list">
                 ${entrainements.map((entr, index) => {
                     return `
-                        <div class="exercice-item" data-id="${entr.id}" onclick="AdminBanquesExercices.openEntrainementConnEditPage(AdminBanquesExercices.entrainementsConn.find(e => e.id === '${entr.id}'))" style="cursor:pointer;">
+                        <div class="exercice-item" data-id="${entr.id}" onclick="AdminBanquesExercices.openEntrainementWizard(AdminBanquesExercices.entrainementsConn.find(e => e.id === '${entr.id}'), '${banqueId}')" style="cursor:pointer;">
                             <div class="exercice-numero">${index + 1}</div>
                             <div class="exercice-info">
                                 <div class="exercice-title">${this.escapeHtml(entr.titre || 'Sans titre')}</div>
@@ -3056,16 +3056,708 @@ const AdminBanquesExercices = {
      * Ajouter un nouvel entraînement à une banque
      */
     addEntrainementConn(banqueId) {
-        this.openEntrainementConnModal(null, banqueId);
+        this.openEntrainementWizard(null, banqueId);
     },
 
     /**
-     * Modifier un entraînement existant (ouvre le modal)
+     * Modifier un entraînement existant (ouvre le wizard)
      */
     editEntrainementConnModal(entrainementId) {
         const entr = this.entrainementsConn.find(e => e.id === entrainementId);
         if (!entr) return;
-        this.openEntrainementConnModal(entr, entr.banque_exercice_id);
+        this.openEntrainementWizard(entr, entr.banque_exercice_id);
+    },
+
+    // ========== WIZARD ENTRAÎNEMENT 4 ÉTAPES ==========
+
+    wizardData: {
+        entrainement: null,
+        banqueId: null,
+        currentStep: 1,
+        etapes: [], // Les étapes ajoutées dans le wizard
+        isEditing: false
+    },
+
+    /**
+     * Ouvre le wizard pour créer/modifier un entraînement
+     */
+    openEntrainementWizard(entrainement = null, banqueId = null) {
+        this.wizardData = {
+            entrainement: entrainement,
+            banqueId: banqueId,
+            currentStep: 1,
+            etapes: entrainement ? this.etapesConn.filter(e => e.entrainement_id === entrainement.id) : [],
+            isEditing: !!entrainement
+        };
+
+        // Créer le modal wizard
+        let modal = document.getElementById('entrainementWizardModal');
+        if (modal) modal.remove();
+
+        modal = document.createElement('div');
+        modal.id = 'entrainementWizardModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal modal-wizard">
+                <div class="wizard-header">
+                    <div class="wizard-title">
+                        <h2>${entrainement ? '✏️ Modifier l\'entraînement' : '➕ Nouvel entraînement'}</h2>
+                        <span class="wizard-subtitle">Connaissances • ${entrainement ? entrainement.titre : 'Créez une série d\'exercices'}</span>
+                    </div>
+                    <div class="wizard-steps">
+                        <button class="wizard-step active" data-step="1" onclick="AdminBanquesExercices.goToWizardStep(1)">
+                            <span class="step-number">1</span>
+                            <span class="step-label">Paramètres</span>
+                        </button>
+                        <button class="wizard-step" data-step="2" onclick="AdminBanquesExercices.goToWizardStep(2)">
+                            <span class="step-number">2</span>
+                            <span class="step-label">Étapes</span>
+                        </button>
+                        <button class="wizard-step" data-step="3" onclick="AdminBanquesExercices.goToWizardStep(3)">
+                            <span class="step-number">3</span>
+                            <span class="step-label">Questions</span>
+                        </button>
+                        <button class="wizard-step" data-step="4" onclick="AdminBanquesExercices.goToWizardStep(4)">
+                            <span class="step-number">4</span>
+                            <span class="step-label">Validation</span>
+                        </button>
+                    </div>
+                    <button class="modal-close" onclick="AdminBanquesExercices.closeEntrainementWizard()">&times;</button>
+                </div>
+                <div class="wizard-body" id="wizardContent">
+                    <!-- Contenu dynamique -->
+                </div>
+                <div class="wizard-footer">
+                    <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeEntrainementWizard()">Annuler</button>
+                    <div class="wizard-nav">
+                        <button class="btn btn-secondary" id="wizardPrevBtn" onclick="AdminBanquesExercices.wizardPrevStep()" style="display:none;">
+                            ← Précédent
+                        </button>
+                        <button class="btn btn-primary" id="wizardNextBtn" onclick="AdminBanquesExercices.wizardNextStep()">
+                            Suivant →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        this.renderWizardStep(1);
+    },
+
+    closeEntrainementWizard() {
+        const modal = document.getElementById('entrainementWizardModal');
+        if (modal) modal.remove();
+        this.wizardData = { entrainement: null, banqueId: null, currentStep: 1, etapes: [], isEditing: false };
+    },
+
+    goToWizardStep(step) {
+        // Validation avant de changer d'étape
+        if (step > this.wizardData.currentStep) {
+            if (!this.validateWizardStep(this.wizardData.currentStep)) return;
+        }
+        this.wizardData.currentStep = step;
+        this.renderWizardStep(step);
+    },
+
+    wizardPrevStep() {
+        if (this.wizardData.currentStep > 1) {
+            this.wizardData.currentStep--;
+            this.renderWizardStep(this.wizardData.currentStep);
+        }
+    },
+
+    async wizardNextStep() {
+        if (!this.validateWizardStep(this.wizardData.currentStep)) return;
+
+        // Sauvegarder les données de l'étape actuelle
+        await this.saveWizardStepData(this.wizardData.currentStep);
+
+        if (this.wizardData.currentStep < 4) {
+            this.wizardData.currentStep++;
+            this.renderWizardStep(this.wizardData.currentStep);
+        } else {
+            // Étape finale - Publier
+            await this.finalizeEntrainement();
+        }
+    },
+
+    validateWizardStep(step) {
+        switch(step) {
+            case 1:
+                const titre = document.getElementById('wizardTitre')?.value.trim();
+                if (!titre) {
+                    alert('Le titre est requis');
+                    return false;
+                }
+                return true;
+            case 2:
+                if (this.wizardData.etapes.length === 0) {
+                    alert('Ajoutez au moins une étape');
+                    return false;
+                }
+                return true;
+            case 3:
+                // Vérifier que chaque étape a des questions configurées
+                return true;
+            case 4:
+                return true;
+            default:
+                return true;
+        }
+    },
+
+    async saveWizardStepData(step) {
+        switch(step) {
+            case 1:
+                // Récupérer les données du formulaire
+                const formData = {
+                    titre: document.getElementById('wizardTitre').value.trim(),
+                    description: document.getElementById('wizardDescription').value.trim(),
+                    duree: parseInt(document.getElementById('wizardDuree').value) || 15,
+                    seuil: parseInt(document.getElementById('wizardSeuil').value) || 80,
+                    statut: document.getElementById('wizardStatut').value,
+                    banque_exercice_id: this.wizardData.banqueId
+                };
+
+                if (this.wizardData.entrainement) {
+                    // Mise à jour
+                    formData.id = this.wizardData.entrainement.id;
+                    const result = await this.callAPI('updateEntrainementConn', formData);
+                    if (result.success) {
+                        Object.assign(this.wizardData.entrainement, formData);
+                    }
+                } else {
+                    // Création
+                    const result = await this.callAPI('createEntrainementConn', formData);
+                    if (result.success) {
+                        await this.loadDataFromAPI();
+                        this.wizardData.entrainement = this.entrainementsConn.find(e => e.id === result.id);
+                        this.wizardData.isEditing = true;
+                    }
+                }
+                break;
+            case 2:
+                // Les étapes sont sauvegardées au fur et à mesure
+                break;
+            case 3:
+                // Les questions sont sauvegardées au fur et à mesure
+                break;
+        }
+    },
+
+    renderWizardStep(step) {
+        const content = document.getElementById('wizardContent');
+        const prevBtn = document.getElementById('wizardPrevBtn');
+        const nextBtn = document.getElementById('wizardNextBtn');
+
+        // Mettre à jour les indicateurs d'étapes
+        document.querySelectorAll('.wizard-step').forEach((el, i) => {
+            el.classList.toggle('active', i + 1 === step);
+            el.classList.toggle('completed', i + 1 < step);
+        });
+
+        // Mettre à jour les boutons de navigation
+        prevBtn.style.display = step > 1 ? 'inline-flex' : 'none';
+        nextBtn.textContent = step === 4 ? '✓ Valider et fermer' : 'Suivant →';
+
+        switch(step) {
+            case 1:
+                content.innerHTML = this.renderWizardStep1();
+                break;
+            case 2:
+                content.innerHTML = this.renderWizardStep2();
+                this.initWizardStep2();
+                break;
+            case 3:
+                content.innerHTML = this.renderWizardStep3();
+                break;
+            case 4:
+                content.innerHTML = this.renderWizardStep4();
+                break;
+        }
+    },
+
+    // ===== ÉTAPE 1: PARAMÈTRES =====
+    renderWizardStep1() {
+        const e = this.wizardData.entrainement || {};
+        return `
+            <div class="wizard-step-content">
+                <div class="step-header">
+                    <span class="step-icon">⚙️</span>
+                    <div>
+                        <h3>Paramètres généraux</h3>
+                        <p>Définissez les informations de base de l'entraînement</p>
+                    </div>
+                </div>
+                <div class="wizard-form">
+                    <div class="form-group">
+                        <label>Titre de l'entraînement <span class="req">*</span></label>
+                        <input type="text" class="form-input" id="wizardTitre" value="${this.escapeHtml(e.titre || '')}" placeholder="Ex: Les grandes découvertes">
+                    </div>
+                    <div class="form-group">
+                        <label>Description <span class="optional">(optionnel)</span></label>
+                        <textarea class="form-textarea" id="wizardDescription" rows="2" placeholder="Description de l'entraînement...">${this.escapeHtml(e.description || '')}</textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Durée (minutes)</label>
+                            <input type="number" class="form-input" id="wizardDuree" value="${e.duree || 15}" min="5" max="120">
+                        </div>
+                        <div class="form-group">
+                            <label>Seuil de réussite (%)</label>
+                            <input type="number" class="form-input" id="wizardSeuil" value="${e.seuil || 80}" min="50" max="100">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Statut</label>
+                        <select class="form-select" id="wizardStatut">
+                            <option value="brouillon" ${e.statut !== 'publie' ? 'selected' : ''}>Brouillon</option>
+                            <option value="publie" ${e.statut === 'publie' ? 'selected' : ''}>Publié</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    // ===== ÉTAPE 2: ÉTAPES (FORMATS) =====
+    renderWizardStep2() {
+        const formats = this.formatsQuestions || [];
+        const etapes = this.wizardData.etapes || [];
+
+        return `
+            <div class="wizard-step-content wizard-step2">
+                <div class="step-header">
+                    <span class="step-icon">📝</span>
+                    <div>
+                        <h3>Étapes de l'entraînement</h3>
+                        <p>Ajoutez et ordonnez les types d'exercices</p>
+                    </div>
+                </div>
+                <div class="wizard-two-columns">
+                    <div class="wizard-col-left">
+                        <div class="etapes-list-header">
+                            <h4>Exercices de la série <span class="badge">${etapes.length}</span></h4>
+                            <span class="hint">Glissez pour réordonner</span>
+                        </div>
+                        <div class="etapes-list" id="wizardEtapesList">
+                            ${etapes.length === 0 ?
+                                '<div class="etapes-empty">Aucune étape. Sélectionnez un format à droite pour ajouter une étape.</div>' :
+                                etapes.map((etape, index) => this.renderWizardEtapeItem(etape, index)).join('')
+                            }
+                        </div>
+                    </div>
+                    <div class="wizard-col-right">
+                        <h4>➕ Ajouter un exercice</h4>
+                        <div class="format-section">
+                            <label class="section-label">1. CHOISIR LE FORMAT</label>
+                            <div class="format-grid">
+                                ${formats.map(f => `
+                                    <button class="format-card" onclick="AdminBanquesExercices.addWizardEtape('${f.code}')">
+                                        <span class="format-icon">${f.icone || '📋'}</span>
+                                        <span class="format-name">${f.nom}</span>
+                                        <span class="format-count">${this.countQuestionsForFormat(f.code)} disponibles</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderWizardEtapeItem(etape, index) {
+        const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
+        const questionsCount = etape.questions ? etape.questions.length :
+            (this.etapeQuestionsConn ? this.etapeQuestionsConn.filter(eq => eq.etape_id === etape.id).length : 0);
+
+        return `
+            <div class="wizard-etape-item" data-id="${etape.id || 'temp-' + index}" draggable="true">
+                <div class="etape-drag-handle">☰</div>
+                <div class="etape-number">${index + 1}</div>
+                <div class="etape-format-icon">${format.icone || '📋'}</div>
+                <div class="etape-info">
+                    <div class="etape-format-name">${format.nom || etape.format_code}</div>
+                    <div class="etape-meta">
+                        ${questionsCount} question${questionsCount > 1 ? 's' : ''}
+                        <span class="etape-mode ${etape.mode_selection}">${etape.mode_selection === 'aleatoire' ? '🎲 Aléatoire' : '✋ Manuel'}</span>
+                    </div>
+                </div>
+                <div class="etape-actions">
+                    <button class="btn-icon" onclick="AdminBanquesExercices.moveWizardEtape(${index}, -1)" title="Monter">↑</button>
+                    <button class="btn-icon" onclick="AdminBanquesExercices.moveWizardEtape(${index}, 1)" title="Descendre">↓</button>
+                    <button class="btn-icon danger" onclick="AdminBanquesExercices.removeWizardEtape(${index})" title="Supprimer">🗑️</button>
+                </div>
+            </div>
+        `;
+    },
+
+    initWizardStep2() {
+        // Initialiser le drag & drop pour réordonner les étapes
+        const list = document.getElementById('wizardEtapesList');
+        if (!list) return;
+
+        let draggedItem = null;
+
+        list.querySelectorAll('.wizard-etape-item').forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                draggedItem = item;
+                item.classList.add('dragging');
+            });
+
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                draggedItem = null;
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedItem && draggedItem !== item) {
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        item.parentNode.insertBefore(draggedItem, item);
+                    } else {
+                        item.parentNode.insertBefore(draggedItem, item.nextSibling);
+                    }
+                }
+            });
+        });
+    },
+
+    countQuestionsForFormat(formatCode) {
+        return this.questionsConnaissances.filter(q => q.type === formatCode).length;
+    },
+
+    async addWizardEtape(formatCode) {
+        if (!this.wizardData.entrainement) {
+            // D'abord sauvegarder l'entraînement
+            if (!this.validateWizardStep(1)) return;
+            await this.saveWizardStepData(1);
+        }
+
+        const format = this.formatsQuestions.find(f => f.code === formatCode);
+        const ordre = this.wizardData.etapes.length + 1;
+
+        try {
+            const result = await this.callAPI('createEtapeConn', {
+                entrainement_id: this.wizardData.entrainement.id,
+                format_code: formatCode,
+                ordre: ordre,
+                mode_selection: 'manuel',
+                nb_questions: 5
+            });
+
+            if (result.success) {
+                await this.loadDataFromAPI();
+                this.wizardData.etapes = this.etapesConn.filter(e => e.entrainement_id === this.wizardData.entrainement.id);
+                this.renderWizardStep(2);
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur ajout étape:', error);
+        }
+    },
+
+    async removeWizardEtape(index) {
+        const etape = this.wizardData.etapes[index];
+        if (!etape || !etape.id) return;
+
+        if (!confirm('Supprimer cette étape ?')) return;
+
+        try {
+            const result = await this.callAPI('deleteEtapeConn', { id: etape.id });
+            if (result.success) {
+                await this.loadDataFromAPI();
+                this.wizardData.etapes = this.etapesConn.filter(e => e.entrainement_id === this.wizardData.entrainement.id);
+                this.renderWizardStep(2);
+            }
+        } catch (error) {
+            console.error('Erreur suppression étape:', error);
+        }
+    },
+
+    async moveWizardEtape(index, direction) {
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= this.wizardData.etapes.length) return;
+
+        // Échanger les positions
+        const etapes = [...this.wizardData.etapes];
+        [etapes[index], etapes[newIndex]] = [etapes[newIndex], etapes[index]];
+
+        // Mettre à jour l'ordre dans la base
+        try {
+            for (let i = 0; i < etapes.length; i++) {
+                await this.callAPI('updateEtapeConn', { id: etapes[i].id, ordre: i + 1 });
+            }
+            await this.loadDataFromAPI();
+            this.wizardData.etapes = this.etapesConn.filter(e => e.entrainement_id === this.wizardData.entrainement.id);
+            this.renderWizardStep(2);
+        } catch (error) {
+            console.error('Erreur réordonnancement:', error);
+        }
+    },
+
+    // ===== ÉTAPE 3: QUESTIONS =====
+    renderWizardStep3() {
+        const etapes = this.wizardData.etapes || [];
+
+        if (etapes.length === 0) {
+            return `
+                <div class="wizard-step-content">
+                    <div class="step-header">
+                        <span class="step-icon">❓</span>
+                        <div>
+                            <h3>Configuration des questions</h3>
+                            <p>Aucune étape à configurer. Retournez à l'étape précédente pour ajouter des étapes.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="wizard-step-content">
+                <div class="step-header">
+                    <span class="step-icon">❓</span>
+                    <div>
+                        <h3>Configuration des questions</h3>
+                        <p>Pour chaque étape, configurez le mode de sélection et les questions</p>
+                    </div>
+                </div>
+                <div class="wizard-questions-list">
+                    ${etapes.map((etape, index) => this.renderWizardEtapeQuestions(etape, index)).join('')}
+                </div>
+            </div>
+        `;
+    },
+
+    renderWizardEtapeQuestions(etape, index) {
+        const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
+        const etapeQuestions = this.etapeQuestionsConn ?
+            this.etapeQuestionsConn.filter(eq => eq.etape_id === etape.id) : [];
+        const selectedIds = etapeQuestions.map(eq => eq.question_id);
+        const availableQuestions = this.questionsConnaissances.filter(q => q.type === etape.format_code);
+
+        return `
+            <div class="wizard-etape-questions" data-etape-id="${etape.id}">
+                <div class="etape-questions-header" onclick="AdminBanquesExercices.toggleEtapeQuestionsPanel(${index})">
+                    <div class="etape-header-left">
+                        <span class="etape-number">${index + 1}</span>
+                        <span class="etape-format-icon">${format.icone || '📋'}</span>
+                        <span class="etape-format-name">${format.nom || etape.format_code}</span>
+                    </div>
+                    <div class="etape-header-right">
+                        <span class="questions-count">${selectedIds.length} question${selectedIds.length > 1 ? 's' : ''} sélectionnée${selectedIds.length > 1 ? 's' : ''}</span>
+                        <span class="toggle-icon">▼</span>
+                    </div>
+                </div>
+                <div class="etape-questions-panel" id="etapePanel${index}" style="display: none;">
+                    <div class="mode-selection">
+                        <label class="section-label">Mode de sélection</label>
+                        <div class="mode-options">
+                            <label class="mode-option ${etape.mode_selection === 'aleatoire' ? 'selected' : ''}" onclick="AdminBanquesExercices.setEtapeMode('${etape.id}', 'aleatoire')">
+                                <span class="mode-icon">🎲</span>
+                                <span class="mode-label">Aléatoire</span>
+                                <span class="mode-desc">Tirage au sort</span>
+                            </label>
+                            <label class="mode-option ${etape.mode_selection !== 'aleatoire' ? 'selected' : ''}" onclick="AdminBanquesExercices.setEtapeMode('${etape.id}', 'manuel')">
+                                <span class="mode-icon">✋</span>
+                                <span class="mode-label">Manuel</span>
+                                <span class="mode-desc">Je choisis</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="random-config" id="randomConfig${index}" style="display: ${etape.mode_selection === 'aleatoire' ? 'block' : 'none'};">
+                        <div class="form-row">
+                            <label>Nombre de questions :</label>
+                            <input type="number" class="form-input" value="${etape.nb_questions || 5}" min="1" max="${availableQuestions.length}"
+                                onchange="AdminBanquesExercices.setEtapeNbQuestions('${etape.id}', this.value)">
+                            <span class="hint">/ ${availableQuestions.length} disponibles</span>
+                        </div>
+                    </div>
+                    <div class="manual-selection" id="manualSelection${index}" style="display: ${etape.mode_selection !== 'aleatoire' ? 'block' : 'none'};">
+                        <label class="section-label">Sélectionner les questions</label>
+                        <div class="questions-checklist">
+                            ${availableQuestions.length === 0 ?
+                                '<p class="no-questions">Aucune question disponible pour ce format.</p>' :
+                                availableQuestions.map(q => `
+                                    <label class="question-checkbox ${selectedIds.includes(q.id) ? 'selected' : ''}">
+                                        <input type="checkbox" ${selectedIds.includes(q.id) ? 'checked' : ''}
+                                            onchange="AdminBanquesExercices.toggleEtapeQuestion('${etape.id}', '${q.id}', this.checked)">
+                                        <div class="question-content">
+                                            <span class="question-text">${this.escapeHtml(q.question || q.titre || 'Question')}</span>
+                                            <span class="question-meta">${q.nb_choix || 4} choix</span>
+                                        </div>
+                                    </label>
+                                `).join('')
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    toggleEtapeQuestionsPanel(index) {
+        const panel = document.getElementById(`etapePanel${index}`);
+        const isOpen = panel.style.display !== 'none';
+        panel.style.display = isOpen ? 'none' : 'block';
+
+        // Toggle icon
+        const header = panel.previousElementSibling;
+        const icon = header.querySelector('.toggle-icon');
+        if (icon) icon.textContent = isOpen ? '▼' : '▲';
+    },
+
+    async setEtapeMode(etapeId, mode) {
+        try {
+            await this.callAPI('updateEtapeConn', { id: etapeId, mode_selection: mode });
+            await this.loadDataFromAPI();
+            this.wizardData.etapes = this.etapesConn.filter(e => e.entrainement_id === this.wizardData.entrainement.id);
+            this.renderWizardStep(3);
+        } catch (error) {
+            console.error('Erreur changement mode:', error);
+        }
+    },
+
+    async setEtapeNbQuestions(etapeId, nb) {
+        try {
+            await this.callAPI('updateEtapeConn', { id: etapeId, nb_questions: parseInt(nb) });
+        } catch (error) {
+            console.error('Erreur mise à jour nb questions:', error);
+        }
+    },
+
+    async toggleEtapeQuestion(etapeId, questionId, isChecked) {
+        try {
+            if (isChecked) {
+                await this.callAPI('addQuestionToEtape', { etape_id: etapeId, question_id: questionId });
+            } else {
+                await this.callAPI('removeQuestionFromEtape', { etape_id: etapeId, question_id: questionId });
+            }
+            await this.loadDataFromAPI();
+        } catch (error) {
+            console.error('Erreur toggle question:', error);
+        }
+    },
+
+    // ===== ÉTAPE 4: VALIDATION =====
+    renderWizardStep4() {
+        const e = this.wizardData.entrainement || {};
+        const etapes = this.wizardData.etapes || [];
+
+        let totalQuestions = 0;
+        etapes.forEach(etape => {
+            if (etape.mode_selection === 'aleatoire') {
+                totalQuestions += etape.nb_questions || 5;
+            } else {
+                const etapeQuestions = this.etapeQuestionsConn ?
+                    this.etapeQuestionsConn.filter(eq => eq.etape_id === etape.id) : [];
+                totalQuestions += etapeQuestions.length;
+            }
+        });
+
+        return `
+            <div class="wizard-step-content">
+                <div class="step-header">
+                    <span class="step-icon">✅</span>
+                    <div>
+                        <h3>Validation</h3>
+                        <p>Vérifiez le résumé de votre entraînement avant de valider</p>
+                    </div>
+                </div>
+                <div class="validation-summary">
+                    <div class="summary-card">
+                        <h4>📚 Informations générales</h4>
+                        <div class="summary-row">
+                            <span class="label">Titre :</span>
+                            <span class="value">${this.escapeHtml(e.titre || 'Sans titre')}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">Description :</span>
+                            <span class="value">${e.description ? this.escapeHtml(e.description) : '<em>Aucune</em>'}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">Durée :</span>
+                            <span class="value">${e.duree || 15} minutes</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">Seuil de réussite :</span>
+                            <span class="value">${e.seuil || 80}%</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">Statut :</span>
+                            <span class="value status-badge ${e.statut === 'publie' ? 'published' : 'draft'}">${e.statut === 'publie' ? '✅ Publié' : '📝 Brouillon'}</span>
+                        </div>
+                    </div>
+
+                    <div class="summary-card">
+                        <h4>📝 Étapes (${etapes.length})</h4>
+                        ${etapes.length === 0 ? '<p class="empty">Aucune étape</p>' : `
+                            <div class="summary-etapes">
+                                ${etapes.map((etape, index) => {
+                                    const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
+                                    const etapeQuestions = this.etapeQuestionsConn ?
+                                        this.etapeQuestionsConn.filter(eq => eq.etape_id === etape.id) : [];
+                                    const qCount = etape.mode_selection === 'aleatoire' ? etape.nb_questions : etapeQuestions.length;
+
+                                    return `
+                                        <div class="summary-etape">
+                                            <span class="etape-num">${index + 1}</span>
+                                            <span class="etape-icon">${format.icone || '📋'}</span>
+                                            <span class="etape-name">${format.nom || etape.format_code}</span>
+                                            <span class="etape-questions">${qCount} question${qCount > 1 ? 's' : ''}</span>
+                                            <span class="etape-mode-badge ${etape.mode_selection}">${etape.mode_selection === 'aleatoire' ? '🎲' : '✋'}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        `}
+                    </div>
+
+                    <div class="summary-stats">
+                        <div class="stat-box">
+                            <span class="stat-value">${etapes.length}</span>
+                            <span class="stat-label">Étapes</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-value">${totalQuestions}</span>
+                            <span class="stat-label">Questions</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-value">${e.duree || 15}</span>
+                            <span class="stat-label">Minutes</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    async finalizeEntrainement() {
+        // Fermer le wizard et rafraîchir l'affichage
+        this.closeEntrainementWizard();
+        await this.loadDataFromAPI();
+        this.renderBanques();
+
+        // Afficher un message de succès
+        this.showNotification('Entraînement sauvegardé avec succès !', 'success');
+    },
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <span>${message}</span>
+            <button onclick="this.parentElement.remove()">&times;</button>
+        `;
+        document.body.appendChild(notification);
+
+        setTimeout(() => notification.remove(), 3000);
     },
 
     // Anciennes fonctions conservées pour compatibilité
