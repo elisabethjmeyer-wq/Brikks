@@ -3203,42 +3203,6 @@ const AdminBanquesExercices = {
         `;
     },
 
-    /**
-     * Liste des entraînements avec détails
-     */
-    renderEntrainementsList(entrainements, banqueId) {
-        return `
-            <div class="entrainements-list">
-                ${entrainements.map(e => {
-                    const etapes = this.etapesConn.filter(et => et.entrainement_id === e.id);
-                    const statutBadge = e.statut === 'publie' ?
-                        '<span class="status-badge published">Publié</span>' :
-                        '<span class="status-badge draft">Brouillon</span>';
-
-                    return `
-                        <div class="entrainement-item" data-id="${e.id}">
-                            <div class="entrainement-info">
-                                <h4 class="entrainement-title">${this.escapeHtml(e.titre)}</h4>
-                                <div class="entrainement-meta">
-                                    ${statutBadge}
-                                    <span>⏱️ ${e.duree || 15} min</span>
-                                    <span>🎯 Seuil: ${e.seuil || 80}%</span>
-                                    <span>📊 ${etapes.length} étape${etapes.length > 1 ? 's' : ''}</span>
-                                </div>
-                            </div>
-                            <div class="entrainement-actions">
-                                <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.editEntrainementConn('${e.id}')">
-                                    Modifier
-                                </button>
-                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteEntrainementConn('${e.id}')" title="Supprimer">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-    },
-
     // ========== CRUD BANQUES D'EXERCICES CONN ==========
 
     addBanqueExercicesConn() {
