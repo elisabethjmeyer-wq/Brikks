@@ -131,6 +131,16 @@
     color: var(--accent-red);
 }
 
+.btn-icon.success {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+.btn-icon.success:hover {
+    background: var(--accent-green);
+    color: white;
+}
+
 /* ===== TABS ===== */
 .type-tabs {
     display: flex;
