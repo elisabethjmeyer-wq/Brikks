@@ -5013,18 +5013,57 @@ const AdminBanquesExercices = {
 
         switch (type) {
             case 'qcm':
+                // Préparer les options existantes
+                const existingOptions = data.options || [];
+                const correctAnswers = Array.isArray(data.reponses_correctes)
+                    ? data.reponses_correctes
+                    : (data.reponse_correcte !== undefined ? [data.reponse_correcte] : [0]);
+
                 html = `
                     <div class="form-group">
                         <label>Question</label>
                         <textarea id="qcmQuestion" class="form-textarea" rows="3">${this.escapeHtml(data.question || '')}</textarea>
                     </div>
                     <div class="form-group">
-                        <label>Options (une par ligne)</label>
-                        <textarea id="qcmOptions" class="form-textarea" rows="4">${(data.options || []).join('\n')}</textarea>
+                        <label>Options de réponse</label>
+                        <p class="form-help">Cochez la ou les bonnes réponses</p>
+                        <div id="qcmOptionsList">
+                            ${existingOptions.length > 0 ? existingOptions.map((opt, i) => `
+                                <div class="qcm-option-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                    <input type="checkbox" class="qcm-correct-checkbox" ${correctAnswers.includes(i) ? 'checked' : ''} title="Cocher si bonne réponse">
+                                    <input type="text" class="form-input qcm-option-text" placeholder="Option ${i + 1}" value="${this.escapeHtml(opt)}">
+                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
+                                </div>
+                            `).join('') : `
+                                <div class="qcm-option-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                    <input type="checkbox" class="qcm-correct-checkbox" checked title="Cocher si bonne réponse">
+                                    <input type="text" class="form-input qcm-option-text" placeholder="Option 1" value="">
+                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
+                                </div>
+                                <div class="qcm-option-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                    <input type="checkbox" class="qcm-correct-checkbox" title="Cocher si bonne réponse">
+                                    <input type="text" class="form-input qcm-option-text" placeholder="Option 2" value="">
+                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
+                                </div>
+                            `}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addQcmOption()">+ Ajouter une option</button>
                     </div>
                     <div class="form-group">
-                        <label>Index de la bonne réponse (0, 1, 2...)</label>
-                        <input type="number" id="qcmCorrect" class="form-input" value="${data.reponse_correcte || 0}" min="0">
+                        <label>
+                            <input type="checkbox" id="qcmShowFeedback" ${data.feedback_correct || data.feedback_incorrect ? 'checked' : ''} onchange="document.getElementById('qcmFeedbackSection').style.display = this.checked ? 'block' : 'none'">
+                            Ajouter des feedbacks (optionnel)
+                        </label>
+                    </div>
+                    <div id="qcmFeedbackSection" style="display: ${data.feedback_correct || data.feedback_incorrect ? 'block' : 'none'};">
+                        <div class="form-group">
+                            <label>Feedback si bonne réponse</label>
+                            <textarea id="qcmFeedbackCorrect" class="form-textarea" rows="2" placeholder="Bravo !">${this.escapeHtml(data.feedback_correct || '')}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Feedback si mauvaise réponse</label>
+                            <textarea id="qcmFeedbackIncorrect" class="form-textarea" rows="2" placeholder="Explication...">${this.escapeHtml(data.feedback_incorrect || '')}</textarea>
+                        </div>
                     </div>
                 `;
                 break;
@@ -5042,6 +5081,22 @@ const AdminBanquesExercices = {
                             <option value="faux" ${data.reponse === 'faux' ? 'selected' : ''}>Faux</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="vfShowFeedback" ${data.feedback_vrai || data.feedback_faux ? 'checked' : ''} onchange="document.getElementById('vfFeedbackSection').style.display = this.checked ? 'block' : 'none'">
+                            Ajouter des feedbacks (optionnel)
+                        </label>
+                    </div>
+                    <div id="vfFeedbackSection" style="display: ${data.feedback_vrai || data.feedback_faux ? 'block' : 'none'};">
+                        <div class="form-group">
+                            <label>Feedback si l'élève répond "Vrai"</label>
+                            <textarea id="vfFeedbackVrai" class="form-textarea" rows="2" placeholder="Bravo ! ou Explication si faux...">${this.escapeHtml(data.feedback_vrai || '')}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Feedback si l'élève répond "Faux"</label>
+                            <textarea id="vfFeedbackFaux" class="form-textarea" rows="2" placeholder="Bravo ! ou Explication si faux...">${this.escapeHtml(data.feedback_faux || '')}</textarea>
+                        </div>
+                    </div>
                 `;
                 break;
 
@@ -5050,22 +5105,36 @@ const AdminBanquesExercices = {
                 html = `
                     <div class="form-group">
                         <label>Consigne</label>
-                        <input type="text" id="chronoConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Associez les dates aux événements')}">
+                        <input type="text" id="chronoConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Placez les événements sur la frise chronologique')}">
                     </div>
                     <div class="form-group">
-                        <label>Paires (date - événement)</label>
+                        <label>Aperçu de la frise</label>
+                        <div id="chronoFrisePreview" class="chrono-frise-preview">
+                            <div class="chrono-frise-arrow">
+                                <div class="chrono-frise-line"></div>
+                                <div class="chrono-frise-arrow-head"></div>
+                            </div>
+                            <div id="chronoFriseMarkers" class="chrono-frise-markers"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Événements (ordre chronologique)</label>
+                        <p class="form-help">Entrez les événements dans l'ordre du plus ancien au plus récent. Ils seront affichés sur la frise.</p>
                         <div id="chronoPaires">
                             ${pairesChronologie.map((p, i) => `
-                                <div class="pair-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
-                                    <input type="text" class="form-input chrono-date" placeholder="Date" value="${this.escapeHtml(p.date || '')}" style="width: 100px;">
-                                    <input type="text" class="form-input chrono-event" placeholder="Événement" value="${this.escapeHtml(p.evenement || '')}">
-                                    <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+                                <div class="pair-row chrono-event-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                    <span class="chrono-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${i + 1}</span>
+                                    <input type="text" class="form-input chrono-date" placeholder="Date (ex: 1789)" value="${this.escapeHtml(p.date || '')}" style="width: 100px;" oninput="AdminBanquesExercices.updateChronoPreview()">
+                                    <input type="text" class="form-input chrono-event" placeholder="Événement" value="${this.escapeHtml(p.evenement || '')}" oninput="AdminBanquesExercices.updateChronoPreview()">
+                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove(); AdminBanquesExercices.updateChronoPreview(); AdminBanquesExercices.updateChronoNumbers();" title="Supprimer">×</button>
                                 </div>
                             `).join('')}
                         </div>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addChronoPair()">+ Ajouter une paire</button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addChronoPair()">+ Ajouter un événement</button>
                     </div>
                 `;
+                // Initialiser la prévisualisation après le rendu
+                setTimeout(() => this.updateChronoPreview(), 50);
                 break;
 
             case 'timeline':
@@ -5076,19 +5145,41 @@ const AdminBanquesExercices = {
                         <input type="text" id="timelineConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Remettez dans l\'ordre chronologique')}">
                     </div>
                     <div class="form-group">
-                        <label>Événements (dans l'ordre correct)</label>
+                        <label>Aperçu (ordre correct)</label>
+                        <p class="form-help">De gauche (le plus ancien) à droite (le plus récent). Glissez pour réordonner.</p>
+                        <div id="timelineCardsPreview" class="timeline-cards-container">
+                            ${evenements.filter(e => e).map((e, i) => `
+                                <div class="timeline-card" draggable="true" data-index="${i}">
+                                    <span class="timeline-card-num">${i + 1}</span>
+                                    <span class="timeline-card-text">${this.escapeHtml(e)}</span>
+                                </div>
+                            `).join('') || '<p class="timeline-empty">Ajoutez des événements ci-dessous</p>'}
+                        </div>
+                        <div class="timeline-axis">
+                            <span class="timeline-axis-label">Ancien</span>
+                            <div class="timeline-axis-line"></div>
+                            <span class="timeline-axis-label">Récent</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Événements (ordre chronologique)</label>
                         <div id="timelineEvents">
                             ${evenements.map((e, i) => `
-                                <div class="event-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
-                                    <span style="padding: 8px;">${i + 1}.</span>
-                                    <input type="text" class="form-input timeline-event" placeholder="Événement" value="${this.escapeHtml(e || '')}">
-                                    <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+                                <div class="event-row timeline-event-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                    <span class="timeline-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${i + 1}</span>
+                                    <input type="text" class="form-input timeline-event" placeholder="Événement ${i + 1}" value="${this.escapeHtml(e || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
+                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove(); AdminBanquesExercices.updateTimelinePreview(); AdminBanquesExercices.updateTimelineNumbers();" title="Supprimer">×</button>
                                 </div>
                             `).join('')}
                         </div>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addTimelineEvent()">+ Ajouter un événement</button>
                     </div>
                 `;
+                // Initialiser la prévisualisation et le drag & drop
+                setTimeout(() => {
+                    this.updateTimelinePreview();
+                    this.initTimelineDragDrop();
+                }, 50);
                 break;
 
             case 'association':
@@ -5116,13 +5207,62 @@ const AdminBanquesExercices = {
                 break;
 
             case 'texte_trou':
+                // Extraire le texte brut et les trous existants
+                const existingText = data.texte || '';
+                const existingGaps = data.trous || [];
+                // Convertir l'ancien format {mot} en nouveau format si nécessaire
+                let cleanText = existingText;
+                if (existingText.includes('{') && existingGaps.length === 0) {
+                    // Ancien format - convertir
+                    cleanText = existingText.replace(/\{([^}]+)\}/g, '$1');
+                }
+
                 html = `
                     <div class="form-group">
-                        <label>Texte (utilisez {mot} pour les trous)</label>
-                        <textarea id="texteATrous" class="form-textarea" rows="6" placeholder="Ex: La {capitale} de la France est {Paris}.">${this.escapeHtml(data.texte || '')}</textarea>
-                        <small style="color: var(--gray-500);">Les mots entre {accolades} seront les trous à compléter.</small>
+                        <label>1. Saisissez votre texte</label>
+                        <textarea id="texteATrousInput" class="form-textarea" rows="4" placeholder="Saisissez le texte complet ici, puis cliquez sur les mots à cacher ci-dessous." oninput="AdminBanquesExercices.updateTexteATrousPreview()">${this.escapeHtml(cleanText)}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>2. Cliquez sur les mots à transformer en trous</label>
+                        <p class="form-help">Les mots en violet sont les trous que l'élève devra compléter.</p>
+                        <div id="texteATrousPreview" class="texte-trous-preview">
+                            <p class="texte-trous-empty">Saisissez du texte ci-dessus pour commencer</p>
+                        </div>
+                    </div>
+                    <div class="form-group" id="texteATrousGapsSection" style="display: none;">
+                        <label>3. Réponses alternatives (optionnel)</label>
+                        <p class="form-help">Pour chaque trou, vous pouvez ajouter des réponses alternatives acceptées.</p>
+                        <div id="texteATrousGapsList"></div>
                     </div>
                 `;
+                // Initialiser avec les données existantes
+                setTimeout(() => {
+                    this.texteATrousGaps = [];
+                    // Si ancien format, extraire les trous
+                    if (existingText.includes('{') && existingGaps.length === 0) {
+                        const regex = /\{([^}]+)\}/g;
+                        let match;
+                        let wordIndex = 0;
+                        const words = cleanText.split(/(\s+)/);
+                        while ((match = regex.exec(existingText)) !== null) {
+                            const word = match[1];
+                            // Trouver l'index du mot
+                            for (let i = 0; i < words.length; i++) {
+                                if (words[i] === word && !this.texteATrousGaps.find(g => g.wordIndex === i)) {
+                                    this.texteATrousGaps.push({ wordIndex: i, reponse: word, alternatives: [] });
+                                    break;
+                                }
+                            }
+                        }
+                    } else if (existingGaps.length > 0) {
+                        this.texteATrousGaps = existingGaps.map(g => ({
+                            wordIndex: g.wordIndex,
+                            reponse: g.reponse,
+                            alternatives: g.alternatives || []
+                        }));
+                    }
+                    this.updateTexteATrousPreview();
+                }, 50);
                 break;
 
             case 'carte':
@@ -5171,18 +5311,74 @@ const AdminBanquesExercices = {
         container.innerHTML = html;
     },
 
+    addQcmOption() {
+        const container = document.getElementById('qcmOptionsList');
+        if (!container) return;
+        const count = container.children.length + 1;
+        const div = document.createElement('div');
+        div.className = 'qcm-option-row';
+        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
+        div.innerHTML = `
+            <input type="checkbox" class="qcm-correct-checkbox" title="Cocher si bonne réponse">
+            <input type="text" class="form-input qcm-option-text" placeholder="Option ${count}" value="">
+            <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
+        `;
+        container.appendChild(div);
+    },
+
     addChronoPair() {
         const container = document.getElementById('chronoPaires');
         if (!container) return;
+        const count = container.children.length + 1;
         const div = document.createElement('div');
-        div.className = 'pair-row';
-        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px;';
+        div.className = 'pair-row chrono-event-row';
+        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
         div.innerHTML = `
-            <input type="text" class="form-input chrono-date" placeholder="Date" style="width: 100px;">
-            <input type="text" class="form-input chrono-event" placeholder="Événement">
-            <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+            <span class="chrono-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${count}</span>
+            <input type="text" class="form-input chrono-date" placeholder="Date (ex: 1789)" style="width: 100px;" oninput="AdminBanquesExercices.updateChronoPreview()">
+            <input type="text" class="form-input chrono-event" placeholder="Événement" oninput="AdminBanquesExercices.updateChronoPreview()">
+            <button type="button" class="btn-icon danger" onclick="this.parentElement.remove(); AdminBanquesExercices.updateChronoPreview(); AdminBanquesExercices.updateChronoNumbers();" title="Supprimer">×</button>
         `;
         container.appendChild(div);
+        this.updateChronoPreview();
+    },
+
+    updateChronoNumbers() {
+        const rows = document.querySelectorAll('#chronoPaires .chrono-event-row');
+        rows.forEach((row, idx) => {
+            const numSpan = row.querySelector('.chrono-event-num');
+            if (numSpan) numSpan.textContent = idx + 1;
+        });
+    },
+
+    updateChronoPreview() {
+        const markersContainer = document.getElementById('chronoFriseMarkers');
+        if (!markersContainer) return;
+
+        const rows = document.querySelectorAll('#chronoPaires .chrono-event-row');
+        const events = [];
+        rows.forEach((row, idx) => {
+            const date = row.querySelector('.chrono-date')?.value?.trim() || '';
+            const event = row.querySelector('.chrono-event')?.value?.trim() || '';
+            if (date || event) {
+                events.push({ num: idx + 1, date, event });
+            }
+        });
+
+        if (events.length === 0) {
+            markersContainer.innerHTML = '<p class="chrono-frise-empty">Ajoutez des événements pour voir la frise</p>';
+            return;
+        }
+
+        // Calculer les positions équidistantes
+        const spacing = 100 / (events.length + 1);
+        markersContainer.innerHTML = events.map((e, i) => `
+            <div class="chrono-frise-marker" style="left: ${spacing * (i + 1)}%;">
+                <div class="chrono-marker-dot">${e.num}</div>
+                <div class="chrono-marker-date">${this.escapeHtml(e.date)}</div>
+                <div class="chrono-marker-event">${this.escapeHtml(e.event)}</div>
+            </div>
+        `).join('');
     },
 
     addTimelineEvent() {
@@ -5190,14 +5386,115 @@ const AdminBanquesExercices = {
         if (!container) return;
         const count = container.children.length + 1;
         const div = document.createElement('div');
-        div.className = 'event-row';
-        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px;';
+        div.className = 'event-row timeline-event-row';
+        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
         div.innerHTML = `
-            <span style="padding: 8px;">${count}.</span>
-            <input type="text" class="form-input timeline-event" placeholder="Événement">
-            <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+            <span class="timeline-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${count}</span>
+            <input type="text" class="form-input timeline-event" placeholder="Événement ${count}" oninput="AdminBanquesExercices.updateTimelinePreview()">
+            <button type="button" class="btn-icon danger" onclick="this.parentElement.remove(); AdminBanquesExercices.updateTimelinePreview(); AdminBanquesExercices.updateTimelineNumbers();" title="Supprimer">×</button>
         `;
         container.appendChild(div);
+        this.updateTimelinePreview();
+    },
+
+    updateTimelineNumbers() {
+        const rows = document.querySelectorAll('#timelineEvents .timeline-event-row');
+        rows.forEach((row, idx) => {
+            const numSpan = row.querySelector('.timeline-event-num');
+            if (numSpan) numSpan.textContent = idx + 1;
+        });
+    },
+
+    updateTimelinePreview() {
+        const container = document.getElementById('timelineCardsPreview');
+        if (!container) return;
+
+        const inputs = document.querySelectorAll('#timelineEvents .timeline-event');
+        const events = [];
+        inputs.forEach((input, idx) => {
+            const text = input.value?.trim();
+            if (text) {
+                events.push({ num: idx + 1, text });
+            }
+        });
+
+        if (events.length === 0) {
+            container.innerHTML = '<p class="timeline-empty">Ajoutez des événements ci-dessous</p>';
+            return;
+        }
+
+        container.innerHTML = events.map((e, i) => `
+            <div class="timeline-card" draggable="true" data-index="${i}">
+                <span class="timeline-card-num">${e.num}</span>
+                <span class="timeline-card-text">${this.escapeHtml(e.text)}</span>
+            </div>
+        `).join('');
+
+        this.initTimelineDragDrop();
+    },
+
+    initTimelineDragDrop() {
+        const container = document.getElementById('timelineCardsPreview');
+        if (!container) return;
+
+        const cards = container.querySelectorAll('.timeline-card');
+        let draggedCard = null;
+
+        cards.forEach(card => {
+            card.addEventListener('dragstart', (e) => {
+                draggedCard = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                draggedCard = null;
+                // Mettre à jour les inputs avec le nouvel ordre
+                this.syncTimelineFromCards();
+            });
+
+            card.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedCard && draggedCard !== card) {
+                    const rect = card.getBoundingClientRect();
+                    const midX = rect.left + rect.width / 2;
+                    if (e.clientX < midX) {
+                        card.parentNode.insertBefore(draggedCard, card);
+                    } else {
+                        card.parentNode.insertBefore(draggedCard, card.nextSibling);
+                    }
+                }
+            });
+        });
+    },
+
+    syncTimelineFromCards() {
+        const container = document.getElementById('timelineCardsPreview');
+        const eventsContainer = document.getElementById('timelineEvents');
+        if (!container || !eventsContainer) return;
+
+        const cards = container.querySelectorAll('.timeline-card');
+        const newOrder = [];
+        cards.forEach(card => {
+            const text = card.querySelector('.timeline-card-text')?.textContent || '';
+            newOrder.push(text);
+        });
+
+        // Recréer les inputs dans le nouvel ordre
+        eventsContainer.innerHTML = newOrder.map((text, i) => `
+            <div class="event-row timeline-event-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                <span class="timeline-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${i + 1}</span>
+                <input type="text" class="form-input timeline-event" placeholder="Événement ${i + 1}" value="${this.escapeHtml(text)}" oninput="AdminBanquesExercices.updateTimelinePreview()">
+                <button type="button" class="btn-icon danger" onclick="this.parentElement.remove(); AdminBanquesExercices.updateTimelinePreview(); AdminBanquesExercices.updateTimelineNumbers();" title="Supprimer">×</button>
+            </div>
+        `).join('');
+
+        // Mettre à jour les numéros sur les cartes
+        cards.forEach((card, i) => {
+            const numSpan = card.querySelector('.timeline-card-num');
+            if (numSpan) numSpan.textContent = i + 1;
+        });
     },
 
     addAssocPair() {
@@ -5213,6 +5510,125 @@ const AdminBanquesExercices = {
             <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
         `;
         container.appendChild(div);
+    },
+
+    // ========== TEXTE A TROUS BUILDER ==========
+    texteATrousGaps: [],
+
+    updateTexteATrousPreview() {
+        const textarea = document.getElementById('texteATrousInput');
+        const preview = document.getElementById('texteATrousPreview');
+        if (!textarea || !preview) return;
+
+        const text = textarea.value;
+        if (!text.trim()) {
+            preview.innerHTML = '<p class="texte-trous-empty">Saisissez du texte ci-dessus pour commencer</p>';
+            document.getElementById('texteATrousGapsSection').style.display = 'none';
+            return;
+        }
+
+        // Séparer le texte en tokens (mots et espaces/ponctuation)
+        const tokens = text.split(/(\s+)/);
+
+        // Générer l'aperçu avec des mots cliquables
+        preview.innerHTML = tokens.map((token, idx) => {
+            // Ne rendre cliquables que les vrais mots (pas espaces/ponctuation seule)
+            if (/^\s*$/.test(token)) {
+                return token;
+            }
+            const isGap = this.texteATrousGaps.find(g => g.wordIndex === idx);
+            const className = isGap ? 'texte-trou-word selected' : 'texte-trou-word';
+            return `<span class="${className}" data-index="${idx}" onclick="AdminBanquesExercices.toggleTexteATrouWord(${idx})">${this.escapeHtml(token)}</span>`;
+        }).join('');
+
+        this.updateTexteATrousGapsList();
+    },
+
+    toggleTexteATrouWord(wordIndex) {
+        const existingIdx = this.texteATrousGaps.findIndex(g => g.wordIndex === wordIndex);
+
+        if (existingIdx >= 0) {
+            // Retirer le trou
+            this.texteATrousGaps.splice(existingIdx, 1);
+        } else {
+            // Ajouter un trou
+            const textarea = document.getElementById('texteATrousInput');
+            const tokens = textarea.value.split(/(\s+)/);
+            const word = tokens[wordIndex];
+            this.texteATrousGaps.push({
+                wordIndex: wordIndex,
+                reponse: word,
+                alternatives: []
+            });
+        }
+
+        this.updateTexteATrousPreview();
+    },
+
+    updateTexteATrousGapsList() {
+        const section = document.getElementById('texteATrousGapsSection');
+        const list = document.getElementById('texteATrousGapsList');
+        if (!section || !list) return;
+
+        if (this.texteATrousGaps.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = 'block';
+
+        // Trier par ordre d'apparition dans le texte
+        const sortedGaps = [...this.texteATrousGaps].sort((a, b) => a.wordIndex - b.wordIndex);
+
+        list.innerHTML = sortedGaps.map((gap, i) => `
+            <div class="texte-trou-gap-item" data-word-index="${gap.wordIndex}">
+                <div class="gap-header">
+                    <span class="gap-num">${i + 1}</span>
+                    <span class="gap-word">${this.escapeHtml(gap.reponse)}</span>
+                </div>
+                <div class="gap-alternatives">
+                    <input type="text" class="form-input" placeholder="Réponses alternatives (séparées par des virgules)"
+                        value="${(gap.alternatives || []).join(', ')}"
+                        onchange="AdminBanquesExercices.updateGapAlternatives(${gap.wordIndex}, this.value)">
+                </div>
+            </div>
+        `).join('');
+    },
+
+    updateGapAlternatives(wordIndex, value) {
+        const gap = this.texteATrousGaps.find(g => g.wordIndex === wordIndex);
+        if (gap) {
+            gap.alternatives = value.split(',').map(s => s.trim()).filter(s => s);
+        }
+    },
+
+    buildTexteATrousData() {
+        const textarea = document.getElementById('texteATrousInput');
+        if (!textarea) return { texte: '', trous: [] };
+
+        const text = textarea.value;
+
+        // Créer aussi l'ancien format pour rétro-compatibilité
+        const tokens = text.split(/(\s+)/);
+        let legacyText = '';
+        tokens.forEach((token, idx) => {
+            const gap = this.texteATrousGaps.find(g => g.wordIndex === idx);
+            if (gap) {
+                legacyText += `{${token}}`;
+            } else {
+                legacyText += token;
+            }
+        });
+
+        return {
+            texte: legacyText, // Ancien format pour rétro-compatibilité
+            texte_original: text,
+            trous: this.texteATrousGaps.map(g => ({
+                wordIndex: g.wordIndex,
+                reponse: g.reponse,
+                alternatives: g.alternatives || []
+            }))
+        };
     },
 
     // ========== CARTE BUILDER POUR CONNAISSANCES ==========
@@ -5372,11 +5788,32 @@ const AdminBanquesExercices = {
 
         switch (type) {
             case 'qcm':
+                // Récupérer les options et bonnes réponses depuis les nouvelles lignes
+                const optionRows = document.querySelectorAll('#qcmOptionsList .qcm-option-row');
+                const options = [];
+                const reponsesCorrectes = [];
+                optionRows.forEach((row, idx) => {
+                    const text = row.querySelector('.qcm-option-text')?.value?.trim();
+                    if (text) {
+                        options.push(text);
+                        if (row.querySelector('.qcm-correct-checkbox')?.checked) {
+                            reponsesCorrectes.push(options.length - 1);
+                        }
+                    }
+                });
                 donnees = {
                     question: document.getElementById('qcmQuestion').value,
-                    options: document.getElementById('qcmOptions').value.split('\n').filter(o => o.trim()),
-                    reponse_correcte: parseInt(document.getElementById('qcmCorrect').value) || 0
+                    options: options,
+                    reponses_correctes: reponsesCorrectes,
+                    reponse_correcte: reponsesCorrectes[0] || 0 // Rétro-compatibilité
                 };
+                // Ajouter feedbacks si activés
+                if (document.getElementById('qcmShowFeedback')?.checked) {
+                    const feedbackCorrect = document.getElementById('qcmFeedbackCorrect')?.value?.trim();
+                    const feedbackIncorrect = document.getElementById('qcmFeedbackIncorrect')?.value?.trim();
+                    if (feedbackCorrect) donnees.feedback_correct = feedbackCorrect;
+                    if (feedbackIncorrect) donnees.feedback_incorrect = feedbackIncorrect;
+                }
                 break;
 
             case 'vrai_faux':
@@ -5384,6 +5821,13 @@ const AdminBanquesExercices = {
                     question: document.getElementById('vfQuestion').value,
                     reponse: document.getElementById('vfReponse').value
                 };
+                // Ajouter feedbacks si activés
+                if (document.getElementById('vfShowFeedback')?.checked) {
+                    const feedbackVrai = document.getElementById('vfFeedbackVrai')?.value?.trim();
+                    const feedbackFaux = document.getElementById('vfFeedbackFaux')?.value?.trim();
+                    if (feedbackVrai) donnees.feedback_vrai = feedbackVrai;
+                    if (feedbackFaux) donnees.feedback_faux = feedbackFaux;
+                }
                 break;
 
             case 'chronologie':
@@ -5414,9 +5858,7 @@ const AdminBanquesExercices = {
                 break;
 
             case 'texte_trou':
-                donnees = {
-                    texte: document.getElementById('texteATrous').value
-                };
+                donnees = this.buildTexteATrousData();
                 break;
 
             case 'carte':

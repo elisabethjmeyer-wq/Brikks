@@ -506,3 +506,283 @@
     border: 1px dashed var(--gray-300);
     border-radius: 6px;
 }
+
+/* ========== CHRONOLOGIE FRISE BUILDER ========== */
+.chrono-frise-preview {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 2rem 1rem;
+    position: relative;
+    min-height: 140px;
+    overflow: hidden;
+}
+
+.chrono-frise-arrow {
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 4px;
+}
+
+.chrono-frise-line {
+    position: absolute;
+    left: 0;
+    right: 20px;
+    top: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, #8b5cf6 100%);
+    border-radius: 2px;
+}
+
+.chrono-frise-arrow-head {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 16px solid #8b5cf6;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+}
+
+.chrono-frise-markers {
+    position: relative;
+    height: 100%;
+    min-height: 120px;
+}
+
+.chrono-frise-marker {
+    position: absolute;
+    top: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
+
+.chrono-marker-dot {
+    width: 28px;
+    height: 28px;
+    background: var(--primary);
+    border: 3px solid white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+}
+
+.chrono-marker-date {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+    background: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chrono-marker-event {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: var(--gray-600);
+    white-space: nowrap;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chrono-frise-empty {
+    text-align: center;
+    color: var(--gray-400);
+    font-size: 0.9rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* ========== TIMELINE CARTES BUILDER ========== */
+.timeline-cards-container {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    min-height: 80px;
+    overflow-x: auto;
+    align-items: center;
+}
+
+.timeline-card {
+    background: white;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    min-width: 100px;
+    max-width: 180px;
+    cursor: grab;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    transition: transform 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+}
+
+.timeline-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.timeline-card.dragging {
+    opacity: 0.5;
+    transform: scale(1.05);
+    cursor: grabbing;
+}
+
+.timeline-card-num {
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.timeline-card-text {
+    font-size: 0.85rem;
+    color: var(--gray-700);
+    text-align: center;
+    word-break: break-word;
+}
+
+.timeline-axis {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0 1rem;
+}
+
+.timeline-axis-label {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    font-weight: 500;
+}
+
+.timeline-axis-line {
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gray-300) 0%, var(--primary) 50%, var(--gray-300) 100%);
+    border-radius: 1px;
+}
+
+.timeline-empty {
+    color: var(--gray-400);
+    font-size: 0.9rem;
+    text-align: center;
+    width: 100%;
+}
+
+/* ========== TEXTE A TROUS BUILDER ========== */
+.texte-trous-preview {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 1rem;
+    line-height: 2;
+    min-height: 80px;
+}
+
+.texte-trous-empty {
+    color: var(--gray-400);
+    font-style: italic;
+}
+
+.texte-trou-word {
+    display: inline;
+    padding: 2px 4px;
+    margin: 1px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+}
+
+.texte-trou-word:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+}
+
+.texte-trou-word.selected {
+    background: #8b5cf6;
+    color: white;
+    font-weight: 600;
+    border-color: #7c3aed;
+}
+
+.texte-trou-word.selected:hover {
+    background: #7c3aed;
+}
+
+/* Gaps list */
+.texte-trou-gap-item {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.gap-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.gap-num {
+    width: 24px;
+    height: 24px;
+    background: #8b5cf6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.gap-word {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.gap-alternatives input {
+    font-size: 0.9rem;
+}
