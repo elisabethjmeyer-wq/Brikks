@@ -140,6 +140,9 @@ const AdminBanquesQuestions = {
                 case 'addAssocPair':
                     this.addAssocPair();
                     break;
+                case 'addCarteMarqueur':
+                    this.addCarteMarqueur();
+                    break;
             }
 
             // Question type tabs
@@ -432,7 +435,8 @@ const AdminBanquesQuestions = {
             'chronologie': 'builderChronologie',
             'timeline': 'builderTimeline',
             'association': 'builderAssociation',
-            'texte_trou': 'builderTexteTrou'
+            'texte_trou': 'builderTexteTrou',
+            'carte': 'builderCarte'
         };
 
         const builderId = builderMap[type];
@@ -477,6 +481,9 @@ const AdminBanquesQuestions = {
 
         // Reset Texte à trous
         document.getElementById('textetrouTexte').value = '';
+
+        // Reset Carte
+        this.initCarteBuilder();
     },
 
     populateQuestionBuilder(question) {
@@ -538,6 +545,11 @@ const AdminBanquesQuestions = {
 
             case 'texte_trou':
                 document.getElementById('textetrouTexte').value = question.question || '';
+                break;
+
+            case 'carte':
+                document.getElementById('carteConsigne').value = question.question || 'Localisez les éléments suivants sur la carte';
+                this.loadCarteBuilderFromData(options || {});
                 break;
         }
     },
@@ -638,6 +650,19 @@ const AdminBanquesQuestions = {
                 }
                 options = matches.map(m => m.slice(1, -1));
                 break;
+
+            case 'carte':
+                question = document.getElementById('carteConsigne').value.trim();
+                options = this.buildDataFromCarteBuilder();
+                if (!options.image_url) {
+                    alert('L\'URL de l\'image est requise');
+                    return;
+                }
+                if (options.marqueurs.length === 0) {
+                    alert('Ajoutez au moins un marqueur');
+                    return;
+                }
+                break;
         }
 
         try {
@@ -713,6 +738,165 @@ const AdminBanquesQuestions = {
             <button type="button" class="btn-remove">×</button>
         `;
         container.appendChild(div);
+    },
+
+    // ========== CARTE BUILDER ==========
+    carteBuilder: {
+        imageUrl: '',
+        marqueurs: []
+    },
+
+    initCarteBuilder() {
+        this.carteBuilder = { imageUrl: '', marqueurs: [] };
+        document.getElementById('carteImageUrl').value = '';
+        document.getElementById('carteConsigne').value = 'Localisez les éléments suivants sur la carte';
+        document.getElementById('cartePreviewWrapper').style.display = 'none';
+        document.getElementById('cartePreviewPlaceholder').style.display = 'block';
+        document.getElementById('cartePreviewPlaceholder').textContent = 'Entrez une URL d\'image ci-dessus pour voir l\'aperçu';
+        this.renderCarteMarqueursList();
+    },
+
+    loadCarteBuilderFromData(donnees) {
+        this.carteBuilder = {
+            imageUrl: donnees.image_url || '',
+            marqueurs: (donnees.marqueurs || []).map(m => ({
+                x: m.x,
+                y: m.y,
+                reponse: m.reponse || '',
+                reponses_acceptees: m.reponses_acceptees || []
+            }))
+        };
+        document.getElementById('carteImageUrl').value = this.carteBuilder.imageUrl;
+        if (this.carteBuilder.imageUrl) {
+            this.updateCartePreview(this.carteBuilder.imageUrl);
+        }
+        this.renderCarteMarqueursList();
+    },
+
+    updateCartePreview(url) {
+        // Convert Google Drive share links to direct image URLs
+        url = this.convertToDirectImageUrl(url);
+        this.carteBuilder.imageUrl = url;
+
+        const wrapper = document.getElementById('cartePreviewWrapper');
+        const placeholder = document.getElementById('cartePreviewPlaceholder');
+        const img = document.getElementById('cartePreviewImage');
+
+        if (url) {
+            img.src = url;
+            img.onload = () => {
+                wrapper.style.display = 'block';
+                placeholder.style.display = 'none';
+                this.renderCarteMarkers();
+            };
+            img.onerror = () => {
+                wrapper.style.display = 'none';
+                placeholder.style.display = 'block';
+                placeholder.textContent = 'Erreur de chargement de l\'image';
+            };
+        } else {
+            wrapper.style.display = 'none';
+            placeholder.style.display = 'block';
+            placeholder.textContent = 'Entrez une URL d\'image ci-dessus pour voir l\'aperçu';
+        }
+    },
+
+    convertToDirectImageUrl(url) {
+        if (!url) return url;
+        // Pattern: https://drive.google.com/file/d/FILE_ID/view...
+        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
+        if (driveMatch) {
+            const fileId = driveMatch[1];
+            return `https://lh3.googleusercontent.com/d/${fileId}`;
+        }
+        return url;
+    },
+
+    renderCarteMarkers() {
+        const container = document.getElementById('cartePreviewMarkers');
+        container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => `
+            <div class="carte-marker-preview"
+                 style="left: ${m.x}%; top: ${m.y}%;"
+                 title="Marqueur ${i + 1}: ${this.escapeHtml(m.reponse)}">
+                ${i + 1}
+            </div>
+        `).join('');
+
+        // Add click handler to wrapper for adding markers
+        const wrapper = document.getElementById('cartePreviewWrapper');
+        wrapper.onclick = (e) => {
+            if (e.target === wrapper || e.target.id === 'cartePreviewImage') {
+                const rect = wrapper.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+                const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+                this.addCarteMarqueur(parseFloat(x), parseFloat(y));
+            }
+        };
+    },
+
+    addCarteMarqueur(x = 50, y = 50) {
+        this.carteBuilder.marqueurs.push({ x, y, reponse: '', reponses_acceptees: [] });
+        this.renderCarteMarkers();
+        this.renderCarteMarqueursList();
+    },
+
+    removeCarteMarqueur(index) {
+        this.carteBuilder.marqueurs.splice(index, 1);
+        this.renderCarteMarkers();
+        this.renderCarteMarqueursList();
+    },
+
+    renderCarteMarqueursList() {
+        const container = document.getElementById('carteMarqueursList');
+        if (!container) return;
+
+        if (this.carteBuilder.marqueurs.length === 0) {
+            container.innerHTML = '<div class="carte-empty">Aucun marqueur. Cliquez sur l\'image ou ajoutez manuellement.</div>';
+            return;
+        }
+
+        container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => `
+            <div class="carte-marqueur-item">
+                <span class="marqueur-num">${i + 1}</span>
+                <div class="marqueur-coords">X: ${m.x}% Y: ${m.y}%</div>
+                <input type="text" class="form-input marqueur-reponse" data-index="${i}"
+                       value="${this.escapeHtml(m.reponse)}" placeholder="Réponse principale...">
+                <input type="text" class="form-input marqueur-alternatives" data-index="${i}"
+                       value="${this.escapeHtml((m.reponses_acceptees || []).join(', '))}"
+                       placeholder="Réponses alternatives (séparées par virgule)">
+                <button type="button" class="btn-icon danger" onclick="AdminBanquesQuestions.removeCarteMarqueur(${i})">×</button>
+            </div>
+        `).join('');
+
+        // Add listeners for inputs
+        container.querySelectorAll('.marqueur-reponse').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const idx = parseInt(e.target.dataset.index);
+                this.carteBuilder.marqueurs[idx].reponse = e.target.value;
+                this.renderCarteMarkers();
+            });
+        });
+
+        container.querySelectorAll('.marqueur-alternatives').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const idx = parseInt(e.target.dataset.index);
+                const alternatives = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                this.carteBuilder.marqueurs[idx].reponses_acceptees = alternatives;
+            });
+        });
+    },
+
+    buildDataFromCarteBuilder() {
+        return {
+            image_url: this.carteBuilder.imageUrl,
+            marqueurs: this.carteBuilder.marqueurs.map((m, i) => ({
+                id: i,
+                x: m.x,
+                y: m.y,
+                reponse: m.reponse,
+                reponses_acceptees: m.reponses_acceptees || []
+            }))
+        };
     },
 
     // ========== DELETE ==========
