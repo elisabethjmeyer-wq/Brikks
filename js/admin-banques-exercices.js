@@ -16,13 +16,15 @@ const AdminBanquesExercices = {
     questionsConnaissances: [],
 
     // Data pour nouveau système Connaissances
+    // Formats unifiés - codes compatibles avec les banques de questions
     formatsQuestions: [
         { id: '1', code: 'qcm', nom: 'QCM', icone: '📝', description: 'Questions à choix multiples' },
-        { id: '2', code: 'timeline', nom: 'Timeline', icone: '📅', description: 'Événements chronologiques' },
-        { id: '3', code: 'frise', nom: 'Frise', icone: '📊', description: 'Frise chronologique' },
+        { id: '2', code: 'vrai_faux', nom: 'Vrai / Faux', icone: '✅', description: 'Questions vrai ou faux' },
+        { id: '3', code: 'chronologie', nom: 'Frise chronologique', icone: '📅', description: 'Événements à ordonner' },
         { id: '4', code: 'association', nom: 'Association', icone: '🔗', description: 'Relier des éléments' },
-        { id: '5', code: 'carte', nom: 'Carte', icone: '🗺️', description: 'Localisation géographique' },
-        { id: '6', code: 'categorisation', nom: 'Catégorisation', icone: '📂', description: 'Classer par catégories' }
+        { id: '5', code: 'texte_trou', nom: 'Texte à trous', icone: '✍️', description: 'Compléter un texte' },
+        { id: '6', code: 'categorisation', nom: 'Catégorisation', icone: '📂', description: 'Classer par catégories' },
+        { id: '7', code: 'carte', nom: 'Carte', icone: '🗺️', description: 'Localisation géographique' }
     ],
     banquesExercicesConn: [],
     entrainementsConn: [],
@@ -3436,7 +3438,21 @@ const AdminBanquesExercices = {
     },
 
     countQuestionsForFormat(formatCode) {
-        return this.questionsConnaissances.filter(q => q.type === formatCode).length;
+        // Mapping des codes pour compatibilité (chronologie inclut timeline)
+        const codesToMatch = [formatCode];
+        if (formatCode === 'chronologie') {
+            codesToMatch.push('timeline', 'frise');
+        }
+        return this.questionsConnaissances.filter(q => codesToMatch.includes(q.type)).length;
+    },
+
+    // Filtre les questions disponibles pour un format donné
+    getQuestionsForFormat(formatCode) {
+        const codesToMatch = [formatCode];
+        if (formatCode === 'chronologie') {
+            codesToMatch.push('timeline', 'frise');
+        }
+        return this.questionsConnaissances.filter(q => codesToMatch.includes(q.type));
     },
 
     async addWizardEtape(formatCode) {
@@ -3548,7 +3564,7 @@ const AdminBanquesExercices = {
         const etapeQuestions = this.etapeQuestionsConn ?
             this.etapeQuestionsConn.filter(eq => eq.etape_id === etape.id) : [];
         const selectedIds = etapeQuestions.map(eq => eq.question_id);
-        const availableQuestions = this.questionsConnaissances.filter(q => q.type === etape.format_code);
+        const availableQuestions = this.getQuestionsForFormat(etape.format_code);
 
         return `
             <div class="wizard-etape-questions" data-etape-id="${etape.id}">
