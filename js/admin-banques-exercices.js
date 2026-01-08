@@ -16,7 +16,14 @@ const AdminBanquesExercices = {
     questionsConnaissances: [],
 
     // Data pour nouveau système Connaissances
-    formatsQuestions: [],
+    formatsQuestions: [
+        { id: '1', code: 'qcm', nom: 'QCM', icone: '📝', description: 'Questions à choix multiples' },
+        { id: '2', code: 'timeline', nom: 'Timeline', icone: '📅', description: 'Événements chronologiques' },
+        { id: '3', code: 'frise', nom: 'Frise', icone: '📊', description: 'Frise chronologique' },
+        { id: '4', code: 'association', nom: 'Association', icone: '🔗', description: 'Relier des éléments' },
+        { id: '5', code: 'carte', nom: 'Carte', icone: '🗺️', description: 'Localisation géographique' },
+        { id: '6', code: 'categorisation', nom: 'Catégorisation', icone: '📂', description: 'Classer par catégories' }
+    ],
     banquesExercicesConn: [],
     entrainementsConn: [],
     etapesConn: [],
@@ -207,8 +214,9 @@ const AdminBanquesExercices = {
             }
 
             // Nouveau système Connaissances
-            if (formatsQResult.success) {
-                this.formatsQuestions = formatsQResult.data || [];
+            // Les formats sont pré-définis dans le code, on ne les écrase que si l'API retourne des données
+            if (formatsQResult.success && formatsQResult.data && formatsQResult.data.length > 0) {
+                this.formatsQuestions = formatsQResult.data;
             }
             if (banquesExConnResult.success) {
                 this.banquesExercicesConn = banquesExConnResult.data || [];
