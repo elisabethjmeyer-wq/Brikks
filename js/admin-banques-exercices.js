@@ -3566,6 +3566,13 @@ const AdminBanquesExercices = {
         const selectedIds = etapeQuestions.map(eq => eq.question_id);
         const availableQuestions = this.getQuestionsForFormat(etape.format_code);
 
+        // Récupérer les banques qui contiennent des questions de ce format
+        const banquesAvecQuestions = [...new Set(availableQuestions.map(q => q.banque_id))];
+        const banquesOptions = banquesAvecQuestions.map(bId => {
+            const banque = this.banquesQuestions.find(b => b.id === bId);
+            return banque ? `<option value="${bId}">${this.escapeHtml(banque.titre)}</option>` : '';
+        }).join('');
+
         return `
             <div class="wizard-etape-questions" data-etape-id="${etape.id}">
                 <div class="etape-questions-header" onclick="AdminBanquesExercices.toggleEtapeQuestionsPanel(${index})">
@@ -3604,26 +3611,58 @@ const AdminBanquesExercices = {
                         </div>
                     </div>
                     <div class="manual-selection" id="manualSelection${index}" style="display: ${etape.mode_selection !== 'aleatoire' ? 'block' : 'none'};">
-                        <label class="section-label">Sélectionner les questions</label>
-                        <div class="questions-checklist">
-                            ${availableQuestions.length === 0 ?
-                                '<p class="no-questions">Aucune question disponible pour ce format.</p>' :
-                                availableQuestions.map(q => `
-                                    <label class="question-checkbox ${selectedIds.includes(q.id) ? 'selected' : ''}">
-                                        <input type="checkbox" ${selectedIds.includes(q.id) ? 'checked' : ''}
-                                            onchange="AdminBanquesExercices.toggleEtapeQuestion('${etape.id}', '${q.id}', this.checked)">
-                                        <div class="question-content">
-                                            <span class="question-text">${this.escapeHtml(q.question || q.titre || 'Question')}</span>
-                                            <span class="question-meta">${q.nb_choix || 4} choix</span>
-                                        </div>
-                                    </label>
-                                `).join('')
-                            }
+                        <div class="questions-filter">
+                            <label class="section-label">Sélectionner les questions (${availableQuestions.length} disponibles)</label>
+                            ${banquesAvecQuestions.length > 1 ? `
+                                <select class="form-select form-select-sm" onchange="AdminBanquesExercices.filterWizardQuestions(${index}, this.value)">
+                                    <option value="">Toutes les banques</option>
+                                    ${banquesOptions}
+                                </select>
+                            ` : ''}
+                        </div>
+                        <div class="questions-checklist" id="questionsChecklist${index}">
+                            ${this.renderQuestionsChecklist(availableQuestions, selectedIds, etape.id)}
                         </div>
                     </div>
                 </div>
             </div>
         `;
+    },
+
+    renderQuestionsChecklist(questions, selectedIds, etapeId) {
+        if (questions.length === 0) {
+            return '<p class="no-questions">Aucune question disponible pour ce format. Créez des questions dans "Banques de questions".</p>';
+        }
+
+        return questions.map(q => {
+            const banque = this.banquesQuestions.find(b => b.id === q.banque_id);
+            const banqueNom = banque ? banque.titre : 'Sans banque';
+            const questionText = q.question || q.titre || q.contenu || 'Question sans titre';
+
+            return `
+                <label class="question-checkbox ${selectedIds.includes(q.id) ? 'selected' : ''}" data-banque="${q.banque_id}">
+                    <input type="checkbox" ${selectedIds.includes(q.id) ? 'checked' : ''}
+                        onchange="AdminBanquesExercices.toggleEtapeQuestion('${etapeId}', '${q.id}', this.checked)">
+                    <div class="question-content">
+                        <span class="question-text">${this.escapeHtml(questionText.substring(0, 80))}${questionText.length > 80 ? '...' : ''}</span>
+                        <span class="question-meta">📚 ${this.escapeHtml(banqueNom)}</span>
+                    </div>
+                </label>
+            `;
+        }).join('');
+    },
+
+    filterWizardQuestions(index, banqueId) {
+        const checklist = document.getElementById(`questionsChecklist${index}`);
+        const items = checklist.querySelectorAll('.question-checkbox');
+
+        items.forEach(item => {
+            if (!banqueId || item.dataset.banque === banqueId) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
     },
 
     toggleEtapeQuestionsPanel(index) {
