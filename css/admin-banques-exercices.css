@@ -3153,3 +3153,758 @@
         margin-top: 12px;
     }
 }
+
+/* ========== WIZARD ENTRAÎNEMENT ========== */
+
+.modal-wizard {
+    width: 95%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.wizard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, var(--accent-purple) 0%, #6366f1 100%);
+    color: white;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.wizard-title h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.wizard-subtitle {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.wizard-steps {
+    display: flex;
+    gap: 8px;
+}
+
+.wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.15);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.wizard-step:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+.wizard-step.active {
+    background: white;
+    color: var(--accent-purple);
+    border-color: white;
+}
+
+.wizard-step.completed {
+    background: rgba(255,255,255,0.3);
+    color: white;
+}
+
+.wizard-step.completed::after {
+    content: "✓";
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wizard-step {
+    position: relative;
+}
+
+.step-number {
+    width: 24px;
+    height: 24px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.wizard-step.active .step-number {
+    background: var(--accent-purple);
+    color: white;
+}
+
+.step-label {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.wizard-header .modal-close {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wizard-header .modal-close:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.wizard-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    background: var(--gray-50);
+}
+
+.wizard-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: white;
+    border-top: 1px solid var(--gray-200);
+}
+
+.wizard-nav {
+    display: flex;
+    gap: 12px;
+}
+
+/* Wizard Step Content */
+.wizard-step-content {
+    background: white;
+    border-radius: var(--radius);
+    padding: 24px;
+}
+
+.step-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.step-icon {
+    font-size: 32px;
+}
+
+.step-header h3 {
+    margin: 0 0 4px 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.step-header p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--gray-500);
+}
+
+.wizard-form {
+    max-width: 600px;
+}
+
+.wizard-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.optional {
+    color: var(--gray-400);
+    font-weight: 400;
+}
+
+/* Step 2: Two Columns Layout */
+.wizard-two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.wizard-col-left,
+.wizard-col-right {
+    background: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    border: 1px solid var(--gray-200);
+}
+
+.wizard-col-right {
+    background: var(--gray-50);
+}
+
+.wizard-col-right h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    color: var(--gray-800);
+}
+
+.etapes-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.etapes-list-header h4 {
+    margin: 0;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.etapes-list-header .badge {
+    background: var(--accent-purple);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.etapes-list-header .hint {
+    font-size: 12px;
+    color: var(--gray-400);
+}
+
+.etapes-list {
+    min-height: 200px;
+}
+
+.etapes-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-400);
+    font-size: 14px;
+}
+
+.wizard-etape-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--gray-50);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.wizard-etape-item:hover {
+    background: var(--gray-100);
+}
+
+.wizard-etape-item.dragging {
+    opacity: 0.5;
+    background: var(--accent-purple-light);
+}
+
+.etape-drag-handle {
+    color: var(--gray-400);
+    cursor: grab;
+}
+
+.etape-number {
+    width: 28px;
+    height: 28px;
+    background: var(--accent-purple);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.etape-format-icon {
+    font-size: 24px;
+}
+
+.etape-info {
+    flex: 1;
+}
+
+.etape-format-name {
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 14px;
+}
+
+.etape-meta {
+    font-size: 12px;
+    color: var(--gray-500);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.etape-mode {
+    padding: 2px 6px;
+    background: var(--gray-200);
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.etape-mode.aleatoire {
+    background: var(--accent-orange-light);
+    color: var(--accent-orange);
+}
+
+.etape-mode.manuel {
+    background: var(--accent-blue-light);
+    color: var(--accent-blue);
+}
+
+/* Format Grid */
+.section-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.format-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.format-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.format-card:hover {
+    border-color: var(--accent-purple);
+    background: var(--accent-purple-light);
+}
+
+.format-icon {
+    font-size: 28px;
+}
+
+.format-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.format-count {
+    font-size: 11px;
+    color: var(--gray-500);
+}
+
+/* Step 3: Questions */
+.wizard-questions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.wizard-etape-questions {
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    overflow: hidden;
+}
+
+.etape-questions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.etape-questions-header:hover {
+    background: var(--gray-50);
+}
+
+.etape-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.etape-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--gray-500);
+    font-size: 13px;
+}
+
+.toggle-icon {
+    color: var(--gray-400);
+}
+
+.etape-questions-panel {
+    padding: 16px;
+    border-top: 1px solid var(--gray-200);
+    background: var(--gray-50);
+}
+
+.mode-selection {
+    margin-bottom: 16px;
+}
+
+.mode-options {
+    display: flex;
+    gap: 12px;
+}
+
+.mode-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 16px;
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-option:hover {
+    border-color: var(--accent-purple);
+}
+
+.mode-option.selected {
+    border-color: var(--accent-purple);
+    background: var(--accent-purple-light);
+}
+
+.mode-icon {
+    font-size: 24px;
+}
+
+.mode-label {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.mode-desc {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.random-config,
+.manual-selection {
+    margin-top: 16px;
+}
+
+.random-config .form-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.random-config .form-input {
+    width: 80px;
+}
+
+.questions-checklist {
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.question-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.question-checkbox:hover {
+    background: var(--gray-50);
+}
+
+.question-checkbox.selected {
+    background: var(--accent-green-light);
+    border-color: var(--accent-green);
+}
+
+.question-checkbox input {
+    margin-top: 2px;
+}
+
+.question-content {
+    flex: 1;
+}
+
+.question-text {
+    display: block;
+    font-size: 14px;
+    color: var(--gray-800);
+}
+
+.question-meta {
+    display: block;
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
+.no-questions {
+    text-align: center;
+    color: var(--gray-400);
+    padding: 20px;
+}
+
+/* Step 4: Validation */
+.validation-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.summary-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    border: 1px solid var(--gray-200);
+}
+
+.summary-card h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    color: var(--gray-800);
+}
+
+.summary-row {
+    display: flex;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-row .label {
+    width: 150px;
+    font-weight: 500;
+    color: var(--gray-600);
+}
+
+.summary-row .value {
+    flex: 1;
+    color: var(--gray-800);
+}
+
+.summary-row .value em {
+    color: var(--gray-400);
+}
+
+.summary-etapes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.summary-etape {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: var(--gray-50);
+    border-radius: 8px;
+}
+
+.summary-etape .etape-num {
+    width: 24px;
+    height: 24px;
+    background: var(--accent-purple);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.summary-etape .etape-icon {
+    font-size: 20px;
+}
+
+.summary-etape .etape-name {
+    flex: 1;
+    font-weight: 500;
+}
+
+.summary-etape .etape-questions {
+    font-size: 13px;
+    color: var(--gray-500);
+}
+
+.summary-etape .etape-mode-badge {
+    font-size: 14px;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.stat-box {
+    background: white;
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    border: 1px solid var(--gray-200);
+}
+
+.stat-value {
+    display: block;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--accent-purple);
+}
+
+.stat-label {
+    display: block;
+    font-size: 13px;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
+/* Notifications */
+.notification {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 16px 20px;
+    background: var(--gray-800);
+    color: white;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow-md);
+    z-index: 10001;
+    animation: slideIn 0.3s ease;
+}
+
+.notification-success {
+    background: var(--accent-green);
+}
+
+.notification-error {
+    background: var(--accent-red);
+}
+
+.notification button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    opacity: 0.7;
+}
+
+.notification button:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Wizard Responsive */
+@media (max-width: 768px) {
+    .wizard-two-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .wizard-steps {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .wizard-step .step-label {
+        display: none;
+    }
+
+    .format-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mode-options {
+        flex-direction: column;
+    }
+
+    .summary-stats {
+        grid-template-columns: 1fr;
+    }
+}
