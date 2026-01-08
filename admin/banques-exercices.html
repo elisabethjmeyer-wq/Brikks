@@ -599,31 +599,30 @@
                 <textarea class="form-textarea" id="entrainementDescription" rows="2" placeholder="Description optionnelle..."></textarea>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Nombre de questions</label>
-                    <input type="number" class="form-input" id="entrainementNbQuestions" value="10" min="1" max="50">
-                    <div class="form-help">Questions tirées aléatoirement</div>
+            <div class="form-group">
+                <label>Configuration des étapes</label>
+                <p class="form-help" style="margin-bottom: 12px;">Chaque type de question devient une étape. Définissez le nombre de questions à tirer aléatoirement pour chaque étape.</p>
+                <div class="etapes-config" id="entrainementEtapesConfig">
+                    <!-- Généré dynamiquement selon les questions disponibles -->
                 </div>
+                <div class="total-questions-info" id="totalQuestionsInfo" style="margin-top: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-weight: 500;">
+                    Total : 0 question(s)
+                </div>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
                     <label>Seuil de validation (%)</label>
                     <input type="number" class="form-input" id="entrainementSeuil" value="80" min="50" max="100">
+                    <div class="form-help">% de bonnes réponses pour valider</div>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>Types de questions à inclure</label>
-                <div class="checkbox-group" id="entrainementTypesQuestions">
-                    <!-- Généré dynamiquement selon les questions disponibles -->
+                <div class="form-group">
+                    <label>Statut</label>
+                    <select class="form-select" id="entrainementStatut">
+                        <option value="brouillon">Brouillon</option>
+                        <option value="publie">Publié</option>
+                    </select>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>Statut</label>
-                <select class="form-select" id="entrainementStatut">
-                    <option value="brouillon">Brouillon</option>
-                    <option value="publie">Publié</option>
-                </select>
             </div>
         </div>
         <div class="modal-footer">

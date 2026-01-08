@@ -3558,7 +3558,7 @@ function deleteEntrainement(data) {
 
 /**
  * Crée un lien entre un entraînement et une question
- * @param {Object} data - { entrainement_id, question_id, format_id, ordre }
+ * @param {Object} data - { entrainement_id, question_id, format_id, ordre, etape }
  */
 function createEntrainementQuestion(data) {
   if (!data.entrainement_id) {
@@ -3572,8 +3572,9 @@ function createEntrainementQuestion(data) {
 
   const id = 'eq_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 9);
   const ordre = data.ordre || 1;
+  const etape = data.etape || 1;
 
-  // Colonnes : id | entrainement_id | question_id | format_id | ordre | banque_id | question_type
+  // Colonnes : id | entrainement_id | question_id | format_id | ordre | banque_id | question_type | etape
   sheet.appendRow([
     id,
     data.entrainement_id,
@@ -3581,7 +3582,8 @@ function createEntrainementQuestion(data) {
     data.format_id || '',
     ordre,
     data.banque_id || '',
-    data.question_type || ''
+    data.question_type || '',
+    etape
   ]);
 
   return {
