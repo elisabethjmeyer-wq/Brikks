@@ -2844,7 +2844,7 @@ const AdminBanquesExercices = {
                 <div class="conn-toggle">
                     <button class="conn-toggle-btn ${this.connaissancesSubView === 'entrainements' ? 'active' : ''}"
                             onclick="AdminBanquesExercices.switchConnaissancesView('entrainements')">
-                        Entraînements
+                        Banques d'exercices
                         <span class="conn-toggle-count">${entrainementsCount}</span>
                     </button>
                     <button class="conn-toggle-btn ${this.connaissancesSubView === 'questions' ? 'active' : ''}"
@@ -2924,8 +2924,8 @@ const AdminBanquesExercices = {
                     <div class="banque-exercices">
                         <div class="exercices-header">
                             <h4>Entraînements</h4>
-                            <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addEntrainementConn('${banque.id}')">
-                                + Nouvel entraînement
+                            <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addEntrainementConn('${banque.id}')" title="Ajouter un entraînement">
+                                + Ajouter
                             </button>
                         </div>
                         ${this.renderEntrainementsList(entrainements, banque.id)}
@@ -2936,43 +2936,25 @@ const AdminBanquesExercices = {
     },
 
     /**
-     * Liste des entraînements dans une banque
+     * Liste des entraînements dans une banque (style Savoir-faire)
      */
     renderEntrainementsList(entrainements, banqueId) {
         if (entrainements.length === 0) {
-            return '<div class="exercices-empty">Aucun entraînement. Cliquez sur "+ Nouvel entraînement" pour commencer.</div>';
+            return '<div class="exercices-empty">Aucun entraînement. Cliquez sur "+ Ajouter" pour commencer.</div>';
         }
 
         return `
             <div class="exercices-list">
-                ${entrainements.map(entr => {
-                    const etapes = this.etapesConn.filter(e => e.entrainement_id === entr.id);
-                    const etapesStr = etapes.length > 0 ?
-                        etapes.map(e => {
-                            const format = this.formatsQuestions.find(f => f.code === e.format_code);
-                            return format ? format.nom : e.format_code;
-                        }).join(', ') : 'Aucune étape';
-
+                ${entrainements.map((entr, index) => {
                     return `
-                        <div class="exercice-item entrainement-item-row" data-id="${entr.id}">
-                            <div class="exercice-numero">🎯</div>
+                        <div class="exercice-item" data-id="${entr.id}" onclick="AdminBanquesExercices.openEntrainementConnEditPage(AdminBanquesExercices.entrainementsConn.find(e => e.id === '${entr.id}'))" style="cursor:pointer;">
+                            <div class="exercice-numero">${index + 1}</div>
                             <div class="exercice-info">
                                 <div class="exercice-title">${this.escapeHtml(entr.titre || 'Sans titre')}</div>
-                                <div class="exercice-meta">
-                                    <span>⏱️ ${entr.duree || 15} min</span>
-                                    <span>🎯 ${entr.seuil || 80}%</span>
-                                    <span>${etapes.length} étape${etapes.length > 1 ? 's' : ''}</span>
-                                    <span class="status-badge ${entr.statut === 'publie' ? 'publie' : 'brouillon'}">
-                                        ${entr.statut === 'publie' ? '✅ Publié' : '📝 Brouillon'}
-                                    </span>
-                                </div>
                             </div>
-                            <div class="exercice-actions entrainement-actions-row">
-                                <button class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.openEntrainementConnEditPage(AdminBanquesExercices.entrainementsConn.find(e => e.id === '${entr.id}'))">
-                                    Configurer les étapes
-                                </button>
-                                <button class="btn-icon" onclick="AdminBanquesExercices.editEntrainementConnModal('${entr.id}')" title="Modifier">✏️</button>
-                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteEntrainementConn('${entr.id}')" title="Supprimer">🗑️</button>
+                            <div class="exercice-actions">
+                                <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editEntrainementConnModal('${entr.id}')" title="Modifier">✏️</button>
+                                <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteEntrainementConn('${entr.id}')" title="Supprimer">🗑️</button>
                             </div>
                         </div>
                     `;
