@@ -127,6 +127,7 @@
                 <button class="type-tab" data-type="timeline">Timeline</button>
                 <button class="type-tab" data-type="association">Association</button>
                 <button class="type-tab" data-type="texte_trou">Texte à trous</button>
+                <button class="type-tab" data-type="carte">Carte</button>
             </div>
 
             <!-- Liste des questions -->
@@ -162,6 +163,7 @@
                     <option value="timeline">Timeline (ordonner)</option>
                     <option value="association">Association (paires)</option>
                     <option value="texte_trou">Texte à trous</option>
+                    <option value="carte">Carte (localisation)</option>
                 </select>
             </div>
 
@@ -267,6 +269,39 @@
                     <label>Texte avec trous <span class="req">*</span></label>
                     <textarea class="form-textarea" id="textetrouTexte" rows="4" placeholder="Utilisez {mot} pour créer un trou. Ex: En {1492}, Christophe Colomb découvre l'{Amérique}."></textarea>
                     <div class="form-help">Utilisez {mot} pour créer un trou. Le mot entre accolades sera la réponse attendue.</div>
+                </div>
+            </div>
+
+            <!-- Builder Carte -->
+            <div class="question-builder hidden" id="builderCarte">
+                <div class="form-group">
+                    <label>Consigne</label>
+                    <input type="text" class="form-input" id="carteConsigne" value="Localisez les éléments suivants sur la carte">
+                </div>
+                <div class="form-group">
+                    <label>URL de l'image de fond <span class="req">*</span></label>
+                    <input type="text" class="form-input" id="carteImageUrl" placeholder="https://..." onchange="AdminBanquesQuestions.updateCartePreview(this.value)">
+                    <div class="form-help">URL de l'image (carte, schéma, document...)</div>
+                </div>
+                <div class="form-group">
+                    <label>Aperçu et placement des marqueurs</label>
+                    <div class="carte-preview-container">
+                        <div class="carte-preview-placeholder" id="cartePreviewPlaceholder">
+                            Entrez une URL d'image ci-dessus pour voir l'aperçu
+                        </div>
+                        <div class="carte-preview-wrapper" id="cartePreviewWrapper" style="display:none;">
+                            <img id="cartePreviewImage" src="" alt="Aperçu carte">
+                            <div class="carte-preview-markers" id="cartePreviewMarkers"></div>
+                        </div>
+                        <div class="form-help">Cliquez sur l'image pour placer des marqueurs</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Marqueurs</label>
+                    <div id="carteMarqueursList">
+                        <!-- Généré dynamiquement -->
+                    </div>
+                    <button type="button" class="btn btn-sm btn-secondary" id="addCarteMarqueur">+ Ajouter un marqueur manuellement</button>
                 </div>
             </div>
 
