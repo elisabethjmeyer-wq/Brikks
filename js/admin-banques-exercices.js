@@ -3015,6 +3015,7 @@ const AdminBanquesExercices = {
                             </div>
                         </div>
                         <div class="banque-card-actions">
+                            <button class="btn-icon add" onclick="event.stopPropagation(); AdminBanquesExercices.addQuestionConnaissances('${banque.id}')" title="Ajouter une question">➕</button>
                             <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editBanqueQuestions('${banque.id}')" title="Modifier la banque">✏️</button>
                             <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteBanqueQuestions('${banque.id}')" title="Supprimer">🗑️</button>
                         </div>
@@ -3023,9 +3024,6 @@ const AdminBanquesExercices = {
                     <div class="banque-exercices">
                         <div class="exercices-header">
                             <h4>Questions</h4>
-                            <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addQuestionConnaissances('${banque.id}')">
-                                + Ajouter une question
-                            </button>
                         </div>
                         ${this.renderQuestionsListAccordion(questions, banque.id)}
                     </div>

@@ -141,6 +141,16 @@
     color: white;
 }
 
+.btn-icon.add {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+.btn-icon.add:hover {
+    background: var(--accent-green);
+    color: white;
+}
+
 /* ===== TABS ===== */
 .type-tabs {
     display: flex;
