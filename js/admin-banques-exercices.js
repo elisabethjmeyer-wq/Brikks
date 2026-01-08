@@ -3573,6 +3573,9 @@ const AdminBanquesExercices = {
             return banque ? `<option value="${bId}">${this.escapeHtml(banque.titre)}</option>` : '';
         }).join('');
 
+        // Panel ouvert par défaut
+        const isOpen = true;
+
         return `
             <div class="wizard-etape-questions" data-etape-id="${etape.id}">
                 <div class="etape-questions-header" onclick="AdminBanquesExercices.toggleEtapeQuestionsPanel(${index})">
@@ -3582,11 +3585,11 @@ const AdminBanquesExercices = {
                         <span class="etape-format-name">${format.nom || etape.format_code}</span>
                     </div>
                     <div class="etape-header-right">
-                        <span class="questions-count">${selectedIds.length} question${selectedIds.length > 1 ? 's' : ''} sélectionnée${selectedIds.length > 1 ? 's' : ''}</span>
-                        <span class="toggle-icon">▼</span>
+                        <span class="questions-count ${selectedIds.length === 0 ? 'warning' : ''}">${selectedIds.length} / ${availableQuestions.length} question${selectedIds.length > 1 ? 's' : ''}</span>
+                        <span class="toggle-icon">${isOpen ? '▲' : '▼'}</span>
                     </div>
                 </div>
-                <div class="etape-questions-panel" id="etapePanel${index}" style="display: none;">
+                <div class="etape-questions-panel" id="etapePanel${index}" style="display: ${isOpen ? 'block' : 'none'};">
                     <div class="mode-selection">
                         <label class="section-label">Mode de sélection</label>
                         <div class="mode-options">
@@ -3605,7 +3608,7 @@ const AdminBanquesExercices = {
                     <div class="random-config" id="randomConfig${index}" style="display: ${etape.mode_selection === 'aleatoire' ? 'block' : 'none'};">
                         <div class="form-row">
                             <label>Nombre de questions :</label>
-                            <input type="number" class="form-input" value="${etape.nb_questions || 5}" min="1" max="${availableQuestions.length}"
+                            <input type="number" class="form-input" value="${parseInt(etape.nb_questions) || 5}" min="1" max="${Math.max(availableQuestions.length, 1)}"
                                 onchange="AdminBanquesExercices.setEtapeNbQuestions('${etape.id}', this.value)">
                             <span class="hint">/ ${availableQuestions.length} disponibles</span>
                         </div>
@@ -3703,6 +3706,25 @@ const AdminBanquesExercices = {
                 await this.callAPI('removeQuestionFromEtape', { etape_id: etapeId, question_id: questionId });
             }
             await this.loadDataFromAPI();
+            // Mettre à jour les données du wizard et le compteur
+            this.wizardData.etapes = this.etapesConn.filter(e => e.entrainement_id === this.wizardData.entrainement.id);
+            // Mettre à jour le compteur sans re-render complet
+            const etapeEl = document.querySelector(`.wizard-etape-questions[data-etape-id="${etapeId}"]`);
+            if (etapeEl) {
+                const etape = this.wizardData.etapes.find(e => e.id === etapeId);
+                const etapeQuestions = this.etapeQuestionsConn.filter(eq => eq.etape_id === etapeId);
+                const availableQuestions = this.getQuestionsForFormat(etape?.format_code);
+                const countEl = etapeEl.querySelector('.questions-count');
+                if (countEl) {
+                    countEl.textContent = `${etapeQuestions.length} / ${availableQuestions.length} question${etapeQuestions.length > 1 ? 's' : ''}`;
+                    countEl.classList.toggle('warning', etapeQuestions.length === 0);
+                }
+                // Mettre à jour la classe selected sur la checkbox
+                const checkbox = etapeEl.querySelector(`input[onchange*="${questionId}"]`);
+                if (checkbox) {
+                    checkbox.closest('.question-checkbox').classList.toggle('selected', isChecked);
+                }
+            }
         } catch (error) {
             console.error('Erreur toggle question:', error);
         }
