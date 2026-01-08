@@ -11,9 +11,19 @@ const AdminBanquesExercices = {
     tachesComplexes: [],
     competencesReferentiel: [],
 
-    // Data pour connaissances (nouveau système)
+    // Data pour connaissances (ancien système - conservé pour compatibilité)
     banquesQuestions: [],
     questionsConnaissances: [],
+
+    // Data pour nouveau système Connaissances
+    formatsQuestions: [],
+    banquesExercicesConn: [],
+    entrainementsConn: [],
+    etapesConn: [],
+    etapeQuestionsConn: [],
+
+    // Vue active dans Connaissances ('questions' ou 'exercices')
+    connaissancesView: 'questions',
 
     // Cache configuration
     CACHE_KEY: 'brikks_admin_banques_cache',
@@ -147,14 +157,24 @@ const AdminBanquesExercices = {
     async loadDataFromAPI() {
         try {
             // PARALLEL API calls - much faster!
-            const [banquesResult, formatsResult, exercicesResult, tachesResult, compRefResult, banquesQResult, questionsConnResult] = await Promise.all([
+            const [
+                banquesResult, formatsResult, exercicesResult, tachesResult, compRefResult,
+                banquesQResult, questionsConnResult,
+                // Nouveau système Connaissances
+                formatsQResult, banquesExConnResult, entrConnResult, etapesConnResult
+            ] = await Promise.all([
                 this.callAPI('getBanquesExercices', {}),
                 this.callAPI('getFormatsExercices', {}),
                 this.callAPI('getExercices', {}),
                 this.callAPI('getTachesComplexes', {}),
                 this.callAPI('getCompetencesReferentiel', {}),
                 this.callAPI('getBanquesQuestions', {}),
-                this.callAPI('getQuestionsConnaissances', {})
+                this.callAPI('getQuestionsConnaissances', {}),
+                // Nouveau système Connaissances
+                this.callAPI('getFormatsQuestions', {}),
+                this.callAPI('getBanquesExercicesConn', {}),
+                this.callAPI('getEntrainementsConn', {}),
+                this.callAPI('getEtapesConn', {})
             ]);
 
             if (banquesResult.success) {
@@ -186,6 +206,20 @@ const AdminBanquesExercices = {
                 });
             }
 
+            // Nouveau système Connaissances
+            if (formatsQResult.success) {
+                this.formatsQuestions = formatsQResult.data || [];
+            }
+            if (banquesExConnResult.success) {
+                this.banquesExercicesConn = banquesExConnResult.data || [];
+            }
+            if (entrConnResult.success) {
+                this.entrainementsConn = entrConnResult.data || [];
+            }
+            if (etapesConnResult.success) {
+                this.etapesConn = etapesConnResult.data || [];
+            }
+
             // Save to cache
             this.saveToCache();
         } catch (error) {
@@ -198,6 +232,10 @@ const AdminBanquesExercices = {
             this.competencesReferentiel = [];
             this.banquesQuestions = [];
             this.questionsConnaissances = [];
+            this.formatsQuestions = [];
+            this.banquesExercicesConn = [];
+            this.entrainementsConn = [];
+            this.etapesConn = [];
         }
     },
 
@@ -527,9 +565,9 @@ const AdminBanquesExercices = {
             return;
         }
 
-        // For connaissances tab, render banques de questions
+        // For connaissances tab, render new dual-section view
         if (this.currentType === 'connaissances') {
-            this.renderBanquesQuestions(container, emptyState);
+            this.renderConnaissancesView(container, emptyState);
             return;
         }
 
@@ -2768,15 +2806,997 @@ const AdminBanquesExercices = {
         };
     },
 
-    // ========== BANQUES DE QUESTIONS (Connaissances) ==========
+    // ========== NOUVEAU SYSTÈME CONNAISSANCES ==========
+
+    // Noms des formats de questions
     questionTypeNames: {
         'qcm': 'QCM',
         'vrai_faux': 'Vrai/Faux',
         'chronologie': 'Chronologie',
         'timeline': 'Timeline',
         'association': 'Association',
-        'texte_trou': 'Texte à trous'
+        'texte_trou': 'Texte à trous',
+        'ordre': 'Mise en ordre'
     },
+
+    /**
+     * Vue principale de l'onglet Connaissances
+     * Affiche deux sections: Banques de questions + Banques d'exercices
+     */
+    renderConnaissancesView(container, emptyState) {
+        emptyState.style.display = 'none';
+
+        const questionsCount = this.banquesQuestions.length;
+        const exercicesCount = this.banquesExercicesConn.length;
+
+        container.innerHTML = `
+            <div class="connaissances-wrapper">
+                <!-- Section Banques de questions -->
+                <section class="conn-section">
+                    <div class="conn-section-header">
+                        <div class="conn-section-title">
+                            <span class="conn-section-icon">📋</span>
+                            <h3>Banques de questions</h3>
+                            <span class="conn-section-count">${questionsCount}</span>
+                        </div>
+                        <p class="conn-section-desc">Pools de questions réutilisables dans les entraînements</p>
+                        <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addBanqueQuestions()">
+                            + Nouvelle banque
+                        </button>
+                    </div>
+                    <div class="conn-section-content" id="banquesQuestionsList">
+                        ${this.renderBanquesQuestionsCards()}
+                    </div>
+                </section>
+
+                <!-- Section Banques d'exercices -->
+                <section class="conn-section">
+                    <div class="conn-section-header">
+                        <div class="conn-section-title">
+                            <span class="conn-section-icon">📚</span>
+                            <h3>Banques d'exercices</h3>
+                            <span class="conn-section-count">${exercicesCount}</span>
+                        </div>
+                        <p class="conn-section-desc">Conteneurs d'entraînements (1 par leçon ou pour révisions)</p>
+                        <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addBanqueExercicesConn()">
+                            + Nouvelle banque
+                        </button>
+                    </div>
+                    <div class="conn-section-content" id="banquesExercicesConnList">
+                        ${this.renderBanquesExercicesConnCards()}
+                    </div>
+                </section>
+            </div>
+        `;
+    },
+
+    /**
+     * Cartes des banques de questions
+     */
+    renderBanquesQuestionsCards() {
+        if (this.banquesQuestions.length === 0) {
+            return '<div class="conn-empty">Aucune banque de questions. Créez-en une pour commencer.</div>';
+        }
+
+        return `<div class="conn-cards-grid">
+            ${this.banquesQuestions.map(banque => {
+                const questions = this.questionsConnaissances.filter(q => q.banque_id === banque.id);
+                const typesCounts = {};
+                questions.forEach(q => {
+                    typesCounts[q.type] = (typesCounts[q.type] || 0) + 1;
+                });
+                const typesStr = Object.entries(typesCounts)
+                    .map(([t, c]) => `${this.questionTypeNames[t] || t}: ${c}`)
+                    .join(', ') || 'Vide';
+
+                return `
+                    <div class="conn-card" data-id="${banque.id}">
+                        <div class="conn-card-header">
+                            <h4 class="conn-card-title">${this.escapeHtml(banque.titre || 'Sans titre')}</h4>
+                            <div class="conn-card-actions">
+                                <button class="btn-icon" onclick="AdminBanquesExercices.viewBanqueQuestions('${banque.id}')" title="Voir les questions">👁️</button>
+                                <button class="btn-icon" onclick="AdminBanquesExercices.editBanqueQuestions('${banque.id}')" title="Modifier">✏️</button>
+                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteBanqueQuestions('${banque.id}')" title="Supprimer">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="conn-card-body">
+                            <div class="conn-card-stat">
+                                <span class="conn-card-stat-value">${questions.length}</span>
+                                <span class="conn-card-stat-label">questions</span>
+                            </div>
+                            <div class="conn-card-meta">${typesStr}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>`;
+    },
+
+    /**
+     * Cartes des banques d'exercices
+     */
+    renderBanquesExercicesConnCards() {
+        if (this.banquesExercicesConn.length === 0) {
+            return '<div class="conn-empty">Aucune banque d\'exercices. Créez-en une pour organiser vos entraînements.</div>';
+        }
+
+        return `<div class="conn-cards-grid">
+            ${this.banquesExercicesConn.map(banque => {
+                const entrainements = this.entrainementsConn.filter(e => e.banque_exercice_id === banque.id);
+                const publies = entrainements.filter(e => e.statut === 'publie').length;
+                const typeLabel = banque.type === 'revision' ? '📖 Révision' : '📝 Leçon';
+
+                return `
+                    <div class="conn-card" data-id="${banque.id}">
+                        <div class="conn-card-header">
+                            <h4 class="conn-card-title">${this.escapeHtml(banque.titre || 'Sans titre')}</h4>
+                            <span class="conn-card-badge ${banque.type}">${typeLabel}</span>
+                            <div class="conn-card-actions">
+                                <button class="btn-icon" onclick="AdminBanquesExercices.viewBanqueExercicesConn('${banque.id}')" title="Voir les entraînements">👁️</button>
+                                <button class="btn-icon" onclick="AdminBanquesExercices.editBanqueExercicesConn('${banque.id}')" title="Modifier">✏️</button>
+                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteBanqueExercicesConn('${banque.id}')" title="Supprimer">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="conn-card-body">
+                            <div class="conn-card-stat">
+                                <span class="conn-card-stat-value">${entrainements.length}</span>
+                                <span class="conn-card-stat-label">entraînement${entrainements.length > 1 ? 's' : ''}</span>
+                            </div>
+                            <div class="conn-card-meta">${publies} publié${publies > 1 ? 's' : ''}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>`;
+    },
+
+    /**
+     * Affiche la liste des questions d'une banque
+     */
+    viewBanqueQuestions(banqueId) {
+        const banque = this.banquesQuestions.find(b => b.id === banqueId);
+        if (!banque) return;
+
+        const questions = this.questionsConnaissances.filter(q => q.banque_id === banqueId);
+        const container = document.getElementById('banquesList');
+
+        container.innerHTML = `
+            <div class="conn-detail-view">
+                <div class="conn-detail-header">
+                    <button class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices.renderBanques()">
+                        ← Retour
+                    </button>
+                    <h2>📋 ${this.escapeHtml(banque.titre)}</h2>
+                    <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addQuestionConnaissances('${banqueId}')">
+                        + Ajouter une question
+                    </button>
+                </div>
+                <div class="conn-detail-content">
+                    ${questions.length === 0 ?
+                        '<div class="conn-empty">Aucune question dans cette banque</div>' :
+                        this.renderQuestionsList(questions, banqueId)
+                    }
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Liste des questions avec détails
+     */
+    renderQuestionsList(questions, banqueId) {
+        return `
+            <div class="questions-list">
+                ${questions.map(q => {
+                    const typeName = this.questionTypeNames[q.type] || q.type;
+                    const preview = this.getQuestionPreview(q);
+
+                    return `
+                        <div class="question-item" data-id="${q.id}">
+                            <div class="question-type-badge ${q.type}">${typeName}</div>
+                            <div class="question-content">
+                                <div class="question-preview">${this.escapeHtml(preview)}</div>
+                            </div>
+                            <div class="question-actions">
+                                <button class="btn-icon" onclick="AdminBanquesExercices.editQuestionConnaissances('${q.id}')" title="Modifier">✏️</button>
+                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteQuestionConnaissances('${q.id}')" title="Supprimer">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
+    /**
+     * Affiche la liste des entraînements d'une banque d'exercices
+     */
+    viewBanqueExercicesConn(banqueId) {
+        const banque = this.banquesExercicesConn.find(b => b.id === banqueId);
+        if (!banque) return;
+
+        const entrainements = this.entrainementsConn.filter(e => e.banque_exercice_id === banqueId);
+        const container = document.getElementById('banquesList');
+
+        container.innerHTML = `
+            <div class="conn-detail-view">
+                <div class="conn-detail-header">
+                    <button class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices.renderBanques()">
+                        ← Retour
+                    </button>
+                    <h2>📚 ${this.escapeHtml(banque.titre)}</h2>
+                    <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addEntrainementConn('${banqueId}')">
+                        + Nouvel entraînement
+                    </button>
+                </div>
+                <div class="conn-detail-content">
+                    ${entrainements.length === 0 ?
+                        '<div class="conn-empty">Aucun entraînement dans cette banque</div>' :
+                        this.renderEntrainementsList(entrainements, banqueId)
+                    }
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Liste des entraînements avec détails
+     */
+    renderEntrainementsList(entrainements, banqueId) {
+        return `
+            <div class="entrainements-list">
+                ${entrainements.map(e => {
+                    const etapes = this.etapesConn.filter(et => et.entrainement_id === e.id);
+                    const statutBadge = e.statut === 'publie' ?
+                        '<span class="status-badge published">Publié</span>' :
+                        '<span class="status-badge draft">Brouillon</span>';
+
+                    return `
+                        <div class="entrainement-item" data-id="${e.id}">
+                            <div class="entrainement-info">
+                                <h4 class="entrainement-title">${this.escapeHtml(e.titre)}</h4>
+                                <div class="entrainement-meta">
+                                    ${statutBadge}
+                                    <span>⏱️ ${e.duree || 15} min</span>
+                                    <span>🎯 Seuil: ${e.seuil || 80}%</span>
+                                    <span>📊 ${etapes.length} étape${etapes.length > 1 ? 's' : ''}</span>
+                                </div>
+                            </div>
+                            <div class="entrainement-actions">
+                                <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.editEntrainementConn('${e.id}')">
+                                    Modifier
+                                </button>
+                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteEntrainementConn('${e.id}')" title="Supprimer">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
+    // ========== CRUD BANQUES D'EXERCICES CONN ==========
+
+    addBanqueExercicesConn() {
+        this.openBanqueExercicesConnModal();
+    },
+
+    editBanqueExercicesConn(id) {
+        const banque = this.banquesExercicesConn.find(b => b.id === id);
+        if (!banque) return;
+        this.openBanqueExercicesConnModal(banque);
+    },
+
+    openBanqueExercicesConnModal(banque = null) {
+        // Créer le modal dynamiquement s'il n'existe pas
+        let modal = document.getElementById('banqueExercicesConnModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'banqueExercicesConnModal';
+            modal.className = 'modal-overlay hidden';
+            modal.innerHTML = `
+                <div class="modal modal-medium">
+                    <div class="modal-header">
+                        <h2 id="banqueExConnModalTitle">Nouvelle banque d'exercices</h2>
+                        <button class="modal-close" onclick="AdminBanquesExercices.closeBanqueExercicesConnModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editBanqueExConnId">
+                        <div class="form-group">
+                            <label>Titre <span class="req">*</span></label>
+                            <input type="text" class="form-input" id="banqueExConnTitre" placeholder="Ex: Leçon 1 - La Révolution">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea class="form-textarea" id="banqueExConnDescription" rows="2" placeholder="Description optionnelle..."></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Type</label>
+                                <select class="form-select" id="banqueExConnType">
+                                    <option value="lecon">📝 Leçon</option>
+                                    <option value="revision">📖 Révision</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Statut</label>
+                                <select class="form-select" id="banqueExConnStatut">
+                                    <option value="brouillon">Brouillon</option>
+                                    <option value="publie">Publié</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeBanqueExercicesConnModal()">Annuler</button>
+                        <button class="btn btn-primary" onclick="AdminBanquesExercices.saveBanqueExercicesConn()">Enregistrer</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        const title = document.getElementById('banqueExConnModalTitle');
+        if (banque) {
+            title.textContent = 'Modifier la banque d\'exercices';
+            document.getElementById('editBanqueExConnId').value = banque.id;
+            document.getElementById('banqueExConnTitre').value = banque.titre || '';
+            document.getElementById('banqueExConnDescription').value = banque.description || '';
+            document.getElementById('banqueExConnType').value = banque.type || 'lecon';
+            document.getElementById('banqueExConnStatut').value = banque.statut || 'brouillon';
+        } else {
+            title.textContent = 'Nouvelle banque d\'exercices';
+            document.getElementById('editBanqueExConnId').value = '';
+            document.getElementById('banqueExConnTitre').value = '';
+            document.getElementById('banqueExConnDescription').value = '';
+            document.getElementById('banqueExConnType').value = 'lecon';
+            document.getElementById('banqueExConnStatut').value = 'brouillon';
+        }
+
+        modal.classList.remove('hidden');
+    },
+
+    closeBanqueExercicesConnModal() {
+        const modal = document.getElementById('banqueExercicesConnModal');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    async saveBanqueExercicesConn() {
+        const id = document.getElementById('editBanqueExConnId').value;
+        const titre = document.getElementById('banqueExConnTitre').value.trim();
+        const description = document.getElementById('banqueExConnDescription').value.trim();
+        const type = document.getElementById('banqueExConnType').value;
+        const statut = document.getElementById('banqueExConnStatut').value;
+
+        if (!titre) {
+            alert('Le titre est requis');
+            return;
+        }
+
+        const data = { titre, description, type, statut };
+
+        try {
+            let result;
+            if (id) {
+                data.id = id;
+                result = await this.callAPI('updateBanqueExercicesConn', data);
+            } else {
+                result = await this.callAPI('createBanqueExercicesConn', data);
+            }
+
+            if (result.success) {
+                this.closeBanqueExercicesConnModal();
+                await this.loadDataFromAPI();
+                this.renderBanques();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde banque:', error);
+            alert('Erreur lors de la sauvegarde');
+        }
+    },
+
+    async deleteBanqueExercicesConn(id) {
+        if (!confirm('Supprimer cette banque et tous ses entraînements ?')) return;
+
+        try {
+            const result = await this.callAPI('deleteBanqueExercicesConn', { id });
+            if (result.success) {
+                await this.loadDataFromAPI();
+                this.renderBanques();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur suppression:', error);
+            alert('Erreur lors de la suppression');
+        }
+    },
+
+    // ========== CRUD ENTRAINEMENTS CONN ==========
+
+    addEntrainementConn(banqueExerciceId) {
+        this.openEntrainementConnModal(null, banqueExerciceId);
+    },
+
+    editEntrainementConn(id) {
+        const entrainement = this.entrainementsConn.find(e => e.id === id);
+        if (!entrainement) return;
+        this.openEntrainementConnEditPage(entrainement);
+    },
+
+    openEntrainementConnModal(entrainement = null, banqueExerciceId = null) {
+        // Créer le modal dynamiquement
+        let modal = document.getElementById('entrainementConnModal2');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'entrainementConnModal2';
+            modal.className = 'modal-overlay hidden';
+            modal.innerHTML = `
+                <div class="modal modal-medium">
+                    <div class="modal-header">
+                        <h2 id="entrConnModalTitle">Nouvel entraînement</h2>
+                        <button class="modal-close" onclick="AdminBanquesExercices.closeEntrainementConnModal2()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editEntrConnId">
+                        <input type="hidden" id="entrConnBanqueId">
+                        <div class="form-group">
+                            <label>Titre <span class="req">*</span></label>
+                            <input type="text" class="form-input" id="entrConnTitre" placeholder="Ex: Entraînement 1">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea class="form-textarea" id="entrConnDescription" rows="2" placeholder="Description optionnelle..."></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Durée (minutes)</label>
+                                <input type="number" class="form-input" id="entrConnDuree" value="15" min="5" max="120">
+                            </div>
+                            <div class="form-group">
+                                <label>Seuil de réussite (%)</label>
+                                <input type="number" class="form-input" id="entrConnSeuil" value="80" min="50" max="100">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Statut</label>
+                            <select class="form-select" id="entrConnStatut">
+                                <option value="brouillon">Brouillon</option>
+                                <option value="publie">Publié</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeEntrainementConnModal2()">Annuler</button>
+                        <button class="btn btn-primary" onclick="AdminBanquesExercices.saveEntrainementConnAndEdit()">Créer et configurer les étapes</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        document.getElementById('editEntrConnId').value = entrainement ? entrainement.id : '';
+        document.getElementById('entrConnBanqueId').value = banqueExerciceId || '';
+        document.getElementById('entrConnTitre').value = entrainement ? entrainement.titre : '';
+        document.getElementById('entrConnDescription').value = entrainement ? entrainement.description : '';
+        document.getElementById('entrConnDuree').value = entrainement ? entrainement.duree : 15;
+        document.getElementById('entrConnSeuil').value = entrainement ? entrainement.seuil : 80;
+        document.getElementById('entrConnStatut').value = entrainement ? entrainement.statut : 'brouillon';
+
+        modal.classList.remove('hidden');
+    },
+
+    closeEntrainementConnModal2() {
+        const modal = document.getElementById('entrainementConnModal2');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    async saveEntrainementConnAndEdit() {
+        const id = document.getElementById('editEntrConnId').value;
+        const banqueExerciceId = document.getElementById('entrConnBanqueId').value;
+        const titre = document.getElementById('entrConnTitre').value.trim();
+        const description = document.getElementById('entrConnDescription').value.trim();
+        const duree = parseInt(document.getElementById('entrConnDuree').value) || 15;
+        const seuil = parseInt(document.getElementById('entrConnSeuil').value) || 80;
+        const statut = document.getElementById('entrConnStatut').value;
+
+        if (!titre) {
+            alert('Le titre est requis');
+            return;
+        }
+
+        const data = { titre, description, duree, seuil, statut, banque_exercice_id: banqueExerciceId };
+
+        try {
+            const result = await this.callAPI('createEntrainementConn', data);
+            if (result.success) {
+                this.closeEntrainementConnModal2();
+                await this.loadDataFromAPI();
+                // Ouvrir la page d'édition des étapes
+                const newEntrainement = this.entrainementsConn.find(e => e.id === result.id);
+                if (newEntrainement) {
+                    this.openEntrainementConnEditPage(newEntrainement);
+                }
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur création:', error);
+            alert('Erreur lors de la création');
+        }
+    },
+
+    async deleteEntrainementConn(id) {
+        if (!confirm('Supprimer cet entraînement et toutes ses étapes ?')) return;
+
+        try {
+            const result = await this.callAPI('deleteEntrainementConn', { id });
+            if (result.success) {
+                await this.loadDataFromAPI();
+                this.renderBanques();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur suppression:', error);
+            alert('Erreur lors de la suppression');
+        }
+    },
+
+    /**
+     * Page d'édition d'un entraînement (étapes avec drag & drop)
+     */
+    openEntrainementConnEditPage(entrainement) {
+        const etapes = this.etapesConn
+            .filter(e => e.entrainement_id === entrainement.id)
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        const container = document.getElementById('banquesList');
+
+        container.innerHTML = `
+            <div class="conn-detail-view entrainement-editor">
+                <div class="conn-detail-header">
+                    <button class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices.viewBanqueExercicesConn('${entrainement.banque_exercice_id}')">
+                        ← Retour aux entraînements
+                    </button>
+                    <h2>🎯 ${this.escapeHtml(entrainement.titre)}</h2>
+                    <div class="header-actions">
+                        <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addEtapeConn('${entrainement.id}')">
+                            + Ajouter une étape
+                        </button>
+                    </div>
+                </div>
+
+                <div class="entrainement-settings">
+                    <span>⏱️ ${entrainement.duree || 15} min</span>
+                    <span>🎯 Seuil: ${entrainement.seuil || 80}%</span>
+                    <span class="status-badge ${entrainement.statut === 'publie' ? 'published' : 'draft'}">
+                        ${entrainement.statut === 'publie' ? 'Publié' : 'Brouillon'}
+                    </span>
+                </div>
+
+                <div class="etapes-container" id="etapesContainer" data-entrainement-id="${entrainement.id}">
+                    ${etapes.length === 0 ?
+                        '<div class="conn-empty">Aucune étape. Ajoutez des étapes pour configurer l\'entraînement.</div>' :
+                        this.renderEtapesList(etapes)
+                    }
+                </div>
+            </div>
+        `;
+
+        // Initialiser drag & drop si des étapes existent
+        if (etapes.length > 0) {
+            this.initEtapesDragDrop();
+        }
+    },
+
+    renderEtapesList(etapes) {
+        return etapes.map((etape, index) => {
+            const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
+            const etapeQuestions = this.etapeQuestionsConn ?
+                this.etapeQuestionsConn.filter(eq => eq.etape_id === etape.id) : [];
+
+            return `
+                <div class="etape-card" data-id="${etape.id}" draggable="true">
+                    <div class="etape-drag-handle">⋮⋮</div>
+                    <div class="etape-number">${index + 1}</div>
+                    <div class="etape-content">
+                        <div class="etape-format">
+                            <span class="format-icon">${format.icone || '❓'}</span>
+                            <span class="format-name">${format.nom || etape.format_code}</span>
+                        </div>
+                        <div class="etape-info">
+                            <span>${etapeQuestions.length} question(s)</span>
+                            <span class="etape-mode">${etape.mode_selection === 'aleatoire' ? '🎲 Aléatoire' : '✋ Manuel'}</span>
+                        </div>
+                    </div>
+                    <div class="etape-actions">
+                        <button class="btn btn-sm" onclick="AdminBanquesExercices.configureEtapeConn('${etape.id}')">
+                            Configurer
+                        </button>
+                        <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteEtapeConn('${etape.id}')" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    /**
+     * Ajouter une étape à un entraînement
+     */
+    addEtapeConn(entrainementId) {
+        // Créer le modal de sélection de format
+        const formats = this.formatsQuestions || [];
+
+        const modalHtml = `
+            <div class="modal-overlay" id="addEtapeModal">
+                <div class="modal modal-medium">
+                    <div class="modal-header">
+                        <h2>Ajouter une étape</h2>
+                        <button class="modal-close" onclick="AdminBanquesExercices.closeAddEtapeModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Format de question</label>
+                            <select id="etapeFormatSelect" class="form-select">
+                                ${formats.map(f => `<option value="${f.code}">${f.icone || ''} ${f.nom}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Mode de sélection des questions</label>
+                            <div class="type-selector-row">
+                                <label class="type-option selected" onclick="AdminBanquesExercices.selectModeSelection(this, 'manuel')">
+                                    <input type="radio" name="modeSelection" value="manuel" checked>
+                                    <span class="type-option-icon">✋</span>
+                                    <span class="type-option-label">Manuel</span>
+                                </label>
+                                <label class="type-option" onclick="AdminBanquesExercices.selectModeSelection(this, 'aleatoire')">
+                                    <input type="radio" name="modeSelection" value="aleatoire">
+                                    <span class="type-option-icon">🎲</span>
+                                    <span class="type-option-label">Aléatoire</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="randomConfig" style="display: none;">
+                            <div class="form-group">
+                                <label>Nombre de questions à tirer</label>
+                                <input type="number" id="etapeNbQuestions" class="form-input" value="5" min="1">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeAddEtapeModal()">Annuler</button>
+                        <button class="btn btn-primary" onclick="AdminBanquesExercices.saveNewEtape('${entrainementId}')">Créer l'étape</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    selectModeSelection(element, mode) {
+        document.querySelectorAll('#addEtapeModal .type-option').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+        element.querySelector('input').checked = true;
+
+        const randomConfig = document.getElementById('randomConfig');
+        if (randomConfig) {
+            randomConfig.style.display = mode === 'aleatoire' ? 'block' : 'none';
+        }
+    },
+
+    closeAddEtapeModal() {
+        const modal = document.getElementById('addEtapeModal');
+        if (modal) modal.remove();
+    },
+
+    async saveNewEtape(entrainementId) {
+        const formatCode = document.getElementById('etapeFormatSelect').value;
+        const modeSelection = document.querySelector('input[name="modeSelection"]:checked').value;
+        const nbQuestions = modeSelection === 'aleatoire' ?
+            parseInt(document.getElementById('etapeNbQuestions').value) || 5 : 0;
+
+        // Calculer l'ordre (dernier + 1)
+        const existingEtapes = this.etapesConn.filter(e => e.entrainement_id === entrainementId);
+        const ordre = existingEtapes.length + 1;
+
+        try {
+            const result = await this.callAPI('createEtapeConn', {
+                entrainement_id: entrainementId,
+                format_code: formatCode,
+                ordre: ordre,
+                mode_selection: modeSelection,
+                nb_questions: nbQuestions
+            });
+
+            if (result.success) {
+                this.closeAddEtapeModal();
+                await this.loadDataFromAPI();
+
+                // Ré-ouvrir la page d'édition
+                const entrainement = this.entrainementsConn.find(e => e.id === entrainementId);
+                if (entrainement) {
+                    this.openEntrainementConnEditPage(entrainement);
+                }
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur création étape:', error);
+            alert('Erreur lors de la création de l\'étape');
+        }
+    },
+
+    async deleteEtapeConn(etapeId) {
+        if (!confirm('Supprimer cette étape ?')) return;
+
+        const etape = this.etapesConn.find(e => e.id === etapeId);
+        if (!etape) return;
+
+        try {
+            const result = await this.callAPI('deleteEtapeConn', { id: etapeId });
+            if (result.success) {
+                await this.loadDataFromAPI();
+
+                // Ré-ouvrir la page d'édition
+                const entrainement = this.entrainementsConn.find(e => e.id === etape.entrainement_id);
+                if (entrainement) {
+                    this.openEntrainementConnEditPage(entrainement);
+                }
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur suppression étape:', error);
+            alert('Erreur lors de la suppression');
+        }
+    },
+
+    /**
+     * Configurer une étape (sélectionner les questions)
+     */
+    configureEtapeConn(etapeId) {
+        const etape = this.etapesConn.find(e => e.id === etapeId);
+        if (!etape) return;
+
+        const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
+        const etapeQuestions = this.etapeQuestionsConn.filter(eq => eq.etape_id === etapeId);
+        const selectedQuestionIds = etapeQuestions.map(eq => eq.question_id);
+
+        // Filtrer les questions par format
+        const availableQuestions = this.questionsConnaissances.filter(q => {
+            // Mapper le type de question au format
+            const typeToFormat = {
+                'qcm': 'qcm',
+                'vrai_faux': 'qcm',
+                'chronologie': 'timeline',
+                'timeline': 'timeline',
+                'association': 'association',
+                'texte_trou': 'texte_trous'
+            };
+            return typeToFormat[q.type] === etape.format_code || etape.format_code === 'mixte';
+        });
+
+        const modalHtml = `
+            <div class="modal-overlay" id="configEtapeModal">
+                <div class="modal modal-large">
+                    <div class="modal-header">
+                        <h2>${format.icone || ''} Configurer l'étape - ${format.nom || etape.format_code}</h2>
+                        <button class="modal-close" onclick="AdminBanquesExercices.closeConfigEtapeModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        ${etape.mode_selection === 'aleatoire' ? `
+                            <div class="conn-random-config">
+                                <p><strong>Mode aléatoire activé</strong></p>
+                                <div class="conn-random-row">
+                                    <label>Nombre de questions à tirer :</label>
+                                    <input type="number" id="configNbQuestions" value="${etape.nb_questions || 5}" min="1">
+                                </div>
+                                <div class="conn-random-row">
+                                    <label>Banque de questions source :</label>
+                                    <select id="configBanqueSource" class="form-select">
+                                        <option value="">Toutes les banques</option>
+                                        ${this.banquesQuestions.map(b => `
+                                            <option value="${b.id}">${this.escapeHtml(b.titre)}</option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="conn-question-picker">
+                                <div class="conn-question-picker-header">
+                                    <strong>Sélectionner les questions</strong>
+                                    <select id="filterBanqueSelect" class="form-select" style="margin-left: auto; width: auto;" onchange="AdminBanquesExercices.filterQuestionsByBanque()">
+                                        <option value="">Toutes les banques</option>
+                                        ${this.banquesQuestions.map(b => `
+                                            <option value="${b.id}">${this.escapeHtml(b.titre)}</option>
+                                        `).join('')}
+                                    </select>
+                                </div>
+                                <div class="conn-question-picker-list" id="questionPickerList">
+                                    ${availableQuestions.length === 0 ?
+                                        '<div class="conn-empty-state"><p>Aucune question disponible pour ce format</p></div>' :
+                                        availableQuestions.map(q => {
+                                            const banque = this.banquesQuestions.find(b => b.id === q.banque_id);
+                                            const isSelected = selectedQuestionIds.includes(q.id);
+                                            return `
+                                                <div class="conn-question-picker-item ${isSelected ? 'selected' : ''}" data-question-id="${q.id}" data-banque-id="${q.banque_id}">
+                                                    <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="AdminBanquesExercices.toggleQuestionSelection(this, '${q.id}')">
+                                                    <div class="conn-question-content">
+                                                        <div class="conn-question-text">${this.escapeHtml(this.getQuestionPreview(q))}</div>
+                                                        <div class="conn-question-meta">
+                                                            <span>${this.questionTypeNames[q.type] || q.type}</span>
+                                                            ${banque ? `<span>• ${this.escapeHtml(banque.titre)}</span>` : ''}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')
+                                    }
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeConfigEtapeModal()">Annuler</button>
+                        <button class="btn btn-primary" onclick="AdminBanquesExercices.saveEtapeConfig('${etapeId}', '${etape.mode_selection}')">Enregistrer</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    toggleQuestionSelection(checkbox, questionId) {
+        const item = checkbox.closest('.conn-question-picker-item');
+        if (checkbox.checked) {
+            item.classList.add('selected');
+        } else {
+            item.classList.remove('selected');
+        }
+    },
+
+    filterQuestionsByBanque() {
+        const banqueId = document.getElementById('filterBanqueSelect').value;
+        const items = document.querySelectorAll('.conn-question-picker-item');
+
+        items.forEach(item => {
+            if (!banqueId || item.dataset.banqueId === banqueId) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    },
+
+    closeConfigEtapeModal() {
+        const modal = document.getElementById('configEtapeModal');
+        if (modal) modal.remove();
+    },
+
+    async saveEtapeConfig(etapeId, modeSelection) {
+        const etape = this.etapesConn.find(e => e.id === etapeId);
+        if (!etape) return;
+
+        try {
+            if (modeSelection === 'aleatoire') {
+                // Sauvegarder la config aléatoire
+                const nbQuestions = parseInt(document.getElementById('configNbQuestions').value) || 5;
+                const banqueSource = document.getElementById('configBanqueSource').value;
+
+                await this.callAPI('updateEtapeConn', {
+                    id: etapeId,
+                    nb_questions: nbQuestions,
+                    banque_source_id: banqueSource || null
+                });
+            } else {
+                // Sauvegarder les questions sélectionnées
+                const selectedQuestions = [];
+                document.querySelectorAll('.conn-question-picker-item input:checked').forEach(cb => {
+                    const item = cb.closest('.conn-question-picker-item');
+                    selectedQuestions.push(item.dataset.questionId);
+                });
+
+                await this.callAPI('setEtapeQuestionsConn', {
+                    etape_id: etapeId,
+                    question_ids: selectedQuestions
+                });
+            }
+
+            this.closeConfigEtapeModal();
+            await this.loadDataFromAPI();
+
+            // Ré-ouvrir la page d'édition
+            const entrainement = this.entrainementsConn.find(e => e.id === etape.entrainement_id);
+            if (entrainement) {
+                this.openEntrainementConnEditPage(entrainement);
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde config étape:', error);
+            alert('Erreur lors de la sauvegarde');
+        }
+    },
+
+    /**
+     * Initialiser le drag & drop pour réordonner les étapes
+     */
+    initEtapesDragDrop() {
+        const container = document.getElementById('etapesContainer');
+        if (!container) return;
+
+        const cards = container.querySelectorAll('.etape-card');
+        let draggedElement = null;
+
+        cards.forEach(card => {
+            card.addEventListener('dragstart', (e) => {
+                draggedElement = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                draggedElement = null;
+                // Sauvegarder le nouvel ordre
+                this.saveEtapesOrder(container);
+            });
+
+            card.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+
+                if (draggedElement && draggedElement !== card) {
+                    const rect = card.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+
+                    if (e.clientY < midY) {
+                        card.parentNode.insertBefore(draggedElement, card);
+                    } else {
+                        card.parentNode.insertBefore(draggedElement, card.nextSibling);
+                    }
+                }
+            });
+
+            card.addEventListener('dragenter', () => {
+                card.classList.add('drag-over');
+            });
+
+            card.addEventListener('dragleave', () => {
+                card.classList.remove('drag-over');
+            });
+
+            card.addEventListener('drop', () => {
+                card.classList.remove('drag-over');
+            });
+        });
+    },
+
+    async saveEtapesOrder(container) {
+        const cards = container.querySelectorAll('.etape-card');
+        const orderedIds = Array.from(cards).map((card, index) => ({
+            id: card.dataset.id,
+            ordre: index + 1
+        }));
+
+        try {
+            await this.callAPI('updateEtapesOrdre', { etapes: orderedIds });
+            await this.loadDataFromAPI();
+
+            // Mettre à jour les numéros visuellement
+            cards.forEach((card, index) => {
+                const numEl = card.querySelector('.etape-number');
+                if (numEl) numEl.textContent = index + 1;
+            });
+        } catch (error) {
+            console.error('Erreur mise à jour ordre:', error);
+        }
+    },
+
+    // ========== BANQUES DE QUESTIONS (ancien système conservé) ==========
 
     renderBanquesQuestions(container, emptyState) {
         // Filter banques de questions
