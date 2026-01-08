@@ -55,7 +55,12 @@ const SHEETS = {
   // Banques de questions (entraînements connaissances)
   BANQUES_QUESTIONS: 'BANQUES_QUESTIONS',
   QUESTIONS_CONNAISSANCES: 'QUESTIONS_CONNAISSANCES',
-  ENTRAINEMENTS_CONNAISSANCES: 'ENTRAINEMENTS_CONNAISSANCES'
+  // Nouveau système Connaissances (structure complète)
+  BANQUES_EXERCICES_CONN: 'BANQUES_EXERCICES_CONN',
+  ENTRAINEMENTS_CONN: 'ENTRAINEMENTS_CONN',
+  ETAPES_CONN: 'ETAPES_CONN',
+  ETAPE_QUESTIONS_CONN: 'ETAPE_QUESTIONS_CONN',
+  FORMATS_QUESTIONS: 'FORMATS_QUESTIONS'
 };
 
 // ========================================
@@ -545,6 +550,77 @@ function handleRequest(e) {
         break;
       case 'deleteQuestionConnaissances':
         result = deleteQuestionConnaissances(request);
+        break;
+
+      // NOUVEAU SYSTÈME CONNAISSANCES
+      // Formats de questions
+      case 'getFormatsQuestions':
+        result = getFormatsQuestions();
+        break;
+      case 'createFormatQuestion':
+        result = createFormatQuestion(request);
+        break;
+      case 'updateFormatQuestion':
+        result = updateFormatQuestion(request);
+        break;
+
+      // Banques d'exercices connaissances
+      case 'getBanquesExercicesConn':
+        result = getBanquesExercicesConn();
+        break;
+      case 'createBanqueExercicesConn':
+        result = createBanqueExercicesConn(request);
+        break;
+      case 'updateBanqueExercicesConn':
+        result = updateBanqueExercicesConn(request);
+        break;
+      case 'deleteBanqueExercicesConn':
+        result = deleteBanqueExercicesConn(request);
+        break;
+
+      // Entraînements connaissances
+      case 'getEntrainementsConn':
+        result = getEntrainementsConn();
+        break;
+      case 'createEntrainementConn':
+        result = createEntrainementConn(request);
+        break;
+      case 'updateEntrainementConn':
+        result = updateEntrainementConn(request);
+        break;
+      case 'deleteEntrainementConn':
+        result = deleteEntrainementConn(request);
+        break;
+
+      // Étapes connaissances
+      case 'getEtapesConn':
+        result = getEtapesConn();
+        break;
+      case 'createEtapeConn':
+        result = createEtapeConn(request);
+        break;
+      case 'updateEtapeConn':
+        result = updateEtapeConn(request);
+        break;
+      case 'deleteEtapeConn':
+        result = deleteEtapeConn(request);
+        break;
+      case 'updateEtapesOrdre':
+        result = updateEtapesOrdre(request);
+        break;
+
+      // Questions des étapes
+      case 'getEtapeQuestionsConn':
+        result = getEtapeQuestionsConn(request);
+        break;
+      case 'createEtapeQuestionConn':
+        result = createEtapeQuestionConn(request);
+        break;
+      case 'deleteEtapeQuestionConn':
+        result = deleteEtapeQuestionConn(request);
+        break;
+      case 'setEtapeQuestionsConn':
+        result = setEtapeQuestionsConn(request);
         break;
 
       default:
@@ -6340,4 +6416,623 @@ function deleteQuestionConnaissances(data) {
   }
 
   return { success: false, error: 'Question non trouvée' };
+}
+
+// ========================================
+// NOUVEAU SYSTÈME CONNAISSANCES
+// ========================================
+
+// ========== FORMATS QUESTIONS ==========
+
+/**
+ * Récupère tous les formats de questions
+ */
+function getFormatsQuestions() {
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.FORMATS_QUESTIONS);
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    sheet = ss.insertSheet(SHEETS.FORMATS_QUESTIONS);
+    sheet.appendRow(['id', 'nom', 'code', 'icone', 'description', 'config_defaut', 'actif', 'ordre']);
+    // Ajouter les formats par défaut
+    const defaultFormats = [
+      ['fmt_qcm', 'QCM', 'qcm', '🔘', 'Question à choix multiples', '{}', 'oui', 1],
+      ['fmt_vrai_faux', 'Vrai/Faux', 'vrai_faux', '✓✗', 'Question vrai ou faux', '{}', 'oui', 2],
+      ['fmt_timeline', 'Timeline', 'timeline', '📅', 'Ordonner des événements chronologiquement', '{}', 'oui', 3],
+      ['fmt_association', 'Association', 'association', '🔗', 'Associer des éléments entre eux', '{}', 'oui', 4],
+      ['fmt_texte_trou', 'Texte à trous', 'texte_trou', '📝', 'Compléter un texte avec les mots manquants', '{}', 'oui', 5],
+      ['fmt_ordre', 'Mise en ordre', 'ordre', '🔢', 'Remettre des éléments dans le bon ordre', '{}', 'oui', 6]
+    ];
+    defaultFormats.forEach(row => sheet.appendRow(row));
+  }
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { success: true, data: [] };
+
+  const headers = data[0].map(h => String(h).toLowerCase().trim());
+  const formats = data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  }).filter(f => f.actif === 'oui' || f.actif === true);
+
+  return { success: true, data: formats };
+}
+
+/**
+ * Crée un nouveau format de question
+ */
+function createFormatQuestion(data) {
+  if (!data.nom || !data.code) {
+    return { success: false, error: 'nom et code requis' };
+  }
+
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.FORMATS_QUESTIONS);
+  if (!sheet) {
+    getFormatsQuestions(); // Créer la feuille
+    sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.FORMATS_QUESTIONS);
+  }
+
+  const id = 'fmt_' + data.code.toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+  sheet.appendRow([
+    id,
+    data.nom,
+    data.code,
+    data.icone || '❓',
+    data.description || '',
+    data.config_defaut || '{}',
+    'oui',
+    data.ordre || 99
+  ]);
+
+  return { success: true, id: id, message: 'Format créé' };
+}
+
+/**
+ * Met à jour un format de question
+ */
+function updateFormatQuestion(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.FORMATS_QUESTIONS);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      ['nom', 'code', 'icone', 'description', 'config_defaut', 'actif', 'ordre'].forEach(col => {
+        if (data[col] !== undefined) {
+          const colIndex = headers.indexOf(col);
+          if (colIndex >= 0) sheet.getRange(i + 1, colIndex + 1).setValue(data[col]);
+        }
+      });
+      return { success: true, message: 'Format mis à jour' };
+    }
+  }
+
+  return { success: false, error: 'Format non trouvé' };
+}
+
+// ========== BANQUES D'EXERCICES CONNAISSANCES ==========
+
+/**
+ * Récupère toutes les banques d'exercices connaissances
+ */
+function getBanquesExercicesConn() {
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES_CONN);
+
+  if (!sheet) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    sheet = ss.insertSheet(SHEETS.BANQUES_EXERCICES_CONN);
+    sheet.appendRow(['id', 'titre', 'description', 'type', 'statut', 'ordre', 'date_creation']);
+  }
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { success: true, data: [] };
+
+  const headers = data[0].map(h => String(h).toLowerCase().trim());
+  const banques = data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  }).filter(b => b.id);
+
+  return { success: true, data: banques };
+}
+
+/**
+ * Crée une banque d'exercices connaissances
+ */
+function createBanqueExercicesConn(data) {
+  if (!data.titre) {
+    return { success: false, error: 'titre requis' };
+  }
+
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES_CONN);
+  if (!sheet) {
+    getBanquesExercicesConn();
+    sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES_CONN);
+  }
+
+  const id = 'bec_' + new Date().getTime();
+
+  sheet.appendRow([
+    id,
+    data.titre,
+    data.description || '',
+    data.type || 'lecon',
+    data.statut || 'brouillon',
+    data.ordre || 1,
+    new Date().toISOString().split('T')[0]
+  ]);
+
+  return { success: true, id: id, message: 'Banque créée' };
+}
+
+/**
+ * Met à jour une banque d'exercices connaissances
+ */
+function updateBanqueExercicesConn(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES_CONN);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      ['titre', 'description', 'type', 'statut', 'ordre'].forEach(col => {
+        if (data[col] !== undefined) {
+          const colIndex = headers.indexOf(col);
+          if (colIndex >= 0) sheet.getRange(i + 1, colIndex + 1).setValue(data[col]);
+        }
+      });
+      return { success: true, message: 'Banque mise à jour' };
+    }
+  }
+
+  return { success: false, error: 'Banque non trouvée' };
+}
+
+/**
+ * Supprime une banque d'exercices connaissances
+ */
+function deleteBanqueExercicesConn(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES_CONN);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Banque supprimée' };
+    }
+  }
+
+  return { success: false, error: 'Banque non trouvée' };
+}
+
+// ========== ENTRAINEMENTS CONNAISSANCES ==========
+
+/**
+ * Récupère tous les entraînements connaissances
+ */
+function getEntrainementsConn() {
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+
+  if (!sheet) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    sheet = ss.insertSheet(SHEETS.ENTRAINEMENTS_CONN);
+    sheet.appendRow(['id', 'banque_exercice_id', 'titre', 'description', 'duree', 'seuil', 'statut', 'ordre', 'date_creation']);
+  }
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { success: true, data: [] };
+
+  const headers = data[0].map(h => String(h).toLowerCase().trim());
+  const entrainements = data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  }).filter(e => e.id);
+
+  return { success: true, data: entrainements };
+}
+
+/**
+ * Crée un entraînement connaissances
+ */
+function createEntrainementConn(data) {
+  if (!data.banque_exercice_id || !data.titre) {
+    return { success: false, error: 'banque_exercice_id et titre requis' };
+  }
+
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+  if (!sheet) {
+    getEntrainementsConn();
+    sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+  }
+
+  const id = 'etr_' + new Date().getTime();
+
+  sheet.appendRow([
+    id,
+    data.banque_exercice_id,
+    data.titre,
+    data.description || '',
+    data.duree || 15,
+    data.seuil || 80,
+    data.statut || 'brouillon',
+    data.ordre || 1,
+    new Date().toISOString().split('T')[0]
+  ]);
+
+  return { success: true, id: id, message: 'Entraînement créé' };
+}
+
+/**
+ * Met à jour un entraînement connaissances
+ */
+function updateEntrainementConn(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      ['titre', 'description', 'duree', 'seuil', 'statut', 'ordre'].forEach(col => {
+        if (data[col] !== undefined) {
+          const colIndex = headers.indexOf(col);
+          if (colIndex >= 0) sheet.getRange(i + 1, colIndex + 1).setValue(data[col]);
+        }
+      });
+      return { success: true, message: 'Entraînement mis à jour' };
+    }
+  }
+
+  return { success: false, error: 'Entraînement non trouvé' };
+}
+
+/**
+ * Supprime un entraînement connaissances
+ */
+function deleteEntrainementConn(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      // Supprimer aussi les étapes associées
+      deleteEtapesForEntrainement(data.id);
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Entraînement supprimé' };
+    }
+  }
+
+  return { success: false, error: 'Entraînement non trouvé' };
+}
+
+// ========== ETAPES CONNAISSANCES ==========
+
+/**
+ * Récupère toutes les étapes
+ */
+function getEtapesConn() {
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPES_CONN);
+
+  if (!sheet) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    sheet = ss.insertSheet(SHEETS.ETAPES_CONN);
+    sheet.appendRow(['id', 'entrainement_id', 'format_code', 'titre', 'ordre', 'mode_selection', 'banques_source', 'nb_questions_aleatoire']);
+  }
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { success: true, data: [] };
+
+  const headers = data[0].map(h => String(h).toLowerCase().trim());
+  const etapes = data.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  }).filter(e => e.id);
+
+  return { success: true, data: etapes };
+}
+
+/**
+ * Crée une étape
+ */
+function createEtapeConn(data) {
+  if (!data.entrainement_id || !data.format_code) {
+    return { success: false, error: 'entrainement_id et format_code requis' };
+  }
+
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPES_CONN);
+  if (!sheet) {
+    getEtapesConn();
+    sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPES_CONN);
+  }
+
+  const id = 'etp_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 5);
+
+  sheet.appendRow([
+    id,
+    data.entrainement_id,
+    data.format_code,
+    data.titre || '',
+    data.ordre || 1,
+    data.mode_selection || 'manuel',
+    data.banques_source || '',  // JSON array of banque_question_ids
+    data.nb_questions_aleatoire || 5
+  ]);
+
+  return { success: true, id: id, message: 'Étape créée' };
+}
+
+/**
+ * Met à jour une étape
+ */
+function updateEtapeConn(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPES_CONN);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      ['format_code', 'titre', 'ordre', 'mode_selection', 'banques_source', 'nb_questions_aleatoire'].forEach(col => {
+        if (data[col] !== undefined) {
+          const colIndex = headers.indexOf(col);
+          if (colIndex >= 0) sheet.getRange(i + 1, colIndex + 1).setValue(data[col]);
+        }
+      });
+      return { success: true, message: 'Étape mise à jour' };
+    }
+  }
+
+  return { success: false, error: 'Étape non trouvée' };
+}
+
+/**
+ * Supprime une étape
+ */
+function deleteEtapeConn(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEETS.ETAPES_CONN);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      // Supprimer aussi les questions de l'étape
+      deleteEtapeQuestionsForEtape(data.id);
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Étape supprimée' };
+    }
+  }
+
+  return { success: false, error: 'Étape non trouvée' };
+}
+
+/**
+ * Met à jour l'ordre des étapes (pour drag & drop)
+ */
+function updateEtapesOrdre(data) {
+  if (!data.etapes || !Array.isArray(data.etapes)) {
+    return { success: false, error: 'etapes array requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPES_CONN);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+  const ordreCol = headers.indexOf('ordre');
+
+  data.etapes.forEach(({ id, ordre }) => {
+    for (let i = 1; i < allData.length; i++) {
+      if (String(allData[i][idCol]).trim() === String(id).trim()) {
+        sheet.getRange(i + 1, ordreCol + 1).setValue(ordre);
+        break;
+      }
+    }
+  });
+
+  return { success: true, message: 'Ordre mis à jour' };
+}
+
+/**
+ * Supprime toutes les étapes d'un entraînement
+ */
+function deleteEtapesForEntrainement(entrainementId) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPES_CONN);
+  if (!sheet) return;
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+  const entrainementIdCol = headers.indexOf('entrainement_id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][entrainementIdCol]).trim() === String(entrainementId).trim()) {
+      deleteEtapeQuestionsForEtape(allData[i][idCol]);
+      sheet.deleteRow(i + 1);
+    }
+  }
+}
+
+// ========== ETAPE QUESTIONS ==========
+
+/**
+ * Récupère les questions d'une étape
+ */
+function getEtapeQuestionsConn(data) {
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
+
+  if (!sheet) {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    sheet = ss.insertSheet(SHEETS.ETAPE_QUESTIONS_CONN);
+    sheet.appendRow(['id', 'etape_id', 'question_id', 'banque_question_id', 'ordre']);
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) return { success: true, data: [] };
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  let questions = allData.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = row[i]);
+    return obj;
+  }).filter(q => q.id);
+
+  // Filtrer par étape si spécifié
+  if (data && data.etape_id) {
+    questions = questions.filter(q => String(q.etape_id) === String(data.etape_id));
+  }
+
+  return { success: true, data: questions };
+}
+
+/**
+ * Ajoute une question à une étape
+ */
+function createEtapeQuestionConn(data) {
+  if (!data.etape_id || !data.question_id) {
+    return { success: false, error: 'etape_id et question_id requis' };
+  }
+
+  let sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
+  if (!sheet) {
+    getEtapeQuestionsConn({});
+    sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
+  }
+
+  const id = 'eq_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 5);
+
+  sheet.appendRow([
+    id,
+    data.etape_id,
+    data.question_id,
+    data.banque_question_id || '',
+    data.ordre || 1
+  ]);
+
+  return { success: true, id: id, message: 'Question ajoutée à l\'étape' };
+}
+
+/**
+ * Supprime une question d'une étape
+ */
+function deleteEtapeQuestionConn(data) {
+  if (!data.id) {
+    return { success: false, error: 'id requis' };
+  }
+
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'Question retirée de l\'étape' };
+    }
+  }
+
+  return { success: false, error: 'Question non trouvée' };
+}
+
+/**
+ * Supprime toutes les questions d'une étape
+ */
+function deleteEtapeQuestionsForEtape(etapeId) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
+  if (!sheet) return;
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const etapeIdCol = headers.indexOf('etape_id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][etapeIdCol]).trim() === String(etapeId).trim()) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+}
+
+/**
+ * Remplace toutes les questions d'une étape
+ */
+function setEtapeQuestionsConn(data) {
+  if (!data.etape_id || !data.questions) {
+    return { success: false, error: 'etape_id et questions requis' };
+  }
+
+  // Supprimer les questions existantes
+  deleteEtapeQuestionsForEtape(data.etape_id);
+
+  // Ajouter les nouvelles questions
+  const questions = Array.isArray(data.questions) ? data.questions : [];
+  questions.forEach((q, index) => {
+    createEtapeQuestionConn({
+      etape_id: data.etape_id,
+      question_id: q.question_id,
+      banque_question_id: q.banque_question_id || '',
+      ordre: index + 1
+    });
+  });
+
+  return { success: true, message: `${questions.length} questions définies pour l'étape` };
 }
