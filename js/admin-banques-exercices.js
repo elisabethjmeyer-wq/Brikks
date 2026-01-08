@@ -3858,6 +3858,21 @@ const AdminBanquesExercices = {
     },
 
     async finalizeEntrainement() {
+        // Sauvegarder les questions sélectionnées pour chaque étape
+        if (this.wizardData.selectedQuestions && this.wizardData.etapes) {
+            for (const etape of this.wizardData.etapes) {
+                const selectedIds = this.wizardData.selectedQuestions[etape.id] || [];
+                try {
+                    await this.callAPI('setEtapeQuestionsConn', {
+                        etape_id: etape.id,
+                        questions: selectedIds
+                    });
+                } catch (error) {
+                    console.error(`Erreur sauvegarde questions étape ${etape.id}:`, error);
+                }
+            }
+        }
+
         // Fermer le wizard et rafraîchir l'affichage
         this.closeEntrainementWizard();
         await this.loadDataFromAPI();
