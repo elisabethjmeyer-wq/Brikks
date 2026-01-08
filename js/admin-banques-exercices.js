@@ -5078,6 +5078,45 @@ const AdminBanquesExercices = {
                 `;
                 break;
 
+            case 'carte':
+                const marqueurs = data.marqueurs || [];
+                html = `
+                    <div class="form-group">
+                        <label>Consigne</label>
+                        <input type="text" id="carteConsigneConn" class="form-input" value="${this.escapeHtml(data.consigne || 'Localisez les éléments sur la carte')}">
+                    </div>
+                    <div class="form-group">
+                        <label>URL de l'image</label>
+                        <input type="text" id="carteImageUrlConn" class="form-input" placeholder="https://..." value="${this.escapeHtml(data.image_url || '')}" onchange="AdminBanquesExercices.updateCartePreviewConn(this.value)">
+                        <small style="color: var(--gray-500);">URL de l'image (carte, schéma, document...)</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Aperçu et placement des marqueurs</label>
+                        <div id="cartePreviewContainerConn" style="border: 2px dashed var(--gray-300); border-radius: 8px; min-height: 200px; position: relative; overflow: hidden;">
+                            <div id="cartePreviewPlaceholderConn" style="display: flex; align-items: center; justify-content: center; height: 200px; color: var(--gray-400);">
+                                ${data.image_url ? '' : 'Entrez une URL d\'image ci-dessus'}
+                            </div>
+                            <div id="cartePreviewWrapperConn" style="display: ${data.image_url ? 'block' : 'none'}; position: relative; cursor: crosshair;">
+                                <img id="cartePreviewImageConn" src="${this.escapeHtml(data.image_url || '')}" style="display: block; max-width: 100%; height: auto;" onclick="AdminBanquesExercices.onCarteClickConn(event)">
+                                <div id="cartePreviewMarkersConn" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+                            </div>
+                        </div>
+                        <small style="color: var(--gray-500);">Cliquez sur l'image pour placer des marqueurs</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Marqueurs</label>
+                        <div id="carteMarqueursListConn">
+                            ${marqueurs.length === 0 ? '<p style="color: var(--gray-400); text-align: center; padding: 1rem;">Aucun marqueur. Cliquez sur l\'image ou ajoutez manuellement.</p>' : ''}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addCarteMarqueurConn()">+ Ajouter un marqueur</button>
+                    </div>
+                `;
+                // Initialiser le builder après le rendu
+                setTimeout(() => {
+                    this.initCarteBuilderConn(data);
+                }, 0);
+                break;
+
             default:
                 html = '<p>Type de question non supporté</p>';
         }
@@ -5127,6 +5166,157 @@ const AdminBanquesExercices = {
             <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
         `;
         container.appendChild(div);
+    },
+
+    // ========== CARTE BUILDER POUR CONNAISSANCES ==========
+    carteBuilderConn: {
+        imageUrl: '',
+        marqueurs: []
+    },
+
+    initCarteBuilderConn(data = {}) {
+        this.carteBuilderConn = {
+            imageUrl: data.image_url || '',
+            marqueurs: (data.marqueurs || []).map(m => ({
+                x: m.x,
+                y: m.y,
+                reponse: m.reponse || '',
+                reponses_acceptees: m.reponses_acceptees || []
+            }))
+        };
+        if (this.carteBuilderConn.imageUrl) {
+            this.updateCartePreviewConn(this.carteBuilderConn.imageUrl);
+        }
+        this.renderMarqueursListConn();
+    },
+
+    updateCartePreviewConn(url) {
+        url = this.convertToDirectImageUrl(url);
+        this.carteBuilderConn.imageUrl = url;
+
+        const wrapper = document.getElementById('cartePreviewWrapperConn');
+        const placeholder = document.getElementById('cartePreviewPlaceholderConn');
+        const img = document.getElementById('cartePreviewImageConn');
+
+        if (!wrapper || !placeholder || !img) return;
+
+        if (url) {
+            img.src = url;
+            img.onload = () => {
+                wrapper.style.display = 'block';
+                placeholder.style.display = 'none';
+                this.renderCarteMarkersConn();
+            };
+            img.onerror = () => {
+                wrapper.style.display = 'none';
+                placeholder.style.display = 'block';
+                placeholder.textContent = 'Erreur de chargement de l\'image';
+            };
+        } else {
+            wrapper.style.display = 'none';
+            placeholder.style.display = 'block';
+            placeholder.textContent = 'Entrez une URL d\'image ci-dessus';
+        }
+    },
+
+    onCarteClickConn(event) {
+        const img = event.target;
+        const rect = img.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 100;
+        const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+        this.carteBuilderConn.marqueurs.push({
+            x: parseFloat(x.toFixed(2)),
+            y: parseFloat(y.toFixed(2)),
+            reponse: '',
+            reponses_acceptees: []
+        });
+
+        this.renderCarteMarkersConn();
+        this.renderMarqueursListConn();
+    },
+
+    renderCarteMarkersConn() {
+        const container = document.getElementById('cartePreviewMarkersConn');
+        if (!container) return;
+
+        container.innerHTML = this.carteBuilderConn.marqueurs.map((m, i) => `
+            <div style="position: absolute; left: ${m.x}%; top: ${m.y}%; transform: translate(-50%, -50%);
+                        width: 28px; height: 28px; background: var(--primary); border: 3px solid white;
+                        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                        font-size: 0.75rem; font-weight: 700; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+                        pointer-events: auto; cursor: pointer;"
+                 title="Marqueur ${i + 1}: ${this.escapeHtml(m.reponse)}">
+                ${i + 1}
+            </div>
+        `).join('');
+    },
+
+    addCarteMarqueurConn() {
+        this.carteBuilderConn.marqueurs.push({
+            x: 50,
+            y: 50,
+            reponse: '',
+            reponses_acceptees: []
+        });
+        this.renderCarteMarkersConn();
+        this.renderMarqueursListConn();
+    },
+
+    removeCarteMarqueurConn(index) {
+        this.carteBuilderConn.marqueurs.splice(index, 1);
+        this.renderCarteMarkersConn();
+        this.renderMarqueursListConn();
+    },
+
+    renderMarqueursListConn() {
+        const container = document.getElementById('carteMarqueursListConn');
+        if (!container) return;
+
+        if (this.carteBuilderConn.marqueurs.length === 0) {
+            container.innerHTML = '<p style="color: var(--gray-400); text-align: center; padding: 1rem;">Aucun marqueur. Cliquez sur l\'image ou ajoutez manuellement.</p>';
+            return;
+        }
+
+        container.innerHTML = this.carteBuilderConn.marqueurs.map((m, i) => `
+            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: white; border: 1px solid var(--gray-200); border-radius: 6px; margin-bottom: 0.5rem;">
+                <span style="width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%;
+                             display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">${i + 1}</span>
+                <span style="font-size: 0.75rem; color: var(--gray-500); min-width: 90px;">X: ${m.x}% Y: ${m.y}%</span>
+                <input type="text" class="form-input" placeholder="Réponse principale"
+                       value="${this.escapeHtml(m.reponse)}" onchange="AdminBanquesExercices.updateMarqueurReponseConn(${i}, this.value)" style="flex: 2;">
+                <input type="text" class="form-input" placeholder="Alternatives (virgule)"
+                       value="${this.escapeHtml((m.reponses_acceptees || []).join(', '))}"
+                       onchange="AdminBanquesExercices.updateMarqueurAlternativesConn(${i}, this.value)" style="flex: 2; font-size: 0.85rem;">
+                <button type="button" class="btn btn-sm" onclick="AdminBanquesExercices.removeCarteMarqueurConn(${i})" style="color: #dc2626;">X</button>
+            </div>
+        `).join('');
+    },
+
+    updateMarqueurReponseConn(index, value) {
+        if (this.carteBuilderConn.marqueurs[index]) {
+            this.carteBuilderConn.marqueurs[index].reponse = value;
+        }
+    },
+
+    updateMarqueurAlternativesConn(index, value) {
+        if (this.carteBuilderConn.marqueurs[index]) {
+            this.carteBuilderConn.marqueurs[index].reponses_acceptees = value.split(',').map(s => s.trim()).filter(s => s);
+        }
+    },
+
+    buildCarteDataConn() {
+        return {
+            consigne: document.getElementById('carteConsigneConn')?.value || 'Localisez les éléments sur la carte',
+            image_url: this.carteBuilderConn.imageUrl,
+            marqueurs: this.carteBuilderConn.marqueurs.map((m, i) => ({
+                id: i + 1,
+                x: m.x,
+                y: m.y,
+                reponse: m.reponse,
+                reponses_acceptees: m.reponses_acceptees
+            }))
+        };
     },
 
     async saveQuestionConnaissances() {
@@ -5180,6 +5370,10 @@ const AdminBanquesExercices = {
                 donnees = {
                     texte: document.getElementById('texteATrous').value
                 };
+                break;
+
+            case 'carte':
+                donnees = this.buildCarteDataConn();
                 break;
         }
 
