@@ -2916,18 +2916,13 @@ const AdminBanquesExercices = {
                             </div>
                         </div>
                         <div class="banque-card-actions">
+                            <button class="btn-icon success" onclick="event.stopPropagation(); AdminBanquesExercices.addEntrainementConn('${banque.id}')" title="Ajouter un entraînement">➕</button>
                             <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editBanqueExercicesConn('${banque.id}')" title="Modifier la banque">✏️</button>
                             <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteBanqueExercicesConn('${banque.id}')" title="Supprimer">🗑️</button>
                         </div>
                         <div class="banque-card-toggle">▼</div>
                     </div>
                     <div class="banque-exercices">
-                        <div class="exercices-header">
-                            <h4>Entraînements</h4>
-                            <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addEntrainementConn('${banque.id}')" title="Ajouter un entraînement">
-                                + Ajouter
-                            </button>
-                        </div>
                         ${this.renderEntrainementsList(entrainements, banque.id)}
                     </div>
                 </div>
@@ -2940,7 +2935,7 @@ const AdminBanquesExercices = {
      */
     renderEntrainementsList(entrainements, banqueId) {
         if (entrainements.length === 0) {
-            return '<div class="exercices-empty">Aucun entraînement. Cliquez sur "+ Ajouter" pour commencer.</div>';
+            return '<div class="exercices-empty">Aucun entraînement. Cliquez sur ➕ pour en ajouter.</div>';
         }
 
         return `
