@@ -2168,3 +2168,900 @@
     color: var(--gray-500);
     white-space: nowrap;
 }
+
+/* ===== NOUVEAU SYSTÈME CONNAISSANCES ===== */
+
+/* Wrapper principal avec deux sections */
+.connaissances-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* Section (Banques de questions / Banques d'exercices) */
+.conn-section {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.conn-section-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--gray-100);
+    background: var(--gray-50);
+}
+
+.conn-section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.conn-section-title h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-800);
+}
+
+.conn-section-count {
+    background: var(--gray-200);
+    color: var(--gray-600);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.conn-section-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.conn-section-icon.questions {
+    background: var(--accent-blue-light);
+    color: var(--accent-blue);
+}
+
+.conn-section-icon.exercices {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+/* Grille de cartes */
+.conn-section-content {
+    padding: 20px;
+}
+
+.conn-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+/* Carte individuelle */
+.conn-card {
+    background: var(--gray-50);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.conn-card:hover {
+    border-color: var(--gray-300);
+    background: white;
+    box-shadow: var(--shadow-md);
+}
+
+.conn-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.conn-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin: 0 0 4px 0;
+}
+
+.conn-card-subtitle {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.conn-card-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.conn-card-badge.brouillon {
+    background: var(--gray-200);
+    color: var(--gray-600);
+}
+
+.conn-card-badge.publie {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+.conn-card-stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--gray-200);
+}
+
+.conn-card-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--gray-600);
+}
+
+.conn-card-stat-icon {
+    font-size: 14px;
+}
+
+/* Vue détail (quand on clique sur une carte) */
+.conn-detail-view {
+    padding: 20px;
+}
+
+.conn-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.conn-detail-back {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: var(--gray-100);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-600);
+    transition: all 0.2s;
+}
+
+.conn-detail-back:hover {
+    background: var(--gray-200);
+}
+
+.conn-detail-title {
+    flex: 1;
+}
+
+.conn-detail-title h2 {
+    margin: 0 0 4px 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gray-900);
+}
+
+.conn-detail-title p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--gray-500);
+}
+
+/* Liste des questions dans une banque de questions */
+.conn-questions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.conn-question-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    transition: all 0.2s;
+}
+
+.conn-question-item:hover {
+    background: white;
+    border-color: var(--gray-300);
+}
+
+.conn-question-num {
+    width: 28px;
+    height: 28px;
+    background: var(--accent-blue);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.conn-question-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.conn-question-text {
+    font-size: 14px;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conn-question-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.conn-question-actions {
+    display: flex;
+    gap: 4px;
+}
+
+/* Liste des entraînements dans une banque d'exercices */
+.conn-entrainements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.conn-entrainement-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 2px solid var(--gray-200);
+    transition: all 0.2s;
+}
+
+.conn-entrainement-item:hover {
+    border-color: var(--gray-300);
+    background: white;
+}
+
+.conn-entrainement-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.conn-entrainement-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.conn-entrainement-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+}
+
+.conn-entrainement-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.conn-entrainement-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.conn-entrainement-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Page d'édition d'un entraînement */
+.conn-edit-page {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+}
+
+.conn-edit-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.conn-edit-body {
+    padding: 24px;
+}
+
+.conn-edit-section {
+    margin-bottom: 32px;
+}
+
+.conn-edit-section h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin: 0 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+/* Étapes (avec drag & drop) */
+.conn-etapes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.conn-etape-card {
+    display: flex;
+    align-items: stretch;
+    background: var(--gray-50);
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.conn-etape-card:hover {
+    border-color: var(--gray-300);
+}
+
+.conn-etape-card.dragging {
+    opacity: 0.5;
+    border-style: dashed;
+}
+
+.conn-etape-card.drag-over {
+    border-color: var(--accent-blue);
+    background: var(--accent-blue-light);
+}
+
+.conn-etape-drag-handle {
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-100);
+    cursor: grab;
+    color: var(--gray-400);
+    font-size: 18px;
+    transition: all 0.2s;
+}
+
+.conn-etape-drag-handle:hover {
+    background: var(--gray-200);
+    color: var(--gray-600);
+}
+
+.conn-etape-drag-handle:active {
+    cursor: grabbing;
+}
+
+.conn-etape-number {
+    width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--gray-300);
+}
+
+.conn-etape-content {
+    flex: 1;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.conn-etape-format-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.conn-etape-format-icon.qcm {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.conn-etape-format-icon.timeline {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.conn-etape-format-icon.texte-trous {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.conn-etape-format-icon.carte {
+    background: #fce7f3;
+    color: #db2777;
+}
+
+.conn-etape-format-icon.tableau {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
+.conn-etape-format-icon.question-ouverte {
+    background: #f3e8ff;
+    color: #9333ea;
+}
+
+.conn-etape-info {
+    flex: 1;
+}
+
+.conn-etape-format {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 2px;
+}
+
+.conn-etape-questions {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.conn-etape-actions {
+    display: flex;
+    gap: 4px;
+    padding-right: 12px;
+}
+
+/* Bouton ajouter étape */
+.conn-add-etape-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: white;
+    border: 2px dashed var(--gray-300);
+    border-radius: var(--radius);
+    color: var(--gray-500);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.conn-add-etape-btn:hover {
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+    background: var(--accent-green-light);
+}
+
+/* Modal sélection de questions */
+.conn-question-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.conn-question-mode-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    background: var(--gray-100);
+    border-radius: var(--radius);
+}
+
+.conn-question-mode-tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.conn-question-mode-tab.active {
+    background: white;
+    color: var(--gray-800);
+    box-shadow: var(--shadow);
+}
+
+/* Sélection manuelle de questions */
+.conn-question-picker {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.conn-question-picker-header {
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.conn-question-picker-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.conn-question-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--gray-100);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.conn-question-picker-item:hover {
+    background: var(--gray-50);
+}
+
+.conn-question-picker-item:last-child {
+    border-bottom: none;
+}
+
+.conn-question-picker-item.selected {
+    background: var(--accent-blue-light);
+}
+
+.conn-question-picker-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+
+/* Tirage aléatoire */
+.conn-random-config {
+    padding: 16px;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+}
+
+.conn-random-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.conn-random-row:last-child {
+    margin-bottom: 0;
+}
+
+.conn-random-row label {
+    font-size: 14px;
+    color: var(--gray-700);
+    min-width: 180px;
+}
+
+.conn-random-row input[type="number"] {
+    width: 80px;
+    padding: 8px 12px;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 14px;
+    text-align: center;
+}
+
+.conn-random-row select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+/* États vides */
+.conn-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
+}
+
+.conn-empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.conn-empty-state h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin: 0 0 8px 0;
+}
+
+.conn-empty-state p {
+    font-size: 14px;
+    margin: 0 0 16px 0;
+}
+
+/* Format badges */
+.format-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.format-badge.qcm {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.format-badge.timeline {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.format-badge.texte-trous {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.format-badge.carte {
+    background: #fce7f3;
+    color: #db2777;
+}
+
+.format-badge.tableau {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
+.format-badge.question-ouverte {
+    background: #f3e8ff;
+    color: #9333ea;
+}
+
+/* ===== ENTRAINEMENT EDITOR PAGE ===== */
+
+.entrainement-editor {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 0;
+}
+
+.entrainement-editor .conn-detail-header {
+    background: var(--gray-50);
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--gray-100);
+    gap: 16px;
+}
+
+.entrainement-editor .conn-detail-header h2 {
+    flex: 1;
+    margin: 0;
+    font-size: 18px;
+}
+
+.entrainement-settings {
+    display: flex;
+    gap: 20px;
+    padding: 16px 24px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-100);
+    font-size: 13px;
+    color: var(--gray-600);
+}
+
+.entrainement-settings span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.entrainement-settings .status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.entrainement-settings .status-badge.draft {
+    background: var(--gray-200);
+    color: var(--gray-600);
+}
+
+.entrainement-settings .status-badge.published {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+.etapes-container {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.etapes-container .conn-empty {
+    text-align: center;
+    padding: 40px;
+    color: var(--gray-500);
+    font-size: 14px;
+}
+
+/* Individual etape cards */
+.etape-card {
+    display: flex;
+    align-items: stretch;
+    background: white;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.etape-card:hover {
+    border-color: var(--gray-300);
+    box-shadow: var(--shadow);
+}
+
+.etape-card.dragging {
+    opacity: 0.5;
+    border-style: dashed;
+    transform: scale(0.98);
+}
+
+.etape-card.drag-over {
+    border-color: var(--accent-blue);
+    background: var(--accent-blue-light);
+}
+
+.etape-drag-handle {
+    width: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-100);
+    color: var(--gray-400);
+    cursor: grab;
+    font-size: 16px;
+    user-select: none;
+    transition: all 0.2s;
+}
+
+.etape-drag-handle:hover {
+    background: var(--gray-200);
+    color: var(--gray-600);
+}
+
+.etape-drag-handle:active {
+    cursor: grabbing;
+}
+
+.etape-number {
+    width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--gray-300);
+}
+
+.etape-content {
+    flex: 1;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.etape-format {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.etape-format .format-icon {
+    font-size: 20px;
+}
+
+.etape-format .format-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.etape-info {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--gray-500);
+}
+
+.etape-mode {
+    padding: 2px 8px;
+    background: var(--gray-100);
+    border-radius: 4px;
+}
+
+.etape-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .conn-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .conn-detail-header {
+        flex-wrap: wrap;
+    }
+
+    .conn-entrainement-item {
+        flex-wrap: wrap;
+    }
+
+    .conn-entrainement-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 12px;
+    }
+}
