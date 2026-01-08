@@ -170,7 +170,7 @@ const AdminBanquesExercices = {
                 banquesResult, formatsResult, exercicesResult, tachesResult, compRefResult,
                 banquesQResult, questionsConnResult,
                 // Nouveau système Connaissances
-                formatsQResult, banquesExConnResult, entrConnResult, etapesConnResult
+                formatsQResult, banquesExConnResult, entrConnResult, etapesConnResult, etapeQuestionsResult
             ] = await Promise.all([
                 this.callAPI('getBanquesExercices', {}),
                 this.callAPI('getFormatsExercices', {}),
@@ -183,7 +183,8 @@ const AdminBanquesExercices = {
                 this.callAPI('getFormatsQuestions', {}),
                 this.callAPI('getBanquesExercicesConn', {}),
                 this.callAPI('getEntrainementsConn', {}),
-                this.callAPI('getEtapesConn', {})
+                this.callAPI('getEtapesConn', {}),
+                this.callAPI('getEtapeQuestionsConn', {})
             ]);
 
             if (banquesResult.success) {
@@ -228,6 +229,9 @@ const AdminBanquesExercices = {
             }
             if (etapesConnResult.success) {
                 this.etapesConn = etapesConnResult.data || [];
+            }
+            if (etapeQuestionsResult && etapeQuestionsResult.success) {
+                this.etapeQuestionsConn = etapeQuestionsResult.data || [];
             }
 
             // Save to cache
@@ -3092,11 +3096,24 @@ const AdminBanquesExercices = {
      * Ouvre le wizard pour créer/modifier un entraînement
      */
     openEntrainementWizard(entrainement = null, banqueId = null) {
+        const etapes = entrainement ? this.etapesConn.filter(e => e.entrainement_id === entrainement.id) : [];
+
+        // Initialiser les sélections de questions depuis les données serveur
+        const selectedQuestions = {};
+        if (entrainement && this.etapeQuestionsConn) {
+            etapes.forEach(etape => {
+                selectedQuestions[etape.id] = this.etapeQuestionsConn
+                    .filter(eq => eq.etape_id === etape.id)
+                    .map(eq => eq.question_id);
+            });
+        }
+
         this.wizardData = {
             entrainement: entrainement,
             banqueId: banqueId,
             currentStep: 1,
-            etapes: entrainement ? this.etapesConn.filter(e => e.entrainement_id === entrainement.id) : [],
+            etapes: etapes,
+            selectedQuestions: selectedQuestions,
             isEditing: !!entrainement
         };
 
@@ -3561,9 +3578,7 @@ const AdminBanquesExercices = {
 
     renderWizardEtapeQuestions(etape, index) {
         const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
-        const etapeQuestions = this.etapeQuestionsConn ?
-            this.etapeQuestionsConn.filter(eq => eq.etape_id === etape.id) : [];
-        const selectedIds = etapeQuestions.map(eq => eq.question_id);
+        const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
         const availableQuestions = this.getQuestionsForFormat(etape.format_code);
 
         // Récupérer les banques qui contiennent des questions de ce format
@@ -3573,8 +3588,8 @@ const AdminBanquesExercices = {
             return banque ? `<option value="${bId}">${this.escapeHtml(banque.titre)}</option>` : '';
         }).join('');
 
-        // Panel ouvert par défaut
-        const isOpen = true;
+        // Panel fermé par défaut (plus lisible quand il y en a beaucoup)
+        const isOpen = false;
 
         return `
             <div class="wizard-etape-questions" data-etape-id="${etape.id}">
@@ -3698,36 +3713,57 @@ const AdminBanquesExercices = {
         }
     },
 
-    async toggleEtapeQuestion(etapeId, questionId, isChecked) {
-        try {
-            if (isChecked) {
-                await this.callAPI('addQuestionToEtape', { etape_id: etapeId, question_id: questionId });
-            } else {
-                await this.callAPI('removeQuestionFromEtape', { etape_id: etapeId, question_id: questionId });
-            }
-            await this.loadDataFromAPI();
-            // Mettre à jour les données du wizard et le compteur
-            this.wizardData.etapes = this.etapesConn.filter(e => e.entrainement_id === this.wizardData.entrainement.id);
-            // Mettre à jour le compteur sans re-render complet
-            const etapeEl = document.querySelector(`.wizard-etape-questions[data-etape-id="${etapeId}"]`);
-            if (etapeEl) {
-                const etape = this.wizardData.etapes.find(e => e.id === etapeId);
-                const etapeQuestions = this.etapeQuestionsConn.filter(eq => eq.etape_id === etapeId);
-                const availableQuestions = this.getQuestionsForFormat(etape?.format_code);
-                const countEl = etapeEl.querySelector('.questions-count');
-                if (countEl) {
-                    countEl.textContent = `${etapeQuestions.length} / ${availableQuestions.length} question${etapeQuestions.length > 1 ? 's' : ''}`;
-                    countEl.classList.toggle('warning', etapeQuestions.length === 0);
-                }
-                // Mettre à jour la classe selected sur la checkbox
-                const checkbox = etapeEl.querySelector(`input[onchange*="${questionId}"]`);
-                if (checkbox) {
-                    checkbox.closest('.question-checkbox').classList.toggle('selected', isChecked);
-                }
-            }
-        } catch (error) {
-            console.error('Erreur toggle question:', error);
+    toggleEtapeQuestion(etapeId, questionId, isChecked) {
+        // Stocker localement dans wizardData (sauvegarde à la fin)
+        if (!this.wizardData.selectedQuestions) {
+            this.wizardData.selectedQuestions = {};
         }
+        if (!this.wizardData.selectedQuestions[etapeId]) {
+            this.wizardData.selectedQuestions[etapeId] = [];
+        }
+
+        const currentSelection = this.wizardData.selectedQuestions[etapeId];
+
+        if (isChecked) {
+            if (!currentSelection.includes(questionId)) {
+                currentSelection.push(questionId);
+            }
+        } else {
+            const index = currentSelection.indexOf(questionId);
+            if (index > -1) {
+                currentSelection.splice(index, 1);
+            }
+        }
+
+        // Mettre à jour le compteur et la classe selected
+        const etapeEl = document.querySelector(`.wizard-etape-questions[data-etape-id="${etapeId}"]`);
+        if (etapeEl) {
+            const etape = this.wizardData.etapes.find(e => e.id === etapeId);
+            const selectedCount = currentSelection.length;
+            const availableQuestions = this.getQuestionsForFormat(etape?.format_code);
+            const countEl = etapeEl.querySelector('.questions-count');
+            if (countEl) {
+                countEl.textContent = `${selectedCount} / ${availableQuestions.length} question${selectedCount > 1 ? 's' : ''}`;
+                countEl.classList.toggle('warning', selectedCount === 0);
+            }
+            // Mettre à jour la classe selected sur la checkbox
+            const checkbox = etapeEl.querySelector(`input[onchange*="${questionId}"]`);
+            if (checkbox) {
+                checkbox.closest('.question-checkbox').classList.toggle('selected', isChecked);
+            }
+        }
+    },
+
+    // Récupérer les questions sélectionnées pour une étape (local ou serveur)
+    getSelectedQuestionsForEtape(etapeId) {
+        // D'abord vérifier les sélections locales du wizard
+        if (this.wizardData?.selectedQuestions?.[etapeId]) {
+            return this.wizardData.selectedQuestions[etapeId];
+        }
+        // Sinon utiliser les données serveur
+        return (this.etapeQuestionsConn || [])
+            .filter(eq => eq.etape_id === etapeId)
+            .map(eq => eq.question_id);
     },
 
     // ===== ÉTAPE 4: VALIDATION =====
@@ -3740,9 +3776,8 @@ const AdminBanquesExercices = {
             if (etape.mode_selection === 'aleatoire') {
                 totalQuestions += etape.nb_questions || 5;
             } else {
-                const etapeQuestions = this.etapeQuestionsConn ?
-                    this.etapeQuestionsConn.filter(eq => eq.etape_id === etape.id) : [];
-                totalQuestions += etapeQuestions.length;
+                const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
+                totalQuestions += selectedIds.length;
             }
         });
 
@@ -3786,9 +3821,8 @@ const AdminBanquesExercices = {
                             <div class="summary-etapes">
                                 ${etapes.map((etape, index) => {
                                     const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
-                                    const etapeQuestions = this.etapeQuestionsConn ?
-                                        this.etapeQuestionsConn.filter(eq => eq.etape_id === etape.id) : [];
-                                    const qCount = etape.mode_selection === 'aleatoire' ? etape.nb_questions : etapeQuestions.length;
+                                    const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
+                                    const qCount = etape.mode_selection === 'aleatoire' ? etape.nb_questions : selectedIds.length;
 
                                     return `
                                         <div class="summary-etape">
