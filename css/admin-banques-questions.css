@@ -558,6 +558,15 @@
     text-overflow: ellipsis;
 }
 
+/* Éléments cachés (ce que l'élève doit trouver) */
+.chrono-marker-hidden {
+    background: #8b5cf6 !important;
+    color: white !important;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
 .chrono-frise-empty {
     text-align: center;
     color: var(--gray-400);
