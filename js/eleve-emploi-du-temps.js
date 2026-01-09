@@ -77,6 +77,10 @@ const EleveEmploiDuTemps = {
 
         // Si c'est déjà une URL embed
         if (url.includes('/embed')) {
+            // S'assurer que les bons paramètres sont présents
+            if (!url.includes('showTitle=')) {
+                url += '&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&mode=MONTH';
+            }
             return url;
         }
 
@@ -91,13 +95,14 @@ const EleveEmploiDuTemps = {
         } else if (url.includes('src=')) {
             const match = url.match(/src=([^&]+)/);
             if (match) calendarId = decodeURIComponent(match[1]);
+        } else if (url.includes('@group.calendar.google.com') || url.includes('@gmail.com')) {
+            // L'URL est peut-être juste l'ID du calendrier
+            calendarId = url;
         }
 
         if (calendarId) {
-            // showTabs=1 permet de choisir la vue (jour/semaine/mois)
-            // showNav=1 permet la navigation (flèches)
-            // mode=MONTH pour une vue mensuelle par défaut (plus compact)
-            return `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarId)}&ctz=Europe%2FParis&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0`;
+            // Paramètres pour un affichage public sans authentification
+            return `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarId)}&ctz=Europe%2FParis&mode=MONTH&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&wkst=2`;
         }
 
         // Si on ne peut pas convertir, retourner l'URL telle quelle
@@ -116,6 +121,8 @@ const EleveEmploiDuTemps = {
 
         if (result.url) {
             const embedUrl = this.convertToEmbedUrl(result.url);
+            console.log('[EmploiDuTemps] URL originale:', result.url);
+            console.log('[EmploiDuTemps] URL embed:', embedUrl);
 
             content.innerHTML = `
                 <div class="calendar-header">
@@ -128,12 +135,12 @@ const EleveEmploiDuTemps = {
                         class="module-iframe"
                         frameborder="0"
                         scrolling="yes"
+                        id="calendar-iframe"
                     ></iframe>
                 </div>
-                <div class="calendar-actions">
-                    <a href="${result.url}" target="_blank" class="btn-link">
-                        ↗ Ouvrir en grand
-                    </a>
+                <div class="calendar-note" style="text-align: center; margin-top: 0.75rem; font-size: 0.85rem; color: #6b7280;">
+                    Si le calendrier ne s'affiche pas correctement,
+                    <a href="${embedUrl}" target="_blank" style="color: #3b82f6;">clique ici pour l'ouvrir dans un nouvel onglet</a>
                 </div>
             `;
         } else {
