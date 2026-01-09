@@ -639,6 +639,7 @@ const AdminBanquesExercices = {
                             </div>
                         </div>
                         <div class="banque-card-actions">
+                            <button class="btn-icon add" onclick="event.stopPropagation(); AdminBanquesExercices.addExercice('${banque.id}')" title="Ajouter un exercice">+</button>
                             <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editBanque('${banque.id}')" title="Modifier">&#9998;</button>
                             <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteBanque('${banque.id}')" title="Supprimer">&#128465;</button>
                         </div>
@@ -647,7 +648,6 @@ const AdminBanquesExercices = {
                     <div class="banque-exercices">
                         <div class="exercices-header">
                             <h4>Exercices</h4>
-                            <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addExercice('${banque.id}')">+ Ajouter</button>
                         </div>
                         ${this.renderExercices(exercices, banque.id)}
                     </div>
