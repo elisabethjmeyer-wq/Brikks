@@ -288,9 +288,15 @@ const EleveConnaissances = {
         }
 
         return entrainements.map((ent, index) => {
-            const etapesCount = this.etapes.filter(e => e.entrainement_id === ent.id).length;
             const isCompleted = false; // TODO: real data
-            const dureeMinutes = ent.duree ? Math.floor(ent.duree / 60) : null;
+            const dureeMinutes = ent.duree || 15; // durée en minutes
+
+            // Construire les métadonnées
+            let metaItems = [];
+            metaItems.push(`${dureeMinutes} min`);
+            if (ent.description) {
+                metaItems.push(this.escapeHtml(ent.description));
+            }
 
             return `
                 <div class="exercice-item connaissances${isCompleted ? ' completed' : ''}"
@@ -298,10 +304,7 @@ const EleveConnaissances = {
                     <div class="exercice-numero">${index + 1}</div>
                     <div class="exercice-info">
                         <div class="exercice-titre">${this.escapeHtml(ent.titre || 'Entraînement ' + (index + 1))}</div>
-                        <div class="exercice-meta">
-                            ${etapesCount} étape${etapesCount !== 1 ? 's' : ''}
-                            ${dureeMinutes ? ` • ${dureeMinutes} min` : ''}
-                        </div>
+                        <div class="exercice-meta">${metaItems.join(' • ')}</div>
                     </div>
                     <span class="exercice-status ${isCompleted ? 'completed' : 'new'}">${isCompleted ? 'Terminé' : 'Nouveau'}</span>
                     <span class="exercice-arrow">→</span>
@@ -364,11 +367,16 @@ const EleveConnaissances = {
         this.showLoader('Chargement de l\'entraînement...');
 
         try {
+            console.log('[EleveConnaissances] startEntrainement:', entrainementId);
+            console.log('[EleveConnaissances] Toutes les étapes:', this.etapes);
+
             const entrainement = this.entrainements.find(e => e.id === entrainementId);
             if (!entrainement) {
                 this.showError('Entraînement non trouvé');
                 return;
             }
+
+            console.log('[EleveConnaissances] Entrainement trouvé:', entrainement);
 
             this.currentEntrainement = entrainement;
             this.currentBanque = this.banques.find(b => b.id === entrainement.banque_exercice_id);
@@ -381,7 +389,11 @@ const EleveConnaissances = {
                 .filter(e => e.entrainement_id === entrainementId)
                 .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
+            console.log('[EleveConnaissances] Étapes trouvées pour cet entrainement:', entrainementEtapes);
+
             if (entrainementEtapes.length === 0) {
+                // Pas d'étapes - afficher un message mais quand même permettre de voir l'entraînement
+                console.warn('[EleveConnaissances] Aucune étape trouvée, vérifier la structure des données');
                 this.showError('Cet entraînement n\'a pas encore d\'étapes configurées');
                 return;
             }
