@@ -1,0 +1,688 @@
+/**
+ * Styles spécifiques pour la page Connaissances Élève
+ * Barre de progression séparée, étapes, formats de questions
+ */
+
+/* ============================================
+   BARRE DE PROGRESSION SÉPARÉE
+   ============================================ */
+
+.conn-progress-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.conn-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.conn-progress-title {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.conn-progress-value {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.conn-progress-bar {
+    height: 12px;
+    background: #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.conn-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+    border-radius: 6px;
+    transition: width 0.3s ease;
+}
+
+/* ============================================
+   BARRE DE RECHERCHE SÉPARÉE
+   ============================================ */
+
+.conn-search-section {
+    margin-bottom: 1.5rem;
+}
+
+.conn-search-section .search-box {
+    max-width: 400px;
+}
+
+/* ============================================
+   ÉTAPES - PROGRESSION VISUELLE
+   ============================================ */
+
+.etapes-progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem 1.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    gap: 0;
+}
+
+.etape-dot {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.etape-dot.current {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transform: scale(1.1);
+}
+
+.etape-dot.completed {
+    background: #10b981;
+    color: white;
+}
+
+.etape-connector {
+    width: 40px;
+    height: 3px;
+    background: #e5e7eb;
+    flex-shrink: 0;
+}
+
+.etape-dot.completed + .etape-connector {
+    background: #10b981;
+}
+
+/* ============================================
+   HEADER D'ÉTAPE
+   ============================================ */
+
+.etape-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.etape-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.etape-format-badge {
+    padding: 0.375rem 0.875rem;
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1d4ed8;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================
+   VRAI/FAUX FORMAT
+   ============================================ */
+
+.vrai-faux-container {
+    padding: 1rem 0;
+}
+
+.question-enonce {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f0f9ff;
+    border-radius: 10px;
+    border-left: 4px solid #3b82f6;
+}
+
+.vrai-faux-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.vrai-faux-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: all 0.2s;
+}
+
+.vrai-faux-item:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.vf-proposition {
+    font-size: 1rem;
+    color: #374151;
+    margin-bottom: 1rem;
+}
+
+.vf-choices {
+    display: flex;
+    gap: 1rem;
+}
+
+.vf-choice {
+    flex: 1;
+    cursor: pointer;
+}
+
+.vf-choice input {
+    display: none;
+}
+
+.vf-btn {
+    display: block;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.vf-btn.vrai {
+    background: #ecfdf5;
+    color: #059669;
+    border-color: #d1fae5;
+}
+
+.vf-btn.faux {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fee2e2;
+}
+
+.vf-choice input:checked + .vf-btn.vrai {
+    background: #10b981;
+    color: white;
+    border-color: #10b981;
+}
+
+.vf-choice input:checked + .vf-btn.faux {
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+.vf-feedback {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.vf-feedback.correct {
+    background: #ecfdf5;
+    color: #059669;
+    border-left: 4px solid #10b981;
+}
+
+.vf-feedback.incorrect {
+    background: #fef2f2;
+    color: #dc2626;
+    border-left: 4px solid #ef4444;
+}
+
+/* ============================================
+   QCM FORMAT
+   ============================================ */
+
+.qcm-container {
+    padding: 1rem 0;
+}
+
+.qcm-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.qcm-choice {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.qcm-choice:hover {
+    border-color: #3b82f6;
+    background: #f8fafc;
+}
+
+.qcm-choice input {
+    width: 20px;
+    height: 20px;
+    accent-color: #3b82f6;
+}
+
+.qcm-choice input:checked + .qcm-label {
+    font-weight: 600;
+    color: #1d4ed8;
+}
+
+.qcm-label {
+    flex: 1;
+    font-size: 1rem;
+    color: #374151;
+}
+
+.qcm-feedback {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.qcm-feedback.correct {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.qcm-feedback.incorrect {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* ============================================
+   CHRONOLOGIE FORMAT
+   ============================================ */
+
+.chronologie-container {
+    padding: 1rem 0;
+}
+
+.chrono-instruction {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.chrono-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.chrono-card {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.chrono-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.chrono-card.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.chrono-card-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.chrono-event {
+    flex: 1;
+    font-weight: 500;
+    color: #374151;
+}
+
+.chrono-date {
+    font-weight: 700;
+    color: #3b82f6;
+    min-width: 80px;
+}
+
+.chrono-date-input {
+    width: 120px;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.chrono-date-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+/* ============================================
+   TIMELINE (FLIP CARDS) FORMAT
+   ============================================ */
+
+.timeline-container {
+    padding: 1rem 0;
+}
+
+.timeline-instruction {
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.timeline-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.timeline-flip-card {
+    width: 180px;
+    height: 220px;
+    perspective: 1000px;
+    cursor: grab;
+}
+
+.timeline-flip-card:hover .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+.flip-card-front,
+.flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    text-align: center;
+}
+
+.flip-card-front {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    background-size: cover;
+    background-position: center;
+}
+
+.flip-card-front::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+}
+
+.flip-card-titre {
+    position: relative;
+    z-index: 1;
+    font-weight: 700;
+    font-size: 1rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.flip-card-back {
+    background: linear-gradient(135deg, #f0f9ff, #dbeafe);
+    border: 2px solid #3b82f6;
+    transform: rotateY(180deg);
+}
+
+.flip-card-date {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1d4ed8;
+    margin-bottom: 0.5rem;
+}
+
+.flip-card-explication {
+    font-size: 0.85rem;
+    color: #4b5563;
+    margin: 0;
+}
+
+/* ============================================
+   TEXTE À TROUS FORMAT
+   ============================================ */
+
+.texte-trous-container {
+    padding: 1rem 0;
+}
+
+.mots-disponibles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 1rem;
+    background: #f0f9ff;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+}
+
+.mots-label {
+    font-weight: 600;
+    color: #1d4ed8;
+    margin-right: 0.5rem;
+}
+
+.mot-disponible {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 2px solid #3b82f6;
+    border-radius: 20px;
+    color: #1d4ed8;
+    font-weight: 500;
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.mot-disponible:hover {
+    background: #3b82f6;
+    color: white;
+}
+
+.mot-disponible.used {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.texte-avec-trous {
+    font-size: 1.1rem;
+    line-height: 2.2;
+    color: #374151;
+}
+
+.trou-input {
+    display: inline-block;
+    width: 120px;
+    padding: 0.375rem 0.75rem;
+    border: 2px dashed #3b82f6;
+    border-radius: 6px;
+    font-size: 1rem;
+    text-align: center;
+    background: #f8fafc;
+    margin: 0 0.25rem;
+    vertical-align: middle;
+}
+
+.trou-input:focus {
+    outline: none;
+    border-style: solid;
+    background: white;
+}
+
+.trou-input.correct {
+    border-color: #10b981;
+    background: #ecfdf5;
+    border-style: solid;
+}
+
+.trou-input.incorrect {
+    border-color: #ef4444;
+    background: #fef2f2;
+    border-style: solid;
+}
+
+/* ============================================
+   COMPLETION VIEW
+   ============================================ */
+
+.completion-view {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    max-width: 500px;
+    margin: 2rem auto;
+}
+
+.completion-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.completion-view h2 {
+    color: #10b981;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.75rem;
+}
+
+.completion-view p {
+    color: #6b7280;
+    margin-bottom: 2rem;
+}
+
+/* ============================================
+   FORMAT NON SUPPORTÉ
+   ============================================ */
+
+.unsupported-format {
+    text-align: center;
+    padding: 3rem;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* ============================================
+   BOUTON SUCCESS
+   ============================================ */
+
+.btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 14px rgba(16, 185, 129, 0.4);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .conn-progress-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .etapes-progress {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .etape-connector {
+        width: 20px;
+    }
+
+    .etape-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .vf-choices {
+        flex-direction: column;
+    }
+
+    .timeline-flip-card {
+        width: 150px;
+        height: 180px;
+    }
+
+    .flip-card-titre {
+        font-size: 0.9rem;
+    }
+
+    .flip-card-date {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .timeline-flip-card {
+        width: 130px;
+        height: 160px;
+    }
+
+    .chrono-card-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .chrono-date-input {
+        width: 100%;
+    }
+}

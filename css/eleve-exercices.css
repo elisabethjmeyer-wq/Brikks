@@ -316,7 +316,7 @@
 }
 
 .banque-accordion-item.savoir-faire.expanded .banque-chevron { background: #f59e0b; }
-.banque-accordion-item.connaissances.expanded .banque-chevron { background: #10b981; }
+.banque-accordion-item.connaissances.expanded .banque-chevron { background: #3b82f6; }
 .banque-accordion-item.competences.expanded .banque-chevron { background: #8b5cf6; }
 
 /* Infos de la banque */
@@ -375,7 +375,7 @@
 }
 
 .banque-accordion-item.savoir-faire .progress-ring-fill { stroke: #f59e0b; }
-.banque-accordion-item.connaissances .progress-ring-fill { stroke: #10b981; }
+.banque-accordion-item.connaissances .progress-ring-fill { stroke: #3b82f6; }
 .banque-accordion-item.competences .progress-ring-fill { stroke: #8b5cf6; }
 
 .progress-ring-text {
@@ -439,7 +439,7 @@
 }
 
 .exercice-item.savoir-faire:hover { border-color: #f59e0b; }
-.exercice-item.connaissances:hover { border-color: #10b981; }
+.exercice-item.connaissances:hover { border-color: #3b82f6; }
 .exercice-item.competences:hover { border-color: #8b5cf6; }
 
 /* Numéro exercice */
@@ -463,7 +463,7 @@
 }
 
 .exercice-item.savoir-faire.completed .exercice-numero { background: #fef3c7; color: #92400e; }
-.exercice-item.connaissances.completed .exercice-numero { background: #dcfce7; color: #166534; }
+.exercice-item.connaissances.completed .exercice-numero { background: #dbeafe; color: #1d4ed8; }
 .exercice-item.competences.completed .exercice-numero { background: #f3e8ff; color: #7c3aed; }
 
 /* Infos exercice */
@@ -523,7 +523,7 @@
 }
 
 .exercice-item.savoir-faire:hover .exercice-arrow { color: #f59e0b; }
-.exercice-item.connaissances:hover .exercice-arrow { color: #10b981; }
+.exercice-item.connaissances:hover .exercice-arrow { color: #3b82f6; }
 .exercice-item.competences:hover .exercice-arrow { color: #8b5cf6; }
 
 /* ============================================
@@ -579,7 +579,7 @@
 }
 
 .exercise-header.connaissances {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
 .exercise-header.competences {
