@@ -30,56 +30,6 @@
     font-size: 0.9rem;
 }
 
-/* Banques list */
-.banques-list {
-    display: grid;
-    gap: 1rem;
-}
-
-.banque-card {
-    background: white;
-    border-radius: 12px;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.banque-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.banque-info {
-    flex: 1;
-}
-
-.banque-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--gray-900);
-    margin-bottom: 0.25rem;
-}
-
-.banque-meta {
-    display: flex;
-    gap: 1rem;
-    font-size: 0.85rem;
-    color: var(--gray-500);
-}
-
-.banque-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.banque-actions .btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
-}
-
 /* Question types tabs */
 .question-types-tabs {
     display: flex;
