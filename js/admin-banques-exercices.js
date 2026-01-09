@@ -5101,14 +5101,30 @@ const AdminBanquesExercices = {
                 break;
 
             case 'chronologie':
-                const pairesChronologie = data.paires || [{ date: '', evenement: '' }];
+                const pairesChronologie = data.paires || [{ date: '', evenement: '', cache: 'date' }];
+                const modeChrono = data.mode || 'date'; // 'date' = élève trouve la date, 'evenement' = élève trouve l'événement
                 html = `
                     <div class="form-group">
                         <label>Consigne</label>
-                        <input type="text" id="chronoConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Placez les événements sur la frise chronologique')}">
+                        <input type="text" id="chronoConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Complétez la frise chronologique')}">
                     </div>
                     <div class="form-group">
-                        <label>Aperçu de la frise</label>
+                        <label>Que doit trouver l'élève ?</label>
+                        <div class="chrono-mode-selector" style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                            <label class="radio-card ${modeChrono === 'date' ? 'selected' : ''}" style="flex: 1; padding: 1rem; border: 2px solid ${modeChrono === 'date' ? 'var(--primary)' : 'var(--gray-200)'}; border-radius: 8px; cursor: pointer; text-align: center;">
+                                <input type="radio" name="chronoMode" value="date" ${modeChrono === 'date' ? 'checked' : ''} onchange="AdminBanquesExercices.updateChronoMode(this.value)" style="display: none;">
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">📅 Les dates</div>
+                                <div style="font-size: 0.8rem; color: var(--gray-500);">L'événement est affiché, l'élève trouve la date</div>
+                            </label>
+                            <label class="radio-card ${modeChrono === 'evenement' ? 'selected' : ''}" style="flex: 1; padding: 1rem; border: 2px solid ${modeChrono === 'evenement' ? 'var(--primary)' : 'var(--gray-200)'}; border-radius: 8px; cursor: pointer; text-align: center;">
+                                <input type="radio" name="chronoMode" value="evenement" ${modeChrono === 'evenement' ? 'checked' : ''} onchange="AdminBanquesExercices.updateChronoMode(this.value)" style="display: none;">
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">📝 Les événements</div>
+                                <div style="font-size: 0.8rem; color: var(--gray-500);">La date est affichée, l'élève trouve l'événement</div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Aperçu de la frise <span style="font-weight: normal; color: var(--gray-500);">(triée par date)</span></label>
                         <div id="chronoFrisePreview" class="chrono-frise-preview">
                             <div class="chrono-frise-arrow">
                                 <div class="chrono-frise-line"></div>
@@ -5116,10 +5132,11 @@ const AdminBanquesExercices = {
                             </div>
                             <div id="chronoFriseMarkers" class="chrono-frise-markers"></div>
                         </div>
+                        <p class="form-help" style="margin-top: 0.5rem;">Les éléments en <span style="background: #f3e8ff; color: #7c3aed; padding: 2px 6px; border-radius: 4px;">violet</span> sont cachés pour l'élève.</p>
                     </div>
                     <div class="form-group">
-                        <label>Événements (ordre chronologique)</label>
-                        <p class="form-help">Entrez les événements dans l'ordre du plus ancien au plus récent. Ils seront affichés sur la frise.</p>
+                        <label>Événements</label>
+                        <p class="form-help">Les événements seront automatiquement triés par date sur la frise.</p>
                         <div id="chronoPaires">
                             ${pairesChronologie.map((p, i) => `
                                 <div class="pair-row chrono-event-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
@@ -5134,7 +5151,10 @@ const AdminBanquesExercices = {
                     </div>
                 `;
                 // Initialiser la prévisualisation après le rendu
-                setTimeout(() => this.updateChronoPreview(), 50);
+                setTimeout(() => {
+                    this.chronoMode = modeChrono;
+                    this.updateChronoPreview();
+                }, 50);
                 break;
 
             case 'timeline':
@@ -5343,12 +5363,30 @@ const AdminBanquesExercices = {
         this.updateChronoPreview();
     },
 
+    chronoMode: 'date', // 'date' ou 'evenement'
+
     updateChronoNumbers() {
         const rows = document.querySelectorAll('#chronoPaires .chrono-event-row');
         rows.forEach((row, idx) => {
             const numSpan = row.querySelector('.chrono-event-num');
             if (numSpan) numSpan.textContent = idx + 1;
         });
+    },
+
+    updateChronoMode(mode) {
+        this.chronoMode = mode;
+        // Mettre à jour le style des radio cards
+        document.querySelectorAll('.chrono-mode-selector .radio-card').forEach(card => {
+            const input = card.querySelector('input[type="radio"]');
+            if (input.value === mode) {
+                card.style.borderColor = 'var(--primary)';
+                card.classList.add('selected');
+            } else {
+                card.style.borderColor = 'var(--gray-200)';
+                card.classList.remove('selected');
+            }
+        });
+        this.updateChronoPreview();
     },
 
     updateChronoPreview() {
@@ -5361,7 +5399,9 @@ const AdminBanquesExercices = {
             const date = row.querySelector('.chrono-date')?.value?.trim() || '';
             const event = row.querySelector('.chrono-event')?.value?.trim() || '';
             if (date || event) {
-                events.push({ num: idx + 1, date, event });
+                // Extraire une valeur numérique de la date pour le tri
+                const numericDate = this.extractNumericDate(date);
+                events.push({ num: idx + 1, date, event, numericDate });
             }
         });
 
@@ -5370,15 +5410,46 @@ const AdminBanquesExercices = {
             return;
         }
 
+        // Trier par date (du plus ancien au plus récent)
+        events.sort((a, b) => a.numericDate - b.numericDate);
+
         // Calculer les positions équidistantes
         const spacing = 100 / (events.length + 1);
-        markersContainer.innerHTML = events.map((e, i) => `
-            <div class="chrono-frise-marker" style="left: ${spacing * (i + 1)}%;">
-                <div class="chrono-marker-dot">${e.num}</div>
-                <div class="chrono-marker-date">${this.escapeHtml(e.date)}</div>
-                <div class="chrono-marker-event">${this.escapeHtml(e.event)}</div>
-            </div>
-        `).join('');
+        const mode = this.chronoMode || 'date';
+
+        markersContainer.innerHTML = events.map((e, i) => {
+            const isDateHidden = mode === 'date';
+            const dateClass = isDateHidden ? 'chrono-marker-hidden' : '';
+            const eventClass = !isDateHidden ? 'chrono-marker-hidden' : '';
+
+            return `
+                <div class="chrono-frise-marker" style="left: ${spacing * (i + 1)}%;">
+                    <div class="chrono-marker-dot">${i + 1}</div>
+                    <div class="chrono-marker-date ${dateClass}">${isDateHidden ? '???' : this.escapeHtml(e.date)}</div>
+                    <div class="chrono-marker-event ${eventClass}">${!isDateHidden ? '???' : this.escapeHtml(e.event)}</div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    extractNumericDate(dateStr) {
+        // Extraire un nombre de la date pour pouvoir trier
+        // Gère: "1789", "-500", "500 av. J.-C.", "1er janvier 1789", etc.
+        if (!dateStr) return 0;
+
+        // Vérifier si c'est avant J.-C.
+        const isBC = /av\.?\s*j\.?-?c\.?|bc|bce/i.test(dateStr);
+
+        // Extraire le premier nombre trouvé
+        const match = dateStr.match(/-?\d+/);
+        if (!match) return 0;
+
+        let num = parseInt(match[0], 10);
+
+        // Si avant J.-C., rendre négatif
+        if (isBC && num > 0) num = -num;
+
+        return num;
     },
 
     addTimelineEvent() {
@@ -5833,6 +5904,7 @@ const AdminBanquesExercices = {
             case 'chronologie':
                 donnees = {
                     consigne: document.getElementById('chronoConsigne').value,
+                    mode: this.chronoMode || 'date', // 'date' ou 'evenement'
                     paires: Array.from(document.querySelectorAll('#chronoPaires .pair-row')).map(row => ({
                         date: row.querySelector('.chrono-date').value,
                         evenement: row.querySelector('.chrono-event').value
