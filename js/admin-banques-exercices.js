@@ -3860,10 +3860,15 @@ const AdminBanquesExercices = {
         if (this.wizardData.selectedQuestions && this.wizardData.etapes) {
             for (const etape of this.wizardData.etapes) {
                 const selectedIds = this.wizardData.selectedQuestions[etape.id] || [];
+                // Convertir les IDs en format attendu par le backend: [{question_id: 'xxx'}, ...]
+                const questionsFormatted = selectedIds.map(id => ({ question_id: id }));
+
+                console.log(`[Admin] Sauvegarde étape ${etape.id}: ${selectedIds.length} questions`, questionsFormatted);
+
                 try {
                     await this.callAPI('setEtapeQuestionsConn', {
                         etape_id: etape.id,
-                        questions: selectedIds
+                        questions: questionsFormatted
                     });
                 } catch (error) {
                     console.error(`Erreur sauvegarde questions étape ${etape.id}:`, error);
