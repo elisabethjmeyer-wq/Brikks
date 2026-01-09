@@ -393,7 +393,14 @@ const EleveConnaissances = {
             // Get etapes for this entrainement
             const entrainementEtapes = this.etapes
                 .filter(e => e.entrainement_id === entrainementId)
-                .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+                .sort((a, b) => {
+                    // Utiliser ordre si disponible, sinon l'ID (qui contient un timestamp)
+                    const ordreA = a.ordre !== '' && a.ordre !== undefined ? Number(a.ordre) : Infinity;
+                    const ordreB = b.ordre !== '' && b.ordre !== undefined ? Number(b.ordre) : Infinity;
+                    if (ordreA !== ordreB) return ordreA - ordreB;
+                    // Fallback: trier par ID (timestamp)
+                    return String(a.id).localeCompare(String(b.id));
+                });
 
             console.log('[EleveConnaissances] Étapes trouvées pour cet entrainement:', entrainementEtapes);
 
