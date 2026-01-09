@@ -11,6 +11,7 @@ const EleveConnaissances = {
     etapes: [],
     etapeQuestions: [],
     formatsQuestions: [],
+    questionsConnaissances: [],  // Contenu des questions avec donnees
     resultats: [],
 
     // État
@@ -101,6 +102,7 @@ const EleveConnaissances = {
         this.etapes = data.etapes || [];
         this.etapeQuestions = data.etapeQuestions || [];
         this.formatsQuestions = data.formatsQuestions || [];
+        this.questionsConnaissances = data.questionsConnaissances || [];  // Questions avec donnees
         this.banques.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
         this.entrainements.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
@@ -109,17 +111,20 @@ const EleveConnaissances = {
             banques: this.banques.length,
             entrainements: this.entrainements.length,
             etapes: this.etapes.length,
+            etapeQuestions: this.etapeQuestions.length,
+            questionsConnaissances: this.questionsConnaissances.length,
             data: data
         });
     },
 
     async loadData() {
-        const [banquesResult, entrainementsResult, etapesResult, etapeQuestionsResult, formatsResult] = await Promise.all([
+        const [banquesResult, entrainementsResult, etapesResult, etapeQuestionsResult, formatsResult, questionsResult] = await Promise.all([
             this.callAPI('getBanquesExercicesConn'),
             this.callAPI('getEntrainementsConn'),
             this.callAPI('getEtapesConn'),
             this.callAPI('getEtapeQuestionsConn', {}),
-            this.callAPI('getFormatsQuestions')
+            this.callAPI('getFormatsQuestions'),
+            this.callAPI('getQuestionsConnaissances', {})  // Charger le contenu des questions
         ]);
 
         const data = {
@@ -127,7 +132,8 @@ const EleveConnaissances = {
             entrainements: entrainementsResult.success ? entrainementsResult.data : [],
             etapes: etapesResult.success ? etapesResult.data : [],
             etapeQuestions: etapeQuestionsResult.success ? etapeQuestionsResult.data : [],
-            formatsQuestions: formatsResult.success ? formatsResult.data : []
+            formatsQuestions: formatsResult.success ? formatsResult.data : [],
+            questionsConnaissances: questionsResult.success ? questionsResult.data : []  // Contenu avec donnees
         };
 
         this.saveToCache(data);
@@ -499,31 +505,57 @@ const EleveConnaissances = {
 
     /**
      * Render the content of an etape based on its format
+     * Jointure: etape → etapeQuestions → questionsConnaissances (pour obtenir donnees)
      */
     renderEtapeContent(etape, questions) {
         const format = etape.format_code;
 
-        console.log('[EleveConnaissances] renderEtapeContent - etape complète:', JSON.stringify(etape, null, 2));
+        console.log('[EleveConnaissances] renderEtapeContent - etape:', etape);
         console.log('[EleveConnaissances] renderEtapeContent - format:', format);
-        console.log('[EleveConnaissances] renderEtapeContent - donnees brutes:', etape.donnees);
-        console.log('[EleveConnaissances] renderEtapeContent - type de donnees:', typeof etape.donnees);
 
-        // Parse donnees if it's a string
-        let donnees = etape.donnees;
-        if (typeof donnees === 'string' && donnees) {
-            try {
-                donnees = JSON.parse(donnees);
-                console.log('[EleveConnaissances] donnees parsées depuis string:', donnees);
-            } catch (e) {
-                console.error('[EleveConnaissances] Erreur parsing donnees:', e);
-                donnees = {};
+        // 1. Trouver les questions liées à cette étape via ETAPE_QUESTIONS_CONN
+        const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
+            String(eq.etape_id) === String(etape.id)
+        );
+        console.log('[EleveConnaissances] Questions liées (refs):', linkedQuestionRefs);
+
+        // 2. Récupérer le contenu des questions depuis QUESTIONS_CONNAISSANCES
+        let donnees = {};
+        if (linkedQuestionRefs.length > 0) {
+            // Prendre la première question (pour les formats simples)
+            const questionRef = linkedQuestionRefs[0];
+            const questionContent = this.questionsConnaissances.find(q =>
+                String(q.id) === String(questionRef.question_id)
+            );
+            console.log('[EleveConnaissances] Contenu question trouvé:', questionContent);
+
+            if (questionContent && questionContent.donnees) {
+                donnees = questionContent.donnees;
+                // Parse si c'est une string JSON
+                if (typeof donnees === 'string') {
+                    try {
+                        donnees = JSON.parse(donnees);
+                    } catch (e) {
+                        console.error('[EleveConnaissances] Erreur parsing donnees:', e);
+                        donnees = {};
+                    }
+                }
             }
         }
 
-        // Ensure donnees is an object
-        if (!donnees || typeof donnees !== 'object') {
-            console.warn('[EleveConnaissances] donnees vide ou invalide, utilisation d\'un objet vide');
-            donnees = {};
+        // 3. Si toujours pas de donnees, essayer depuis l'étape directement (fallback)
+        if (Object.keys(donnees).length === 0 && etape.donnees) {
+            let etapeDonnees = etape.donnees;
+            if (typeof etapeDonnees === 'string') {
+                try {
+                    etapeDonnees = JSON.parse(etapeDonnees);
+                } catch (e) {
+                    etapeDonnees = {};
+                }
+            }
+            if (etapeDonnees && typeof etapeDonnees === 'object') {
+                donnees = etapeDonnees;
+            }
         }
 
         console.log('[EleveConnaissances] renderEtapeContent - donnees finales:', donnees);
