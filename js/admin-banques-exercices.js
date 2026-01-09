@@ -3653,7 +3653,30 @@ const AdminBanquesExercices = {
         return questions.map(q => {
             const banque = this.banquesQuestions.find(b => b.id === q.banque_id);
             const banqueNom = banque ? banque.titre : 'Sans banque';
-            const questionText = q.question || q.titre || q.contenu || 'Question sans titre';
+
+            // Extraire le texte depuis donnees (qui peut être un objet ou un JSON string parsé)
+            let donnees = q.donnees || {};
+            if (typeof donnees === 'string') {
+                try { donnees = JSON.parse(donnees); } catch(e) { donnees = {}; }
+            }
+
+            // Extraire le texte selon le type de question
+            let questionText = 'Question sans titre';
+            if (donnees.question) {
+                questionText = donnees.question;
+            } else if (donnees.enonce) {
+                questionText = donnees.enonce;
+            } else if (donnees.texte) {
+                questionText = donnees.texte;
+            } else if (donnees.consigne) {
+                questionText = donnees.consigne;
+            } else if (donnees.propositions && donnees.propositions.length > 0) {
+                questionText = donnees.propositions[0].texte || 'Vrai/Faux';
+            } else if (donnees.cartes && donnees.cartes.length > 0) {
+                questionText = `Timeline: ${donnees.cartes[0].titre || 'Cartes'}`;
+            } else if (donnees.evenements && donnees.evenements.length > 0) {
+                questionText = `Chronologie: ${donnees.evenements[0].evenement || 'Événements'}`;
+            }
 
             return `
                 <label class="question-checkbox ${selectedIds.includes(q.id) ? 'selected' : ''}" data-banque="${q.banque_id}">
@@ -3712,6 +3735,8 @@ const AdminBanquesExercices = {
     },
 
     toggleEtapeQuestion(etapeId, questionId, isChecked) {
+        console.log(`[Admin] toggleEtapeQuestion: etape=${etapeId}, question=${questionId}, checked=${isChecked}`);
+
         // Stocker localement dans wizardData (sauvegarde à la fin)
         if (!this.wizardData.selectedQuestions) {
             this.wizardData.selectedQuestions = {};
@@ -3732,6 +3757,8 @@ const AdminBanquesExercices = {
                 currentSelection.splice(index, 1);
             }
         }
+
+        console.log(`[Admin] Questions sélectionnées pour étape ${etapeId}:`, [...currentSelection]);
 
         // Mettre à jour le compteur et la classe selected
         const etapeEl = document.querySelector(`.wizard-etape-questions[data-etape-id="${etapeId}"]`);
@@ -3856,6 +3883,10 @@ const AdminBanquesExercices = {
     },
 
     async finalizeEntrainement() {
+        console.log('[Admin] ===== FINALISATION ENTRAINEMENT =====');
+        console.log('[Admin] wizardData.etapes:', this.wizardData.etapes);
+        console.log('[Admin] wizardData.selectedQuestions:', this.wizardData.selectedQuestions);
+
         // Sauvegarder les questions sélectionnées pour chaque étape
         if (this.wizardData.selectedQuestions && this.wizardData.etapes) {
             for (const etape of this.wizardData.etapes) {
@@ -3863,17 +3894,20 @@ const AdminBanquesExercices = {
                 // Convertir les IDs en format attendu par le backend: [{question_id: 'xxx'}, ...]
                 const questionsFormatted = selectedIds.map(id => ({ question_id: id }));
 
-                console.log(`[Admin] Sauvegarde étape ${etape.id}: ${selectedIds.length} questions`, questionsFormatted);
+                console.log(`[Admin] Sauvegarde étape ${etape.id} (${etape.format_code}): ${selectedIds.length} questions`, questionsFormatted);
 
                 try {
-                    await this.callAPI('setEtapeQuestionsConn', {
+                    const result = await this.callAPI('setEtapeQuestionsConn', {
                         etape_id: etape.id,
                         questions: questionsFormatted
                     });
+                    console.log(`[Admin] Résultat sauvegarde étape ${etape.id}:`, result);
                 } catch (error) {
                     console.error(`Erreur sauvegarde questions étape ${etape.id}:`, error);
                 }
             }
+        } else {
+            console.warn('[Admin] Pas de questions à sauvegarder - wizardData.selectedQuestions ou etapes manquants');
         }
 
         // Fermer le wizard et rafraîchir l'affichage
