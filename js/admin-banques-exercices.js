@@ -5158,22 +5158,25 @@ const AdminBanquesExercices = {
                 break;
 
             case 'timeline':
-                const evenements = data.evenements || [''];
+                // Convertir ancien format (array de strings) en nouveau format (array d'objets)
+                let cartes = data.cartes || [];
+                if (cartes.length === 0 && data.evenements) {
+                    // Migration depuis l'ancien format
+                    cartes = data.evenements.map(e => ({ titre: e, date: '', image_url: '', explication: '' }));
+                }
+                if (cartes.length === 0) {
+                    cartes = [{ titre: '', date: '', image_url: '', explication: '' }];
+                }
+
                 html = `
                     <div class="form-group">
                         <label>Consigne</label>
-                        <input type="text" id="timelineConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Remettez dans l\'ordre chronologique')}">
+                        <input type="text" id="timelineConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Remettez les événements dans l\'ordre chronologique')}">
                     </div>
                     <div class="form-group">
-                        <label>Aperçu (ordre correct)</label>
+                        <label>Aperçu des cartes (ordre correct)</label>
                         <p class="form-help">De gauche (le plus ancien) à droite (le plus récent). Glissez pour réordonner.</p>
                         <div id="timelineCardsPreview" class="timeline-cards-container">
-                            ${evenements.filter(e => e).map((e, i) => `
-                                <div class="timeline-card" draggable="true" data-index="${i}">
-                                    <span class="timeline-card-num">${i + 1}</span>
-                                    <span class="timeline-card-text">${this.escapeHtml(e)}</span>
-                                </div>
-                            `).join('') || '<p class="timeline-empty">Ajoutez des événements ci-dessous</p>'}
                         </div>
                         <div class="timeline-axis">
                             <span class="timeline-axis-label">Ancien</span>
@@ -5182,17 +5185,12 @@ const AdminBanquesExercices = {
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Événements (ordre chronologique)</label>
+                        <label>Cartes (ordre chronologique)</label>
+                        <p class="form-help">Recto = ce que l'élève voit. Verso = révélé après validation.</p>
                         <div id="timelineEvents">
-                            ${evenements.map((e, i) => `
-                                <div class="event-row timeline-event-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-                                    <span class="timeline-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${i + 1}</span>
-                                    <input type="text" class="form-input timeline-event" placeholder="Événement ${i + 1}" value="${this.escapeHtml(e || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
-                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove(); AdminBanquesExercices.updateTimelinePreview(); AdminBanquesExercices.updateTimelineNumbers();" title="Supprimer">×</button>
-                                </div>
-                            `).join('')}
+                            ${cartes.map((c, i) => this.renderTimelineCardForm(c, i)).join('')}
                         </div>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addTimelineEvent()">+ Ajouter un événement</button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addTimelineEvent()">+ Ajouter une carte</button>
                     </div>
                 `;
                 // Initialiser la prévisualisation et le drag & drop
@@ -5452,27 +5450,50 @@ const AdminBanquesExercices = {
         return num;
     },
 
+    // ========== TIMELINE CARTES BUILDER ==========
+    renderTimelineCardForm(carte, index) {
+        const c = carte || { titre: '', date: '', image_url: '', explication: '' };
+        return `
+            <div class="timeline-card-form" data-index="${index}">
+                <div class="timeline-card-form-header">
+                    <span class="timeline-event-num" style="background: var(--primary); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; flex-shrink: 0;">${index + 1}</span>
+                    <span style="font-weight: 600; flex: 1;">Carte ${index + 1}</span>
+                    <button type="button" class="btn-icon danger" onclick="this.closest('.timeline-card-form').remove(); AdminBanquesExercices.updateTimelinePreview(); AdminBanquesExercices.updateTimelineNumbers();" title="Supprimer">×</button>
+                </div>
+                <div class="timeline-card-form-body">
+                    <div class="timeline-card-form-section">
+                        <div class="section-label">📋 Recto (visible par l'élève)</div>
+                        <input type="text" class="form-input timeline-titre" placeholder="Titre de l'événement" value="${this.escapeHtml(c.titre || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
+                        <input type="text" class="form-input timeline-image" placeholder="URL image de fond (optionnel)" value="${this.escapeHtml(c.image_url || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
+                    </div>
+                    <div class="timeline-card-form-section">
+                        <div class="section-label">🔄 Verso (révélé après validation)</div>
+                        <input type="text" class="form-input timeline-date" placeholder="Date (ex: 1492)" value="${this.escapeHtml(c.date || '')}">
+                        <input type="text" class="form-input timeline-explication" placeholder="Explication (optionnel)" value="${this.escapeHtml(c.explication || '')}">
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
     addTimelineEvent() {
         const container = document.getElementById('timelineEvents');
         if (!container) return;
-        const count = container.children.length + 1;
+        const count = container.children.length;
         const div = document.createElement('div');
-        div.className = 'event-row timeline-event-row';
-        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
-        div.innerHTML = `
-            <span class="timeline-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${count}</span>
-            <input type="text" class="form-input timeline-event" placeholder="Événement ${count}" oninput="AdminBanquesExercices.updateTimelinePreview()">
-            <button type="button" class="btn-icon danger" onclick="this.parentElement.remove(); AdminBanquesExercices.updateTimelinePreview(); AdminBanquesExercices.updateTimelineNumbers();" title="Supprimer">×</button>
-        `;
-        container.appendChild(div);
+        div.innerHTML = this.renderTimelineCardForm({ titre: '', date: '', image_url: '', explication: '' }, count);
+        container.appendChild(div.firstElementChild);
         this.updateTimelinePreview();
     },
 
     updateTimelineNumbers() {
-        const rows = document.querySelectorAll('#timelineEvents .timeline-event-row');
-        rows.forEach((row, idx) => {
-            const numSpan = row.querySelector('.timeline-event-num');
+        const forms = document.querySelectorAll('#timelineEvents .timeline-card-form');
+        forms.forEach((form, idx) => {
+            const numSpan = form.querySelector('.timeline-event-num');
             if (numSpan) numSpan.textContent = idx + 1;
+            const titleSpan = form.querySelector('.timeline-card-form-header span:nth-child(2)');
+            if (titleSpan) titleSpan.textContent = `Carte ${idx + 1}`;
+            form.dataset.index = idx;
         });
     },
 
@@ -5480,26 +5501,31 @@ const AdminBanquesExercices = {
         const container = document.getElementById('timelineCardsPreview');
         if (!container) return;
 
-        const inputs = document.querySelectorAll('#timelineEvents .timeline-event');
-        const events = [];
-        inputs.forEach((input, idx) => {
-            const text = input.value?.trim();
-            if (text) {
-                events.push({ num: idx + 1, text });
+        const forms = document.querySelectorAll('#timelineEvents .timeline-card-form');
+        const cartes = [];
+        forms.forEach((form, idx) => {
+            const titre = form.querySelector('.timeline-titre')?.value?.trim() || '';
+            const image_url = form.querySelector('.timeline-image')?.value?.trim() || '';
+            if (titre) {
+                cartes.push({ num: idx + 1, titre, image_url });
             }
         });
 
-        if (events.length === 0) {
-            container.innerHTML = '<p class="timeline-empty">Ajoutez des événements ci-dessous</p>';
+        if (cartes.length === 0) {
+            container.innerHTML = '<p class="timeline-empty">Ajoutez des cartes ci-dessous</p>';
             return;
         }
 
-        container.innerHTML = events.map((e, i) => `
-            <div class="timeline-card" draggable="true" data-index="${i}">
-                <span class="timeline-card-num">${e.num}</span>
-                <span class="timeline-card-text">${this.escapeHtml(e.text)}</span>
-            </div>
-        `).join('');
+        container.innerHTML = cartes.map((c, i) => {
+            const bgStyle = c.image_url ? `background-image: url('${this.escapeHtml(c.image_url)}'); background-size: cover; background-position: center;` : '';
+            const hasImage = c.image_url ? 'has-image' : '';
+            return `
+                <div class="timeline-card ${hasImage}" draggable="true" data-index="${i}" style="${bgStyle}">
+                    <span class="timeline-card-num">${c.num}</span>
+                    <span class="timeline-card-text">${this.escapeHtml(c.titre)}</span>
+                </div>
+            `;
+        }).join('');
 
         this.initTimelineDragDrop();
     },
@@ -5521,7 +5547,6 @@ const AdminBanquesExercices = {
             card.addEventListener('dragend', () => {
                 card.classList.remove('dragging');
                 draggedCard = null;
-                // Mettre à jour les inputs avec le nouvel ordre
                 this.syncTimelineFromCards();
             });
 
@@ -5541,28 +5566,39 @@ const AdminBanquesExercices = {
     },
 
     syncTimelineFromCards() {
-        const container = document.getElementById('timelineCardsPreview');
-        const eventsContainer = document.getElementById('timelineEvents');
-        if (!container || !eventsContainer) return;
+        const previewContainer = document.getElementById('timelineCardsPreview');
+        const formsContainer = document.getElementById('timelineEvents');
+        if (!previewContainer || !formsContainer) return;
 
-        const cards = container.querySelectorAll('.timeline-card');
+        // Récupérer l'ordre des cartes dans l'aperçu
+        const previewCards = previewContainer.querySelectorAll('.timeline-card');
         const newOrder = [];
-        cards.forEach(card => {
-            const text = card.querySelector('.timeline-card-text')?.textContent || '';
-            newOrder.push(text);
+        previewCards.forEach(card => {
+            const idx = parseInt(card.dataset.index);
+            newOrder.push(idx);
         });
 
-        // Recréer les inputs dans le nouvel ordre
-        eventsContainer.innerHTML = newOrder.map((text, i) => `
-            <div class="event-row timeline-event-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-                <span class="timeline-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${i + 1}</span>
-                <input type="text" class="form-input timeline-event" placeholder="Événement ${i + 1}" value="${this.escapeHtml(text)}" oninput="AdminBanquesExercices.updateTimelinePreview()">
-                <button type="button" class="btn-icon danger" onclick="this.parentElement.remove(); AdminBanquesExercices.updateTimelinePreview(); AdminBanquesExercices.updateTimelineNumbers();" title="Supprimer">×</button>
-            </div>
-        `).join('');
+        // Récupérer les données actuelles des formulaires
+        const forms = formsContainer.querySelectorAll('.timeline-card-form');
+        const cartesData = [];
+        forms.forEach(form => {
+            cartesData.push({
+                titre: form.querySelector('.timeline-titre')?.value || '',
+                image_url: form.querySelector('.timeline-image')?.value || '',
+                date: form.querySelector('.timeline-date')?.value || '',
+                explication: form.querySelector('.timeline-explication')?.value || ''
+            });
+        });
 
-        // Mettre à jour les numéros sur les cartes
-        cards.forEach((card, i) => {
+        // Réordonner les données selon le nouvel ordre
+        const reorderedData = newOrder.map(i => cartesData[i]);
+
+        // Recréer les formulaires
+        formsContainer.innerHTML = reorderedData.map((c, i) => this.renderTimelineCardForm(c, i)).join('');
+
+        // Mettre à jour les numéros sur les cartes preview
+        previewCards.forEach((card, i) => {
+            card.dataset.index = i;
             const numSpan = card.querySelector('.timeline-card-num');
             if (numSpan) numSpan.textContent = i + 1;
         });
@@ -5913,9 +5949,18 @@ const AdminBanquesExercices = {
                 break;
 
             case 'timeline':
+                // Nouveau format avec cartes complètes
+                const timelineCartes = Array.from(document.querySelectorAll('#timelineEvents .timeline-card-form')).map(form => ({
+                    titre: form.querySelector('.timeline-titre')?.value || '',
+                    image_url: form.querySelector('.timeline-image')?.value || '',
+                    date: form.querySelector('.timeline-date')?.value || '',
+                    explication: form.querySelector('.timeline-explication')?.value || ''
+                })).filter(c => c.titre);
                 donnees = {
                     consigne: document.getElementById('timelineConsigne').value,
-                    evenements: Array.from(document.querySelectorAll('#timelineEvents .timeline-event')).map(input => input.value).filter(e => e)
+                    cartes: timelineCartes,
+                    // Rétro-compatibilité
+                    evenements: timelineCartes.map(c => c.titre)
                 };
                 break;
 
