@@ -503,11 +503,30 @@ const EleveConnaissances = {
     renderEtapeContent(etape, questions) {
         const format = etape.format_code;
 
+        console.log('[EleveConnaissances] renderEtapeContent - etape complète:', JSON.stringify(etape, null, 2));
+        console.log('[EleveConnaissances] renderEtapeContent - format:', format);
+        console.log('[EleveConnaissances] renderEtapeContent - donnees brutes:', etape.donnees);
+        console.log('[EleveConnaissances] renderEtapeContent - type de donnees:', typeof etape.donnees);
+
         // Parse donnees if it's a string
         let donnees = etape.donnees;
-        if (typeof donnees === 'string') {
-            try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+        if (typeof donnees === 'string' && donnees) {
+            try {
+                donnees = JSON.parse(donnees);
+                console.log('[EleveConnaissances] donnees parsées depuis string:', donnees);
+            } catch (e) {
+                console.error('[EleveConnaissances] Erreur parsing donnees:', e);
+                donnees = {};
+            }
         }
+
+        // Ensure donnees is an object
+        if (!donnees || typeof donnees !== 'object') {
+            console.warn('[EleveConnaissances] donnees vide ou invalide, utilisation d\'un objet vide');
+            donnees = {};
+        }
+
+        console.log('[EleveConnaissances] renderEtapeContent - donnees finales:', donnees);
 
         switch (format) {
             case 'vrai_faux':
@@ -521,7 +540,7 @@ const EleveConnaissances = {
             case 'texte_trous':
                 return this.renderTexteTrous(donnees, questions);
             default:
-                return `<div class="unsupported-format">Format non supporté: ${format}</div>`;
+                return `<div class="unsupported-format">Format non supporté: ${format}<br><small>Données: ${JSON.stringify(donnees)}</small></div>`;
         }
     },
 
@@ -531,6 +550,16 @@ const EleveConnaissances = {
     renderVraiFaux(donnees, questions) {
         const question = donnees.question || donnees.enonce || '';
         const items = donnees.propositions || [];
+
+        // Vérifier qu'on a des données à afficher
+        if (items.length === 0) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Cet exercice n'a pas encore de propositions configurées.</p>
+                    <small>L'enseignant doit ajouter des propositions Vrai/Faux dans le formulaire d'édition.</small>
+                </div>
+            `;
+        }
 
         return `
             <div class="vrai-faux-container">
@@ -565,6 +594,16 @@ const EleveConnaissances = {
         const choices = donnees.choix || [];
         const multiple = donnees.multiple || false;
 
+        // Vérifier qu'on a des choix
+        if (choices.length === 0) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Cet exercice n'a pas encore de choix configurés.</p>
+                    <small>L'enseignant doit ajouter des choix QCM dans le formulaire d'édition.</small>
+                </div>
+            `;
+        }
+
         return `
             <div class="qcm-container">
                 ${question ? `<div class="question-enonce">${this.escapeHtml(question)}</div>` : ''}
@@ -590,6 +629,16 @@ const EleveConnaissances = {
     renderChronologie(donnees, questions) {
         const events = donnees.evenements || [];
         const mode = donnees.mode || 'date'; // 'date' or 'evenement'
+
+        // Vérifier qu'on a des événements
+        if (events.length === 0) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Cet exercice n'a pas encore d'événements configurés.</p>
+                    <small>L'enseignant doit ajouter des événements chronologiques dans le formulaire d'édition.</small>
+                </div>
+            `;
+        }
 
         // Shuffle for student
         const shuffled = [...events].sort(() => Math.random() - 0.5);
@@ -625,6 +674,16 @@ const EleveConnaissances = {
     renderTimeline(donnees, questions) {
         const cartes = donnees.cartes || [];
 
+        // Vérifier qu'on a des cartes
+        if (cartes.length === 0) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Cet exercice n'a pas encore de cartes configurées.</p>
+                    <small>L'enseignant doit ajouter des cartes Timeline dans le formulaire d'édition.</small>
+                </div>
+            `;
+        }
+
         // Shuffle for student
         const shuffled = [...cartes].sort(() => Math.random() - 0.5);
 
@@ -656,6 +715,16 @@ const EleveConnaissances = {
     renderTexteTrous(donnees, questions) {
         let texte = donnees.texte || '';
         const mots = donnees.mots || [];
+
+        // Vérifier qu'on a du texte
+        if (!texte) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Cet exercice n'a pas encore de texte configuré.</p>
+                    <small>L'enseignant doit ajouter un texte à trous dans le formulaire d'édition.</small>
+                </div>
+            `;
+        }
 
         // Replace {...} patterns with input fields
         let inputIndex = 0;
