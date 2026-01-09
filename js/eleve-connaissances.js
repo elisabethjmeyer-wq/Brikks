@@ -35,6 +35,10 @@ const EleveConnaissances = {
     async init() {
         this.currentUser = await this.getCurrentUser();
 
+        // Clear cache for debugging
+        localStorage.removeItem(this.CACHE_KEY);
+        console.log('[EleveConnaissances] Cache vidé, chargement des données fraîches...');
+
         // Try cache first
         const cached = this.loadFromCache();
         if (cached) {
@@ -90,13 +94,23 @@ const EleveConnaissances = {
     },
 
     applyData(data) {
-        this.banques = (data.banques || []).filter(b => b.statut === 'publie');
-        this.entrainements = (data.entrainements || []).filter(e => e.statut === 'publie');
+        // TODO: Remettre le filtre statut === 'publie' en production
+        // Pour l'instant, on affiche tout pour le test
+        this.banques = data.banques || [];
+        this.entrainements = data.entrainements || [];
         this.etapes = data.etapes || [];
         this.etapeQuestions = data.etapeQuestions || [];
         this.formatsQuestions = data.formatsQuestions || [];
         this.banques.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
         this.entrainements.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        // Debug log
+        console.log('[EleveConnaissances] Données chargées:', {
+            banques: this.banques.length,
+            entrainements: this.entrainements.length,
+            etapes: this.etapes.length,
+            data: data
+        });
     },
 
     async loadData() {
