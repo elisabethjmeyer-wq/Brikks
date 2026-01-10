@@ -4139,6 +4139,31 @@ function getProgressionMemorisation(data) {
 }
 
 /**
+ * Récupère le seuil de réussite d'un entraînement
+ */
+function getSeuilEntrainement(entrainementId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+  if (!sheet) return SEUIL_REUSSITE; // Fallback au seuil par défaut
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+  const seuilCol = headers.indexOf('seuil');
+
+  if (seuilCol < 0) return SEUIL_REUSSITE;
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === String(entrainementId).trim()) {
+      const seuil = parseInt(allData[i][seuilCol]);
+      return isNaN(seuil) ? SEUIL_REUSSITE : seuil;
+    }
+  }
+
+  return SEUIL_REUSSITE;
+}
+
+/**
  * Sauvegarde une tentative et met à jour la progression de mémorisation
  * @param {Object} data - { eleve_id, entrainement_id, banque_id, score, score_max }
  */
@@ -4158,6 +4183,9 @@ function saveProgressionMemorisation(data) {
       'prochaine_revision', 'historique', 'date_creation', 'date_modification'
     ]);
   }
+
+  // Récupérer le seuil de réussite défini pour cet entraînement
+  const seuilReussite = getSeuilEntrainement(data.entrainement_id);
 
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0].map(h => String(h).toLowerCase().trim());
@@ -4214,8 +4242,8 @@ function saveProgressionMemorisation(data) {
     const peutReviser = !prochaineRevision || new Date(prochaineRevision) <= now;
 
     if (peutReviser) {
-      // Seuil unique de 80% pour toutes les étapes
-      const reussi = pourcentage >= SEUIL_REUSSITE;
+      // Utiliser le seuil défini pour cet entraînement
+      const reussi = pourcentage >= seuilReussite;
 
       if (reussi) {
         // Avancer d'une étape
@@ -4265,7 +4293,8 @@ function saveProgressionMemorisation(data) {
       pret_evaluation: etape >= ETAPE_PRET_EVALUATION,
       prochaine_revision: prochaineRevision,
       pourcentage: pourcentage,
-      reussi: peutReviser ? (pourcentage >= SEUIL_REUSSITE) : null
+      reussi: peutReviser ? (pourcentage >= seuilReussite) : null,
+      seuil: seuilReussite
     };
 
   } else {
@@ -4275,7 +4304,7 @@ function saveProgressionMemorisation(data) {
     const statut = 'en_cours';
     // Première tentative réussie = prochaine révision dans 1 jour
     // Première tentative échouée = peut réessayer immédiatement
-    const reussi = pourcentage >= SEUIL_REUSSITE;
+    const reussi = pourcentage >= seuilReussite;
 
     let prochaineRevision;
     let nouvelleEtape = 1;
@@ -4316,7 +4345,8 @@ function saveProgressionMemorisation(data) {
       pret_evaluation: nouvelleEtape >= ETAPE_PRET_EVALUATION,
       prochaine_revision: prochaineRevision,
       pourcentage: pourcentage,
-      reussi: reussi
+      reussi: reussi,
+      seuil: seuilReussite
     };
   }
 }
