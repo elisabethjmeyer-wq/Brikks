@@ -547,9 +547,8 @@
     cursor: grab;
 }
 
-.timeline-flip-card:hover .flip-card-inner {
-    transform: rotateY(180deg);
-}
+/* Retournement seulement après validation (classe flippable ajoutée) */
+/* Pas de retournement au hover par défaut */
 
 .flip-card-inner {
     position: relative;
@@ -575,10 +574,11 @@
 }
 
 .flip-card-front {
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
-    color: white;
+    /* Couleur de fond par défaut (sera remplacée par background-image si présente) */
+    background-color: #3b82f6;
     background-size: cover;
     background-position: center;
+    color: white;
 }
 
 .flip-card-front::before {
@@ -909,6 +909,14 @@
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
+/* Apparié mais pas encore validé (neutre, pas de feedback) */
+.association-item.paired {
+    border-color: #6366f1;
+    background: #e0e7ff;
+    cursor: pointer;
+}
+
+/* Ancien style linked pour rétro-compatibilité - utilisé après validation si correct */
 .association-item.linked {
     border-color: #10b981;
     background: #d1fae5;
@@ -922,19 +930,55 @@
 }
 
 .association-link-indicator {
-    width: 12px;
-    height: 12px;
+    min-width: 24px;
+    height: 24px;
     border-radius: 50%;
     background: #e2e8f0;
     margin: 0 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    transition: all 0.2s;
 }
 
 .association-item.selected .association-link-indicator {
     background: #3b82f6;
 }
 
+/* Indicateur avec numéro de paire */
+.association-link-indicator.has-pair {
+    background: #6366f1;
+}
+
+.association-item.paired .association-link-indicator {
+    background: #6366f1;
+}
+
 .association-item.linked .association-link-indicator {
     background: #10b981;
+}
+
+/* Après validation - correct */
+.association-item.correct {
+    border-color: #10b981;
+    background: #d1fae5;
+}
+
+.association-item.correct .association-link-indicator {
+    background: #10b981;
+}
+
+/* Après validation - incorrect */
+.association-item.incorrect {
+    border-color: #ef4444;
+    background: #fee2e2;
+}
+
+.association-item.incorrect .association-link-indicator {
+    background: #ef4444;
 }
 
 .association-feedback {
@@ -1272,6 +1316,283 @@
     text-align: center;
     margin-top: 1rem;
     font-style: italic;
+}
+
+/* ============================================
+   CARTE CLIQUABLE V2 - Version avec popup
+   ============================================ */
+
+.carte-exercise-wrapper-v2 {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+}
+
+.carte-image-wrapper-v2 {
+    flex: 1;
+    position: relative;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.carte-image-v2 {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.carte-markers-layer-v2 {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.carte-marker-v2 {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    background: #3b82f6;
+    border: 3px solid white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    pointer-events: auto;
+    transition: all 0.2s;
+}
+
+.carte-marker-v2:hover {
+    transform: translate(-50%, -50%) scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.carte-marker-v2.active {
+    background: #6366f1;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3);
+}
+
+.carte-marker-v2.answered {
+    background: #10b981;
+}
+
+.carte-marker-v2.correct {
+    background: #10b981;
+}
+
+.carte-marker-v2.incorrect {
+    background: #ef4444;
+}
+
+.carte-marker-num-v2 {
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+/* Popup pour réponse */
+.carte-popup {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.carte-popup-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 320px;
+    overflow: hidden;
+}
+
+.carte-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #3b82f6;
+    color: white;
+}
+
+.carte-popup-title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.carte-popup-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.carte-popup-close:hover {
+    opacity: 1;
+}
+
+.carte-popup-body {
+    padding: 1.25rem;
+}
+
+.carte-popup-body label {
+    display: block;
+    font-size: 0.9rem;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.carte-popup-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.carte-popup-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+.carte-popup-footer {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-top: 1px solid #e5e7eb;
+    justify-content: flex-end;
+}
+
+.carte-popup-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.carte-popup-btn-cancel {
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    color: #374151;
+}
+
+.carte-popup-btn-cancel:hover {
+    background: #e5e7eb;
+}
+
+.carte-popup-btn-ok {
+    background: #3b82f6;
+    border: 1px solid #3b82f6;
+    color: white;
+}
+
+.carte-popup-btn-ok:hover {
+    background: #2563eb;
+}
+
+/* Liste des réponses */
+.carte-answers-list {
+    flex: 0 0 220px;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.carte-answers-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.carte-answer-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.carte-answer-item.correct {
+    border-color: #10b981;
+    background: #d1fae5;
+}
+
+.carte-answer-item.incorrect {
+    border-color: #ef4444;
+    background: #fee2e2;
+}
+
+.carte-answer-num {
+    width: 24px;
+    height: 24px;
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.carte-answer-text {
+    flex: 1;
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
+
+.carte-answer-text.answered {
+    color: #374151;
+    font-weight: 500;
+}
+
+.carte-answer-edit {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.carte-answer-edit:hover {
+    opacity: 1;
+}
+
+/* Responsive carte v2 */
+@media (max-width: 768px) {
+    .carte-exercise-wrapper-v2 {
+        flex-direction: column-reverse;
+    }
+
+    .carte-answers-list {
+        flex: none;
+        width: 100%;
+    }
 }
 
 /* Responsive carte */

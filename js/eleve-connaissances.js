@@ -693,16 +693,20 @@ const EleveConnaissances = {
             `;
         }
 
+        // Mélanger les choix tout en gardant trace de l'index original
+        const indexedChoices = choices.map((choice, idx) => ({ choice, originalIdx: idx }));
+        const shuffledChoices = this.shuffleArray([...indexedChoices]);
+
         return `
             <div class="qcm-container">
                 ${question ? `<div class="question-enonce">${this.escapeHtml(question)}</div>` : ''}
                 <div class="qcm-choices">
-                    ${choices.map((choice, idx) => `
+                    ${shuffledChoices.map(({ choice, originalIdx }) => `
                         <label class="qcm-choice">
                             <input type="${multiple ? 'checkbox' : 'radio'}"
                                    name="qcm_answer"
-                                   value="${idx}"
-                                   onchange="EleveConnaissances.saveAnswer('qcm', ${multiple} ? this.parentElement : '${idx}')">
+                                   value="${originalIdx}"
+                                   onchange="EleveConnaissances.saveAnswer('qcm', ${multiple} ? this.parentElement : '${originalIdx}')">
                             <span class="qcm-label">${this.escapeHtml(choice.texte || choice)}</span>
                         </label>
                     `).join('')}
@@ -913,8 +917,8 @@ const EleveConnaissances = {
             `;
         }
 
-        // Mélanger les éléments de droite
-        const elementsGauche = paires.map((p, i) => ({ texte: p.element1, id: i }));
+        // Mélanger les deux colonnes indépendamment
+        const elementsGauche = this.shuffleArray(paires.map((p, i) => ({ texte: p.element1, id: i })));
         const elementsDroite = this.shuffleArray(paires.map((p, i) => ({ texte: p.element2, id: i })));
 
         return `
@@ -946,16 +950,23 @@ const EleveConnaissances = {
     // Association selection state
     associationSelection: { gauche: null, droite: null },
     associationPairs: [],
+    associationPairCounter: 0,
 
     selectAssociationItem(element, side) {
         const id = element.dataset.id;
+
+        // Si l'élément est déjà apparié, le désapparier au clic
+        if (element.classList.contains('paired')) {
+            this.unpairAssociationItem(element, side, id);
+            return;
+        }
 
         // Toggle selection
         if (this.associationSelection[side] === id) {
             element.classList.remove('selected');
             this.associationSelection[side] = null;
         } else {
-            // Deselect previous
+            // Deselect previous selection on this side
             document.querySelectorAll(`.association-${side} .association-item.selected`)
                 .forEach(el => el.classList.remove('selected'));
             element.classList.add('selected');
@@ -963,30 +974,75 @@ const EleveConnaissances = {
         }
 
         // Check if both sides selected - create pair
-        if (this.associationSelection.gauche && this.associationSelection.droite) {
+        if (this.associationSelection.gauche !== null && this.associationSelection.droite !== null) {
+            this.associationPairCounter++;
+            const pairNum = this.associationPairCounter;
+
             this.associationPairs.push({
                 gauche: this.associationSelection.gauche,
-                droite: this.associationSelection.droite
+                droite: this.associationSelection.droite,
+                pairNum: pairNum
             });
             this.saveAnswer('association', this.associationPairs);
 
-            // Visual feedback - mark as linked
-            document.querySelectorAll('.association-gauche .association-item.selected, .association-droite .association-item.selected')
-                .forEach(el => {
+            // Mark as paired (sans indiquer si c'est correct)
+            const gaucheEl = document.querySelector(`.association-gauche .association-item[data-id="${this.associationSelection.gauche}"]`);
+            const droiteEl = document.querySelector(`.association-droite .association-item[data-id="${this.associationSelection.droite}"]`);
+
+            [gaucheEl, droiteEl].forEach(el => {
+                if (el) {
                     el.classList.remove('selected');
-                    el.classList.add('linked');
-                });
+                    el.classList.add('paired');
+                    el.dataset.pairNum = pairNum;
+                    // Ajouter un indicateur de numéro de paire
+                    const indicator = el.querySelector('.association-link-indicator');
+                    if (indicator) {
+                        indicator.textContent = pairNum;
+                        indicator.classList.add('has-pair');
+                    }
+                }
+            });
 
             this.associationSelection = { gauche: null, droite: null };
         }
     },
 
+    unpairAssociationItem(element, side, id) {
+        const pairNum = element.dataset.pairNum;
+        if (!pairNum) return;
+
+        // Trouver et supprimer la paire
+        const pairIndex = this.associationPairs.findIndex(p => String(p.pairNum) === String(pairNum));
+        if (pairIndex > -1) {
+            const pair = this.associationPairs[pairIndex];
+            this.associationPairs.splice(pairIndex, 1);
+            this.saveAnswer('association', this.associationPairs);
+
+            // Réinitialiser les deux éléments de la paire
+            const gaucheEl = document.querySelector(`.association-gauche .association-item[data-id="${pair.gauche}"]`);
+            const droiteEl = document.querySelector(`.association-droite .association-item[data-id="${pair.droite}"]`);
+
+            [gaucheEl, droiteEl].forEach(el => {
+                if (el) {
+                    el.classList.remove('paired', 'selected');
+                    delete el.dataset.pairNum;
+                    const indicator = el.querySelector('.association-link-indicator');
+                    if (indicator) {
+                        indicator.textContent = '';
+                        indicator.classList.remove('has-pair');
+                    }
+                }
+            });
+        }
+    },
+
     /**
      * Render Carte cliquable (localisation sur image)
+     * Nouvelle version: numéros sur la carte, popup pour répondre
      * Format: {consigne, image_url, marqueurs: [{id, x, y, reponse, reponses_acceptees?}, ...]}
      */
     renderCarte(donnees, questions) {
-        const consigne = donnees.consigne || 'Localisez les éléments sur la carte';
+        const consigne = donnees.consigne || 'Identifiez les éléments numérotés sur la carte';
         const imageUrl = donnees.image_url || '';
         const marqueurs = donnees.marqueurs || [];
 
@@ -1008,102 +1064,132 @@ const EleveConnaissances = {
             `;
         }
 
+        // Stocker les données des marqueurs pour la validation
+        this.carteMarqueurs = marqueurs;
+
         return `
             <div class="carte-container">
                 <p class="carte-instruction">${this.escapeHtml(consigne)}</p>
 
-                <div class="carte-exercise-wrapper">
-                    <!-- Liste des éléments à placer -->
-                    <div class="carte-elements-list">
-                        <p class="carte-elements-title">Éléments à placer :</p>
-                        ${marqueurs.map((m, idx) => `
-                            <div class="carte-element-item ${this.userAnswers['carte_' + idx] ? 'placed' : ''}"
-                                 data-index="${idx}"
-                                 data-reponse="${this.escapeHtml(m.reponse)}"
-                                 onclick="EleveConnaissances.selectCarteElement(${idx})">
-                                <span class="carte-element-num">${idx + 1}</span>
-                                <span class="carte-element-text">${this.escapeHtml(m.reponse)}</span>
-                                <span class="carte-element-status"></span>
-                            </div>
-                        `).join('')}
-                    </div>
-
-                    <!-- Image avec zones cliquables -->
-                    <div class="carte-image-wrapper">
+                <div class="carte-exercise-wrapper-v2">
+                    <!-- Image avec marqueurs numérotés -->
+                    <div class="carte-image-wrapper-v2">
                         <img src="${this.escapeHtml(imageUrl)}"
                              alt="Carte à compléter"
-                             class="carte-image"
-                             onclick="EleveConnaissances.onCarteClick(event)">
-                        <div class="carte-markers-layer" id="carteMarkersLayer">
-                            <!-- Les marqueurs placés par l'élève apparaîtront ici -->
-                        </div>
-                        <div class="carte-target-zones" id="carteTargetZones">
-                            <!-- Zones cibles invisibles pour vérification -->
+                             class="carte-image-v2">
+                        <div class="carte-markers-layer-v2" id="carteMarkersLayer">
                             ${marqueurs.map((m, idx) => `
-                                <div class="carte-target-zone"
+                                <div class="carte-marker-v2"
                                      data-index="${idx}"
-                                     style="left: ${m.x}%; top: ${m.y}%; transform: translate(-50%, -50%);">
+                                     data-reponse="${this.escapeHtml(m.reponse)}"
+                                     data-acceptees="${this.escapeHtml(JSON.stringify(m.reponses_acceptees || []))}"
+                                     style="left: ${m.x}%; top: ${m.y}%;"
+                                     onclick="EleveConnaissances.openCartePopup(${idx}, event)">
+                                    <span class="carte-marker-num-v2">${idx + 1}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <!-- Popup pour répondre -->
+                        <div class="carte-popup" id="cartePopup" style="display: none;">
+                            <div class="carte-popup-content">
+                                <div class="carte-popup-header">
+                                    <span class="carte-popup-title">Point n°<span id="cartePopupNum"></span></span>
+                                    <button class="carte-popup-close" onclick="EleveConnaissances.closeCartePopup()">×</button>
+                                </div>
+                                <div class="carte-popup-body">
+                                    <label>Qu'est-ce que c'est ?</label>
+                                    <input type="text"
+                                           id="cartePopupInput"
+                                           class="carte-popup-input"
+                                           placeholder="Votre réponse..."
+                                           autocomplete="off"
+                                           onkeypress="if(event.key === 'Enter') EleveConnaissances.submitCarteAnswer()">
+                                </div>
+                                <div class="carte-popup-footer">
+                                    <button class="carte-popup-btn carte-popup-btn-cancel" onclick="EleveConnaissances.closeCartePopup()">Annuler</button>
+                                    <button class="carte-popup-btn carte-popup-btn-ok" onclick="EleveConnaissances.submitCarteAnswer()">Valider</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Liste des réponses données -->
+                    <div class="carte-answers-list">
+                        <p class="carte-answers-title">Vos réponses :</p>
+                        <div id="carteAnswersList">
+                            ${marqueurs.map((m, idx) => `
+                                <div class="carte-answer-item" data-index="${idx}">
+                                    <span class="carte-answer-num">${idx + 1}</span>
+                                    <span class="carte-answer-text" id="carteAnswer_${idx}">-</span>
+                                    <button class="carte-answer-edit" onclick="EleveConnaissances.openCartePopup(${idx}, null)">✏️</button>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
                 </div>
 
-                <p class="carte-help">Sélectionnez un élément à gauche, puis cliquez sur la carte pour le placer.</p>
+                <p class="carte-help">Cliquez sur un numéro sur la carte pour identifier l'élément correspondant.</p>
             </div>
         `;
     },
 
-    // État pour la carte
-    selectedCarteElement: null,
+    // État pour la carte v2
+    carteMarqueurs: [],
+    carteActiveIndex: null,
 
-    selectCarteElement(index) {
-        // Désélectionner le précédent
-        document.querySelectorAll('.carte-element-item.selected').forEach(el => el.classList.remove('selected'));
+    openCartePopup(index, event) {
+        this.carteActiveIndex = index;
+        const popup = document.getElementById('cartePopup');
+        const numSpan = document.getElementById('cartePopupNum');
+        const input = document.getElementById('cartePopupInput');
 
-        // Sélectionner le nouveau
-        const element = document.querySelector(`.carte-element-item[data-index="${index}"]`);
-        if (element && !element.classList.contains('placed')) {
-            element.classList.add('selected');
-            this.selectedCarteElement = {
-                index: index,
-                reponse: element.dataset.reponse
-            };
-        }
+        numSpan.textContent = index + 1;
+
+        // Pré-remplir si une réponse existe déjà
+        const existingAnswer = this.userAnswers['carte_' + index];
+        input.value = existingAnswer || '';
+
+        popup.style.display = 'flex';
+        input.focus();
+
+        // Marquer le marqueur comme actif
+        document.querySelectorAll('.carte-marker-v2.active').forEach(el => el.classList.remove('active'));
+        const marker = document.querySelector(`.carte-marker-v2[data-index="${index}"]`);
+        if (marker) marker.classList.add('active');
     },
 
-    onCarteClick(event) {
-        if (!this.selectedCarteElement) {
-            return;
+    closeCartePopup() {
+        const popup = document.getElementById('cartePopup');
+        popup.style.display = 'none';
+        this.carteActiveIndex = null;
+        document.querySelectorAll('.carte-marker-v2.active').forEach(el => el.classList.remove('active'));
+    },
+
+    submitCarteAnswer() {
+        if (this.carteActiveIndex === null) return;
+
+        const input = document.getElementById('cartePopupInput');
+        const answer = input.value.trim();
+        const index = this.carteActiveIndex;
+
+        if (answer) {
+            // Sauvegarder la réponse
+            this.userAnswers['carte_' + index] = answer;
+            this.saveAnswer('carte', this.userAnswers);
+
+            // Mettre à jour l'affichage de la liste des réponses
+            const answerText = document.getElementById('carteAnswer_' + index);
+            if (answerText) {
+                answerText.textContent = answer;
+                answerText.classList.add('answered');
+            }
+
+            // Marquer le marqueur comme répondu
+            const marker = document.querySelector(`.carte-marker-v2[data-index="${index}"]`);
+            if (marker) marker.classList.add('answered');
         }
 
-        const img = event.target;
-        const rect = img.getBoundingClientRect();
-        const x = ((event.clientX - rect.left) / rect.width) * 100;
-        const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-        // Placer le marqueur
-        const markersLayer = document.getElementById('carteMarkersLayer');
-        const marker = document.createElement('div');
-        marker.className = 'carte-placed-marker';
-        marker.dataset.index = this.selectedCarteElement.index;
-        marker.style.left = x + '%';
-        marker.style.top = y + '%';
-        marker.innerHTML = `<span class="carte-marker-num">${this.selectedCarteElement.index + 1}</span>`;
-        markersLayer.appendChild(marker);
-
-        // Sauvegarder la réponse
-        this.userAnswers['carte_' + this.selectedCarteElement.index] = { x, y };
-        this.saveAnswer('carte', this.userAnswers);
-
-        // Marquer l'élément comme placé
-        const element = document.querySelector(`.carte-element-item[data-index="${this.selectedCarteElement.index}"]`);
-        if (element) {
-            element.classList.remove('selected');
-            element.classList.add('placed');
-        }
-
-        this.selectedCarteElement = null;
+        this.closeCartePopup();
     },
 
     /**
@@ -1388,30 +1474,38 @@ const EleveConnaissances = {
                 break;
 
             case 'carte':
-                // Valider les marqueurs placés
+                // Valider les réponses textuelles pour chaque marqueur (format v2)
                 const marqueurs = donnees.marqueurs || [];
-                const tolerance = 5; // Tolérance en % pour la position
 
                 marqueurs.forEach((m, idx) => {
                     total++;
                     const answer = this.userAnswers['carte_' + idx];
-                    const placedMarker = document.querySelector(`.carte-placed-marker[data-index="${idx}"]`);
-                    const element = document.querySelector(`.carte-element-item[data-index="${idx}"]`);
+                    const marker = document.querySelector(`.carte-marker-v2[data-index="${idx}"]`);
+                    const answerItem = document.querySelector(`.carte-answer-item[data-index="${idx}"]`);
 
-                    if (answer && placedMarker) {
-                        const distX = Math.abs(answer.x - m.x);
-                        const distY = Math.abs(answer.y - m.y);
+                    if (answer) {
+                        // Normaliser les réponses pour comparaison
+                        const userValue = answer.trim().toLowerCase();
+                        const expectedValue = (m.reponse || '').trim().toLowerCase();
 
-                        if (distX <= tolerance && distY <= tolerance) {
+                        // Vérifier aussi les réponses alternatives acceptées
+                        const reponsesAcceptees = m.reponses_acceptees || [];
+                        const allAccepted = [expectedValue, ...reponsesAcceptees.map(r => r.trim().toLowerCase())];
+
+                        const isCorrect = allAccepted.some(rep => userValue === rep);
+
+                        if (isCorrect) {
                             correct++;
-                            placedMarker.classList.add('correct');
-                            if (element) element.classList.add('correct');
+                            if (marker) marker.classList.add('correct');
+                            if (answerItem) answerItem.classList.add('correct');
                         } else {
-                            placedMarker.classList.add('incorrect');
-                            if (element) element.classList.add('incorrect');
+                            if (marker) marker.classList.add('incorrect');
+                            if (answerItem) answerItem.classList.add('incorrect');
                         }
-                    } else if (element) {
-                        element.classList.add('incorrect');
+                    } else {
+                        // Pas de réponse donnée
+                        if (marker) marker.classList.add('incorrect');
+                        if (answerItem) answerItem.classList.add('incorrect');
                     }
                 });
                 break;
@@ -1459,9 +1553,31 @@ const EleveConnaissances = {
                 const userPairs = this.userAnswers['association'] || [];
 
                 userPairs.forEach(up => {
+                    const gaucheEl = document.querySelector(`.association-gauche .association-item[data-id="${up.gauche}"]`);
+                    const droiteEl = document.querySelector(`.association-droite .association-item[data-id="${up.droite}"]`);
+
+                    // Enlever la classe paired et mettre correct ou incorrect
                     if (up.gauche === up.droite) {
                         correct++;
+                        [gaucheEl, droiteEl].forEach(el => {
+                            if (el) {
+                                el.classList.remove('paired');
+                                el.classList.add('correct');
+                            }
+                        });
+                    } else {
+                        [gaucheEl, droiteEl].forEach(el => {
+                            if (el) {
+                                el.classList.remove('paired');
+                                el.classList.add('incorrect');
+                            }
+                        });
                     }
+                });
+
+                // Marquer les éléments non appariés comme incorrects
+                document.querySelectorAll('.association-item:not(.correct):not(.incorrect)').forEach(el => {
+                    el.classList.add('incorrect');
                 });
                 break;
         }
