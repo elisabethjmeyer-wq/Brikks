@@ -453,7 +453,7 @@ const EleveConnaissances = {
                         </div>
                         ${ent.duree ? `
                             <div class="exercise-timer" id="exerciseTimer">
-                                <span id="timerDisplay">${this.formatTime(ent.duree)}</span>
+                                <span id="timerDisplay">${this.formatTime(ent.duree * 60)}</span>
                             </div>
                         ` : ''}
                     </div>
@@ -981,7 +981,8 @@ const EleveConnaissances = {
     },
 
     startTimer(duration) {
-        this.timeRemaining = duration;
+        // duration est en minutes, convertir en secondes
+        this.timeRemaining = duration * 60;
         this.updateTimerDisplay();
 
         this.timer = setInterval(() => {
