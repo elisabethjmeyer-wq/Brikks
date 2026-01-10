@@ -2086,37 +2086,6 @@ const EleveConnaissances = {
     },
 
     /**
-     * Appel API helper
-     */
-    callAPI(action, params) {
-        return new Promise((resolve, reject) => {
-            const url = new URL(CONFIG.API_URL);
-            url.searchParams.append('action', action);
-            Object.keys(params).forEach(key => {
-                url.searchParams.append(key, params[key]);
-            });
-
-            const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            url.searchParams.append('callback', callbackName);
-
-            window[callbackName] = (response) => {
-                delete window[callbackName];
-                document.body.removeChild(script);
-                resolve(response);
-            };
-
-            const script = document.createElement('script');
-            script.src = url.toString();
-            script.onerror = () => {
-                delete window[callbackName];
-                document.body.removeChild(script);
-                reject(new Error('API call failed'));
-            };
-            document.body.appendChild(script);
-        });
-    },
-
-    /**
      * Affiche un modal quand l'entraînement est verrouillé
      */
     showLockedModal(prog, status) {
