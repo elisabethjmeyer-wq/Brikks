@@ -229,14 +229,19 @@ const EleveConnaissances = {
         // Calculer le nombre total d'actions à faire
         const aFaire = globalStats.aReviser + globalStats.nouveau;
 
-        // Déterminer le message du bandeau
+        // Déterminer le message du bandeau (plus précis)
         let bandeauMessage, bandeauClass;
         if (aFaire > 0) {
             bandeauMessage = `${aFaire} À FAIRE`;
             bandeauClass = globalStats.aReviser > 0 ? 'has-urgent' : 'has-new';
-        } else if (globalStats.aJour === globalStats.total && globalStats.total > 0) {
-            bandeauMessage = '✓ TOUT EST À JOUR';
+        } else if (globalStats.memorise === globalStats.total && globalStats.total > 0) {
+            // Vraiment tout mémorisé (étape 7/7)
+            bandeauMessage = '🏆 TOUT MÉMORISÉ';
             bandeauClass = 'all-done';
+        } else if (globalStats.verrouille > 0) {
+            // En attente de révisions futures
+            bandeauMessage = '⏳ EN ATTENTE';
+            bandeauClass = 'waiting';
         } else {
             bandeauMessage = '0 À FAIRE';
             bandeauClass = 'empty';
@@ -274,9 +279,13 @@ const EleveConnaissances = {
                             : `<span class="action-badge new">🆕 ${globalStats.nouveau} nouveau${globalStats.nouveau > 1 ? 'x' : ''} à découvrir</span>`
                         }
                     </div>
-                ` : globalStats.total > 0 ? `
+                ` : globalStats.verrouille > 0 ? `
                     <div class="conn-next-action">
-                        <span class="action-badge done">✅ Bravo ! Reviens plus tard pour tes révisions</span>
+                        <span class="action-badge waiting">⏳ ${globalStats.verrouille} révision${globalStats.verrouille > 1 ? 's' : ''} prévue${globalStats.verrouille > 1 ? 's' : ''} prochainement</span>
+                    </div>
+                ` : globalStats.memorise === globalStats.total ? `
+                    <div class="conn-next-action">
+                        <span class="action-badge done">🏆 Félicitations ! Tout est mémorisé !</span>
                     </div>
                 ` : ''}
             </div>

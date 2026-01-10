@@ -2497,6 +2497,11 @@
     color: #059669;
 }
 
+.type-header-banner.connaissances.waiting .type-stat-value {
+    background: #e0e7ff;
+    color: #4f46e5;
+}
+
 /* === ACTIONS BADGES === */
 .conn-next-action {
     margin-top: 0.75rem;
