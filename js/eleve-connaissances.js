@@ -63,11 +63,17 @@ const EleveConnaissances = {
      */
     async getCurrentUser() {
         try {
+            // Vérifier Auth.user en premier
             if (typeof Auth !== 'undefined' && Auth.user) return Auth.user;
-            const session = localStorage.getItem('brikks_session');
-            if (session) return JSON.parse(session);
+            // Vérifier sessionStorage (utilisé par le système de connexion élève)
+            const sessionUser = sessionStorage.getItem('brikks_user');
+            if (sessionUser) return JSON.parse(sessionUser);
+            // Fallback sur localStorage
+            const localSession = localStorage.getItem('brikks_session');
+            if (localSession) return JSON.parse(localSession);
             return null;
         } catch (e) {
+            console.error('[EleveConnaissances] Erreur getCurrentUser:', e);
             return null;
         }
     },
