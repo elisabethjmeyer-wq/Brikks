@@ -1619,7 +1619,7 @@ const EleveExercices = {
         if (!this.currentUser || !this.currentUser.id || !this.currentExercise) return;
 
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
-        const tempsPrevu = this.currentExercise.duree ? this.currentExercise.duree * 60 : 300; // en secondes
+        const tempsPrevu = this.currentExercise.duree || 300; // duree est déjà en secondes
 
         const resultData = {
             eleve_id: this.currentUser.id,
@@ -1632,6 +1632,20 @@ const EleveExercices = {
             date: new Date().toISOString()
         };
 
+        // Pour les savoir-faire, toujours mettre à jour les stats locales immédiatement
+        // (pour que l'écran de résultat affiche les bonnes infos même si l'API échoue)
+        if (this.currentType === 'savoir-faire') {
+            const pratiqueData = {
+                eleve_id: this.currentUser.id,
+                exercice_id: this.currentExercise.id,
+                banque_id: this.currentExercise.banque_id,
+                score: percent,
+                temps_passe: timeSpent,
+                temps_prevu: tempsPrevu
+            };
+            this.updateLocalStatsSF(pratiqueData);
+        }
+
         try {
             // Sauvegarder dans l'ancien système (pour compatibilité)
             const result = await this.callAPI('saveResultatExercice', resultData);
@@ -1639,7 +1653,7 @@ const EleveExercices = {
                 this.updateLocalResult(resultData);
             }
 
-            // Pour les savoir-faire, sauvegarder aussi dans l'historique des pratiques
+            // Pour les savoir-faire, sauvegarder aussi dans l'historique des pratiques (backend)
             if (this.currentType === 'savoir-faire') {
                 const pratiqueData = {
                     eleve_id: this.currentUser.id,
@@ -1649,12 +1663,10 @@ const EleveExercices = {
                     temps_passe: timeSpent,
                     temps_prevu: tempsPrevu
                 };
-
-                const pratResult = await this.callAPI('savePratiqueSF', pratiqueData);
-                if (pratResult.success) {
-                    // Mettre à jour les stats locales
-                    this.updateLocalStatsSF(pratiqueData);
-                }
+                // Tenter de sauvegarder au backend (ne bloque pas si échoue)
+                this.callAPI('savePratiqueSF', pratiqueData).catch(e => {
+                    console.warn('[EleveExercices] Sauvegarde SF backend échouée:', e);
+                });
             }
         } catch (e) {
             console.error('[EleveExercices] Erreur sauvegarde résultat:', e);
@@ -1900,6 +1912,9 @@ const EleveExercices = {
 
         // Message de progression SF
         let progressionMessage = '';
+        // Formater le numéro ordinal (1ère, 2ème, 3ème...)
+        const formatOrdinal = (n) => n === 1 ? '1ère' : `${n}ème`;
+
         if (estParfait) {
             const newCount = pratiquesParfaites; // Déjà mis à jour par updateLocalStatsSF
             if (newCount >= this.SEUIL_PRATIQUES_PARFAITES) {
@@ -1907,26 +1922,26 @@ const EleveExercices = {
                 const tempsMoyen = stats.temps_moyen || timeSpent;
                 if (tempsMoyen <= tempsPrevu) {
                     progressionMessage = `<div class="progression-message success">
-                        🚀 Excellent ! Cet exercice est maintenant automatisé !
+                        🚀 Excellent ! Cet exercice est maintenant <strong>automatisé</strong> !
                         <small>Tu maîtrises ce savoir-faire rapidement et sans erreur.</small>
                     </div>`;
                 } else {
                     progressionMessage = `<div class="progression-message partial">
-                        ✅ ${newCount}ème pratique parfaite ! Encore un peu d'entraînement pour automatiser.
-                        <small>Objectif: ${Math.floor(tempsPrevu / 60)} min - Ton temps: ${Math.floor(timeSpent / 60)} min ${timeSpent % 60}s</small>
+                        ✅ ${formatOrdinal(newCount)} pratique parfaite ! Encore un peu d'entraînement pour aller plus vite.
+                        <small>Objectif: ${Math.floor(tempsPrevu / 60)} min • Ton temps: ${Math.floor(timeSpent / 60)} min ${timeSpent % 60}s</small>
                     </div>`;
                 }
             } else {
                 const restantes = this.SEUIL_PRATIQUES_PARFAITES - newCount;
                 progressionMessage = `<div class="progression-message info">
-                    ✅ ${newCount}ème pratique parfaite !
+                    ✅ ${formatOrdinal(newCount)} pratique parfaite !
                     <small>Encore ${restantes} pratique${restantes > 1 ? 's' : ''} parfaite${restantes > 1 ? 's' : ''} pour acquérir ce savoir-faire.</small>
                 </div>`;
             }
         } else {
             progressionMessage = `<div class="progression-message retry">
-                📚 Il faut 100% de bonnes réponses pour valider une pratique.
-                <small>Tu peux recommencer maintenant !</small>
+                📚 Il faut 100% pour valider une pratique parfaite.
+                <small>Recommence pour t'améliorer !</small>
             </div>`;
         }
 
@@ -1982,18 +1997,26 @@ const EleveExercices = {
                         </div>
                     </div>
 
-                    <div class="result-actions">
-                        <button class="btn btn-secondary" onclick="EleveExercices.restartExercise()">
-                            🔄 Recommencer
-                        </button>
+                    <div class="result-actions-sf">
                         ${nextExercise ? `
-                            <button class="btn btn-primary" onclick="EleveExercices.startNextExercise()">
+                            <button class="btn btn-primary btn-lg" onclick="EleveExercices.startNextExercise()">
                                 Continuer →
                             </button>
-                        ` : ''}
-                        <button class="btn btn-outline" onclick="EleveExercices.backToList()">
-                            Retour à la liste
-                        </button>
+                        ` : `
+                            <button class="btn btn-primary btn-lg" onclick="EleveExercices.backToList()">
+                                Retour aux exercices
+                            </button>
+                        `}
+                        <div class="result-actions-secondary">
+                            <button class="btn btn-ghost" onclick="EleveExercices.restartExercise()">
+                                🔄 Recommencer cet exercice
+                            </button>
+                            ${nextExercise ? `
+                                <button class="btn btn-ghost" onclick="EleveExercices.backToList()">
+                                    ← Retour à la liste
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
                 </div>
             </div>

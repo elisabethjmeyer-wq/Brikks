@@ -3423,6 +3423,45 @@ body.document-fullscreen-active {
     color: #d97706;
 }
 
+/* Actions SF - nouveau layout */
+.result-actions-sf {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.result-actions-sf .btn-lg {
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    min-width: 200px;
+}
+
+.result-actions-secondary {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.btn-ghost {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 6px;
+}
+
+.btn-ghost:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
 /* Responsive result screen */
 @media (max-width: 600px) {
     .result-header {
