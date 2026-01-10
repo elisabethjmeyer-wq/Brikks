@@ -2479,6 +2479,23 @@ const EleveConnaissances = {
                 </div>
             </div>
         `;
+
+        // Déclencher les célébrations appropriées (seulement si pas en mode entraînement libre)
+        if (!this.isTrainingMode && prog.success) {
+            setTimeout(() => {
+                if (prog.statut === 'memorise' && prog.reussi) {
+                    // Niveau 2 : Mémorisation complète !
+                    this.celebrateMemorized();
+                    // Vérifier si toute la banque est maintenant complète
+                    if (ent && ent.banque_exercice_id) {
+                        this.checkAndCelebrateBanqueComplete(ent.banque_exercice_id);
+                    }
+                } else if (prog.reussi) {
+                    // Niveau 1 : Réussite simple
+                    this.celebrateSuccess();
+                }
+            }, 300); // Petit délai pour laisser le rendu se faire
+        }
     },
 
     /**
@@ -2691,5 +2708,145 @@ const EleveConnaissances = {
             [array[i], array[j]] = [array[j], array[i]];
         }
         return array;
+    },
+
+    // ============================================
+    // CÉLÉBRATIONS - Animations confetti
+    // ============================================
+
+    /**
+     * Célébration niveau 1 : Réussite (score ≥ seuil)
+     * Confettis modérés qui tombent doucement
+     */
+    celebrateSuccess() {
+        if (typeof confetti === 'undefined') return;
+
+        // Confettis doux depuis le haut
+        confetti({
+            particleCount: 50,
+            spread: 60,
+            origin: { y: 0.3 },
+            colors: ['#10b981', '#3b82f6', '#f59e0b'],
+            ticks: 200,
+            gravity: 1.2,
+            scalar: 1
+        });
+    },
+
+    /**
+     * Célébration niveau 2 : Mémorisation complète (étape 7/7)
+     * Explosion de confettis + étoiles
+     */
+    celebrateMemorized() {
+        if (typeof confetti === 'undefined') return;
+
+        const duration = 2000;
+        const end = Date.now() + duration;
+
+        // Explosion depuis les deux côtés
+        const frame = () => {
+            confetti({
+                particleCount: 3,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+                colors: ['#10b981', '#059669', '#fbbf24', '#f59e0b']
+            });
+            confetti({
+                particleCount: 3,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+                colors: ['#10b981', '#059669', '#fbbf24', '#f59e0b']
+            });
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        };
+        frame();
+
+        // Burst central avec étoiles
+        setTimeout(() => {
+            confetti({
+                particleCount: 100,
+                spread: 100,
+                origin: { y: 0.5 },
+                colors: ['#fbbf24', '#f59e0b', '#10b981'],
+                shapes: ['star', 'circle'],
+                scalar: 1.2
+            });
+        }, 300);
+    },
+
+    /**
+     * Célébration niveau 3 : Banque complète (tous les entraînements mémorisés)
+     * Feu d'artifice spectaculaire multi-couleurs
+     */
+    celebrateBanqueComplete() {
+        if (typeof confetti === 'undefined') return;
+
+        const duration = 4000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 100, zIndex: 10000 };
+
+        const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+        const interval = setInterval(() => {
+            const timeLeft = animationEnd - Date.now();
+
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
+
+            const particleCount = 80 * (timeLeft / duration);
+
+            // Feu d'artifice depuis différentes positions
+            confetti({
+                ...defaults,
+                particleCount,
+                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+                colors: ['#ff0000', '#ffa500', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#ee82ee']
+            });
+            confetti({
+                ...defaults,
+                particleCount,
+                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+                colors: ['#ff0000', '#ffa500', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#ee82ee']
+            });
+        }, 250);
+
+        // Grand final au centre
+        setTimeout(() => {
+            confetti({
+                particleCount: 200,
+                spread: 180,
+                origin: { y: 0.5, x: 0.5 },
+                colors: ['#ffd700', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96e6a1'],
+                shapes: ['star'],
+                scalar: 1.5,
+                gravity: 0.8
+            });
+        }, 3500);
+    },
+
+    /**
+     * Vérifie si une banque est complètement mémorisée et déclenche la célébration
+     */
+    checkAndCelebrateBanqueComplete(banqueId) {
+        const banqueEntrainements = this.entrainements.filter(e => e.banque_exercice_id === banqueId);
+        if (banqueEntrainements.length === 0) return false;
+
+        const allMemorized = banqueEntrainements.every(ent => {
+            const prog = this.progressions[ent.id];
+            return prog && prog.statut === 'memorise';
+        });
+
+        if (allMemorized) {
+            // Petit délai pour laisser l'utilisateur voir le message d'abord
+            setTimeout(() => this.celebrateBanqueComplete(), 500);
+            return true;
+        }
+        return false;
     }
 };
