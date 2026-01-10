@@ -589,10 +589,15 @@ const EleveConnaissances = {
                 return this.renderChronologie(donnees, questions);
             case 'timeline':
                 return this.renderTimeline(donnees, questions);
+            case 'texte_trou':
             case 'texte_trous':
                 return this.renderTexteTrous(donnees, questions);
             case 'association':
                 return this.renderAssociation(donnees, questions);
+            case 'carte':
+                return this.renderCarte(donnees, questions);
+            case 'question_ouverte':
+                return this.renderQuestionOuverte(donnees, questions);
             default:
                 return `<div class="unsupported-format">Format non supporté: ${format}<br><small>Données: ${JSON.stringify(donnees)}</small></div>`;
         }
@@ -708,14 +713,15 @@ const EleveConnaissances = {
     },
 
     /**
-     * Render Chronologie (Timeline ordering)
-     * Format admin: {consigne, mode, paires: [{date, evenement}, ...]}
-     * Affiche une frise chronologique visuelle avec flèche
+     * Render Chronologie (frise chronologique)
+     * Format admin: {consigne, mode, paires: [{date, evenement, reponses_acceptees?}, ...]}
+     * - mode 'date' : L'événement est affiché, l'élève trouve la date
+     * - mode 'evenement' : La date est affichée, l'élève trouve l'événement
      */
     renderChronologie(donnees, questions) {
         // Accepter 'paires' ou 'evenements' comme nom de champ
         const events = donnees.paires || donnees.evenements || [];
-        const mode = donnees.mode || 'date'; // 'date' or 'evenement'
+        const mode = donnees.mode || 'date'; // 'date' = élève tape dates, 'evenement' = élève tape événements
         const consigne = donnees.consigne || '';
 
         // Vérifier qu'on a des événements
@@ -735,17 +741,19 @@ const EleveConnaissances = {
             return dateA - dateB;
         });
 
-        // Mélanger les événements pour le drag & drop
-        const shuffledEvents = this.shuffleArray([...events]);
-
-        // Instruction par défaut ou personnalisée
-        const defaultInstruction = 'Placez les événements sur la frise chronologique';
+        // Instruction par défaut selon le mode
+        let defaultInstruction = '';
+        if (mode === 'date') {
+            defaultInstruction = 'Complétez les dates manquantes sur la frise chronologique';
+        } else {
+            defaultInstruction = 'Complétez les événements manquants sur la frise chronologique';
+        }
 
         return `
             <div class="chronologie-container">
                 <p class="chrono-instruction">${this.escapeHtml(consigne || defaultInstruction)}</p>
 
-                <!-- Frise chronologique avec flèche -->
+                <!-- Frise chronologique avec champs de saisie -->
                 <div class="chrono-frise-wrapper">
                     <div class="chrono-frise">
                         <div class="chrono-ligne">
@@ -753,76 +761,56 @@ const EleveConnaissances = {
                         </div>
                         <div class="chrono-points">
                             ${sortedEvents.map((evt, idx) => `
-                                <div class="chrono-point-container" data-index="${idx}" data-date="${evt.date}">
-                                    <div class="chrono-date-label">${this.escapeHtml(String(evt.date))}</div>
+                                <div class="chrono-point-container" data-index="${idx}">
                                     <div class="chrono-point"></div>
-                                    <div class="chrono-drop-zone"
-                                         data-index="${idx}"
-                                         ondragover="event.preventDefault(); this.classList.add('drag-over')"
-                                         ondragleave="this.classList.remove('drag-over')"
-                                         ondrop="EleveConnaissances.dropChronoEvent(event, ${idx})">
-                                        <span class="chrono-placeholder">?</span>
-                                    </div>
+                                    ${mode === 'evenement' ? `
+                                        <!-- Mode: l'élève tape l'événement, la date est affichée -->
+                                        <div class="chrono-date-label chrono-given">${this.escapeHtml(String(evt.date))}</div>
+                                        <div class="chrono-input-zone">
+                                            <input type="text"
+                                                   class="chrono-input chrono-input-evenement"
+                                                   id="chrono_evt_${idx}"
+                                                   data-index="${idx}"
+                                                   data-correct="${this.escapeHtml(evt.evenement)}"
+                                                   data-acceptees="${this.escapeHtml(JSON.stringify(evt.reponses_acceptees || []))}"
+                                                   placeholder="Événement..."
+                                                   autocomplete="off"
+                                                   oninput="EleveConnaissances.saveChronoAnswer(${idx}, 'evenement', this.value)">
+                                        </div>
+                                    ` : `
+                                        <!-- Mode: l'élève tape la date, l'événement est affiché -->
+                                        <div class="chrono-input-zone">
+                                            <input type="text"
+                                                   class="chrono-input chrono-input-date"
+                                                   id="chrono_date_${idx}"
+                                                   data-index="${idx}"
+                                                   data-correct="${this.escapeHtml(String(evt.date))}"
+                                                   data-acceptees="${this.escapeHtml(JSON.stringify(evt.reponses_acceptees || []))}"
+                                                   placeholder="Date..."
+                                                   autocomplete="off"
+                                                   oninput="EleveConnaissances.saveChronoAnswer(${idx}, 'date', this.value)">
+                                        </div>
+                                        <div class="chrono-event-label chrono-given">${this.escapeHtml(evt.evenement)}</div>
+                                    `}
                                 </div>
                             `).join('')}
                         </div>
-                    </div>
-                </div>
-
-                <!-- Événements à placer -->
-                <div class="chrono-events-pool">
-                    <p class="chrono-pool-label">Événements à placer :</p>
-                    <div class="chrono-events-list">
-                        ${shuffledEvents.map((evt, idx) => `
-                            <div class="chrono-event-card"
-                                 draggable="true"
-                                 data-event="${this.escapeHtml(evt.evenement)}"
-                                 data-correct-date="${evt.date}"
-                                 ondragstart="EleveConnaissances.dragChronoEvent(event)">
-                                ${this.escapeHtml(evt.evenement)}
-                            </div>
-                        `).join('')}
                     </div>
                 </div>
             </div>
         `;
     },
 
-    // Drag & Drop pour chronologie
-    dragChronoEvent(event) {
-        event.dataTransfer.setData('text/plain', event.target.dataset.event);
-        event.dataTransfer.setData('correct-date', event.target.dataset.correctDate);
-        event.target.classList.add('dragging');
-    },
-
-    dropChronoEvent(event, index) {
-        event.preventDefault();
-        const dropZone = event.currentTarget;
-        dropZone.classList.remove('drag-over');
-
-        const eventText = event.dataTransfer.getData('text/plain');
-        const correctDate = event.dataTransfer.getData('correct-date');
-        const targetDate = dropZone.parentElement.dataset.date;
-
-        // Retirer l'élément de la pool
-        const draggedCard = document.querySelector(`.chrono-event-card[data-event="${eventText}"]`);
-        if (draggedCard) {
-            draggedCard.classList.remove('dragging');
-            draggedCard.style.display = 'none';
-        }
-
-        // Placer dans la zone
-        dropZone.innerHTML = `<span class="chrono-placed-event" data-correct-date="${correctDate}">${eventText}</span>`;
-        dropZone.classList.add('filled');
-
-        // Sauvegarder la réponse
+    /**
+     * Sauvegarde la réponse de l'élève pour la chronologie
+     */
+    saveChronoAnswer(index, type, value) {
         if (!this.userAnswers['chrono']) {
             this.userAnswers['chrono'] = {};
         }
         this.userAnswers['chrono'][index] = {
-            placed: eventText,
-            correctDate: correctDate,
-            targetDate: targetDate
+            type: type,
+            value: value.trim()
         };
     },
 
@@ -994,6 +982,173 @@ const EleveConnaissances = {
     },
 
     /**
+     * Render Carte cliquable (localisation sur image)
+     * Format: {consigne, image_url, marqueurs: [{id, x, y, reponse, reponses_acceptees?}, ...]}
+     */
+    renderCarte(donnees, questions) {
+        const consigne = donnees.consigne || 'Localisez les éléments sur la carte';
+        const imageUrl = donnees.image_url || '';
+        const marqueurs = donnees.marqueurs || [];
+
+        if (!imageUrl) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Cet exercice n'a pas encore d'image configurée.</p>
+                    <small>L'enseignant doit ajouter une image dans le formulaire d'édition.</small>
+                </div>
+            `;
+        }
+
+        if (marqueurs.length === 0) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Cet exercice n'a pas encore de marqueurs configurés.</p>
+                    <small>L'enseignant doit ajouter des points à localiser sur la carte.</small>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="carte-container">
+                <p class="carte-instruction">${this.escapeHtml(consigne)}</p>
+
+                <div class="carte-exercise-wrapper">
+                    <!-- Liste des éléments à placer -->
+                    <div class="carte-elements-list">
+                        <p class="carte-elements-title">Éléments à placer :</p>
+                        ${marqueurs.map((m, idx) => `
+                            <div class="carte-element-item ${this.userAnswers['carte_' + idx] ? 'placed' : ''}"
+                                 data-index="${idx}"
+                                 data-reponse="${this.escapeHtml(m.reponse)}"
+                                 onclick="EleveConnaissances.selectCarteElement(${idx})">
+                                <span class="carte-element-num">${idx + 1}</span>
+                                <span class="carte-element-text">${this.escapeHtml(m.reponse)}</span>
+                                <span class="carte-element-status"></span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- Image avec zones cliquables -->
+                    <div class="carte-image-wrapper">
+                        <img src="${this.escapeHtml(imageUrl)}"
+                             alt="Carte à compléter"
+                             class="carte-image"
+                             onclick="EleveConnaissances.onCarteClick(event)">
+                        <div class="carte-markers-layer" id="carteMarkersLayer">
+                            <!-- Les marqueurs placés par l'élève apparaîtront ici -->
+                        </div>
+                        <div class="carte-target-zones" id="carteTargetZones">
+                            <!-- Zones cibles invisibles pour vérification -->
+                            ${marqueurs.map((m, idx) => `
+                                <div class="carte-target-zone"
+                                     data-index="${idx}"
+                                     style="left: ${m.x}%; top: ${m.y}%; transform: translate(-50%, -50%);">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <p class="carte-help">Sélectionnez un élément à gauche, puis cliquez sur la carte pour le placer.</p>
+            </div>
+        `;
+    },
+
+    // État pour la carte
+    selectedCarteElement: null,
+
+    selectCarteElement(index) {
+        // Désélectionner le précédent
+        document.querySelectorAll('.carte-element-item.selected').forEach(el => el.classList.remove('selected'));
+
+        // Sélectionner le nouveau
+        const element = document.querySelector(`.carte-element-item[data-index="${index}"]`);
+        if (element && !element.classList.contains('placed')) {
+            element.classList.add('selected');
+            this.selectedCarteElement = {
+                index: index,
+                reponse: element.dataset.reponse
+            };
+        }
+    },
+
+    onCarteClick(event) {
+        if (!this.selectedCarteElement) {
+            return;
+        }
+
+        const img = event.target;
+        const rect = img.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 100;
+        const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+        // Placer le marqueur
+        const markersLayer = document.getElementById('carteMarkersLayer');
+        const marker = document.createElement('div');
+        marker.className = 'carte-placed-marker';
+        marker.dataset.index = this.selectedCarteElement.index;
+        marker.style.left = x + '%';
+        marker.style.top = y + '%';
+        marker.innerHTML = `<span class="carte-marker-num">${this.selectedCarteElement.index + 1}</span>`;
+        markersLayer.appendChild(marker);
+
+        // Sauvegarder la réponse
+        this.userAnswers['carte_' + this.selectedCarteElement.index] = { x, y };
+        this.saveAnswer('carte', this.userAnswers);
+
+        // Marquer l'élément comme placé
+        const element = document.querySelector(`.carte-element-item[data-index="${this.selectedCarteElement.index}"]`);
+        if (element) {
+            element.classList.remove('selected');
+            element.classList.add('placed');
+        }
+
+        this.selectedCarteElement = null;
+    },
+
+    /**
+     * Render Question ouverte
+     * Format: {question, reponses_acceptees: [...], case_sensitive?, feedback_correct?, feedback_incorrect?}
+     */
+    renderQuestionOuverte(donnees, questions) {
+        const question = donnees.question || donnees.enonce || '';
+        const reponsesAcceptees = donnees.reponses_acceptees || [];
+
+        if (!question) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Cet exercice n'a pas encore de question configurée.</p>
+                    <small>L'enseignant doit ajouter une question dans le formulaire d'édition.</small>
+                </div>
+            `;
+        }
+
+        if (reponsesAcceptees.length === 0) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Cet exercice n'a pas encore de réponses acceptées configurées.</p>
+                    <small>L'enseignant doit ajouter au moins une réponse acceptée.</small>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="question-ouverte-container">
+                <div class="question-ouverte-enonce">${this.escapeHtml(question)}</div>
+                <div class="question-ouverte-input-wrapper">
+                    <input type="text"
+                           class="question-ouverte-input"
+                           id="questionOuverteReponse"
+                           placeholder="Tapez votre réponse..."
+                           autocomplete="off"
+                           oninput="EleveConnaissances.saveAnswer('question_ouverte', this.value)">
+                </div>
+                <div class="question-ouverte-feedback" id="feedback_question_ouverte" style="display: none;"></div>
+            </div>
+        `;
+    },
+
+    /**
      * Save an answer
      */
     saveAnswer(key, value) {
@@ -1115,30 +1270,187 @@ const EleveConnaissances = {
                 break;
 
             case 'chronologie':
-                // Valider les événements placés sur la frise
+                // Valider les réponses saisies dans les champs
                 const chronoAnswers = this.userAnswers['chrono'] || {};
-                const dropZones = document.querySelectorAll('.chrono-drop-zone');
+                const paires = donnees.paires || donnees.evenements || [];
+                const mode = donnees.mode || 'date';
 
-                dropZones.forEach((zone, idx) => {
+                // Trier les événements pour correspondre à l'ordre d'affichage
+                const sortedEvents = [...paires].sort((a, b) => {
+                    const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
+                    const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
+                    return dateA - dateB;
+                });
+
+                sortedEvents.forEach((evt, idx) => {
                     total++;
                     const answer = chronoAnswers[idx];
-                    const targetDate = zone.parentElement.dataset.date;
+                    const inputEl = document.querySelector(`.chrono-input[data-index="${idx}"]`);
 
-                    zone.classList.remove('correct', 'incorrect');
+                    if (!inputEl) return;
 
-                    if (answer && String(answer.correctDate) === String(targetDate)) {
+                    let isCorrect = false;
+                    let correctValue = mode === 'evenement' ? evt.evenement : String(evt.date);
+                    let reponsesAcceptees = evt.reponses_acceptees || [];
+
+                    if (answer && answer.value) {
+                        const userValue = answer.value.trim().toLowerCase();
+                        const correctLower = correctValue.trim().toLowerCase();
+
+                        // Vérifier la réponse principale
+                        if (userValue === correctLower) {
+                            isCorrect = true;
+                        }
+                        // Vérifier les réponses alternatives
+                        if (!isCorrect && reponsesAcceptees.length > 0) {
+                            isCorrect = reponsesAcceptees.some(alt =>
+                                alt.trim().toLowerCase() === userValue
+                            );
+                        }
+                    }
+
+                    inputEl.classList.remove('correct', 'incorrect');
+                    if (isCorrect) {
                         correct++;
-                        zone.classList.add('correct');
+                        inputEl.classList.add('correct');
                     } else {
-                        zone.classList.add('incorrect');
-                        // Afficher la bonne réponse
-                        const paires = donnees.paires || donnees.evenements || [];
-                        const correctEvent = paires.find(p => String(p.date) === String(targetDate));
-                        if (correctEvent && !zone.classList.contains('filled')) {
-                            zone.innerHTML = `<span class="chrono-placed-event" style="color: #991b1b;">${correctEvent.evenement}</span>`;
+                        inputEl.classList.add('incorrect');
+                        // Afficher la bonne réponse après le champ
+                        const container = inputEl.closest('.chrono-input-zone');
+                        if (container && !container.querySelector('.chrono-correction')) {
+                            const correction = document.createElement('span');
+                            correction.className = 'chrono-correction';
+                            correction.textContent = correctValue;
+                            container.appendChild(correction);
                         }
                     }
                 });
+                break;
+
+            case 'texte_trou':
+            case 'texte_trous':
+                // Valider les trous remplis
+                const trouInputs = document.querySelectorAll('.trou-input');
+                const trous = donnees.trous || [];
+
+                trouInputs.forEach((input, idx) => {
+                    total++;
+                    const userValue = input.value.trim().toLowerCase();
+                    const correctValue = input.dataset.answer ? input.dataset.answer.toLowerCase() : '';
+
+                    // Chercher les alternatives pour ce trou
+                    let alternatives = [];
+                    if (trous[idx] && trous[idx].alternatives) {
+                        alternatives = trous[idx].alternatives.map(a => a.toLowerCase());
+                    }
+
+                    input.classList.remove('correct', 'incorrect');
+
+                    if (userValue === correctValue || alternatives.includes(userValue)) {
+                        correct++;
+                        input.classList.add('correct');
+                    } else {
+                        input.classList.add('incorrect');
+                    }
+                });
+                break;
+
+            case 'timeline':
+                // Valider l'ordre des cartes
+                const cartes = donnees.cartes || [];
+                const cardsContainer = document.getElementById('timelineCards');
+                if (cardsContainer) {
+                    const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-flip-card'));
+                    total = cartes.length;
+
+                    // Trier les cartes par date pour avoir l'ordre correct
+                    const correctOrder = [...cartes].sort((a, b) => {
+                        const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
+                        const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
+                        return dateA - dateB;
+                    });
+
+                    placedCards.forEach((card, idx) => {
+                        const cardDate = card.dataset.date;
+                        const expectedDate = correctOrder[idx]?.date;
+
+                        card.classList.remove('correct', 'incorrect');
+                        card.classList.add('flippable'); // Permettre de retourner après validation
+
+                        if (String(cardDate) === String(expectedDate)) {
+                            correct++;
+                            card.classList.add('correct');
+                        } else {
+                            card.classList.add('incorrect');
+                        }
+                    });
+                }
+                break;
+
+            case 'carte':
+                // Valider les marqueurs placés
+                const marqueurs = donnees.marqueurs || [];
+                const tolerance = 5; // Tolérance en % pour la position
+
+                marqueurs.forEach((m, idx) => {
+                    total++;
+                    const answer = this.userAnswers['carte_' + idx];
+                    const placedMarker = document.querySelector(`.carte-placed-marker[data-index="${idx}"]`);
+                    const element = document.querySelector(`.carte-element-item[data-index="${idx}"]`);
+
+                    if (answer && placedMarker) {
+                        const distX = Math.abs(answer.x - m.x);
+                        const distY = Math.abs(answer.y - m.y);
+
+                        if (distX <= tolerance && distY <= tolerance) {
+                            correct++;
+                            placedMarker.classList.add('correct');
+                            if (element) element.classList.add('correct');
+                        } else {
+                            placedMarker.classList.add('incorrect');
+                            if (element) element.classList.add('incorrect');
+                        }
+                    } else if (element) {
+                        element.classList.add('incorrect');
+                    }
+                });
+                break;
+
+            case 'question_ouverte':
+                total = 1;
+                const qoAnswer = this.userAnswers['question_ouverte'];
+                const qoReponsesAcceptees = donnees.reponses_acceptees || [];
+                const caseSensitive = donnees.case_sensitive || false;
+                const qoFeedback = document.getElementById('feedback_question_ouverte');
+                const qoInput = document.getElementById('questionOuverteReponse');
+
+                let qoCorrect = false;
+                if (qoAnswer) {
+                    const userValue = caseSensitive ? qoAnswer.trim() : qoAnswer.trim().toLowerCase();
+                    qoCorrect = qoReponsesAcceptees.some(rep => {
+                        const expected = caseSensitive ? rep.trim() : rep.trim().toLowerCase();
+                        return userValue === expected;
+                    });
+                }
+
+                if (qoCorrect) correct = 1;
+
+                if (qoInput) {
+                    qoInput.classList.remove('correct', 'incorrect');
+                    qoInput.classList.add(qoCorrect ? 'correct' : 'incorrect');
+                }
+
+                if (qoFeedback) {
+                    qoFeedback.style.display = 'block';
+                    qoFeedback.className = `question-ouverte-feedback ${qoCorrect ? 'correct' : 'incorrect'}`;
+                    if (qoCorrect) {
+                        qoFeedback.textContent = '✓ Correct !';
+                        if (donnees.feedback_correct) qoFeedback.textContent += ` ${donnees.feedback_correct}`;
+                    } else {
+                        qoFeedback.textContent = `✗ La bonne réponse était: ${qoReponsesAcceptees[0] || ''}`;
+                        if (donnees.feedback_incorrect) qoFeedback.textContent += ` ${donnees.feedback_incorrect}`;
+                    }
+                }
                 break;
 
             case 'association':

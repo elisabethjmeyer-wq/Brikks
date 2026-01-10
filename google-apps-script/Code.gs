@@ -6435,14 +6435,16 @@ function getFormatsQuestions() {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     sheet = ss.insertSheet(SHEETS.FORMATS_QUESTIONS);
     sheet.appendRow(['id', 'nom', 'code', 'icone', 'description', 'config_defaut', 'actif', 'ordre']);
-    // Ajouter les formats par défaut
+    // Ajouter les formats par défaut pour les entraînements de connaissances
     const defaultFormats = [
       ['fmt_qcm', 'QCM', 'qcm', '🔘', 'Question à choix multiples', '{}', 'oui', 1],
       ['fmt_vrai_faux', 'Vrai/Faux', 'vrai_faux', '✓✗', 'Question vrai ou faux', '{}', 'oui', 2],
-      ['fmt_timeline', 'Timeline', 'timeline', '📅', 'Ordonner des événements chronologiquement', '{}', 'oui', 3],
-      ['fmt_association', 'Association', 'association', '🔗', 'Associer des éléments entre eux', '{}', 'oui', 4],
-      ['fmt_texte_trou', 'Texte à trous', 'texte_trou', '📝', 'Compléter un texte avec les mots manquants', '{}', 'oui', 5],
-      ['fmt_ordre', 'Mise en ordre', 'ordre', '🔢', 'Remettre des éléments dans le bon ordre', '{}', 'oui', 6]
+      ['fmt_chronologie', 'Chronologie', 'chronologie', '📊', 'Compléter une frise chronologique (dates et/ou événements)', '{}', 'oui', 3],
+      ['fmt_timeline', 'Timeline', 'timeline', '🎴', 'Cartes à ordonner chronologiquement (retournables après correction)', '{}', 'oui', 4],
+      ['fmt_association', 'Association', 'association', '🔗', 'Associer des éléments entre eux', '{}', 'oui', 5],
+      ['fmt_texte_trou', 'Texte à trous', 'texte_trou', '📝', 'Compléter un texte avec les mots manquants', '{}', 'oui', 6],
+      ['fmt_carte', 'Carte cliquable', 'carte', '🗺️', 'Localiser des éléments sur une carte ou image', '{}', 'oui', 7],
+      ['fmt_question_ouverte', 'Question ouverte', 'question_ouverte', '✏️', 'Question avec réponse libre (texte)', '{}', 'oui', 8]
     ];
     defaultFormats.forEach(row => sheet.appendRow(row));
   }
