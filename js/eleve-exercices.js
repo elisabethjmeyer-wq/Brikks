@@ -917,13 +917,13 @@ const EleveExercices = {
                     <div class="result-banner" id="resultBanner"></div>
 
                     <div class="exercise-actions">
-                        <button class="btn btn-verifier" onclick="EleveExercices.validateExercise()">
+                        <button class="btn btn-verifier" id="btnVerifier" onclick="EleveExercices.validateExercise()">
                             Vérifier mes réponses
                         </button>
-                        <button class="btn btn-corrige" onclick="EleveExercices.showCorrige()">
+                        <button class="btn btn-corrige" id="btnCorrige" onclick="EleveExercices.showCorrige()" style="display: none;">
                             Voir le corrigé
                         </button>
-                        <button class="btn btn-restart" onclick="EleveExercices.resetExercise()">
+                        <button class="btn btn-restart" id="btnRestart" onclick="EleveExercices.resetExercise()" style="display: none;">
                             Recommencer
                         </button>
                     </div>
@@ -1421,6 +1421,19 @@ const EleveExercices = {
             banner.textContent = `${correct}/${total} réponses correctes (${percent}%)`;
         }
 
+        // Après validation : afficher les boutons "Corrigé" et "Recommencer"
+        const btnCorrige = document.getElementById('btnCorrige');
+        const btnRestart = document.getElementById('btnRestart');
+        const btnVerifier = document.getElementById('btnVerifier');
+
+        if (btnCorrige) btnCorrige.style.display = 'inline-flex';
+        if (btnRestart) btnRestart.style.display = 'inline-flex';
+
+        // Modifier le bouton "Vérifier" pour permettre de re-vérifier
+        if (btnVerifier) {
+            btnVerifier.textContent = 'Vérifier à nouveau';
+        }
+
         await this.saveResult(correct, total, percent);
     },
 
@@ -1442,10 +1455,9 @@ const EleveExercices = {
                     const input = document.getElementById(`input_${rowIndex}_${colIndex}`);
                     if (!input) return;
 
-                    const userAnswer = this.normalizeAnswer(input.value);
-                    const correctAnswer = this.normalizeAnswer(cells[colIndex] || '');
+                    const correctAnswerRaw = cells[colIndex] || '';
 
-                    if (userAnswer === correctAnswer) {
+                    if (this.checkAnswerMatch(input.value, correctAnswerRaw)) {
                         input.className = 'correct';
                         correct++;
                     } else {
@@ -1469,10 +1481,9 @@ const EleveExercices = {
             const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
             const badge = document.getElementById(`badge_${index}`);
 
-            const userAnswer = this.normalizeAnswer(reponses[index] || '');
-            const correctAnswer = this.normalizeAnswer(m.reponse || '');
+            const correctAnswerRaw = m.reponse || '';
 
-            if (userAnswer === correctAnswer && userAnswer !== '') {
+            if (this.checkAnswerMatch(reponses[index] || '', correctAnswerRaw)) {
                 if (marqueur) marqueur.classList.add('correct');
                 if (badge) badge.classList.add('correct');
                 correct++;
@@ -1517,10 +1528,9 @@ const EleveExercices = {
                         total++;
                         const input = document.getElementById(`mixte_element_${idx}`);
                         if (input) {
-                            const userAnswer = this.normalizeAnswer(input.value);
-                            const correctAnswer = this.normalizeAnswer(el.reponse);
+                            const correctAnswerRaw = el.reponse;
 
-                            if (userAnswer === correctAnswer && userAnswer !== '') {
+                            if (this.checkAnswerMatch(input.value, correctAnswerRaw)) {
                                 input.classList.add('correct');
                                 input.classList.remove('incorrect');
                                 correct++;
@@ -1542,10 +1552,9 @@ const EleveExercices = {
                             total++;
                             const input = document.getElementById(`mixte_cell_${rowIdx}_${colIdx}`);
                             if (input) {
-                                const userAnswer = this.normalizeAnswer(input.value);
-                                const correctAnswer = this.normalizeAnswer(ligne.cells[colIdx] || '');
+                                const correctAnswerRaw = ligne.cells[colIdx] || '';
 
-                                if (userAnswer === correctAnswer && userAnswer !== '') {
+                                if (this.checkAnswerMatch(input.value, correctAnswerRaw)) {
                                     input.classList.add('correct');
                                     input.classList.remove('incorrect');
                                     correct++;
@@ -1673,6 +1682,24 @@ const EleveExercices = {
         return String(str).toLowerCase().trim()
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-z0-9]/g, '');
+    },
+
+    /**
+     * Vérifie si la réponse utilisateur correspond à la réponse correcte
+     * Supporte les réponses multiples séparées par | ou ;
+     * @param {string} userAnswer - Réponse de l'élève
+     * @param {string} correctAnswer - Réponse(s) correcte(s), séparées par | ou ;
+     * @returns {boolean} true si la réponse est correcte
+     */
+    checkAnswerMatch(userAnswer, correctAnswer) {
+        const normalizedUser = this.normalizeAnswer(userAnswer);
+        if (normalizedUser === '') return false;
+
+        // Séparer les réponses multiples par | ou ;
+        const correctOptions = String(correctAnswer).split(/[|;]/).map(opt => this.normalizeAnswer(opt));
+
+        // Vérifier si la réponse utilisateur correspond à l'une des options
+        return correctOptions.some(opt => opt !== '' && normalizedUser === opt);
     },
 
     // ===============================
@@ -1823,6 +1850,15 @@ const EleveExercices = {
         if (this.currentExercise.duree) {
             this.startTimer(this.currentExercise.duree);
         }
+
+        // Réinitialiser l'état des boutons
+        const btnCorrige = document.getElementById('btnCorrige');
+        const btnRestart = document.getElementById('btnRestart');
+        const btnVerifier = document.getElementById('btnVerifier');
+
+        if (btnCorrige) btnCorrige.style.display = 'none';
+        if (btnRestart) btnRestart.style.display = 'none';
+        if (btnVerifier) btnVerifier.textContent = 'Vérifier mes réponses';
     },
 
     resetDocumentMixte() {
