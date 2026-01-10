@@ -4887,6 +4887,7 @@ const AdminBanquesExercices = {
         switch (question.type) {
             case 'qcm':
             case 'vrai_faux':
+            case 'question_ouverte':
                 return (question.donnees.question || '').substring(0, 60) || 'Question sans texte';
             case 'chronologie':
             case 'association':
@@ -4895,6 +4896,8 @@ const AdminBanquesExercices = {
                 return (question.donnees.consigne || '').substring(0, 60) || 'Exercice de timeline';
             case 'texte_trou':
                 return (question.donnees.texte || '').substring(0, 60) || 'Texte à trous';
+            case 'carte':
+                return (question.donnees.consigne || '').substring(0, 60) || 'Carte cliquable';
             default:
                 return 'Question';
         }
@@ -5361,6 +5364,56 @@ const AdminBanquesExercices = {
                 }, 0);
                 break;
 
+            case 'question_ouverte':
+                const reponsesAcceptees = data.reponses_acceptees || [];
+                html = `
+                    <div class="form-group">
+                        <label>Question / Énoncé</label>
+                        <textarea id="questionOuverteEnonce" class="form-textarea" rows="3" placeholder="Posez votre question ici...">${this.escapeHtml(data.question || data.enonce || '')}</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Réponses acceptées</label>
+                        <p class="form-help">Ajoutez toutes les formulations de réponse que vous acceptez. L'élève doit donner une réponse correspondant à l'une d'entre elles.</p>
+                        <div id="questionOuverteReponsesList">
+                            ${reponsesAcceptees.length > 0 ? reponsesAcceptees.map((rep, i) => `
+                                <div class="reponse-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                    <input type="text" class="form-input question-ouverte-reponse" placeholder="Réponse acceptée ${i + 1}" value="${this.escapeHtml(rep)}">
+                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
+                                </div>
+                            `).join('') : `
+                                <div class="reponse-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                    <input type="text" class="form-input question-ouverte-reponse" placeholder="Réponse acceptée 1" value="">
+                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
+                                </div>
+                            `}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addQuestionOuverteReponse()">+ Ajouter une réponse acceptée</button>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="questionOuverteCaseSensitive" ${data.case_sensitive ? 'checked' : ''}>
+                            Sensible à la casse (majuscules/minuscules)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="questionOuverteShowFeedback" ${data.feedback_correct || data.feedback_incorrect ? 'checked' : ''} onchange="document.getElementById('questionOuverteFeedbackSection').style.display = this.checked ? 'block' : 'none'">
+                            Ajouter des feedbacks (optionnel)
+                        </label>
+                    </div>
+                    <div id="questionOuverteFeedbackSection" style="display: ${data.feedback_correct || data.feedback_incorrect ? 'block' : 'none'};">
+                        <div class="form-group">
+                            <label>Feedback si bonne réponse</label>
+                            <textarea id="questionOuverteFeedbackCorrect" class="form-textarea" rows="2" placeholder="Bravo !">${this.escapeHtml(data.feedback_correct || '')}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Feedback si mauvaise réponse</label>
+                            <textarea id="questionOuverteFeedbackIncorrect" class="form-textarea" rows="2" placeholder="La bonne réponse était...">${this.escapeHtml(data.feedback_incorrect || '')}</textarea>
+                        </div>
+                    </div>
+                `;
+                break;
+
             default:
                 html = '<p>Type de question non supporté</p>';
         }
@@ -5654,6 +5707,21 @@ const AdminBanquesExercices = {
             <span style="padding: 8px;">↔</span>
             <input type="text" class="form-input assoc-right" placeholder="Élément 2">
             <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
+        `;
+        container.appendChild(div);
+    },
+
+    // ========== QUESTION OUVERTE BUILDER ==========
+    addQuestionOuverteReponse() {
+        const container = document.getElementById('questionOuverteReponsesList');
+        if (!container) return;
+        const count = container.children.length + 1;
+        const div = document.createElement('div');
+        div.className = 'reponse-row';
+        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
+        div.innerHTML = `
+            <input type="text" class="form-input question-ouverte-reponse" placeholder="Réponse acceptée ${count}" value="">
+            <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
         `;
         container.appendChild(div);
     },
@@ -6019,6 +6087,27 @@ const AdminBanquesExercices = {
 
             case 'carte':
                 donnees = this.buildCarteDataConn();
+                break;
+
+            case 'question_ouverte':
+                // Récupérer les réponses acceptées
+                const reponseInputs = document.querySelectorAll('#questionOuverteReponsesList .question-ouverte-reponse');
+                const reponsesAcceptees = Array.from(reponseInputs)
+                    .map(input => input.value.trim())
+                    .filter(val => val.length > 0);
+
+                donnees = {
+                    question: document.getElementById('questionOuverteEnonce')?.value || '',
+                    reponses_acceptees: reponsesAcceptees,
+                    case_sensitive: document.getElementById('questionOuverteCaseSensitive')?.checked || false
+                };
+                // Ajouter feedbacks si activés
+                if (document.getElementById('questionOuverteShowFeedback')?.checked) {
+                    const feedbackCorrect = document.getElementById('questionOuverteFeedbackCorrect')?.value?.trim();
+                    const feedbackIncorrect = document.getElementById('questionOuverteFeedbackIncorrect')?.value?.trim();
+                    if (feedbackCorrect) donnees.feedback_correct = feedbackCorrect;
+                    if (feedbackIncorrect) donnees.feedback_incorrect = feedbackIncorrect;
+                }
                 break;
         }
 
