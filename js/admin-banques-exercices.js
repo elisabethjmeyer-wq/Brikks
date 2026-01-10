@@ -3897,9 +3897,10 @@ const AdminBanquesExercices = {
                 console.log(`[Admin] Sauvegarde étape ${etape.id} (${etape.format_code}): ${selectedIds.length} questions`, questionsFormatted);
 
                 try {
+                    // IMPORTANT: JSON.stringify pour que le tableau passe correctement via URL
                     const result = await this.callAPI('setEtapeQuestionsConn', {
                         etape_id: etape.id,
-                        questions: questionsFormatted
+                        questions: JSON.stringify(questionsFormatted)
                     });
                     console.log(`[Admin] Résultat sauvegarde étape ${etape.id}:`, result);
                 } catch (error) {
@@ -4201,15 +4202,14 @@ const AdminBanquesExercices = {
     },
 
     // ========== CRUD ENTRAINEMENTS CONN ==========
-
-    addEntrainementConn(banqueExerciceId) {
-        this.openEntrainementConnModal(null, banqueExerciceId);
-    },
+    // Note: addEntrainementConn est défini plus haut (ligne ~3070) et utilise openEntrainementWizard
+    // Ne pas redéfinir ici pour éviter d'écraser le wizard multi-étapes
 
     editEntrainementConn(id) {
         const entrainement = this.entrainementsConn.find(e => e.id === id);
         if (!entrainement) return;
-        this.openEntrainementConnEditPage(entrainement);
+        // Utiliser le wizard multi-étapes au lieu de la page séparée
+        this.openEntrainementWizard(entrainement, entrainement.banque_exercice_id);
     },
 
     openEntrainementConnModal(entrainement = null, banqueExerciceId = null) {

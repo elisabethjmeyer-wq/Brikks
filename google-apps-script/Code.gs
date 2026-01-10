@@ -7023,8 +7023,22 @@ function setEtapeQuestionsConn(data) {
   // Supprimer les questions existantes
   deleteEtapeQuestionsForEtape(data.etape_id);
 
+  // Parser les questions si c'est une string JSON (envoyé via URL)
+  let questions = data.questions;
+  if (typeof questions === 'string') {
+    try {
+      questions = JSON.parse(questions);
+    } catch (e) {
+      return { success: false, error: 'Format questions invalide: ' + e.message };
+    }
+  }
+
+  // S'assurer que c'est un tableau
+  if (!Array.isArray(questions)) {
+    questions = [];
+  }
+
   // Ajouter les nouvelles questions
-  const questions = Array.isArray(data.questions) ? data.questions : [];
   questions.forEach((q, index) => {
     createEtapeQuestionConn({
       etape_id: data.etape_id,
