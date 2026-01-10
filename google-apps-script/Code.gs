@@ -4054,19 +4054,23 @@ function getProgressionEntrainements(data) {
 // ========================================
 
 /**
- * Intervalles de répétition espacée (en jours)
- * Étape 1: immédiat (0 jour) - découverte
- * Étape 2: 1 jour
- * Étape 3: 3 jours
- * Étape 4: 7 jours
- * Étape 5: 14 jours
- * Étape 6: 30 jours -> passage à "mémorisé"
+ * Système de répétition espacée - 7 étapes
+ *
+ * PRÉ-ÉVALUATION (~2 semaines):
+ * - Étape 1: Jour 0 (premier succès ≥80%)
+ * - Étape 2: +1 jour (verrouillé jusque-là)
+ * - Étape 3: +3 jours
+ * - Étape 4: +7 jours
+ * - Étape 5: +14 jours → "Prêt pour l'évaluation"
+ *
+ * POST-ÉVALUATION:
+ * - Étape 6: +7 jours après étape 5
+ * - Étape 7: +14 jours → "Mémorisé définitivement"
  */
-const INTERVALLES_MEMORISATION = [0, 1, 3, 7, 14, 30];
-const SEUILS_REUSSITE = {
-  APPRENTISSAGE: 80,  // Étapes 1-3
-  CONSOLIDATION: 100  // Étapes 4-6
-};
+const INTERVALLES_MEMORISATION = [0, 1, 3, 7, 14, 7, 14];
+const SEUIL_REUSSITE = 80; // 80% pour toutes les étapes
+const ETAPE_MAX = 7;
+const ETAPE_PRET_EVALUATION = 5; // À partir de cette étape = prêt pour évaluation
 
 /**
  * Récupère la progression de mémorisation d'un élève
@@ -4210,20 +4214,19 @@ function saveProgressionMemorisation(data) {
     const peutReviser = !prochaineRevision || new Date(prochaineRevision) <= now;
 
     if (peutReviser) {
-      // Déterminer le seuil requis
-      const seuilRequis = etape <= 3 ? SEUILS_REUSSITE.APPRENTISSAGE : SEUILS_REUSSITE.CONSOLIDATION;
-      const reussi = pourcentage >= seuilRequis;
+      // Seuil unique de 80% pour toutes les étapes
+      const reussi = pourcentage >= SEUIL_REUSSITE;
 
       if (reussi) {
         // Avancer d'une étape
-        etape = Math.min(etape + 1, 6);
-        if (etape >= 6 && pourcentage >= SEUILS_REUSSITE.CONSOLIDATION) {
+        etape = Math.min(etape + 1, ETAPE_MAX);
+        if (etape >= ETAPE_MAX) {
           statut = 'memorise';
           prochaineRevision = null;
         } else {
           statut = 'en_cours';
           // Calculer la prochaine date de révision
-          const intervalleJours = INTERVALLES_MEMORISATION[etape - 1] || 30;
+          const intervalleJours = INTERVALLES_MEMORISATION[etape - 1] || 14;
           const prochaineDate = new Date(now);
           prochaineDate.setDate(prochaineDate.getDate() + intervalleJours);
           prochaineRevision = prochaineDate.toISOString().split('T')[0];
@@ -4257,10 +4260,12 @@ function saveProgressionMemorisation(data) {
       success: true,
       message: 'Progression mise à jour',
       etape: etape,
+      etape_max: ETAPE_MAX,
       statut: statut,
+      pret_evaluation: etape >= ETAPE_PRET_EVALUATION,
       prochaine_revision: prochaineRevision,
       pourcentage: pourcentage,
-      reussi: peutReviser ? (pourcentage >= (etape <= 3 ? SEUILS_REUSSITE.APPRENTISSAGE : SEUILS_REUSSITE.CONSOLIDATION)) : null
+      reussi: peutReviser ? (pourcentage >= SEUIL_REUSSITE) : null
     };
 
   } else {
@@ -4270,8 +4275,7 @@ function saveProgressionMemorisation(data) {
     const statut = 'en_cours';
     // Première tentative réussie = prochaine révision dans 1 jour
     // Première tentative échouée = peut réessayer immédiatement
-    const seuilRequis = SEUILS_REUSSITE.APPRENTISSAGE;
-    const reussi = pourcentage >= seuilRequis;
+    const reussi = pourcentage >= SEUIL_REUSSITE;
 
     let prochaineRevision;
     let nouvelleEtape = 1;
@@ -4307,7 +4311,9 @@ function saveProgressionMemorisation(data) {
       id: id,
       message: 'Progression créée',
       etape: nouvelleEtape,
+      etape_max: ETAPE_MAX,
       statut: 'en_cours',
+      pret_evaluation: nouvelleEtape >= ETAPE_PRET_EVALUATION,
       prochaine_revision: prochaineRevision,
       pourcentage: pourcentage,
       reussi: reussi
@@ -4360,6 +4366,8 @@ function checkEntrainementDisponible(data) {
       disponible: true,
       statut: prog.statut,
       etape: prog.etape,
+      etape_max: ETAPE_MAX,
+      pret_evaluation: prog.etape >= ETAPE_PRET_EVALUATION,
       revision_due: true
     };
   } else {
@@ -4370,6 +4378,8 @@ function checkEntrainementDisponible(data) {
       disponible: false,
       statut: 'verrouille',
       etape: prog.etape,
+      etape_max: ETAPE_MAX,
+      pret_evaluation: prog.etape >= ETAPE_PRET_EVALUATION,
       prochaine_revision: prog.prochaine_revision,
       jours_restants: joursRestants,
       message: `Prochaine révision efficace dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''}.`
