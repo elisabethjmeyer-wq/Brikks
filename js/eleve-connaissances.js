@@ -456,6 +456,9 @@ const EleveConnaissances = {
             // Déterminer l'état de l'entraînement
             let statusInfo = this.getEntrainementStatus(prog);
 
+            // Calculer le nombre de réussites (étape - 1, car backend démarre à 1)
+            const reussites = prog?.etape ? Math.max(0, prog.etape - 1) : 0;
+
             // Badge simple au lieu de barre de progression
             let statusBadge = '';
             let actionHint = '';
@@ -466,23 +469,20 @@ const EleveConnaissances = {
                     break;
                 case 'a-reviser':
                     statusBadge = '<span class="entrainement-badge urgent">⚡ À réviser</span>';
-                    actionHint = 'C\'est le moment ! →';
+                    actionHint = `${reussites}/7 réussies`;
                     break;
                 case 'verrouille':
                     statusBadge = `<span class="entrainement-badge locked">⏳ Dans ${statusInfo.joursRestants}j</span>`;
-                    actionHint = prog?.etape ? `Étape ${prog.etape}/7` : '';
+                    actionHint = `${reussites}/7 réussies`;
                     break;
                 case 'memorise':
                     statusBadge = '<span class="entrainement-badge done">✅ Mémorisé</span>';
-                    actionHint = 'Bravo !';
+                    actionHint = '7/7 réussies';
                     break;
             }
 
-            // Construire les métadonnées simplifiées
+            // Construire les métadonnées simplifiées (sans Étape X/7)
             let metaText = `${dureeMinutes} min`;
-            if (prog?.etape && statusInfo.statusClass !== 'memorise') {
-                metaText += ` • Étape ${prog.etape}/7`;
-            }
 
             return `
                 <div class="exercice-item connaissances ${statusInfo.class}"
