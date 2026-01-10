@@ -229,21 +229,24 @@ const EleveConnaissances = {
         // Calculer le nombre total d'actions à faire
         const aFaire = globalStats.aReviser + globalStats.nouveau;
 
-        // Déterminer le message du bandeau
+        // Déterminer le message du bandeau (simple)
         let bandeauMessage, bandeauClass;
         if (aFaire > 0) {
             bandeauMessage = `${aFaire} À FAIRE`;
             bandeauClass = globalStats.aReviser > 0 ? 'has-urgent' : 'has-new';
-        } else if (globalStats.aJour === globalStats.total && globalStats.total > 0) {
-            bandeauMessage = '✓ TOUT EST À JOUR';
+        } else if (globalStats.verrouille > 0) {
+            bandeauMessage = '⏳ EN ATTENTE';
+            bandeauClass = 'waiting';
+        } else if (globalStats.total > 0) {
+            bandeauMessage = '🏆 TOUT MÉMORISÉ';
             bandeauClass = 'all-done';
         } else {
-            bandeauMessage = '0 À FAIRE';
+            bandeauMessage = 'Aucun entraînement';
             bandeauClass = 'empty';
         }
 
         let html = `
-            <!-- Bandeau bleu avec compteur dynamique -->
+            <!-- Bandeau bleu simple -->
             <div class="type-header-banner connaissances ${bandeauClass}">
                 <div class="type-header-left">
                     <div class="type-icon-emoji">📚</div>
@@ -258,30 +261,7 @@ const EleveConnaissances = {
                 </div>
             </div>
 
-            <!-- Barre de progression simplifiée -->
-            <div class="conn-progress-section">
-                <div class="conn-progress-header">
-                    <span class="conn-progress-title">🎯 Progression vers l'évaluation</span>
-                    <span class="conn-progress-value">${globalStats.memorise}/${globalStats.total} mémorisés</span>
-                </div>
-                <div class="conn-progress-bar">
-                    <div class="conn-progress-fill" style="width: ${globalStats.pourcentageMemorises}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
-                </div>
-                ${aFaire > 0 ? `
-                    <div class="conn-next-action">
-                        ${globalStats.aReviser > 0
-                            ? `<span class="action-badge urgent">⚡ ${globalStats.aReviser} révision${globalStats.aReviser > 1 ? 's' : ''} en attente</span>`
-                            : `<span class="action-badge new">🆕 ${globalStats.nouveau} nouveau${globalStats.nouveau > 1 ? 'x' : ''} à découvrir</span>`
-                        }
-                    </div>
-                ` : globalStats.total > 0 ? `
-                    <div class="conn-next-action">
-                        <span class="action-badge done">✅ Bravo ! Reviens plus tard pour tes révisions</span>
-                    </div>
-                ` : ''}
-            </div>
-
-            <!-- Liste des banques en accordéon (sans barre de recherche) -->
+            <!-- Liste des banques -->
             <div class="banques-accordion">
         `;
 
@@ -293,17 +273,15 @@ const EleveConnaissances = {
             const hasActions = banqueStats.aReviser > 0 || banqueStats.nouveau > 0;
             const isExpanded = this.expandedBanques.has(banque.id) || (hasActions && this.expandedBanques.size === 0);
 
-            // Progress ring calculation
-            const radius = 18;
-            const circumference = 2 * Math.PI * radius;
-            const progressPercent = banqueStats.total > 0 ? Math.round((banqueStats.memorise / banqueStats.total) * 100) : 0;
-            const offset = circumference - (progressPercent / 100) * circumference;
+            // Calcul de la progression = moyenne des étapes
+            const progressPercent = banqueStats.progressionMoyenne;
 
             // Couleur selon progression
-            let ringColor = '#e5e7eb';
-            if (progressPercent >= 100) ringColor = '#10b981';
-            else if (progressPercent >= 50) ringColor = '#f59e0b';
-            else if (progressPercent > 0) ringColor = '#3b82f6';
+            let progressColor = '#e5e7eb';
+            if (progressPercent >= 100) progressColor = '#10b981';
+            else if (progressPercent >= 70) progressColor = '#10b981';
+            else if (progressPercent >= 40) progressColor = '#f59e0b';
+            else if (progressPercent > 0) progressColor = '#3b82f6';
 
             // Badge résumé pour la banque
             let banqueBadge = '';
@@ -311,10 +289,16 @@ const EleveConnaissances = {
                 banqueBadge = `<span class="banque-badge urgent">⚡ ${banqueStats.aReviser} à réviser</span>`;
             } else if (banqueStats.nouveau > 0) {
                 banqueBadge = `<span class="banque-badge new">🆕 ${banqueStats.nouveau} nouveau${banqueStats.nouveau > 1 ? 'x' : ''}</span>`;
-            } else if (banqueStats.memorise === banqueStats.total) {
-                banqueBadge = `<span class="banque-badge done">✅ Tout mémorisé</span>`;
+            } else if (banqueStats.pretEvaluation) {
+                banqueBadge = `<span class="banque-badge done">✅ Prêt pour l'évaluation</span>`;
             } else {
                 banqueBadge = `<span class="banque-badge waiting">⏳ En attente</span>`;
+            }
+
+            // Message de maîtrise
+            let maitriseMessage = '';
+            if (banqueStats.pretEvaluation) {
+                maitriseMessage = `<div class="banque-maitrise">✅ Ce chapitre est bien maîtrisé !</div>`;
             }
 
             html += `
@@ -326,21 +310,14 @@ const EleveConnaissances = {
                             <div class="banque-meta">
                                 ${banqueStats.total} entraînement${banqueStats.total > 1 ? 's' : ''} • ${banqueBadge}
                             </div>
-                        </div>
-                        <div class="banque-progress">
-                            <div class="progress-ring">
-                                <svg viewBox="0 0 44 44">
-                                    <circle class="progress-ring-bg" cx="22" cy="22" r="${radius}"/>
-                                    <circle class="progress-ring-fill" cx="22" cy="22" r="${radius}"
-                                        stroke-dasharray="${circumference}"
-                                        stroke-dashoffset="${offset}"
-                                        style="stroke: ${ringColor};"/>
-                                </svg>
-                                <span class="progress-ring-text">${progressPercent}%</span>
+                            <div class="banque-progress-bar">
+                                <div class="banque-progress-fill" style="width: ${progressPercent}%; background: ${progressColor};"></div>
                             </div>
                         </div>
+                        <div class="banque-progress-percent">${progressPercent}%</div>
                     </button>
                     <div class="banque-accordion-content">
+                        ${maitriseMessage}
                         <div class="exercices-accordion-list">
                             ${this.renderEntrainementsList(banqueEntrainements)}
                         </div>
@@ -408,10 +385,21 @@ const EleveConnaissances = {
         let aReviser = 0;
         let verrouille = 0;
         let nouveau = 0;
+        let sommeEtapes = 0;
+        let pretEvaluation = total > 0; // Vrai par défaut, devient faux si un entraînement < étape 5
 
         entrainements.forEach(ent => {
             const prog = this.progressions[ent.id];
             const status = this.getEntrainementStatus(prog);
+            const etape = prog?.etape || 0;
+
+            // Calcul de la somme des étapes pour la moyenne
+            sommeEtapes += etape;
+
+            // Vérifier si prêt pour évaluation (tous à étape ≥ 5)
+            if (etape < 5) {
+                pretEvaluation = false;
+            }
 
             if (status.statusClass === 'memorise') {
                 memorise++;
@@ -426,6 +414,9 @@ const EleveConnaissances = {
             }
         });
 
+        // Progression moyenne = moyenne des (étape / 7) * 100
+        const progressionMoyenne = total > 0 ? Math.round((sommeEtapes / total / 7) * 100) : 0;
+
         return {
             total,
             memorise,
@@ -433,7 +424,8 @@ const EleveConnaissances = {
             aReviser,
             verrouille,
             nouveau,
-            pourcentagePret: total > 0 ? Math.round((aJour / total) * 100) : 0
+            progressionMoyenne,
+            pretEvaluation
         };
     },
 
