@@ -921,14 +921,16 @@ const EleveExercices = {
 
                     <div class="exercise-actions">
                         <button class="btn btn-verifier" id="btnVerifier" onclick="EleveExercices.validateExercise()">
-                            Vérifier mes réponses
+                            ${this.currentType === 'savoir-faire' ? 'Terminer' : 'Vérifier mes réponses'}
                         </button>
-                        <button class="btn btn-corrige" id="btnCorrige" onclick="EleveExercices.showCorrige()" style="display: none;">
-                            Voir le corrigé
-                        </button>
-                        <button class="btn btn-restart" id="btnRestart" onclick="EleveExercices.resetExercise()" style="display: none;">
-                            Recommencer
-                        </button>
+                        ${this.currentType !== 'savoir-faire' ? `
+                            <button class="btn btn-corrige" id="btnCorrige" onclick="EleveExercices.showCorrige()" style="display: none;">
+                                Voir le corrigé
+                            </button>
+                            <button class="btn btn-restart" id="btnRestart" onclick="EleveExercices.resetExercise()" style="display: none;">
+                                Recommencer
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -1410,9 +1412,27 @@ const EleveExercices = {
         }
 
         const { correct, total } = result;
-        const banner = document.getElementById('resultBanner');
         const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
 
+        // Collecter les détails des réponses AVANT de sauvegarder (pour avoir accès aux inputs)
+        const details = this.collectExerciseDetails();
+
+        // Sauvegarder le résultat
+        await this.saveResult(correct, total, percent);
+
+        // Pour les savoir-faire: afficher l'écran de résultat dédié
+        if (this.currentType === 'savoir-faire') {
+            this.renderResultScreenSF({
+                correct,
+                total,
+                percent,
+                details
+            });
+            return;
+        }
+
+        // Pour les autres types: comportement existant (bandeau + boutons)
+        const banner = document.getElementById('resultBanner');
         if (percent === 100) {
             banner.className = 'result-banner show success';
             banner.textContent = `Parfait ! ${correct}/${total} réponses correctes`;
@@ -1436,8 +1456,6 @@ const EleveExercices = {
         if (btnVerifier) {
             btnVerifier.textContent = 'Vérifier à nouveau';
         }
-
-        await this.saveResult(correct, total, percent);
     },
 
     validateTableauSaisie() {
@@ -1703,6 +1721,340 @@ const EleveExercices = {
 
         // Vérifier si la réponse utilisateur correspond à l'une des options
         return correctOptions.some(opt => opt !== '' && normalizedUser === opt);
+    },
+
+    // ===============================
+    // ÉCRAN DE RÉSULTAT SF
+    // ===============================
+
+    /**
+     * Collecte les détails des réponses utilisateur pour l'écran de résultat
+     * @returns {Array} Liste des détails {question, reponseUtilisateur, reponseAttendue, correct}
+     */
+    collectExerciseDetails() {
+        const details = [];
+        const format = this.formats.find(f => f.id === this.currentExercise.format_id);
+        let structure = format ? format.structure : null;
+        if (typeof structure === 'string') {
+            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
+        }
+        const typeUI = structure ? structure.type_ui : 'tableau_saisie';
+
+        if (typeUI === 'carte_cliquable') {
+            const marqueurs = this.carteMarqueurs || [];
+            const reponses = this.carteReponses || [];
+            marqueurs.forEach((m, index) => {
+                const userAnswer = reponses[index] || '';
+                const correctAnswer = m.reponse || '';
+                const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswer);
+                details.push({
+                    question: m.question || `Point ${index + 1}`,
+                    reponseUtilisateur: userAnswer,
+                    reponseAttendue: correctAnswer.split(/[|;]/)[0], // Première option seulement
+                    correct: isCorrect
+                });
+            });
+        } else if (typeUI === 'document_mixte') {
+            const data = this.mixteData || {};
+            if (data.tableau && data.tableau.actif) {
+                if (this.mixteTableauElements && this.mixteTableauElements.length > 0) {
+                    this.mixteTableauElements.forEach((el, idx) => {
+                        if (el.type === 'row' && el.reponse) {
+                            const input = document.getElementById(`mixte_element_${idx}`);
+                            const userAnswer = input ? input.value : '';
+                            const correctAnswer = el.reponse;
+                            const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswer);
+                            details.push({
+                                question: el.label || `Ligne ${idx + 1}`,
+                                reponseUtilisateur: userAnswer,
+                                reponseAttendue: correctAnswer.split(/[|;]/)[0],
+                                correct: isCorrect
+                            });
+                        }
+                    });
+                } else {
+                    const colonnes = this.mixteTableauColonnes || [];
+                    const lignes = this.mixteTableauLignes || [];
+                    lignes.forEach((ligne, rowIdx) => {
+                        colonnes.forEach((col, colIdx) => {
+                            if (col.editable) {
+                                const input = document.getElementById(`mixte_cell_${rowIdx}_${colIdx}`);
+                                const userAnswer = input ? input.value : '';
+                                const correctAnswer = ligne.cells[colIdx] || '';
+                                const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswer);
+                                details.push({
+                                    question: `${col.titre || 'Colonne ' + (colIdx + 1)} - Ligne ${rowIdx + 1}`,
+                                    reponseUtilisateur: userAnswer,
+                                    reponseAttendue: correctAnswer.split(/[|;]/)[0],
+                                    correct: isCorrect
+                                });
+                            }
+                        });
+                    });
+                }
+            }
+        } else if (typeUI === 'question_ouverte') {
+            // Question ouverte: pas de correction automatique, mais on affiche les réponses
+            const questions = this.questionsOuvertes || [];
+            questions.forEach((q, qIndex) => {
+                (q.etapes || []).forEach((etape, eIndex) => {
+                    const textarea = document.getElementById(`reponse_${qIndex}_${eIndex}`);
+                    const userAnswer = textarea ? textarea.value.trim() : '';
+                    details.push({
+                        question: etape.question || `Question ${eIndex + 1}`,
+                        reponseUtilisateur: userAnswer,
+                        reponseAttendue: etape.correction || '(voir corrigé)',
+                        correct: null, // Non évaluable automatiquement
+                        isOpenQuestion: true
+                    });
+                });
+            });
+        } else {
+            // Tableau saisie
+            let donnees = this.currentExercise.donnees;
+            if (typeof donnees === 'string') {
+                try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+            }
+            const colonnes = donnees.colonnes || [];
+            const lignes = donnees.lignes || [];
+            lignes.forEach((ligne, rowIndex) => {
+                const cells = ligne.cells || Object.values(ligne);
+                colonnes.forEach((col, colIndex) => {
+                    if (col.editable) {
+                        const input = document.getElementById(`input_${rowIndex}_${colIndex}`);
+                        const userAnswer = input ? input.value : '';
+                        const correctAnswer = cells[colIndex] || '';
+                        const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswer);
+
+                        // Trouver un libellé pour la question
+                        let questionLabel = '';
+                        const nonEditableCols = colonnes.filter(c => !c.editable);
+                        if (nonEditableCols.length > 0) {
+                            const labelColIdx = colonnes.indexOf(nonEditableCols[0]);
+                            questionLabel = cells[labelColIdx] || '';
+                        }
+                        if (!questionLabel) {
+                            questionLabel = `Ligne ${rowIndex + 1} - ${col.titre || 'Colonne ' + (colIndex + 1)}`;
+                        }
+
+                        details.push({
+                            question: questionLabel,
+                            reponseUtilisateur: userAnswer,
+                            reponseAttendue: correctAnswer.split(/[|;]/)[0],
+                            correct: isCorrect
+                        });
+                    }
+                });
+            });
+        }
+
+        return details;
+    },
+
+    /**
+     * Affiche l'écran de résultats pour les Savoir-faire
+     * @param {Object} results - {correct, total, percent, details}
+     */
+    renderResultScreenSF(results) {
+        const container = document.getElementById('exercices-content');
+        const exo = this.currentExercise;
+        const banque = this.banques.find(b => String(b.id) === String(exo.banque_id));
+
+        // Calculer le temps passé
+        const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
+        const tempsPrevu = exo.duree ? exo.duree * 60 : 300; // en secondes
+
+        // Récupérer les stats actualisées
+        const stats = this.statsSF[exo.id] || {};
+        const pratiquesParfaites = stats.pratiques_parfaites || 0;
+        const estParfait = results.percent === 100;
+
+        // Déterminer le message selon le score
+        let messageIcon, messageTitle, messageClass;
+        if (results.percent === 100) {
+            messageIcon = '🎉';
+            messageTitle = 'Parfait !';
+            messageClass = 'success';
+        } else if (results.percent >= 80) {
+            messageIcon = '👏';
+            messageTitle = 'Presque parfait !';
+            messageClass = 'partial';
+        } else if (results.percent >= 50) {
+            messageIcon = '💪';
+            messageTitle = 'Continue !';
+            messageClass = 'partial';
+        } else {
+            messageIcon = '📚';
+            messageTitle = 'À retravailler';
+            messageClass = 'error';
+        }
+
+        // Message de progression SF
+        let progressionMessage = '';
+        if (estParfait) {
+            const newCount = pratiquesParfaites; // Déjà mis à jour par updateLocalStatsSF
+            if (newCount >= this.SEUIL_PRATIQUES_PARFAITES) {
+                // Vérifier si rapide
+                const tempsMoyen = stats.temps_moyen || timeSpent;
+                if (tempsMoyen <= tempsPrevu) {
+                    progressionMessage = `<div class="progression-message success">
+                        🚀 Excellent ! Cet exercice est maintenant automatisé !
+                        <small>Tu maîtrises ce savoir-faire rapidement et sans erreur.</small>
+                    </div>`;
+                } else {
+                    progressionMessage = `<div class="progression-message partial">
+                        ✅ ${newCount}ème pratique parfaite ! Encore un peu d'entraînement pour automatiser.
+                        <small>Objectif: ${Math.floor(tempsPrevu / 60)} min - Ton temps: ${Math.floor(timeSpent / 60)} min ${timeSpent % 60}s</small>
+                    </div>`;
+                }
+            } else {
+                const restantes = this.SEUIL_PRATIQUES_PARFAITES - newCount;
+                progressionMessage = `<div class="progression-message info">
+                    ✅ ${newCount}ème pratique parfaite !
+                    <small>Encore ${restantes} pratique${restantes > 1 ? 's' : ''} parfaite${restantes > 1 ? 's' : ''} pour acquérir ce savoir-faire.</small>
+                </div>`;
+            }
+        } else {
+            progressionMessage = `<div class="progression-message retry">
+                📚 Il faut 100% de bonnes réponses pour valider une pratique.
+                <small>Tu peux recommencer maintenant !</small>
+            </div>`;
+        }
+
+        // Comparaison temps
+        const tempsComparison = `
+            <div class="temps-comparison">
+                <div class="temps-item">
+                    <span class="temps-label">Ton temps</span>
+                    <span class="temps-value">${Math.floor(timeSpent / 60)}:${(timeSpent % 60).toString().padStart(2, '0')}</span>
+                </div>
+                <div class="temps-separator">vs</div>
+                <div class="temps-item">
+                    <span class="temps-label">Objectif</span>
+                    <span class="temps-value">${Math.floor(tempsPrevu / 60)}:${(tempsPrevu % 60).toString().padStart(2, '0')}</span>
+                </div>
+                ${timeSpent <= tempsPrevu ? '<span class="temps-badge success">⚡ Dans les temps !</span>' : '<span class="temps-badge warning">⏱️ Un peu long</span>'}
+            </div>
+        `;
+
+        // Trouver l'exercice suivant
+        const nextExercise = this.findNextExercise();
+
+        container.innerHTML = `
+            <div class="result-view sf">
+                <button class="exercise-back-btn" onclick="EleveExercices.backToList()">
+                    ← Retour aux entraînements
+                </button>
+
+                <div class="result-card">
+                    <div class="result-header ${messageClass}">
+                        <div class="result-icon">${messageIcon}</div>
+                        <h2>${messageTitle}</h2>
+                        <div class="result-score">
+                            <span class="score-value">${results.percent}%</span>
+                            <span class="score-detail">${results.correct}/${results.total} correct${results.correct > 1 ? 's' : ''}</span>
+                        </div>
+                    </div>
+
+                    ${tempsComparison}
+
+                    ${progressionMessage}
+
+                    <div class="result-details">
+                        <h3 onclick="EleveExercices.toggleResultDetails()" class="clickable">
+                            Détail des réponses
+                            <span class="toggle-icon">▼</span>
+                        </h3>
+                        <div class="details-content" id="resultDetailsContent" style="display: none;">
+                            ${results.details.map((d, idx) => `
+                                <div class="detail-item ${d.correct === null ? 'neutral' : d.correct ? 'correct' : 'incorrect'}">
+                                    <span class="detail-icon">${d.correct === null ? '📝' : d.correct ? '✓' : '✗'}</span>
+                                    <div class="detail-content">
+                                        <span class="detail-question">${this.escapeHtml(d.question)}</span>
+                                        ${d.correct === false ? `
+                                            <div class="detail-correction">
+                                                ${d.reponseUtilisateur ? `Ta réponse: <span class="user-answer">${this.escapeHtml(d.reponseUtilisateur)}</span>` : '<span class="user-answer empty">Pas de réponse</span>'}
+                                                <br>Réponse attendue: <span class="expected-answer">${this.escapeHtml(d.reponseAttendue)}</span>
+                                            </div>
+                                        ` : d.isOpenQuestion ? `
+                                            <div class="detail-correction open-question">
+                                                Ta réponse: <span class="user-answer">${this.escapeHtml(d.reponseUtilisateur) || '<em>Pas de réponse</em>'}</span>
+                                                <br>Corrigé: <span class="expected-answer">${this.escapeHtml(d.reponseAttendue)}</span>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="result-actions">
+                        <button class="btn btn-secondary" onclick="EleveExercices.restartExercise()">
+                            🔄 Recommencer
+                        </button>
+                        ${nextExercise ? `
+                            <button class="btn btn-primary" onclick="EleveExercices.startNextExercise()">
+                                Continuer →
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-outline" onclick="EleveExercices.backToList()">
+                            Retour à la liste
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Toggle l'affichage des détails dans l'écran de résultat
+     */
+    toggleResultDetails() {
+        const content = document.getElementById('resultDetailsContent');
+        const icon = document.querySelector('.result-details .toggle-icon');
+        if (content) {
+            const isHidden = content.style.display === 'none';
+            content.style.display = isHidden ? 'block' : 'none';
+            if (icon) icon.textContent = isHidden ? '▲' : '▼';
+        }
+    },
+
+    /**
+     * Trouve l'exercice suivant dans la même banque
+     */
+    findNextExercise() {
+        if (!this.currentExercise || !this.exercices) return null;
+
+        const currentBanqueExercices = this.exercices
+            .filter(e => String(e.banque_id) === String(this.currentExercise.banque_id))
+            .sort((a, b) => (a.numero || 0) - (b.numero || 0));
+
+        const currentIndex = currentBanqueExercices.findIndex(e => e.id === this.currentExercise.id);
+        if (currentIndex >= 0 && currentIndex < currentBanqueExercices.length - 1) {
+            return currentBanqueExercices[currentIndex + 1];
+        }
+        return null;
+    },
+
+    /**
+     * Recommence l'exercice actuel
+     */
+    restartExercise() {
+        if (this.currentExercise) {
+            this.startExercise(this.currentExercise.id);
+        }
+    },
+
+    /**
+     * Lance l'exercice suivant
+     */
+    startNextExercise() {
+        const next = this.findNextExercise();
+        if (next) {
+            this.startExercise(next.id);
+        } else {
+            this.backToList();
+        }
     },
 
     // ===============================
