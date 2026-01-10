@@ -720,10 +720,13 @@ const EleveExercices = {
                         break;
                 }
 
-                // Métadonnées
-                let metaText = format ? format.nom : 'Format inconnu';
-                if (exo.duree) metaText += ` • ${exo.duree} min`;
-                if (exo.consigne) metaText += ` • ${this.escapeHtml(exo.consigne).substring(0, 50)}...`;
+                // Métadonnées - juste la durée en minutes
+                let metaText = '';
+                if (exo.duree) {
+                    // Si durée > 60, c'est probablement en secondes → convertir en minutes
+                    const dureeMinutes = exo.duree > 60 ? Math.floor(exo.duree / 60) : exo.duree;
+                    metaText = `${dureeMinutes} min`;
+                }
 
                 return `
                     <div class="exercice-item ${this.currentType} ${statusSF.statusClass}${isAutomatise ? ' completed' : ''}"
