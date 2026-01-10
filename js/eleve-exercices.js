@@ -1414,19 +1414,28 @@ const EleveExercices = {
         const { correct, total } = result;
         const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
 
-        // Collecter les détails des réponses AVANT de sauvegarder (pour avoir accès aux inputs)
-        const details = this.collectExerciseDetails();
-
         // Sauvegarder le résultat
         await this.saveResult(correct, total, percent);
 
         // Pour les savoir-faire: afficher l'écran de résultat dédié
         if (this.currentType === 'savoir-faire') {
+            // Appliquer les corrections sur l'exercice actuel
+            this.applyCorrections(typeUI);
+
+            // Capturer le HTML de l'exercice corrigé
+            const exerciseContent = document.querySelector('.exercise-content');
+            const correctedHTML = exerciseContent ? exerciseContent.innerHTML : '';
+
+            // Capturer aussi la consigne si présente
+            const consigneEl = document.querySelector('.exercise-consigne');
+            const consigneHTML = consigneEl ? consigneEl.outerHTML : '';
+
             this.renderResultScreenSF({
                 correct,
                 total,
                 percent,
-                details
+                correctedHTML,
+                consigneHTML
             });
             return;
         }
@@ -1853,7 +1862,7 @@ const EleveExercices = {
 
     /**
      * Affiche l'écran de résultats pour les Savoir-faire
-     * @param {Object} results - {correct, total, percent, details}
+     * @param {Object} results - {correct, total, percent, correctedHTML, consigneHTML}
      */
     renderResultScreenSF(results) {
         const container = document.getElementById('exercices-content');
@@ -1960,31 +1969,11 @@ const EleveExercices = {
 
                     ${progressionMessage}
 
-                    <div class="result-details">
-                        <h3 onclick="EleveExercices.toggleResultDetails()" class="clickable">
-                            Détail des réponses
-                            <span class="toggle-icon">▼</span>
-                        </h3>
-                        <div class="details-content" id="resultDetailsContent" style="display: none;">
-                            ${results.details.map((d, idx) => `
-                                <div class="detail-item ${d.correct === null ? 'neutral' : d.correct ? 'correct' : 'incorrect'}">
-                                    <span class="detail-icon">${d.correct === null ? '📝' : d.correct ? '✓' : '✗'}</span>
-                                    <div class="detail-content">
-                                        <span class="detail-question">${this.escapeHtml(d.question)}</span>
-                                        ${d.correct === false ? `
-                                            <div class="detail-correction">
-                                                ${d.reponseUtilisateur ? `Ta réponse: <span class="user-answer">${this.escapeHtml(d.reponseUtilisateur)}</span>` : '<span class="user-answer empty">Pas de réponse</span>'}
-                                                <br>Réponse attendue: <span class="expected-answer">${this.escapeHtml(d.reponseAttendue)}</span>
-                                            </div>
-                                        ` : d.isOpenQuestion ? `
-                                            <div class="detail-correction open-question">
-                                                Ta réponse: <span class="user-answer">${this.escapeHtml(d.reponseUtilisateur) || '<em>Pas de réponse</em>'}</span>
-                                                <br>Corrigé: <span class="expected-answer">${this.escapeHtml(d.reponseAttendue)}</span>
-                                            </div>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
+                    <div class="result-corrected-exercise">
+                        <h3>Corrigé</h3>
+                        ${results.consigneHTML || ''}
+                        <div class="corrected-content">
+                            ${results.correctedHTML || '<p>Aucun contenu à afficher</p>'}
                         </div>
                     </div>
 
@@ -2058,6 +2047,26 @@ const EleveExercices = {
     },
 
     // ===============================
+    // CORRECTIONS
+    // ===============================
+
+    /**
+     * Applique les corrections sur l'exercice actuel (remplit les bonnes réponses)
+     * @param {string} typeUI - Type d'interface de l'exercice
+     */
+    applyCorrections(typeUI) {
+        if (typeUI === 'carte_cliquable') {
+            this.showCarteCorrige();
+        } else if (typeUI === 'document_mixte') {
+            this.showDocumentMixteCorrige();
+        } else if (typeUI === 'question_ouverte') {
+            this.showQuestionOuverteCorrige();
+        } else if (typeUI === 'tableau_saisie' || typeUI === 'document_tableau') {
+            this.showTableauCorrige();
+        }
+    },
+
+    // ===============================
     // SHOW CORRIGE
     // ===============================
 
@@ -2071,15 +2080,7 @@ const EleveExercices = {
         }
         const typeUI = structure ? structure.type_ui : 'tableau_saisie';
 
-        if (typeUI === 'carte_cliquable') {
-            this.showCarteCorrige();
-        } else if (typeUI === 'document_mixte') {
-            this.showDocumentMixteCorrige();
-        } else if (typeUI === 'question_ouverte') {
-            this.showQuestionOuverteCorrige();
-        } else if (typeUI === 'tableau_saisie' || typeUI === 'document_tableau') {
-            this.showTableauCorrige();
-        }
+        this.applyCorrections(typeUI);
 
         const banner = document.getElementById('resultBanner');
         banner.className = 'result-banner show info';
