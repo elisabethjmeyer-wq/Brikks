@@ -2464,3 +2464,327 @@
 .carte-marker-v2:not(.answered) .carte-marker-answer-label {
     display: none;
 }
+
+/* ============================================
+   NOUVELLES AMÉLIORATIONS UX - 2024
+   ============================================ */
+
+/* === BANDEAU DYNAMIQUE === */
+.type-header-banner.connaissances .type-stat {
+    text-align: center;
+}
+
+.type-header-banner.connaissances .type-stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.type-header-banner.connaissances.has-urgent .type-stat-value {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.type-header-banner.connaissances.has-new .type-stat-value {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.type-header-banner.connaissances.all-done .type-stat-value {
+    background: #d1fae5;
+    color: #059669;
+}
+
+/* === ACTIONS BADGES === */
+.conn-next-action {
+    margin-top: 0.75rem;
+    text-align: center;
+}
+
+.action-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.action-badge.urgent {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.action-badge.new {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.action-badge.done {
+    background: #d1fae5;
+    color: #059669;
+}
+
+/* === BANQUE BADGES === */
+.banque-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.banque-badge.urgent {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.banque-badge.new {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.banque-badge.done {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.banque-badge.waiting {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.banque-accordion-item.has-actions {
+    border-left: 3px solid #3b82f6;
+}
+
+.banque-accordion-item.has-actions .banque-accordion-header {
+    background: linear-gradient(90deg, #eff6ff 0%, white 30%);
+}
+
+/* === ENTRAÎNEMENT BADGES === */
+.exercice-status-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    min-width: 120px;
+}
+
+.entrainement-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.entrainement-badge.new {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.entrainement-badge.urgent {
+    background: #fef3c7;
+    color: #d97706;
+    animation: pulse-badge 2s infinite;
+}
+
+.entrainement-badge.locked {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.entrainement-badge.done {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.exercice-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.exercice-item.a-reviser .exercice-hint,
+.exercice-item:not(.verrouille):not(.memorise) .exercice-hint {
+    color: #3b82f6;
+}
+
+@keyframes pulse-badge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* === BOUTON TERMINER === */
+.etape-nav-btn.finish-btn {
+    width: auto;
+    padding: 0.5rem 1.25rem;
+    border-radius: 25px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-color: #10b981;
+    color: white;
+    gap: 0.5rem;
+}
+
+.etape-nav-btn.finish-btn:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: scale(1.05);
+}
+
+/* === CARTE - HAUTEUR LIMITÉE ET FULLSCREEN === */
+.carte-container {
+    padding: 1rem;
+    max-height: 55vh;
+    overflow: auto;
+    transition: all 0.3s ease;
+}
+
+.carte-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+}
+
+.carte-header .carte-instruction {
+    margin: 0;
+    flex: 1;
+}
+
+.carte-fullscreen-btn {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 1rem;
+    flex-shrink: 0;
+}
+
+.carte-fullscreen-btn:hover {
+    background: #e5e7eb;
+    transform: scale(1.1);
+}
+
+.fullscreen-icon {
+    font-size: 1.2rem;
+}
+
+.carte-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: none;
+    z-index: 1000;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0;
+}
+
+.carte-container.fullscreen .carte-image-wrapper-v2 {
+    max-height: calc(100vh - 150px);
+}
+
+.carte-help-hint {
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+/* === AMÉLIORATION EXERCICE ITEMS === */
+.exercice-item.connaissances {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.exercice-item.connaissances:hover {
+    background: #f8fafc;
+    transform: translateX(4px);
+}
+
+.exercice-item.connaissances.verrouille {
+    opacity: 0.7;
+}
+
+.exercice-item.connaissances.verrouille:hover {
+    transform: none;
+    cursor: not-allowed;
+}
+
+.exercice-item.connaissances.memorise {
+    background: #f0fdf4;
+}
+
+.exercice-item.connaissances.a-reviser {
+    background: linear-gradient(90deg, #fffbeb 0%, white 50%);
+    border-left: 3px solid #f59e0b;
+}
+
+/* Masquer anciens éléments */
+.exercice-status:not(.exercice-status-area),
+.exercice-arrow,
+.entrainement-progress-bar {
+    display: none;
+}
+
+/* Amélioration numéro exercice */
+.exercice-numero {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.exercice-item.a-reviser .exercice-numero {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.exercice-item.memorise .exercice-numero {
+    background: #d1fae5;
+    color: #059669;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .exercice-status-area {
+        min-width: auto;
+    }
+
+    .entrainement-badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .exercice-hint {
+        display: none;
+    }
+
+    .carte-container {
+        max-height: 45vh;
+    }
+
+    .etape-nav-btn.finish-btn {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+    }
+}

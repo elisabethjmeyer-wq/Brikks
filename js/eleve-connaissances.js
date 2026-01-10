@@ -226,9 +226,25 @@ const EleveConnaissances = {
         // Calculate global stats based on progressions
         const globalStats = this.calculateGlobalStats();
 
+        // Calculer le nombre total d'actions à faire
+        const aFaire = globalStats.aReviser + globalStats.nouveau;
+
+        // Déterminer le message du bandeau
+        let bandeauMessage, bandeauClass;
+        if (aFaire > 0) {
+            bandeauMessage = `${aFaire} À FAIRE`;
+            bandeauClass = globalStats.aReviser > 0 ? 'has-urgent' : 'has-new';
+        } else if (globalStats.aJour === globalStats.total && globalStats.total > 0) {
+            bandeauMessage = '✓ TOUT EST À JOUR';
+            bandeauClass = 'all-done';
+        } else {
+            bandeauMessage = '0 À FAIRE';
+            bandeauClass = 'empty';
+        }
+
         let html = `
-            <!-- Bandeau bleu -->
-            <div class="type-header-banner connaissances">
+            <!-- Bandeau bleu avec compteur dynamique -->
+            <div class="type-header-banner connaissances ${bandeauClass}">
                 <div class="type-header-left">
                     <div class="type-icon-emoji">📚</div>
                     <div>
@@ -236,73 +252,79 @@ const EleveConnaissances = {
                     </div>
                 </div>
                 <div class="type-header-stats">
-                    <div class="type-stat">
-                        <div class="type-stat-value">${globalStats.aReviser}</div>
-                        <div class="type-stat-label">À réviser</div>
+                    <div class="type-stat ${bandeauClass}">
+                        <div class="type-stat-value">${bandeauMessage}</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Barre de progression -->
+            <!-- Barre de progression simplifiée -->
             <div class="conn-progress-section">
                 <div class="conn-progress-header">
-                    <span class="conn-progress-title">Prêt(e) pour ta prochaine évaluation de connaissance</span>
-                    <span class="conn-progress-value">${globalStats.aJour}/${globalStats.total} à jour</span>
+                    <span class="conn-progress-title">🎯 Progression vers l'évaluation</span>
+                    <span class="conn-progress-value">${globalStats.memorise}/${globalStats.total} mémorisés</span>
                 </div>
                 <div class="conn-progress-bar">
-                    <div class="conn-progress-fill" style="width: ${globalStats.pourcentagePret}%; background: linear-gradient(90deg, #3b82f6, #2563eb);"></div>
+                    <div class="conn-progress-fill" style="width: ${globalStats.pourcentageMemorises}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
                 </div>
-                ${globalStats.aReviser > 0 ? `
-                    <div class="banque-alert" style="margin-top: 0.75rem;">
-                        <span class="banque-alert-icon">⚡</span>
-                        <span>${globalStats.aReviser} entraînement${globalStats.aReviser > 1 ? 's' : ''} à réviser</span>
+                ${aFaire > 0 ? `
+                    <div class="conn-next-action">
+                        ${globalStats.aReviser > 0
+                            ? `<span class="action-badge urgent">⚡ ${globalStats.aReviser} révision${globalStats.aReviser > 1 ? 's' : ''} en attente</span>`
+                            : `<span class="action-badge new">🆕 ${globalStats.nouveau} nouveau${globalStats.nouveau > 1 ? 'x' : ''} à découvrir</span>`
+                        }
+                    </div>
+                ` : globalStats.total > 0 ? `
+                    <div class="conn-next-action">
+                        <span class="action-badge done">✅ Bravo ! Reviens plus tard pour tes révisions</span>
                     </div>
                 ` : ''}
-                <div class="conn-memorises-indicator">
-                    📊 ${globalStats.memorise}/${globalStats.total} mémorisés définitivement
-                </div>
             </div>
 
-            <!-- Barre de recherche -->
-            <div class="conn-search-section">
-                <div class="search-box">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="banqueSearch" placeholder="Rechercher une banque ou un entraînement..." oninput="EleveConnaissances.filterBanques(this.value)">
-                </div>
-            </div>
-
-            <!-- Liste des banques en accordéon -->
+            <!-- Liste des banques en accordéon (sans barre de recherche) -->
             <div class="banques-accordion">
         `;
 
         this.banques.forEach(banque => {
             const banqueEntrainements = entrainementsByBanque[banque.id] || [];
             const banqueStats = this.calculateBanqueStats(banqueEntrainements);
-            const isExpanded = this.expandedBanques.has(banque.id);
 
-            // Progress ring calculation (basé sur "à jour" = prêt pour évaluation)
+            // Auto-expand si il y a des actions à faire
+            const hasActions = banqueStats.aReviser > 0 || banqueStats.nouveau > 0;
+            const isExpanded = this.expandedBanques.has(banque.id) || (hasActions && this.expandedBanques.size === 0);
+
+            // Progress ring calculation
             const radius = 18;
             const circumference = 2 * Math.PI * radius;
-            const offset = circumference - (banqueStats.pourcentagePret / 100) * circumference;
+            const progressPercent = banqueStats.total > 0 ? Math.round((banqueStats.memorise / banqueStats.total) * 100) : 0;
+            const offset = circumference - (progressPercent / 100) * circumference;
 
-            // Déterminer la couleur du ring selon le statut
+            // Couleur selon progression
             let ringColor = '#e5e7eb';
-            if (banqueStats.pourcentagePret >= 100) ringColor = '#10b981';
-            else if (banqueStats.pourcentagePret >= 50) ringColor = '#f59e0b';
-            else if (banqueStats.pourcentagePret > 0) ringColor = '#3b82f6';
+            if (progressPercent >= 100) ringColor = '#10b981';
+            else if (progressPercent >= 50) ringColor = '#f59e0b';
+            else if (progressPercent > 0) ringColor = '#3b82f6';
+
+            // Badge résumé pour la banque
+            let banqueBadge = '';
+            if (banqueStats.aReviser > 0) {
+                banqueBadge = `<span class="banque-badge urgent">⚡ ${banqueStats.aReviser} à réviser</span>`;
+            } else if (banqueStats.nouveau > 0) {
+                banqueBadge = `<span class="banque-badge new">🆕 ${banqueStats.nouveau} nouveau${banqueStats.nouveau > 1 ? 'x' : ''}</span>`;
+            } else if (banqueStats.memorise === banqueStats.total) {
+                banqueBadge = `<span class="banque-badge done">✅ Tout mémorisé</span>`;
+            } else {
+                banqueBadge = `<span class="banque-badge waiting">⏳ En attente</span>`;
+            }
 
             html += `
-                <div class="banque-accordion-item connaissances${isExpanded ? ' expanded' : ''}" data-banque-id="${banque.id}">
+                <div class="banque-accordion-item connaissances${isExpanded ? ' expanded' : ''}${hasActions ? ' has-actions' : ''}" data-banque-id="${banque.id}">
                     <button class="banque-accordion-header" onclick="EleveConnaissances.toggleBanque('${banque.id}')">
                         <div class="banque-chevron">▶</div>
                         <div class="banque-info">
                             <div class="banque-title">${this.escapeHtml(banque.titre)}</div>
                             <div class="banque-meta">
-                                ${banqueStats.total} entr. •
-                                ${banqueStats.memorise > 0 ? `<span style="color: #10b981;">✓${banqueStats.memorise}</span>` : ''}
-                                ${banqueStats.aReviser > 0 ? `<span style="color: #3b82f6;">⚡${banqueStats.aReviser}</span>` : ''}
-                                ${banqueStats.verrouille > 0 ? `<span style="color: #9ca3af;">🔒${banqueStats.verrouille}</span>` : ''}
-                                ${banqueStats.nouveau > 0 ? `<span style="color: #6b7280;">○${banqueStats.nouveau}</span>` : ''}
+                                ${banqueStats.total} entraînement${banqueStats.total > 1 ? 's' : ''} • ${banqueBadge}
                             </div>
                         </div>
                         <div class="banque-progress">
@@ -314,17 +336,11 @@ const EleveConnaissances = {
                                         stroke-dashoffset="${offset}"
                                         style="stroke: ${ringColor};"/>
                                 </svg>
-                                <span class="progress-ring-text">${banqueStats.pourcentagePret}%</span>
+                                <span class="progress-ring-text">${progressPercent}%</span>
                             </div>
                         </div>
                     </button>
                     <div class="banque-accordion-content">
-                        ${banqueStats.aReviser > 0 ? `
-                            <div class="banque-alert" style="margin: 0.5rem 1rem;">
-                                <span class="banque-alert-icon">⚡</span>
-                                <span>${banqueStats.aReviser} à réviser maintenant</span>
-                            </div>
-                        ` : ''}
                         <div class="exercices-accordion-list">
                             ${this.renderEntrainementsList(banqueEntrainements)}
                         </div>
@@ -423,38 +439,57 @@ const EleveConnaissances = {
 
     /**
      * Render entrainements list for a banque
+     * Tri intelligent : À réviser > Nouveaux > Verrouillés > Mémorisés
      */
     renderEntrainementsList(entrainements) {
         if (entrainements.length === 0) {
             return '<div class="empty-state" style="padding: 2rem;"><p>Aucun entraînement dans cette banque</p></div>';
         }
 
-        return entrainements.map((ent, index) => {
+        // Trier les entraînements par priorité
+        const sorted = [...entrainements].sort((a, b) => {
+            const progA = this.progressions[a.id];
+            const progB = this.progressions[b.id];
+            const statusA = this.getEntrainementStatus(progA);
+            const statusB = this.getEntrainementStatus(progB);
+
+            const priority = { 'a-reviser': 0, 'new': 1, 'verrouille': 2, 'memorise': 3 };
+            return (priority[statusA.statusClass] ?? 4) - (priority[statusB.statusClass] ?? 4);
+        });
+
+        return sorted.map((ent, index) => {
             const prog = this.progressions[ent.id];
             const dureeMinutes = ent.duree || 15;
 
             // Déterminer l'état de l'entraînement
             let statusInfo = this.getEntrainementStatus(prog);
 
-            // Construire les métadonnées
-            let metaItems = [];
-            metaItems.push(`${dureeMinutes} min`);
-            if (prog && prog.etape) {
-                metaItems.push(`Étape ${prog.etape}/7`);
-            }
-            if (statusInfo.joursRestants !== undefined && statusInfo.joursRestants > 0) {
-                metaItems.push(`Dans ${statusInfo.joursRestants}j`);
+            // Badge simple au lieu de barre de progression
+            let statusBadge = '';
+            let actionHint = '';
+            switch (statusInfo.statusClass) {
+                case 'new':
+                    statusBadge = '<span class="entrainement-badge new">🆕 Nouveau</span>';
+                    actionHint = 'Clique pour découvrir →';
+                    break;
+                case 'a-reviser':
+                    statusBadge = '<span class="entrainement-badge urgent">⚡ À réviser</span>';
+                    actionHint = 'C\'est le moment ! →';
+                    break;
+                case 'verrouille':
+                    statusBadge = `<span class="entrainement-badge locked">⏳ Dans ${statusInfo.joursRestants}j</span>`;
+                    actionHint = prog?.etape ? `Étape ${prog.etape}/7` : '';
+                    break;
+                case 'memorise':
+                    statusBadge = '<span class="entrainement-badge done">✅ Mémorisé</span>';
+                    actionHint = 'Bravo !';
+                    break;
             }
 
-            // Barre de progression de mémorisation
-            let progressBar = '';
-            if (prog && prog.etape) {
-                const progressClass = prog.statut === 'memorise' ? 'memorise' : `etape-${prog.etape}`;
-                progressBar = `
-                    <div class="entrainement-progress-bar">
-                        <div class="entrainement-progress-fill ${progressClass}"></div>
-                    </div>
-                `;
+            // Construire les métadonnées simplifiées
+            let metaText = `${dureeMinutes} min`;
+            if (prog?.etape && statusInfo.statusClass !== 'memorise') {
+                metaText += ` • Étape ${prog.etape}/7`;
             }
 
             return `
@@ -464,11 +499,12 @@ const EleveConnaissances = {
                     <div class="exercice-numero">${index + 1}</div>
                     <div class="exercice-info">
                         <div class="exercice-titre">${this.escapeHtml(ent.titre || 'Entraînement ' + (index + 1))}</div>
-                        <div class="exercice-meta">${metaItems.join(' • ')}</div>
-                        ${progressBar}
+                        <div class="exercice-meta">${metaText}</div>
                     </div>
-                    <span class="exercice-status ${statusInfo.statusClass}">${statusInfo.label}</span>
-                    <span class="exercice-arrow">${statusInfo.icon}</span>
+                    <div class="exercice-status-area">
+                        ${statusBadge}
+                        <span class="exercice-hint">${actionHint}</span>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -705,9 +741,9 @@ const EleveConnaissances = {
                                 →
                             </button>
                         ` : `
-                            <button class="etape-nav-btn next finish"
+                            <button class="etape-nav-btn next finish-btn"
                                     onclick="EleveConnaissances.finishEntrainement()">
-                                ✓
+                                Terminer ✓
                             </button>
                         `}
                     </div>
@@ -1362,10 +1398,15 @@ const EleveConnaissances = {
         this.carteMarqueurs = marqueurs;
 
         return `
-            <div class="carte-container">
-                <p class="carte-instruction">${this.escapeHtml(consigne)}</p>
+            <div class="carte-container" id="carteContainer">
+                <div class="carte-header">
+                    <p class="carte-instruction">${this.escapeHtml(consigne)}</p>
+                    <button class="carte-fullscreen-btn" onclick="EleveConnaissances.toggleCarteFullscreen()" title="Agrandir">
+                        <span class="fullscreen-icon">⛶</span>
+                    </button>
+                </div>
 
-                <!-- Image avec marqueurs numérotés (sans panneau latéral) -->
+                <!-- Image avec marqueurs numérotés -->
                 <div class="carte-image-wrapper-v2">
                     <img src="${this.escapeHtml(imageUrl)}"
                          alt="Carte à compléter"
@@ -1407,7 +1448,7 @@ const EleveConnaissances = {
                     </div>
                 </div>
 
-                <p class="carte-help">Cliquez sur un numéro sur la carte pour identifier l'élément correspondant.</p>
+                <p class="carte-help">Cliquez sur un numéro pour répondre. <span class="carte-help-hint">Utilisez ⛶ pour agrandir.</span></p>
             </div>
         `;
     },
@@ -1442,6 +1483,29 @@ const EleveConnaissances = {
         popup.style.display = 'none';
         this.carteActiveIndex = null;
         document.querySelectorAll('.carte-marker-v2.active').forEach(el => el.classList.remove('active'));
+    },
+
+    toggleCarteFullscreen() {
+        const container = document.getElementById('carteContainer');
+        if (!container) return;
+
+        container.classList.toggle('fullscreen');
+        const btn = container.querySelector('.carte-fullscreen-btn .fullscreen-icon');
+        if (btn) {
+            btn.textContent = container.classList.contains('fullscreen') ? '✕' : '⛶';
+        }
+
+        // Fermer avec Escape
+        if (container.classList.contains('fullscreen')) {
+            const handleEsc = (e) => {
+                if (e.key === 'Escape') {
+                    container.classList.remove('fullscreen');
+                    btn.textContent = '⛶';
+                    document.removeEventListener('keydown', handleEsc);
+                }
+            };
+            document.addEventListener('keydown', handleEsc);
+        }
     },
 
     submitCarteAnswer() {
