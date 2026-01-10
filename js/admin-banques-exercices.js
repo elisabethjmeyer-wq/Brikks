@@ -3453,21 +3453,14 @@ const AdminBanquesExercices = {
     },
 
     countQuestionsForFormat(formatCode) {
-        // Mapping des codes pour compatibilité (chronologie inclut timeline)
-        const codesToMatch = [formatCode];
-        if (formatCode === 'chronologie') {
-            codesToMatch.push('timeline', 'frise');
-        }
-        return this.questionsConnaissances.filter(q => codesToMatch.includes(q.type)).length;
+        // Chaque format doit correspondre exactement
+        return this.questionsConnaissances.filter(q => q.type === formatCode).length;
     },
 
     // Filtre les questions disponibles pour un format donné
     getQuestionsForFormat(formatCode) {
-        const codesToMatch = [formatCode];
-        if (formatCode === 'chronologie') {
-            codesToMatch.push('timeline', 'frise');
-        }
-        return this.questionsConnaissances.filter(q => codesToMatch.includes(q.type));
+        // Chaque format doit correspondre exactement (pas de mélange chronologie/timeline)
+        return this.questionsConnaissances.filter(q => q.type === formatCode);
     },
 
     async addWizardEtape(formatCode) {
@@ -5178,16 +5171,9 @@ const AdminBanquesExercices = {
                     </div>
                     <div class="form-group">
                         <label>Événements</label>
-                        <p class="form-help">Les événements seront automatiquement triés par date sur la frise.</p>
+                        <p class="form-help">Les événements seront automatiquement triés par date sur la frise. Vous pouvez ajouter des réponses alternatives acceptées.</p>
                         <div id="chronoPaires">
-                            ${pairesChronologie.map((p, i) => `
-                                <div class="pair-row chrono-event-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-                                    <span class="chrono-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${i + 1}</span>
-                                    <input type="text" class="form-input chrono-date" placeholder="Date (ex: 1789)" value="${this.escapeHtml(p.date || '')}" style="width: 100px;" oninput="AdminBanquesExercices.updateChronoPreview()">
-                                    <input type="text" class="form-input chrono-event" placeholder="Événement" value="${this.escapeHtml(p.evenement || '')}" oninput="AdminBanquesExercices.updateChronoPreview()">
-                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove(); AdminBanquesExercices.updateChronoPreview(); AdminBanquesExercices.updateChronoNumbers();" title="Supprimer">×</button>
-                                </div>
-                            `).join('')}
+                            ${pairesChronologie.map((p, i) => this.renderChronoEventRow(p, i)).join('')}
                         </div>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addChronoPair()">+ Ajouter un événement</button>
                     </div>
@@ -5436,29 +5422,76 @@ const AdminBanquesExercices = {
         container.appendChild(div);
     },
 
+    renderChronoEventRow(p, i) {
+        const reponsesAcceptees = p.reponses_acceptees || [];
+        const hasAlternatives = reponsesAcceptees.length > 0;
+        return `
+            <div class="chrono-event-block" style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                <div class="chrono-event-row" style="display: flex; gap: 8px; align-items: center;">
+                    <span class="chrono-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${i + 1}</span>
+                    <input type="text" class="form-input chrono-date" placeholder="Date (ex: 1789)" value="${this.escapeHtml(p.date || '')}" style="width: 100px;" oninput="AdminBanquesExercices.updateChronoPreview()">
+                    <input type="text" class="form-input chrono-event" placeholder="Événement" value="${this.escapeHtml(p.evenement || '')}" oninput="AdminBanquesExercices.updateChronoPreview()">
+                    <button type="button" class="btn-icon" onclick="AdminBanquesExercices.toggleChronoAlternatives(this)" title="Réponses alternatives" style="color: ${hasAlternatives ? 'var(--primary)' : 'var(--gray-400)'};">
+                        <span style="font-size: 1.2rem;">±</span>
+                    </button>
+                    <button type="button" class="btn-icon danger" onclick="this.closest('.chrono-event-block').remove(); AdminBanquesExercices.updateChronoPreview(); AdminBanquesExercices.updateChronoNumbers();" title="Supprimer">×</button>
+                </div>
+                <div class="chrono-alternatives" style="display: ${hasAlternatives ? 'block' : 'none'}; margin-top: 0.5rem; padding-left: 32px;">
+                    <label style="font-size: 0.8rem; color: var(--gray-600); display: block; margin-bottom: 0.25rem;">Réponses alternatives acceptées :</label>
+                    <div class="chrono-alt-list">
+                        ${reponsesAcceptees.map((alt, j) => `
+                            <div class="chrono-alt-row" style="display: flex; gap: 4px; margin-bottom: 4px;">
+                                <input type="text" class="form-input chrono-alt-input" placeholder="Alternative ${j + 1}" value="${this.escapeHtml(alt)}" style="flex: 1; font-size: 0.85rem;">
+                                <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" style="font-size: 0.8rem;">×</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" class="btn btn-xs" onclick="AdminBanquesExercices.addChronoAlternative(this)" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">+ Alternative</button>
+                </div>
+            </div>
+        `;
+    },
+
     addChronoPair() {
         const container = document.getElementById('chronoPaires');
         if (!container) return;
         const count = container.children.length + 1;
         const div = document.createElement('div');
-        div.className = 'pair-row chrono-event-row';
-        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
-        div.innerHTML = `
-            <span class="chrono-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${count}</span>
-            <input type="text" class="form-input chrono-date" placeholder="Date (ex: 1789)" style="width: 100px;" oninput="AdminBanquesExercices.updateChronoPreview()">
-            <input type="text" class="form-input chrono-event" placeholder="Événement" oninput="AdminBanquesExercices.updateChronoPreview()">
-            <button type="button" class="btn-icon danger" onclick="this.parentElement.remove(); AdminBanquesExercices.updateChronoPreview(); AdminBanquesExercices.updateChronoNumbers();" title="Supprimer">×</button>
-        `;
-        container.appendChild(div);
+        div.innerHTML = this.renderChronoEventRow({ date: '', evenement: '', reponses_acceptees: [] }, count - 1);
+        container.appendChild(div.firstElementChild);
+        this.updateChronoNumbers();
         this.updateChronoPreview();
+    },
+
+    toggleChronoAlternatives(btn) {
+        const block = btn.closest('.chrono-event-block');
+        const altDiv = block.querySelector('.chrono-alternatives');
+        if (altDiv) {
+            const isHidden = altDiv.style.display === 'none';
+            altDiv.style.display = isHidden ? 'block' : 'none';
+            btn.style.color = isHidden ? 'var(--primary)' : 'var(--gray-400)';
+        }
+    },
+
+    addChronoAlternative(btn) {
+        const list = btn.previousElementSibling;
+        const count = list.children.length + 1;
+        const div = document.createElement('div');
+        div.className = 'chrono-alt-row';
+        div.style.cssText = 'display: flex; gap: 4px; margin-bottom: 4px;';
+        div.innerHTML = `
+            <input type="text" class="form-input chrono-alt-input" placeholder="Alternative ${count}" style="flex: 1; font-size: 0.85rem;">
+            <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" style="font-size: 0.8rem;">×</button>
+        `;
+        list.appendChild(div);
     },
 
     chronoMode: 'date', // 'date' ou 'evenement'
 
     updateChronoNumbers() {
-        const rows = document.querySelectorAll('#chronoPaires .chrono-event-row');
-        rows.forEach((row, idx) => {
-            const numSpan = row.querySelector('.chrono-event-num');
+        const blocks = document.querySelectorAll('#chronoPaires .chrono-event-block');
+        blocks.forEach((block, idx) => {
+            const numSpan = block.querySelector('.chrono-event-num');
             if (numSpan) numSpan.textContent = idx + 1;
         });
     },
@@ -6048,10 +6081,17 @@ const AdminBanquesExercices = {
                 donnees = {
                     consigne: document.getElementById('chronoConsigne').value,
                     mode: this.chronoMode || 'date', // 'date' ou 'evenement'
-                    paires: Array.from(document.querySelectorAll('#chronoPaires .pair-row')).map(row => ({
-                        date: row.querySelector('.chrono-date').value,
-                        evenement: row.querySelector('.chrono-event').value
-                    })).filter(p => p.date && p.evenement)
+                    paires: Array.from(document.querySelectorAll('#chronoPaires .chrono-event-block')).map(block => {
+                        const altInputs = block.querySelectorAll('.chrono-alt-input');
+                        const reponses_acceptees = Array.from(altInputs)
+                            .map(input => input.value.trim())
+                            .filter(v => v !== '');
+                        return {
+                            date: block.querySelector('.chrono-date').value,
+                            evenement: block.querySelector('.chrono-event').value,
+                            reponses_acceptees: reponses_acceptees
+                        };
+                    }).filter(p => p.date && p.evenement)
                 };
                 break;
 
