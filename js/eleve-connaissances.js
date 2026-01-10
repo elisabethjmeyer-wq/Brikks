@@ -241,21 +241,24 @@ const EleveConnaissances = {
                 </div>
             </div>
 
-            <!-- Barre de progression séparée -->
+            <!-- Barre de progression "Prêt pour l'évaluation" -->
             <div class="conn-progress-section">
                 <div class="conn-progress-header">
                     <span class="conn-progress-title">Prêt pour l'évaluation</span>
-                    <span class="conn-progress-value">${globalStats.memorise}/${globalStats.total} mémorisés</span>
+                    <span class="conn-progress-value">${globalStats.aJour}/${globalStats.total} à jour</span>
                 </div>
                 <div class="conn-progress-bar">
-                    <div class="conn-progress-fill" style="width: ${globalStats.pourcentage}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
+                    <div class="conn-progress-fill" style="width: ${globalStats.pourcentagePret}%; background: linear-gradient(90deg, #3b82f6, #2563eb);"></div>
                 </div>
                 ${globalStats.aReviser > 0 ? `
                     <div class="banque-alert" style="margin-top: 0.75rem;">
                         <span class="banque-alert-icon">⚡</span>
-                        <span>${globalStats.aReviser} entraînement${globalStats.aReviser > 1 ? 's' : ''} à réviser aujourd'hui</span>
+                        <span>${globalStats.aReviser} entraînement${globalStats.aReviser > 1 ? 's' : ''} à réviser</span>
                     </div>
                 ` : ''}
+                <div class="conn-memorises-indicator">
+                    📊 ${globalStats.memorise}/${globalStats.total} mémorisés définitivement
+                </div>
             </div>
 
             <!-- Barre de recherche -->
@@ -275,16 +278,16 @@ const EleveConnaissances = {
             const banqueStats = this.calculateBanqueStats(banqueEntrainements);
             const isExpanded = this.expandedBanques.has(banque.id);
 
-            // Progress ring calculation (basé sur les mémorisés)
+            // Progress ring calculation (basé sur "à jour" = prêt pour évaluation)
             const radius = 18;
             const circumference = 2 * Math.PI * radius;
-            const offset = circumference - (banqueStats.pourcentage / 100) * circumference;
+            const offset = circumference - (banqueStats.pourcentagePret / 100) * circumference;
 
             // Déterminer la couleur du ring selon le statut
             let ringColor = '#e5e7eb';
-            if (banqueStats.pourcentage >= 100) ringColor = '#10b981';
-            else if (banqueStats.pourcentage >= 50) ringColor = '#f59e0b';
-            else if (banqueStats.pourcentage > 0) ringColor = '#3b82f6';
+            if (banqueStats.pourcentagePret >= 100) ringColor = '#10b981';
+            else if (banqueStats.pourcentagePret >= 50) ringColor = '#f59e0b';
+            else if (banqueStats.pourcentagePret > 0) ringColor = '#3b82f6';
 
             html += `
                 <div class="banque-accordion-item connaissances${isExpanded ? ' expanded' : ''}" data-banque-id="${banque.id}">
@@ -334,11 +337,12 @@ const EleveConnaissances = {
 
     /**
      * Calcule les statistiques globales
+     * "Prêt pour évaluation" = à jour (verrouillé ou mémorisé) / total
      */
     calculateGlobalStats() {
         let total = 0;
         let memorise = 0;
-        let enCours = 0;
+        let aJour = 0; // verrouillé + mémorisé = à jour pour l'évaluation
         let aReviser = 0;
         let verrouille = 0;
         let nouveau = 0;
@@ -348,20 +352,31 @@ const EleveConnaissances = {
             const prog = this.progressions[ent.id];
             const status = this.getEntrainementStatus(prog);
 
-            if (status.statusClass === 'memorise') memorise++;
-            else if (status.statusClass === 'verrouille') { verrouille++; enCours++; }
-            else if (status.statusClass === 'a-reviser') { aReviser++; enCours++; }
-            else nouveau++;
+            if (status.statusClass === 'memorise') {
+                memorise++;
+                aJour++;
+            } else if (status.statusClass === 'verrouille') {
+                verrouille++;
+                aJour++;
+            } else if (status.statusClass === 'a-reviser') {
+                aReviser++;
+            } else {
+                nouveau++;
+            }
         });
+
+        // Pourcentage "prêt pour l'évaluation" = à jour / total
+        const pourcentagePret = total > 0 ? Math.round((aJour / total) * 100) : 0;
 
         return {
             total,
             memorise,
-            enCours,
+            aJour,
             aReviser,
             verrouille,
             nouveau,
-            pourcentage: total > 0 ? Math.round((memorise / total) * 100) : 0
+            pourcentagePret, // Pour la barre de progression
+            pourcentageMemorises: total > 0 ? Math.round((memorise / total) * 100) : 0
         };
     },
 
@@ -371,6 +386,7 @@ const EleveConnaissances = {
     calculateBanqueStats(entrainements) {
         let total = entrainements.length;
         let memorise = 0;
+        let aJour = 0;
         let aReviser = 0;
         let verrouille = 0;
         let nouveau = 0;
@@ -379,19 +395,27 @@ const EleveConnaissances = {
             const prog = this.progressions[ent.id];
             const status = this.getEntrainementStatus(prog);
 
-            if (status.statusClass === 'memorise') memorise++;
-            else if (status.statusClass === 'verrouille') verrouille++;
-            else if (status.statusClass === 'a-reviser') aReviser++;
-            else nouveau++;
+            if (status.statusClass === 'memorise') {
+                memorise++;
+                aJour++;
+            } else if (status.statusClass === 'verrouille') {
+                verrouille++;
+                aJour++;
+            } else if (status.statusClass === 'a-reviser') {
+                aReviser++;
+            } else {
+                nouveau++;
+            }
         });
 
         return {
             total,
             memorise,
+            aJour,
             aReviser,
             verrouille,
             nouveau,
-            pourcentage: total > 0 ? Math.round((memorise / total) * 100) : 0
+            pourcentagePret: total > 0 ? Math.round((aJour / total) * 100) : 0
         };
     },
 
@@ -414,7 +438,7 @@ const EleveConnaissances = {
             let metaItems = [];
             metaItems.push(`${dureeMinutes} min`);
             if (prog && prog.etape) {
-                metaItems.push(`Étape ${prog.etape}/6`);
+                metaItems.push(`Étape ${prog.etape}/7`);
             }
             if (statusInfo.joursRestants !== undefined && statusInfo.joursRestants > 0) {
                 metaItems.push(`Dans ${statusInfo.joursRestants}j`);
@@ -546,24 +570,29 @@ const EleveConnaissances = {
 
     /**
      * Start an entrainement
+     * @param {string} entrainementId - ID de l'entraînement
+     * @param {boolean} skipAvailabilityCheck - Si true, ignore le verrouillage (mode libre)
      */
-    async startEntrainement(entrainementId) {
-        // Vérifier si l'entraînement est verrouillé
-        const prog = this.progressions[entrainementId];
-        const status = this.getEntrainementStatus(prog);
+    async startEntrainement(entrainementId, skipAvailabilityCheck = false) {
+        // Vérifier si l'entraînement est verrouillé (sauf en mode libre)
+        if (!skipAvailabilityCheck) {
+            const prog = this.progressions[entrainementId];
+            const status = this.getEntrainementStatus(prog);
 
-        if (status.statusClass === 'verrouille') {
-            // Afficher un modal de verrouillage
-            this.showLockedModal(prog, status);
-            return;
-        }
+            if (status.statusClass === 'verrouille') {
+                // Afficher un modal de verrouillage avec option entraînement libre
+                this.showLockedModal(prog, status, entrainementId);
+                return;
+            }
 
-        // Si mémorisé, afficher un avertissement mais permettre de continuer
-        if (status.statusClass === 'memorise') {
-            this.isTrainingMode = true; // Mode entraînement libre (ne compte pas)
-        } else {
-            this.isTrainingMode = false;
+            // Si mémorisé, afficher un avertissement mais permettre de continuer
+            if (status.statusClass === 'memorise') {
+                this.isTrainingMode = true; // Mode entraînement libre (ne compte pas)
+            } else {
+                this.isTrainingMode = false;
+            }
         }
+        // Si skipAvailabilityCheck, isTrainingMode est déjà défini par startFreeTraining
 
         this.showLoader('Chargement de l\'entraînement...');
 
@@ -2195,10 +2224,10 @@ const EleveConnaissances = {
 
     /**
      * Affiche un modal quand l'entraînement est verrouillé
+     * Offre l'option de faire l'entraînement en mode libre (ne compte pas)
      */
-    showLockedModal(prog, status) {
-        const container = document.getElementById('connaissances-content');
-        const entrainement = this.entrainements.find(e => e.id === prog.entrainement_id);
+    showLockedModal(prog, status, entrainementId) {
+        const entrainement = this.entrainements.find(e => e.id === (entrainementId || prog.entrainement_id));
         const titre = entrainement?.titre || 'Cet entraînement';
 
         const prochaineDate = new Date(prog.prochaine_revision);
@@ -2218,16 +2247,37 @@ const EleveConnaissances = {
                     reviens <strong>${dateStr}</strong> pour la prochaine révision.
                 </p>
                 <div class="locked-modal-info">
-                    <div class="locked-modal-etape">Étape ${prog.etape}/6</div>
+                    <div class="locked-modal-etape">Étape ${prog.etape}/7</div>
                     <div class="locked-modal-jours">${status.joursRestants} jour${status.joursRestants > 1 ? 's' : ''} restant${status.joursRestants > 1 ? 's' : ''}</div>
                 </div>
-                <button class="btn btn-primary" onclick="this.closest('.locked-modal-overlay').remove()">
-                    J'ai compris
-                </button>
+                <div class="locked-modal-actions">
+                    <button class="btn btn-primary" onclick="this.closest('.locked-modal-overlay').remove()">
+                        J'ai compris
+                    </button>
+                    <button class="btn btn-outline btn-free-training" onclick="EleveConnaissances.startFreeTraining('${entrainementId || prog.entrainement_id}')">
+                        M'entraîner quand même
+                    </button>
+                </div>
+                <p class="locked-modal-free-hint">⚠️ L'entraînement libre ne compte pas pour ta progression</p>
             </div>
         `;
 
         document.body.appendChild(modal);
+    },
+
+    /**
+     * Démarre un entraînement en mode libre (ne compte pas pour la progression)
+     */
+    startFreeTraining(entrainementId) {
+        // Fermer le modal
+        document.querySelector('.locked-modal-overlay')?.remove();
+
+        // Marquer comme mode entraînement libre
+        this.isTrainingMode = true;
+        this.isFreeTraining = true;
+
+        // Démarrer l'entraînement normalement
+        this.startEntrainement(entrainementId, true); // true = skip availability check
     },
 
     /**
@@ -2267,7 +2317,7 @@ const EleveConnaissances = {
             const joursRestants = this.calculateDaysUntil(prog.prochaine_revision);
             if (prog.reussi) {
                 progressionMessage = `<div class="progression-message success">
-                    Étape ${prog.etape}/6 - Prochaine révision efficace dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''}
+                    Étape ${prog.etape}/7 - Prochaine révision efficace dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''}
                 </div>`;
             } else {
                 progressionMessage = `<div class="progression-message retry">

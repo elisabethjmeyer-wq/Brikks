@@ -59,6 +59,13 @@
     max-width: 400px;
 }
 
+.conn-memorises-indicator {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+    text-align: right;
+}
+
 /* ============================================
    ÉTAPES - PROGRESSION VISUELLE
    ============================================ */
@@ -2307,6 +2314,28 @@
 
 .locked-modal-jours {
     color: #6b7280;
+}
+
+.locked-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.locked-modal-actions .btn {
+    width: 100%;
+}
+
+.btn-free-training {
+    font-size: 0.85rem;
+}
+
+.locked-modal-free-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin: 0;
+    text-align: center;
 }
 
 /* ============================================
