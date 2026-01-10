@@ -2318,20 +2318,32 @@ const EleveConnaissances = {
         }
 
         // Message sur la progression de mémorisation
+        // Ne pas afficher de message de progression en mode entraînement libre
         let progressionMessage = '';
-        if (prog.statut === 'memorise') {
-            progressionMessage = `<div class="progression-message memorise">✅ Cet exercice est maintenant mémorisé !</div>`;
-        } else if (prog.prochaine_revision) {
-            const joursRestants = this.calculateDaysUntil(prog.prochaine_revision);
-            if (prog.reussi) {
-                progressionMessage = `<div class="progression-message success">
-                    Étape ${prog.etape}/7 - Prochaine révision efficace dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''}
+        if (!this.isTrainingMode && prog.success) {
+            if (prog.statut === 'memorise' && prog.reussi) {
+                // Seulement si l'élève a RÉUSSI et atteint le statut mémorisé
+                progressionMessage = `<div class="progression-message memorise">
+                    🎉 Félicitations ! Cet exercice est maintenant mémorisé définitivement !
                 </div>`;
-            } else {
+            } else if (prog.reussi) {
+                // Réussi mais pas encore mémorisé - afficher la prochaine étape
+                const joursRestants = prog.prochaine_revision ? this.calculateDaysUntil(prog.prochaine_revision) : 1;
+                progressionMessage = `<div class="progression-message success">
+                    ✅ Bravo ! Étape ${prog.etape}/${prog.etape_max || 7} validée.<br>
+                    <small>Reviens dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''} pour ancrer cette connaissance.</small>
+                </div>`;
+            } else if (prog.reussi === false) {
+                // Explicitement échoué (pas null/undefined)
+                const seuil = prog.seuil || 80;
                 progressionMessage = `<div class="progression-message retry">
-                    Tu peux réessayer maintenant pour progresser.
+                    📚 Il faut ${seuil}% pour valider. Tu peux réessayer maintenant !
                 </div>`;
             }
+        } else if (this.isTrainingMode) {
+            progressionMessage = `<div class="progression-message info">
+                <small>Mode entraînement libre - ta progression n'est pas modifiée</small>
+            </div>`;
         }
 
         // Trouver l'entraînement suivant
