@@ -697,6 +697,7 @@ const EleveConnaissances = {
     /**
      * Render Chronologie (Timeline ordering)
      * Format admin: {consigne, mode, paires: [{date, evenement}, ...]}
+     * Affiche une frise chronologique visuelle avec flèche
      */
     renderChronologie(donnees, questions) {
         // Accepter 'paires' ou 'evenements' comme nom de champ
@@ -714,33 +715,102 @@ const EleveConnaissances = {
             `;
         }
 
-        // Shuffle for student
-        const shuffled = [...events].sort(() => Math.random() - 0.5);
+        // Trier les événements par date pour la frise
+        const sortedEvents = [...events].sort((a, b) => {
+            const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
+            const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
+            return dateA - dateB;
+        });
+
+        // Mélanger les événements pour le drag & drop
+        const shuffledEvents = this.shuffleArray([...events]);
 
         // Instruction par défaut ou personnalisée
-        const defaultInstruction = mode === 'date' ?
-            'Associez chaque événement à sa date en faisant glisser les éléments.' :
-            'Replacez les événements dans l\'ordre chronologique.';
+        const defaultInstruction = 'Placez les événements sur la frise chronologique';
 
         return `
             <div class="chronologie-container">
                 <p class="chrono-instruction">${this.escapeHtml(consigne || defaultInstruction)}</p>
-                <div class="chrono-timeline" id="chronoTimeline">
-                    ${shuffled.map((evt, idx) => `
-                        <div class="chrono-card" draggable="true" data-id="${idx}" data-date="${evt.date}">
-                            <div class="chrono-card-content">
-                                ${mode === 'date' ?
-                                    `<span class="chrono-event">${this.escapeHtml(evt.evenement)}</span>
-                                     <input type="text" class="chrono-date-input" placeholder="Date ?" data-index="${idx}">` :
-                                    `<span class="chrono-date">${this.escapeHtml(evt.date)}</span>
-                                     <span class="chrono-event">${this.escapeHtml(evt.evenement)}</span>`
-                                }
-                            </div>
+
+                <!-- Frise chronologique avec flèche -->
+                <div class="chrono-frise-wrapper">
+                    <div class="chrono-frise">
+                        <div class="chrono-ligne">
+                            <div class="chrono-fleche"></div>
                         </div>
-                    `).join('')}
+                        <div class="chrono-points">
+                            ${sortedEvents.map((evt, idx) => `
+                                <div class="chrono-point-container" data-index="${idx}" data-date="${evt.date}">
+                                    <div class="chrono-date-label">${this.escapeHtml(String(evt.date))}</div>
+                                    <div class="chrono-point"></div>
+                                    <div class="chrono-drop-zone"
+                                         data-index="${idx}"
+                                         ondragover="event.preventDefault(); this.classList.add('drag-over')"
+                                         ondragleave="this.classList.remove('drag-over')"
+                                         ondrop="EleveConnaissances.dropChronoEvent(event, ${idx})">
+                                        <span class="chrono-placeholder">?</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Événements à placer -->
+                <div class="chrono-events-pool">
+                    <p class="chrono-pool-label">Événements à placer :</p>
+                    <div class="chrono-events-list">
+                        ${shuffledEvents.map((evt, idx) => `
+                            <div class="chrono-event-card"
+                                 draggable="true"
+                                 data-event="${this.escapeHtml(evt.evenement)}"
+                                 data-correct-date="${evt.date}"
+                                 ondragstart="EleveConnaissances.dragChronoEvent(event)">
+                                ${this.escapeHtml(evt.evenement)}
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             </div>
         `;
+    },
+
+    // Drag & Drop pour chronologie
+    dragChronoEvent(event) {
+        event.dataTransfer.setData('text/plain', event.target.dataset.event);
+        event.dataTransfer.setData('correct-date', event.target.dataset.correctDate);
+        event.target.classList.add('dragging');
+    },
+
+    dropChronoEvent(event, index) {
+        event.preventDefault();
+        const dropZone = event.currentTarget;
+        dropZone.classList.remove('drag-over');
+
+        const eventText = event.dataTransfer.getData('text/plain');
+        const correctDate = event.dataTransfer.getData('correct-date');
+        const targetDate = dropZone.parentElement.dataset.date;
+
+        // Retirer l'élément de la pool
+        const draggedCard = document.querySelector(`.chrono-event-card[data-event="${eventText}"]`);
+        if (draggedCard) {
+            draggedCard.classList.remove('dragging');
+            draggedCard.style.display = 'none';
+        }
+
+        // Placer dans la zone
+        dropZone.innerHTML = `<span class="chrono-placed-event" data-correct-date="${correctDate}">${eventText}</span>`;
+        dropZone.classList.add('filled');
+
+        // Sauvegarder la réponse
+        if (!this.userAnswers['chrono']) {
+            this.userAnswers['chrono'] = {};
+        }
+        this.userAnswers['chrono'][index] = {
+            placed: eventText,
+            correctDate: correctDate,
+            targetDate: targetDate
+        };
     },
 
     /**
@@ -1032,21 +1102,27 @@ const EleveConnaissances = {
                 break;
 
             case 'chronologie':
-                // Valider les dates entrées
-                const paires = donnees.paires || donnees.evenements || [];
-                paires.forEach((evt, idx) => {
-                    total++;
-                    const input = document.querySelector(`.chrono-date-input[data-index="${idx}"]`);
-                    if (input) {
-                        const userDate = input.value.trim();
-                        const expectedDate = String(evt.date).trim();
-                        const isCorrect = userDate === expectedDate;
-                        if (isCorrect) correct++;
+                // Valider les événements placés sur la frise
+                const chronoAnswers = this.userAnswers['chrono'] || {};
+                const dropZones = document.querySelectorAll('.chrono-drop-zone');
 
-                        input.classList.remove('correct', 'incorrect');
-                        input.classList.add(isCorrect ? 'correct' : 'incorrect');
-                        if (!isCorrect) {
-                            input.value = expectedDate;
+                dropZones.forEach((zone, idx) => {
+                    total++;
+                    const answer = chronoAnswers[idx];
+                    const targetDate = zone.parentElement.dataset.date;
+
+                    zone.classList.remove('correct', 'incorrect');
+
+                    if (answer && String(answer.correctDate) === String(targetDate)) {
+                        correct++;
+                        zone.classList.add('correct');
+                    } else {
+                        zone.classList.add('incorrect');
+                        // Afficher la bonne réponse
+                        const paires = donnees.paires || donnees.evenements || [];
+                        const correctEvent = paires.find(p => String(p.date) === String(targetDate));
+                        if (correctEvent && !zone.classList.contains('filled')) {
+                            zone.innerHTML = `<span class="chrono-placed-event" style="color: #991b1b;">${correctEvent.evenement}</span>`;
                         }
                     }
                 });
