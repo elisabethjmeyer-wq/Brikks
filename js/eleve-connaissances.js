@@ -535,10 +535,19 @@ const EleveConnaissances = {
             console.log('[EleveConnaissances] IDs disponibles dans questionsConnaissances:',
                 this.questionsConnaissances.map(q => q.id));
 
-            const questionContent = this.questionsConnaissances.find(q =>
+            let questionContent = this.questionsConnaissances.find(q =>
                 String(q.id) === String(questionRef.question_id)
             );
             console.log('[EleveConnaissances] Contenu question trouvé:', questionContent);
+
+            // FALLBACK: Si question non trouvée par ID, chercher par format/type
+            if (!questionContent && format) {
+                console.warn(`[EleveConnaissances] Question ID ${questionRef.question_id} non trouvée! Recherche fallback par type ${format}...`);
+                questionContent = this.questionsConnaissances.find(q => q.type === format);
+                if (questionContent) {
+                    console.log('[EleveConnaissances] Question fallback trouvée:', questionContent);
+                }
+            }
 
             if (questionContent && questionContent.donnees) {
                 donnees = questionContent.donnees;
