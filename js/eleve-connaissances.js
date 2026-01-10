@@ -2383,10 +2383,29 @@ const EleveConnaissances = {
                     🎉 Félicitations ! Cet exercice est maintenant mémorisé définitivement !
                 </div>`;
             } else if (prog.reussi) {
-                // Réussi mais pas encore mémorisé - afficher la prochaine étape
+                // Réussi mais pas encore mémorisé - message clair selon l'étape
                 const joursRestants = prog.prochaine_revision ? this.calculateDaysUntil(prog.prochaine_revision) : 1;
+
+                // Message selon l'étape atteinte (prog.etape = nouvelle étape après succès)
+                let messageEtape;
+                if (prog.etape <= 1) {
+                    messageEtape = "1ère mémorisation réussie";
+                } else if (prog.etape === 2) {
+                    messageEtape = "1ère révision réussie";
+                } else if (prog.etape === 3) {
+                    messageEtape = "2ème révision réussie";
+                } else if (prog.etape === 4) {
+                    messageEtape = "3ème révision réussie";
+                } else if (prog.etape === 5) {
+                    messageEtape = "4ème révision réussie";
+                } else if (prog.etape === 6) {
+                    messageEtape = "5ème révision réussie";
+                } else {
+                    messageEtape = "Dernière révision réussie";
+                }
+
                 progressionMessage = `<div class="progression-message success">
-                    ✅ Bravo ! Étape ${prog.etape}/${prog.etape_max || 7} validée.<br>
+                    ✅ Bravo ! ${messageEtape} !<br>
                     <small>Reviens dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''} pour ancrer cette connaissance.</small>
                 </div>`;
             } else if (prog.reussi === false) {
