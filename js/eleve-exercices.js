@@ -1422,9 +1422,9 @@ const EleveExercices = {
             // Appliquer les corrections sur l'exercice actuel
             this.applyCorrections(typeUI);
 
-            // Capturer le HTML de l'exercice corrigé
+            // Capturer le HTML de l'exercice corrigé avec les valeurs des inputs
             const exerciseContent = document.querySelector('.exercise-content');
-            const correctedHTML = exerciseContent ? exerciseContent.innerHTML : '';
+            const correctedHTML = this.captureContentWithValues(exerciseContent);
 
             // Capturer aussi la consigne si présente
             const consigneEl = document.querySelector('.exercise-consigne');
@@ -1970,10 +1970,15 @@ const EleveExercices = {
                     ${progressionMessage}
 
                     <div class="result-corrected-exercise">
-                        <h3>Corrigé</h3>
-                        ${results.consigneHTML || ''}
-                        <div class="corrected-content">
-                            ${results.correctedHTML || '<p>Aucun contenu à afficher</p>'}
+                        <h3 class="corrected-toggle" onclick="EleveExercices.toggleCorrige()">
+                            📋 Voir le corrigé
+                            <span class="toggle-icon">▼</span>
+                        </h3>
+                        <div class="corrected-content-wrapper" id="correctedContentWrapper" style="display: none;">
+                            ${results.consigneHTML || ''}
+                            <div class="corrected-content">
+                                ${results.correctedHTML || '<p>Aucun contenu à afficher</p>'}
+                            </div>
                         </div>
                     </div>
 
@@ -1996,7 +2001,26 @@ const EleveExercices = {
     },
 
     /**
-     * Toggle l'affichage des détails dans l'écran de résultat
+     * Toggle l'affichage du corrigé dans l'écran de résultat SF
+     */
+    toggleCorrige() {
+        const wrapper = document.getElementById('correctedContentWrapper');
+        const toggle = document.querySelector('.corrected-toggle');
+        const icon = toggle ? toggle.querySelector('.toggle-icon') : null;
+
+        if (wrapper) {
+            const isHidden = wrapper.style.display === 'none';
+            wrapper.style.display = isHidden ? 'block' : 'none';
+            if (toggle) {
+                toggle.innerHTML = isHidden
+                    ? '📋 Masquer le corrigé <span class="toggle-icon">▲</span>'
+                    : '📋 Voir le corrigé <span class="toggle-icon">▼</span>';
+            }
+        }
+    },
+
+    /**
+     * Toggle l'affichage des détails dans l'écran de résultat (ancien)
      */
     toggleResultDetails() {
         const content = document.getElementById('resultDetailsContent');
@@ -2064,6 +2088,35 @@ const EleveExercices = {
         } else if (typeUI === 'tableau_saisie' || typeUI === 'document_tableau') {
             this.showTableauCorrige();
         }
+    },
+
+    /**
+     * Capture le HTML d'un élément en incluant les valeurs actuelles des inputs
+     * (innerHTML ne capture pas les valeurs des inputs, seulement les attributs)
+     */
+    captureContentWithValues(element) {
+        if (!element) return '';
+
+        // Cloner l'élément pour ne pas modifier l'original
+        const clone = element.cloneNode(true);
+
+        // Pour chaque input dans le clone, mettre la valeur comme attribut
+        const originalInputs = element.querySelectorAll('input, textarea');
+        const clonedInputs = clone.querySelectorAll('input, textarea');
+
+        originalInputs.forEach((origInput, idx) => {
+            const clonedInput = clonedInputs[idx];
+            if (clonedInput) {
+                // Définir l'attribut value avec la valeur actuelle
+                clonedInput.setAttribute('value', origInput.value);
+                // Pour les textareas, mettre le contenu
+                if (origInput.tagName === 'TEXTAREA') {
+                    clonedInput.textContent = origInput.value;
+                }
+            }
+        });
+
+        return clone.innerHTML;
     },
 
     // ===============================
