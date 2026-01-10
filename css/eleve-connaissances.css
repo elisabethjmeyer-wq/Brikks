@@ -1708,3 +1708,615 @@
     background: #fee2e2 !important;
     color: #991b1b;
 }
+}
+
+/* ============================================
+   ÉCRAN DE RÉSULTATS - RÉCAPITULATIF
+   ============================================ */
+
+.result-view {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.result-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.result-header {
+    padding: 2rem;
+    text-align: center;
+    color: white;
+}
+
+.result-header.success {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.result-header.partial {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.result-header.error {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.result-icon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+
+.result-header h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.5rem;
+}
+
+.result-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.score-value {
+    font-size: 3rem;
+    font-weight: 700;
+}
+
+.score-detail {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+/* Message de progression */
+.progression-message {
+    padding: 1rem 1.5rem;
+    margin: 0;
+    text-align: center;
+    font-weight: 500;
+}
+
+.progression-message.success {
+    background: #ecfdf5;
+    color: #065f46;
+    border-bottom: 1px solid #d1fae5;
+}
+
+.progression-message.memorise {
+    background: #dbeafe;
+    color: #1e40af;
+    border-bottom: 1px solid #bfdbfe;
+}
+
+.progression-message.retry {
+    background: #fef3c7;
+    color: #92400e;
+    border-bottom: 1px solid #fde68a;
+}
+
+/* Détails des étapes */
+.result-details {
+    padding: 1.5rem;
+}
+
+.result-details h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: #374151;
+}
+
+.etapes-recap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.etape-recap {
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.etape-recap.success {
+    border-color: #10b981;
+}
+
+.etape-recap.partial {
+    border-color: #f59e0b;
+}
+
+.etape-recap.error {
+    border-color: #ef4444;
+}
+
+.etape-recap-header {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.etape-recap-header:hover {
+    background: #f9fafb;
+}
+
+.etape-recap-num {
+    width: 28px;
+    height: 28px;
+    background: #e5e7eb;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-right: 0.75rem;
+}
+
+.etape-recap.success .etape-recap-num {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.etape-recap.partial .etape-recap-num {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.etape-recap.error .etape-recap-num {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.etape-recap-title {
+    flex: 1;
+    font-weight: 500;
+    color: #374151;
+}
+
+.etape-recap-score {
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+.etape-recap.success .etape-recap-score {
+    color: #059669;
+}
+
+.etape-recap.partial .etape-recap-score {
+    color: #d97706;
+}
+
+.etape-recap.error .etape-recap-score {
+    color: #dc2626;
+}
+
+.etape-recap-toggle {
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+.etape-recap-details {
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
+
+.detail-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-item:last-child {
+    border-bottom: none;
+}
+
+.detail-icon {
+    width: 24px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.detail-item.correct .detail-icon {
+    color: #10b981;
+}
+
+.detail-item.incorrect .detail-icon {
+    color: #ef4444;
+}
+
+.detail-question {
+    flex: 1;
+    color: #374151;
+    font-size: 0.9rem;
+}
+
+.detail-correction {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+    padding-left: 1.5rem;
+}
+
+.user-answer {
+    color: #ef4444;
+    font-weight: 500;
+}
+
+.expected-answer {
+    color: #10b981;
+    font-weight: 500;
+}
+
+/* Actions de fin */
+.result-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+}
+
+.btn-outline {
+    background: white;
+    border: 2px solid #e5e7eb;
+    color: #374151;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-outline:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+/* ============================================
+   ÉTATS DES ENTRAÎNEMENTS (liste)
+   ============================================ */
+
+.entrainement-item {
+    position: relative;
+}
+
+.entrainement-status-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.entrainement-status-badge.nouveau {
+    background: #e5e7eb;
+    color: #6b7280;
+}
+
+.entrainement-status-badge.en-cours {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.entrainement-status-badge.a-reviser {
+    background: #dbeafe;
+    color: #1e40af;
+    animation: pulse 2s infinite;
+}
+
+.entrainement-status-badge.verrouille {
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+.entrainement-status-badge.memorise {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.entrainement-locked-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
+}
+
+.entrainement-locked-message {
+    background: white;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.entrainement-locked-message .lock-icon {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+/* Progression de mémorisation sur item */
+.entrainement-progress-bar {
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.entrainement-progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.entrainement-progress-fill.etape-1 { width: 16.66%; background: #fcd34d; }
+.entrainement-progress-fill.etape-2 { width: 33.33%; background: #fbbf24; }
+.entrainement-progress-fill.etape-3 { width: 50%; background: #f59e0b; }
+.entrainement-progress-fill.etape-4 { width: 66.66%; background: #34d399; }
+.entrainement-progress-fill.etape-5 { width: 83.33%; background: #10b981; }
+.entrainement-progress-fill.etape-6 { width: 100%; background: #059669; }
+.entrainement-progress-fill.memorise { width: 100%; background: linear-gradient(90deg, #10b981, #059669); }
+
+/* ============================================
+   VUE GLOBALE BANQUE
+   ============================================ */
+
+.banque-progress-summary {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.banque-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.banque-progress-title {
+    font-weight: 600;
+    color: #374151;
+}
+
+.banque-progress-percent {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #3b82f6;
+}
+
+.banque-progress-bar {
+    height: 12px;
+    background: #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.banque-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #059669);
+    border-radius: 6px;
+    transition: width 0.3s ease;
+}
+
+.banque-stats {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.banque-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.banque-stat-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.banque-stat-dot.memorise { background: #10b981; }
+.banque-stat-dot.en-cours { background: #f59e0b; }
+.banque-stat-dot.a-reviser { background: #3b82f6; }
+.banque-stat-dot.nouveau { background: #e5e7eb; }
+
+.banque-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #fef3c7;
+    border-radius: 8px;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #92400e;
+}
+
+.banque-alert-icon {
+    font-size: 1.2rem;
+}
+
+/* ============================================
+   RESPONSIVE RÉSULTATS
+   ============================================ */
+
+@media (max-width: 600px) {
+    .result-header {
+        padding: 1.5rem;
+    }
+
+    .score-value {
+        font-size: 2.5rem;
+    }
+
+    .result-actions {
+        flex-direction: column;
+    }
+
+    .result-actions .btn {
+        width: 100%;
+    }
+
+    .banque-stats {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* ============================================
+   MODAL DE VERROUILLAGE
+   ============================================ */
+
+.locked-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.locked-modal {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.locked-modal-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.locked-modal h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    color: #1f2937;
+}
+
+.locked-modal-title {
+    font-weight: 600;
+    color: #3b82f6;
+    margin: 0 0 1rem 0;
+}
+
+.locked-modal-message {
+    color: #6b7280;
+    line-height: 1.5;
+    margin: 0 0 1.5rem 0;
+}
+
+.locked-modal-info {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.locked-modal-etape,
+.locked-modal-jours {
+    padding: 0.5rem 1rem;
+    background: #f3f4f6;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.locked-modal-etape {
+    color: #3b82f6;
+}
+
+.locked-modal-jours {
+    color: #6b7280;
+}
+
+/* ============================================
+   ÉTATS DES EXERCICES DANS LA LISTE
+   ============================================ */
+
+.exercice-item.verrouille {
+    opacity: 0.7;
+    cursor: default;
+}
+
+.exercice-item.verrouille .exercice-numero {
+    background: #e5e7eb;
+    color: #9ca3af;
+}
+
+.exercice-item.a-reviser {
+    border-left: 4px solid #3b82f6;
+}
+
+.exercice-item.memorise {
+    border-left: 4px solid #10b981;
+}
+
+.exercice-item.memorise .exercice-numero {
+    background: #10b981;
+}
+
+.exercice-status.verrouille {
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+.exercice-status.a-reviser {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.exercice-status.memorise {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.exercice-status.new {
+    background: #f3f4f6;
+    color: #6b7280;
+}
