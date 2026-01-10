@@ -653,14 +653,26 @@ const EleveConnaissances = {
                         ` : ''}
                     </div>
 
-                    <!-- Barre de progression des étapes -->
-                    <div class="etapes-progress">
-                        ${etapes.map((etape, idx) => `
-                            <div class="etape-dot ${idx < this.currentEtapeIndex ? 'completed' : ''} ${idx === this.currentEtapeIndex ? 'current' : ''}"
-                                 title="Étape ${idx + 1}">
-                                ${idx + 1}
-                            </div>
-                        `).join('<div class="etape-connector"></div>')}
+                    <!-- Barre de progression des étapes avec navigation -->
+                    <div class="etapes-navigation">
+                        <button class="etape-nav-btn prev ${this.currentEtapeIndex === 0 ? 'disabled' : ''}"
+                                onclick="EleveConnaissances.previousEtape()"
+                                ${this.currentEtapeIndex === 0 ? 'disabled' : ''}>
+                            ←
+                        </button>
+                        <div class="etapes-progress">
+                            ${etapes.map((etape, idx) => `
+                                <div class="etape-dot ${idx < this.currentEtapeIndex ? 'completed' : ''} ${idx === this.currentEtapeIndex ? 'current' : ''}"
+                                     title="Étape ${idx + 1}">
+                                    ${idx + 1}
+                                </div>
+                            `).join('<div class="etape-connector"></div>')}
+                        </div>
+                        <button class="etape-nav-btn next ${this.currentEtapeIndex >= etapes.length - 1 ? 'disabled' : ''}"
+                                onclick="EleveConnaissances.nextEtape()"
+                                ${this.currentEtapeIndex >= etapes.length - 1 ? 'disabled' : ''}>
+                            →
+                        </button>
                     </div>
 
                     <!-- Titre de l'étape -->
@@ -676,22 +688,11 @@ const EleveConnaissances = {
 
                     <div class="result-banner" id="resultBanner"></div>
 
-                    <!-- Actions - Navigation sans validation intermédiaire -->
+                    <!-- Actions - Bouton de validation seulement -->
                     <div class="exercise-actions">
-                        ${this.currentEtapeIndex > 0 ? `
-                            <button class="btn btn-secondary" onclick="EleveConnaissances.previousEtape()">
-                                ← Étape précédente
-                            </button>
-                        ` : ''}
-                        ${this.currentEtapeIndex < etapes.length - 1 ? `
-                            <button class="btn btn-primary" onclick="EleveConnaissances.nextEtape()">
-                                Étape suivante →
-                            </button>
-                        ` : `
-                            <button class="btn btn-success" onclick="EleveConnaissances.finishEntrainement()">
-                                Valider mes réponses
-                            </button>
-                        `}
+                        <button class="btn btn-success" onclick="EleveConnaissances.finishEntrainement()">
+                            ✓ Valider mes réponses
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1026,17 +1027,27 @@ const EleveConnaissances = {
             `;
         }
 
-        // Shuffle for student
+        // Shuffle for student et stocker les données pour validation
         const shuffled = [...cartes].sort(() => Math.random() - 0.5);
+        this.timelineCartes = cartes; // Garder l'original pour validation
+
+        // Setup drag & drop after render
+        setTimeout(() => this.setupTimelineDragDrop(), 100);
 
         return `
             <div class="timeline-container">
                 <p class="timeline-instruction">Replacez les événements dans l'ordre chronologique en les faisant glisser.</p>
                 <div class="timeline-cards" id="timelineCards">
-                    ${shuffled.map((carte, idx) => `
-                        <div class="timeline-flip-card" draggable="true" data-id="${idx}" data-date="${carte.date}">
+                    ${shuffled.map((carte, idx) => {
+                        // Construire le style d'image
+                        let frontStyle = '';
+                        if (carte.image_url) {
+                            frontStyle = `style="background-image: url('${this.escapeHtml(carte.image_url)}'); background-size: cover; background-position: center;"`;
+                        }
+                        return `
+                        <div class="timeline-flip-card" draggable="true" data-id="${idx}" data-date="${carte.date}" data-titre="${this.escapeHtml(carte.titre)}">
                             <div class="flip-card-inner">
-                                <div class="flip-card-front" ${carte.image_url ? `style="background-image: url('${this.escapeHtml(carte.image_url)}')"` : ''}>
+                                <div class="flip-card-front" ${frontStyle}>
                                     <span class="flip-card-titre">${this.escapeHtml(carte.titre)}</span>
                                 </div>
                                 <div class="flip-card-back">
@@ -1045,10 +1056,68 @@ const EleveConnaissances = {
                                 </div>
                             </div>
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
             </div>
         `;
+    },
+
+    // État pour le drag & drop de la timeline
+    timelineCartes: [],
+    timelineDraggedCard: null,
+
+    /**
+     * Setup drag & drop pour la timeline
+     */
+    setupTimelineDragDrop() {
+        const container = document.getElementById('timelineCards');
+        if (!container) return;
+
+        const cards = container.querySelectorAll('.timeline-flip-card');
+
+        cards.forEach(card => {
+            card.addEventListener('dragstart', (e) => {
+                this.timelineDraggedCard = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                this.timelineDraggedCard = null;
+                // Sauvegarder l'ordre actuel
+                this.saveTimelineOrder();
+            });
+
+            card.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (!this.timelineDraggedCard || this.timelineDraggedCard === card) return;
+
+                const rect = card.getBoundingClientRect();
+                const midX = rect.left + rect.width / 2;
+
+                if (e.clientX < midX) {
+                    card.parentNode.insertBefore(this.timelineDraggedCard, card);
+                } else {
+                    card.parentNode.insertBefore(this.timelineDraggedCard, card.nextSibling);
+                }
+            });
+        });
+    },
+
+    /**
+     * Sauvegarde l'ordre des cartes timeline
+     */
+    saveTimelineOrder() {
+        const container = document.getElementById('timelineCards');
+        if (!container) return;
+
+        const cards = Array.from(container.querySelectorAll('.timeline-flip-card'));
+        const order = cards.map(card => ({
+            date: card.dataset.date,
+            titre: card.dataset.titre
+        }));
+        this.userAnswers['timeline_order'] = order;
     },
 
     /**
@@ -1263,59 +1332,44 @@ const EleveConnaissances = {
             <div class="carte-container">
                 <p class="carte-instruction">${this.escapeHtml(consigne)}</p>
 
-                <div class="carte-exercise-wrapper-v2">
-                    <!-- Image avec marqueurs numérotés -->
-                    <div class="carte-image-wrapper-v2">
-                        <img src="${this.escapeHtml(imageUrl)}"
-                             alt="Carte à compléter"
-                             class="carte-image-v2">
-                        <div class="carte-markers-layer-v2" id="carteMarkersLayer">
-                            ${marqueurs.map((m, idx) => `
-                                <div class="carte-marker-v2"
-                                     data-index="${idx}"
-                                     data-reponse="${this.escapeHtml(m.reponse)}"
-                                     data-acceptees="${this.escapeHtml(JSON.stringify(m.reponses_acceptees || []))}"
-                                     style="left: ${m.x}%; top: ${m.y}%;"
-                                     onclick="EleveConnaissances.openCartePopup(${idx}, event)">
-                                    <span class="carte-marker-num-v2">${idx + 1}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <!-- Popup pour répondre -->
-                        <div class="carte-popup" id="cartePopup" style="display: none;">
-                            <div class="carte-popup-content">
-                                <div class="carte-popup-header">
-                                    <span class="carte-popup-title">Point n°<span id="cartePopupNum"></span></span>
-                                    <button class="carte-popup-close" onclick="EleveConnaissances.closeCartePopup()">×</button>
-                                </div>
-                                <div class="carte-popup-body">
-                                    <label>Qu'est-ce que c'est ?</label>
-                                    <input type="text"
-                                           id="cartePopupInput"
-                                           class="carte-popup-input"
-                                           placeholder="Votre réponse..."
-                                           autocomplete="off"
-                                           onkeypress="if(event.key === 'Enter') EleveConnaissances.submitCarteAnswer()">
-                                </div>
-                                <div class="carte-popup-footer">
-                                    <button class="carte-popup-btn carte-popup-btn-cancel" onclick="EleveConnaissances.closeCartePopup()">Annuler</button>
-                                    <button class="carte-popup-btn carte-popup-btn-ok" onclick="EleveConnaissances.submitCarteAnswer()">Valider</button>
-                                </div>
+                <!-- Image avec marqueurs numérotés (sans panneau latéral) -->
+                <div class="carte-image-wrapper-v2">
+                    <img src="${this.escapeHtml(imageUrl)}"
+                         alt="Carte à compléter"
+                         class="carte-image-v2">
+                    <div class="carte-markers-layer-v2" id="carteMarkersLayer">
+                        ${marqueurs.map((m, idx) => `
+                            <div class="carte-marker-v2"
+                                 data-index="${idx}"
+                                 data-reponse="${this.escapeHtml(m.reponse)}"
+                                 data-acceptees="${this.escapeHtml(JSON.stringify(m.reponses_acceptees || []))}"
+                                 style="left: ${m.x}%; top: ${m.y}%;"
+                                 onclick="EleveConnaissances.openCartePopup(${idx}, event)">
+                                <span class="carte-marker-num-v2">${idx + 1}</span>
+                                <span class="carte-marker-answer-label" id="carteMarkerLabel_${idx}"></span>
                             </div>
-                        </div>
+                        `).join('')}
                     </div>
-
-                    <!-- Liste des réponses données -->
-                    <div class="carte-answers-list">
-                        <p class="carte-answers-title">Vos réponses :</p>
-                        <div id="carteAnswersList">
-                            ${marqueurs.map((m, idx) => `
-                                <div class="carte-answer-item" data-index="${idx}">
-                                    <span class="carte-answer-num">${idx + 1}</span>
-                                    <span class="carte-answer-text" id="carteAnswer_${idx}">-</span>
-                                    <button class="carte-answer-edit" onclick="EleveConnaissances.openCartePopup(${idx}, null)">✏️</button>
-                                </div>
-                            `).join('')}
+                    <!-- Popup pour répondre -->
+                    <div class="carte-popup" id="cartePopup" style="display: none;">
+                        <div class="carte-popup-content">
+                            <div class="carte-popup-header">
+                                <span class="carte-popup-title">Point n°<span id="cartePopupNum"></span></span>
+                                <button class="carte-popup-close" onclick="EleveConnaissances.closeCartePopup()">×</button>
+                            </div>
+                            <div class="carte-popup-body">
+                                <label>Qu'est-ce que c'est ?</label>
+                                <input type="text"
+                                       id="cartePopupInput"
+                                       class="carte-popup-input"
+                                       placeholder="Votre réponse..."
+                                       autocomplete="off"
+                                       onkeypress="if(event.key === 'Enter') EleveConnaissances.submitCarteAnswer()">
+                            </div>
+                            <div class="carte-popup-footer">
+                                <button class="carte-popup-btn carte-popup-btn-cancel" onclick="EleveConnaissances.closeCartePopup()">Annuler</button>
+                                <button class="carte-popup-btn carte-popup-btn-ok" onclick="EleveConnaissances.submitCarteAnswer()">Valider</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1369,16 +1423,16 @@ const EleveConnaissances = {
             this.userAnswers['carte_' + index] = answer;
             this.saveAnswer('carte', this.userAnswers);
 
-            // Mettre à jour l'affichage de la liste des réponses
-            const answerText = document.getElementById('carteAnswer_' + index);
-            if (answerText) {
-                answerText.textContent = answer;
-                answerText.classList.add('answered');
-            }
-
-            // Marquer le marqueur comme répondu
+            // Marquer le marqueur comme répondu et afficher la réponse sur la carte
             const marker = document.querySelector(`.carte-marker-v2[data-index="${index}"]`);
-            if (marker) marker.classList.add('answered');
+            if (marker) {
+                marker.classList.add('answered');
+                // Mettre à jour le label sur le marqueur
+                const label = document.getElementById('carteMarkerLabel_' + index);
+                if (label) {
+                    label.textContent = answer;
+                }
+            }
         }
 
         this.closeCartePopup();
@@ -1964,8 +2018,38 @@ const EleveConnaissances = {
                 // Pour timeline, vérifier l'ordre des cartes
                 const cartes = donnees.cartes || [];
                 total = cartes.length;
-                // TODO: implémenter la vérification d'ordre
-                correct = 0;
+
+                // Ordre correct (trié par date)
+                const correctOrder = [...cartes].sort((a, b) => {
+                    const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
+                    const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
+                    return dateA - dateB;
+                });
+
+                // Récupérer l'ordre actuel des cartes depuis le DOM ou les réponses sauvegardées
+                const container = document.getElementById('timelineCards');
+                let userOrder = [];
+                if (container) {
+                    userOrder = Array.from(container.querySelectorAll('.timeline-flip-card')).map(card => ({
+                        date: card.dataset.date,
+                        titre: card.dataset.titre
+                    }));
+                } else if (this.userAnswers['timeline_order']) {
+                    userOrder = this.userAnswers['timeline_order'];
+                }
+
+                // Comparer chaque position
+                correctOrder.forEach((carte, idx) => {
+                    const userCarte = userOrder[idx];
+                    const isCorrect = userCarte && String(userCarte.date) === String(carte.date);
+                    if (isCorrect) correct++;
+                    details.push({
+                        question: `Position ${idx + 1}`,
+                        reponse: userCarte ? userCarte.titre : 'Non placé',
+                        attendu: `${carte.titre} (${carte.date})`,
+                        correct: isCorrect
+                    });
+                });
                 break;
 
             case 'texte_trou':
@@ -1987,8 +2071,32 @@ const EleveConnaissances = {
                 const assocPaires = donnees.paires || [];
                 total = assocPaires.length;
                 const userPairs = this.userAnswers['association'] || [];
-                userPairs.forEach(up => {
-                    if (up.gauche === up.droite) correct++;
+
+                // Pour chaque paire correcte, vérifier si l'utilisateur l'a trouvée
+                assocPaires.forEach((paire, idx) => {
+                    // Chercher si l'utilisateur a fait cette association
+                    const userMatch = userPairs.find(up =>
+                        String(up.gauche) === String(idx) && String(up.droite) === String(idx)
+                    );
+                    const isCorrect = !!userMatch;
+                    if (isCorrect) correct++;
+
+                    // Trouver ce que l'utilisateur a associé à cet élément
+                    const userPair = userPairs.find(up => String(up.gauche) === String(idx));
+                    let userReponse = 'Non associé';
+                    if (userPair) {
+                        const droiteIdx = parseInt(userPair.droite);
+                        if (assocPaires[droiteIdx]) {
+                            userReponse = assocPaires[droiteIdx].element2;
+                        }
+                    }
+
+                    details.push({
+                        question: paire.element1,
+                        reponse: userReponse,
+                        attendu: paire.element2,
+                        correct: isCorrect
+                    });
                 });
                 break;
 
@@ -2220,9 +2328,11 @@ const EleveConnaissances = {
                     </div>
 
                     <div class="result-actions">
-                        <button class="btn btn-secondary" onclick="EleveConnaissances.restartEntrainement()">
-                            🔄 Recommencer
-                        </button>
+                        ${!prog.reussi || this.isTrainingMode ? `
+                            <button class="btn btn-secondary" onclick="EleveConnaissances.restartEntrainement()">
+                                🔄 Recommencer
+                            </button>
+                        ` : ''}
                         ${nextEntrainement ? `
                             <button class="btn btn-primary" onclick="EleveConnaissances.startNextEntrainement()">
                                 Passer au suivant →
@@ -2389,9 +2499,27 @@ const EleveConnaissances = {
 
             if (this.timeRemaining <= 0) {
                 this.stopTimer();
-                // Could show time up notification
+                // Temps écoulé - finir l'entraînement automatiquement
+                this.handleTimeUp();
             }
         }, 1000);
+    },
+
+    /**
+     * Appelé quand le temps est écoulé
+     */
+    handleTimeUp() {
+        // Afficher une notification rapide
+        const timer = document.getElementById('exerciseTimer');
+        if (timer) {
+            timer.classList.add('time-up');
+            timer.innerHTML = '<span>⏰ Temps écoulé !</span>';
+        }
+
+        // Attendre un court instant puis finir l'entraînement
+        setTimeout(() => {
+            this.finishEntrainement();
+        }, 1500);
     },
 
     stopTimer() {
