@@ -269,9 +269,9 @@ const EleveConnaissances = {
             const banqueEntrainements = entrainementsByBanque[banque.id] || [];
             const banqueStats = this.calculateBanqueStats(banqueEntrainements);
 
-            // Auto-expand si il y a des actions à faire
+            // Accordéons fermés par défaut - ouvrir seulement si l'utilisateur a cliqué
+            const isExpanded = this.expandedBanques.has(banque.id);
             const hasActions = banqueStats.aReviser > 0 || banqueStats.nouveau > 0;
-            const isExpanded = this.expandedBanques.has(banque.id) || (hasActions && this.expandedBanques.size === 0);
 
             // Calcul de la progression = moyenne des étapes
             const progressPercent = banqueStats.progressionMoyenne;
@@ -283,17 +283,20 @@ const EleveConnaissances = {
             else if (progressPercent >= 40) progressColor = '#f59e0b';
             else if (progressPercent > 0) progressColor = '#3b82f6';
 
-            // Badge résumé pour la banque
-            let banqueBadge = '';
-            if (banqueStats.aReviser > 0) {
-                banqueBadge = `<span class="banque-badge urgent">⚡ ${banqueStats.aReviser} à réviser</span>`;
-            } else if (banqueStats.nouveau > 0) {
-                banqueBadge = `<span class="banque-badge new">🆕 ${banqueStats.nouveau} nouveau${banqueStats.nouveau > 1 ? 'x' : ''}</span>`;
-            } else if (banqueStats.pretEvaluation) {
-                banqueBadge = `<span class="banque-badge done">✅ Prêt pour l'évaluation</span>`;
-            } else {
-                banqueBadge = `<span class="banque-badge waiting">⏳ En attente</span>`;
+            // Badge résumé pour la banque - afficher "X à faire" ET/OU "X en attente"
+            let banqueBadges = [];
+            const aFaire = banqueStats.aReviser + banqueStats.nouveau;
+            if (aFaire > 0) {
+                banqueBadges.push(`<span class="banque-badge urgent">⚡ ${aFaire} à faire</span>`);
             }
+            if (banqueStats.verrouille > 0) {
+                banqueBadges.push(`<span class="banque-badge waiting">⏳ ${banqueStats.verrouille} en attente</span>`);
+            }
+            if (banqueStats.pretEvaluation) {
+                banqueBadges.push(`<span class="banque-badge done">✅ Prêt pour l'évaluation</span>`);
+            }
+            // Si aucun badge, afficher un état par défaut
+            const banqueBadge = banqueBadges.length > 0 ? banqueBadges.join(' ') : '';
 
             // Message de maîtrise
             let maitriseMessage = '';
@@ -456,6 +459,9 @@ const EleveConnaissances = {
             // Déterminer l'état de l'entraînement
             let statusInfo = this.getEntrainementStatus(prog);
 
+            // Calculer le nombre de réussites (étape - 1, car backend démarre à 1)
+            const reussites = prog?.etape ? Math.max(0, prog.etape - 1) : 0;
+
             // Badge simple au lieu de barre de progression
             let statusBadge = '';
             let actionHint = '';
@@ -466,22 +472,22 @@ const EleveConnaissances = {
                     break;
                 case 'a-reviser':
                     statusBadge = '<span class="entrainement-badge urgent">⚡ À réviser</span>';
-                    actionHint = 'C\'est le moment ! →';
+                    actionHint = `${reussites}/7 réussies`;
                     break;
                 case 'verrouille':
                     statusBadge = `<span class="entrainement-badge locked">⏳ Dans ${statusInfo.joursRestants}j</span>`;
-                    actionHint = prog?.etape ? `Étape ${prog.etape}/7` : '';
+                    actionHint = `${reussites}/7 réussies`;
                     break;
                 case 'memorise':
                     statusBadge = '<span class="entrainement-badge done">✅ Mémorisé</span>';
-                    actionHint = 'Bravo !';
+                    actionHint = '7/7 réussies';
                     break;
             }
 
-            // Construire les métadonnées simplifiées
+            // Construire les métadonnées : durée + description si disponible
             let metaText = `${dureeMinutes} min`;
-            if (prog?.etape && statusInfo.statusClass !== 'memorise') {
-                metaText += ` • Étape ${prog.etape}/7`;
+            if (ent.description) {
+                metaText += ` • ${this.escapeHtml(ent.description)}`;
             }
 
             return `
