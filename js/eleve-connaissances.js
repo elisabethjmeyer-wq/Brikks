@@ -1893,17 +1893,18 @@ const EleveConnaissances = {
     /**
      * Finish the entrainement - Calcule le score et affiche le récapitulatif
      */
-    finishEntrainement() {
+    async finishEntrainement() {
         this.stopTimer();
 
         // Calculer le score de toutes les étapes
         const results = this.validateAllEtapes();
         this.lastResults = results;
 
-        // Sauvegarder la progression
-        this.saveProgression(results);
+        // Sauvegarder la progression et attendre le résultat
+        // pour avoir lastProgressionResult avant le rendu
+        await this.saveProgression(results);
 
-        // Afficher l'écran de résultats
+        // Afficher l'écran de résultats (maintenant lastProgressionResult est défini)
         this.renderResultScreen(results);
     },
 
