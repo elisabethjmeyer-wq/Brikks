@@ -1453,6 +1453,204 @@ textarea.answered {
 }
 
 /* ============================================
+   SAVOIR-FAIRE - BADGES ET AFFICHAGE UNIFIÉ
+   ============================================ */
+
+/* Bandeau SF avec états */
+.type-header-banner.savoir-faire.has-urgent .type-stat-value {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 1rem;
+}
+
+.type-header-banner.savoir-faire.all-done .type-stat-value,
+.type-header-banner.savoir-faire.waiting .type-stat-value {
+    font-size: 1rem;
+}
+
+/* Barre de progression dans header banque SF */
+.banque-accordion-item.savoir-faire .banque-progress-bar {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.banque-accordion-item.savoir-faire .banque-progress-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.banque-accordion-item.savoir-faire .banque-progress-percent {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #f59e0b;
+    min-width: 50px;
+    text-align: right;
+}
+
+/* Badges banque SF */
+.banque-accordion-item.savoir-faire .banque-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.banque-accordion-item.savoir-faire .banque-badge.urgent {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.banque-accordion-item.savoir-faire .banque-badge.warning {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.banque-accordion-item.savoir-faire .banque-badge.done {
+    background: #d1fae5;
+    color: #059669;
+}
+
+/* Banque avec actions à faire */
+.banque-accordion-item.savoir-faire.has-actions {
+    border-left: 3px solid #f59e0b;
+}
+
+.banque-accordion-item.savoir-faire.has-actions .banque-accordion-header {
+    background: linear-gradient(90deg, #fffbeb 0%, white 30%);
+}
+
+/* Message maîtrise banque */
+.banque-accordion-item.savoir-faire .banque-maitrise {
+    background: #f0fdf4;
+    color: #059669;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    font-weight: 500;
+    border-bottom: 1px solid #d1fae5;
+}
+
+/* Zone de statut exercice SF */
+.exercice-item.savoir-faire .exercice-status-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    min-width: 140px;
+}
+
+/* Badges entraînement SF */
+.exercice-item.savoir-faire .entrainement-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.exercice-item.savoir-faire .entrainement-badge.new {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.exercice-item.savoir-faire .entrainement-badge.en-acquisition {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.exercice-item.savoir-faire .entrainement-badge.a-rafraichir {
+    background: #fef3c7;
+    color: #d97706;
+    animation: pulse-badge 2s infinite;
+}
+
+.exercice-item.savoir-faire .entrainement-badge.acquis-lent {
+    background: #fef9c3;
+    color: #a16207;
+}
+
+.exercice-item.savoir-faire .entrainement-badge.automatise {
+    background: #d1fae5;
+    color: #059669;
+}
+
+/* Hint sous le badge */
+.exercice-item.savoir-faire .exercice-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* Animation pulse pour badges urgents */
+@keyframes pulse-badge {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Styles par statut pour exercice-item SF */
+.exercice-item.savoir-faire.new {
+    border-left: 3px solid #3b82f6;
+}
+
+.exercice-item.savoir-faire.en-acquisition {
+    background: linear-gradient(90deg, #fff7ed 0%, white 50%);
+    border-left: 3px solid #f97316;
+}
+
+.exercice-item.savoir-faire.a-rafraichir {
+    background: linear-gradient(90deg, #fffbeb 0%, white 50%);
+    border-left: 3px solid #f59e0b;
+}
+
+.exercice-item.savoir-faire.acquis-lent {
+    background: linear-gradient(90deg, #fefce8 0%, white 50%);
+    border-left: 3px solid #eab308;
+}
+
+.exercice-item.savoir-faire.automatise {
+    background: #f0fdf4;
+    border-left: 3px solid #10b981;
+}
+
+/* Numéro exercice par statut SF */
+.exercice-item.savoir-faire.new .exercice-numero {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.exercice-item.savoir-faire.en-acquisition .exercice-numero {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.exercice-item.savoir-faire.a-rafraichir .exercice-numero {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.exercice-item.savoir-faire.acquis-lent .exercice-numero {
+    background: #fef9c3;
+    color: #a16207;
+}
+
+.exercice-item.savoir-faire.automatise .exercice-numero {
+    background: #d1fae5;
+    color: #059669;
+}
+
+/* Masquer anciens éléments pour SF */
+.exercice-item.savoir-faire .exercice-status:not(.exercice-status-area),
+.exercice-item.savoir-faire .exercice-arrow {
+    display: none;
+}
+
+/* ============================================
    RESPONSIVE
    ============================================ */
 
