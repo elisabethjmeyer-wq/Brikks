@@ -585,9 +585,38 @@ const EleveConnaissances = {
 
     /**
      * Render Vrai/Faux questions
+     * Supporte deux formats:
+     * - Simple: {question, reponse} - une seule question
+     * - Multi: {propositions: [{texte, reponse}, ...]} - plusieurs propositions
      */
     renderVraiFaux(donnees, questions) {
-        const question = donnees.question || donnees.enonce || '';
+        const questionText = donnees.question || donnees.enonce || '';
+
+        // Format simple: une seule question vrai/faux
+        if (donnees.reponse !== undefined && !donnees.propositions) {
+            return `
+                <div class="vrai-faux-container">
+                    <div class="vrai-faux-items">
+                        <div class="vrai-faux-item" data-index="0">
+                            <div class="vf-proposition">${this.escapeHtml(questionText)}</div>
+                            <div class="vf-choices">
+                                <label class="vf-choice">
+                                    <input type="radio" name="vf_0" value="vrai" onchange="EleveConnaissances.saveAnswer('vf_0', 'vrai')">
+                                    <span class="vf-btn vrai">Vrai</span>
+                                </label>
+                                <label class="vf-choice">
+                                    <input type="radio" name="vf_0" value="faux" onchange="EleveConnaissances.saveAnswer('vf_0', 'faux')">
+                                    <span class="vf-btn faux">Faux</span>
+                                </label>
+                            </div>
+                            <div class="vf-feedback" id="feedback_vf_0" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Format multi: plusieurs propositions
         const items = donnees.propositions || [];
 
         // Vérifier qu'on a des données à afficher
@@ -602,7 +631,7 @@ const EleveConnaissances = {
 
         return `
             <div class="vrai-faux-container">
-                ${question ? `<div class="question-enonce">${this.escapeHtml(question)}</div>` : ''}
+                ${questionText ? `<div class="question-enonce">${this.escapeHtml(questionText)}</div>` : ''}
                 <div class="vrai-faux-items">
                     ${items.map((item, idx) => `
                         <div class="vrai-faux-item" data-index="${idx}">
@@ -630,7 +659,8 @@ const EleveConnaissances = {
      */
     renderQCM(donnees, questions) {
         const question = donnees.question || donnees.enonce || '';
-        const choices = donnees.choix || [];
+        // Accepter 'choix' ou 'options' comme nom de champ
+        const choices = donnees.choix || donnees.options || [];
         const multiple = donnees.multiple || false;
 
         // Vérifier qu'on a des choix
@@ -664,10 +694,13 @@ const EleveConnaissances = {
 
     /**
      * Render Chronologie (Timeline ordering)
+     * Format admin: {consigne, mode, paires: [{date, evenement}, ...]}
      */
     renderChronologie(donnees, questions) {
-        const events = donnees.evenements || [];
+        // Accepter 'paires' ou 'evenements' comme nom de champ
+        const events = donnees.paires || donnees.evenements || [];
         const mode = donnees.mode || 'date'; // 'date' or 'evenement'
+        const consigne = donnees.consigne || '';
 
         // Vérifier qu'on a des événements
         if (events.length === 0) {
@@ -682,13 +715,14 @@ const EleveConnaissances = {
         // Shuffle for student
         const shuffled = [...events].sort(() => Math.random() - 0.5);
 
+        // Instruction par défaut ou personnalisée
+        const defaultInstruction = mode === 'date' ?
+            'Associez chaque événement à sa date en faisant glisser les éléments.' :
+            'Replacez les événements dans l\'ordre chronologique.';
+
         return `
             <div class="chronologie-container">
-                <p class="chrono-instruction">
-                    ${mode === 'date' ?
-                        'Associez chaque événement à sa date en faisant glisser les éléments.' :
-                        'Replacez les événements dans l\'ordre chronologique.'}
-                </p>
+                <p class="chrono-instruction">${this.escapeHtml(consigne || defaultInstruction)}</p>
                 <div class="chrono-timeline" id="chronoTimeline">
                     ${shuffled.map((evt, idx) => `
                         <div class="chrono-card" draggable="true" data-id="${idx}" data-date="${evt.date}">
