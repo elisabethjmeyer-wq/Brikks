@@ -107,6 +107,17 @@
     cursor: not-allowed;
 }
 
+.etape-nav-btn.finish {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+}
+
+.etape-nav-btn.finish:hover {
+    background: #059669;
+    border-color: #059669;
+}
+
 .etapes-progress {
     display: flex;
     align-items: center;

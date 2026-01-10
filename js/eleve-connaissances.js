@@ -231,20 +231,16 @@ const EleveConnaissances = {
                 </div>
                 <div class="type-header-stats">
                     <div class="type-stat">
-                        <div class="type-stat-value">${globalStats.memorise}</div>
-                        <div class="type-stat-label">Mémorisés</div>
-                    </div>
-                    <div class="type-stat">
                         <div class="type-stat-value">${globalStats.aReviser}</div>
                         <div class="type-stat-label">À réviser</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Barre de progression "Prêt pour l'évaluation" -->
+            <!-- Barre de progression -->
             <div class="conn-progress-section">
                 <div class="conn-progress-header">
-                    <span class="conn-progress-title">Prêt pour l'évaluation</span>
+                    <span class="conn-progress-title">Prêt(e) pour ta prochaine évaluation de connaissance</span>
                     <span class="conn-progress-value">${globalStats.aJour}/${globalStats.total} à jour</span>
                 </div>
                 <div class="conn-progress-bar">
@@ -312,7 +308,7 @@ const EleveConnaissances = {
                                         stroke-dashoffset="${offset}"
                                         style="stroke: ${ringColor};"/>
                                 </svg>
-                                <span class="progress-ring-text">${banqueStats.pourcentage}%</span>
+                                <span class="progress-ring-text">${banqueStats.pourcentagePret}%</span>
                             </div>
                         </div>
                     </button>
@@ -697,11 +693,17 @@ const EleveConnaissances = {
                                 </div>
                             `).join('<div class="etape-connector"></div>')}
                         </div>
-                        <button class="etape-nav-btn next ${this.currentEtapeIndex >= etapes.length - 1 ? 'disabled' : ''}"
-                                onclick="EleveConnaissances.nextEtape()"
-                                ${this.currentEtapeIndex >= etapes.length - 1 ? 'disabled' : ''}>
-                            →
-                        </button>
+                        ${this.currentEtapeIndex < etapes.length - 1 ? `
+                            <button class="etape-nav-btn next"
+                                    onclick="EleveConnaissances.nextEtape()">
+                                →
+                            </button>
+                        ` : `
+                            <button class="etape-nav-btn next finish"
+                                    onclick="EleveConnaissances.finishEntrainement()">
+                                ✓
+                            </button>
+                        `}
                     </div>
 
                     <!-- Titre de l'étape -->
@@ -716,13 +718,6 @@ const EleveConnaissances = {
                     </div>
 
                     <div class="result-banner" id="resultBanner"></div>
-
-                    <!-- Actions - Bouton de validation seulement -->
-                    <div class="exercise-actions">
-                        <button class="btn btn-success" onclick="EleveConnaissances.finishEntrainement()">
-                            ✓ Valider mes réponses
-                        </button>
-                    </div>
                 </div>
             </div>
         `;
@@ -1060,8 +1055,11 @@ const EleveConnaissances = {
         const shuffled = [...cartes].sort(() => Math.random() - 0.5);
         this.timelineCartes = cartes; // Garder l'original pour validation
 
-        // Setup drag & drop after render
-        setTimeout(() => this.setupTimelineDragDrop(), 100);
+        // Setup drag & drop after render ET sauvegarder l'ordre initial
+        setTimeout(() => {
+            this.setupTimelineDragDrop();
+            this.saveTimelineOrder(); // Sauvegarder l'ordre initial
+        }, 100);
 
         return `
             <div class="timeline-container">
@@ -2195,11 +2193,14 @@ const EleveConnaissances = {
         }
 
         try {
-            const user = JSON.parse(sessionStorage.getItem('brikks_user') || '{}');
-            if (!user.id) return;
+            // Utiliser this.currentUser qui est initialisé au chargement
+            if (!this.currentUser?.id) {
+                console.warn('[EleveConnaissances] Pas d\'utilisateur connecté, progression non sauvegardée');
+                return;
+            }
 
             const response = await this.callAPI('saveProgressionMemorisation', {
-                eleve_id: user.id,
+                eleve_id: this.currentUser.id,
                 entrainement_id: this.currentEntrainement.id,
                 banque_id: this.currentBanque?.id || '',
                 score: results.totalCorrect,
