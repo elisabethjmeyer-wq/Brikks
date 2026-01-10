@@ -2769,6 +2769,48 @@
     color: #059669;
 }
 
+/* === MINI BARRE DE PROGRESSION DANS HEADER BANQUE === */
+.banque-accordion-header .banque-progress-bar {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.banque-accordion-header .banque-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.banque-accordion-header .banque-progress-percent {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #3b82f6;
+    flex-shrink: 0;
+    min-width: 50px;
+    text-align: right;
+}
+
+/* === MESSAGE DE MAÎTRISE === */
+.banque-maitrise {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    color: #065f46;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid #10b981;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
 /* === RESPONSIVE === */
 @media (max-width: 768px) {
     .exercice-status-area {
