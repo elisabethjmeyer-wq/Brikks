@@ -3155,7 +3155,85 @@ body.document-fullscreen-active {
     border-bottom: 1px solid #fde68a;
 }
 
-/* Détails des réponses */
+/* Exercice corrigé intégré */
+.result-corrected-exercise {
+    padding: 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.result-corrected-exercise h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: #374151;
+    font-weight: 600;
+}
+
+.corrected-content {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 1rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* Styles pour le contenu corrigé - désactiver les interactions */
+.corrected-content input,
+.corrected-content textarea,
+.corrected-content select {
+    pointer-events: none;
+    opacity: 1;
+}
+
+.corrected-content .exercise-consigne {
+    background: #eff6ff;
+    border-left: 3px solid #3b82f6;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.9rem;
+    color: #1e40af;
+}
+
+/* Améliorer l'affichage des corrections dans le tableau */
+.corrected-content input.correct,
+.corrected-content .correct {
+    background-color: #d1fae5 !important;
+    border-color: #10b981 !important;
+    color: #065f46 !important;
+}
+
+.corrected-content input.incorrect,
+.corrected-content .incorrect {
+    background-color: #fee2e2 !important;
+    border-color: #ef4444 !important;
+    color: #991b1b !important;
+}
+
+.corrected-content input.corrected,
+.corrected-content .corrected {
+    background-color: #dbeafe !important;
+    border-color: #3b82f6 !important;
+    color: #1e40af !important;
+}
+
+/* Afficher les corrections pour les cartes */
+.corrected-content .carte-marqueur.show-correction .badge.correction {
+    display: flex !important;
+    background: #3b82f6;
+    color: white;
+}
+
+/* Afficher les corrections pour questions ouvertes */
+.corrected-content .correction-box {
+    display: block !important;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+
+/* Anciens styles pour compatibilité */
 .result-details {
     padding: 1.5rem;
 }
