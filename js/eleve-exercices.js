@@ -1862,7 +1862,7 @@ const EleveExercices = {
 
         // Calculer le temps passé
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
-        const tempsPrevu = exo.duree ? exo.duree * 60 : 300; // en secondes
+        const tempsPrevu = exo.duree || 300; // duree est déjà en secondes
 
         // Récupérer les stats actualisées
         const stats = this.statsSF[exo.id] || {};
