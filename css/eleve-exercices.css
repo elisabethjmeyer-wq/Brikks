@@ -3162,10 +3162,50 @@ body.document-fullscreen-active {
 }
 
 .result-corrected-exercise h3 {
-    margin: 0 0 1rem 0;
+    margin: 0;
     font-size: 1rem;
     color: #374151;
     font-weight: 600;
+}
+
+/* Bouton dépliable pour voir le corrigé */
+.corrected-toggle {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.corrected-toggle:hover {
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+}
+
+.corrected-toggle .toggle-icon {
+    color: #0284c7;
+    font-size: 0.85rem;
+    transition: transform 0.2s;
+}
+
+.corrected-content-wrapper {
+    margin-top: 1rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .corrected-content {
