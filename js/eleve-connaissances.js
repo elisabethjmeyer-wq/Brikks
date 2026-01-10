@@ -335,7 +335,7 @@ const EleveConnaissances = {
 
     /**
      * Calcule les statistiques globales
-     * "Prêt pour évaluation" = à jour (verrouillé ou mémorisé) / total
+     * Ne compte que les entraînements assignés à une banque existante
      */
     calculateGlobalStats() {
         let total = 0;
@@ -345,7 +345,15 @@ const EleveConnaissances = {
         let verrouille = 0;
         let nouveau = 0;
 
+        // Créer un Set des IDs de banques existantes pour filtrage rapide
+        const banqueIds = new Set(this.banques.map(b => b.id));
+
         this.entrainements.forEach(ent => {
+            // Ne compter que les entraînements assignés à une banque existante
+            if (!ent.banque_exercice_id || !banqueIds.has(ent.banque_exercice_id)) {
+                return;
+            }
+
             total++;
             const prog = this.progressions[ent.id];
             const status = this.getEntrainementStatus(prog);
