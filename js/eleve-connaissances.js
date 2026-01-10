@@ -2386,22 +2386,22 @@ const EleveConnaissances = {
                 // Réussi mais pas encore mémorisé - message clair selon l'étape
                 const joursRestants = prog.prochaine_revision ? this.calculateDaysUntil(prog.prochaine_revision) : 1;
 
-                // Message selon l'étape atteinte (prog.etape = nouvelle étape après succès)
+                // Message selon l'étape atteinte
+                // Le backend démarre à étape 1 (nouveau) et passe à 2 après 1er succès
+                // Donc: étape 2 = 1ère mémo, étape 3 = 1ère révision, etc.
                 let messageEtape;
-                if (prog.etape <= 1) {
+                if (prog.etape <= 2) {
                     messageEtape = "1ère mémorisation réussie";
-                } else if (prog.etape === 2) {
-                    messageEtape = "1ère révision réussie";
                 } else if (prog.etape === 3) {
-                    messageEtape = "2ème révision réussie";
+                    messageEtape = "1ère révision réussie";
                 } else if (prog.etape === 4) {
-                    messageEtape = "3ème révision réussie";
+                    messageEtape = "2ème révision réussie";
                 } else if (prog.etape === 5) {
-                    messageEtape = "4ème révision réussie";
+                    messageEtape = "3ème révision réussie";
                 } else if (prog.etape === 6) {
-                    messageEtape = "5ème révision réussie";
+                    messageEtape = "4ème révision réussie";
                 } else {
-                    messageEtape = "Dernière révision réussie";
+                    messageEtape = "5ème révision réussie";
                 }
 
                 progressionMessage = `<div class="progression-message success">
