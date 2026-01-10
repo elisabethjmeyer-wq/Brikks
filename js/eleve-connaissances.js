@@ -531,6 +531,10 @@ const EleveConnaissances = {
         if (linkedQuestionRefs.length > 0) {
             // Prendre la première question (pour les formats simples)
             const questionRef = linkedQuestionRefs[0];
+            console.log('[EleveConnaissances] Recherche question_id:', questionRef.question_id);
+            console.log('[EleveConnaissances] IDs disponibles dans questionsConnaissances:',
+                this.questionsConnaissances.map(q => q.id));
+
             const questionContent = this.questionsConnaissances.find(q =>
                 String(q.id) === String(questionRef.question_id)
             );
