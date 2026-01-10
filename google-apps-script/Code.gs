@@ -60,7 +60,9 @@ const SHEETS = {
   ENTRAINEMENTS_CONN: 'ENTRAINEMENTS_CONN',
   ETAPES_CONN: 'ETAPES_CONN',
   ETAPE_QUESTIONS_CONN: 'ETAPE_QUESTIONS_CONN',
-  FORMATS_QUESTIONS: 'FORMATS_QUESTIONS'
+  FORMATS_QUESTIONS: 'FORMATS_QUESTIONS',
+  // Système de mémorisation (répétition espacée)
+  PROGRESSION_MEMORISATION: 'PROGRESSION_MEMORISATION'
 };
 
 // ========================================
@@ -355,6 +357,20 @@ function handleRequest(e) {
         break;
       case 'getProgressionEntrainements':
         result = getProgressionEntrainements(request);
+        break;
+
+      // SYSTÈME DE MÉMORISATION
+      case 'getProgressionMemorisation':
+        result = getProgressionMemorisation(request);
+        break;
+      case 'saveProgressionMemorisation':
+        result = saveProgressionMemorisation(request);
+        break;
+      case 'checkEntrainementDisponible':
+        result = checkEntrainementDisponible(request);
+        break;
+      case 'getProgressionBanque':
+        result = getProgressionBanque(request);
         break;
 
       // EVALUATIONS
@@ -4031,6 +4047,425 @@ function getProgressionEntrainements(data) {
   }
 
   return { success: true, data: resultats };
+}
+
+// ========================================
+// SYSTÈME DE MÉMORISATION (Répétition espacée)
+// ========================================
+
+/**
+ * Intervalles de répétition espacée (en jours)
+ * Étape 1: immédiat (0 jour) - découverte
+ * Étape 2: 1 jour
+ * Étape 3: 3 jours
+ * Étape 4: 7 jours
+ * Étape 5: 14 jours
+ * Étape 6: 30 jours -> passage à "mémorisé"
+ */
+const INTERVALLES_MEMORISATION = [0, 1, 3, 7, 14, 30];
+const SEUILS_REUSSITE = {
+  APPRENTISSAGE: 80,  // Étapes 1-3
+  CONSOLIDATION: 100  // Étapes 4-6
+};
+
+/**
+ * Récupère la progression de mémorisation d'un élève
+ * @param {Object} data - { eleve_id, entrainement_id?, banque_id? }
+ * Colonnes GSheet: id, eleve_id, entrainement_id, banque_id, etape, statut, prochaine_revision, historique, date_creation, date_modification
+ */
+function getProgressionMemorisation(data) {
+  if (!data.eleve_id) {
+    return { success: false, error: 'eleve_id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(SHEETS.PROGRESSION_MEMORISATION);
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.PROGRESSION_MEMORISATION);
+    sheet.appendRow([
+      'id', 'eleve_id', 'entrainement_id', 'banque_id', 'etape', 'statut',
+      'prochaine_revision', 'historique', 'date_creation', 'date_modification'
+    ]);
+    return { success: true, data: [] };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length < 2) {
+    return { success: true, data: [] };
+  }
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const progressions = [];
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+    const item = {};
+    headers.forEach((header, index) => {
+      let value = row[index];
+      // Parser l'historique JSON
+      if (header === 'historique' && value) {
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          value = [];
+        }
+      }
+      item[header] = value;
+    });
+
+    // Filtres
+    if (String(item.eleve_id).trim() !== String(data.eleve_id).trim()) continue;
+    if (data.entrainement_id && String(item.entrainement_id).trim() !== String(data.entrainement_id).trim()) continue;
+    if (data.banque_id && String(item.banque_id).trim() !== String(data.banque_id).trim()) continue;
+
+    // Calculer si révision est due
+    if (item.prochaine_revision && item.statut === 'en_cours') {
+      const now = new Date();
+      const revisionDate = new Date(item.prochaine_revision);
+      item.revision_due = now >= revisionDate;
+      item.jours_restants = Math.ceil((revisionDate - now) / (1000 * 60 * 60 * 24));
+    }
+
+    progressions.push(item);
+  }
+
+  return { success: true, data: progressions };
+}
+
+/**
+ * Sauvegarde une tentative et met à jour la progression de mémorisation
+ * @param {Object} data - { eleve_id, entrainement_id, banque_id, score, score_max }
+ */
+function saveProgressionMemorisation(data) {
+  if (!data.eleve_id || !data.entrainement_id) {
+    return { success: false, error: 'eleve_id et entrainement_id requis' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(SHEETS.PROGRESSION_MEMORISATION);
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.PROGRESSION_MEMORISATION);
+    sheet.appendRow([
+      'id', 'eleve_id', 'entrainement_id', 'banque_id', 'etape', 'statut',
+      'prochaine_revision', 'historique', 'date_creation', 'date_modification'
+    ]);
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+
+  // Chercher une progression existante
+  const eleveIdCol = headers.indexOf('eleve_id');
+  const entrIdCol = headers.indexOf('entrainement_id');
+  let existingRow = -1;
+  let existingData = null;
+
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][eleveIdCol]).trim() === String(data.eleve_id).trim() &&
+        String(allData[i][entrIdCol]).trim() === String(data.entrainement_id).trim()) {
+      existingRow = i + 1;
+      existingData = {};
+      headers.forEach((header, index) => {
+        existingData[header] = allData[i][index];
+      });
+      break;
+    }
+  }
+
+  // Calculer le pourcentage
+  const scoreMax = data.score_max || 1;
+  const score = data.score || 0;
+  const pourcentage = Math.round((score / scoreMax) * 100);
+  const now = new Date();
+  const nowISO = now.toISOString();
+  const todayISO = nowISO.split('T')[0];
+
+  // Nouvelle tentative à ajouter à l'historique
+  const nouvelleTentative = {
+    date: nowISO,
+    score: score,
+    score_max: scoreMax,
+    pourcentage: pourcentage
+  };
+
+  if (existingRow > 0) {
+    // Progression existante - mettre à jour
+    let historique = [];
+    try {
+      historique = JSON.parse(existingData.historique || '[]');
+    } catch (e) {
+      historique = [];
+    }
+    historique.push(nouvelleTentative);
+
+    let etape = parseInt(existingData.etape) || 1;
+    let statut = existingData.statut || 'en_cours';
+    let prochaineRevision = existingData.prochaine_revision;
+
+    // Vérifier si c'est le bon moment pour réviser (pas trop tôt)
+    const peutReviser = !prochaineRevision || new Date(prochaineRevision) <= now;
+
+    if (peutReviser) {
+      // Déterminer le seuil requis
+      const seuilRequis = etape <= 3 ? SEUILS_REUSSITE.APPRENTISSAGE : SEUILS_REUSSITE.CONSOLIDATION;
+      const reussi = pourcentage >= seuilRequis;
+
+      if (reussi) {
+        // Avancer d'une étape
+        etape = Math.min(etape + 1, 6);
+        if (etape >= 6 && pourcentage >= SEUILS_REUSSITE.CONSOLIDATION) {
+          statut = 'memorise';
+          prochaineRevision = null;
+        } else {
+          statut = 'en_cours';
+          // Calculer la prochaine date de révision
+          const intervalleJours = INTERVALLES_MEMORISATION[etape - 1] || 30;
+          const prochaineDate = new Date(now);
+          prochaineDate.setDate(prochaineDate.getDate() + intervalleJours);
+          prochaineRevision = prochaineDate.toISOString().split('T')[0];
+        }
+      } else {
+        // Reculer d'une étape (minimum 1)
+        etape = Math.max(etape - 1, 1);
+        statut = 'en_cours';
+        // Peut réessayer immédiatement si échec
+        prochaineRevision = todayISO;
+      }
+    }
+
+    // Mettre à jour la ligne
+    const updates = {
+      'etape': etape,
+      'statut': statut,
+      'prochaine_revision': prochaineRevision || '',
+      'historique': JSON.stringify(historique),
+      'date_modification': nowISO
+    };
+
+    Object.keys(updates).forEach(col => {
+      const colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        sheet.getRange(existingRow, colIndex + 1).setValue(updates[col]);
+      }
+    });
+
+    return {
+      success: true,
+      message: 'Progression mise à jour',
+      etape: etape,
+      statut: statut,
+      prochaine_revision: prochaineRevision,
+      pourcentage: pourcentage,
+      reussi: peutReviser ? (pourcentage >= (etape <= 3 ? SEUILS_REUSSITE.APPRENTISSAGE : SEUILS_REUSSITE.CONSOLIDATION)) : null
+    };
+
+  } else {
+    // Nouvelle progression
+    const id = 'prog_mem_' + now.getTime();
+    const etape = 1;
+    const statut = 'en_cours';
+    // Première tentative réussie = prochaine révision dans 1 jour
+    // Première tentative échouée = peut réessayer immédiatement
+    const seuilRequis = SEUILS_REUSSITE.APPRENTISSAGE;
+    const reussi = pourcentage >= seuilRequis;
+
+    let prochaineRevision;
+    let nouvelleEtape = 1;
+    if (reussi) {
+      nouvelleEtape = 2;
+      const prochaineDate = new Date(now);
+      prochaineDate.setDate(prochaineDate.getDate() + INTERVALLES_MEMORISATION[1]); // 1 jour
+      prochaineRevision = prochaineDate.toISOString().split('T')[0];
+    } else {
+      prochaineRevision = todayISO; // Peut réessayer immédiatement
+    }
+
+    const historique = [nouvelleTentative];
+
+    const newRow = headers.map(header => {
+      if (header === 'id') return id;
+      if (header === 'eleve_id') return data.eleve_id;
+      if (header === 'entrainement_id') return data.entrainement_id;
+      if (header === 'banque_id') return data.banque_id || '';
+      if (header === 'etape') return nouvelleEtape;
+      if (header === 'statut') return 'en_cours';
+      if (header === 'prochaine_revision') return prochaineRevision;
+      if (header === 'historique') return JSON.stringify(historique);
+      if (header === 'date_creation') return nowISO;
+      if (header === 'date_modification') return nowISO;
+      return '';
+    });
+
+    sheet.appendRow(newRow);
+
+    return {
+      success: true,
+      id: id,
+      message: 'Progression créée',
+      etape: nouvelleEtape,
+      statut: 'en_cours',
+      prochaine_revision: prochaineRevision,
+      pourcentage: pourcentage,
+      reussi: reussi
+    };
+  }
+}
+
+/**
+ * Vérifie si un élève peut faire un entraînement (pas verrouillé)
+ * @param {Object} data - { eleve_id, entrainement_id }
+ */
+function checkEntrainementDisponible(data) {
+  if (!data.eleve_id || !data.entrainement_id) {
+    return { success: false, error: 'eleve_id et entrainement_id requis' };
+  }
+
+  const progression = getProgressionMemorisation({
+    eleve_id: data.eleve_id,
+    entrainement_id: data.entrainement_id
+  });
+
+  if (!progression.success) {
+    return progression;
+  }
+
+  if (progression.data.length === 0) {
+    // Jamais fait = disponible
+    return { success: true, disponible: true, statut: 'nouveau' };
+  }
+
+  const prog = progression.data[0];
+
+  if (prog.statut === 'memorise') {
+    // Mémorisé = disponible pour s'entraîner mais ça ne compte pas
+    return {
+      success: true,
+      disponible: true,
+      statut: 'memorise',
+      message: 'Cet exercice est déjà mémorisé. Tu peux t\'entraîner mais ça ne changera pas ta progression.'
+    };
+  }
+
+  const now = new Date();
+  const prochaineRevision = prog.prochaine_revision ? new Date(prog.prochaine_revision) : null;
+
+  if (!prochaineRevision || now >= prochaineRevision) {
+    // Révision due ou passée = disponible
+    return {
+      success: true,
+      disponible: true,
+      statut: prog.statut,
+      etape: prog.etape,
+      revision_due: true
+    };
+  } else {
+    // Pas encore le moment
+    const joursRestants = Math.ceil((prochaineRevision - now) / (1000 * 60 * 60 * 24));
+    return {
+      success: true,
+      disponible: false,
+      statut: 'verrouille',
+      etape: prog.etape,
+      prochaine_revision: prog.prochaine_revision,
+      jours_restants: joursRestants,
+      message: `Prochaine révision efficace dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''}.`
+    };
+  }
+}
+
+/**
+ * Récupère un résumé de progression pour une banque d'exercices
+ * @param {Object} data - { eleve_id, banque_id }
+ */
+function getProgressionBanque(data) {
+  if (!data.eleve_id || !data.banque_id) {
+    return { success: false, error: 'eleve_id et banque_id requis' };
+  }
+
+  // Récupérer tous les entraînements de cette banque
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const entrSheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+
+  if (!entrSheet) {
+    return { success: true, data: { total: 0, stats: {} } };
+  }
+
+  const entrData = entrSheet.getDataRange().getValues();
+  if (entrData.length < 2) {
+    return { success: true, data: { total: 0, stats: {} } };
+  }
+
+  const entrHeaders = entrData[0].map(h => String(h).toLowerCase().trim());
+  const banqueIdCol = entrHeaders.indexOf('banque_id');
+  const idCol = entrHeaders.indexOf('id');
+
+  const entrainementIds = [];
+  for (let i = 1; i < entrData.length; i++) {
+    if (String(entrData[i][banqueIdCol]).trim() === String(data.banque_id).trim()) {
+      entrainementIds.push(String(entrData[i][idCol]).trim());
+    }
+  }
+
+  if (entrainementIds.length === 0) {
+    return { success: true, data: { total: 0, stats: {} } };
+  }
+
+  // Récupérer les progressions
+  const progressions = getProgressionMemorisation({
+    eleve_id: data.eleve_id,
+    banque_id: data.banque_id
+  });
+
+  const stats = {
+    nouveau: 0,
+    en_cours: 0,
+    memorise: 0,
+    a_reviser: 0,
+    verrouille: 0
+  };
+
+  const now = new Date();
+  const progressionMap = {};
+
+  if (progressions.success && progressions.data) {
+    progressions.data.forEach(p => {
+      progressionMap[p.entrainement_id] = p;
+    });
+  }
+
+  entrainementIds.forEach(entrId => {
+    const prog = progressionMap[entrId];
+    if (!prog) {
+      stats.nouveau++;
+    } else if (prog.statut === 'memorise') {
+      stats.memorise++;
+    } else {
+      const prochaineRevision = prog.prochaine_revision ? new Date(prog.prochaine_revision) : null;
+      if (!prochaineRevision || now >= prochaineRevision) {
+        stats.a_reviser++;
+      } else {
+        stats.verrouille++;
+      }
+      stats.en_cours++;
+    }
+  });
+
+  const total = entrainementIds.length;
+  const pourcentageMemorise = total > 0 ? Math.round((stats.memorise / total) * 100) : 0;
+
+  return {
+    success: true,
+    data: {
+      total: total,
+      stats: stats,
+      pourcentage_memorise: pourcentageMemorise,
+      pret_evaluation: pourcentageMemorise >= 100
+    }
+  };
 }
 
 // ========================================

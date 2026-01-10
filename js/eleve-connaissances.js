@@ -118,13 +118,14 @@ const EleveConnaissances = {
     },
 
     async loadData() {
+        // Charger les données de base
         const [banquesResult, entrainementsResult, etapesResult, etapeQuestionsResult, formatsResult, questionsResult] = await Promise.all([
             this.callAPI('getBanquesExercicesConn'),
             this.callAPI('getEntrainementsConn'),
             this.callAPI('getEtapesConn'),
             this.callAPI('getEtapeQuestionsConn', {}),
             this.callAPI('getFormatsQuestions'),
-            this.callAPI('getQuestionsConnaissances', {})  // Charger le contenu des questions
+            this.callAPI('getQuestionsConnaissances', {})
         ]);
 
         const data = {
@@ -133,12 +134,42 @@ const EleveConnaissances = {
             etapes: etapesResult.success ? etapesResult.data : [],
             etapeQuestions: etapeQuestionsResult.success ? etapeQuestionsResult.data : [],
             formatsQuestions: formatsResult.success ? formatsResult.data : [],
-            questionsConnaissances: questionsResult.success ? questionsResult.data : []  // Contenu avec donnees
+            questionsConnaissances: questionsResult.success ? questionsResult.data : []
         };
 
         this.saveToCache(data);
         this.applyData(data);
+
+        // Charger la progression de l'élève (après applyData pour avoir les IDs)
+        await this.loadProgressions();
     },
+
+    /**
+     * Charge les progressions de mémorisation de l'élève
+     */
+    async loadProgressions() {
+        if (!this.currentUser?.id) return;
+
+        try {
+            const result = await this.callAPI('getProgressionMemorisation', {
+                eleve_id: this.currentUser.id
+            });
+
+            if (result.success) {
+                this.progressions = {};
+                result.data.forEach(p => {
+                    this.progressions[p.entrainement_id] = p;
+                });
+                console.log('[EleveConnaissances] Progressions chargées:', this.progressions);
+            }
+        } catch (error) {
+            console.error('[EleveConnaissances] Erreur chargement progressions:', error);
+            this.progressions = {};
+        }
+    },
+
+    // Stockage des progressions
+    progressions: {},
 
     async refreshDataInBackground() {
         try {
@@ -177,15 +208,6 @@ const EleveConnaissances = {
             return;
         }
 
-        // Calculate global stats
-        const totalEntrainements = this.entrainements.filter(e =>
-            this.banques.some(b => b.id === e.banque_exercice_id)
-        ).length;
-
-        // TODO: Add real progress tracking from resultats
-        const completedEntrainements = 0;
-        const progressPercent = totalEntrainements > 0 ? Math.round((completedEntrainements / totalEntrainements) * 100) : 0;
-
         // Group entrainements by banque
         const entrainementsByBanque = {};
         this.entrainements.forEach(ent => {
@@ -194,6 +216,9 @@ const EleveConnaissances = {
             }
             entrainementsByBanque[ent.banque_exercice_id].push(ent);
         });
+
+        // Calculate global stats based on progressions
+        const globalStats = this.calculateGlobalStats();
 
         let html = `
             <!-- Bandeau bleu -->
@@ -206,12 +231,12 @@ const EleveConnaissances = {
                 </div>
                 <div class="type-header-stats">
                     <div class="type-stat">
-                        <div class="type-stat-value">${this.banques.length}</div>
-                        <div class="type-stat-label">Banques</div>
+                        <div class="type-stat-value">${globalStats.memorise}</div>
+                        <div class="type-stat-label">Mémorisés</div>
                     </div>
                     <div class="type-stat">
-                        <div class="type-stat-value">${totalEntrainements}</div>
-                        <div class="type-stat-label">Entraînements</div>
+                        <div class="type-stat-value">${globalStats.aReviser}</div>
+                        <div class="type-stat-label">À réviser</div>
                     </div>
                 </div>
             </div>
@@ -219,12 +244,18 @@ const EleveConnaissances = {
             <!-- Barre de progression séparée -->
             <div class="conn-progress-section">
                 <div class="conn-progress-header">
-                    <span class="conn-progress-title">Ma progression</span>
-                    <span class="conn-progress-value">${completedEntrainements}/${totalEntrainements} entraînements terminés</span>
+                    <span class="conn-progress-title">Prêt pour l'évaluation</span>
+                    <span class="conn-progress-value">${globalStats.memorise}/${globalStats.total} mémorisés</span>
                 </div>
                 <div class="conn-progress-bar">
-                    <div class="conn-progress-fill" style="width: ${progressPercent}%;"></div>
+                    <div class="conn-progress-fill" style="width: ${globalStats.pourcentage}%; background: linear-gradient(90deg, #10b981, #059669);"></div>
                 </div>
+                ${globalStats.aReviser > 0 ? `
+                    <div class="banque-alert" style="margin-top: 0.75rem;">
+                        <span class="banque-alert-icon">⚡</span>
+                        <span>${globalStats.aReviser} entraînement${globalStats.aReviser > 1 ? 's' : ''} à réviser aujourd'hui</span>
+                    </div>
+                ` : ''}
             </div>
 
             <!-- Barre de recherche -->
@@ -241,15 +272,19 @@ const EleveConnaissances = {
 
         this.banques.forEach(banque => {
             const banqueEntrainements = entrainementsByBanque[banque.id] || [];
-            const total = banqueEntrainements.length;
-            const completed = 0; // TODO: real data
-            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+            const banqueStats = this.calculateBanqueStats(banqueEntrainements);
             const isExpanded = this.expandedBanques.has(banque.id);
 
-            // Progress ring calculation
+            // Progress ring calculation (basé sur les mémorisés)
             const radius = 18;
             const circumference = 2 * Math.PI * radius;
-            const offset = circumference - (percent / 100) * circumference;
+            const offset = circumference - (banqueStats.pourcentage / 100) * circumference;
+
+            // Déterminer la couleur du ring selon le statut
+            let ringColor = '#e5e7eb';
+            if (banqueStats.pourcentage >= 100) ringColor = '#10b981';
+            else if (banqueStats.pourcentage >= 50) ringColor = '#f59e0b';
+            else if (banqueStats.pourcentage > 0) ringColor = '#3b82f6';
 
             html += `
                 <div class="banque-accordion-item connaissances${isExpanded ? ' expanded' : ''}" data-banque-id="${banque.id}">
@@ -257,7 +292,13 @@ const EleveConnaissances = {
                         <div class="banque-chevron">▶</div>
                         <div class="banque-info">
                             <div class="banque-title">${this.escapeHtml(banque.titre)}</div>
-                            <div class="banque-meta">${total} entraînement${total !== 1 ? 's' : ''}</div>
+                            <div class="banque-meta">
+                                ${banqueStats.total} entr. •
+                                ${banqueStats.memorise > 0 ? `<span style="color: #10b981;">✓${banqueStats.memorise}</span>` : ''}
+                                ${banqueStats.aReviser > 0 ? `<span style="color: #3b82f6;">⚡${banqueStats.aReviser}</span>` : ''}
+                                ${banqueStats.verrouille > 0 ? `<span style="color: #9ca3af;">🔒${banqueStats.verrouille}</span>` : ''}
+                                ${banqueStats.nouveau > 0 ? `<span style="color: #6b7280;">○${banqueStats.nouveau}</span>` : ''}
+                            </div>
                         </div>
                         <div class="banque-progress">
                             <div class="progress-ring">
@@ -265,14 +306,20 @@ const EleveConnaissances = {
                                     <circle class="progress-ring-bg" cx="22" cy="22" r="${radius}"/>
                                     <circle class="progress-ring-fill" cx="22" cy="22" r="${radius}"
                                         stroke-dasharray="${circumference}"
-                                        stroke-dashoffset="${offset}"/>
+                                        stroke-dashoffset="${offset}"
+                                        style="stroke: ${ringColor};"/>
                                 </svg>
-                                <span class="progress-ring-text">${percent}%</span>
+                                <span class="progress-ring-text">${banqueStats.pourcentage}%</span>
                             </div>
-                            <span class="progress-count">${completed}/${total}</span>
                         </div>
                     </button>
                     <div class="banque-accordion-content">
+                        ${banqueStats.aReviser > 0 ? `
+                            <div class="banque-alert" style="margin: 0.5rem 1rem;">
+                                <span class="banque-alert-icon">⚡</span>
+                                <span>${banqueStats.aReviser} à réviser maintenant</span>
+                            </div>
+                        ` : ''}
                         <div class="exercices-accordion-list">
                             ${this.renderEntrainementsList(banqueEntrainements)}
                         </div>
@@ -286,6 +333,69 @@ const EleveConnaissances = {
     },
 
     /**
+     * Calcule les statistiques globales
+     */
+    calculateGlobalStats() {
+        let total = 0;
+        let memorise = 0;
+        let enCours = 0;
+        let aReviser = 0;
+        let verrouille = 0;
+        let nouveau = 0;
+
+        this.entrainements.forEach(ent => {
+            total++;
+            const prog = this.progressions[ent.id];
+            const status = this.getEntrainementStatus(prog);
+
+            if (status.statusClass === 'memorise') memorise++;
+            else if (status.statusClass === 'verrouille') { verrouille++; enCours++; }
+            else if (status.statusClass === 'a-reviser') { aReviser++; enCours++; }
+            else nouveau++;
+        });
+
+        return {
+            total,
+            memorise,
+            enCours,
+            aReviser,
+            verrouille,
+            nouveau,
+            pourcentage: total > 0 ? Math.round((memorise / total) * 100) : 0
+        };
+    },
+
+    /**
+     * Calcule les statistiques pour une banque
+     */
+    calculateBanqueStats(entrainements) {
+        let total = entrainements.length;
+        let memorise = 0;
+        let aReviser = 0;
+        let verrouille = 0;
+        let nouveau = 0;
+
+        entrainements.forEach(ent => {
+            const prog = this.progressions[ent.id];
+            const status = this.getEntrainementStatus(prog);
+
+            if (status.statusClass === 'memorise') memorise++;
+            else if (status.statusClass === 'verrouille') verrouille++;
+            else if (status.statusClass === 'a-reviser') aReviser++;
+            else nouveau++;
+        });
+
+        return {
+            total,
+            memorise,
+            aReviser,
+            verrouille,
+            nouveau,
+            pourcentage: total > 0 ? Math.round((memorise / total) * 100) : 0
+        };
+    },
+
+    /**
      * Render entrainements list for a banque
      */
     renderEntrainementsList(entrainements) {
@@ -294,29 +404,97 @@ const EleveConnaissances = {
         }
 
         return entrainements.map((ent, index) => {
-            const isCompleted = false; // TODO: real data
-            const dureeMinutes = ent.duree || 15; // durée en minutes
+            const prog = this.progressions[ent.id];
+            const dureeMinutes = ent.duree || 15;
+
+            // Déterminer l'état de l'entraînement
+            let statusInfo = this.getEntrainementStatus(prog);
 
             // Construire les métadonnées
             let metaItems = [];
             metaItems.push(`${dureeMinutes} min`);
-            if (ent.description) {
-                metaItems.push(this.escapeHtml(ent.description));
+            if (prog && prog.etape) {
+                metaItems.push(`Étape ${prog.etape}/6`);
+            }
+            if (statusInfo.joursRestants !== undefined && statusInfo.joursRestants > 0) {
+                metaItems.push(`Dans ${statusInfo.joursRestants}j`);
+            }
+
+            // Barre de progression de mémorisation
+            let progressBar = '';
+            if (prog && prog.etape) {
+                const progressClass = prog.statut === 'memorise' ? 'memorise' : `etape-${prog.etape}`;
+                progressBar = `
+                    <div class="entrainement-progress-bar">
+                        <div class="entrainement-progress-fill ${progressClass}"></div>
+                    </div>
+                `;
             }
 
             return `
-                <div class="exercice-item connaissances${isCompleted ? ' completed' : ''}"
-                     onclick="EleveConnaissances.startEntrainement('${ent.id}')">
+                <div class="exercice-item connaissances ${statusInfo.class}"
+                     onclick="EleveConnaissances.startEntrainement('${ent.id}')"
+                     data-entrainement-id="${ent.id}">
                     <div class="exercice-numero">${index + 1}</div>
                     <div class="exercice-info">
                         <div class="exercice-titre">${this.escapeHtml(ent.titre || 'Entraînement ' + (index + 1))}</div>
                         <div class="exercice-meta">${metaItems.join(' • ')}</div>
+                        ${progressBar}
                     </div>
-                    <span class="exercice-status ${isCompleted ? 'completed' : 'new'}">${isCompleted ? 'Terminé' : 'Nouveau'}</span>
-                    <span class="exercice-arrow">→</span>
+                    <span class="exercice-status ${statusInfo.statusClass}">${statusInfo.label}</span>
+                    <span class="exercice-arrow">${statusInfo.icon}</span>
                 </div>
             `;
         }).join('');
+    },
+
+    /**
+     * Détermine l'état d'un entraînement basé sur sa progression
+     */
+    getEntrainementStatus(prog) {
+        if (!prog) {
+            return {
+                class: '',
+                statusClass: 'new',
+                label: 'Nouveau',
+                icon: '→',
+                joursRestants: undefined
+            };
+        }
+
+        if (prog.statut === 'memorise') {
+            return {
+                class: 'memorise',
+                statusClass: 'memorise',
+                label: '✓ Mémorisé',
+                icon: '✓',
+                joursRestants: undefined
+            };
+        }
+
+        // Calculer si c'est verrouillé
+        const now = new Date();
+        const prochaineRevision = prog.prochaine_revision ? new Date(prog.prochaine_revision) : null;
+        const joursRestants = prochaineRevision ? Math.ceil((prochaineRevision - now) / (1000 * 60 * 60 * 24)) : 0;
+
+        if (prochaineRevision && now < prochaineRevision) {
+            return {
+                class: 'verrouille',
+                statusClass: 'verrouille',
+                label: `🔒 ${joursRestants}j`,
+                icon: '🔒',
+                joursRestants: joursRestants
+            };
+        }
+
+        // À réviser
+        return {
+            class: 'a-reviser',
+            statusClass: 'a-reviser',
+            label: '⚡ À réviser',
+            icon: '→',
+            joursRestants: 0
+        };
     },
 
     /**
@@ -370,6 +548,23 @@ const EleveConnaissances = {
      * Start an entrainement
      */
     async startEntrainement(entrainementId) {
+        // Vérifier si l'entraînement est verrouillé
+        const prog = this.progressions[entrainementId];
+        const status = this.getEntrainementStatus(prog);
+
+        if (status.statusClass === 'verrouille') {
+            // Afficher un modal de verrouillage
+            this.showLockedModal(prog, status);
+            return;
+        }
+
+        // Si mémorisé, afficher un avertissement mais permettre de continuer
+        if (status.statusClass === 'memorise') {
+            this.isTrainingMode = true; // Mode entraînement libre (ne compte pas)
+        } else {
+            this.isTrainingMode = false;
+        }
+
         this.showLoader('Chargement de l\'entraînement...');
 
         try {
@@ -481,23 +676,20 @@ const EleveConnaissances = {
 
                     <div class="result-banner" id="resultBanner"></div>
 
-                    <!-- Actions -->
+                    <!-- Actions - Navigation sans validation intermédiaire -->
                     <div class="exercise-actions">
                         ${this.currentEtapeIndex > 0 ? `
                             <button class="btn btn-secondary" onclick="EleveConnaissances.previousEtape()">
                                 ← Étape précédente
                             </button>
                         ` : ''}
-                        <button class="btn btn-verifier" onclick="EleveConnaissances.validateEtape()">
-                            Vérifier mes réponses
-                        </button>
                         ${this.currentEtapeIndex < etapes.length - 1 ? `
                             <button class="btn btn-primary" onclick="EleveConnaissances.nextEtape()">
                                 Étape suivante →
                             </button>
                         ` : `
                             <button class="btn btn-success" onclick="EleveConnaissances.finishEntrainement()">
-                                Terminer l'entraînement
+                                Valider mes réponses
                             </button>
                         `}
                     </div>
@@ -1612,23 +1804,532 @@ const EleveConnaissances = {
     },
 
     /**
-     * Finish the entrainement
+     * Finish the entrainement - Calcule le score et affiche le récapitulatif
      */
     finishEntrainement() {
         this.stopTimer();
-        // TODO: Save results to backend
 
+        // Calculer le score de toutes les étapes
+        const results = this.validateAllEtapes();
+        this.lastResults = results;
+
+        // Sauvegarder la progression
+        this.saveProgression(results);
+
+        // Afficher l'écran de résultats
+        this.renderResultScreen(results);
+    },
+
+    /**
+     * Valide toutes les étapes et retourne les résultats
+     */
+    validateAllEtapes() {
+        const etapesResults = [];
+        let totalCorrect = 0;
+        let totalQuestions = 0;
+
+        this.currentEtapes.forEach((etape, etapeIndex) => {
+            const result = this.validateSingleEtape(etape, etapeIndex);
+            etapesResults.push(result);
+            totalCorrect += result.correct;
+            totalQuestions += result.total;
+        });
+
+        const pourcentage = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+        return {
+            etapes: etapesResults,
+            totalCorrect,
+            totalQuestions,
+            pourcentage
+        };
+    },
+
+    /**
+     * Valide une étape spécifique (sans afficher le feedback)
+     */
+    validateSingleEtape(etape, etapeIndex) {
+        // Récupérer les données via la jointure
+        let donnees = {};
+        const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
+            String(eq.etape_id) === String(etape.id)
+        );
+
+        if (linkedQuestionRefs.length > 0) {
+            const questionRef = linkedQuestionRefs[0];
+            let questionContent = this.questionsConnaissances.find(q =>
+                String(q.id) === String(questionRef.question_id)
+            );
+            // Fallback par type si non trouvé
+            if (!questionContent && etape.format_code) {
+                questionContent = this.questionsConnaissances.find(q => q.type === etape.format_code);
+            }
+            if (questionContent && questionContent.donnees) {
+                donnees = questionContent.donnees;
+                if (typeof donnees === 'string') {
+                    try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+                }
+            }
+        }
+
+        // Fallback sur etape.donnees
+        if (Object.keys(donnees).length === 0 && etape.donnees) {
+            donnees = etape.donnees;
+            if (typeof donnees === 'string') {
+                try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+            }
+        }
+
+        let correct = 0;
+        let total = 0;
+        let details = [];
+
+        // Logique de validation selon le format
+        switch (etape.format_code) {
+            case 'vrai_faux':
+                if (donnees.reponse !== undefined && !donnees.propositions) {
+                    total = 1;
+                    const answer = this.userAnswers['vf_0'];
+                    const expected = donnees.reponse === true || donnees.reponse === 'vrai' ? 'vrai' : 'faux';
+                    const isCorrect = answer === expected;
+                    if (isCorrect) correct++;
+                    details.push({ question: donnees.question, reponse: answer, attendu: expected, correct: isCorrect });
+                } else {
+                    const propositions = donnees.propositions || [];
+                    propositions.forEach((prop, idx) => {
+                        total++;
+                        const answer = this.userAnswers[`vf_${idx}`];
+                        const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
+                        const isCorrect = answer === expected;
+                        if (isCorrect) correct++;
+                        details.push({ question: prop.texte, reponse: answer, attendu: expected, correct: isCorrect });
+                    });
+                }
+                break;
+
+            case 'qcm':
+                total = 1;
+                const choices = donnees.choix || donnees.options || [];
+                const userAnswer = this.userAnswers['qcm'];
+                let correctIndices = [];
+                if (donnees.reponses_correctes && Array.isArray(donnees.reponses_correctes)) {
+                    correctIndices = donnees.reponses_correctes;
+                } else if (donnees.reponse_correcte !== undefined) {
+                    correctIndices = [donnees.reponse_correcte];
+                } else {
+                    correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
+                }
+                const isCorrect = correctIndices.includes(parseInt(userAnswer));
+                if (isCorrect) correct = 1;
+                details.push({
+                    question: donnees.question || donnees.enonce,
+                    reponse: userAnswer !== undefined ? choices[userAnswer]?.texte || choices[userAnswer] : null,
+                    attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
+                    correct: isCorrect
+                });
+                break;
+
+            case 'chronologie':
+                const chronoAnswers = this.userAnswers['chrono'] || {};
+                const paires = donnees.paires || donnees.evenements || [];
+                const mode = donnees.mode || 'date';
+                const sortedEvents = [...paires].sort((a, b) => {
+                    const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
+                    const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
+                    return dateA - dateB;
+                });
+                sortedEvents.forEach((evt, idx) => {
+                    total++;
+                    const answer = chronoAnswers[idx];
+                    const correctValue = mode === 'evenement' ? evt.evenement : String(evt.date);
+                    const reponsesAcceptees = evt.reponses_acceptees || [];
+                    let isCorrectAnswer = false;
+                    if (answer && answer.value) {
+                        const userValue = answer.value.trim().toLowerCase();
+                        const correctLower = correctValue.trim().toLowerCase();
+                        isCorrectAnswer = userValue === correctLower ||
+                            reponsesAcceptees.some(alt => alt.trim().toLowerCase() === userValue);
+                    }
+                    if (isCorrectAnswer) correct++;
+                    details.push({
+                        question: mode === 'evenement' ? evt.date : evt.evenement,
+                        reponse: answer?.value || null,
+                        attendu: correctValue,
+                        correct: isCorrectAnswer
+                    });
+                });
+                break;
+
+            case 'timeline':
+                // Pour timeline, vérifier l'ordre des cartes
+                const cartes = donnees.cartes || [];
+                total = cartes.length;
+                // TODO: implémenter la vérification d'ordre
+                correct = 0;
+                break;
+
+            case 'texte_trou':
+            case 'texte_trous':
+                const texte = donnees.texte || '';
+                const matches = texte.match(/\{([^}]+)\}/g) || [];
+                matches.forEach((match, idx) => {
+                    total++;
+                    const expected = match.replace(/[{}]/g, '');
+                    const input = document.getElementById(`trou_${idx}`);
+                    const userValue = input ? input.value.trim() : '';
+                    const isCorrectTrou = userValue.toLowerCase() === expected.toLowerCase();
+                    if (isCorrectTrou) correct++;
+                    details.push({ question: `Trou ${idx + 1}`, reponse: userValue, attendu: expected, correct: isCorrectTrou });
+                });
+                break;
+
+            case 'association':
+                const assocPaires = donnees.paires || [];
+                total = assocPaires.length;
+                const userPairs = this.userAnswers['association'] || [];
+                userPairs.forEach(up => {
+                    if (up.gauche === up.droite) correct++;
+                });
+                break;
+
+            case 'carte':
+                const marqueurs = donnees.marqueurs || [];
+                marqueurs.forEach((m, idx) => {
+                    total++;
+                    const answer = this.userAnswers['carte_' + idx];
+                    if (answer) {
+                        const userValue = answer.trim().toLowerCase();
+                        const expectedValue = (m.reponse || '').trim().toLowerCase();
+                        const reponsesAcceptees = m.reponses_acceptees || [];
+                        const allAccepted = [expectedValue, ...reponsesAcceptees.map(r => r.trim().toLowerCase())];
+                        const isCorrectCarte = allAccepted.some(rep => userValue === rep);
+                        if (isCorrectCarte) correct++;
+                        details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrectCarte });
+                    } else {
+                        details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
+                    }
+                });
+                break;
+
+            case 'question_ouverte':
+                total = 1;
+                const qoAnswer = this.userAnswers['question_ouverte'];
+                const qoReponsesAcceptees = donnees.reponses_acceptees || [];
+                const caseSensitive = donnees.case_sensitive || false;
+                let qoCorrect = false;
+                if (qoAnswer) {
+                    const userValue = caseSensitive ? qoAnswer.trim() : qoAnswer.trim().toLowerCase();
+                    qoCorrect = qoReponsesAcceptees.some(rep => {
+                        const expected = caseSensitive ? rep.trim() : rep.trim().toLowerCase();
+                        return userValue === expected;
+                    });
+                }
+                if (qoCorrect) correct = 1;
+                details.push({
+                    question: donnees.question,
+                    reponse: qoAnswer,
+                    attendu: qoReponsesAcceptees.join(' / '),
+                    correct: qoCorrect
+                });
+                break;
+        }
+
+        return {
+            etapeIndex,
+            etapeTitre: etape.titre || `Étape ${etapeIndex + 1}`,
+            format: etape.format_code,
+            correct,
+            total,
+            pourcentage: total > 0 ? Math.round((correct / total) * 100) : 0,
+            details,
+            donnees
+        };
+    },
+
+    /**
+     * Sauvegarde la progression dans le backend
+     */
+    async saveProgression(results) {
+        // Ne pas sauvegarder en mode entraînement libre (exercice déjà mémorisé)
+        if (this.isTrainingMode) {
+            console.log('[EleveConnaissances] Mode entraînement libre - progression non sauvegardée');
+            this.lastProgressionResult = { statut: 'memorise', message: 'Entraînement libre' };
+            return;
+        }
+
+        try {
+            const user = JSON.parse(sessionStorage.getItem('brikks_user') || '{}');
+            if (!user.id) return;
+
+            const response = await this.callAPI('saveProgressionMemorisation', {
+                eleve_id: user.id,
+                entrainement_id: this.currentEntrainement.id,
+                banque_id: this.currentBanque?.id || '',
+                score: results.totalCorrect,
+                score_max: results.totalQuestions
+            });
+
+            if (response.success) {
+                this.lastProgressionResult = response;
+                // Mettre à jour le cache local des progressions
+                this.progressions[this.currentEntrainement.id] = {
+                    ...this.progressions[this.currentEntrainement.id],
+                    etape: response.etape,
+                    statut: response.statut,
+                    prochaine_revision: response.prochaine_revision
+                };
+                console.log('[EleveConnaissances] Progression sauvegardée:', response);
+            }
+        } catch (error) {
+            console.error('[EleveConnaissances] Erreur sauvegarde progression:', error);
+        }
+    },
+
+    /**
+     * Appel API helper
+     */
+    callAPI(action, params) {
+        return new Promise((resolve, reject) => {
+            const url = new URL(CONFIG.API_URL);
+            url.searchParams.append('action', action);
+            Object.keys(params).forEach(key => {
+                url.searchParams.append(key, params[key]);
+            });
+
+            const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            url.searchParams.append('callback', callbackName);
+
+            window[callbackName] = (response) => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                resolve(response);
+            };
+
+            const script = document.createElement('script');
+            script.src = url.toString();
+            script.onerror = () => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                reject(new Error('API call failed'));
+            };
+            document.body.appendChild(script);
+        });
+    },
+
+    /**
+     * Affiche un modal quand l'entraînement est verrouillé
+     */
+    showLockedModal(prog, status) {
         const container = document.getElementById('connaissances-content');
-        container.innerHTML = `
-            <div class="completion-view">
-                <div class="completion-icon">🎉</div>
-                <h2>Entraînement terminé !</h2>
-                <p>Vous avez complété toutes les étapes de cet entraînement.</p>
-                <button class="btn btn-primary" onclick="EleveConnaissances.backToList()">
-                    Retour aux entraînements
+        const entrainement = this.entrainements.find(e => e.id === prog.entrainement_id);
+        const titre = entrainement?.titre || 'Cet entraînement';
+
+        const prochaineDate = new Date(prog.prochaine_revision);
+        const options = { weekday: 'long', day: 'numeric', month: 'long' };
+        const dateStr = prochaineDate.toLocaleDateString('fr-FR', options);
+
+        // Créer un modal overlay
+        const modal = document.createElement('div');
+        modal.className = 'locked-modal-overlay';
+        modal.innerHTML = `
+            <div class="locked-modal">
+                <div class="locked-modal-icon">🔒</div>
+                <h3>Pas encore !</h3>
+                <p class="locked-modal-title">${this.escapeHtml(titre)}</p>
+                <p class="locked-modal-message">
+                    Tu as réussi cet entraînement ! Pour que ça reste en mémoire,
+                    reviens <strong>${dateStr}</strong> pour la prochaine révision.
+                </p>
+                <div class="locked-modal-info">
+                    <div class="locked-modal-etape">Étape ${prog.etape}/6</div>
+                    <div class="locked-modal-jours">${status.joursRestants} jour${status.joursRestants > 1 ? 's' : ''} restant${status.joursRestants > 1 ? 's' : ''}</div>
+                </div>
+                <button class="btn btn-primary" onclick="this.closest('.locked-modal-overlay').remove()">
+                    J'ai compris
                 </button>
             </div>
         `;
+
+        document.body.appendChild(modal);
+    },
+
+    /**
+     * Affiche l'écran de résultats avec récapitulatif
+     */
+    renderResultScreen(results) {
+        const container = document.getElementById('connaissances-content');
+        const ent = this.currentEntrainement;
+        const banque = this.currentBanque;
+        const prog = this.lastProgressionResult || {};
+
+        // Déterminer le message selon le score
+        let messageIcon, messageTitle, messageClass;
+        if (results.pourcentage >= 100) {
+            messageIcon = '🎉';
+            messageTitle = 'Parfait !';
+            messageClass = 'success';
+        } else if (results.pourcentage >= 80) {
+            messageIcon = '👏';
+            messageTitle = 'Très bien !';
+            messageClass = 'success';
+        } else if (results.pourcentage >= 50) {
+            messageIcon = '💪';
+            messageTitle = 'Pas mal !';
+            messageClass = 'partial';
+        } else {
+            messageIcon = '📚';
+            messageTitle = 'Continue à t\'entraîner !';
+            messageClass = 'error';
+        }
+
+        // Message sur la progression de mémorisation
+        let progressionMessage = '';
+        if (prog.statut === 'memorise') {
+            progressionMessage = `<div class="progression-message memorise">✅ Cet exercice est maintenant mémorisé !</div>`;
+        } else if (prog.prochaine_revision) {
+            const joursRestants = this.calculateDaysUntil(prog.prochaine_revision);
+            if (prog.reussi) {
+                progressionMessage = `<div class="progression-message success">
+                    Étape ${prog.etape}/6 - Prochaine révision efficace dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''}
+                </div>`;
+            } else {
+                progressionMessage = `<div class="progression-message retry">
+                    Tu peux réessayer maintenant pour progresser.
+                </div>`;
+            }
+        }
+
+        // Trouver l'entraînement suivant
+        const nextEntrainement = this.findNextEntrainement();
+
+        container.innerHTML = `
+            <div class="result-view">
+                <button class="exercise-back-btn" onclick="EleveConnaissances.backToList()">
+                    ← Retour aux entraînements
+                </button>
+
+                <div class="result-card">
+                    <div class="result-header ${messageClass}">
+                        <div class="result-icon">${messageIcon}</div>
+                        <h2>${messageTitle}</h2>
+                        <div class="result-score">
+                            <span class="score-value">${results.pourcentage}%</span>
+                            <span class="score-detail">${results.totalCorrect}/${results.totalQuestions} correct${results.totalCorrect > 1 ? 's' : ''}</span>
+                        </div>
+                    </div>
+
+                    ${progressionMessage}
+
+                    <div class="result-details">
+                        <h3>Détail par étape</h3>
+                        <div class="etapes-recap">
+                            ${results.etapes.map((etape, idx) => `
+                                <div class="etape-recap ${etape.pourcentage >= 80 ? 'success' : etape.pourcentage >= 50 ? 'partial' : 'error'}">
+                                    <div class="etape-recap-header" onclick="EleveConnaissances.toggleEtapeDetails(${idx})">
+                                        <span class="etape-recap-num">${idx + 1}</span>
+                                        <span class="etape-recap-title">${this.escapeHtml(etape.etapeTitre)}</span>
+                                        <span class="etape-recap-score">${etape.correct}/${etape.total}</span>
+                                        <span class="etape-recap-toggle">▼</span>
+                                    </div>
+                                    <div class="etape-recap-details" id="etapeDetails_${idx}" style="display: none;">
+                                        ${etape.details.map(d => `
+                                            <div class="detail-item ${d.correct ? 'correct' : 'incorrect'}">
+                                                <span class="detail-icon">${d.correct ? '✓' : '✗'}</span>
+                                                <span class="detail-question">${this.escapeHtml(d.question || '')}</span>
+                                                ${!d.correct ? `
+                                                    <div class="detail-correction">
+                                                        ${d.reponse ? `Ta réponse: <span class="user-answer">${this.escapeHtml(d.reponse)}</span>` : 'Pas de réponse'}
+                                                        <br>Réponse attendue: <span class="expected-answer">${this.escapeHtml(d.attendu)}</span>
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="result-actions">
+                        <button class="btn btn-secondary" onclick="EleveConnaissances.restartEntrainement()">
+                            🔄 Recommencer
+                        </button>
+                        ${nextEntrainement ? `
+                            <button class="btn btn-primary" onclick="EleveConnaissances.startNextEntrainement()">
+                                Passer au suivant →
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-outline" onclick="EleveConnaissances.backToList()">
+                            Retour à la liste
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Toggle l'affichage des détails d'une étape
+     */
+    toggleEtapeDetails(idx) {
+        const details = document.getElementById(`etapeDetails_${idx}`);
+        if (details) {
+            const isHidden = details.style.display === 'none';
+            details.style.display = isHidden ? 'block' : 'none';
+            const toggle = details.previousElementSibling.querySelector('.etape-recap-toggle');
+            if (toggle) toggle.textContent = isHidden ? '▲' : '▼';
+        }
+    },
+
+    /**
+     * Calcule le nombre de jours jusqu'à une date
+     */
+    calculateDaysUntil(dateStr) {
+        const target = new Date(dateStr);
+        const now = new Date();
+        return Math.max(0, Math.ceil((target - now) / (1000 * 60 * 60 * 24)));
+    },
+
+    /**
+     * Trouve l'entraînement suivant dans la même banque
+     */
+    findNextEntrainement() {
+        if (!this.currentBanque || !this.entrainements) return null;
+
+        const currentBanqueEntrainements = this.entrainements
+            .filter(e => String(e.banque_id) === String(this.currentBanque.id))
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        const currentIndex = currentBanqueEntrainements.findIndex(e => e.id === this.currentEntrainement.id);
+        if (currentIndex >= 0 && currentIndex < currentBanqueEntrainements.length - 1) {
+            return currentBanqueEntrainements[currentIndex + 1];
+        }
+        return null;
+    },
+
+    /**
+     * Recommence l'entraînement actuel
+     */
+    restartEntrainement() {
+        this.currentEtapeIndex = 0;
+        this.userAnswers = {};
+        // Réinitialiser les états d'association
+        this.associationSelection = { gauche: null, droite: null };
+        this.associationPairs = [];
+        this.associationPairCounter = 0;
+        this.renderEntrainementView();
+    },
+
+    /**
+     * Lance l'entraînement suivant
+     */
+    startNextEntrainement() {
+        const next = this.findNextEntrainement();
+        if (next) {
+            this.startEntrainement(next.id);
+        } else {
+            this.backToList();
+        }
     },
 
     /**
