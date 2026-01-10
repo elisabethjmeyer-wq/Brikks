@@ -62,7 +62,9 @@ const SHEETS = {
   ETAPE_QUESTIONS_CONN: 'ETAPE_QUESTIONS_CONN',
   FORMATS_QUESTIONS: 'FORMATS_QUESTIONS',
   // Système de mémorisation (répétition espacée)
-  PROGRESSION_MEMORISATION: 'PROGRESSION_MEMORISATION'
+  PROGRESSION_MEMORISATION: 'PROGRESSION_MEMORISATION',
+  // Historique des pratiques savoir-faire (pour calcul automatisation)
+  HISTORIQUE_PRATIQUES_SF: 'HISTORIQUE_PRATIQUES_SF'
 };
 
 // ========================================
@@ -453,6 +455,14 @@ function handleRequest(e) {
         break;
       case 'saveResultatExercice':
         result = saveResultatExercice(request);
+        break;
+
+      // HISTORIQUE PRATIQUES SAVOIR-FAIRE
+      case 'savePratiqueSF':
+        result = savePratiqueSF(request);
+        break;
+      case 'getHistoriquePratiquesSF':
+        result = getHistoriquePratiquesSF(request);
         break;
 
       // REFERENTIEL COMPETENCES
@@ -5716,6 +5726,156 @@ function saveResultatExercice(data) {
     sheet.appendRow(rowData);
     return { success: true, message: 'Résultat enregistré', id: id };
   }
+}
+
+// ========================================
+// HISTORIQUE PRATIQUES SAVOIR-FAIRE
+// ========================================
+
+/**
+ * Enregistre une pratique d'exercice SF (historique complet)
+ * Chaque tentative est enregistrée (pas d'écrasement)
+ * @param {Object} data - { eleve_id, exercice_id, banque_id, score, temps_passe, temps_prevu }
+ */
+function savePratiqueSF(data) {
+  if (!data.eleve_id || !data.exercice_id) {
+    return { success: false, error: 'eleve_id et exercice_id requis' };
+  }
+
+  const sheetName = SHEETS.HISTORIQUE_PRATIQUES_SF;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(sheetName);
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(['id', 'eleve_id', 'exercice_id', 'banque_id', 'score', 'est_parfait', 'temps_passe', 'temps_prevu', 'date']);
+  }
+
+  const id = 'prat_' + new Date().getTime() + '_' + Math.floor(Math.random() * 1000);
+  const score = Number(data.score) || 0;
+  const estParfait = score === 100 ? 'TRUE' : 'FALSE';
+  const dateNow = new Date().toISOString();
+
+  const rowData = [
+    id,
+    data.eleve_id,
+    data.exercice_id,
+    data.banque_id || '',
+    score,
+    estParfait,
+    data.temps_passe || 0,
+    data.temps_prevu || 0,
+    dateNow
+  ];
+
+  // Toujours ajouter une nouvelle ligne (historique)
+  sheet.appendRow(rowData);
+
+  return {
+    success: true,
+    message: 'Pratique enregistrée',
+    id: id,
+    est_parfait: score === 100
+  };
+}
+
+/**
+ * Récupère l'historique des pratiques SF d'un élève
+ * @param {Object} data - { eleve_id, exercice_id?, banque_id? }
+ */
+function getHistoriquePratiquesSF(data) {
+  if (!data.eleve_id) {
+    return { success: false, error: 'eleve_id requis' };
+  }
+
+  const sheetName = SHEETS.HISTORIQUE_PRATIQUES_SF;
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
+
+  if (!sheet) {
+    return { success: true, data: [], stats: {} };
+  }
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) {
+    return { success: true, data: [], stats: {} };
+  }
+
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const eleveIdCol = headers.indexOf('eleve_id');
+  const exerciceIdCol = headers.indexOf('exercice_id');
+  const banqueIdCol = headers.indexOf('banque_id');
+  const scoreCol = headers.indexOf('score');
+  const estParfaitCol = headers.indexOf('est_parfait');
+  const tempsPasseCol = headers.indexOf('temps_passe');
+  const tempsPrevuCol = headers.indexOf('temps_prevu');
+  const dateCol = headers.indexOf('date');
+
+  const results = [];
+  const statsParExercice = {};
+
+  for (let i = 1; i < allData.length; i++) {
+    const row = allData[i];
+
+    // Filtrer par eleve_id
+    if (String(row[eleveIdCol]).trim() !== String(data.eleve_id).trim()) continue;
+
+    // Filtrer par exercice_id si spécifié
+    if (data.exercice_id && String(row[exerciceIdCol]).trim() !== String(data.exercice_id).trim()) continue;
+
+    // Filtrer par banque_id si spécifié
+    if (data.banque_id && String(row[banqueIdCol]).trim() !== String(data.banque_id).trim()) continue;
+
+    const pratique = {};
+    headers.forEach((header, colIndex) => {
+      pratique[header] = row[colIndex];
+    });
+    results.push(pratique);
+
+    // Calculer les stats par exercice
+    const exoId = String(row[exerciceIdCol]).trim();
+    if (!statsParExercice[exoId]) {
+      statsParExercice[exoId] = {
+        exercice_id: exoId,
+        banque_id: row[banqueIdCol],
+        total_pratiques: 0,
+        pratiques_parfaites: 0,
+        derniere_pratique: null,
+        temps_moyen: 0,
+        temps_prevu: row[tempsPrevuCol] || 0,
+        temps_total: 0
+      };
+    }
+
+    const stats = statsParExercice[exoId];
+    stats.total_pratiques++;
+
+    if (String(row[estParfaitCol]).toUpperCase() === 'TRUE' || row[scoreCol] === 100) {
+      stats.pratiques_parfaites++;
+    }
+
+    stats.temps_total += Number(row[tempsPasseCol]) || 0;
+
+    // Mettre à jour la dernière pratique
+    const dateStr = row[dateCol];
+    if (!stats.derniere_pratique || dateStr > stats.derniere_pratique) {
+      stats.derniere_pratique = dateStr;
+    }
+  }
+
+  // Calculer le temps moyen pour chaque exercice
+  Object.values(statsParExercice).forEach(stats => {
+    if (stats.total_pratiques > 0) {
+      stats.temps_moyen = Math.round(stats.temps_total / stats.total_pratiques);
+    }
+    delete stats.temps_total; // Nettoyer
+  });
+
+  return {
+    success: true,
+    data: results,
+    stats: statsParExercice
+  };
 }
 
 // ========================================

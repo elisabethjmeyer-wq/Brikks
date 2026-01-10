@@ -13,6 +13,8 @@ const EleveExercices = {
     exercices: [],
     formats: [],
     resultats: [],
+    // Historique des pratiques SF (pour calcul automatisation)
+    statsSF: {},  // Stats par exercice_id
 
     // État
     currentBanque: null,
@@ -26,7 +28,12 @@ const EleveExercices = {
     // Cache config (5 minutes TTL)
     CACHE_KEY: 'brikks_exercices_cache',
     CACHE_RESULTATS_KEY: 'brikks_resultats_cache',
+    CACHE_HISTORIQUE_SF_KEY: 'brikks_historique_sf_cache',
     CACHE_TTL: 5 * 60 * 1000,
+
+    // Constantes pour le calcul du statut SF
+    SEUIL_PRATIQUES_PARFAITES: 3,  // Nombre de pratiques à 100% pour être "acquis"
+    SEUIL_JOURS_RAFRAICHIR: 30,    // Jours sans pratiquer avant "à rafraîchir"
 
     /**
      * Initialise la page d'exercices
@@ -47,14 +54,24 @@ const EleveExercices = {
             this.applyData(cached.banques, cached.exercices, cached.formats);
             const cachedResultats = this.loadResultatsFromCache();
             if (cachedResultats) this.resultats = cachedResultats;
+            // Charger historique SF depuis cache si savoir-faire
+            if (type === 'savoir-faire') {
+                const cachedHistoriqueSF = this.loadHistoriqueSFFromCache();
+                if (cachedHistoriqueSF) this.statsSF = cachedHistoriqueSF;
+            }
             this.renderAccordionView();
             this.refreshDataInBackground();
             this.refreshResultatsInBackground();
+            if (type === 'savoir-faire') this.refreshHistoriqueSFInBackground();
         } else {
             this.showLoader('Chargement des exercices...');
             try {
                 await this.loadData();
                 await this.loadResultats();
+                // Charger historique SF si savoir-faire
+                if (type === 'savoir-faire') {
+                    await this.loadHistoriqueSF();
+                }
                 this.renderAccordionView();
             } catch (error) {
                 console.error('Erreur lors du chargement:', error);
@@ -119,6 +136,136 @@ const EleveExercices = {
                 this.saveResultatsToCache(this.resultats);
             }
         } catch (e) {}
+    },
+
+    // ========================================
+    // HISTORIQUE PRATIQUES SF
+    // ========================================
+
+    loadHistoriqueSFFromCache() {
+        try {
+            const cached = localStorage.getItem(this.CACHE_HISTORIQUE_SF_KEY);
+            if (!cached) return null;
+            const data = JSON.parse(cached);
+            if (data.timestamp && (Date.now() - data.timestamp) < this.CACHE_TTL) {
+                return data.stats || {};
+            }
+            return null;
+        } catch (e) { return null; }
+    },
+
+    saveHistoriqueSFToCache(stats) {
+        try {
+            localStorage.setItem(this.CACHE_HISTORIQUE_SF_KEY, JSON.stringify({
+                stats,
+                timestamp: Date.now()
+            }));
+        } catch (e) {}
+    },
+
+    async loadHistoriqueSF() {
+        if (!this.currentUser || !this.currentUser.id) return;
+        if (this.currentType !== 'savoir-faire') return;
+
+        try {
+            const result = await this.callAPI('getHistoriquePratiquesSF', { eleve_id: this.currentUser.id });
+            if (result.success && result.stats) {
+                this.statsSF = result.stats;
+                this.saveHistoriqueSFToCache(this.statsSF);
+            }
+        } catch (e) {
+            console.error('[EleveExercices] Erreur chargement historique SF:', e);
+        }
+    },
+
+    async refreshHistoriqueSFInBackground() {
+        if (!this.currentUser || !this.currentUser.id) return;
+        if (this.currentType !== 'savoir-faire') return;
+
+        try {
+            const result = await this.callAPI('getHistoriquePratiquesSF', { eleve_id: this.currentUser.id });
+            if (result.success && result.stats) {
+                this.statsSF = result.stats;
+                this.saveHistoriqueSFToCache(this.statsSF);
+            }
+        } catch (e) {}
+    },
+
+    /**
+     * Calcule le statut d'un exercice SF basé sur l'historique des pratiques
+     * @param {string} exerciceId - ID de l'exercice
+     * @param {Object} exercice - Données de l'exercice (pour temps_prevu)
+     * @returns {Object} { statusClass, label, icon, pratiquesParfaites, joursDepuisDerniere }
+     */
+    getExerciceStatusSF(exerciceId, exercice) {
+        const stats = this.statsSF[exerciceId];
+
+        // Pas de pratique = Nouveau
+        if (!stats || stats.total_pratiques === 0) {
+            return {
+                statusClass: 'new',
+                label: 'Nouveau',
+                icon: '🆕',
+                pratiquesParfaites: 0,
+                joursDepuisDerniere: null
+            };
+        }
+
+        const pratiquesParfaites = stats.pratiques_parfaites || 0;
+        const dernierePratique = stats.derniere_pratique ? new Date(stats.derniere_pratique) : null;
+        const joursDepuisDerniere = dernierePratique
+            ? Math.floor((Date.now() - dernierePratique.getTime()) / (1000 * 60 * 60 * 24))
+            : null;
+
+        // Vérifier si à rafraîchir (> 30 jours sans pratiquer et avait des pratiques parfaites)
+        if (pratiquesParfaites > 0 && joursDepuisDerniere !== null && joursDepuisDerniere > this.SEUIL_JOURS_RAFRAICHIR) {
+            return {
+                statusClass: 'a-rafraichir',
+                label: 'À rafraîchir',
+                icon: '⚡',
+                pratiquesParfaites,
+                joursDepuisDerniere
+            };
+        }
+
+        // Moins de 3 pratiques parfaites = En acquisition
+        if (pratiquesParfaites < this.SEUIL_PRATIQUES_PARFAITES) {
+            return {
+                statusClass: 'en-acquisition',
+                label: 'En acquisition',
+                icon: '🟠',
+                pratiquesParfaites,
+                joursDepuisDerniere
+            };
+        }
+
+        // 3+ pratiques parfaites - vérifier le temps
+        const tempsPrevu = exercice?.duree ? exercice.duree * 60 : stats.temps_prevu || 300; // en secondes
+        const tempsMoyen = stats.temps_moyen || 0;
+
+        // Si temps moyen > temps prévu = Acquis mais lent
+        if (tempsMoyen > tempsPrevu) {
+            return {
+                statusClass: 'acquis-lent',
+                label: 'Acquis (lent)',
+                icon: '🟡',
+                pratiquesParfaites,
+                joursDepuisDerniere,
+                tempsMoyen,
+                tempsPrevu
+            };
+        }
+
+        // Sinon = Automatisé
+        return {
+            statusClass: 'automatise',
+            label: 'Automatisé',
+            icon: '🟢',
+            pratiquesParfaites,
+            joursDepuisDerniere,
+            tempsMoyen,
+            tempsPrevu
+        };
     },
 
     loadFromCache() {
@@ -201,6 +348,7 @@ const EleveExercices = {
 
     /**
      * Render the accordion view with type header and expandable banques
+     * Pour SF : unifié avec le style Connaissances
      */
     renderAccordionView() {
         const container = document.getElementById('exercices-content');
@@ -209,16 +357,6 @@ const EleveExercices = {
             container.innerHTML = this.renderEmptyState();
             return;
         }
-
-        // Calculate global stats
-        const totalExercises = this.exercices.filter(e =>
-            this.banques.some(b => b.id === e.banque_id)
-        ).length;
-        const completedExercises = this.exercices.filter(e =>
-            this.banques.some(b => b.id === e.banque_id) &&
-            this.resultats.some(r => r.exercice_id === e.id)
-        ).length;
-        const progressPercent = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
 
         // Group exercises by banque
         const exercicesByBanque = {};
@@ -233,6 +371,136 @@ const EleveExercices = {
         Object.keys(exercicesByBanque).forEach(banqueId => {
             exercicesByBanque[banqueId].sort((a, b) => (a.numero || 0) - (b.numero || 0));
         });
+
+        // Pour SF, utiliser le nouveau système de stats
+        if (this.currentType === 'savoir-faire') {
+            this.renderAccordionViewSF(container, exercicesByBanque);
+            return;
+        }
+
+        // Pour les autres types, garder l'ancien rendu
+        this.renderAccordionViewDefault(container, exercicesByBanque);
+    },
+
+    /**
+     * Rendu accordéon pour Savoir-faire (unifié avec Connaissances)
+     */
+    renderAccordionViewSF(container, exercicesByBanque) {
+        // Calculer les stats globales SF
+        const globalStats = this.calculateGlobalStatsSF(exercicesByBanque);
+
+        // Message bandeau simplifié
+        let bandeauMessage, bandeauClass;
+        if (globalStats.aFaire > 0) {
+            bandeauMessage = `${globalStats.aFaire} entraînement${globalStats.aFaire > 1 ? 's' : ''} à faire`;
+            bandeauClass = 'has-urgent';
+        } else if (globalStats.total === globalStats.automatise && globalStats.total > 0) {
+            bandeauMessage = '🏆 Tout est automatisé !';
+            bandeauClass = 'all-done';
+        } else if (globalStats.total > 0) {
+            bandeauMessage = '✓ Tu es à jour !';
+            bandeauClass = 'waiting';
+        } else {
+            bandeauMessage = 'Aucun entraînement';
+            bandeauClass = 'empty';
+        }
+
+        let html = `
+            <!-- Bandeau SF style Connaissances -->
+            <div class="type-header-banner ${this.currentType} ${bandeauClass}">
+                <div class="type-header-left">
+                    <div class="type-icon-emoji">${this.getTypeEmoji()}</div>
+                    <div>
+                        <h2 class="type-title">Entraînement de ${this.getTypeLabel().toLowerCase()}</h2>
+                    </div>
+                </div>
+                <div class="type-header-stats">
+                    <div class="type-stat ${bandeauClass}">
+                        <div class="type-stat-value">${bandeauMessage}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste des banques -->
+            <div class="banques-accordion">
+        `;
+
+        this.banques.forEach(banque => {
+            const banqueExercices = exercicesByBanque[banque.id] || [];
+            const banqueStats = this.calculateBanqueStatsSF(banqueExercices);
+
+            // Accordéons fermés par défaut
+            const isExpanded = this.expandedBanques.has(banque.id);
+            const hasActions = banqueStats.aFaire > 0;
+
+            // Couleur selon progression
+            let progressColor = '#e5e7eb';
+            if (banqueStats.progressPercent >= 100) progressColor = '#10b981';
+            else if (banqueStats.progressPercent >= 70) progressColor = '#10b981';
+            else if (banqueStats.progressPercent >= 40) progressColor = '#f59e0b';
+            else if (banqueStats.progressPercent > 0) progressColor = '#3b82f6';
+
+            // Badges banque
+            let banqueBadges = [];
+            if (banqueStats.aFaire > 0) {
+                banqueBadges.push(`<span class="banque-badge urgent">⚡ ${banqueStats.aFaire} à faire</span>`);
+            }
+            if (banqueStats.aRafraichir > 0) {
+                banqueBadges.push(`<span class="banque-badge warning">⏳ ${banqueStats.aRafraichir} à rafraîchir</span>`);
+            }
+            if (banqueStats.total > 0 && banqueStats.automatise === banqueStats.total) {
+                banqueBadges.push(`<span class="banque-badge done">✅ Automatisé</span>`);
+            }
+            const banqueBadge = banqueBadges.length > 0 ? banqueBadges.join(' ') : '';
+
+            // Message de maîtrise
+            let maitriseMessage = '';
+            if (banqueStats.total > 0 && banqueStats.automatise === banqueStats.total) {
+                maitriseMessage = `<div class="banque-maitrise">✅ Ce chapitre est bien maîtrisé !</div>`;
+            }
+
+            html += `
+                <div class="banque-accordion-item ${this.currentType}${isExpanded ? ' expanded' : ''}${hasActions ? ' has-actions' : ''}" data-banque-id="${banque.id}">
+                    <button class="banque-accordion-header" onclick="EleveExercices.toggleBanque('${banque.id}')">
+                        <div class="banque-chevron">▶</div>
+                        <div class="banque-info">
+                            <div class="banque-title">${this.escapeHtml(banque.titre)}</div>
+                            <div class="banque-meta">
+                                ${banqueStats.total} entraînement${banqueStats.total > 1 ? 's' : ''} • ${banqueBadge}
+                            </div>
+                            <div class="banque-progress-bar">
+                                <div class="banque-progress-fill" style="width: ${banqueStats.progressPercent}%; background: ${progressColor};"></div>
+                            </div>
+                        </div>
+                        <div class="banque-progress-percent">${banqueStats.progressPercent}%</div>
+                    </button>
+                    <div class="banque-accordion-content">
+                        ${maitriseMessage}
+                        <div class="exercices-accordion-list">
+                            ${this.renderExercisesList(banqueExercices)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    },
+
+    /**
+     * Rendu accordéon par défaut (ancienne version pour autres types)
+     */
+    renderAccordionViewDefault(container, exercicesByBanque) {
+        // Calculate global stats
+        const totalExercises = this.exercices.filter(e =>
+            this.banques.some(b => b.id === e.banque_id)
+        ).length;
+        const completedExercises = this.exercices.filter(e =>
+            this.banques.some(b => b.id === e.banque_id) &&
+            this.resultats.some(r => r.exercice_id === e.id)
+        ).length;
+        const progressPercent = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
 
         let html = `
             <div class="type-header-banner ${this.currentType}">
@@ -322,6 +590,88 @@ const EleveExercices = {
     },
 
     /**
+     * Calcule les stats globales pour SF
+     */
+    calculateGlobalStatsSF(exercicesByBanque) {
+        let total = 0;
+        let automatise = 0;
+        let acquisLent = 0;
+        let enAcquisition = 0;
+        let aRafraichir = 0;
+        let nouveau = 0;
+
+        this.banques.forEach(banque => {
+            const exercices = exercicesByBanque[banque.id] || [];
+            exercices.forEach(exo => {
+                total++;
+                const status = this.getExerciceStatusSF(exo.id, exo);
+
+                switch (status.statusClass) {
+                    case 'automatise': automatise++; break;
+                    case 'acquis-lent': acquisLent++; break;
+                    case 'en-acquisition': enAcquisition++; break;
+                    case 'a-rafraichir': aRafraichir++; break;
+                    case 'new': nouveau++; break;
+                }
+            });
+        });
+
+        // "À faire" = nouveau + en acquisition + acquis lent + à rafraîchir
+        const aFaire = nouveau + enAcquisition + acquisLent + aRafraichir;
+
+        return {
+            total,
+            automatise,
+            acquisLent,
+            enAcquisition,
+            aRafraichir,
+            nouveau,
+            aFaire
+        };
+    },
+
+    /**
+     * Calcule les stats pour une banque SF
+     */
+    calculateBanqueStatsSF(exercices) {
+        let total = exercices.length;
+        let automatise = 0;
+        let acquisLent = 0;
+        let enAcquisition = 0;
+        let aRafraichir = 0;
+        let nouveau = 0;
+
+        exercices.forEach(exo => {
+            const status = this.getExerciceStatusSF(exo.id, exo);
+
+            switch (status.statusClass) {
+                case 'automatise': automatise++; break;
+                case 'acquis-lent': acquisLent++; break;
+                case 'en-acquisition': enAcquisition++; break;
+                case 'a-rafraichir': aRafraichir++; break;
+                case 'new': nouveau++; break;
+            }
+        });
+
+        // "À faire" = nouveau + en acquisition + acquis lent + à rafraîchir
+        const aFaire = nouveau + enAcquisition + acquisLent + aRafraichir;
+
+        // Progression = % d'exercices automatisés
+        const progressPercent = total > 0 ? Math.round((automatise / total) * 100) : 0;
+
+        return {
+            total,
+            automatise,
+            acquisLent,
+            enAcquisition,
+            aRafraichir,
+            nouveau,
+            aFaire,
+            progressPercent
+        };
+    },
+
+    /**
      * Render exercises list for a banque
      */
     renderExercisesList(exercices) {
@@ -329,8 +679,70 @@ const EleveExercices = {
             return '<div class="empty-state" style="padding: 2rem;"><p>Aucun exercice dans cette banque</p></div>';
         }
 
-        return exercices.map(exo => {
+        // Trier les exercices par priorité pour SF (à faire en premier)
+        let sorted = [...exercices];
+        if (this.currentType === 'savoir-faire') {
+            const priorityOrder = { 'new': 0, 'en-acquisition': 1, 'a-rafraichir': 2, 'acquis-lent': 3, 'automatise': 4 };
+            sorted.sort((a, b) => {
+                const statusA = this.getExerciceStatusSF(a.id, a);
+                const statusB = this.getExerciceStatusSF(b.id, b);
+                return (priorityOrder[statusA.statusClass] ?? 5) - (priorityOrder[statusB.statusClass] ?? 5);
+            });
+        }
+
+        return sorted.map((exo, index) => {
             const format = this.formats.find(f => f.id === exo.format_id);
+
+            // Pour les savoir-faire, utiliser le nouveau système de statut
+            if (this.currentType === 'savoir-faire') {
+                const statusSF = this.getExerciceStatusSF(exo.id, exo);
+                const isAutomatise = statusSF.statusClass === 'automatise';
+
+                // Badge et indication sous le badge
+                let statusBadge = `<span class="entrainement-badge ${statusSF.statusClass}">${statusSF.icon} ${statusSF.label}</span>`;
+                let actionHint = '';
+
+                switch (statusSF.statusClass) {
+                    case 'new':
+                        actionHint = 'Clique pour découvrir →';
+                        break;
+                    case 'en-acquisition':
+                        actionHint = `${statusSF.pratiquesParfaites}/${this.SEUIL_PRATIQUES_PARFAITES} pratiques réussies`;
+                        break;
+                    case 'a-rafraichir':
+                        actionHint = `${statusSF.joursDepuisDerniere}j sans pratiquer`;
+                        break;
+                    case 'acquis-lent':
+                        actionHint = `${statusSF.pratiquesParfaites} pratiques • trop lent`;
+                        break;
+                    case 'automatise':
+                        actionHint = `${statusSF.pratiquesParfaites} pratiques réussies`;
+                        break;
+                }
+
+                // Métadonnées
+                let metaText = format ? format.nom : 'Format inconnu';
+                if (exo.duree) metaText += ` • ${exo.duree} min`;
+                if (exo.consigne) metaText += ` • ${this.escapeHtml(exo.consigne).substring(0, 50)}...`;
+
+                return `
+                    <div class="exercice-item ${this.currentType} ${statusSF.statusClass}${isAutomatise ? ' completed' : ''}"
+                         onclick="EleveExercices.startExercise('${exo.id}')"
+                         data-exercice-id="${exo.id}">
+                        <div class="exercice-numero">${index + 1}</div>
+                        <div class="exercice-info">
+                            <div class="exercice-titre">${this.escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</div>
+                            <div class="exercice-meta">${metaText}</div>
+                        </div>
+                        <div class="exercice-status-area">
+                            ${statusBadge}
+                            <span class="exercice-hint">${actionHint}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Pour les autres types, garder l'ancien système
             const result = this.getExerciseResult(exo.id);
             const statusInfo = this.getStatusInfo(result);
             const isCompleted = result && result.score === 100;
@@ -1168,6 +1580,7 @@ const EleveExercices = {
         if (!this.currentUser || !this.currentUser.id || !this.currentExercise) return;
 
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
+        const tempsPrevu = this.currentExercise.duree ? this.currentExercise.duree * 60 : 300; // en secondes
 
         const resultData = {
             eleve_id: this.currentUser.id,
@@ -1181,11 +1594,67 @@ const EleveExercices = {
         };
 
         try {
+            // Sauvegarder dans l'ancien système (pour compatibilité)
             const result = await this.callAPI('saveResultatExercice', resultData);
             if (result.success) {
                 this.updateLocalResult(resultData);
             }
-        } catch (e) {}
+
+            // Pour les savoir-faire, sauvegarder aussi dans l'historique des pratiques
+            if (this.currentType === 'savoir-faire') {
+                const pratiqueData = {
+                    eleve_id: this.currentUser.id,
+                    exercice_id: this.currentExercise.id,
+                    banque_id: this.currentExercise.banque_id,
+                    score: percent,
+                    temps_passe: timeSpent,
+                    temps_prevu: tempsPrevu
+                };
+
+                const pratResult = await this.callAPI('savePratiqueSF', pratiqueData);
+                if (pratResult.success) {
+                    // Mettre à jour les stats locales
+                    this.updateLocalStatsSF(pratiqueData);
+                }
+            }
+        } catch (e) {
+            console.error('[EleveExercices] Erreur sauvegarde résultat:', e);
+        }
+    },
+
+    /**
+     * Met à jour les stats SF locales après une pratique
+     */
+    updateLocalStatsSF(pratiqueData) {
+        const exoId = pratiqueData.exercice_id;
+
+        if (!this.statsSF[exoId]) {
+            this.statsSF[exoId] = {
+                exercice_id: exoId,
+                banque_id: pratiqueData.banque_id,
+                total_pratiques: 0,
+                pratiques_parfaites: 0,
+                derniere_pratique: null,
+                temps_moyen: 0,
+                temps_prevu: pratiqueData.temps_prevu || 0
+            };
+        }
+
+        const stats = this.statsSF[exoId];
+        stats.total_pratiques++;
+
+        if (pratiqueData.score === 100) {
+            stats.pratiques_parfaites++;
+        }
+
+        // Mettre à jour temps moyen (approximation)
+        const oldTotal = (stats.total_pratiques - 1) * stats.temps_moyen;
+        stats.temps_moyen = Math.round((oldTotal + pratiqueData.temps_passe) / stats.total_pratiques);
+
+        stats.derniere_pratique = new Date().toISOString();
+
+        // Sauvegarder dans le cache
+        this.saveHistoriqueSFToCache(this.statsSF);
     },
 
     updateLocalResult(newResult) {
