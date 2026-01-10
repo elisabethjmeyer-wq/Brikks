@@ -226,20 +226,20 @@ const EleveConnaissances = {
         // Calculate global stats based on progressions
         const globalStats = this.calculateGlobalStats();
 
-        // Calculer le nombre total d'actions à faire
+        // Calculer le nombre total d'actions à faire (nouveau + à réviser)
         const aFaire = globalStats.aReviser + globalStats.nouveau;
 
-        // Déterminer le message du bandeau (simple)
+        // Message bandeau simplifié et clair pour l'élève
         let bandeauMessage, bandeauClass;
         if (aFaire > 0) {
-            bandeauMessage = `${aFaire} À FAIRE`;
-            bandeauClass = globalStats.aReviser > 0 ? 'has-urgent' : 'has-new';
-        } else if (globalStats.verrouille > 0) {
-            bandeauMessage = '⏳ EN ATTENTE';
-            bandeauClass = 'waiting';
-        } else if (globalStats.total > 0) {
-            bandeauMessage = '🏆 TOUT MÉMORISÉ';
+            bandeauMessage = `${aFaire} entraînement${aFaire > 1 ? 's' : ''} à faire`;
+            bandeauClass = 'has-urgent';
+        } else if (globalStats.total === globalStats.memorise && globalStats.total > 0) {
+            bandeauMessage = '🏆 Tout est mémorisé !';
             bandeauClass = 'all-done';
+        } else if (globalStats.total > 0) {
+            bandeauMessage = '✓ Tu es à jour !';
+            bandeauClass = 'waiting';
         } else {
             bandeauMessage = 'Aucun entraînement';
             bandeauClass = 'empty';
