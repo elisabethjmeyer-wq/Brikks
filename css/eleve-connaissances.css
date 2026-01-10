@@ -720,3 +720,127 @@
     border-radius: 12px;
     color: #991b1b;
 }
+
+/* ============================================
+   ASSOCIATION FORMAT
+   ============================================ */
+
+.association-container {
+    padding: 1rem 0;
+}
+
+.association-instruction {
+    text-align: center;
+    font-size: 1.1rem;
+    color: #374151;
+    margin-bottom: 1.5rem;
+}
+
+.association-columns {
+    display: flex;
+    justify-content: space-around;
+    gap: 2rem;
+}
+
+.association-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 300px;
+}
+
+.association-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.association-gauche .association-item {
+    justify-content: space-between;
+}
+
+.association-droite .association-item {
+    justify-content: flex-start;
+}
+
+.association-item:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.association-item.selected {
+    border-color: #3b82f6;
+    background: #dbeafe;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.association-item.linked {
+    border-color: #10b981;
+    background: #d1fae5;
+    cursor: default;
+    opacity: 0.7;
+}
+
+.association-text {
+    font-size: 1rem;
+    color: #374151;
+}
+
+.association-link-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    margin: 0 0.5rem;
+}
+
+.association-item.selected .association-link-indicator {
+    background: #3b82f6;
+}
+
+.association-item.linked .association-link-indicator {
+    background: #10b981;
+}
+
+.association-feedback {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 10px;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .association-columns {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .association-column {
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+/* ============================================
+   VALIDATION INPUT STYLES
+   ============================================ */
+
+.chrono-date-input.correct {
+    border-color: #10b981 !important;
+    background: #d1fae5 !important;
+    color: #065f46;
+}
+
+.chrono-date-input.incorrect {
+    border-color: #ef4444 !important;
+    background: #fee2e2 !important;
+    color: #991b1b;
+}

@@ -578,6 +578,8 @@ const EleveConnaissances = {
                 return this.renderTimeline(donnees, questions);
             case 'texte_trous':
                 return this.renderTexteTrous(donnees, questions);
+            case 'association':
+                return this.renderAssociation(donnees, questions);
             default:
                 return `<div class="unsupported-format">Format non supporté: ${format}<br><small>Données: ${JSON.stringify(donnees)}</small></div>`;
         }
@@ -824,6 +826,91 @@ const EleveConnaissances = {
     },
 
     /**
+     * Render Association (matching pairs)
+     * Format: {consigne, paires: [{element1, element2}, ...]}
+     */
+    renderAssociation(donnees, questions) {
+        const consigne = donnees.consigne || 'Associez les éléments correspondants';
+        const paires = donnees.paires || [];
+
+        if (paires.length === 0) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Cet exercice n'a pas encore de paires configurées.</p>
+                    <small>L'enseignant doit ajouter des paires d'association dans le formulaire d'édition.</small>
+                </div>
+            `;
+        }
+
+        // Mélanger les éléments de droite
+        const elementsGauche = paires.map((p, i) => ({ texte: p.element1, id: i }));
+        const elementsDroite = this.shuffleArray(paires.map((p, i) => ({ texte: p.element2, id: i })));
+
+        return `
+            <div class="association-container">
+                <p class="association-instruction">${this.escapeHtml(consigne)}</p>
+                <div class="association-columns">
+                    <div class="association-column association-gauche">
+                        ${elementsGauche.map(el => `
+                            <div class="association-item" data-id="${el.id}" onclick="EleveConnaissances.selectAssociationItem(this, 'gauche')">
+                                <span class="association-text">${this.escapeHtml(el.texte)}</span>
+                                <span class="association-link-indicator"></span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="association-column association-droite">
+                        ${elementsDroite.map(el => `
+                            <div class="association-item" data-id="${el.id}" onclick="EleveConnaissances.selectAssociationItem(this, 'droite')">
+                                <span class="association-link-indicator"></span>
+                                <span class="association-text">${this.escapeHtml(el.texte)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="association-feedback" id="association_feedback" style="display: none;"></div>
+            </div>
+        `;
+    },
+
+    // Association selection state
+    associationSelection: { gauche: null, droite: null },
+    associationPairs: [],
+
+    selectAssociationItem(element, side) {
+        const id = element.dataset.id;
+
+        // Toggle selection
+        if (this.associationSelection[side] === id) {
+            element.classList.remove('selected');
+            this.associationSelection[side] = null;
+        } else {
+            // Deselect previous
+            document.querySelectorAll(`.association-${side} .association-item.selected`)
+                .forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            this.associationSelection[side] = id;
+        }
+
+        // Check if both sides selected - create pair
+        if (this.associationSelection.gauche && this.associationSelection.droite) {
+            this.associationPairs.push({
+                gauche: this.associationSelection.gauche,
+                droite: this.associationSelection.droite
+            });
+            this.saveAnswer('association', this.associationPairs);
+
+            // Visual feedback - mark as linked
+            document.querySelectorAll('.association-gauche .association-item.selected, .association-droite .association-item.selected')
+                .forEach(el => {
+                    el.classList.remove('selected');
+                    el.classList.add('linked');
+                });
+
+            this.associationSelection = { gauche: null, droite: null };
+        }
+    },
+
+    /**
      * Save an answer
      */
     saveAnswer(key, value) {
@@ -832,12 +919,36 @@ const EleveConnaissances = {
 
     /**
      * Validate current etape
+     * Récupère les données via la jointure etapeQuestions → questionsConnaissances
      */
     validateEtape() {
         const currentEtape = this.currentEtapes[this.currentEtapeIndex];
-        let donnees = currentEtape.donnees;
-        if (typeof donnees === 'string') {
-            try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+
+        // Récupérer les données via la jointure (même logique que renderEtapeContent)
+        let donnees = {};
+        const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
+            String(eq.etape_id) === String(currentEtape.id)
+        );
+
+        if (linkedQuestionRefs.length > 0) {
+            const questionRef = linkedQuestionRefs[0];
+            const questionContent = this.questionsConnaissances.find(q =>
+                String(q.id) === String(questionRef.question_id)
+            );
+            if (questionContent && questionContent.donnees) {
+                donnees = questionContent.donnees;
+                if (typeof donnees === 'string') {
+                    try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+                }
+            }
+        }
+
+        // Fallback sur etape.donnees si pas trouvé via jointure
+        if (Object.keys(donnees).length === 0 && currentEtape.donnees) {
+            donnees = currentEtape.donnees;
+            if (typeof donnees === 'string') {
+                try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+            }
         }
 
         let correct = 0;
@@ -845,33 +956,62 @@ const EleveConnaissances = {
 
         switch (currentEtape.format_code) {
             case 'vrai_faux':
-                const propositions = donnees.propositions || [];
-                propositions.forEach((prop, idx) => {
-                    total++;
-                    const answer = this.userAnswers[`vf_${idx}`];
-                    const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
+                // Format simple: {question, reponse}
+                if (donnees.reponse !== undefined && !donnees.propositions) {
+                    total = 1;
+                    const answer = this.userAnswers['vf_0'];
+                    const expected = donnees.reponse === true || donnees.reponse === 'vrai' ? 'vrai' : 'faux';
                     const isCorrect = answer === expected;
                     if (isCorrect) correct++;
 
-                    const feedback = document.getElementById(`feedback_vf_${idx}`);
+                    const feedback = document.getElementById('feedback_vf_0');
                     if (feedback) {
                         feedback.style.display = 'block';
                         feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
                         feedback.textContent = isCorrect ? '✓ Correct' : `✗ La bonne réponse était: ${expected}`;
-                        if (!isCorrect && prop.feedback) {
-                            feedback.textContent += ` - ${prop.feedback}`;
-                        }
+                        if (donnees.feedback_vrai && isCorrect) feedback.textContent += ` - ${donnees.feedback_vrai}`;
+                        if (donnees.feedback_faux && !isCorrect) feedback.textContent += ` - ${donnees.feedback_faux}`;
                     }
-                });
+                } else {
+                    // Format multi: {propositions: [...]}
+                    const propositions = donnees.propositions || [];
+                    propositions.forEach((prop, idx) => {
+                        total++;
+                        const answer = this.userAnswers[`vf_${idx}`];
+                        const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
+                        const isCorrect = answer === expected;
+                        if (isCorrect) correct++;
+
+                        const feedback = document.getElementById(`feedback_vf_${idx}`);
+                        if (feedback) {
+                            feedback.style.display = 'block';
+                            feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+                            feedback.textContent = isCorrect ? '✓ Correct' : `✗ La bonne réponse était: ${expected}`;
+                            if (!isCorrect && prop.feedback) {
+                                feedback.textContent += ` - ${prop.feedback}`;
+                            }
+                        }
+                    });
+                }
                 break;
 
             case 'qcm':
                 total = 1;
-                const choices = donnees.choix || [];
+                // Accepter 'choix' ou 'options'
+                const choices = donnees.choix || donnees.options || [];
                 const userAnswer = this.userAnswers['qcm'];
-                const correctIndices = choices
-                    .map((c, i) => c.correct ? i : -1)
-                    .filter(i => i >= 0);
+
+                // Accepter différents formats de réponses correctes
+                let correctIndices = [];
+                if (donnees.reponses_correctes && Array.isArray(donnees.reponses_correctes)) {
+                    correctIndices = donnees.reponses_correctes;
+                } else if (donnees.reponse_correcte !== undefined) {
+                    correctIndices = [donnees.reponse_correcte];
+                } else {
+                    correctIndices = choices
+                        .map((c, i) => c.correct ? i : -1)
+                        .filter(i => i >= 0);
+                }
 
                 if (correctIndices.includes(parseInt(userAnswer))) {
                     correct = 1;
@@ -882,10 +1022,47 @@ const EleveConnaissances = {
                     qcmFeedback.style.display = 'block';
                     qcmFeedback.className = `qcm-feedback ${correct === 1 ? 'correct' : 'incorrect'}`;
                     qcmFeedback.textContent = correct === 1 ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
+                    if (correct === 1 && donnees.feedback_correct) {
+                        qcmFeedback.textContent += ` ${donnees.feedback_correct}`;
+                    }
+                    if (correct === 0 && donnees.feedback_incorrect) {
+                        qcmFeedback.textContent += ` ${donnees.feedback_incorrect}`;
+                    }
                 }
                 break;
 
-            // Add more format validations as needed
+            case 'chronologie':
+                // Valider les dates entrées
+                const paires = donnees.paires || donnees.evenements || [];
+                paires.forEach((evt, idx) => {
+                    total++;
+                    const input = document.querySelector(`.chrono-date-input[data-index="${idx}"]`);
+                    if (input) {
+                        const userDate = input.value.trim();
+                        const expectedDate = String(evt.date).trim();
+                        const isCorrect = userDate === expectedDate;
+                        if (isCorrect) correct++;
+
+                        input.classList.remove('correct', 'incorrect');
+                        input.classList.add(isCorrect ? 'correct' : 'incorrect');
+                        if (!isCorrect) {
+                            input.value = expectedDate;
+                        }
+                    }
+                });
+                break;
+
+            case 'association':
+                const assocPaires = donnees.paires || [];
+                total = assocPaires.length;
+                const userPairs = this.userAnswers['association'] || [];
+
+                userPairs.forEach(up => {
+                    if (up.gauche === up.droite) {
+                        correct++;
+                    }
+                });
+                break;
         }
 
         // Show result banner
