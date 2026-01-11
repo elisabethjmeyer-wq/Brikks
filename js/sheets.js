@@ -1,32 +1,45 @@
 /**
  * Module de connexion Google Sheets
- * Gère les appels à l'API Google Sheets avec cache mémoire
+ * Gère les appels à l'API Google Sheets avec cache localStorage (persistant)
  */
 
 const SheetsAPI = {
-    // Cache en mémoire avec TTL de 5 minutes
-    _cache: {},
+    // Cache localStorage avec TTL de 5 minutes
+    _cachePrefix: 'brikks_sheets_',
     _cacheTTL: 5 * 60 * 1000, // 5 minutes
 
     /**
-     * Récupère les données du cache ou null si expiré/absent
+     * Récupère les données du cache localStorage ou null si expiré/absent
      */
     _getFromCache(key) {
-        const cached = this._cache[key];
-        if (cached && (Date.now() - cached.timestamp) < this._cacheTTL) {
-            return cached.data;
+        try {
+            const cached = localStorage.getItem(this._cachePrefix + key);
+            if (!cached) return null;
+
+            const data = JSON.parse(cached);
+            if (data.timestamp && (Date.now() - data.timestamp) < this._cacheTTL) {
+                return data.values;
+            }
+            // Cache expiré, le supprimer
+            localStorage.removeItem(this._cachePrefix + key);
+            return null;
+        } catch (e) {
+            return null;
         }
-        return null;
     },
 
     /**
-     * Sauvegarde les données dans le cache
+     * Sauvegarde les données dans le cache localStorage
      */
-    _saveToCache(key, data) {
-        this._cache[key] = {
-            data: data,
-            timestamp: Date.now()
-        };
+    _saveToCache(key, values) {
+        try {
+            localStorage.setItem(this._cachePrefix + key, JSON.stringify({
+                values: values,
+                timestamp: Date.now()
+            }));
+        } catch (e) {
+            // localStorage plein ou non disponible, ignorer silencieusement
+        }
     },
 
     /**
@@ -36,7 +49,7 @@ const SheetsAPI = {
      * @returns {Promise<Array>} - Tableau de données
      */
     async getSheetData(sheetName, range = '') {
-        const cacheKey = `sheet_${sheetName}_${range}`;
+        const cacheKey = `${sheetName}_${range}`;
 
         // Vérifier le cache d'abord
         const cached = this._getFromCache(cacheKey);
@@ -101,9 +114,24 @@ const SheetsAPI = {
     },
 
     /**
+     * Pré-charge plusieurs onglets en parallèle (pour optimiser le chargement initial)
+     * @param {Array<string>} sheetNames - Liste des noms d'onglets à pré-charger
+     */
+    async preload(sheetNames) {
+        await Promise.all(sheetNames.map(name => this.getSheetData(name).catch(() => {})));
+    },
+
+    /**
      * Vide le cache (utile pour forcer un rechargement)
      */
     clearCache() {
-        this._cache = {};
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(this._cachePrefix)) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
     }
 };
