@@ -2485,12 +2485,12 @@ const EleveExercices = {
         const isSuccess = validationResult.repetitionValidee;
         const resultType = isSuccess ? 'success' : (results.percent === 100 ? 'partial' : 'error');
 
-        // Générer les points de progression (5 dots)
+        // Générer les points de progression (5 dots avec numéros)
         const generateRepDots = () => {
             let html = '<div class="rep-dots">';
             for (let i = 1; i <= this.SEUIL_REPETITIONS; i++) {
                 const status = i <= validationResult.nouvelleRepetition ? 'completed' : 'pending';
-                html += `<span class="rep-dot ${status}"></span>`;
+                html += `<span class="rep-dot ${status}">${i}</span>`;
             }
             html += '</div>';
             return html;
@@ -2508,6 +2508,38 @@ const EleveExercices = {
                 month: 'long'
             });
         }
+
+        // Collecter les détails de correction
+        const correctionDetails = this.collectExerciseDetails();
+
+        // Générer le HTML de correction avec erreurs visibles
+        const generateCorrectionHTML = () => {
+            if (correctionDetails.length === 0) {
+                return results.correctedHTML || '<p class="correction-fallback">Correction non disponible.</p>';
+            }
+
+            let html = '<div class="correction-list">';
+            correctionDetails.forEach((detail, index) => {
+                const isCorrect = detail.correct === true;
+                const statusClass = isCorrect ? 'correct' : 'incorrect';
+                const statusIcon = isCorrect ? '✅' : '❌';
+
+                html += `
+                    <div class="correction-item ${statusClass}">
+                        <div class="correction-question">${this.escapeHtml(detail.question)}</div>
+                        <div class="correction-answer">
+                            <span class="answer-user ${statusClass}">
+                                ${this.escapeHtml(detail.reponseUtilisateur || '—')}
+                                <span class="answer-icon">${statusIcon}</span>
+                            </span>
+                            ${!isCorrect ? `<div class="answer-correct">→ ${this.escapeHtml(detail.reponseAttendue)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        };
 
         container.innerHTML = `
             <div class="result-view sf">
@@ -2598,7 +2630,7 @@ const EleveExercices = {
                         </div>
                         <div class="correction-content">
                             ${results.consigneHTML ? `<div class="correction-consigne">${results.consigneHTML}</div>` : ''}
-                            ${results.correctedHTML || '<p class="correction-fallback">Correction non disponible.</p>'}
+                            ${generateCorrectionHTML()}
                         </div>
                     </div>
                 </div>
