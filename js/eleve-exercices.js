@@ -31,9 +31,50 @@ const EleveExercices = {
     CACHE_HISTORIQUE_SF_KEY: 'brikks_historique_sf_cache',
     CACHE_TTL: 5 * 60 * 1000,
 
-    // Constantes pour le calcul du statut SF
-    SEUIL_PRATIQUES_PARFAITES: 3,  // Nombre de pratiques à 100% pour être "acquis"
-    SEUIL_JOURS_RAFRAICHIR: 30,    // Jours sans pratiquer avant "à rafraîchir"
+    // ============================================
+    // SYSTÈME 4 RÉPÉTITIONS SF
+    // ============================================
+    SEUIL_REPETITIONS: 4,              // 4 répétitions pour maîtriser
+    SEUIL_JOURS_RAPPEL: 21,            // Rappel suggéré après 21 jours (3 semaines)
+
+    // Espacements entre répétitions (en jours)
+    // Clé = répétition actuelle, valeur = jours avant prochaine
+    ESPACEMENTS_REPETITIONS: {
+        0: 0,   // Pas encore commencé → disponible immédiatement
+        1: 1,   // Après rép 1 → attendre 1 jour (24h)
+        2: 3,   // Après rép 2 → attendre 3 jours
+        3: 7    // Après rép 3 → attendre 7 jours
+    },
+
+    // À partir de quelle répétition le temps conditionne la validation
+    REP_TEMPS_OBLIGATOIRE: 3, // Répétitions 3 et 4
+
+    // Statuts exercice SF
+    STATUTS_SF: {
+        A_DECOUVRIR: 'a-decouvrir',      // 🔘 0 répétition
+        EN_COURS: 'en-cours',            // 🔄 1-3 répétitions, disponible
+        A_REVISER: 'a-reviser',          // 🔔 Espacement atteint, peut refaire
+        EN_PAUSE: 'en-pause',            // ⏳ Espacement non atteint, bloqué
+        MAITRISE: 'maitrise',            // ✅ 4 répétitions validées
+        RAPPEL_SUGGERE: 'rappel-suggere' // 💤 Maîtrisé + >21 jours
+    },
+
+    // Labels et icônes pour les statuts
+    LABELS_STATUTS_SF: {
+        'a-decouvrir': { label: 'À découvrir', icon: '🔘', cssClass: 'a-decouvrir' },
+        'en-cours': { label: 'En cours', icon: '🔄', cssClass: 'en-cours' },
+        'a-reviser': { label: 'À réviser', icon: '🔔', cssClass: 'a-reviser' },
+        'en-pause': { label: 'En pause', icon: '⏳', cssClass: 'en-pause' },
+        'maitrise': { label: 'Maîtrisé', icon: '✅', cssClass: 'maitrise' },
+        'rappel-suggere': { label: 'Rappel suggéré', icon: '💤', cssClass: 'rappel-suggere' }
+    },
+
+    // Flag pour entraînement libre (pendant blocage)
+    isEntrainementLibre: false,
+
+    // Ancien système (conservé pour compatibilité, mais non utilisé)
+    SEUIL_PRATIQUES_PARFAITES: 3,
+    SEUIL_JOURS_RAFRAICHIR: 30,
 
     /**
      * Initialise la page d'exercices
@@ -195,80 +236,323 @@ const EleveExercices = {
     },
 
     /**
-     * Calcule le statut d'un exercice SF basé sur l'historique des pratiques
+     * Calcule le statut d'un exercice SF selon le système 4 répétitions
      * @param {string} exerciceId - ID de l'exercice
      * @param {Object} exercice - Données de l'exercice (pour temps_prevu)
-     * @returns {Object} { statusClass, label, icon, pratiquesParfaites, joursDepuisDerniere }
+     * @returns {Object} Status complet avec infos de progression
      */
     getExerciceStatusSF(exerciceId, exercice) {
-        // Toujours utiliser des strings pour les IDs (cohérence)
+        const now = new Date();
         const stats = this.statsSF[String(exerciceId)];
 
-        // Pas de pratique = Nouveau
-        if (!stats || stats.total_pratiques === 0) {
+        // Pas de stats = jamais fait
+        if (!stats || stats.repetitions_validees === undefined) {
+            // Fallback pour ancien système (pas de repetitions_validees)
+            if (stats && stats.total_pratiques > 0) {
+                // Ancien système : convertir pratiques_parfaites en approximation
+                return this._getStatusFromOldSystem(stats, exercice);
+            }
             return {
-                statusClass: 'new',
-                label: 'Nouveau',
-                icon: '🆕',
-                pratiquesParfaites: 0,
-                joursDepuisDerniere: null
+                statut: this.STATUTS_SF.A_DECOUVRIR,
+                repetitions: 0,
+                ...this.LABELS_STATUTS_SF['a-decouvrir'],
+                statusClass: 'a-decouvrir',
+                message: 'Premier essai',
+                joursRestants: 0,
+                prochaineDispo: null,
+                peutFaire: true,
+                estEntrainementLibre: false
             };
         }
 
-        const pratiquesParfaites = stats.pratiques_parfaites || 0;
-        const dernierePratique = stats.derniere_pratique ? new Date(stats.derniere_pratique) : null;
-        const joursDepuisDerniere = dernierePratique
-            ? Math.floor((Date.now() - dernierePratique.getTime()) / (1000 * 60 * 60 * 24))
+        const reps = stats.repetitions_validees || 0;
+        const dernierePratique = stats.date_derniere_validation
+            ? new Date(stats.date_derniere_validation)
             : null;
 
-        // Vérifier si à rafraîchir (> 30 jours sans pratiquer et avait des pratiques parfaites)
-        if (pratiquesParfaites > 0 && joursDepuisDerniere !== null && joursDepuisDerniere > this.SEUIL_JOURS_RAFRAICHIR) {
+        // Maîtrisé (4 répétitions)
+        if (reps >= this.SEUIL_REPETITIONS) {
+            // Vérifier si rappel suggéré (>21 jours)
+            if (dernierePratique) {
+                const joursDepuis = Math.floor((now - dernierePratique) / (1000 * 60 * 60 * 24));
+                if (joursDepuis >= this.SEUIL_JOURS_RAPPEL) {
+                    return {
+                        statut: this.STATUTS_SF.RAPPEL_SUGGERE,
+                        repetitions: reps,
+                        ...this.LABELS_STATUTS_SF['rappel-suggere'],
+                        statusClass: 'rappel-suggere',
+                        message: `${joursDepuis}j depuis dernière pratique`,
+                        joursRestants: 0,
+                        prochaineDispo: null,
+                        peutFaire: true,
+                        estEntrainementLibre: false,
+                        joursDepuis
+                    };
+                }
+            }
+
             return {
-                statusClass: 'a-rafraichir',
-                label: 'À rafraîchir',
-                icon: '⚡',
-                pratiquesParfaites,
-                joursDepuisDerniere
+                statut: this.STATUTS_SF.MAITRISE,
+                repetitions: reps,
+                ...this.LABELS_STATUTS_SF['maitrise'],
+                statusClass: 'maitrise',
+                message: 'Exercice maîtrisé !',
+                joursRestants: 0,
+                prochaineDispo: null,
+                peutFaire: true,
+                estEntrainementLibre: false
             };
         }
 
-        // Moins de 3 pratiques parfaites = En acquisition
-        if (pratiquesParfaites < this.SEUIL_PRATIQUES_PARFAITES) {
+        // En cours (1-3 répétitions) - vérifier espacement
+        if (reps > 0 && dernierePratique) {
+            const espacementRequis = this.ESPACEMENTS_REPETITIONS[reps] || 7;
+            const prochaineDispo = new Date(dernierePratique);
+            prochaineDispo.setDate(prochaineDispo.getDate() + espacementRequis);
+
+            const joursRestants = Math.max(0, Math.ceil((prochaineDispo - now) / (1000 * 60 * 60 * 24)));
+
+            if (now < prochaineDispo) {
+                // Bloqué - en pause
+                return {
+                    statut: this.STATUTS_SF.EN_PAUSE,
+                    repetitions: reps,
+                    ...this.LABELS_STATUTS_SF['en-pause'],
+                    statusClass: 'en-pause',
+                    message: `Dispo dans ${joursRestants}j`,
+                    joursRestants: joursRestants,
+                    prochaineDispo: prochaineDispo.toISOString(),
+                    peutFaire: false,
+                    estEntrainementLibre: true // Peut s'entraîner librement
+                };
+            } else {
+                // Disponible - à réviser
+                return {
+                    statut: this.STATUTS_SF.A_REVISER,
+                    repetitions: reps,
+                    ...this.LABELS_STATUTS_SF['a-reviser'],
+                    statusClass: 'a-reviser',
+                    message: `Répétition ${reps + 1}/4 disponible`,
+                    joursRestants: 0,
+                    prochaineDispo: null,
+                    peutFaire: true,
+                    estEntrainementLibre: false
+                };
+            }
+        }
+
+        // En cours sans date (cas rare) ou 0 répétition avec des pratiques
+        if (reps > 0) {
             return {
-                statusClass: 'en-acquisition',
-                label: 'En acquisition',
-                icon: '🟠',
-                pratiquesParfaites,
-                joursDepuisDerniere
+                statut: this.STATUTS_SF.EN_COURS,
+                repetitions: reps,
+                ...this.LABELS_STATUTS_SF['en-cours'],
+                statusClass: 'en-cours',
+                message: `Répétition ${reps + 1}/4`,
+                joursRestants: 0,
+                prochaineDispo: null,
+                peutFaire: true,
+                estEntrainementLibre: false
             };
         }
 
-        // 3+ pratiques parfaites - vérifier le temps
-        const tempsPrevu = exercice?.duree || stats.temps_prevu || 300; // duree déjà en secondes
-        const tempsMoyen = stats.temps_moyen || 0;
-
-        // Si temps moyen > temps prévu = Acquis mais lent
-        if (tempsMoyen > tempsPrevu) {
-            return {
-                statusClass: 'acquis-lent',
-                label: 'Acquis (lent)',
-                icon: '🟡',
-                pratiquesParfaites,
-                joursDepuisDerniere,
-                tempsMoyen,
-                tempsPrevu
-            };
-        }
-
-        // Sinon = Automatisé
+        // Par défaut : à découvrir
         return {
-            statusClass: 'automatise',
-            label: 'Automatisé',
-            icon: '🟢',
-            pratiquesParfaites,
-            joursDepuisDerniere,
-            tempsMoyen,
-            tempsPrevu
+            statut: this.STATUTS_SF.A_DECOUVRIR,
+            repetitions: 0,
+            ...this.LABELS_STATUTS_SF['a-decouvrir'],
+            statusClass: 'a-decouvrir',
+            message: 'Premier essai',
+            joursRestants: 0,
+            prochaineDispo: null,
+            peutFaire: true,
+            estEntrainementLibre: false
+        };
+    },
+
+    /**
+     * Fallback pour les données de l'ancien système (sans repetitions_validees)
+     */
+    _getStatusFromOldSystem(stats, exercice) {
+        const pratiquesParfaites = stats.pratiques_parfaites || 0;
+
+        if (pratiquesParfaites === 0) {
+            return {
+                statut: this.STATUTS_SF.A_DECOUVRIR,
+                repetitions: 0,
+                ...this.LABELS_STATUTS_SF['a-decouvrir'],
+                statusClass: 'a-decouvrir',
+                message: 'Premier essai',
+                joursRestants: 0,
+                prochaineDispo: null,
+                peutFaire: true,
+                estEntrainementLibre: false
+            };
+        }
+
+        // Approximation : 1 pratique parfaite ≈ 1 répétition, max 3 (ancien système)
+        const repsApprox = Math.min(pratiquesParfaites, 3);
+
+        return {
+            statut: this.STATUTS_SF.EN_COURS,
+            repetitions: repsApprox,
+            ...this.LABELS_STATUTS_SF['en-cours'],
+            statusClass: 'en-cours',
+            message: `~${repsApprox}/4 (migration)`,
+            joursRestants: 0,
+            prochaineDispo: null,
+            peutFaire: true,
+            estEntrainementLibre: false
+        };
+    },
+
+    /**
+     * Affiche le pop-up de blocage avec option d'entraînement libre
+     * @param {Object} statusInfo - Infos du statut de l'exercice
+     * @param {Function} onEntrainementLibre - Callback si l'élève choisit de s'entraîner
+     * @param {Function} onClose - Callback pour fermer
+     */
+    showBlocagePopup(statusInfo, onEntrainementLibre, onClose) {
+        // Supprimer popup existant
+        const existingPopup = document.querySelector('.blocage-popup-overlay');
+        if (existingPopup) existingPopup.remove();
+
+        const prochaineDateStr = statusInfo.prochaineDispo
+            ? new Date(statusInfo.prochaineDispo).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            })
+            : 'bientôt';
+
+        const popup = document.createElement('div');
+        popup.className = 'blocage-popup-overlay';
+        popup.innerHTML = `
+            <div class="blocage-popup">
+                <div class="blocage-popup-header">
+                    <span class="blocage-icon">🔒</span>
+                    <h3>Pas encore !</h3>
+                </div>
+                <div class="blocage-popup-body">
+                    <p class="blocage-message">
+                        Tu as réussi cet entraînement ! Pour que ça reste en mémoire, reviens <strong>${prochaineDateStr}</strong>.
+                    </p>
+                    <div class="blocage-progress">
+                        <span class="blocage-etape">Étape ${statusInfo.repetitions}/4</span>
+                        <span class="blocage-jours">${statusInfo.joursRestants} jour${statusInfo.joursRestants > 1 ? 's' : ''} restant${statusInfo.joursRestants > 1 ? 's' : ''}</span>
+                    </div>
+                </div>
+                <div class="blocage-popup-actions">
+                    <button class="btn btn-primary blocage-btn-compris" type="button">
+                        J'ai compris
+                    </button>
+                    <button class="btn btn-ghost blocage-btn-libre" type="button">
+                        M'entraîner quand même
+                    </button>
+                </div>
+                <p class="blocage-warning">
+                    ⚠️ L'entraînement libre ne compte pas pour ta progression
+                </p>
+            </div>
+        `;
+
+        document.body.appendChild(popup);
+
+        // Event listeners
+        popup.querySelector('.blocage-btn-compris').addEventListener('click', () => {
+            popup.remove();
+            if (onClose) onClose();
+        });
+
+        popup.querySelector('.blocage-btn-libre').addEventListener('click', () => {
+            popup.remove();
+            if (onEntrainementLibre) onEntrainementLibre();
+        });
+
+        // Fermer en cliquant en dehors
+        popup.addEventListener('click', (e) => {
+            if (e.target === popup) {
+                popup.remove();
+                if (onClose) onClose();
+            }
+        });
+    },
+
+    /**
+     * Valide une tentative d'exercice SF et calcule si la répétition est validée
+     * @param {Object} exercice - Données de l'exercice
+     * @param {number} score - Score obtenu (0-100)
+     * @param {number} tempsPasse - Temps passé en secondes
+     * @param {Object} statsExercice - Stats actuelles de l'exercice
+     * @returns {Object} Résultat de la validation
+     */
+    validerRepetitionSF(exercice, score, tempsPasse, statsExercice) {
+        const tempsPrevu = exercice.duree || 900; // 15 min par défaut
+        const repsActuelles = statsExercice?.repetitions_validees || 0;
+        const prochaineRep = repsActuelles + 1;
+
+        // Entraînement libre = ne compte jamais
+        if (this.isEntrainementLibre) {
+            return {
+                repetitionValidee: false,
+                nouvelleRepetition: repsActuelles,
+                raison: 'entrainement_libre',
+                message: 'Entraînement libre',
+                conseil: 'Cet entraînement ne compte pas pour ta progression. Reviens à la date prévue pour valider ta prochaine répétition !',
+                estMaitrise: repsActuelles >= this.SEUIL_REPETITIONS
+            };
+        }
+
+        // Score non parfait = pas validé
+        if (score < 100) {
+            return {
+                repetitionValidee: false,
+                nouvelleRepetition: repsActuelles,
+                raison: 'score_insuffisant',
+                message: `Score insuffisant (${score}%)`,
+                conseil: 'Tu dois obtenir 100% pour valider cette répétition. Réessaie !',
+                estMaitrise: false
+            };
+        }
+
+        // Vérifier le temps pour répétitions 3 et 4
+        if (prochaineRep >= this.REP_TEMPS_OBLIGATOIRE && tempsPasse > tempsPrevu) {
+            return {
+                repetitionValidee: false,
+                nouvelleRepetition: repsActuelles,
+                raison: 'temps_depasse',
+                message: `Trop lent (${this.formatTime(tempsPasse)} > ${this.formatTime(tempsPrevu)})`,
+                conseil: `Pour les répétitions ${this.REP_TEMPS_OBLIGATOIRE} et ${this.REP_TEMPS_OBLIGATOIRE + 1}, tu dois aussi respecter le temps imparti.`,
+                estMaitrise: false
+            };
+        }
+
+        // Répétition validée !
+        const nouvelleRep = Math.min(prochaineRep, this.SEUIL_REPETITIONS);
+        const estMaitrise = nouvelleRep >= this.SEUIL_REPETITIONS;
+
+        // Calculer prochaine disponibilité
+        let prochaineDispo = null;
+        let joursAttente = 0;
+        if (!estMaitrise) {
+            joursAttente = this.ESPACEMENTS_REPETITIONS[nouvelleRep] || 7;
+            prochaineDispo = new Date();
+            prochaineDispo.setDate(prochaineDispo.getDate() + joursAttente);
+        }
+
+        return {
+            repetitionValidee: true,
+            nouvelleRepetition: nouvelleRep,
+            raison: 'succes',
+            message: estMaitrise
+                ? '🎉 Exercice maîtrisé !'
+                : `Répétition ${nouvelleRep}/4 validée !`,
+            conseil: estMaitrise
+                ? 'Bravo ! Tu maîtrises cet exercice !'
+                : `Prochaine répétition disponible dans ${joursAttente} jour${joursAttente > 1 ? 's' : ''}.`,
+            prochaineDispo: prochaineDispo?.toISOString(),
+            joursAttente: joursAttente,
+            estMaitrise: estMaitrise
         };
     },
 
@@ -594,15 +878,16 @@ const EleveExercices = {
     },
 
     /**
-     * Calcule les stats globales pour SF
+     * Calcule les stats globales pour SF (nouveau système 6 statuts)
      */
     calculateGlobalStatsSF(exercicesByBanque) {
         let total = 0;
-        let automatise = 0;
-        let acquisLent = 0;
-        let enAcquisition = 0;
-        let aRafraichir = 0;
-        let nouveau = 0;
+        let maitrise = 0;      // Anciennement "automatise"
+        let rappelSuggere = 0; // Nouveau statut
+        let aReviser = 0;      // Anciennement "a-rafraichir"
+        let enCours = 0;       // Anciennement "en-acquisition"
+        let enPause = 0;       // Anciennement "acquis-lent"
+        let aDecouvrir = 0;    // Anciennement "new"
 
         this.banques.forEach(banque => {
             const exercices = exercicesByBanque[banque.id] || [];
@@ -611,65 +896,78 @@ const EleveExercices = {
                 const status = this.getExerciceStatusSF(exo.id, exo);
 
                 switch (status.statusClass) {
-                    case 'automatise': automatise++; break;
-                    case 'acquis-lent': acquisLent++; break;
-                    case 'en-acquisition': enAcquisition++; break;
-                    case 'a-rafraichir': aRafraichir++; break;
-                    case 'new': nouveau++; break;
+                    case 'maitrise': maitrise++; break;
+                    case 'rappel-suggere': rappelSuggere++; break;
+                    case 'a-reviser': aReviser++; break;
+                    case 'en-cours': enCours++; break;
+                    case 'en-pause': enPause++; break;
+                    case 'a-decouvrir': aDecouvrir++; break;
                 }
             });
         });
 
-        // "À faire" = nouveau + en acquisition + acquis lent + à rafraîchir
-        const aFaire = nouveau + enAcquisition + acquisLent + aRafraichir;
+        // "À faire" = à réviser + en cours + à découvrir + rappel suggéré
+        const aFaire = aReviser + enCours + aDecouvrir + rappelSuggere;
+
+        // Pour compatibilité avec l'ancien code qui utilise "automatise"
+        const automatise = maitrise;
 
         return {
             total,
-            automatise,
-            acquisLent,
-            enAcquisition,
-            aRafraichir,
-            nouveau,
+            automatise,       // Pour compatibilité
+            maitrise,
+            rappelSuggere,
+            aReviser,
+            enCours,
+            enPause,
+            aDecouvrir,
             aFaire
         };
     },
 
     /**
-     * Calcule les stats pour une banque SF
+     * Calcule les stats pour une banque SF (nouveau système 6 statuts)
      */
     calculateBanqueStatsSF(exercices) {
         let total = exercices.length;
-        let automatise = 0;
-        let acquisLent = 0;
-        let enAcquisition = 0;
-        let aRafraichir = 0;
-        let nouveau = 0;
+        let maitrise = 0;      // Anciennement "automatise"
+        let rappelSuggere = 0; // Nouveau statut
+        let aReviser = 0;      // Anciennement "a-rafraichir"
+        let enCours = 0;       // Anciennement "en-acquisition"
+        let enPause = 0;       // Anciennement "acquis-lent"
+        let aDecouvrir = 0;    // Anciennement "new"
 
         exercices.forEach(exo => {
             const status = this.getExerciceStatusSF(exo.id, exo);
 
             switch (status.statusClass) {
-                case 'automatise': automatise++; break;
-                case 'acquis-lent': acquisLent++; break;
-                case 'en-acquisition': enAcquisition++; break;
-                case 'a-rafraichir': aRafraichir++; break;
-                case 'new': nouveau++; break;
+                case 'maitrise': maitrise++; break;
+                case 'rappel-suggere': rappelSuggere++; break;
+                case 'a-reviser': aReviser++; break;
+                case 'en-cours': enCours++; break;
+                case 'en-pause': enPause++; break;
+                case 'a-decouvrir': aDecouvrir++; break;
             }
         });
 
-        // "À faire" = nouveau + en acquisition + acquis lent + à rafraîchir
-        const aFaire = nouveau + enAcquisition + acquisLent + aRafraichir;
+        // "À faire" = à réviser + en cours + à découvrir + rappel suggéré
+        const aFaire = aReviser + enCours + aDecouvrir + rappelSuggere;
 
-        // Progression = % d'exercices automatisés
-        const progressPercent = total > 0 ? Math.round((automatise / total) * 100) : 0;
+        // Pour compatibilité avec l'ancien code qui utilise "automatise"
+        const automatise = maitrise;
+
+        // Progression = % d'exercices maîtrisés
+        const progressPercent = total > 0 ? Math.round((maitrise / total) * 100) : 0;
 
         return {
             total,
-            automatise,
-            acquisLent,
-            enAcquisition,
-            aRafraichir,
-            nouveau,
+            automatise,       // Pour compatibilité
+            maitrise,
+            rappelSuggere,
+            aReviser,
+            enCours,
+            enPause,
+            aDecouvrir,
             aFaire,
             progressPercent
         };
@@ -684,13 +982,21 @@ const EleveExercices = {
         }
 
         // Trier les exercices par priorité pour SF (à faire en premier)
+        // Ordre: À réviser → En cours → À découvrir → Rappel suggéré → En pause → Maîtrisé
         let sorted = [...exercices];
         if (this.currentType === 'savoir-faire') {
-            const priorityOrder = { 'new': 0, 'en-acquisition': 1, 'a-rafraichir': 2, 'acquis-lent': 3, 'automatise': 4 };
+            const priorityOrder = {
+                'a-reviser': 0,      // Disponible pour répétition - priorité max
+                'en-cours': 1,       // En progression
+                'a-decouvrir': 2,    // Nouveau
+                'rappel-suggere': 3, // Maîtrisé mais à rafraîchir
+                'en-pause': 4,       // Bloqué temporairement
+                'maitrise': 5        // Terminé
+            };
             sorted.sort((a, b) => {
                 const statusA = this.getExerciceStatusSF(a.id, a);
                 const statusB = this.getExerciceStatusSF(b.id, b);
-                return (priorityOrder[statusA.statusClass] ?? 5) - (priorityOrder[statusB.statusClass] ?? 5);
+                return (priorityOrder[statusA.statusClass] ?? 6) - (priorityOrder[statusB.statusClass] ?? 6);
             });
         }
 
@@ -700,27 +1006,30 @@ const EleveExercices = {
             // Pour les savoir-faire, utiliser le nouveau système de statut
             if (this.currentType === 'savoir-faire') {
                 const statusSF = this.getExerciceStatusSF(exo.id, exo);
-                const isAutomatise = statusSF.statusClass === 'automatise';
+                const isMaitrise = statusSF.statusClass === 'maitrise';
 
                 // Badge et indication sous le badge
                 let statusBadge = `<span class="entrainement-badge ${statusSF.statusClass}">${statusSF.icon} ${statusSF.label}</span>`;
                 let actionHint = '';
 
                 switch (statusSF.statusClass) {
-                    case 'new':
+                    case 'a-decouvrir':
                         actionHint = 'Clique pour découvrir →';
                         break;
-                    case 'en-acquisition':
-                        actionHint = `${statusSF.pratiquesParfaites}/${this.SEUIL_PRATIQUES_PARFAITES} pratiques réussies`;
+                    case 'en-cours':
+                        actionHint = `${statusSF.repetitions}/${this.SEUIL_REPETITIONS} répétitions`;
                         break;
-                    case 'a-rafraichir':
-                        actionHint = `${statusSF.joursDepuisDerniere}j sans pratiquer`;
+                    case 'a-reviser':
+                        actionHint = `Répétition ${statusSF.repetitions + 1}/4 dispo →`;
                         break;
-                    case 'acquis-lent':
-                        actionHint = `${statusSF.pratiquesParfaites} pratiques • trop lent`;
+                    case 'en-pause':
+                        actionHint = statusSF.message; // "Dispo dans Xj"
                         break;
-                    case 'automatise':
-                        actionHint = `${statusSF.pratiquesParfaites} pratiques réussies`;
+                    case 'maitrise':
+                        actionHint = '4/4 répétitions';
+                        break;
+                    case 'rappel-suggere':
+                        actionHint = statusSF.joursDepuis ? `${statusSF.joursDepuis}j sans pratiquer` : 'Rappel suggéré';
                         break;
                 }
 
@@ -733,7 +1042,7 @@ const EleveExercices = {
                 }
 
                 return `
-                    <div class="exercice-item ${this.currentType} ${statusSF.statusClass}${isAutomatise ? ' completed' : ''}"
+                    <div class="exercice-item ${this.currentType} ${statusSF.statusClass}${isMaitrise ? ' completed' : ''}"
                          onclick="EleveExercices.startExercise('${exo.id}')"
                          data-exercice-id="${exo.id}">
                         <div class="exercice-numero">${index + 1}</div>
@@ -829,9 +1138,30 @@ const EleveExercices = {
     },
 
     /**
-     * Start exercise
+     * Start exercise - avec vérification du blocage pour SF
      */
-    async startExercise(exerciceId) {
+    async startExercise(exerciceId, forceEntrainementLibre = false) {
+        // Reset le flag d'entraînement libre
+        this.isEntrainementLibre = forceEntrainementLibre;
+
+        // Pour les savoir-faire, vérifier si l'exercice est bloqué
+        if (this.currentType === 'savoir-faire' && !forceEntrainementLibre) {
+            const exo = this.exercices.find(e => String(e.id) === String(exerciceId));
+            const statusInfo = this.getExerciceStatusSF(exerciceId, exo);
+
+            // Si bloqué (en pause), afficher le popup
+            if (!statusInfo.peutFaire && statusInfo.estEntrainementLibre) {
+                this.showBlocagePopup(
+                    statusInfo,
+                    // Callback entraînement libre
+                    () => this.startExercise(exerciceId, true),
+                    // Callback fermer
+                    () => {}
+                );
+                return;
+            }
+        }
+
         this.showLoader('Chargement de l\'exercice...');
 
         try {
@@ -1640,15 +1970,27 @@ const EleveExercices = {
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
         const tempsPrevu = this.currentExercise?.duree || 300; // duree est déjà en secondes
 
-        // Pour les savoir-faire, TOUJOURS mettre à jour les stats locales (même sans user pour preview)
+        // Pour les savoir-faire, calculer la validation de répétition
+        let validationResult = null;
         if (this.currentType === 'savoir-faire' && this.currentExercise) {
+            const exoId = String(this.currentExercise.id);
+            const statsExercice = this.statsSF[exoId];
+            validationResult = this.validerRepetitionSF(this.currentExercise, percent, timeSpent, statsExercice);
+
+            // Stocker le résultat de validation pour l'écran de résultat
+            this.lastValidationResult = validationResult;
+
+            // Mettre à jour les stats locales
             const pratiqueData = {
                 eleve_id: this.currentUser?.id || 'preview',
                 exercice_id: this.currentExercise.id,
                 banque_id: this.currentExercise.banque_id,
                 score: percent,
                 temps_passe: timeSpent,
-                temps_prevu: tempsPrevu
+                temps_prevu: tempsPrevu,
+                repetition_validee: validationResult.repetitionValidee,
+                nouvelle_repetition: validationResult.nouvelleRepetition,
+                est_entrainement_libre: this.isEntrainementLibre
             };
             this.updateLocalStatsSF(pratiqueData);
         }
@@ -1677,7 +2019,7 @@ const EleveExercices = {
                 this.updateLocalResult(resultData);
             }
 
-            // Pour les savoir-faire, sauvegarder aussi dans l'historique des pratiques (backend)
+            // Pour les savoir-faire, sauvegarder dans l'historique des pratiques avec nouvelles infos
             if (this.currentType === 'savoir-faire') {
                 const pratiqueData = {
                     eleve_id: this.currentUser.id,
@@ -1685,7 +2027,10 @@ const EleveExercices = {
                     banque_id: this.currentExercise.banque_id,
                     score: percent,
                     temps_passe: timeSpent,
-                    temps_prevu: tempsPrevu
+                    temps_prevu: tempsPrevu,
+                    // Nouvelles données système 4 répétitions
+                    repetition_numero: validationResult?.repetitionValidee ? validationResult.nouvelleRepetition : 0,
+                    est_entrainement_libre: this.isEntrainementLibre
                 };
                 console.log('[SF] Envoi sauvegarde pratique au backend:', pratiqueData);
                 try {
@@ -1704,12 +2049,10 @@ const EleveExercices = {
     },
 
     /**
-     * Met à jour les stats SF locales après une pratique
+     * Met à jour les stats SF locales après une pratique (système 4 répétitions)
      */
     updateLocalStatsSF(pratiqueData) {
-        // Toujours utiliser des strings pour les IDs (cohérence)
         const exoId = String(pratiqueData.exercice_id);
-
         console.log('[SF] Mise à jour stats pour exercice:', exoId, 'Score:', pratiqueData.score);
 
         if (!this.statsSF[exoId]) {
@@ -1718,7 +2061,9 @@ const EleveExercices = {
                 banque_id: String(pratiqueData.banque_id),
                 total_pratiques: 0,
                 pratiques_parfaites: 0,
+                repetitions_validees: 0,
                 derniere_pratique: null,
+                date_derniere_validation: null,
                 temps_moyen: 0,
                 temps_prevu: pratiqueData.temps_prevu || 0
             };
@@ -1732,7 +2077,14 @@ const EleveExercices = {
             console.log('[SF] Pratique parfaite! Total:', stats.pratiques_parfaites);
         }
 
-        // Mettre à jour temps moyen (approximation)
+        // Mettre à jour les répétitions validées (nouveau système)
+        if (pratiqueData.repetition_validee && !pratiqueData.est_entrainement_libre) {
+            stats.repetitions_validees = pratiqueData.nouvelle_repetition;
+            stats.date_derniere_validation = new Date().toISOString();
+            console.log('[SF] Répétition validée! Total:', stats.repetitions_validees);
+        }
+
+        // Mettre à jour temps moyen
         const oldTotal = (stats.total_pratiques - 1) * stats.temps_moyen;
         stats.temps_moyen = Math.round((oldTotal + pratiqueData.temps_passe) / stats.total_pratiques);
 
@@ -1908,156 +2260,159 @@ const EleveExercices = {
     },
 
     /**
-     * Affiche l'écran de résultats pour les Savoir-faire
+     * Affiche l'écran de résultats SF avec 2 blocs (bilan + correction)
+     * Système 4 répétitions
      * @param {Object} results - {correct, total, percent, correctedHTML, consigneHTML}
      */
     renderResultScreenSF(results) {
         const container = document.getElementById('exercices-content');
         const exo = this.currentExercise;
-        const banque = this.banques.find(b => String(b.id) === String(exo.banque_id));
 
         // Calculer le temps passé
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
-        const tempsPrevu = exo.duree || 300; // duree est déjà en secondes
+        const tempsPrevu = exo.duree || 300;
+        const tempsOK = timeSpent <= tempsPrevu;
 
-        // Récupérer les stats actualisées (utiliser String pour cohérence)
-        const stats = this.statsSF[String(exo.id)] || {};
-        const pratiquesParfaites = stats.pratiques_parfaites || 0;
-        const estParfait = results.percent === 100;
+        // Récupérer le résultat de validation (calculé dans saveResult)
+        const validationResult = this.lastValidationResult || {
+            repetitionValidee: false,
+            nouvelleRepetition: 0,
+            message: 'Résultat',
+            conseil: '',
+            estMaitrise: false
+        };
 
-        console.log('[SF] Affichage résultat - exo.id:', exo.id, 'stats:', stats, 'pratiquesParfaites:', pratiquesParfaites);
+        // Déterminer le type de résultat pour le style
+        const isSuccess = validationResult.repetitionValidee;
+        const resultType = isSuccess ? 'success' : (results.percent === 100 ? 'partial' : 'error');
 
-        // Déterminer le message selon le score
-        let messageIcon, messageTitle, messageClass;
-        if (results.percent === 100) {
-            messageIcon = '🎉';
-            messageTitle = 'Parfait !';
-            messageClass = 'success';
-        } else if (results.percent >= 80) {
-            messageIcon = '👏';
-            messageTitle = 'Presque parfait !';
-            messageClass = 'partial';
-        } else if (results.percent >= 50) {
-            messageIcon = '💪';
-            messageTitle = 'Continue !';
-            messageClass = 'partial';
-        } else {
-            messageIcon = '📚';
-            messageTitle = 'À retravailler';
-            messageClass = 'error';
-        }
-
-        // Message de progression SF
-        let progressionMessage = '';
-        // Formater le numéro ordinal (1ère, 2ème, 3ème...)
-        const formatOrdinal = (n) => n === 1 ? '1ère' : `${n}ème`;
-
-        if (estParfait) {
-            const newCount = pratiquesParfaites; // Déjà mis à jour par updateLocalStatsSF
-            if (newCount >= this.SEUIL_PRATIQUES_PARFAITES) {
-                // Vérifier si rapide
-                const tempsMoyen = stats.temps_moyen || timeSpent;
-                if (tempsMoyen <= tempsPrevu) {
-                    progressionMessage = `<div class="progression-message success">
-                        🚀 Excellent ! Cet exercice est maintenant <strong>automatisé</strong> !
-                        <small>Tu maîtrises ce savoir-faire rapidement et sans erreur.</small>
-                    </div>`;
-                } else {
-                    progressionMessage = `<div class="progression-message partial">
-                        ✅ ${formatOrdinal(newCount)} pratique parfaite ! Encore un peu d'entraînement pour aller plus vite.
-                        <small>Objectif: ${Math.floor(tempsPrevu / 60)} min • Ton temps: ${Math.floor(timeSpent / 60)} min ${timeSpent % 60}s</small>
-                    </div>`;
-                }
-            } else {
-                const restantes = this.SEUIL_PRATIQUES_PARFAITES - newCount;
-                progressionMessage = `<div class="progression-message info">
-                    ✅ ${formatOrdinal(newCount)} pratique parfaite !
-                    <small>Encore ${restantes} pratique${restantes > 1 ? 's' : ''} parfaite${restantes > 1 ? 's' : ''} pour acquérir ce savoir-faire.</small>
-                </div>`;
+        // Générer les points de progression
+        const generateRepDots = () => {
+            let html = '';
+            for (let i = 1; i <= 4; i++) {
+                const status = i <= validationResult.nouvelleRepetition ? 'completed' : 'pending';
+                html += `<span class="rep-dot ${status}">${i}</span>`;
             }
-        } else {
-            progressionMessage = `<div class="progression-message retry">
-                📚 Il faut 100% pour valider une pratique parfaite.
-                <small>Recommence pour t'améliorer !</small>
-            </div>`;
-        }
-
-        // Comparaison temps
-        const tempsComparison = `
-            <div class="temps-comparison">
-                <div class="temps-item">
-                    <span class="temps-label">Ton temps</span>
-                    <span class="temps-value">${Math.floor(timeSpent / 60)}:${(timeSpent % 60).toString().padStart(2, '0')}</span>
-                </div>
-                <div class="temps-separator">vs</div>
-                <div class="temps-item">
-                    <span class="temps-label">Objectif</span>
-                    <span class="temps-value">${Math.floor(tempsPrevu / 60)}:${(tempsPrevu % 60).toString().padStart(2, '0')}</span>
-                </div>
-                ${timeSpent <= tempsPrevu ? '<span class="temps-badge success">⚡ Dans les temps !</span>' : '<span class="temps-badge warning">⏱️ Un peu long</span>'}
-            </div>
-        `;
+            return html;
+        };
 
         // Trouver l'exercice suivant
         const nextExercise = this.findNextExercise();
 
+        // Prochaine date si applicable
+        let prochaineDateStr = '';
+        if (validationResult.prochaineDispo) {
+            prochaineDateStr = new Date(validationResult.prochaineDispo).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            });
+        }
+
         container.innerHTML = `
             <div class="result-view sf">
                 <button class="exercise-back-btn" onclick="EleveExercices.backToList()">
-                    ← Retour aux entraînements
+                    ← Retour aux exercices
                 </button>
 
-                <div class="result-card">
-                    <div class="result-header ${messageClass}">
-                        <div class="result-icon">${messageIcon}</div>
-                        <h2>${messageTitle}</h2>
-                        <div class="result-score">
-                            <span class="score-value">${results.percent}%</span>
-                            <span class="score-detail">${results.correct}/${results.total} correct${results.correct > 1 ? 's' : ''}</span>
+                <div class="result-card-sf">
+                    <!-- BLOC GAUCHE : BILAN -->
+                    <div class="result-bilan">
+                        <div class="bilan-header ${resultType}">
+                            <span class="bilan-icon">${isSuccess ? '✅' : (results.percent === 100 ? '⏱️' : '❌')}</span>
+                            <h2>${validationResult.message}</h2>
                         </div>
-                    </div>
 
-                    ${tempsComparison}
+                        <div class="bilan-score">
+                            <div class="score-circle ${resultType}">
+                                <span class="score-value">${results.percent}%</span>
+                            </div>
+                            <span class="score-detail">${results.correct}/${results.total}</span>
+                        </div>
 
-                    ${progressionMessage}
-
-                    <div class="result-corrected-exercise">
-                        <h3 class="corrected-toggle" onclick="EleveExercices.toggleCorrige()">
-                            📋 Voir le corrigé
-                            <span class="toggle-icon">▼</span>
-                        </h3>
-                        <div class="corrected-content-wrapper" id="correctedContentWrapper" style="display: none;">
-                            ${results.consigneHTML || ''}
-                            <div class="corrected-content">
-                                ${results.correctedHTML || '<p>Aucun contenu à afficher</p>'}
+                        <div class="bilan-temps">
+                            <div class="temps-row">
+                                <span class="temps-label">Ton temps</span>
+                                <span class="temps-value">${this.formatTime(timeSpent)}</span>
+                            </div>
+                            <div class="temps-row">
+                                <span class="temps-label">Objectif</span>
+                                <span class="temps-value">${this.formatTime(tempsPrevu)}</span>
+                            </div>
+                            <div class="temps-badge ${tempsOK ? 'success' : 'warning'}">
+                                ${tempsOK ? '✓ Dans les temps' : `+${this.formatTime(timeSpent - tempsPrevu)}`}
                             </div>
                         </div>
-                    </div>
 
-                    <div class="result-actions-sf">
-                        ${nextExercise ? `
-                            <button class="btn btn-primary btn-lg" onclick="EleveExercices.startNextExercise()">
-                                Continuer →
-                            </button>
-                        ` : `
-                            <button class="btn btn-primary btn-lg" onclick="EleveExercices.backToList()">
-                                Retour aux exercices
-                            </button>
-                        `}
-                        <div class="result-actions-secondary">
-                            <button class="btn btn-ghost" onclick="EleveExercices.restartExercise()">
-                                🔄 Recommencer cet exercice
-                            </button>
-                            ${nextExercise ? `
-                                <button class="btn btn-ghost" onclick="EleveExercices.backToList()">
-                                    ← Retour à la liste
+                        <div class="bilan-repetition">
+                            <div class="rep-progress">
+                                ${generateRepDots()}
+                            </div>
+                            <span class="rep-label">Répétition ${validationResult.nouvelleRepetition}/4</span>
+                        </div>
+
+                        ${validationResult.conseil && !isSuccess && !this.isEntrainementLibre ? `
+                            <div class="bilan-conseil warning">
+                                <span class="conseil-icon">💡</span>
+                                <p>${validationResult.conseil}</p>
+                            </div>
+                        ` : ''}
+
+                        ${isSuccess && prochaineDateStr ? `
+                            <div class="bilan-prochaine">
+                                <span class="prochaine-icon">📅</span>
+                                <p>Prochaine répétition : <strong>${prochaineDateStr}</strong></p>
+                            </div>
+                        ` : ''}
+
+                        ${validationResult.estMaitrise ? `
+                            <div class="bilan-maitrise">
+                                <span class="maitrise-icon">🎉</span>
+                                <p>Bravo ! Tu maîtrises cet exercice !</p>
+                            </div>
+                        ` : ''}
+
+                        ${this.isEntrainementLibre ? `
+                            <div class="bilan-libre">
+                                <span class="libre-icon">ℹ️</span>
+                                <p>Entraînement libre - ne compte pas pour ta progression</p>
+                            </div>
+                        ` : ''}
+
+                        <div class="bilan-actions">
+                            ${!isSuccess && !this.isEntrainementLibre ? `
+                                <button class="btn btn-primary btn-restart-sf" onclick="EleveExercices.restartExercise()">
+                                    🔄 Réessayer
                                 </button>
                             ` : ''}
+                            ${nextExercise ? `
+                                <button class="btn ${isSuccess ? 'btn-primary' : 'btn-secondary'}" onclick="EleveExercices.startNextExercise()">
+                                    Continuer →
+                                </button>
+                            ` : `
+                                <button class="btn ${isSuccess ? 'btn-primary' : 'btn-secondary'}" onclick="EleveExercices.backToList()">
+                                    Retour aux exercices
+                                </button>
+                            `}
+                        </div>
+                    </div>
+
+                    <!-- BLOC DROIT : CORRECTION -->
+                    <div class="result-correction">
+                        <div class="correction-header">
+                            <h3>📝 Correction</h3>
+                        </div>
+                        <div class="correction-content">
+                            ${results.consigneHTML ? `<div class="correction-consigne">${results.consigneHTML}</div>` : ''}
+                            ${results.correctedHTML || '<p class="correction-fallback">Correction non disponible.</p>'}
                         </div>
                     </div>
                 </div>
             </div>
         `;
+
+        // Reset le flag entraînement libre
+        this.isEntrainementLibre = false;
     },
 
     /**

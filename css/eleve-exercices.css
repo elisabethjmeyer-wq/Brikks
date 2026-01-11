@@ -3513,3 +3513,448 @@ body.document-fullscreen-active {
         width: 100%;
     }
 }
+
+/* ============================================
+   NOUVEAU SYSTÈME 6 STATUTS - SAVOIR-FAIRE
+   ============================================ */
+
+/* Badges pour les 6 nouveaux statuts SF */
+.exercice-item.savoir-faire .entrainement-badge.a-decouvrir {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.exercice-item.savoir-faire .entrainement-badge.en-cours {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.exercice-item.savoir-faire .entrainement-badge.a-reviser {
+    background: #fef3c7;
+    color: #d97706;
+    animation: pulse-badge 2s infinite;
+}
+
+.exercice-item.savoir-faire .entrainement-badge.en-pause {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.exercice-item.savoir-faire .entrainement-badge.maitrise {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.exercice-item.savoir-faire .entrainement-badge.rappel-suggere {
+    background: #ede9fe;
+    color: #7c3aed;
+    animation: pulse-badge 2s infinite;
+}
+
+/* Exercice en pause (grisé) */
+.exercice-item.savoir-faire.en-pause {
+    opacity: 0.7;
+}
+
+.exercice-item.savoir-faire.en-pause .exercice-numero {
+    background: #e5e7eb;
+    color: #9ca3af;
+}
+
+/* ============================================
+   POP-UP BLOCAGE
+   ============================================ */
+.blocage-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.blocage-popup {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.blocage-popup-header {
+    margin-bottom: 1.5rem;
+}
+
+.blocage-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.blocage-popup-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #1f2937;
+}
+
+.blocage-popup-body {
+    margin-bottom: 1.5rem;
+}
+
+.blocage-message {
+    color: #4b5563;
+    line-height: 1.6;
+    margin: 0 0 1rem 0;
+}
+
+.blocage-message strong {
+    color: #4f46e5;
+}
+
+.blocage-progress {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.blocage-etape {
+    font-weight: 600;
+    color: #4f46e5;
+}
+
+.blocage-jours {
+    color: #6b7280;
+}
+
+.blocage-popup-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.blocage-btn-compris {
+    width: 100%;
+    padding: 0.875rem 1.5rem !important;
+}
+
+.blocage-btn-libre {
+    width: 100%;
+    padding: 0.75rem 1rem !important;
+}
+
+.blocage-warning {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin: 0;
+}
+
+/* ============================================
+   ÉCRAN RÉSULTAT 2 BLOCS - SAVOIR-FAIRE
+   ============================================ */
+.result-card-sf {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.result-grid-sf {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    min-height: 400px;
+}
+
+/* Bloc Bilan (gauche) */
+.result-bilan {
+    padding: 2rem;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+}
+
+.bilan-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.bilan-emoji {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+}
+
+.bilan-header h2 {
+    font-size: 1.5rem;
+    color: #1f2937;
+    margin: 0;
+}
+
+/* Score circulaire */
+.score-circle {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 1.5rem;
+}
+
+.score-circle svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.score-circle .bg-circle {
+    fill: none;
+    stroke: #e5e7eb;
+    stroke-width: 8;
+}
+
+.score-circle .progress-circle {
+    fill: none;
+    stroke: #10b981;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease-out;
+}
+
+.score-circle.score-low .progress-circle {
+    stroke: #ef4444;
+}
+
+.score-circle.score-medium .progress-circle {
+    stroke: #f59e0b;
+}
+
+.score-circle.score-high .progress-circle {
+    stroke: #10b981;
+}
+
+.score-label-sf {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.score-value-sf {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #1f2937;
+    line-height: 1;
+}
+
+.score-unit {
+    font-size: 1rem;
+    color: #6b7280;
+}
+
+/* Résumé de la progression */
+.bilan-summary {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.summary-label {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.summary-value {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.summary-value.success {
+    color: #10b981;
+}
+
+.summary-value.warning {
+    color: #f59e0b;
+}
+
+.summary-value.error {
+    color: #ef4444;
+}
+
+/* Indicateur prochaine étape */
+.next-step-indicator {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    border-radius: 10px;
+    text-align: center;
+}
+
+.next-step-label {
+    font-size: 0.8rem;
+    color: #6366f1;
+    margin-bottom: 0.25rem;
+}
+
+.next-step-value {
+    font-weight: 600;
+    color: #4338ca;
+}
+
+.next-step-maitrise {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.next-step-maitrise .next-step-label {
+    color: #059669;
+}
+
+.next-step-maitrise .next-step-value {
+    color: #047857;
+}
+
+/* Bloc Correction (droite) */
+.result-correction {
+    padding: 2rem;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.correction-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.correction-header h3 {
+    font-size: 1.1rem;
+    color: #374151;
+    margin: 0;
+}
+
+.correction-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.correction-question {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background: white;
+    border-radius: 10px;
+    border-left: 4px solid #10b981;
+}
+
+.correction-question.incorrect {
+    border-left-color: #ef4444;
+}
+
+.correction-question-text {
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.correction-answer {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    font-size: 0.9rem;
+}
+
+.answer-icon {
+    flex-shrink: 0;
+}
+
+.answer-text {
+    color: #374151;
+}
+
+.answer-correct {
+    color: #059669;
+    font-weight: 500;
+}
+
+.answer-wrong {
+    color: #dc2626;
+    text-decoration: line-through;
+    margin-right: 0.5rem;
+}
+
+/* Actions du résultat SF */
+.result-actions-container {
+    padding: 1.5rem 2rem;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
+
+.result-actions-main {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.result-actions-main .btn {
+    min-width: 180px;
+}
+
+/* Responsive 2 blocs */
+@media (max-width: 768px) {
+    .result-grid-sf {
+        grid-template-columns: 1fr;
+    }
+
+    .result-bilan {
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .result-correction {
+        max-height: 350px;
+    }
+
+    .result-actions-main {
+        flex-direction: column;
+    }
+
+    .result-actions-main .btn {
+        width: 100%;
+    }
+}

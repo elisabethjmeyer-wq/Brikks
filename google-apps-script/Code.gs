@@ -5734,8 +5734,8 @@ function saveResultatExercice(data) {
 
 /**
  * Enregistre une pratique d'exercice SF (historique complet)
- * Chaque tentative est enregistrée (pas d'écrasement)
- * @param {Object} data - { eleve_id, exercice_id, banque_id, score, temps_passe, temps_prevu }
+ * Système 4 répétitions avec espacements
+ * @param {Object} data - { eleve_id, exercice_id, banque_id, score, temps_passe, temps_prevu, repetition_numero, est_entrainement_libre }
  */
 function savePratiqueSF(data) {
   if (!data.eleve_id || !data.exercice_id) {
@@ -5746,28 +5746,57 @@ function savePratiqueSF(data) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(sheetName);
 
-  // Créer la feuille si elle n'existe pas
+  // Créer la feuille si elle n'existe pas (avec nouvelles colonnes)
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
-    sheet.appendRow(['id', 'eleve_id', 'exercice_id', 'banque_id', 'score', 'est_parfait', 'temps_passe', 'temps_prevu', 'date']);
+    sheet.appendRow([
+      'id', 'eleve_id', 'exercice_id', 'banque_id', 'score', 'est_parfait',
+      'temps_passe', 'temps_prevu', 'date',
+      'repetition_numero', 'dans_temps', 'est_entrainement_libre'
+    ]);
   }
+
+  // Vérifier/ajouter les nouvelles colonnes si elles n'existent pas
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const headersLower = headers.map(h => String(h).toLowerCase().trim());
+
+  const newCols = ['repetition_numero', 'dans_temps', 'est_entrainement_libre'];
+  newCols.forEach(col => {
+    if (!headersLower.includes(col)) {
+      const nextCol = sheet.getLastColumn() + 1;
+      sheet.getRange(1, nextCol).setValue(col);
+    }
+  });
 
   const id = 'prat_' + new Date().getTime() + '_' + Math.floor(Math.random() * 1000);
   const score = Number(data.score) || 0;
   const estParfait = score === 100 ? 'TRUE' : 'FALSE';
   const dateNow = new Date().toISOString();
+  const tempsPasse = Number(data.temps_passe) || 0;
+  const tempsPrevu = Number(data.temps_prevu) || 0;
+  const dansTemps = tempsPasse <= tempsPrevu ? 'TRUE' : 'FALSE';
 
-  const rowData = [
-    id,
-    data.eleve_id,
-    data.exercice_id,
-    data.banque_id || '',
-    score,
-    estParfait,
-    data.temps_passe || 0,
-    data.temps_prevu || 0,
-    dateNow
-  ];
+  // Récupérer les headers actuels (après ajout éventuel)
+  const updatedHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  const rowData = updatedHeaders.map(header => {
+    const col = String(header).toLowerCase().trim();
+    switch(col) {
+      case 'id': return id;
+      case 'eleve_id': return data.eleve_id;
+      case 'exercice_id': return data.exercice_id;
+      case 'banque_id': return data.banque_id || '';
+      case 'score': return score;
+      case 'est_parfait': return estParfait;
+      case 'temps_passe': return tempsPasse;
+      case 'temps_prevu': return tempsPrevu;
+      case 'date': return dateNow;
+      case 'repetition_numero': return data.repetition_numero || 0;
+      case 'dans_temps': return dansTemps;
+      case 'est_entrainement_libre': return data.est_entrainement_libre ? 'TRUE' : 'FALSE';
+      default: return '';
+    }
+  });
 
   // Toujours ajouter une nouvelle ligne (historique)
   sheet.appendRow(rowData);
@@ -5776,12 +5805,15 @@ function savePratiqueSF(data) {
     success: true,
     message: 'Pratique enregistrée',
     id: id,
-    est_parfait: score === 100
+    est_parfait: score === 100,
+    dans_temps: tempsPasse <= tempsPrevu,
+    repetition_numero: data.repetition_numero || 0
   };
 }
 
 /**
- * Récupère l'historique des pratiques SF d'un élève
+ * Récupère l'historique des pratiques SF d'un élève avec calcul des répétitions
+ * Système 4 répétitions avec espacements progressifs
  * @param {Object} data - { eleve_id, exercice_id?, banque_id? }
  */
 function getHistoriquePratiquesSF(data) {
@@ -5810,6 +5842,14 @@ function getHistoriquePratiquesSF(data) {
   const tempsPasseCol = headers.indexOf('temps_passe');
   const tempsPrevuCol = headers.indexOf('temps_prevu');
   const dateCol = headers.indexOf('date');
+  const repetitionNumeroCol = headers.indexOf('repetition_numero');
+  const dansTempsCol = headers.indexOf('dans_temps');
+  const estEntrainementLibreCol = headers.indexOf('est_entrainement_libre');
+
+  // Espacements en jours selon la répétition validée
+  // Index = répétition actuelle, valeur = jours avant prochaine
+  const ESPACEMENTS = { 0: 0, 1: 1, 2: 3, 3: 7 };
+  const SEUIL_RAPPEL = 21; // Jours pour rappel suggéré après maîtrise
 
   const results = [];
   const statsParExercice = {};
@@ -5840,18 +5880,35 @@ function getHistoriquePratiquesSF(data) {
         banque_id: row[banqueIdCol],
         total_pratiques: 0,
         pratiques_parfaites: 0,
+        repetitions_validees: 0,
         derniere_pratique: null,
+        date_derniere_validation: null,
+        prochaine_disponible: null,
         temps_moyen: 0,
         temps_prevu: row[tempsPrevuCol] || 0,
-        temps_total: 0
+        temps_total: 0,
+        est_maitrise: false
       };
     }
 
     const stats = statsParExercice[exoId];
     stats.total_pratiques++;
 
-    if (String(row[estParfaitCol]).toUpperCase() === 'TRUE' || row[scoreCol] === 100) {
+    const estParfait = String(row[estParfaitCol]).toUpperCase() === 'TRUE' || row[scoreCol] === 100;
+    const estEntrainementLibre = estEntrainementLibreCol >= 0 &&
+      String(row[estEntrainementLibreCol]).toUpperCase() === 'TRUE';
+
+    if (estParfait) {
       stats.pratiques_parfaites++;
+    }
+
+    // Compter les répétitions validées (ignorer entraînements libres)
+    if (!estEntrainementLibre && repetitionNumeroCol >= 0) {
+      const repNum = parseInt(row[repetitionNumeroCol]) || 0;
+      if (repNum > 0 && repNum > stats.repetitions_validees) {
+        stats.repetitions_validees = repNum;
+        stats.date_derniere_validation = row[dateCol];
+      }
     }
 
     stats.temps_total += Number(row[tempsPasseCol]) || 0;
@@ -5863,12 +5920,47 @@ function getHistoriquePratiquesSF(data) {
     }
   }
 
-  // Calculer le temps moyen pour chaque exercice
+  // Calculer les infos dérivées pour chaque exercice
+  const now = new Date();
   Object.values(statsParExercice).forEach(stats => {
+    // Temps moyen
     if (stats.total_pratiques > 0) {
       stats.temps_moyen = Math.round(stats.temps_total / stats.total_pratiques);
     }
-    delete stats.temps_total; // Nettoyer
+    delete stats.temps_total;
+
+    // Maîtrise = 4 répétitions validées
+    stats.est_maitrise = stats.repetitions_validees >= 4;
+
+    // Calculer prochaine disponibilité
+    if (stats.repetitions_validees > 0 && stats.repetitions_validees < 4 && stats.date_derniere_validation) {
+      const dateValidation = new Date(stats.date_derniere_validation);
+      const espacementJours = ESPACEMENTS[stats.repetitions_validees] || 7;
+      const prochaineDate = new Date(dateValidation);
+      prochaineDate.setDate(prochaineDate.getDate() + espacementJours);
+      stats.prochaine_disponible = prochaineDate.toISOString();
+
+      // Calculer jours restants
+      const diffMs = prochaineDate - now;
+      stats.jours_restants = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      stats.est_disponible = now >= prochaineDate;
+    } else if (stats.repetitions_validees === 0) {
+      // Jamais validé = disponible
+      stats.est_disponible = true;
+      stats.jours_restants = 0;
+    } else if (stats.est_maitrise) {
+      // Maîtrisé = toujours disponible (pour rappel)
+      stats.est_disponible = true;
+      stats.jours_restants = 0;
+
+      // Vérifier si rappel suggéré (>21 jours depuis dernière validation)
+      if (stats.date_derniere_validation) {
+        const dateValidation = new Date(stats.date_derniere_validation);
+        const joursDepuis = Math.floor((now - dateValidation) / (1000 * 60 * 60 * 24));
+        stats.jours_depuis_validation = joursDepuis;
+        stats.rappel_suggere = joursDepuis >= SEUIL_RAPPEL;
+      }
+    }
   });
 
   return {
