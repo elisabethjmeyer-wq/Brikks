@@ -70,8 +70,7 @@ const EleveLayout = {
         'CHAPITRES',
         'VIDEOS',
         'RECOMMANDATIONS',
-        'METHODOLOGIE',
-        'BEX_CONFIG'
+        'METHODOLOGIE'
     ],
 
     // Paramètres du site
