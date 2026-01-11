@@ -198,7 +198,8 @@ const EleveExercices = {
      * @returns {Object} { statusClass, label, icon, pratiquesParfaites, joursDepuisDerniere }
      */
     getExerciceStatusSF(exerciceId, exercice) {
-        const stats = this.statsSF[exerciceId];
+        // Toujours utiliser des strings pour les IDs (cohérence)
+        const stats = this.statsSF[String(exerciceId)];
 
         // Pas de pratique = Nouveau
         if (!stats || stats.total_pratiques === 0) {
@@ -240,7 +241,7 @@ const EleveExercices = {
         }
 
         // 3+ pratiques parfaites - vérifier le temps
-        const tempsPrevu = exercice?.duree ? exercice.duree * 60 : stats.temps_prevu || 300; // en secondes
+        const tempsPrevu = exercice?.duree || stats.temps_prevu || 300; // duree déjà en secondes
         const tempsMoyen = stats.temps_moyen || 0;
 
         // Si temps moyen > temps prévu = Acquis mais lent
@@ -1677,12 +1678,15 @@ const EleveExercices = {
      * Met à jour les stats SF locales après une pratique
      */
     updateLocalStatsSF(pratiqueData) {
-        const exoId = pratiqueData.exercice_id;
+        // Toujours utiliser des strings pour les IDs (cohérence)
+        const exoId = String(pratiqueData.exercice_id);
+
+        console.log('[SF] Mise à jour stats pour exercice:', exoId, 'Score:', pratiqueData.score);
 
         if (!this.statsSF[exoId]) {
             this.statsSF[exoId] = {
                 exercice_id: exoId,
-                banque_id: pratiqueData.banque_id,
+                banque_id: String(pratiqueData.banque_id),
                 total_pratiques: 0,
                 pratiques_parfaites: 0,
                 derniere_pratique: null,
@@ -1696,6 +1700,7 @@ const EleveExercices = {
 
         if (pratiqueData.score === 100) {
             stats.pratiques_parfaites++;
+            console.log('[SF] Pratique parfaite! Total:', stats.pratiques_parfaites);
         }
 
         // Mettre à jour temps moyen (approximation)
@@ -1706,6 +1711,7 @@ const EleveExercices = {
 
         // Sauvegarder dans le cache
         this.saveHistoriqueSFToCache(this.statsSF);
+        console.log('[SF] Stats sauvegardées:', this.statsSF[exoId]);
     },
 
     updateLocalResult(newResult) {
@@ -1885,10 +1891,12 @@ const EleveExercices = {
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
         const tempsPrevu = exo.duree || 300; // duree est déjà en secondes
 
-        // Récupérer les stats actualisées
-        const stats = this.statsSF[exo.id] || {};
+        // Récupérer les stats actualisées (utiliser String pour cohérence)
+        const stats = this.statsSF[String(exo.id)] || {};
         const pratiquesParfaites = stats.pratiques_parfaites || 0;
         const estParfait = results.percent === 100;
+
+        console.log('[SF] Affichage résultat - exo.id:', exo.id, 'stats:', stats, 'pratiquesParfaites:', pratiquesParfaites);
 
         // Déterminer le message selon le score
         let messageIcon, messageTitle, messageClass;
