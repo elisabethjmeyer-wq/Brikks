@@ -5848,7 +5848,8 @@ function getHistoriquePratiquesSF(data) {
 
   // Espacements en jours selon la répétition validée
   // Index = répétition actuelle, valeur = jours avant prochaine
-  const ESPACEMENTS = { 0: 0, 1: 1, 2: 3, 3: 7 };
+  const ESPACEMENTS = { 0: 0, 1: 1, 2: 3, 3: 7, 4: 14 };
+  const SEUIL_REPETITIONS = 5; // 5 répétitions pour maîtriser
   const SEUIL_RAPPEL = 21; // Jours pour rappel suggéré après maîtrise
 
   const results = [];
@@ -5929,11 +5930,11 @@ function getHistoriquePratiquesSF(data) {
     }
     delete stats.temps_total;
 
-    // Maîtrise = 4 répétitions validées
-    stats.est_maitrise = stats.repetitions_validees >= 4;
+    // Maîtrise = 5 répétitions validées
+    stats.est_maitrise = stats.repetitions_validees >= SEUIL_REPETITIONS;
 
     // Calculer prochaine disponibilité
-    if (stats.repetitions_validees > 0 && stats.repetitions_validees < 4 && stats.date_derniere_validation) {
+    if (stats.repetitions_validees > 0 && stats.repetitions_validees < SEUIL_REPETITIONS && stats.date_derniere_validation) {
       const dateValidation = new Date(stats.date_derniere_validation);
       const espacementJours = ESPACEMENTS[stats.repetitions_validees] || 7;
       const prochaineDate = new Date(dateValidation);

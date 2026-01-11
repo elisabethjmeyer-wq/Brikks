@@ -3561,6 +3561,97 @@ body.document-fullscreen-active {
     color: #9ca3af;
 }
 
+/* Banque maîtrisée ou bloquée */
+.banque-accordion-item.maitrisee .banque-accordion-header {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+}
+
+.banque-accordion-item.bloquee .banque-accordion-header {
+    background: #f9fafb;
+}
+
+.banque-accordion-item.bloquee .banque-title {
+    color: #6b7280;
+}
+
+.banque-status-message {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Info blocage dans accordéon */
+.banque-bloquee-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #f9fafb;
+    border-radius: 10px;
+    margin: 0.5rem;
+}
+
+.banque-bloquee-info .blocage-icon {
+    font-size: 2rem;
+}
+
+.banque-bloquee-info p {
+    margin: 0;
+    color: #4b5563;
+    font-size: 0.95rem;
+}
+
+.banque-bloquee-info strong {
+    color: #4f46e5;
+}
+
+/* Résumé banque maîtrisée */
+.banque-resume {
+    padding: 1.5rem;
+    text-align: center;
+    color: #059669;
+    background: #ecfdf5;
+    border-radius: 10px;
+    margin: 0.5rem;
+}
+
+.banque-resume p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Exercice sélectionné (unique visible) */
+.exercice-item.selected-exercise {
+    border: 2px solid #4f46e5;
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+}
+
+.exercice-item.selected-exercise:hover {
+    border-color: #6366f1;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+/* Actions dans le bilan */
+.bilan-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.bilan-actions .btn {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+}
+
+.btn-restart-sf {
+    background: #ef4444 !important;
+    border-color: #ef4444 !important;
+}
+
+.btn-restart-sf:hover {
+    background: #dc2626 !important;
+}
+
 /* ============================================
    POP-UP BLOCAGE
    ============================================ */
@@ -3710,6 +3801,203 @@ body.document-fullscreen-active {
     font-size: 1.5rem;
     color: #1f2937;
     margin: 0;
+}
+
+.bilan-header .bilan-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.bilan-header.success {
+    color: #059669;
+}
+
+.bilan-header.partial {
+    color: #d97706;
+}
+
+.bilan-header.error {
+    color: #dc2626;
+}
+
+/* Score dans le bilan */
+.bilan-score {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.bilan-score .score-circle {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 800;
+}
+
+.bilan-score .score-circle.success {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.bilan-score .score-circle.partial {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.bilan-score .score-circle.error {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.bilan-score .score-detail {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+/* Temps dans le bilan */
+.bilan-temps {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 10px;
+}
+
+.temps-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.temps-label {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.temps-value {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.temps-badge {
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+.temps-badge.success {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.temps-badge.warning {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+/* Répétition dans le bilan */
+.bilan-repetition {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.rep-progress {
+    margin-bottom: 0.5rem;
+}
+
+.rep-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.rep-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0;  /* Hide the number */
+    border: 2px solid #e5e7eb;
+    background: #f9fafb;
+    transition: all 0.3s;
+}
+
+.rep-dot.completed {
+    background: #10b981;
+    border-color: #10b981;
+}
+
+.rep-dot.completed::after {
+    content: '✓';
+    font-size: 12px;
+    color: white;
+}
+
+.rep-dot.pending {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.rep-label {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+/* Messages dans le bilan */
+.bilan-conseil,
+.bilan-prochaine,
+.bilan-maitrise,
+.bilan-libre {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.bilan-conseil.warning {
+    background: #fef3c7;
+}
+
+.bilan-conseil .conseil-icon,
+.bilan-prochaine .prochaine-icon,
+.bilan-maitrise .maitrise-icon,
+.bilan-libre .libre-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.bilan-conseil p,
+.bilan-prochaine p,
+.bilan-maitrise p,
+.bilan-libre p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.bilan-prochaine {
+    background: #eff6ff;
+}
+
+.bilan-maitrise {
+    background: #d1fae5;
+}
+
+.bilan-libre {
+    background: #f3f4f6;
 }
 
 /* Score circulaire */
