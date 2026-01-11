@@ -1479,20 +1479,136 @@ const AdminBanquesExercices = {
         } else {
             tbody.innerHTML = this.tableBuilder.rows.map((row, rowIndex) => `
                 <tr data-row="${rowIndex}">
-                    ${this.tableBuilder.columns.map((col, colIndex) => `
-                        <td>
-                            <input type="text"
-                                   class="${col.editable ? 'editable-input' : ''}"
-                                   value="${this.escapeHtml(row[colIndex] || '')}"
-                                   placeholder="${col.editable ? 'Réponse attendue' : 'Donnée affichée'}">
-                        </td>
-                    `).join('')}
+                    ${this.tableBuilder.columns.map((col, colIndex) => {
+                        const cellValue = row[colIndex] || '';
+                        const alternatives = cellValue.split('|');
+                        const mainAnswer = alternatives[0] || '';
+                        const altCount = alternatives.length - 1;
+
+                        if (col.editable) {
+                            return `
+                                <td class="cell-with-alternatives">
+                                    <div class="cell-answer-wrapper">
+                                        <input type="text"
+                                               class="editable-input main-answer-input"
+                                               data-row="${rowIndex}" data-col="${colIndex}"
+                                               value="${this.escapeHtml(mainAnswer)}"
+                                               placeholder="Réponse attendue"
+                                               onchange="AdminBanquesExercices.updateCellMainAnswer(${rowIndex}, ${colIndex}, this.value)">
+                                        <button type="button" class="btn-alternatives ${altCount > 0 ? 'has-alternatives' : ''}"
+                                                onclick="AdminBanquesExercices.openAlternativesModal(${rowIndex}, ${colIndex})"
+                                                title="Réponses alternatives">
+                                            <span class="alt-icon">±</span>
+                                            ${altCount > 0 ? `<span class="alt-count">${altCount}</span>` : ''}
+                                        </button>
+                                    </div>
+                                </td>
+                            `;
+                        } else {
+                            return `
+                                <td>
+                                    <input type="text"
+                                           value="${this.escapeHtml(cellValue)}"
+                                           placeholder="Donnée affichée">
+                                </td>
+                            `;
+                        }
+                    }).join('')}
                     <td class="row-actions">
                         <button type="button" class="btn-remove-row" onclick="AdminBanquesExercices.removeRow(${rowIndex})" title="Supprimer">&times;</button>
                     </td>
                 </tr>
             `).join('');
         }
+    },
+
+    // Gestion des réponses alternatives pour les cellules de tableau
+    updateCellMainAnswer(rowIndex, colIndex, newMainAnswer) {
+        const cellValue = this.tableBuilder.rows[rowIndex][colIndex] || '';
+        const alternatives = cellValue.split('|');
+        alternatives[0] = newMainAnswer;
+        this.tableBuilder.rows[rowIndex][colIndex] = alternatives.join('|');
+    },
+
+    openAlternativesModal(rowIndex, colIndex) {
+        const cellValue = this.tableBuilder.rows[rowIndex][colIndex] || '';
+        const alternatives = cellValue.split('|');
+        const mainAnswer = alternatives[0] || '';
+        const altAnswers = alternatives.slice(1);
+
+        // Créer le modal
+        const existingModal = document.getElementById('alternativesModal');
+        if (existingModal) existingModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'alternativesModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content modal-alternatives">
+                <div class="modal-header">
+                    <h3>Réponses alternatives</h3>
+                    <button type="button" class="modal-close" onclick="AdminBanquesExercices.closeAlternativesModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="help-text">La réponse principale est "<strong>${this.escapeHtml(mainAnswer)}</strong>". Ajoutez des réponses alternatives qui seront aussi acceptées.</p>
+                    <div id="alternativesList">
+                        ${altAnswers.map((alt, i) => `
+                            <div class="alternative-item">
+                                <input type="text" class="alt-input" value="${this.escapeHtml(alt)}" placeholder="Réponse alternative ${i + 1}">
+                                <button type="button" class="btn-remove-alt" onclick="this.parentElement.remove()">×</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" class="btn-add-alternative" onclick="AdminBanquesExercices.addAlternativeInput()">
+                        + Ajouter une alternative
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="AdminBanquesExercices.closeAlternativesModal()">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="AdminBanquesExercices.saveAlternatives(${rowIndex}, ${colIndex})">Enregistrer</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Focus sur le premier champ vide ou ajouter un nouveau
+        if (altAnswers.length === 0) {
+            this.addAlternativeInput();
+        }
+    },
+
+    addAlternativeInput() {
+        const list = document.getElementById('alternativesList');
+        const count = list.querySelectorAll('.alternative-item').length;
+        const div = document.createElement('div');
+        div.className = 'alternative-item';
+        div.innerHTML = `
+            <input type="text" class="alt-input" placeholder="Réponse alternative ${count + 1}">
+            <button type="button" class="btn-remove-alt" onclick="this.parentElement.remove()">×</button>
+        `;
+        list.appendChild(div);
+        div.querySelector('input').focus();
+    },
+
+    saveAlternatives(rowIndex, colIndex) {
+        const mainInput = document.querySelector(`input[data-row="${rowIndex}"][data-col="${colIndex}"]`);
+        const mainAnswer = mainInput ? mainInput.value : '';
+        const altInputs = document.querySelectorAll('#alternativesList .alt-input');
+        const alternatives = [mainAnswer];
+
+        altInputs.forEach(input => {
+            const val = input.value.trim();
+            if (val) alternatives.push(val);
+        });
+
+        this.tableBuilder.rows[rowIndex][colIndex] = alternatives.join('|');
+        this.closeAlternativesModal();
+        this.renderTableBuilder();
+    },
+
+    closeAlternativesModal() {
+        const modal = document.getElementById('alternativesModal');
+        if (modal) modal.remove();
     },
 
     onColumnChange() {
@@ -1988,23 +2104,103 @@ const AdminBanquesExercices = {
             return;
         }
 
-        container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => `
+        container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => {
+            const reponseValue = m.reponse || '';
+            const alternatives = reponseValue.split('|');
+            const mainAnswer = alternatives[0] || '';
+            const altCount = alternatives.length - 1;
+            return `
             <div class="marqueur-item">
                 <span class="marqueur-num">${i + 1}</span>
                 <div class="marqueur-coords">X: ${m.x}% Y: ${m.y}%</div>
-                <input type="text" class="form-input marqueur-reponse" data-index="${i}"
-                       value="${this.escapeHtml(m.reponse)}" placeholder="Reponse attendue...">
+                <div class="marqueur-answer-wrapper">
+                    <input type="text" class="form-input marqueur-reponse" data-index="${i}"
+                           value="${this.escapeHtml(mainAnswer)}" placeholder="Réponse attendue...">
+                    <button type="button" class="btn-alternatives-small ${altCount > 0 ? 'has-alternatives' : ''}"
+                            onclick="AdminBanquesExercices.openMarqueurAlternativesModal(${i})"
+                            title="Réponses alternatives">
+                        ±${altCount > 0 ? `<span class="alt-count">${altCount}</span>` : ''}
+                    </button>
+                </div>
                 <button type="button" class="btn-icon danger" onclick="AdminBanquesExercices.removeMarqueur(${i})">&times;</button>
             </div>
-        `).join('');
+        `;}).join('');
 
-        // Add listeners for reponse inputs
+        // Add listeners for reponse inputs (main answer only)
         container.querySelectorAll('.marqueur-reponse').forEach(input => {
             input.addEventListener('input', (e) => {
                 const idx = parseInt(e.target.dataset.index);
-                this.carteBuilder.marqueurs[idx].reponse = e.target.value;
+                this.updateMarqueurMainAnswer(idx, e.target.value);
             });
         });
+    },
+
+    updateMarqueurMainAnswer(index, newMainAnswer) {
+        const reponseValue = this.carteBuilder.marqueurs[index].reponse || '';
+        const alternatives = reponseValue.split('|');
+        alternatives[0] = newMainAnswer;
+        this.carteBuilder.marqueurs[index].reponse = alternatives.join('|');
+    },
+
+    openMarqueurAlternativesModal(index) {
+        const reponseValue = this.carteBuilder.marqueurs[index].reponse || '';
+        const alternatives = reponseValue.split('|');
+        const mainAnswer = alternatives[0] || '';
+        const altAnswers = alternatives.slice(1);
+
+        const existingModal = document.getElementById('alternativesModal');
+        if (existingModal) existingModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'alternativesModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content modal-alternatives">
+                <div class="modal-header">
+                    <h3>Réponses alternatives - Marqueur ${index + 1}</h3>
+                    <button type="button" class="modal-close" onclick="AdminBanquesExercices.closeAlternativesModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="help-text">La réponse principale est "<strong>${this.escapeHtml(mainAnswer)}</strong>". Ajoutez des réponses alternatives qui seront aussi acceptées.</p>
+                    <div id="alternativesList">
+                        ${altAnswers.map((alt, i) => `
+                            <div class="alternative-item">
+                                <input type="text" class="alt-input" value="${this.escapeHtml(alt)}" placeholder="Réponse alternative ${i + 1}">
+                                <button type="button" class="btn-remove-alt" onclick="this.parentElement.remove()">×</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" class="btn-add-alternative" onclick="AdminBanquesExercices.addAlternativeInput()">
+                        + Ajouter une alternative
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="AdminBanquesExercices.closeAlternativesModal()">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="AdminBanquesExercices.saveMarqueurAlternatives(${index})">Enregistrer</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        if (altAnswers.length === 0) {
+            this.addAlternativeInput();
+        }
+    },
+
+    saveMarqueurAlternatives(index) {
+        const mainInput = document.querySelector(`.marqueur-reponse[data-index="${index}"]`);
+        const mainAnswer = mainInput ? mainInput.value : '';
+        const altInputs = document.querySelectorAll('#alternativesList .alt-input');
+        const alternatives = [mainAnswer];
+
+        altInputs.forEach(input => {
+            const val = input.value.trim();
+            if (val) alternatives.push(val);
+        });
+
+        this.carteBuilder.marqueurs[index].reponse = alternatives.join('|');
+        this.closeAlternativesModal();
+        this.renderMarqueursList();
     },
 
     buildDataFromCarteBuilder() {
@@ -2421,6 +2617,10 @@ const AdminBanquesExercices = {
                     </div>
                 `;
             } else {
+                const reponseValue = el.reponse || '';
+                const alternatives = reponseValue.split('|');
+                const mainAnswer = alternatives[0] || '';
+                const altCount = alternatives.length - 1;
                 return `
                     <div class="tableau-element row-element" data-index="${i}" draggable="true">
                         <span class="drag-handle-small">⋮⋮</span>
@@ -2429,9 +2629,17 @@ const AdminBanquesExercices = {
                                 <input type="text" class="label-input" value="${this.escapeHtml(el.label)}"
                                        placeholder="Label (ex: Auteur)"
                                        onchange="AdminBanquesExercices.updateTableauElement(${i}, 'label', this.value)">
-                                <input type="text" class="answer-input" value="${this.escapeHtml(el.reponse || '')}"
-                                       placeholder="Réponse attendue"
-                                       onchange="AdminBanquesExercices.updateTableauElement(${i}, 'reponse', this.value)">
+                                <div class="answer-with-alternatives">
+                                    <input type="text" class="answer-input" value="${this.escapeHtml(mainAnswer)}"
+                                           data-element-index="${i}"
+                                           placeholder="Réponse attendue"
+                                           onchange="AdminBanquesExercices.updateTableauElementMainAnswer(${i}, this.value)">
+                                    <button type="button" class="btn-alternatives-small ${altCount > 0 ? 'has-alternatives' : ''}"
+                                            onclick="AdminBanquesExercices.openTableauElementAlternativesModal(${i})"
+                                            title="Réponses alternatives">
+                                        ±${altCount > 0 ? `<span class="alt-count">${altCount}</span>` : ''}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <button type="button" class="btn-remove" onclick="AdminBanquesExercices.removeTableauElement(${i})">×</button>
@@ -2443,6 +2651,79 @@ const AdminBanquesExercices = {
 
     updateTableauElement(index, field, value) {
         this.mixteBuilder.tableau.elements[index][field] = value;
+        this.updateMixtePreview();
+    },
+
+    // Gestion des alternatives pour les éléments tableau du Document Mixte
+    updateTableauElementMainAnswer(index, newMainAnswer) {
+        const el = this.mixteBuilder.tableau.elements[index];
+        const reponseValue = el.reponse || '';
+        const alternatives = reponseValue.split('|');
+        alternatives[0] = newMainAnswer;
+        el.reponse = alternatives.join('|');
+        this.updateMixtePreview();
+    },
+
+    openTableauElementAlternativesModal(index) {
+        const el = this.mixteBuilder.tableau.elements[index];
+        const reponseValue = el.reponse || '';
+        const alternatives = reponseValue.split('|');
+        const mainAnswer = alternatives[0] || '';
+        const altAnswers = alternatives.slice(1);
+
+        const existingModal = document.getElementById('alternativesModal');
+        if (existingModal) existingModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'alternativesModal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content modal-alternatives">
+                <div class="modal-header">
+                    <h3>Réponses alternatives</h3>
+                    <button type="button" class="modal-close" onclick="AdminBanquesExercices.closeAlternativesModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="help-text">La réponse principale est "<strong>${this.escapeHtml(mainAnswer)}</strong>". Ajoutez des réponses alternatives qui seront aussi acceptées.</p>
+                    <div id="alternativesList">
+                        ${altAnswers.map((alt, i) => `
+                            <div class="alternative-item">
+                                <input type="text" class="alt-input" value="${this.escapeHtml(alt)}" placeholder="Réponse alternative ${i + 1}">
+                                <button type="button" class="btn-remove-alt" onclick="this.parentElement.remove()">×</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button type="button" class="btn-add-alternative" onclick="AdminBanquesExercices.addAlternativeInput()">
+                        + Ajouter une alternative
+                    </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="AdminBanquesExercices.closeAlternativesModal()">Annuler</button>
+                    <button type="button" class="btn btn-primary" onclick="AdminBanquesExercices.saveTableauElementAlternatives(${index})">Enregistrer</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        if (altAnswers.length === 0) {
+            this.addAlternativeInput();
+        }
+    },
+
+    saveTableauElementAlternatives(index) {
+        const mainInput = document.querySelector(`input[data-element-index="${index}"]`);
+        const mainAnswer = mainInput ? mainInput.value : '';
+        const altInputs = document.querySelectorAll('#alternativesList .alt-input');
+        const alternatives = [mainAnswer];
+
+        altInputs.forEach(input => {
+            const val = input.value.trim();
+            if (val) alternatives.push(val);
+        });
+
+        this.mixteBuilder.tableau.elements[index].reponse = alternatives.join('|');
+        this.closeAlternativesModal();
+        this.renderTableauElements();
         this.updateMixtePreview();
     },
 
@@ -2521,7 +2802,10 @@ const AdminBanquesExercices = {
 
     renderMixteQuestions() {
         const container = document.getElementById('questionsListMixte');
-        container.innerHTML = this.mixteBuilder.questions.liste.map((q, i) => `
+        container.innerHTML = this.mixteBuilder.questions.liste.map((q, i) => {
+            const alternatives = q.reponses_alternatives || [];
+            const altCount = alternatives.length;
+            return `
             <div class="question-item-mixte">
                 <div class="question-header">
                     <span class="question-label">Question ${i + 1}</span>
@@ -2562,8 +2846,81 @@ const AdminBanquesExercices = {
                          data-placeholder="Réponse modèle..."
                          oninput="AdminBanquesExercices.updateMixteQuestion(${i}, 'reponse_attendue', this.innerHTML)">${q.reponse_attendue || ''}</div>
                 </div>
+                <div class="alternatives-section-mixte">
+                    <button type="button" class="btn-toggle-alternatives ${altCount > 0 ? 'has-alternatives' : ''}"
+                            onclick="AdminBanquesExercices.toggleMixteAlternatives(${i})">
+                        <span class="toggle-icon">▶</span>
+                        Réponses alternatives ${altCount > 0 ? `(${altCount})` : ''}
+                    </button>
+                    <div class="alternatives-content" id="altContent_${i}" style="display: none;">
+                        <p class="alt-help-text">Ces réponses seront aussi acceptées comme correctes (pour la validation automatique)</p>
+                        <div class="alternatives-list-mixte" id="altList_${i}">
+                            ${alternatives.map((alt, ai) => `
+                                <div class="alternative-item-mixte">
+                                    <input type="text" class="alt-input-mixte" value="${this.escapeHtml(alt)}"
+                                           onchange="AdminBanquesExercices.updateMixteAlternative(${i}, ${ai}, this.value)"
+                                           placeholder="Réponse alternative ${ai + 1}">
+                                    <button type="button" class="btn-remove-alt" onclick="AdminBanquesExercices.removeMixteAlternative(${i}, ${ai})">×</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button type="button" class="btn-add-alt-mixte" onclick="AdminBanquesExercices.addMixteAlternative(${i})">
+                            + Ajouter une alternative
+                        </button>
+                    </div>
+                </div>
             </div>
-        `).join('');
+        `;}).join('');
+    },
+
+    toggleMixteAlternatives(questionIndex) {
+        const content = document.getElementById(`altContent_${questionIndex}`);
+        const btn = content.previousElementSibling;
+        const icon = btn.querySelector('.toggle-icon');
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            icon.textContent = '▼';
+        } else {
+            content.style.display = 'none';
+            icon.textContent = '▶';
+        }
+    },
+
+    addMixteAlternative(questionIndex) {
+        if (!this.mixteBuilder.questions.liste[questionIndex].reponses_alternatives) {
+            this.mixteBuilder.questions.liste[questionIndex].reponses_alternatives = [];
+        }
+        this.mixteBuilder.questions.liste[questionIndex].reponses_alternatives.push('');
+        this.renderMixteQuestions();
+        // Réouvrir le panneau alternatives
+        const content = document.getElementById(`altContent_${questionIndex}`);
+        if (content) {
+            content.style.display = 'block';
+            const btn = content.previousElementSibling;
+            const icon = btn.querySelector('.toggle-icon');
+            if (icon) icon.textContent = '▼';
+        }
+    },
+
+    updateMixteAlternative(questionIndex, altIndex, value) {
+        if (this.mixteBuilder.questions.liste[questionIndex].reponses_alternatives) {
+            this.mixteBuilder.questions.liste[questionIndex].reponses_alternatives[altIndex] = value;
+        }
+    },
+
+    removeMixteAlternative(questionIndex, altIndex) {
+        if (this.mixteBuilder.questions.liste[questionIndex].reponses_alternatives) {
+            this.mixteBuilder.questions.liste[questionIndex].reponses_alternatives.splice(altIndex, 1);
+            this.renderMixteQuestions();
+            // Réouvrir le panneau alternatives
+            const content = document.getElementById(`altContent_${questionIndex}`);
+            if (content) {
+                content.style.display = 'block';
+                const btn = content.previousElementSibling;
+                const icon = btn.querySelector('.toggle-icon');
+                if (icon) icon.textContent = '▼';
+            }
+        }
     },
 
     updateMixteQuestion(index, field, value) {
