@@ -63,6 +63,17 @@ const EleveLayout = {
     // Menu items actif (sera mis à jour dynamiquement)
     menuItems: [],
 
+    // Feuilles communes à précharger pour navigation instantanée
+    commonSheets: [
+        'DISCIPLINES',
+        'THEMES',
+        'CHAPITRES',
+        'VIDEOS',
+        'RECOMMANDATIONS',
+        'METHODOLOGIE',
+        'BEX_CONFIG'
+    ],
+
     // Paramètres du site
     siteParams: {
         titre: 'Brikks',
@@ -378,6 +389,24 @@ const EleveLayout = {
 
         // Tracker la visite de page (non bloquant)
         this.trackPageVisit(user, pageId);
+
+        // Précharger les données communes pour navigation instantanée (non bloquant)
+        this.preloadCommonData();
+    },
+
+    /**
+     * Précharge les données communes pour que les navigations soient instantanées
+     * Utilise le cache localStorage de SheetsAPI
+     */
+    async preloadCommonData() {
+        try {
+            // Précharger en arrière-plan sans bloquer
+            await SheetsAPI.preload(this.commonSheets);
+            console.log('[EleveLayout] Common data preloaded for instant navigation');
+        } catch (error) {
+            // Ignorer les erreurs de préchargement
+            console.log('[EleveLayout] Preload error:', error);
+        }
     },
 
     /**
