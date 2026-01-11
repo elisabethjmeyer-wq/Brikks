@@ -66,12 +66,15 @@ const EleveExercices = {
         } else {
             this.showLoader('Chargement des exercices...');
             try {
-                await this.loadData();
-                await this.loadResultats();
-                // Charger historique SF si savoir-faire
+                // Charger toutes les données en parallèle pour optimiser le temps de chargement
+                const loadPromises = [
+                    this.loadData(),
+                    this.loadResultats()
+                ];
                 if (type === 'savoir-faire') {
-                    await this.loadHistoriqueSF();
+                    loadPromises.push(this.loadHistoriqueSF());
                 }
+                await Promise.all(loadPromises);
                 this.renderAccordionView();
             } catch (error) {
                 console.error('Erreur lors du chargement:', error);

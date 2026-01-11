@@ -36,10 +36,6 @@ const EleveConnaissances = {
     async init() {
         this.currentUser = await this.getCurrentUser();
 
-        // Clear cache for debugging
-        localStorage.removeItem(this.CACHE_KEY);
-        console.log('[EleveConnaissances] Cache vidé, chargement des données fraîches...');
-
         // Try cache first
         const cached = this.loadFromCache();
         if (cached) {
