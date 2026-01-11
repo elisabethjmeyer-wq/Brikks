@@ -5745,6 +5745,7 @@ function savePratiqueSF(data) {
   const sheetName = SHEETS.HISTORIQUE_PRATIQUES_SF;
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(sheetName);
+  let sheetCreated = false;
 
   // Créer la feuille si elle n'existe pas (avec nouvelles colonnes)
   if (!sheet) {
@@ -5754,6 +5755,7 @@ function savePratiqueSF(data) {
       'temps_passe', 'temps_prevu', 'date',
       'repetition_numero', 'dans_temps', 'est_entrainement_libre'
     ]);
+    sheetCreated = true;
   }
 
   // Vérifier/ajouter les nouvelles colonnes si elles n'existent pas
@@ -5801,13 +5803,22 @@ function savePratiqueSF(data) {
   // Toujours ajouter une nouvelle ligne (historique)
   sheet.appendRow(rowData);
 
+  // Retourner des infos de debug
+  const rowCount = sheet.getLastRow();
+
   return {
     success: true,
     message: 'Pratique enregistrée',
     id: id,
     est_parfait: score === 100,
     dans_temps: tempsPasse <= tempsPrevu,
-    repetition_numero: data.repetition_numero || 0
+    repetition_numero: data.repetition_numero || 0,
+    debug: {
+      sheetName: sheetName,
+      sheetCreated: sheetCreated,
+      rowCount: rowCount,
+      spreadsheetId: SPREADSHEET_ID
+    }
   };
 }
 
@@ -5825,12 +5836,12 @@ function getHistoriquePratiquesSF(data) {
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
 
   if (!sheet) {
-    return { success: true, data: [], stats: {} };
+    return { success: true, data: [], stats: {}, debug: { sheetExists: false, sheetName: sheetName } };
   }
 
   const allData = sheet.getDataRange().getValues();
   if (allData.length <= 1) {
-    return { success: true, data: [], stats: {} };
+    return { success: true, data: [], stats: {}, debug: { sheetExists: true, rowCount: allData.length, message: 'No data rows' } };
   }
 
   const headers = allData[0].map(h => String(h).toLowerCase().trim());
@@ -5967,7 +5978,14 @@ function getHistoriquePratiquesSF(data) {
   return {
     success: true,
     data: results,
-    stats: statsParExercice
+    stats: statsParExercice,
+    debug: {
+      sheetExists: true,
+      totalRows: allData.length,
+      filteredRows: results.length,
+      exerciceCount: Object.keys(statsParExercice).length,
+      eleve_id: data.eleve_id
+    }
   };
 }
 
