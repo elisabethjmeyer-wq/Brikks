@@ -851,6 +851,9 @@ const EleveExercices = {
      * Render exercise view
      */
     renderExercise() {
+        // Réinitialiser le flag de validation
+        this.isValidating = false;
+
         const exo = this.currentExercise;
         const banque = this.currentBanque;
         const format = this.formats.find(f => f.id === exo.format_id);
@@ -1390,6 +1393,17 @@ const EleveExercices = {
 
     async validateExercise() {
         if (!this.currentExercise) return;
+
+        // Empêcher les clics multiples
+        if (this.isValidating) return;
+        this.isValidating = true;
+
+        // Désactiver le bouton et afficher le chargement
+        const btnVerifier = document.getElementById('btnVerifier');
+        if (btnVerifier) {
+            btnVerifier.disabled = true;
+            btnVerifier.innerHTML = '<span class="spinner-small"></span> Validation...';
+        }
 
         this.stopTimer();
 
