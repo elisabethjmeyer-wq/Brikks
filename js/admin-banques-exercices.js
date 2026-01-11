@@ -1418,22 +1418,24 @@ const AdminBanquesExercices = {
             editable: def.querySelector('.col-editable-check').checked
         }));
 
+        // Sauvegarder les anciennes valeurs (avec alternatives) avant de reconstruire
+        const oldRows = this.tableBuilder.rows || [];
+
         // Read rows - préserver les alternatives pour les colonnes éditables
         const tbody = document.getElementById('tableBuilderBody');
         const rows = tbody.querySelectorAll('tr[data-row]');
         this.tableBuilder.rows = Array.from(rows).map((tr, rowIndex) => {
             return this.tableBuilder.columns.map((col, colIndex) => {
                 if (col.editable) {
-                    // Pour les colonnes éditables, la valeur complète (avec alternatives) est déjà dans tableBuilder
-                    // On lit juste la valeur principale depuis l'input pour la mettre à jour
+                    // Pour les colonnes éditables, préserver les alternatives
                     const input = tr.querySelector(`input[data-row="${rowIndex}"][data-col="${colIndex}"]`);
                     if (input) {
-                        const currentValue = this.tableBuilder.rows[rowIndex] ? this.tableBuilder.rows[rowIndex][colIndex] || '' : '';
+                        const currentValue = oldRows[rowIndex] ? oldRows[rowIndex][colIndex] || '' : '';
                         const alternatives = currentValue.split('|');
                         alternatives[0] = input.value || '';
                         return alternatives.join('|');
                     }
-                    return this.tableBuilder.rows[rowIndex] ? this.tableBuilder.rows[rowIndex][colIndex] || '' : '';
+                    return oldRows[rowIndex] ? oldRows[rowIndex][colIndex] || '' : '';
                 } else {
                     // Pour les colonnes non-éditables, lire directement depuis le DOM
                     const inputs = tr.querySelectorAll('td input[type="text"]');
