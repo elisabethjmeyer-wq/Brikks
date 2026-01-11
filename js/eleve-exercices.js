@@ -219,10 +219,18 @@ const EleveExercices = {
         if (this.currentType !== 'savoir-faire') return;
 
         try {
+            console.log('[SF] Chargement historique pour eleve_id:', this.currentUser.id);
             const result = await this.callAPI('getHistoriquePratiquesSF', { eleve_id: this.currentUser.id });
+            console.log('[SF] Réponse getHistoriquePratiquesSF:', result);
+            if (result.debug) {
+                console.log('[SF] DEBUG - Sheet exists:', result.debug.sheetExists,
+                            '| Total rows:', result.debug.totalRows,
+                            '| Filtered:', result.debug.filteredRows);
+            }
             if (result.success && result.stats) {
                 this.statsSF = result.stats;
                 this.saveHistoriqueSFToCache(this.statsSF);
+                console.log('[SF] Stats chargées:', Object.keys(this.statsSF).length, 'exercices');
             }
         } catch (e) {
             console.error('[EleveExercices] Erreur chargement historique SF:', e);
@@ -2235,7 +2243,11 @@ const EleveExercices = {
                 try {
                     const sfResult = await this.callAPI('savePratiqueSF', pratiqueData);
                     console.log('[SF] Réponse backend savePratiqueSF:', sfResult);
-                    if (!sfResult.success) {
+                    if (sfResult.success) {
+                        console.log('[SF] DEBUG - Sheet:', sfResult.debug?.sheetName,
+                                    '| Created:', sfResult.debug?.sheetCreated,
+                                    '| Rows:', sfResult.debug?.rowCount);
+                    } else {
                         console.error('[SF] Erreur backend:', sfResult.error);
                     }
                 } catch (e) {
