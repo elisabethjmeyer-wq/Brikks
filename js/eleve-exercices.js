@@ -1617,10 +1617,29 @@ const EleveExercices = {
     },
 
     async saveResult(correct, total, percent) {
-        if (!this.currentUser || !this.currentUser.id || !this.currentExercise) return;
+        console.log('[SF] saveResult appelé - currentUser:', this.currentUser, 'currentExercise:', this.currentExercise?.id);
 
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
-        const tempsPrevu = this.currentExercise.duree || 300; // duree est déjà en secondes
+        const tempsPrevu = this.currentExercise?.duree || 300; // duree est déjà en secondes
+
+        // Pour les savoir-faire, TOUJOURS mettre à jour les stats locales (même sans user pour preview)
+        if (this.currentType === 'savoir-faire' && this.currentExercise) {
+            const pratiqueData = {
+                eleve_id: this.currentUser?.id || 'preview',
+                exercice_id: this.currentExercise.id,
+                banque_id: this.currentExercise.banque_id,
+                score: percent,
+                temps_passe: timeSpent,
+                temps_prevu: tempsPrevu
+            };
+            this.updateLocalStatsSF(pratiqueData);
+        }
+
+        // Ne pas sauvegarder au backend si pas d'utilisateur
+        if (!this.currentUser || !this.currentUser.id || !this.currentExercise) {
+            console.log('[SF] Pas de sauvegarde backend (preview mode ou user manquant)');
+            return;
+        }
 
         const resultData = {
             eleve_id: this.currentUser.id,
@@ -1632,20 +1651,6 @@ const EleveExercices = {
             temps_passe: timeSpent,
             date: new Date().toISOString()
         };
-
-        // Pour les savoir-faire, toujours mettre à jour les stats locales immédiatement
-        // (pour que l'écran de résultat affiche les bonnes infos même si l'API échoue)
-        if (this.currentType === 'savoir-faire') {
-            const pratiqueData = {
-                eleve_id: this.currentUser.id,
-                exercice_id: this.currentExercise.id,
-                banque_id: this.currentExercise.banque_id,
-                score: percent,
-                temps_passe: timeSpent,
-                temps_prevu: tempsPrevu
-            };
-            this.updateLocalStatsSF(pratiqueData);
-        }
 
         try {
             // Sauvegarder dans l'ancien système (pour compatibilité)
@@ -1664,10 +1669,16 @@ const EleveExercices = {
                     temps_passe: timeSpent,
                     temps_prevu: tempsPrevu
                 };
-                // Tenter de sauvegarder au backend (ne bloque pas si échoue)
-                this.callAPI('savePratiqueSF', pratiqueData).catch(e => {
-                    console.warn('[EleveExercices] Sauvegarde SF backend échouée:', e);
-                });
+                console.log('[SF] Envoi sauvegarde pratique au backend:', pratiqueData);
+                try {
+                    const sfResult = await this.callAPI('savePratiqueSF', pratiqueData);
+                    console.log('[SF] Réponse backend savePratiqueSF:', sfResult);
+                    if (!sfResult.success) {
+                        console.error('[SF] Erreur backend:', sfResult.error);
+                    }
+                } catch (e) {
+                    console.error('[SF] Erreur appel savePratiqueSF:', e);
+                }
             }
         } catch (e) {
             console.error('[EleveExercices] Erreur sauvegarde résultat:', e);
