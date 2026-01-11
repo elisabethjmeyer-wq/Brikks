@@ -85,9 +85,9 @@ const EleveExercices = {
      */
     async getCurrentUser() {
         try {
-            if (typeof Auth !== 'undefined' && Auth.user) return Auth.user;
-            const session = localStorage.getItem('brikks_session');
-            if (session) return JSON.parse(session);
+            // Utiliser sessionStorage avec la bonne clé (comme les autres modules)
+            const userData = sessionStorage.getItem(CONFIG.STORAGE_KEYS.USER);
+            if (userData) return JSON.parse(userData);
             return null;
         } catch (e) {
             return null;
