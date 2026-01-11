@@ -3967,3 +3967,323 @@
     align-items: center;
     gap: 4px;
 }
+
+/* ===== RÉPONSES ALTERNATIVES ===== */
+.cell-with-alternatives {
+    padding: 4px !important;
+}
+
+.cell-answer-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cell-answer-wrapper .main-answer-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.btn-alternatives {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--gray-300);
+    background: var(--gray-50);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.15s ease;
+}
+
+.btn-alternatives:hover {
+    background: var(--accent-blue-light);
+    border-color: var(--accent-blue);
+}
+
+.btn-alternatives.has-alternatives {
+    background: var(--accent-green-light);
+    border-color: var(--accent-green);
+}
+
+.btn-alternatives .alt-icon {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-600);
+}
+
+.btn-alternatives.has-alternatives .alt-icon {
+    color: var(--accent-green);
+}
+
+.btn-alternatives .alt-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--accent-green);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+/* Modal alternatives */
+.modal-alternatives {
+    max-width: 500px;
+}
+
+.modal-alternatives .help-text {
+    background: var(--accent-blue-light);
+    color: var(--gray-700);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.modal-alternatives .help-text strong {
+    color: var(--accent-blue);
+}
+
+#alternativesList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.alternative-item {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.alternative-item .alt-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid var(--gray-200);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.15s ease;
+}
+
+.alternative-item .alt-input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.btn-remove-alt {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--accent-red-light);
+    color: var(--accent-red);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-remove-alt:hover {
+    background: var(--accent-red);
+    color: white;
+}
+
+.btn-add-alternative {
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed var(--gray-300);
+    background: transparent;
+    color: var(--gray-600);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+}
+
+.btn-add-alternative:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    background: var(--accent-blue-light);
+}
+
+/* ===== ALTERNATIVES DOCUMENT MIXTE ===== */
+.alternatives-section-mixte {
+    margin-top: 12px;
+    border-top: 1px solid var(--gray-200);
+    padding-top: 12px;
+}
+
+.btn-toggle-alternatives {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    width: 100%;
+    text-align: left;
+}
+
+.btn-toggle-alternatives:hover {
+    background: var(--gray-100);
+}
+
+.btn-toggle-alternatives.has-alternatives {
+    background: var(--accent-green-light);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+.btn-toggle-alternatives .toggle-icon {
+    font-size: 10px;
+    transition: transform 0.15s ease;
+}
+
+.alternatives-content {
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--gray-50);
+    border-radius: 8px;
+}
+
+.alt-help-text {
+    font-size: 12px;
+    color: var(--gray-500);
+    margin: 0 0 12px 0;
+    font-style: italic;
+}
+
+.alternatives-list-mixte {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.alternative-item-mixte {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.alt-input-mixte {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.alt-input-mixte:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-add-alt-mixte {
+    width: 100%;
+    padding: 8px;
+    border: 1px dashed var(--gray-300);
+    background: transparent;
+    color: var(--gray-500);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s ease;
+}
+
+.btn-add-alt-mixte:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+    background: var(--accent-blue-light);
+}
+
+/* Alternatives button small (for inline use) */
+.answer-with-alternatives {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.answer-with-alternatives .answer-input {
+    flex: 1;
+}
+
+.btn-alternatives-small {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--gray-300);
+    background: var(--gray-50);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.15s ease;
+}
+
+.btn-alternatives-small:hover {
+    background: var(--accent-blue-light);
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.btn-alternatives-small.has-alternatives {
+    background: var(--accent-green-light);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+.btn-alternatives-small .alt-count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--accent-green);
+    color: white;
+    font-size: 9px;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Marqueur answer wrapper for carte cliquable */
+.marqueur-answer-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+}
+
+.marqueur-answer-wrapper .marqueur-reponse {
+    flex: 1;
+}
