@@ -1471,14 +1471,15 @@ const EleveExercices = {
         // Après validation : afficher les boutons "Corrigé" et "Recommencer"
         const btnCorrige = document.getElementById('btnCorrige');
         const btnRestart = document.getElementById('btnRestart');
-        const btnVerifier = document.getElementById('btnVerifier');
 
         if (btnCorrige) btnCorrige.style.display = 'inline-flex';
         if (btnRestart) btnRestart.style.display = 'inline-flex';
 
-        // Modifier le bouton "Vérifier" pour permettre de re-vérifier
+        // Modifier le bouton "Vérifier" pour permettre de re-vérifier (réutiliser la variable existante)
         if (btnVerifier) {
+            btnVerifier.disabled = false;
             btnVerifier.textContent = 'Vérifier à nouveau';
+            this.isValidating = false;
         }
     },
 
