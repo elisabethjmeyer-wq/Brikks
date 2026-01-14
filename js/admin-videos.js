@@ -502,6 +502,9 @@ const AdminVideos = {
             // Invalider le cache AVANT de recharger les données
             SheetsAPI.invalidateSheet(CONFIG.SHEETS.VIDEOS);
 
+            // Attendre que Google Sheets propage les changements (cache serveur)
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
             // Recharger les données
             await this.loadData();
             this.renderFeaturedVideo();
@@ -585,6 +588,9 @@ const AdminVideos = {
 
             // Invalider le cache AVANT de recharger les données
             SheetsAPI.invalidateSheet(CONFIG.SHEETS.VIDEOS);
+
+            // Attendre que Google Sheets propage les changements (cache serveur)
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
             // Recharger les données
             await this.loadData();
