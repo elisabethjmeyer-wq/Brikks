@@ -1789,11 +1789,33 @@ function createVideo(data) {
     return { success: false, error: 'Le titre et l\'URL sont requis' };
   }
 
-  // Générer un ID unique
-  const id = videoData.id || 'video_' + new Date().getTime();
-
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0];
+
+  // Vérifier les doublons (même URL ou même titre)
+  const urlCol = findColumnIndex(headers, 'url');
+  const titreCol = findColumnIndex(headers, 'titre');
+
+  if (urlCol >= 0 || titreCol >= 0) {
+    for (let i = 1; i < allData.length; i++) {
+      const rowUrl = urlCol >= 0 ? String(allData[i][urlCol] || '').trim() : '';
+      const rowTitre = titreCol >= 0 ? String(allData[i][titreCol] || '').trim() : '';
+      const newUrl = String(videoData.url || '').trim();
+      const newTitre = String(videoData.titre || '').trim();
+
+      // Vérifier si l'URL existe déjà
+      if (rowUrl && newUrl && rowUrl === newUrl) {
+        return { success: false, error: 'Une vidéo avec cette URL existe déjà' };
+      }
+      // Vérifier si le titre existe déjà
+      if (rowTitre && newTitre && rowTitre.toLowerCase() === newTitre.toLowerCase()) {
+        return { success: false, error: 'Une vidéo avec ce titre existe déjà' };
+      }
+    }
+  }
+
+  // Générer un ID unique
+  const id = videoData.id || 'video_' + new Date().getTime();
 
   // Construire la ligne selon les colonnes existantes
   const newRow = [];
@@ -1843,12 +1865,16 @@ function updateVideo(data) {
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0];
 
-  // Trouver la ligne avec cet ID
-  const idCol = headers.indexOf('id');
+  // Trouver la ligne avec cet ID (utiliser findColumnIndex pour ignorer la casse)
+  const idCol = findColumnIndex(headers, 'id');
+  if (idCol === -1) {
+    return { success: false, error: 'Colonne ID non trouvée dans VIDEOS' };
+  }
+
   let rowIndex = -1;
 
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][idCol] === videoData.id) {
+    if (String(allData[i][idCol]).trim() === String(videoData.id).trim()) {
       rowIndex = i + 1;
       break;
     }
@@ -1858,11 +1884,11 @@ function updateVideo(data) {
     return { success: false, error: 'Vidéo non trouvée: ' + videoData.id };
   }
 
-  // Mettre à jour les colonnes spécifiées
-  const updates = ['titre', 'description', 'url', 'discipline_id', 'tags', 'est_featured', 'date_publication', 'ordre'];
+  // Mettre à jour les colonnes spécifiées (utiliser findColumnIndex pour ignorer la casse)
+  const updates = ['titre', 'description', 'description_html', 'url', 'discipline_id', 'tags', 'est_featured', 'date_publication', 'ordre'];
   updates.forEach(col => {
     if (videoData[col] !== undefined) {
-      const colIndex = headers.indexOf(col);
+      const colIndex = findColumnIndex(headers, col);
       if (colIndex >= 0) {
         sheet.getRange(rowIndex, colIndex + 1).setValue(videoData[col]);
       }

@@ -133,5 +133,21 @@ const SheetsAPI = {
             }
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
+    },
+
+    /**
+     * Invalide le cache pour un onglet spécifique
+     * @param {string} sheetName - Nom de l'onglet à invalider
+     */
+    invalidateSheet(sheetName) {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(this._cachePrefix + sheetName)) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log(`Cache invalidé pour: ${sheetName}`);
     }
 };

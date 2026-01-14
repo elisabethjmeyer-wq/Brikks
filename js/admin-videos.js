@@ -447,10 +447,19 @@ const AdminVideos = {
         return null;
     },
 
+    // Flag pour éviter les doubles soumissions
+    _isSaving: false,
+
     /**
      * Sauvegarde une vidéo
      */
     async saveVideo() {
+        // Protection contre les clics multiples
+        if (this._isSaving) {
+            console.log('Sauvegarde déjà en cours, ignoré');
+            return;
+        }
+
         const titre = document.getElementById('videoTitre').value.trim();
         const url = document.getElementById('videoUrl').value.trim();
         const descEl = document.getElementById('videoDescription');
@@ -465,6 +474,7 @@ const AdminVideos = {
             return;
         }
 
+        this._isSaving = true;
         const saveBtn = document.getElementById('saveVideoBtn');
         saveBtn.disabled = true;
         saveBtn.textContent = 'Enregistrement...';
@@ -489,6 +499,9 @@ const AdminVideos = {
                 await this.callWebApp('createVideo', videoData);
             }
 
+            // Invalider le cache AVANT de recharger les données
+            SheetsAPI.invalidateSheet(CONFIG.SHEETS.VIDEOS);
+
             // Recharger les données
             await this.loadData();
             this.renderFeaturedVideo();
@@ -500,6 +513,7 @@ const AdminVideos = {
             console.error('Erreur lors de la sauvegarde:', error);
             alert('Erreur lors de la sauvegarde: ' + error.message);
         } finally {
+            this._isSaving = false;
             saveBtn.disabled = false;
             saveBtn.textContent = '✓ Enregistrer';
         }
@@ -539,11 +553,20 @@ const AdminVideos = {
         this.deletingVideoId = null;
     },
 
+    // Flag pour éviter les doubles suppressions
+    _isDeleting: false,
+
     /**
      * Supprime une vidéo
      */
     async deleteVideo() {
         console.log('deleteVideo appelé, deletingVideoId:', this.deletingVideoId);
+
+        // Protection contre les clics multiples
+        if (this._isDeleting) {
+            console.log('Suppression déjà en cours, ignoré');
+            return;
+        }
 
         if (!this.deletingVideoId || this.deletingVideoId === 'undefined') {
             console.error('deletingVideoId invalide:', this.deletingVideoId);
@@ -551,6 +574,7 @@ const AdminVideos = {
             return;
         }
 
+        this._isDeleting = true;
         const deleteBtn = document.getElementById('confirmDeleteBtn');
         deleteBtn.disabled = true;
         deleteBtn.textContent = 'Suppression...';
@@ -558,6 +582,9 @@ const AdminVideos = {
         try {
             console.log('Appel WebApp deleteVideo avec id:', this.deletingVideoId);
             await this.callWebApp('deleteVideo', { id: this.deletingVideoId });
+
+            // Invalider le cache AVANT de recharger les données
+            SheetsAPI.invalidateSheet(CONFIG.SHEETS.VIDEOS);
 
             // Recharger les données
             await this.loadData();
@@ -569,6 +596,7 @@ const AdminVideos = {
             console.error('Erreur lors de la suppression:', error);
             alert('Erreur lors de la suppression: ' + error.message);
         } finally {
+            this._isDeleting = false;
             deleteBtn.disabled = false;
             deleteBtn.textContent = '🗑️ Supprimer';
         }
@@ -595,6 +623,9 @@ const AdminVideos = {
 
             this.featuredVideoId = videoId;
             this.selectionMode = 'manual';
+
+            // Invalider le cache AVANT de recharger les données
+            SheetsAPI.invalidateSheet(CONFIG.SHEETS.VIDEOS);
 
             // Recharger
             await this.loadData();
@@ -666,9 +697,12 @@ const AdminVideos = {
                 this.selectionMode = 'auto';
                 this.featuredVideoId = this.videos[0]?.id || null;
             } else {
-                // Mode manuel
+                // Mode manuel (setFeatured invalide déjà le cache)
                 await this.setFeatured(selected.value);
             }
+
+            // Invalider le cache AVANT de recharger les données
+            SheetsAPI.invalidateSheet(CONFIG.SHEETS.VIDEOS);
 
             await this.loadData();
             this.renderFeaturedVideo();
