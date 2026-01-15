@@ -81,7 +81,8 @@ const EleveAccueil = {
         // Slide vidéo
         if (this.featuredVideo) {
             const v = this.featuredVideo;
-            const thumb = this.getThumbnail(v.url);
+            // Priorité : thumbnail_url personnalisée > génération auto depuis URL
+            const thumb = v.thumbnail_url || v.image_url || this.getThumbnail(v.url);
             const embedUrl = this.getEmbedUrl(v.url);
             slides.push(`
                 <div class="slide slide-video" data-type="video">

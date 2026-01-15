@@ -44,7 +44,8 @@
 .slide-visual-container {
     position: relative;
     aspect-ratio: 16/10;
-    background: #000;
+    /* Fallback dégradé visible si l'image ne charge pas */
+    background: linear-gradient(135deg, var(--primary), var(--accent-purple, #8b5cf6));
 }
 
 /* Visual (image/thumbnail) */
@@ -53,7 +54,8 @@
     inset: 0;
     background-size: cover;
     background-position: center;
-    background-color: var(--gray-800);
+    /* Fallback dégradé au lieu de noir */
+    background-color: transparent;
     cursor: pointer;
     overflow: hidden;
 }
