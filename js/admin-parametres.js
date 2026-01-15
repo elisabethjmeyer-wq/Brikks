@@ -658,6 +658,10 @@ const AdminParametres = {
             const menuResult = await this.postToAppsScript('updateMenuConfig', menuItems);
             console.log('[Parametres] Menu saved:', menuResult);
 
+            // Vider le cache pour que les nouvelles valeurs soient utilisées immédiatement
+            SheetsAPI.clearCache();
+            console.log('[Parametres] Cache cleared');
+
             this.hasChanges = false;
             document.getElementById('saveBar')?.classList.remove('show');
             alert('✅ Paramètres enregistrés !');
