@@ -274,11 +274,11 @@ const EleveAccueil = {
     // Helpers
     getThumbnail(url) {
         if (!url) return '';
-        // Loom - utilise l'API oembed pour obtenir la vraie miniature
+        // Loom - essayer plusieurs formats de miniature
         const loom = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
         if (loom) {
-            // Format standard Loom thumbnail
-            return `https://cdn.loom.com/sessions/thumbnails/${loom[1]}-00001.jpg`;
+            // Format avec bouton play intégré (plus fiable)
+            return `https://cdn.loom.com/sessions/thumbnails/${loom[1]}-with-play.gif`;
         }
         // YouTube
         const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
