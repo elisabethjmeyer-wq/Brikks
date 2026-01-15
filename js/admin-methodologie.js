@@ -36,10 +36,10 @@ const AdminMethodologie = {
     },
 
     async loadData() {
-        const [items, progression, bexConfig] = await Promise.all([
+        // Charger les données principales (obligatoires)
+        const [items, progression] = await Promise.all([
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.PROGRESSION_METHODOLOGIE),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.BEX_CONFIG)
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.PROGRESSION_METHODOLOGIE)
         ]);
 
         // Filtrer les items sans ID valide et trier par ordre
@@ -54,7 +54,18 @@ const AdminMethodologie = {
             .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
 
         this.progression = progression || [];
-        this.bexConfig = bexConfig || [];
+
+        // Charger BEX_CONFIG de manière optionnelle (ne bloque pas si absent)
+        try {
+            if (CONFIG.SHEETS.BEX_CONFIG) {
+                this.bexConfig = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.BEX_CONFIG) || [];
+            } else {
+                this.bexConfig = [];
+            }
+        } catch (e) {
+            console.log('[AdminMethodologie] BEX_CONFIG non disponible, fonctionnalité désactivée');
+            this.bexConfig = [];
+        }
 
         console.log('Items méthodologie chargés:', this.items.length);
         console.log('BEX config chargé:', this.bexConfig.length);

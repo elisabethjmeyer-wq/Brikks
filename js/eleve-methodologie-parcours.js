@@ -43,15 +43,26 @@ const EleveMethodologieParcours = {
     },
 
     async loadData() {
-        const [items, progression, bexConfig] = await Promise.all([
+        // Charger les données principales (obligatoires)
+        const [items, progression] = await Promise.all([
             SheetsAPI.fetchAndParse(CONFIG.SHEETS.METHODOLOGIE),
-            this.loadProgression(),
-            SheetsAPI.fetchAndParse(CONFIG.SHEETS.BEX_CONFIG)
+            this.loadProgression()
         ]);
 
         this.items = (items || []).sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
         this.progression = progression || [];
-        this.bexConfig = bexConfig || [];
+
+        // Charger BEX_CONFIG de manière optionnelle (ne bloque pas si absent)
+        try {
+            if (CONFIG.SHEETS.BEX_CONFIG) {
+                this.bexConfig = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.BEX_CONFIG) || [];
+            } else {
+                this.bexConfig = [];
+            }
+        } catch (e) {
+            console.log('[EleveMethodologieParcours] BEX_CONFIG non disponible, fonctionnalité désactivée');
+            this.bexConfig = [];
+        }
     },
 
     buildBexMaps() {
