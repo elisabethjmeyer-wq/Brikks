@@ -151,6 +151,9 @@ const EleveChapitre = {
                 date: new Date().toISOString().split('T')[0]
             });
 
+            // Vider le cache pour que la progression soit à jour partout
+            SheetsAPI.clearCache();
+
             this.isCompleted = true;
             this.updateCompletionButton();
             this.showNotification('Chapitre marqué comme terminé !', 'success');
