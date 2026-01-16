@@ -40,6 +40,9 @@ const EleveConnaissances = {
         const cached = this.loadFromCache();
         if (cached) {
             this.applyData(cached);
+            // IMPORTANT: Toujours charger les progressions AVANT de rendre
+            // Sinon tous les entraînements apparaissent comme "Nouveau"
+            await this.loadProgressions();
             this.renderAccordionView();
             this.refreshDataInBackground();
         } else {
