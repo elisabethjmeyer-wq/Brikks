@@ -748,6 +748,8 @@ const AdminLecons = {
         const result = await this.callWebApp('deleteChapter', { id: chapitreId });
 
         if (result.success) {
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
             this.showNotification('Chapitre supprimé avec succès', 'success');
             await this.loadData();
             this.render();
@@ -772,6 +774,8 @@ const AdminLecons = {
         const result = await this.callWebApp('deleteTheme', { id: themeId });
 
         if (result.success) {
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
             this.showNotification('Thème supprimé avec succès', 'success');
             await this.loadData();
             this.render();
@@ -809,6 +813,8 @@ const AdminLecons = {
         }
 
         if (result.success) {
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
             this.showNotification(this.editingThemeId ? 'Thème modifié' : 'Thème créé', 'success');
             closeModal('modal-theme');
             this.resetThemeForm();
@@ -873,6 +879,8 @@ const AdminLecons = {
         }
 
         if (result.success) {
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
             const chapterId = this.editingChapterId || result.id;
 
             // Sauvegarder les supports

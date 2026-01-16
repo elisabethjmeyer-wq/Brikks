@@ -639,6 +639,9 @@ const AdminUtilisateurs = {
             const action = userId ? 'updateUser' : 'createUser';
             await this.postToAppsScript(action, userData);
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             // Mettre à jour localement
             if (userId) {
                 const index = this.users.findIndex(u => u.id === userId);
@@ -743,6 +746,9 @@ const AdminUtilisateurs = {
 
             await this.postToAppsScript('deleteUser', { id: userId });
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             // Supprimer localement
             this.users = this.users.filter(u => u.id !== userId);
 
@@ -844,6 +850,9 @@ const AdminUtilisateurs = {
                 annee_scolaire: new Date().getFullYear() + '-' + (new Date().getFullYear() + 1)
             });
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             // Ajouter localement
             const newClasse = { id: result.id, nom: name };
             this.classes.push(newClasse);
@@ -889,6 +898,9 @@ const AdminUtilisateurs = {
         try {
             await this.postToAppsScript('deleteClasse', { id: classeId });
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             // Supprimer localement
             this.classes = this.classes.filter(c => c.id !== classeId);
             delete this.classesMap[classeId];
@@ -930,6 +942,9 @@ const AdminUtilisateurs = {
                 nom: name,
                 type: 'standard'
             });
+
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
 
             // Ajouter localement
             const newGroupe = { id: result.id, nom: name };
@@ -975,6 +990,9 @@ const AdminUtilisateurs = {
 
         try {
             await this.postToAppsScript('deleteGroupe', { id: groupeId });
+
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
 
             // Supprimer localement
             this.groupes = this.groupes.filter(g => g.id !== groupeId);

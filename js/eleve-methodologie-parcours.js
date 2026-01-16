@@ -806,6 +806,9 @@ const EleveMethodologieParcours = {
                 item_id: this.currentItem.id
             });
 
+            // Vider le cache pour que la progression soit à jour
+            SheetsAPI.clearCache();
+
             // Mettre à jour localement
             this.progression.push({
                 eleve_id: this.user.id,

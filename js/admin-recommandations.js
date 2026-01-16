@@ -394,6 +394,9 @@ const AdminRecommandations = {
                 await this.callWebApp('createRecommandation', recoData);
             }
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             // Recharger les données
             await this.loadData();
             this.renderFeaturedReco();
@@ -443,6 +446,9 @@ const AdminRecommandations = {
         try {
             await this.callWebApp('deleteRecommandation', { id: this.deletingRecoId });
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             // Recharger les données
             await this.loadData();
             this.renderFeaturedReco();
@@ -476,6 +482,9 @@ const AdminRecommandations = {
                 id: recoId,
                 est_featured: 'TRUE'
             });
+
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
 
             this.featuredRecoId = recoId;
             this.selectionMode = 'manual';
@@ -552,6 +561,8 @@ const AdminRecommandations = {
                 }
                 this.selectionMode = 'auto';
                 this.featuredRecoId = this.recos[0]?.id || null;
+                // Vider le cache pour que les modifications soient visibles immédiatement
+                SheetsAPI.clearCache();
             } else {
                 // Mode manuel
                 await this.setFeatured(selected.value);
