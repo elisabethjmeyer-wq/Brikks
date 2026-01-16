@@ -346,6 +346,9 @@ const AdminBanquesQuestions = {
                 await this.apiCall('createBanqueQuestions', { titre, description, theme_id, chapitre_id });
             }
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             await this.loadData();
             this.render();
             this.closeBanqueModal();
@@ -674,6 +677,9 @@ const AdminBanquesQuestions = {
                 await this.apiCall('createQuestionConnaissances', data);
             }
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             await this.loadData();
             this.renderQuestions();
             this.updateStats();
@@ -926,6 +932,9 @@ const AdminBanquesQuestions = {
             } else {
                 await this.apiCall('deleteQuestionConnaissances', { id });
             }
+
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
 
             await this.loadData();
             this.render();

@@ -672,6 +672,9 @@ const AdminFAQ = {
                 await this.callWebApp('createQuestionFAQ', questionData);
             }
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             await this.loadData();
             this.renderStats();
             this.renderCategoryFilter();
@@ -797,6 +800,9 @@ const AdminFAQ = {
                 ordre: String(maxOrder + 1)
             });
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             await this.loadData();
             this.renderStats();
             this.renderCategoryFilter();
@@ -877,6 +883,9 @@ const AdminFAQ = {
             } else if (this.deletingItemType === 'category') {
                 await this.callWebApp('deleteCategorieFAQ', { id: this.deletingItemId });
             }
+
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
 
             await this.loadData();
             this.renderStats();

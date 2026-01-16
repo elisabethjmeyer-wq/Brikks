@@ -489,6 +489,9 @@ const AdminVideos = {
                 await this.callWebApp('createVideo', videoData);
             }
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             // Recharger les données
             await this.loadData();
             this.renderFeaturedVideo();
@@ -559,6 +562,9 @@ const AdminVideos = {
             console.log('Appel WebApp deleteVideo avec id:', this.deletingVideoId);
             await this.callWebApp('deleteVideo', { id: this.deletingVideoId });
 
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
+
             // Recharger les données
             await this.loadData();
             this.renderFeaturedVideo();
@@ -592,6 +598,9 @@ const AdminVideos = {
                 id: videoId,
                 est_featured: 'TRUE'
             });
+
+            // Vider le cache pour que les modifications soient visibles immédiatement
+            SheetsAPI.clearCache();
 
             this.featuredVideoId = videoId;
             this.selectionMode = 'manual';
@@ -665,6 +674,8 @@ const AdminVideos = {
                 }
                 this.selectionMode = 'auto';
                 this.featuredVideoId = this.videos[0]?.id || null;
+                // Vider le cache pour que les modifications soient visibles immédiatement
+                SheetsAPI.clearCache();
             } else {
                 // Mode manuel
                 await this.setFeatured(selected.value);
