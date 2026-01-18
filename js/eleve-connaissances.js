@@ -777,55 +777,94 @@ const EleveConnaissances = {
     /**
      * Render the content of an etape based on its format
      * Jointure: etape → etapeQuestions → questionsConnaissances (pour obtenir donnees)
+     * Supporte les modes: 'manuel' (questions liées) et 'aleatoire' (tirage au sort)
      */
     renderEtapeContent(etape, questions) {
         const format = etape.format_code;
 
         console.log('[EleveConnaissances] renderEtapeContent - etape:', etape);
         console.log('[EleveConnaissances] renderEtapeContent - format:', format);
+        console.log('[EleveConnaissances] renderEtapeContent - mode_selection:', etape.mode_selection);
 
-        // 1. Trouver les questions liées à cette étape via ETAPE_QUESTIONS_CONN
-        const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
-            String(eq.etape_id) === String(etape.id)
-        );
-        console.log('[EleveConnaissances] Questions liées (refs):', linkedQuestionRefs);
+        let allQuestionContents = [];
 
-        // 2. Récupérer le contenu de TOUTES les questions depuis QUESTIONS_CONNAISSANCES
-        const allQuestionContents = [];
-        for (const questionRef of linkedQuestionRefs) {
-            console.log('[EleveConnaissances] Recherche question_id:', questionRef.question_id);
+        // Vérifier le mode de sélection
+        if (etape.mode_selection === 'aleatoire') {
+            // MODE ALÉATOIRE : Tirer au sort parmi les questions disponibles
+            const nbQuestions = parseInt(etape.nb_questions) || 5;
+            const banqueSourceId = etape.banque_source_id;
 
-            let questionContent = this.questionsConnaissances.find(q =>
-                String(q.id) === String(questionRef.question_id)
-            );
+            console.log('[EleveConnaissances] Mode aléatoire - nb_questions:', nbQuestions, 'banque_source_id:', banqueSourceId);
 
-            // FALLBACK: Si question non trouvée par ID, chercher par format/type
-            if (!questionContent && format) {
-                console.warn(`[EleveConnaissances] Question ID ${questionRef.question_id} non trouvée! Recherche fallback par type ${format}...`);
-                questionContent = this.questionsConnaissances.find(q => q.type === format);
+            // Filtrer les questions par format et éventuellement par banque
+            let availableQuestions = this.questionsConnaissances.filter(q => q.type === format);
+
+            if (banqueSourceId) {
+                availableQuestions = availableQuestions.filter(q => String(q.banque_id) === String(banqueSourceId));
             }
 
-            if (questionContent) {
-                let donnees = questionContent.donnees || {};
-                // Parse si c'est une string JSON
+            console.log('[EleveConnaissances] Questions disponibles pour tirage:', availableQuestions.length);
+
+            // Mélanger et prendre le nombre demandé
+            const shuffled = this.shuffleArray([...availableQuestions]);
+            const selected = shuffled.slice(0, nbQuestions);
+
+            console.log('[EleveConnaissances] Questions tirées au sort:', selected.length);
+
+            // Convertir en format attendu
+            for (const q of selected) {
+                let donnees = q.donnees || {};
                 if (typeof donnees === 'string') {
                     try {
                         donnees = JSON.parse(donnees);
                     } catch (e) {
-                        console.error('[EleveConnaissances] Erreur parsing donnees:', e);
                         donnees = {};
                     }
                 }
                 allQuestionContents.push({
-                    id: questionContent.id,
+                    id: q.id,
                     donnees: donnees
                 });
+            }
+        } else {
+            // MODE MANUEL : Utiliser les questions liées via ETAPE_QUESTIONS_CONN
+            const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
+                String(eq.etape_id) === String(etape.id)
+            );
+            console.log('[EleveConnaissances] Mode manuel - Questions liées (refs):', linkedQuestionRefs);
+
+            for (const questionRef of linkedQuestionRefs) {
+                let questionContent = this.questionsConnaissances.find(q =>
+                    String(q.id) === String(questionRef.question_id)
+                );
+
+                // FALLBACK: Si question non trouvée par ID, chercher par format/type
+                if (!questionContent && format) {
+                    console.warn(`[EleveConnaissances] Question ID ${questionRef.question_id} non trouvée! Recherche fallback par type ${format}...`);
+                    questionContent = this.questionsConnaissances.find(q => q.type === format);
+                }
+
+                if (questionContent) {
+                    let donnees = questionContent.donnees || {};
+                    if (typeof donnees === 'string') {
+                        try {
+                            donnees = JSON.parse(donnees);
+                        } catch (e) {
+                            console.error('[EleveConnaissances] Erreur parsing donnees:', e);
+                            donnees = {};
+                        }
+                    }
+                    allQuestionContents.push({
+                        id: questionContent.id,
+                        donnees: donnees
+                    });
+                }
             }
         }
 
         console.log('[EleveConnaissances] Toutes les questions trouvées:', allQuestionContents.length);
 
-        // 3. Combiner les données selon le format
+        // Combiner les données selon le format
         let donnees = {};
 
         if (allQuestionContents.length === 0) {
