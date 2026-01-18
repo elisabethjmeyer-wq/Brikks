@@ -371,6 +371,37 @@
     color: #dc2626;
 }
 
+/* Multi-questions QCM (plusieurs questions dans une étape) */
+.qcm-multi-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.qcm-question-block {
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.qcm-question-block .question-enonce {
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.qcm-question-block .qcm-choices {
+    padding-left: 0;
+}
+
+.qcm-question-block .qcm-choice {
+    background: white;
+}
+
 /* ============================================
    CHRONOLOGIE FORMAT - FRISE AVEC FLECHE
    ============================================ */
