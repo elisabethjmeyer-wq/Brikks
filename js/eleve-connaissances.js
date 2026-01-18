@@ -799,10 +799,10 @@ const EleveConnaissances = {
             // Vérifier le mode de sélection
             if (etape.mode_selection === 'aleatoire') {
                 // MODE ALÉATOIRE : Tirer au sort parmi les questions disponibles
-                const nbQuestions = parseInt(etape.nb_questions) || 5;
-                const banqueSourceId = etape.banque_source_id;
+                const nbQuestions = parseInt(etape.nb_questions_aleatoire) || 5;
+                const banqueSourceId = etape.banques_source;
 
-                console.log('[EleveConnaissances] Mode aléatoire - nb_questions:', nbQuestions, 'banque_source_id:', banqueSourceId);
+                console.log('[EleveConnaissances] Mode aléatoire - nb_questions_aleatoire:', nbQuestions, 'banques_source:', banqueSourceId);
 
                 // Filtrer les questions par format et éventuellement par banque
                 let availableQuestions = this.questionsConnaissances.filter(q => q.type === format);
