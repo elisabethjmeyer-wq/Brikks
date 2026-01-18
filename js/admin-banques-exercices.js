@@ -3990,15 +3990,15 @@ const AdminBanquesExercices = {
                         <div class="form-row">
                             <label>Banque source :</label>
                             <select class="form-select" onchange="AdminBanquesExercices.setEtapeBanqueSource('${etape.id}', this.value)">
-                                <option value="" ${!etape.banque_source_id ? 'selected' : ''}>Toutes les banques</option>
+                                <option value="" ${!etape.banques_source ? 'selected' : ''}>Toutes les banques</option>
                                 ${this.banquesQuestions.map(b => `
-                                    <option value="${b.id}" ${String(etape.banque_source_id) === String(b.id) ? 'selected' : ''}>${this.escapeHtml(b.titre)}</option>
+                                    <option value="${b.id}" ${String(etape.banques_source) === String(b.id) ? 'selected' : ''}>${this.escapeHtml(b.titre)}</option>
                                 `).join('')}
                             </select>
                         </div>
                         <div class="form-row">
                             <label>Nombre de questions :</label>
-                            <input type="number" class="form-input" value="${parseInt(etape.nb_questions) || 5}" min="1" max="${Math.max(availableQuestions.length, 1)}"
+                            <input type="number" class="form-input" value="${parseInt(etape.nb_questions_aleatoire) || 5}" min="1" max="${Math.max(availableQuestions.length, 1)}"
                                 onchange="AdminBanquesExercices.setEtapeNbQuestions('${etape.id}', this.value)">
                             <span class="hint">/ ${availableQuestions.length} disponibles</span>
                         </div>
@@ -4105,7 +4105,12 @@ const AdminBanquesExercices = {
 
     async setEtapeNbQuestions(etapeId, nb) {
         try {
-            await this.callAPI('updateEtapeConn', { id: etapeId, nb_questions: parseInt(nb) });
+            await this.callAPI('updateEtapeConn', { id: etapeId, nb_questions_aleatoire: parseInt(nb) });
+            // Mettre à jour localement
+            const etape = this.etapesConn.find(e => e.id === etapeId);
+            if (etape) {
+                etape.nb_questions_aleatoire = parseInt(nb);
+            }
         } catch (error) {
             console.error('Erreur mise à jour nb questions:', error);
         }
@@ -4113,11 +4118,11 @@ const AdminBanquesExercices = {
 
     async setEtapeBanqueSource(etapeId, banqueId) {
         try {
-            await this.callAPI('updateEtapeConn', { id: etapeId, banque_source_id: banqueId || null });
+            await this.callAPI('updateEtapeConn', { id: etapeId, banques_source: banqueId || '' });
             // Mettre à jour localement
             const etape = this.etapesConn.find(e => e.id === etapeId);
             if (etape) {
-                etape.banque_source_id = banqueId || null;
+                etape.banques_source = banqueId || '';
             }
         } catch (error) {
             console.error('Erreur mise à jour banque source:', error);
@@ -4189,7 +4194,7 @@ const AdminBanquesExercices = {
         let totalQuestions = 0;
         etapes.forEach(etape => {
             if (etape.mode_selection === 'aleatoire') {
-                totalQuestions += etape.nb_questions || 5;
+                totalQuestions += parseInt(etape.nb_questions_aleatoire) || 5;
             } else {
                 const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
                 totalQuestions += selectedIds.length;
@@ -4237,7 +4242,7 @@ const AdminBanquesExercices = {
                                 ${etapes.map((etape, index) => {
                                     const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
                                     const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
-                                    const qCount = etape.mode_selection === 'aleatoire' ? etape.nb_questions : selectedIds.length;
+                                    const qCount = etape.mode_selection === 'aleatoire' ? (parseInt(etape.nb_questions_aleatoire) || 5) : selectedIds.length;
 
                                     return `
                                         <div class="summary-etape">
@@ -4969,14 +4974,14 @@ const AdminBanquesExercices = {
                                 <p><strong>Mode aléatoire activé</strong></p>
                                 <div class="conn-random-row">
                                     <label>Nombre de questions à tirer :</label>
-                                    <input type="number" id="configNbQuestions" value="${etape.nb_questions || 5}" min="1">
+                                    <input type="number" id="configNbQuestions" value="${parseInt(etape.nb_questions_aleatoire) || 5}" min="1">
                                 </div>
                                 <div class="conn-random-row">
                                     <label>Banque de questions source :</label>
                                     <select id="configBanqueSource" class="form-select">
-                                        <option value="" ${!etape.banque_source_id ? 'selected' : ''}>Toutes les banques</option>
+                                        <option value="" ${!etape.banques_source ? 'selected' : ''}>Toutes les banques</option>
                                         ${this.banquesQuestions.map(b => `
-                                            <option value="${b.id}" ${String(etape.banque_source_id) === String(b.id) ? 'selected' : ''}>${this.escapeHtml(b.titre)}</option>
+                                            <option value="${b.id}" ${String(etape.banques_source) === String(b.id) ? 'selected' : ''}>${this.escapeHtml(b.titre)}</option>
                                         `).join('')}
                                     </select>
                                 </div>
@@ -5066,8 +5071,8 @@ const AdminBanquesExercices = {
 
                 await this.callAPI('updateEtapeConn', {
                     id: etapeId,
-                    nb_questions: nbQuestions,
-                    banque_source_id: banqueSource || null
+                    nb_questions_aleatoire: nbQuestions,
+                    banques_source: banqueSource || ''
                 });
             } else {
                 // Sauvegarder les questions sélectionnées
