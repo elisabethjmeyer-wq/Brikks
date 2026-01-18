@@ -790,31 +790,23 @@ const EleveConnaissances = {
         );
         console.log('[EleveConnaissances] Questions liées (refs):', linkedQuestionRefs);
 
-        // 2. Récupérer le contenu des questions depuis QUESTIONS_CONNAISSANCES
-        let donnees = {};
-        if (linkedQuestionRefs.length > 0) {
-            // Prendre la première question (pour les formats simples)
-            const questionRef = linkedQuestionRefs[0];
+        // 2. Récupérer le contenu de TOUTES les questions depuis QUESTIONS_CONNAISSANCES
+        const allQuestionContents = [];
+        for (const questionRef of linkedQuestionRefs) {
             console.log('[EleveConnaissances] Recherche question_id:', questionRef.question_id);
-            console.log('[EleveConnaissances] IDs disponibles dans questionsConnaissances:',
-                this.questionsConnaissances.map(q => q.id));
 
             let questionContent = this.questionsConnaissances.find(q =>
                 String(q.id) === String(questionRef.question_id)
             );
-            console.log('[EleveConnaissances] Contenu question trouvé:', questionContent);
 
             // FALLBACK: Si question non trouvée par ID, chercher par format/type
             if (!questionContent && format) {
                 console.warn(`[EleveConnaissances] Question ID ${questionRef.question_id} non trouvée! Recherche fallback par type ${format}...`);
                 questionContent = this.questionsConnaissances.find(q => q.type === format);
-                if (questionContent) {
-                    console.log('[EleveConnaissances] Question fallback trouvée:', questionContent);
-                }
             }
 
-            if (questionContent && questionContent.donnees) {
-                donnees = questionContent.donnees;
+            if (questionContent) {
+                let donnees = questionContent.donnees || {};
                 // Parse si c'est une string JSON
                 if (typeof donnees === 'string') {
                     try {
@@ -824,22 +816,37 @@ const EleveConnaissances = {
                         donnees = {};
                     }
                 }
+                allQuestionContents.push({
+                    id: questionContent.id,
+                    donnees: donnees
+                });
             }
         }
 
-        // 3. Si toujours pas de donnees, essayer depuis l'étape directement (fallback)
-        if (Object.keys(donnees).length === 0 && etape.donnees) {
-            let etapeDonnees = etape.donnees;
-            if (typeof etapeDonnees === 'string') {
-                try {
-                    etapeDonnees = JSON.parse(etapeDonnees);
-                } catch (e) {
-                    etapeDonnees = {};
+        console.log('[EleveConnaissances] Toutes les questions trouvées:', allQuestionContents.length);
+
+        // 3. Combiner les données selon le format
+        let donnees = {};
+
+        if (allQuestionContents.length === 0) {
+            // Fallback: essayer depuis l'étape directement
+            if (etape.donnees) {
+                let etapeDonnees = etape.donnees;
+                if (typeof etapeDonnees === 'string') {
+                    try {
+                        etapeDonnees = JSON.parse(etapeDonnees);
+                    } catch (e) {
+                        etapeDonnees = {};
+                    }
                 }
-            }
-            if (etapeDonnees && typeof etapeDonnees === 'object') {
                 donnees = etapeDonnees;
             }
+        } else if (allQuestionContents.length === 1) {
+            // Une seule question: utiliser directement ses données
+            donnees = allQuestionContents[0].donnees;
+        } else {
+            // Plusieurs questions: combiner selon le format
+            donnees = this.combineQuestionsData(format, allQuestionContents);
         }
 
         console.log('[EleveConnaissances] renderEtapeContent - donnees finales:', donnees);
@@ -864,6 +871,76 @@ const EleveConnaissances = {
                 return this.renderQuestionOuverte(donnees, questions);
             default:
                 return `<div class="unsupported-format">Format non supporté: ${format}<br><small>Données: ${JSON.stringify(donnees)}</small></div>`;
+        }
+    },
+
+    /**
+     * Combine les données de plusieurs questions en un seul objet
+     * pour l'affichage dans une étape
+     */
+    combineQuestionsData(format, questionContents) {
+        console.log('[EleveConnaissances] combineQuestionsData - format:', format, 'questions:', questionContents.length);
+
+        switch (format) {
+            case 'vrai_faux':
+                // Combiner en tableau de propositions
+                return {
+                    propositions: questionContents.map((qc, idx) => ({
+                        id: qc.id,
+                        texte: qc.donnees.question || qc.donnees.enonce || `Question ${idx + 1}`,
+                        reponse: qc.donnees.reponse
+                    }))
+                };
+
+            case 'qcm':
+                // Pour QCM, on affiche chaque question séparément
+                // On retourne un tableau de questions
+                return {
+                    multiQuestions: questionContents.map((qc, idx) => ({
+                        id: qc.id,
+                        question: qc.donnees.question || qc.donnees.enonce || `Question ${idx + 1}`,
+                        choix: qc.donnees.choix || qc.donnees.options || [],
+                        reponse: qc.donnees.reponse || qc.donnees.reponse_correcte,
+                        multiple: qc.donnees.multiple || false
+                    }))
+                };
+
+            case 'chronologie':
+            case 'timeline':
+                // Combiner les événements/paires de toutes les questions
+                const allEvents = [];
+                const allPaires = [];
+                questionContents.forEach(qc => {
+                    if (qc.donnees.evenements) allEvents.push(...qc.donnees.evenements);
+                    if (qc.donnees.paires) allPaires.push(...qc.donnees.paires);
+                });
+                return {
+                    evenements: allEvents.length > 0 ? allEvents : undefined,
+                    paires: allPaires.length > 0 ? allPaires : undefined
+                };
+
+            case 'association':
+                // Combiner toutes les paires
+                const pairs = [];
+                questionContents.forEach(qc => {
+                    if (qc.donnees.paires) pairs.push(...qc.donnees.paires);
+                });
+                return { paires: pairs };
+
+            case 'texte_trou':
+            case 'texte_trous':
+                // Pour texte à trous, on peut combiner les textes
+                return {
+                    multiTextes: questionContents.map((qc, idx) => ({
+                        id: qc.id,
+                        texte: qc.donnees.texte || qc.donnees.question || '',
+                        trous: qc.donnees.trous || []
+                    }))
+                };
+
+            default:
+                // Par défaut, retourner la première question
+                return questionContents[0]?.donnees || {};
         }
     },
 
@@ -940,8 +1017,52 @@ const EleveConnaissances = {
 
     /**
      * Render QCM questions
+     * Supporte:
+     * - Format simple: {question, choix, reponse}
+     * - Format multi: {multiQuestions: [{question, choix, reponse}, ...]}
      */
     renderQCM(donnees, questions) {
+        // Format multi-questions (plusieurs QCM dans une étape)
+        if (donnees.multiQuestions && donnees.multiQuestions.length > 0) {
+            return `
+                <div class="qcm-multi-container">
+                    ${donnees.multiQuestions.map((q, qIdx) => {
+                        const choices = q.choix || q.options || [];
+                        const multiple = q.multiple || false;
+
+                        if (choices.length === 0) {
+                            return `<div class="qcm-question-block" data-question="${qIdx}">
+                                <div class="format-no-data">Question ${qIdx + 1}: Pas de choix configurés</div>
+                            </div>`;
+                        }
+
+                        // Mélanger les choix
+                        const indexedChoices = choices.map((choice, idx) => ({ choice, originalIdx: idx }));
+                        const shuffledChoices = this.shuffleArray([...indexedChoices]);
+
+                        return `
+                            <div class="qcm-question-block" data-question="${qIdx}">
+                                <div class="question-enonce">${this.escapeHtml(q.question || `Question ${qIdx + 1}`)}</div>
+                                <div class="qcm-choices">
+                                    ${shuffledChoices.map(({ choice, originalIdx }) => `
+                                        <label class="qcm-choice">
+                                            <input type="${multiple ? 'checkbox' : 'radio'}"
+                                                   name="qcm_answer_${qIdx}"
+                                                   value="${originalIdx}"
+                                                   onchange="EleveConnaissances.saveAnswer('qcm_${qIdx}', '${originalIdx}')">
+                                            <span class="qcm-label">${this.escapeHtml(choice.texte || choice)}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                                <div class="qcm-feedback" id="feedback_qcm_${qIdx}" style="display: none;"></div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // Format simple (une seule question QCM)
         const question = donnees.question || donnees.enonce || '';
         // Accepter 'choix' ou 'options' comme nom de champ
         const choices = donnees.choix || donnees.options || [];
