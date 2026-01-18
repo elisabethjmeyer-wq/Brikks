@@ -24,6 +24,8 @@ const EleveConnaissances = {
     timeRemaining: 0,
     exerciseStartTime: null,
     userAnswers: {},
+    // Stocke les questions sélectionnées par étape (pour validation cohérente)
+    selectedQuestionsPerEtape: {},
 
     // Cache config (5 minutes TTL)
     CACHE_KEY: 'brikks_conn_eleve_cache',
@@ -788,76 +790,83 @@ const EleveConnaissances = {
 
         let allQuestionContents = [];
 
-        // Vérifier le mode de sélection
-        if (etape.mode_selection === 'aleatoire') {
-            // MODE ALÉATOIRE : Tirer au sort parmi les questions disponibles
-            const nbQuestions = parseInt(etape.nb_questions) || 5;
-            const banqueSourceId = etape.banque_source_id;
-
-            console.log('[EleveConnaissances] Mode aléatoire - nb_questions:', nbQuestions, 'banque_source_id:', banqueSourceId);
-
-            // Filtrer les questions par format et éventuellement par banque
-            let availableQuestions = this.questionsConnaissances.filter(q => q.type === format);
-
-            if (banqueSourceId) {
-                availableQuestions = availableQuestions.filter(q => String(q.banque_id) === String(banqueSourceId));
-            }
-
-            console.log('[EleveConnaissances] Questions disponibles pour tirage:', availableQuestions.length);
-
-            // Mélanger et prendre le nombre demandé
-            const shuffled = this.shuffleArray([...availableQuestions]);
-            const selected = shuffled.slice(0, nbQuestions);
-
-            console.log('[EleveConnaissances] Questions tirées au sort:', selected.length);
-
-            // Convertir en format attendu
-            for (const q of selected) {
-                let donnees = q.donnees || {};
-                if (typeof donnees === 'string') {
-                    try {
-                        donnees = JSON.parse(donnees);
-                    } catch (e) {
-                        donnees = {};
-                    }
-                }
-                allQuestionContents.push({
-                    id: q.id,
-                    donnees: donnees
-                });
-            }
+        // Vérifier si on a déjà sélectionné les questions pour cette étape
+        // (important pour le mode aléatoire et pour la validation)
+        if (this.selectedQuestionsPerEtape[etape.id]) {
+            console.log('[EleveConnaissances] Réutilisation des questions déjà sélectionnées');
+            allQuestionContents = this.selectedQuestionsPerEtape[etape.id].questions;
         } else {
-            // MODE MANUEL : Utiliser les questions liées via ETAPE_QUESTIONS_CONN
-            const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
-                String(eq.etape_id) === String(etape.id)
-            );
-            console.log('[EleveConnaissances] Mode manuel - Questions liées (refs):', linkedQuestionRefs);
+            // Vérifier le mode de sélection
+            if (etape.mode_selection === 'aleatoire') {
+                // MODE ALÉATOIRE : Tirer au sort parmi les questions disponibles
+                const nbQuestions = parseInt(etape.nb_questions) || 5;
+                const banqueSourceId = etape.banque_source_id;
 
-            for (const questionRef of linkedQuestionRefs) {
-                let questionContent = this.questionsConnaissances.find(q =>
-                    String(q.id) === String(questionRef.question_id)
-                );
+                console.log('[EleveConnaissances] Mode aléatoire - nb_questions:', nbQuestions, 'banque_source_id:', banqueSourceId);
 
-                // FALLBACK: Si question non trouvée par ID, chercher par format/type
-                if (!questionContent && format) {
-                    console.warn(`[EleveConnaissances] Question ID ${questionRef.question_id} non trouvée! Recherche fallback par type ${format}...`);
-                    questionContent = this.questionsConnaissances.find(q => q.type === format);
+                // Filtrer les questions par format et éventuellement par banque
+                let availableQuestions = this.questionsConnaissances.filter(q => q.type === format);
+
+                if (banqueSourceId) {
+                    availableQuestions = availableQuestions.filter(q => String(q.banque_id) === String(banqueSourceId));
                 }
 
-                if (questionContent) {
-                    let donnees = questionContent.donnees || {};
+                console.log('[EleveConnaissances] Questions disponibles pour tirage:', availableQuestions.length);
+
+                // Mélanger et prendre le nombre demandé
+                const shuffled = this.shuffleArray([...availableQuestions]);
+                const selected = shuffled.slice(0, nbQuestions);
+
+                console.log('[EleveConnaissances] Questions tirées au sort:', selected.length);
+
+                // Convertir en format attendu
+                for (const q of selected) {
+                    let donnees = q.donnees || {};
                     if (typeof donnees === 'string') {
                         try {
                             donnees = JSON.parse(donnees);
                         } catch (e) {
-                            console.error('[EleveConnaissances] Erreur parsing donnees:', e);
                             donnees = {};
                         }
                     }
                     allQuestionContents.push({
-                        id: questionContent.id,
+                        id: q.id,
                         donnees: donnees
                     });
+                }
+            } else {
+                // MODE MANUEL : Utiliser les questions liées via ETAPE_QUESTIONS_CONN
+                const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
+                    String(eq.etape_id) === String(etape.id)
+                );
+                console.log('[EleveConnaissances] Mode manuel - Questions liées (refs):', linkedQuestionRefs);
+
+                for (const questionRef of linkedQuestionRefs) {
+                    let questionContent = this.questionsConnaissances.find(q =>
+                        String(q.id) === String(questionRef.question_id)
+                    );
+
+                    // FALLBACK: Si question non trouvée par ID, chercher par format/type
+                    if (!questionContent && format) {
+                        console.warn(`[EleveConnaissances] Question ID ${questionRef.question_id} non trouvée! Recherche fallback par type ${format}...`);
+                        questionContent = this.questionsConnaissances.find(q => q.type === format);
+                    }
+
+                    if (questionContent) {
+                        let donnees = questionContent.donnees || {};
+                        if (typeof donnees === 'string') {
+                            try {
+                                donnees = JSON.parse(donnees);
+                            } catch (e) {
+                                console.error('[EleveConnaissances] Erreur parsing donnees:', e);
+                                donnees = {};
+                            }
+                        }
+                        allQuestionContents.push({
+                            id: questionContent.id,
+                            donnees: donnees
+                        });
+                    }
                 }
             }
         }
@@ -887,6 +896,13 @@ const EleveConnaissances = {
             // Plusieurs questions: combiner selon le format
             donnees = this.combineQuestionsData(format, allQuestionContents);
         }
+
+        // Stocker les questions et données pour la validation
+        this.selectedQuestionsPerEtape[etape.id] = {
+            questions: allQuestionContents,
+            donnees: donnees,
+            format: format
+        };
 
         console.log('[EleveConnaissances] renderEtapeContent - donnees finales:', donnees);
 
@@ -2166,34 +2182,54 @@ const EleveConnaissances = {
      * Valide une étape spécifique (sans afficher le feedback)
      */
     validateSingleEtape(etape, etapeIndex) {
-        // Récupérer les données via la jointure
+        // Utiliser les questions stockées lors du rendu (mode aléatoire ou manuel)
         let donnees = {};
-        const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
-            String(eq.etape_id) === String(etape.id)
-        );
+        let format = etape.format_code;
 
-        if (linkedQuestionRefs.length > 0) {
-            const questionRef = linkedQuestionRefs[0];
-            let questionContent = this.questionsConnaissances.find(q =>
-                String(q.id) === String(questionRef.question_id)
+        // Vérifier si on a des questions stockées pour cette étape
+        if (this.selectedQuestionsPerEtape[etape.id]) {
+            console.log('[EleveConnaissances] validateSingleEtape - utilisation des questions stockées pour étape', etape.id);
+            donnees = this.selectedQuestionsPerEtape[etape.id].donnees;
+            format = this.selectedQuestionsPerEtape[etape.id].format || format;
+        } else {
+            // Fallback: récupérer les données via la jointure (ancien comportement)
+            console.log('[EleveConnaissances] validateSingleEtape - fallback sur jointure pour étape', etape.id);
+            const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
+                String(eq.etape_id) === String(etape.id)
             );
-            // Fallback par type si non trouvé
-            if (!questionContent && etape.format_code) {
-                questionContent = this.questionsConnaissances.find(q => q.type === etape.format_code);
+
+            if (linkedQuestionRefs.length > 0) {
+                // Récupérer TOUTES les questions liées
+                const allQuestionContents = [];
+                linkedQuestionRefs.forEach(questionRef => {
+                    let questionContent = this.questionsConnaissances.find(q =>
+                        String(q.id) === String(questionRef.question_id)
+                    );
+                    if (questionContent && questionContent.donnees) {
+                        let qDonnees = questionContent.donnees;
+                        if (typeof qDonnees === 'string') {
+                            try { qDonnees = JSON.parse(qDonnees); } catch (e) { qDonnees = {}; }
+                        }
+                        allQuestionContents.push({
+                            id: questionContent.id,
+                            donnees: qDonnees
+                        });
+                    }
+                });
+
+                if (allQuestionContents.length === 1) {
+                    donnees = allQuestionContents[0].donnees;
+                } else if (allQuestionContents.length > 1) {
+                    donnees = this.combineQuestionsData(format, allQuestionContents);
+                }
             }
-            if (questionContent && questionContent.donnees) {
-                donnees = questionContent.donnees;
+
+            // Fallback sur etape.donnees
+            if (Object.keys(donnees).length === 0 && etape.donnees) {
+                donnees = etape.donnees;
                 if (typeof donnees === 'string') {
                     try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
                 }
-            }
-        }
-
-        // Fallback sur etape.donnees
-        if (Object.keys(donnees).length === 0 && etape.donnees) {
-            donnees = etape.donnees;
-            if (typeof donnees === 'string') {
-                try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
             }
         }
 
@@ -2202,7 +2238,7 @@ const EleveConnaissances = {
         let details = [];
 
         // Logique de validation selon le format
-        switch (etape.format_code) {
+        switch (format) {
             case 'vrai_faux':
                 if (donnees.reponse !== undefined && !donnees.propositions) {
                     total = 1;
@@ -2225,25 +2261,56 @@ const EleveConnaissances = {
                 break;
 
             case 'qcm':
-                total = 1;
-                const choices = donnees.choix || donnees.options || [];
-                const userAnswer = this.userAnswers['qcm'];
-                let correctIndices = [];
-                if (donnees.reponses_correctes && Array.isArray(donnees.reponses_correctes)) {
-                    correctIndices = donnees.reponses_correctes;
-                } else if (donnees.reponse_correcte !== undefined) {
-                    correctIndices = [donnees.reponse_correcte];
+                // Vérifier si on a plusieurs questions QCM
+                if (donnees.multiQuestions && Array.isArray(donnees.multiQuestions)) {
+                    donnees.multiQuestions.forEach((mq, qIdx) => {
+                        total++;
+                        const qChoices = mq.choix || [];
+                        const qUserAnswer = this.userAnswers[`qcm_${qIdx}`];
+                        let qCorrectIndices = [];
+
+                        // Déterminer les réponses correctes
+                        if (mq.reponses_correctes && Array.isArray(mq.reponses_correctes)) {
+                            qCorrectIndices = mq.reponses_correctes;
+                        } else if (mq.reponse !== undefined) {
+                            qCorrectIndices = [parseInt(mq.reponse)];
+                        } else if (mq.reponse_correcte !== undefined) {
+                            qCorrectIndices = [parseInt(mq.reponse_correcte)];
+                        } else {
+                            qCorrectIndices = qChoices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
+                        }
+
+                        const qIsCorrect = qCorrectIndices.includes(parseInt(qUserAnswer));
+                        if (qIsCorrect) correct++;
+                        details.push({
+                            question: mq.question || mq.enonce,
+                            reponse: qUserAnswer !== undefined ? qChoices[qUserAnswer]?.texte || qChoices[qUserAnswer] : null,
+                            attendu: qCorrectIndices.map(i => qChoices[i]?.texte || qChoices[i]).join(', '),
+                            correct: qIsCorrect
+                        });
+                    });
                 } else {
-                    correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
+                    // QCM simple (une seule question)
+                    total = 1;
+                    const choices = donnees.choix || donnees.options || [];
+                    const userAnswer = this.userAnswers['qcm'];
+                    let correctIndices = [];
+                    if (donnees.reponses_correctes && Array.isArray(donnees.reponses_correctes)) {
+                        correctIndices = donnees.reponses_correctes;
+                    } else if (donnees.reponse_correcte !== undefined) {
+                        correctIndices = [donnees.reponse_correcte];
+                    } else {
+                        correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
+                    }
+                    const isCorrect = correctIndices.includes(parseInt(userAnswer));
+                    if (isCorrect) correct = 1;
+                    details.push({
+                        question: donnees.question || donnees.enonce,
+                        reponse: userAnswer !== undefined ? choices[userAnswer]?.texte || choices[userAnswer] : null,
+                        attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
+                        correct: isCorrect
+                    });
                 }
-                const isCorrect = correctIndices.includes(parseInt(userAnswer));
-                if (isCorrect) correct = 1;
-                details.push({
-                    question: donnees.question || donnees.enonce,
-                    reponse: userAnswer !== undefined ? choices[userAnswer]?.texte || choices[userAnswer] : null,
-                    attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
-                    correct: isCorrect
-                });
                 break;
 
             case 'chronologie':
