@@ -7506,7 +7506,7 @@ function getEtapesConn() {
   if (!sheet) {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     sheet = ss.insertSheet(SHEETS.ETAPES_CONN);
-    sheet.appendRow(['id', 'entrainement_id', 'format_code', 'titre', 'ordre', 'mode_selection', 'banques_source', 'nb_questions_aleatoire']);
+    sheet.appendRow(['id', 'entrainement_id', 'format_code', 'ordre', 'mode_selection', 'nb_questions', 'banque_source_id']);
   }
 
   const data = sheet.getDataRange().getValues();
@@ -7542,11 +7542,10 @@ function createEtapeConn(data) {
     id,
     data.entrainement_id,
     data.format_code,
-    data.titre || '',
     data.ordre || 1,
     data.mode_selection || 'manuel',
-    data.banques_source || '',  // JSON array of banque_question_ids
-    data.nb_questions_aleatoire || 5
+    data.nb_questions || 5,
+    data.banque_source_id || ''
   ]);
 
   return { success: true, id: id, message: 'Étape créée' };
@@ -7569,7 +7568,7 @@ function updateEtapeConn(data) {
 
   for (let i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      ['format_code', 'titre', 'ordre', 'mode_selection', 'banques_source', 'nb_questions_aleatoire'].forEach(col => {
+      ['format_code', 'titre', 'ordre', 'mode_selection', 'banque_source_id', 'nb_questions'].forEach(col => {
         if (data[col] !== undefined) {
           const colIndex = headers.indexOf(col);
           if (colIndex >= 0) sheet.getRange(i + 1, colIndex + 1).setValue(data[col]);
