@@ -5975,15 +5975,85 @@ function getHistoriquePratiquesSF(data) {
     }
   });
 
+  // ========== OPTION B: Calculer les stats par BANQUE ==========
+  const statsParBanque = {};
+  Object.entries(statsParExercice).forEach(([exoId, exoStats]) => {
+    const banqueId = String(exoStats.banque_id);
+    if (!banqueId) return;
+
+    if (!statsParBanque[banqueId]) {
+      statsParBanque[banqueId] = {
+        banque_id: banqueId,
+        repetitions_validees: 0,
+        exercices_reussis: [],
+        date_derniere_validation: null,
+        total_pratiques: 0
+      };
+    }
+
+    const sb = statsParBanque[banqueId];
+    sb.total_pratiques += (exoStats.total_pratiques || 0);
+
+    // Si l'exercice a au moins 1 rep validée, l'ajouter aux réussis
+    if (exoStats.repetitions_validees > 0) {
+      if (!sb.exercices_reussis.includes(exoId)) {
+        sb.exercices_reussis.push(exoId);
+      }
+      // La rep validée de la banque = nb d'exercices différents réussis
+      sb.repetitions_validees = sb.exercices_reussis.length;
+
+      // Date de dernière validation = la plus récente
+      if (exoStats.date_derniere_validation) {
+        if (!sb.date_derniere_validation || exoStats.date_derniere_validation > sb.date_derniere_validation) {
+          sb.date_derniere_validation = exoStats.date_derniere_validation;
+        }
+      }
+    }
+  });
+
+  // Calculer les infos dérivées pour chaque banque
+  Object.values(statsParBanque).forEach(sb => {
+    sb.est_maitrise = sb.repetitions_validees >= SEUIL_REPETITIONS;
+
+    // Calculer prochaine disponibilité si pas maîtrisée
+    if (sb.repetitions_validees > 0 && sb.repetitions_validees < SEUIL_REPETITIONS && sb.date_derniere_validation) {
+      const dateValidation = new Date(sb.date_derniere_validation);
+      const espacementJours = ESPACEMENTS[sb.repetitions_validees] || 7;
+      const prochaineDate = new Date(dateValidation);
+      prochaineDate.setDate(prochaineDate.getDate() + espacementJours);
+      sb.prochaine_disponible = prochaineDate.toISOString();
+
+      const diffMs = prochaineDate - now;
+      sb.jours_restants = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      sb.est_disponible = now >= prochaineDate;
+    } else if (sb.repetitions_validees === 0) {
+      sb.est_disponible = true;
+      sb.jours_restants = 0;
+    } else if (sb.est_maitrise) {
+      sb.est_disponible = true;
+      sb.jours_restants = 0;
+
+      // Rappel suggéré si >21 jours
+      if (sb.date_derniere_validation) {
+        const dateValidation = new Date(sb.date_derniere_validation);
+        const joursDepuis = Math.floor((now - dateValidation) / (1000 * 60 * 60 * 24));
+        sb.jours_depuis_validation = joursDepuis;
+        sb.rappel_suggere = joursDepuis >= SEUIL_RAPPEL;
+      }
+    }
+  });
+
   return {
     success: true,
     data: results,
     stats: statsParExercice,
+    statsBanque: statsParBanque,  // OPTION B: stats par banque
     debug: {
       sheetExists: true,
       totalRows: allData.length,
       filteredRows: results.length,
       exerciceCount: Object.keys(statsParExercice).length,
+      banqueCount: Object.keys(statsParBanque).length,
       eleve_id: data.eleve_id
     }
   };

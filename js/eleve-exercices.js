@@ -14,7 +14,8 @@ const EleveExercices = {
     formats: [],
     resultats: [],
     // Historique des pratiques SF (pour calcul automatisation)
-    statsSF: {},  // Stats par exercice_id
+    statsSF: {},  // Stats par exercice_id (legacy, pour compatibilité)
+    statsSFBanque: {},  // Stats par banque_id (nouveau système Option B)
 
     // État
     currentBanque: null,
@@ -29,6 +30,7 @@ const EleveExercices = {
     CACHE_KEY: 'brikks_exercices_cache',
     CACHE_RESULTATS_KEY: 'brikks_resultats_cache',
     CACHE_HISTORIQUE_SF_KEY: 'brikks_historique_sf_cache',
+    CACHE_HISTORIQUE_SF_BANQUE_KEY: 'brikks_historique_sf_banque_cache',
     CACHE_TTL: 5 * 60 * 1000,
 
     // ============================================
@@ -48,7 +50,7 @@ const EleveExercices = {
     },
 
     // À partir de quelle répétition le temps conditionne la validation
-    REP_TEMPS_OBLIGATOIRE: 3, // Répétitions 3, 4 et 5
+    REP_TEMPS_OBLIGATOIRE: 2, // Répétitions 2, 3, 4 et 5 (automatisation dès rep 2)
 
     // Messages ordinaux pour affichage
     ORDINAUX: ['', '1er', '2ème', '3ème', '4ème', '5ème'],
@@ -106,6 +108,9 @@ const EleveExercices = {
             if (type === 'savoir-faire') {
                 const cachedHistoriqueSF = this.loadHistoriqueSFFromCache();
                 if (cachedHistoriqueSF) this.statsSF = cachedHistoriqueSF;
+                // OPTION B: Charger aussi les stats par banque
+                const cachedHistoriqueSFBanque = this.loadHistoriqueSFBanqueFromCache();
+                if (cachedHistoriqueSFBanque) this.statsSFBanque = cachedHistoriqueSFBanque;
             }
             this.renderAccordionView();
             this.refreshDataInBackground();
@@ -231,6 +236,16 @@ const EleveExercices = {
                 this.statsSF = result.stats;
                 this.saveHistoriqueSFToCache(this.statsSF);
                 console.log('[SF] Stats chargées:', Object.keys(this.statsSF).length, 'exercices');
+
+                // OPTION B: Charger les stats par banque depuis le backend (si disponible)
+                if (result.statsBanque) {
+                    this.statsSFBanque = result.statsBanque;
+                } else {
+                    // Fallback: calculer depuis les stats par exercice
+                    this.statsSFBanque = this.computeStatsBanqueFromStatsExercice(this.statsSF);
+                }
+                this.saveHistoriqueSFBanqueToCache(this.statsSFBanque);
+                console.log('[SF-OptionB] Stats banques chargées:', Object.keys(this.statsSFBanque).length, 'banques');
             }
         } catch (e) {
             console.error('[EleveExercices] Erreur chargement historique SF:', e);
@@ -246,8 +261,61 @@ const EleveExercices = {
             if (result.success && result.stats) {
                 this.statsSF = result.stats;
                 this.saveHistoriqueSFToCache(this.statsSF);
+
+                // OPTION B: Mettre à jour les stats par banque
+                if (result.statsBanque) {
+                    this.statsSFBanque = result.statsBanque;
+                } else {
+                    this.statsSFBanque = this.computeStatsBanqueFromStatsExercice(this.statsSF);
+                }
+                this.saveHistoriqueSFBanqueToCache(this.statsSFBanque);
             }
         } catch (e) {}
+    },
+
+    /**
+     * OPTION B: Calcule les stats par banque à partir des stats par exercice
+     * Utilisé comme fallback si le backend ne retourne pas encore statsBanque
+     */
+    computeStatsBanqueFromStatsExercice(statsExercice) {
+        const statsBanque = {};
+
+        for (const [exoId, stats] of Object.entries(statsExercice || {})) {
+            const banqueId = String(stats.banque_id);
+            if (!banqueId) continue;
+
+            if (!statsBanque[banqueId]) {
+                statsBanque[banqueId] = {
+                    banque_id: banqueId,
+                    repetitions_validees: 0,
+                    exercices_reussis: [],
+                    date_derniere_validation: null,
+                    total_pratiques: 0
+                };
+            }
+
+            const sb = statsBanque[banqueId];
+            sb.total_pratiques += (stats.total_pratiques || 0);
+
+            // Si l'exercice a été validé au moins une fois, l'ajouter aux réussis
+            if (stats.repetitions_validees > 0) {
+                if (!sb.exercices_reussis.includes(exoId)) {
+                    sb.exercices_reussis.push(exoId);
+                }
+
+                // La répétition validée de la banque = nombre d'exercices différents réussis
+                sb.repetitions_validees = sb.exercices_reussis.length;
+
+                // Date de dernière validation = la plus récente
+                if (stats.date_derniere_validation) {
+                    if (!sb.date_derniere_validation || stats.date_derniere_validation > sb.date_derniere_validation) {
+                        sb.date_derniere_validation = stats.date_derniere_validation;
+                    }
+                }
+            }
+        }
+
+        return statsBanque;
     },
 
     /**
@@ -481,78 +549,179 @@ const EleveExercices = {
     },
 
     /**
-     * Détermine le statut global d'une banque SF
-     * @returns {Object} { status: 'disponible'|'bloquee'|'maitrisee', exercice?, prochaineDispo?, message }
+     * OPTION B: Détermine le statut d'une banque SF (progression par banque, pas par exercice)
+     * @returns {Object} { status, repetitions, exercice?, prochaineDispo?, message, peutFaire, estEntrainementLibre }
      */
     getBanqueStatusSF(banqueId, exercices) {
         if (!exercices || exercices.length === 0) {
-            return { status: 'vide', message: 'Aucun exercice' };
+            return { status: 'vide', message: 'Aucun exercice', repetitions: 0, peutFaire: false };
         }
 
-        let nbMaitrise = 0;
-        let nbEnPause = 0;
-        let prochaineDispo = null;
-        let exerciceDisponible = null;
+        const now = new Date();
+        const stats = this.statsSFBanque[String(banqueId)];
 
-        // Analyser chaque exercice de la banque
-        for (const exo of exercices) {
-            const status = this.getExerciceStatusSF(exo.id, exo);
+        // Pas de stats = jamais fait cette banque
+        if (!stats || stats.repetitions_validees === undefined || stats.repetitions_validees === 0) {
+            const exercice = this.getExerciceAleatoirePourBanque(banqueId, exercices, []);
+            return {
+                status: this.STATUTS_SF.A_DECOUVRIR,
+                repetitions: 0,
+                ...this.LABELS_STATUTS_SF['a-decouvrir'],
+                statusClass: 'a-decouvrir',
+                message: 'Premier essai',
+                joursRestants: 0,
+                prochaineDispo: null,
+                peutFaire: true,
+                estEntrainementLibre: false,
+                exercice: exercice
+            };
+        }
 
-            if (status.statut === this.STATUTS_SF.MAITRISE) {
-                nbMaitrise++;
-            } else if (status.statut === this.STATUTS_SF.EN_PAUSE) {
-                nbEnPause++;
-                // Garder la date la plus proche
-                if (status.prochaineDispo) {
-                    if (!prochaineDispo || new Date(status.prochaineDispo) < new Date(prochaineDispo)) {
-                        prochaineDispo = status.prochaineDispo;
-                    }
+        const reps = stats.repetitions_validees || 0;
+        const exercicesReussis = stats.exercices_reussis || [];
+        const dernierePratique = stats.date_derniere_validation
+            ? new Date(stats.date_derniere_validation)
+            : null;
+
+        // Maîtrisé (5 répétitions avec 5 exercices différents)
+        if (reps >= this.SEUIL_REPETITIONS) {
+            // Vérifier si rappel suggéré (>21 jours)
+            if (dernierePratique) {
+                const joursDepuis = Math.floor((now - dernierePratique) / (1000 * 60 * 60 * 24));
+                if (joursDepuis >= this.SEUIL_JOURS_RAPPEL) {
+                    const exercice = this.getExerciceAleatoirePourBanque(banqueId, exercices, []);
+                    return {
+                        status: this.STATUTS_SF.RAPPEL_SUGGERE,
+                        repetitions: reps,
+                        ...this.LABELS_STATUTS_SF['rappel-suggere'],
+                        statusClass: 'rappel-suggere',
+                        message: `${joursDepuis}j depuis dernière pratique`,
+                        joursRestants: 0,
+                        prochaineDispo: null,
+                        peutFaire: true,
+                        estEntrainementLibre: false,
+                        joursDepuis,
+                        exercice: exercice,
+                        exercicesReussis
+                    };
                 }
-            } else if (status.peutFaire && !exerciceDisponible) {
-                // Premier exercice disponible trouvé
-                exerciceDisponible = exo;
+            }
+
+            return {
+                status: this.STATUTS_SF.MAITRISE,
+                repetitions: reps,
+                ...this.LABELS_STATUTS_SF['maitrise'],
+                statusClass: 'maitrise',
+                message: 'Banque maîtrisée !',
+                joursRestants: 0,
+                prochaineDispo: null,
+                peutFaire: true,
+                estEntrainementLibre: false,
+                exercicesReussis
+            };
+        }
+
+        // En cours (1-4 répétitions) - vérifier espacement
+        if (reps > 0 && dernierePratique) {
+            const espacementRequis = this.ESPACEMENTS_REPETITIONS[reps] || 7;
+            const prochaineDispo = new Date(dernierePratique);
+            prochaineDispo.setDate(prochaineDispo.getDate() + espacementRequis);
+
+            const joursRestants = Math.max(0, Math.ceil((prochaineDispo - now) / (1000 * 60 * 60 * 24)));
+
+            if (now < prochaineDispo) {
+                // Bloqué - en pause
+                const exercice = this.getExerciceAleatoirePourBanque(banqueId, exercices, exercicesReussis);
+                return {
+                    status: this.STATUTS_SF.EN_PAUSE,
+                    repetitions: reps,
+                    ...this.LABELS_STATUTS_SF['en-pause'],
+                    statusClass: 'en-pause',
+                    message: `Dispo dans ${joursRestants}j`,
+                    joursRestants: joursRestants,
+                    prochaineDispo: prochaineDispo.toISOString(),
+                    peutFaire: false,
+                    estEntrainementLibre: true, // Peut s'entraîner librement
+                    exercice: exercice,
+                    exercicesReussis
+                };
+            } else {
+                // Disponible - à réviser
+                const exercice = this.getExerciceAleatoirePourBanque(banqueId, exercices, exercicesReussis);
+                return {
+                    status: this.STATUTS_SF.A_REVISER,
+                    repetitions: reps,
+                    ...this.LABELS_STATUTS_SF['a-reviser'],
+                    statusClass: 'a-reviser',
+                    message: `Répétition ${reps + 1}/${this.SEUIL_REPETITIONS} disponible`,
+                    joursRestants: 0,
+                    prochaineDispo: null,
+                    peutFaire: true,
+                    estEntrainementLibre: false,
+                    exercice: exercice,
+                    exercicesReussis
+                };
             }
         }
 
-        // Tous maîtrisés
-        if (nbMaitrise === exercices.length) {
+        // En cours sans date (cas rare)
+        if (reps > 0) {
+            const exercice = this.getExerciceAleatoirePourBanque(banqueId, exercices, exercicesReussis);
             return {
-                status: 'maitrisee',
-                message: '✅ Banque maîtrisée'
+                status: this.STATUTS_SF.EN_COURS,
+                repetitions: reps,
+                ...this.LABELS_STATUTS_SF['en-cours'],
+                statusClass: 'en-cours',
+                message: `Répétition ${reps + 1}/${this.SEUIL_REPETITIONS}`,
+                joursRestants: 0,
+                prochaineDispo: null,
+                peutFaire: true,
+                estEntrainementLibre: false,
+                exercice: exercice,
+                exercicesReussis
             };
         }
 
-        // Au moins un exercice disponible
-        if (exerciceDisponible) {
-            // Utiliser la sélection pseudo-aléatoire
-            const exoSelectionne = this.getExerciceDisponible(banqueId, exercices.filter(e => {
-                const s = this.getExerciceStatusSF(e.id, e);
-                return s.peutFaire;
-            }));
+        // Par défaut : à découvrir
+        const exercice = this.getExerciceAleatoirePourBanque(banqueId, exercices, []);
+        return {
+            status: this.STATUTS_SF.A_DECOUVRIR,
+            repetitions: 0,
+            ...this.LABELS_STATUTS_SF['a-decouvrir'],
+            statusClass: 'a-decouvrir',
+            message: 'Premier essai',
+            joursRestants: 0,
+            prochaineDispo: null,
+            peutFaire: true,
+            estEntrainementLibre: false,
+            exercice: exercice
+        };
+    },
 
-            return {
-                status: 'disponible',
-                exercice: exoSelectionne,
-                message: '1 entraînement disponible'
-            };
+    /**
+     * OPTION B: Sélectionne un exercice aléatoire parmi ceux non encore réussis pour cette banque
+     * @param {string} banqueId - ID de la banque
+     * @param {Array} exercices - Liste des exercices de la banque
+     * @param {Array} exercicesReussis - Liste des IDs d'exercices déjà réussis
+     * @returns {Object|null} Un exercice aléatoire
+     */
+    getExerciceAleatoirePourBanque(banqueId, exercices, exercicesReussis) {
+        if (!exercices || exercices.length === 0) return null;
+
+        // Convertir en strings pour comparaison
+        const reussisSet = new Set((exercicesReussis || []).map(id => String(id)));
+
+        // Filtrer les exercices non encore réussis
+        let exercicesDisponibles = exercices.filter(e => !reussisSet.has(String(e.id)));
+
+        // Si tous les exercices ont été réussis, on recycle (permet de continuer après maîtrise)
+        if (exercicesDisponibles.length === 0) {
+            exercicesDisponibles = exercices;
         }
 
-        // Tous bloqués (en pause)
-        if (prochaineDispo) {
-            const dateStr = new Date(prochaineDispo).toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long'
-            });
-            return {
-                status: 'bloquee',
-                prochaineDispo,
-                message: `⏳ Prochain : ${dateStr}`
-            };
-        }
-
-        // Cas par défaut
-        return { status: 'disponible', message: '1 entraînement disponible' };
+        // Sélection aléatoire
+        const randomIndex = Math.floor(Math.random() * exercicesDisponibles.length);
+        return exercicesDisponibles[randomIndex];
     },
 
     /**
@@ -633,16 +802,16 @@ const EleveExercices = {
     },
 
     /**
-     * Valide une tentative d'exercice SF et calcule si la répétition est validée
+     * OPTION B: Valide une tentative d'exercice SF au niveau de la BANQUE
      * @param {Object} exercice - Données de l'exercice
      * @param {number} score - Score obtenu (0-100)
      * @param {number} tempsPasse - Temps passé en secondes
-     * @param {Object} statsExercice - Stats actuelles de l'exercice
+     * @param {Object} statsBanque - Stats actuelles de la BANQUE (pas de l'exercice)
      * @returns {Object} Résultat de la validation
      */
-    validerRepetitionSF(exercice, score, tempsPasse, statsExercice) {
+    validerRepetitionSF(exercice, score, tempsPasse, statsBanque) {
         const tempsPrevu = exercice.duree || 900; // 15 min par défaut
-        const repsActuelles = statsExercice?.repetitions_validees || 0;
+        const repsActuelles = statsBanque?.repetitions_validees || 0;
         const prochaineRep = repsActuelles + 1;
 
         // Entraînement libre = ne compte jamais
@@ -653,31 +822,34 @@ const EleveExercices = {
                 raison: 'entrainement_libre',
                 message: 'Entraînement libre',
                 conseil: 'Cet entraînement ne compte pas pour ta progression. Reviens à la date prévue pour valider ta prochaine répétition !',
-                estMaitrise: repsActuelles >= this.SEUIL_REPETITIONS
+                estMaitrise: repsActuelles >= this.SEUIL_REPETITIONS,
+                proposeNouvelExercice: false
             };
         }
 
-        // Score non parfait = pas validé
+        // Score non parfait = pas validé, proposer un autre exercice
         if (score < 100) {
             return {
                 repetitionValidee: false,
                 nouvelleRepetition: repsActuelles,
                 raison: 'score_insuffisant',
                 message: `Score insuffisant (${score}%)`,
-                conseil: 'Tu dois obtenir 100% pour valider cette répétition. Réessaie !',
-                estMaitrise: false
+                conseil: 'Tu dois obtenir 100% pour valider. Un autre exercice va te être proposé !',
+                estMaitrise: false,
+                proposeNouvelExercice: true  // OPTION B: proposer un autre exercice
             };
         }
 
-        // Vérifier le temps pour répétitions 3 et 4
+        // Vérifier le temps pour répétitions 2, 3, 4 et 5 (automatisation)
         if (prochaineRep >= this.REP_TEMPS_OBLIGATOIRE && tempsPasse > tempsPrevu) {
             return {
                 repetitionValidee: false,
                 nouvelleRepetition: repsActuelles,
                 raison: 'temps_depasse',
                 message: `Trop lent (${this.formatTime(tempsPasse)} > ${this.formatTime(tempsPrevu)})`,
-                conseil: `Pour les répétitions ${this.REP_TEMPS_OBLIGATOIRE} et ${this.REP_TEMPS_OBLIGATOIRE + 1}, tu dois aussi respecter le temps imparti.`,
-                estMaitrise: false
+                conseil: `À partir de la répétition ${this.REP_TEMPS_OBLIGATOIRE}, tu dois aussi respecter le temps. Un autre exercice va te être proposé !`,
+                estMaitrise: false,
+                proposeNouvelExercice: true  // OPTION B: proposer un autre exercice
             };
         }
 
@@ -699,14 +871,15 @@ const EleveExercices = {
             nouvelleRepetition: nouvelleRep,
             raison: 'succes',
             message: estMaitrise
-                ? '🎉 Exercice maîtrisé !'
+                ? '🎉 Banque maîtrisée !'
                 : `Répétition ${nouvelleRep}/${this.SEUIL_REPETITIONS} validée !`,
             conseil: estMaitrise
-                ? 'Bravo ! Tu maîtrises cet exercice !'
+                ? 'Bravo ! Tu maîtrises cette banque !'
                 : `Prochaine répétition disponible dans ${joursAttente} jour${joursAttente > 1 ? 's' : ''}.`,
             prochaineDispo: prochaineDispo?.toISOString(),
             joursAttente: joursAttente,
-            estMaitrise: estMaitrise
+            estMaitrise: estMaitrise,
+            proposeNouvelExercice: false
         };
     },
 
@@ -838,8 +1011,9 @@ const EleveExercices = {
             const status = this.getBanqueStatusSF(banque.id, banqueExercices);
             banquesStatus[banque.id] = status;
 
-            if (status.status === 'disponible') nbBanquesDisponibles++;
-            if (status.status === 'maitrisee') nbBanquesMaitrisees++;
+            // OPTION B: Compter selon le nouveau système de statuts
+            if (status.peutFaire && status.status !== this.STATUTS_SF.MAITRISE) nbBanquesDisponibles++;
+            if (status.status === this.STATUTS_SF.MAITRISE) nbBanquesMaitrisees++;
         });
 
         // Message bandeau
@@ -880,12 +1054,12 @@ const EleveExercices = {
 
         this.banques.forEach(banque => {
             const banqueExercices = exercicesByBanque[banque.id] || [];
-            const banqueStats = this.calculateBanqueStatsSF(banqueExercices);
+            const banqueStats = this.calculateBanqueStatsSF(banqueExercices, banque.id);
             const banqueStatus = banquesStatus[banque.id];
 
             // Accordéons fermés par défaut
             const isExpanded = this.expandedBanques.has(banque.id);
-            const hasActions = banqueStatus.status === 'disponible';
+            const hasActions = banqueStatus.peutFaire && banqueStatus.status !== this.STATUTS_SF.MAITRISE;
 
             // Couleur selon progression
             let progressColor = '#e5e7eb';
@@ -894,9 +1068,9 @@ const EleveExercices = {
             else if (banqueStats.progressPercent >= 40) progressColor = '#f59e0b';
             else if (banqueStats.progressPercent > 0) progressColor = '#3b82f6';
 
-            // Status class pour le style
-            const statusClass = banqueStatus.status === 'maitrisee' ? 'maitrisee' :
-                               banqueStatus.status === 'bloquee' ? 'bloquee' : '';
+            // Status class pour le style (utiliser statusClass directement)
+            const statusClass = banqueStatus.status === this.STATUTS_SF.MAITRISE ? 'maitrisee' :
+                               banqueStatus.status === this.STATUTS_SF.EN_PAUSE ? 'bloquee' : '';
 
             html += `
                 <div class="banque-accordion-item ${this.currentType}${isExpanded ? ' expanded' : ''}${hasActions ? ' has-actions' : ''} ${statusClass}" data-banque-id="${banque.id}">
@@ -914,7 +1088,7 @@ const EleveExercices = {
                         <div class="banque-progress-percent">${banqueStats.progressPercent}%</div>
                     </button>
                     <div class="banque-accordion-content">
-                        ${banqueStatus.status === 'maitrisee' ? `
+                        ${banqueStatus.status === this.STATUTS_SF.MAITRISE ? `
                             <div class="banque-maitrise">✅ Cette banque est maîtrisée !</div>
                         ` : ''}
                         <div class="exercices-accordion-list">
@@ -938,14 +1112,14 @@ const EleveExercices = {
         }
 
         // Si banque maîtrisée, montrer un résumé
-        if (banqueStatus.status === 'maitrisee') {
+        if (banqueStatus.status === this.STATUTS_SF.MAITRISE) {
             return `<div class="banque-resume">
-                <p>Tous les exercices de cette banque sont maîtrisés.</p>
+                <p>Tu as maîtrisé cette banque en réussissant 5 exercices différents !</p>
             </div>`;
         }
 
-        // Si banque bloquée, montrer l'info de blocage
-        if (banqueStatus.status === 'bloquee') {
+        // Si banque bloquée (en pause), montrer l'info de blocage
+        if (banqueStatus.status === this.STATUTS_SF.EN_PAUSE) {
             const prochaineDateStr = banqueStatus.prochaineDispo
                 ? new Date(banqueStatus.prochaineDispo).toLocaleDateString('fr-FR', {
                     weekday: 'long', day: 'numeric', month: 'long'
@@ -957,27 +1131,29 @@ const EleveExercices = {
             </div>`;
         }
 
-        // Banque disponible : afficher uniquement l'exercice sélectionné
+        // OPTION B: Banque disponible, afficher l'exercice sélectionné pour cette répétition
         const exo = banqueStatus.exercice;
         if (!exo) {
             return '<div class="empty-state" style="padding: 1rem;"><p>Aucun exercice disponible</p></div>';
         }
 
-        const statusSF = this.getExerciceStatusSF(exo.id, exo);
+        // Utiliser le statut de la BANQUE (pas de l'exercice individuel)
+        const reps = banqueStatus.repetitions || 0;
         const dureeMinutes = exo.duree > 60 ? Math.floor(exo.duree / 60) : exo.duree;
+        const repLabel = `Répétition ${reps + 1}/${this.SEUIL_REPETITIONS}`;
 
         return `
-            <div class="exercice-item ${this.currentType} ${statusSF.statusClass} selected-exercise"
+            <div class="exercice-item ${this.currentType} ${banqueStatus.statusClass} selected-exercise"
                  onclick="EleveExercices.startExercise('${exo.id}')"
                  data-exercice-id="${exo.id}">
-                <div class="exercice-numero">1</div>
+                <div class="exercice-numero">${reps + 1}</div>
                 <div class="exercice-info">
                     <div class="exercice-titre">${this.escapeHtml(exo.titre || 'Exercice')}</div>
-                    <div class="exercice-meta">${dureeMinutes ? dureeMinutes + ' min' : ''}</div>
+                    <div class="exercice-meta">${dureeMinutes ? dureeMinutes + ' min' : ''} - ${repLabel}</div>
                 </div>
                 <div class="exercice-status-area">
-                    <span class="entrainement-badge ${statusSF.statusClass}">${statusSF.icon} ${statusSF.label}</span>
-                    <span class="exercice-hint">Clique pour commencer →</span>
+                    <span class="entrainement-badge ${banqueStatus.statusClass}">${banqueStatus.icon} ${banqueStatus.label}</span>
+                    <span class="exercice-hint">Clique pour commencer</span>
                 </div>
             </div>
         `;
@@ -1133,50 +1309,37 @@ const EleveExercices = {
     },
 
     /**
-     * Calcule les stats pour une banque SF (nouveau système 6 statuts)
+     * OPTION B: Calcule les stats d'une banque SF basées sur les répétitions de la BANQUE
+     * Progression = répétitions validées / 5 * 100
      */
-    calculateBanqueStatsSF(exercices) {
-        let total = exercices.length;
-        let maitrise = 0;      // Anciennement "automatise"
-        let rappelSuggere = 0; // Nouveau statut
-        let aReviser = 0;      // Anciennement "a-rafraichir"
-        let enCours = 0;       // Anciennement "en-acquisition"
-        let enPause = 0;       // Anciennement "acquis-lent"
-        let aDecouvrir = 0;    // Anciennement "new"
+    calculateBanqueStatsSF(exercices, banqueId) {
+        const total = exercices.length;
 
-        exercices.forEach(exo => {
-            const status = this.getExerciceStatusSF(exo.id, exo);
+        // Récupérer les stats de la banque (Option B)
+        const statsBanque = this.statsSFBanque[String(banqueId)];
+        const repsValidees = statsBanque?.repetitions_validees || 0;
+        const exercicesReussis = statsBanque?.exercices_reussis || [];
 
-            switch (status.statusClass) {
-                case 'maitrise': maitrise++; break;
-                case 'rappel-suggere': rappelSuggere++; break;
-                case 'a-reviser': aReviser++; break;
-                case 'en-cours': enCours++; break;
-                case 'en-pause': enPause++; break;
-                case 'a-decouvrir': aDecouvrir++; break;
-            }
-        });
+        // Progression = répétitions validées sur 5
+        const progressPercent = Math.round((repsValidees / this.SEUIL_REPETITIONS) * 100);
 
-        // "À faire" = à réviser + en cours + à découvrir + rappel suggéré
-        const aFaire = aReviser + enCours + aDecouvrir + rappelSuggere;
-
-        // Pour compatibilité avec l'ancien code qui utilise "automatise"
-        const automatise = maitrise;
-
-        // Progression = % d'exercices maîtrisés
-        const progressPercent = total > 0 ? Math.round((maitrise / total) * 100) : 0;
+        // Déterminer le statut global
+        const estMaitrise = repsValidees >= this.SEUIL_REPETITIONS;
 
         return {
             total,
-            automatise,       // Pour compatibilité
-            maitrise,
-            rappelSuggere,
-            aReviser,
-            enCours,
-            enPause,
-            aDecouvrir,
-            aFaire,
-            progressPercent
+            repetitionsValidees: repsValidees,
+            exercicesReussis: exercicesReussis.length,
+            maitrise: estMaitrise ? 1 : 0,
+            automatise: estMaitrise ? 1 : 0, // Pour compatibilité
+            progressPercent,
+            // Legacy compatibility
+            rappelSuggere: 0,
+            aReviser: 0,
+            enCours: repsValidees > 0 && !estMaitrise ? 1 : 0,
+            enPause: 0,
+            aDecouvrir: repsValidees === 0 ? 1 : 0,
+            aFaire: estMaitrise ? 0 : 1
         };
     },
 
@@ -2177,12 +2340,12 @@ const EleveExercices = {
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
         const tempsPrevu = this.currentExercise?.duree || 300; // duree est déjà en secondes
 
-        // Pour les savoir-faire, calculer la validation de répétition
+        // OPTION B: Pour les savoir-faire, calculer la validation au niveau BANQUE
         let validationResult = null;
         if (this.currentType === 'savoir-faire' && this.currentExercise) {
-            const exoId = String(this.currentExercise.id);
-            const statsExercice = this.statsSF[exoId];
-            validationResult = this.validerRepetitionSF(this.currentExercise, percent, timeSpent, statsExercice);
+            const banqueId = String(this.currentExercise.banque_id);
+            const statsBanque = this.statsSFBanque[banqueId];
+            validationResult = this.validerRepetitionSF(this.currentExercise, percent, timeSpent, statsBanque);
 
             // Stocker le résultat de validation pour l'écran de résultat
             this.lastValidationResult = validationResult;
@@ -2260,16 +2423,47 @@ const EleveExercices = {
     },
 
     /**
-     * Met à jour les stats SF locales après une pratique (système 4 répétitions)
+     * OPTION B: Met à jour les stats locales au niveau BANQUE (plus par exercice)
      */
     updateLocalStatsSF(pratiqueData) {
         const exoId = String(pratiqueData.exercice_id);
-        console.log('[SF] Mise à jour stats pour exercice:', exoId, 'Score:', pratiqueData.score);
+        const banqueId = String(pratiqueData.banque_id);
+        console.log('[SF-OptionB] Mise à jour stats pour banque:', banqueId, 'exercice:', exoId, 'Score:', pratiqueData.score);
 
+        // ========== Mise à jour des stats par BANQUE (nouveau système Option B) ==========
+        if (!this.statsSFBanque[banqueId]) {
+            this.statsSFBanque[banqueId] = {
+                banque_id: banqueId,
+                repetitions_validees: 0,
+                exercices_reussis: [],
+                date_derniere_validation: null,
+                total_pratiques: 0
+            };
+        }
+
+        const statsBanque = this.statsSFBanque[banqueId];
+        statsBanque.total_pratiques++;
+
+        // Si répétition validée, mettre à jour la banque
+        if (pratiqueData.repetition_validee && !pratiqueData.est_entrainement_libre) {
+            statsBanque.repetitions_validees = pratiqueData.nouvelle_repetition;
+            statsBanque.date_derniere_validation = new Date().toISOString();
+
+            // Ajouter l'exercice à la liste des réussis (si pas déjà dedans)
+            if (!statsBanque.exercices_reussis.includes(exoId)) {
+                statsBanque.exercices_reussis.push(exoId);
+            }
+            console.log('[SF-OptionB] Répétition banque validée!', statsBanque);
+        }
+
+        // Sauvegarder stats banque dans le cache
+        this.saveHistoriqueSFBanqueToCache(this.statsSFBanque);
+
+        // ========== Mise à jour des stats par exercice (legacy, pour compatibilité) ==========
         if (!this.statsSF[exoId]) {
             this.statsSF[exoId] = {
                 exercice_id: exoId,
-                banque_id: String(pratiqueData.banque_id),
+                banque_id: banqueId,
                 total_pratiques: 0,
                 pratiques_parfaites: 0,
                 repetitions_validees: 0,
@@ -2280,30 +2474,51 @@ const EleveExercices = {
             };
         }
 
-        const stats = this.statsSF[exoId];
-        stats.total_pratiques++;
+        const statsExo = this.statsSF[exoId];
+        statsExo.total_pratiques++;
 
         if (pratiqueData.score === 100) {
-            stats.pratiques_parfaites++;
-            console.log('[SF] Pratique parfaite! Total:', stats.pratiques_parfaites);
-        }
-
-        // Mettre à jour les répétitions validées (nouveau système)
-        if (pratiqueData.repetition_validee && !pratiqueData.est_entrainement_libre) {
-            stats.repetitions_validees = pratiqueData.nouvelle_repetition;
-            stats.date_derniere_validation = new Date().toISOString();
-            console.log('[SF] Répétition validée! Total:', stats.repetitions_validees);
+            statsExo.pratiques_parfaites++;
         }
 
         // Mettre à jour temps moyen
-        const oldTotal = (stats.total_pratiques - 1) * stats.temps_moyen;
-        stats.temps_moyen = Math.round((oldTotal + pratiqueData.temps_passe) / stats.total_pratiques);
+        const oldTotal = (statsExo.total_pratiques - 1) * statsExo.temps_moyen;
+        statsExo.temps_moyen = Math.round((oldTotal + pratiqueData.temps_passe) / statsExo.total_pratiques);
+        statsExo.derniere_pratique = new Date().toISOString();
 
-        stats.derniere_pratique = new Date().toISOString();
-
-        // Sauvegarder dans le cache
         this.saveHistoriqueSFToCache(this.statsSF);
-        console.log('[SF] Stats sauvegardées:', this.statsSF[exoId]);
+        console.log('[SF-OptionB] Stats banque:', this.statsSFBanque[banqueId]);
+    },
+
+    /**
+     * Sauvegarde les stats SF par banque dans le cache local
+     */
+    saveHistoriqueSFBanqueToCache(statsBanque) {
+        try {
+            localStorage.setItem(this.CACHE_HISTORIQUE_SF_BANQUE_KEY, JSON.stringify({
+                data: statsBanque,
+                timestamp: Date.now()
+            }));
+        } catch (e) {
+            console.warn('[SF] Erreur sauvegarde cache banque:', e);
+        }
+    },
+
+    /**
+     * Charge les stats SF par banque depuis le cache local
+     */
+    loadHistoriqueSFBanqueFromCache() {
+        try {
+            const cached = localStorage.getItem(this.CACHE_HISTORIQUE_SF_BANQUE_KEY);
+            if (!cached) return null;
+            const data = JSON.parse(cached);
+            if (data.timestamp && (Date.now() - data.timestamp) < this.CACHE_TTL) {
+                return data.data;
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
     },
 
     updateLocalResult(newResult) {
