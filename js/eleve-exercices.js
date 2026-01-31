@@ -2783,7 +2783,7 @@ const EleveExercices = {
                 </button>
 
                 <div class="result-card-sf">
-                    <!-- BLOC GAUCHE : BILAN -->
+                    <!-- BLOC HAUT : BILAN -->
                     <div class="result-bilan">
                         <div class="bilan-header ${resultType}">
                             <span class="bilan-icon">${isSuccess ? '✅' : (results.percent === 100 ? '⏱️' : '❌')}</span>
@@ -2803,11 +2803,11 @@ const EleveExercices = {
                                 <span class="temps-value">${this.formatTime(timeSpent)}</span>
                             </div>
                             <div class="temps-row">
-                                <span class="temps-label">📊 Temps max (expert)</span>
+                                <span class="temps-label">📊 Temps max</span>
                                 <span class="temps-value">${this.formatTime(tempsPrevu)}</span>
                             </div>
                             <div class="temps-badge ${tempsOK ? 'success' : 'warning'}">
-                                ${tempsOK ? '✓ Dans les temps !' : `⚠️ +${this.formatTime(timeSpent - tempsPrevu)}`}
+                                ${tempsOK ? '✓ Dans les temps' : `⚠️ +${this.formatTime(timeSpent - tempsPrevu)}`}
                             </div>
                         </div>
 
@@ -2818,54 +2818,57 @@ const EleveExercices = {
                             <span class="rep-label">Répétition ${validationResult.nouvelleRepetition}/${this.SEUIL_REPETITIONS}</span>
                         </div>
 
-                        ${validationResult.conseil && !isSuccess && !this.isEntrainementLibre ? `
-                            <div class="bilan-conseil warning">
-                                <span class="conseil-icon">💡</span>
-                                <p>${validationResult.conseil}</p>
-                            </div>
-                        ` : ''}
-
-                        ${isSuccess && prochaineDateStr && !validationResult.estMaitrise ? `
-                            <div class="bilan-prochaine">
-                                <span class="prochaine-icon">📅</span>
-                                <p>Ta répétition ${validationResult.nouvelleRepetition + 1} compte à partir de <strong>${prochaineDateStr}</strong></p>
-                            </div>
-                        ` : ''}
-
-                        ${validationResult.estMaitrise ? `
-                            <div class="bilan-maitrise">
-                                <span class="maitrise-icon">🎉</span>
-                                <p>Bravo ! Tu maîtrises cette banque !</p>
-                            </div>
-                        ` : ''}
-
-                        ${this.isEntrainementLibre ? `
-                            <div class="bilan-libre">
-                                <span class="libre-icon">ℹ️</span>
-                                <p>Entraînement libre - ne compte pas pour ta progression</p>
-                            </div>
-                        ` : ''}
-
-                        <div class="bilan-actions">
-                            ${!isSuccess && !this.isEntrainementLibre ? `
-                                <button class="btn btn-primary btn-restart-sf" onclick="EleveExercices.restartExercise()">
-                                    🔄 Réessayer
-                                </button>
+                        <!-- Messages et actions sur toute la largeur -->
+                        <div class="bilan-messages">
+                            ${validationResult.conseil && !isSuccess && !this.isEntrainementLibre ? `
+                                <div class="bilan-conseil warning">
+                                    <span class="conseil-icon">💡</span>
+                                    <p>${validationResult.conseil}</p>
+                                </div>
                             ` : ''}
-                            <button class="btn ${isSuccess ? 'btn-primary' : 'btn-secondary'}" onclick="EleveExercices.backToList()">
-                                ← Retour aux exercices
-                            </button>
+
+                            ${isSuccess && prochaineDateStr && !validationResult.estMaitrise ? `
+                                <div class="bilan-prochaine">
+                                    <span class="prochaine-icon">📅</span>
+                                    <p>Répétition ${validationResult.nouvelleRepetition + 1} compte à partir du <strong>${prochaineDateStr}</strong></p>
+                                </div>
+                            ` : ''}
+
+                            ${validationResult.estMaitrise ? `
+                                <div class="bilan-maitrise">
+                                    <span class="maitrise-icon">🎉</span>
+                                    <p>Bravo ! Tu maîtrises cette banque !</p>
+                                </div>
+                            ` : ''}
+
+                            ${this.isEntrainementLibre ? `
+                                <div class="bilan-libre">
+                                    <span class="libre-icon">ℹ️</span>
+                                    <p>Entraînement libre - ne compte pas pour ta progression</p>
+                                </div>
+                            ` : ''}
+
+                            <div class="bilan-actions">
+                                ${!isSuccess && !this.isEntrainementLibre ? `
+                                    <button class="btn btn-primary btn-restart-sf" onclick="EleveExercices.restartExercise()">
+                                        🔄 Réessayer
+                                    </button>
+                                ` : ''}
+                                <button class="btn ${isSuccess ? 'btn-primary' : 'btn-secondary'}" onclick="EleveExercices.backToList()">
+                                    ← Retour aux exercices
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- BLOC DROIT : CORRECTION -->
+                    <!-- BLOC BAS : CORRECTION (tableau de l'exercice avec couleurs) -->
                     <div class="result-correction">
                         <div class="correction-header">
                             <h3>📝 Correction</h3>
                         </div>
-                        <div class="correction-content">
+                        <div class="correction-content correction-table">
                             ${results.consigneHTML ? `<div class="correction-consigne">${results.consigneHTML}</div>` : ''}
-                            ${generateCorrectionHTML()}
+                            <div class="exercise-content">${results.correctedHTML || '<p class="correction-fallback">Correction non disponible.</p>'}</div>
                         </div>
                     </div>
                 </div>
@@ -3021,7 +3024,10 @@ const EleveExercices = {
         marqueurs.forEach((m, index) => {
             const badge = document.getElementById(`badge_${index}`);
             if (badge) {
-                badge.textContent = m.reponse || '';
+                // Prendre uniquement la première réponse acceptable
+                const fullAnswer = m.reponse || '';
+                const firstAnswer = fullAnswer.split(/[|;]/)[0].trim();
+                badge.textContent = firstAnswer;
                 badge.classList.remove('hidden', 'incorrect');
                 badge.classList.add('correction');
             }
@@ -3054,7 +3060,9 @@ const EleveExercices = {
                 if (el.type === 'row' && el.reponse) {
                     const input = document.getElementById(`mixte_element_${idx}`);
                     if (input) {
-                        input.value = el.reponse;
+                        // Prendre uniquement la première réponse acceptable
+                        const firstAnswer = el.reponse.split(/[|;]/)[0].trim();
+                        input.value = firstAnswer;
                         input.classList.remove('incorrect', 'correct');
                         input.classList.add('corrected');
                         input.disabled = true;
@@ -3069,7 +3077,9 @@ const EleveExercices = {
                 const correctionDiv = document.getElementById(`mixte_correction_${idx}`);
                 if (textarea) textarea.disabled = true;
                 if (correctionDiv && q.reponse_attendue) {
-                    correctionDiv.innerHTML = `<strong>Réponse attendue :</strong> ${this.escapeHtml(q.reponse_attendue)}`;
+                    // Prendre uniquement la première réponse acceptable
+                    const firstAnswer = q.reponse_attendue.split(/[|;]/)[0].trim();
+                    correctionDiv.innerHTML = `<strong>Réponse attendue :</strong> ${this.escapeHtml(firstAnswer)}`;
                     correctionDiv.style.display = 'block';
                 }
             });
@@ -3090,7 +3100,10 @@ const EleveExercices = {
                 if (col.editable) {
                     const input = document.getElementById(`input_${rowIdx}_${colIdx}`);
                     if (input) {
-                        input.value = ligne.cells[colIdx] || '';
+                        const fullAnswer = ligne.cells[colIdx] || '';
+                        // Prendre uniquement la première réponse acceptable (avant | ou ;)
+                        const firstAnswer = fullAnswer.split(/[|;]/)[0].trim();
+                        input.value = firstAnswer;
                         input.classList.remove('incorrect', 'correct');
                         input.classList.add('corrected');
                         input.disabled = true;

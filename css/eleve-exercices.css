@@ -3646,14 +3646,14 @@ body.document-fullscreen-active {
 /* Actions dans le bilan */
 .bilan-actions {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.75rem;
-    margin-top: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .bilan-actions .btn {
-    width: 100%;
-    padding: 0.875rem 1.5rem;
+    padding: 0.75rem 1.25rem;
 }
 
 .btn-restart-sf {
@@ -3779,49 +3779,46 @@ body.document-fullscreen-active {
    ÉCRAN RÉSULTAT 2 BLOCS - SAVOIR-FAIRE
    ============================================ */
 .result-card-sf {
-    display: grid;
-    grid-template-columns: 1fr 1.3fr;
+    display: flex;
+    flex-direction: column;
     background: white;
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-    min-height: 580px;
+    width: 100%;
 }
 
-@media (max-width: 900px) {
-    .result-card-sf {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Bloc Bilan (gauche) */
+/* Bloc Bilan (haut) */
 .result-bilan {
     padding: 2rem;
-    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2rem;
 }
 
 .bilan-header {
     text-align: center;
-    margin-bottom: 1.5rem;
 }
 
 .bilan-emoji {
-    font-size: 4rem;
-    margin-bottom: 0.5rem;
+    font-size: 3rem;
+    margin-bottom: 0.25rem;
 }
 
 .bilan-header h2 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     color: #1f2937;
     margin: 0;
 }
 
 .bilan-header .bilan-icon {
-    font-size: 3rem;
+    font-size: 2.5rem;
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .bilan-header.success {
@@ -3839,18 +3836,17 @@ body.document-fullscreen-active {
 /* Score dans le bilan */
 .bilan-score {
     text-align: center;
-    margin-bottom: 1.5rem;
 }
 
 .bilan-score .score-circle {
-    width: 120px;
-    height: 120px;
-    margin: 0 auto 0.5rem;
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 0.25rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 800;
 }
 
@@ -3876,35 +3872,37 @@ body.document-fullscreen-active {
 
 /* Temps dans le bilan */
 .bilan-temps {
-    margin-bottom: 1.5rem;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     background: #f9fafb;
     border-radius: 10px;
+    min-width: 180px;
 }
 
 .temps-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+    gap: 1rem;
 }
 
 .temps-label {
     color: #6b7280;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 .temps-value {
     font-weight: 600;
     color: #1f2937;
+    font-size: 0.85rem;
 }
 
 .temps-badge {
     text-align: center;
-    padding: 0.5rem;
+    padding: 0.35rem 0.5rem;
     border-radius: 6px;
     font-weight: 500;
-    font-size: 0.9rem;
-    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
 }
 
 .temps-badge.success {
@@ -3920,27 +3918,26 @@ body.document-fullscreen-active {
 /* Répétition dans le bilan */
 .bilan-repetition {
     text-align: center;
-    margin-bottom: 1.5rem;
 }
 
 .rep-progress {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .rep-dots {
     display: flex;
     justify-content: center;
-    gap: 0.625rem;
+    gap: 0.4rem;
 }
 
 .rep-dot {
-    width: 38px;
-    height: 38px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 600;
     border: none;
     transition: all 0.3s;
@@ -3958,10 +3955,20 @@ body.document-fullscreen-active {
 }
 
 .rep-label {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: #6b7280;
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
     display: block;
+}
+
+/* Messages dans le bilan - section pleine largeur */
+.bilan-messages {
+    width: 100%;
+    flex-basis: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
 }
 
 /* Messages dans le bilan */
@@ -3970,11 +3977,11 @@ body.document-fullscreen-active {
 .bilan-maitrise,
 .bilan-libre {
     display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    padding: 1rem;
-    border-radius: 10px;
-    margin-bottom: 1rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin: 0;
 }
 
 .bilan-conseil.warning {
@@ -4141,13 +4148,12 @@ body.document-fullscreen-active {
     color: #047857;
 }
 
-/* Bloc Correction (droite) */
+/* Bloc Correction (bas - pleine largeur) */
 .result-correction {
-    padding: 2rem;
+    padding: 1.5rem 2rem;
     background: #fafafa;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 .correction-header {
@@ -4167,8 +4173,37 @@ body.document-fullscreen-active {
 
 .correction-content {
     flex: 1;
-    overflow-y: auto;
-    padding-right: 0.5rem;
+    overflow-x: auto;
+}
+
+/* Tableau de correction dans la correction */
+.correction-content.correction-table .exercise-content {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.correction-content.correction-table .cell-input {
+    pointer-events: none;
+}
+
+.correction-content.correction-table .cell-input.correct {
+    background-color: #d1fae5 !important;
+    border-color: #059669 !important;
+    color: #065f46 !important;
+}
+
+.correction-content.correction-table .cell-input.incorrect {
+    background-color: #fee2e2 !important;
+    border-color: #dc2626 !important;
+    color: #991b1b !important;
+}
+
+.correction-content.correction-table .cell-input.corrected {
+    background-color: #dbeafe !important;
+    border-color: #3b82f6 !important;
+    color: #1e40af !important;
 }
 
 .correction-question {
@@ -4319,26 +4354,33 @@ body.document-fullscreen-active {
     min-width: 180px;
 }
 
-/* Responsive 2 blocs */
+/* Responsive bilan stacked */
 @media (max-width: 768px) {
-    .result-grid-sf {
-        grid-template-columns: 1fr;
+    .result-bilan {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.5rem;
     }
 
-    .result-bilan {
-        border-right: none;
-        border-bottom: 1px solid #e5e7eb;
+    .bilan-temps {
+        width: 100%;
+        min-width: auto;
+    }
+
+    .bilan-messages {
+        margin-top: 0;
+    }
+
+    .bilan-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .bilan-actions .btn {
+        width: 100%;
     }
 
     .result-correction {
-        max-height: 350px;
-    }
-
-    .result-actions-main {
-        flex-direction: column;
-    }
-
-    .result-actions-main .btn {
-        width: 100%;
+        padding: 1rem;
     }
 }
