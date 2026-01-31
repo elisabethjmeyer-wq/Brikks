@@ -814,14 +814,14 @@ const EleveExercices = {
         const repsActuelles = statsBanque?.repetitions_validees || 0;
         const prochaineRep = repsActuelles + 1;
 
-        // Entraînement libre = ne compte jamais
+        // Entraînement libre = ne compte pas pour la progression
         if (this.isEntrainementLibre) {
             return {
                 repetitionValidee: false,
                 nouvelleRepetition: repsActuelles,
                 raison: 'entrainement_libre',
-                message: 'Entraînement libre',
-                conseil: 'Cet entraînement ne compte pas pour ta progression. Reviens à la date prévue pour valider ta prochaine répétition !',
+                message: 'Bon entraînement !',
+                conseil: '',
                 estMaitrise: repsActuelles >= this.SEUIL_REPETITIONS,
                 proposeNouvelExercice: false
             };
@@ -1001,8 +1001,7 @@ const EleveExercices = {
      * Rendu accordéon pour Savoir-faire (système 1 exercice par banque)
      */
     renderAccordionViewSF(container, exercicesByBanque) {
-        // Calculer les statuts de toutes les banques
-        let nbBanquesDisponibles = 0;
+        // Phase 1: Affichage simple sans priorité
         let nbBanquesMaitrisees = 0;
         const banquesStatus = {};
 
@@ -1011,29 +1010,21 @@ const EleveExercices = {
             const status = this.getBanqueStatusSF(banque.id, banqueExercices);
             banquesStatus[banque.id] = status;
 
-            // OPTION B: Compter selon le nouveau système de statuts
-            if (status.peutFaire && status.status !== this.STATUTS_SF.MAITRISE) nbBanquesDisponibles++;
             if (status.status === this.STATUTS_SF.MAITRISE) nbBanquesMaitrisees++;
         });
 
-        // Message bandeau
+        // Message bandeau simplifié (pas de priorité en Phase 1)
         let bandeauMessage, bandeauClass;
-        if (nbBanquesDisponibles > 0) {
-            bandeauMessage = `${nbBanquesDisponibles} entraînement${nbBanquesDisponibles > 1 ? 's' : ''} à faire`;
-            bandeauClass = 'has-urgent';
-        } else if (nbBanquesMaitrisees === this.banques.length && this.banques.length > 0) {
+        if (nbBanquesMaitrisees === this.banques.length && this.banques.length > 0) {
             bandeauMessage = '🏆 Tout est maîtrisé !';
             bandeauClass = 'all-done';
-        } else if (this.banques.length > 0) {
-            bandeauMessage = '✅ Tu es à jour !';
-            bandeauClass = 'waiting';
         } else {
-            bandeauMessage = 'Aucun entraînement';
-            bandeauClass = 'empty';
+            bandeauMessage = `${this.banques.length} banque${this.banques.length > 1 ? 's' : ''}`;
+            bandeauClass = '';
         }
 
         let html = `
-            <!-- Bandeau SF -->
+            <!-- Bandeau SF simplifié -->
             <div class="type-header-banner ${this.currentType} ${bandeauClass}">
                 <div class="type-header-left">
                     <div class="type-icon-emoji">${this.getTypeEmoji()}</div>
@@ -1059,7 +1050,6 @@ const EleveExercices = {
 
             // Accordéons fermés par défaut
             const isExpanded = this.expandedBanques.has(banque.id);
-            const hasActions = banqueStatus.peutFaire && banqueStatus.status !== this.STATUTS_SF.MAITRISE;
 
             // Couleur selon progression
             let progressColor = '#e5e7eb';
@@ -1068,18 +1058,23 @@ const EleveExercices = {
             else if (banqueStats.progressPercent >= 40) progressColor = '#f59e0b';
             else if (banqueStats.progressPercent > 0) progressColor = '#3b82f6';
 
-            // Status class pour le style (utiliser statusClass directement)
-            const statusClass = banqueStatus.status === this.STATUTS_SF.MAITRISE ? 'maitrisee' :
-                               banqueStatus.status === this.STATUTS_SF.EN_PAUSE ? 'bloquee' : '';
+            // Status class simplifié (Phase 1: pas de "bloquee")
+            const statusClass = banqueStatus.status === this.STATUTS_SF.MAITRISE ? 'maitrisee' : '';
+
+            // Message simplifié: juste la progression
+            const reps = banqueStatus.repetitions || 0;
+            const simpleMessage = banqueStatus.status === this.STATUTS_SF.MAITRISE
+                ? 'Maîtrisé !'
+                : `${reps}/${this.SEUIL_REPETITIONS} répétitions`;
 
             html += `
-                <div class="banque-accordion-item ${this.currentType}${isExpanded ? ' expanded' : ''}${hasActions ? ' has-actions' : ''} ${statusClass}" data-banque-id="${banque.id}">
+                <div class="banque-accordion-item ${this.currentType}${isExpanded ? ' expanded' : ''} ${statusClass}" data-banque-id="${banque.id}">
                     <button class="banque-accordion-header" onclick="EleveExercices.toggleBanque('${banque.id}')">
                         <div class="banque-chevron">▶</div>
                         <div class="banque-info">
                             <div class="banque-title">${this.escapeHtml(banque.titre)}</div>
                             <div class="banque-meta">
-                                <span class="banque-status-message">${banqueStatus.message}</span>
+                                <span class="banque-status-message">${simpleMessage}</span>
                             </div>
                             <div class="banque-progress-bar">
                                 <div class="banque-progress-fill" style="width: ${banqueStats.progressPercent}%; background: ${progressColor};"></div>
@@ -1104,56 +1099,63 @@ const EleveExercices = {
     },
 
     /**
-     * Rendu de la liste d'exercices pour SF (1 exercice par banque visible)
+     * Phase 1: Rendu simplifié - toujours montrer l'exercice comme accessible
      */
     renderExercisesListSF(banqueId, exercices, banqueStatus) {
         if (!exercices || exercices.length === 0) {
             return '<div class="empty-state" style="padding: 1rem;"><p>Aucun exercice dans cette banque</p></div>';
         }
 
-        // Si banque maîtrisée, montrer un résumé
+        // Si banque maîtrisée, montrer résumé + option de s'entraîner
         if (banqueStatus.status === this.STATUTS_SF.MAITRISE) {
-            return `<div class="banque-resume">
-                <p>Tu as maîtrisé cette banque en réussissant 5 exercices différents !</p>
-            </div>`;
+            const exo = banqueStatus.exercice || exercices[0];
+            return `
+                <div class="banque-resume">
+                    <p>Tu as réussi 5 exercices différents !</p>
+                </div>
+                <div class="exercice-item ${this.currentType} maitrise selected-exercise"
+                     onclick="EleveExercices.startExerciseLibre('${exo.id}')"
+                     data-exercice-id="${exo.id}">
+                    <div class="exercice-info">
+                        <div class="exercice-titre">S'entraîner quand même</div>
+                    </div>
+                    <div class="exercice-status-area">
+                        <span class="exercice-hint">Entraînement libre</span>
+                    </div>
+                </div>
+            `;
         }
 
-        // Si banque bloquée (en pause), montrer l'info de blocage
-        if (banqueStatus.status === this.STATUTS_SF.EN_PAUSE) {
-            const prochaineDateStr = banqueStatus.prochaineDispo
-                ? new Date(banqueStatus.prochaineDispo).toLocaleDateString('fr-FR', {
-                    weekday: 'long', day: 'numeric', month: 'long'
-                })
-                : 'bientôt';
-            return `<div class="banque-bloquee-info">
-                <span class="blocage-icon">🔒</span>
-                <p>Reviens <strong>${prochaineDateStr}</strong> pour continuer ta progression.</p>
-            </div>`;
-        }
-
-        // OPTION B: Banque disponible, afficher l'exercice sélectionné pour cette répétition
+        // Exercice à afficher
         const exo = banqueStatus.exercice;
         if (!exo) {
             return '<div class="empty-state" style="padding: 1rem;"><p>Aucun exercice disponible</p></div>';
         }
 
-        // Utiliser le statut de la BANQUE (pas de l'exercice individuel)
         const reps = banqueStatus.repetitions || 0;
         const dureeMinutes = exo.duree > 60 ? Math.floor(exo.duree / 60) : exo.duree;
-        const repLabel = `Répétition ${reps + 1}/${this.SEUIL_REPETITIONS}`;
+
+        // Info sur quand la répétition compte (si espacement non atteint)
+        let infoEspacement = '';
+        if (banqueStatus.status === this.STATUTS_SF.EN_PAUSE && banqueStatus.prochaineDispo) {
+            const prochaineDateStr = new Date(banqueStatus.prochaineDispo).toLocaleDateString('fr-FR', {
+                weekday: 'long', day: 'numeric', month: 'short'
+            });
+            infoEspacement = `<div class="info-espacement">ℹ️ Ta répétition ${reps + 1} compte à partir de ${prochaineDateStr}</div>`;
+        }
 
         return `
-            <div class="exercice-item ${this.currentType} ${banqueStatus.statusClass} selected-exercise"
+            ${infoEspacement}
+            <div class="exercice-item ${this.currentType} selected-exercise"
                  onclick="EleveExercices.startExercise('${exo.id}')"
                  data-exercice-id="${exo.id}">
                 <div class="exercice-numero">${reps + 1}</div>
                 <div class="exercice-info">
                     <div class="exercice-titre">${this.escapeHtml(exo.titre || 'Exercice')}</div>
-                    <div class="exercice-meta">${dureeMinutes ? dureeMinutes + ' min' : ''} - ${repLabel}</div>
+                    <div class="exercice-meta">${dureeMinutes ? dureeMinutes + ' min' : ''}</div>
                 </div>
                 <div class="exercice-status-area">
-                    <span class="entrainement-badge ${banqueStatus.statusClass}">${banqueStatus.icon} ${banqueStatus.label}</span>
-                    <span class="exercice-hint">Clique pour commencer</span>
+                    <span class="exercice-hint">Commencer →</span>
                 </div>
             </div>
         `;
@@ -1510,26 +1512,32 @@ const EleveExercices = {
     /**
      * Start exercise - avec vérification du blocage pour SF
      */
+    /**
+     * Phase 1: Démarrer en mode entraînement libre (après maîtrise)
+     */
+    startExerciseLibre(exerciceId) {
+        this.startExercise(exerciceId, true);
+    },
+
     async startExercise(exerciceId, forceEntrainementLibre = false) {
-        // Reset le flag d'entraînement libre
-        this.isEntrainementLibre = forceEntrainementLibre;
-
-        // Pour les savoir-faire, vérifier si l'exercice est bloqué
-        if (this.currentType === 'savoir-faire' && !forceEntrainementLibre) {
+        // Pour les savoir-faire, déterminer si c'est entrainement libre
+        // Phase 1: Pas de popup de blocage, mais on track si espacement atteint ou non
+        if (this.currentType === 'savoir-faire') {
             const exo = this.exercices.find(e => String(e.id) === String(exerciceId));
-            const statusInfo = this.getExerciceStatusSF(exerciceId, exo);
+            if (exo) {
+                const banqueId = exo.banque_id;
+                const banqueExercices = this.exercices.filter(e => e.banque_id === banqueId);
+                const banqueStatus = this.getBanqueStatusSF(banqueId, banqueExercices);
 
-            // Si bloqué (en pause), afficher le popup
-            if (!statusInfo.peutFaire && statusInfo.estEntrainementLibre) {
-                this.showBlocagePopup(
-                    statusInfo,
-                    // Callback entraînement libre
-                    () => this.startExercise(exerciceId, true),
-                    // Callback fermer
-                    () => {}
-                );
-                return;
+                // Entrainement libre si: forcé, OU espacement non atteint, OU banque maîtrisée
+                this.isEntrainementLibre = forceEntrainementLibre ||
+                    banqueStatus.status === this.STATUTS_SF.EN_PAUSE ||
+                    banqueStatus.status === this.STATUTS_SF.MAITRISE;
+            } else {
+                this.isEntrainementLibre = forceEntrainementLibre;
             }
+        } else {
+            this.isEntrainementLibre = forceEntrainementLibre;
         }
 
         this.showLoader('Chargement de l\'exercice...');
@@ -2817,17 +2825,17 @@ const EleveExercices = {
                             </div>
                         ` : ''}
 
-                        ${isSuccess && prochaineDateStr ? `
+                        ${isSuccess && prochaineDateStr && !validationResult.estMaitrise ? `
                             <div class="bilan-prochaine">
                                 <span class="prochaine-icon">📅</span>
-                                <p>Prochaine répétition : <strong>${prochaineDateStr}</strong></p>
+                                <p>Ta répétition ${validationResult.nouvelleRepetition + 1} compte à partir de <strong>${prochaineDateStr}</strong></p>
                             </div>
                         ` : ''}
 
                         ${validationResult.estMaitrise ? `
                             <div class="bilan-maitrise">
                                 <span class="maitrise-icon">🎉</span>
-                                <p>Bravo ! Tu maîtrises cet exercice !</p>
+                                <p>Bravo ! Tu maîtrises cette banque !</p>
                             </div>
                         ` : ''}
 
