@@ -3579,7 +3579,20 @@ body.document-fullscreen-active {
     font-weight: 500;
 }
 
-/* Info blocage dans accordéon */
+/* Phase 1: Info espacement (non bloquant) */
+.info-espacement {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: #f0f9ff;
+    border-radius: 8px;
+    margin: 0.5rem;
+    font-size: 0.85rem;
+    color: #0369a1;
+}
+
+/* Info blocage dans accordéon (legacy) */
 .banque-bloquee-info {
     display: flex;
     align-items: center;
