@@ -2240,6 +2240,10 @@ const EleveExercices = {
             // Appliquer les corrections sur l'exercice actuel
             this.applyCorrections(typeUI);
 
+            // Supprimer l'overlay de chargement avant de capturer le HTML
+            const overlay = document.querySelector('.exercise-loading-overlay');
+            if (overlay) overlay.remove();
+
             // Capturer le HTML de l'exercice corrigé avec les valeurs des inputs
             const exerciseContent = document.querySelector('.exercise-content');
             const correctedHTML = this.captureContentWithValues(exerciseContent);
