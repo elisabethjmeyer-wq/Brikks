@@ -872,7 +872,7 @@ const EleveExercices = {
             raison: 'succes',
             message: estMaitrise
                 ? '🎉 Banque maîtrisée !'
-                : `Bravo ! Entraînement ${nouvelleRep}/${this.SEUIL_REPETITIONS} validé`,
+                : `Bravo ! Niveau ${nouvelleRep}/${this.SEUIL_REPETITIONS} atteint`,
             conseil: estMaitrise
                 ? 'Félicitations ! Tu maîtrises cette banque !'
                 : '',
@@ -2821,7 +2821,7 @@ const EleveExercices = {
 
                         <div class="bilan-repetition-compact">
                             <span class="rep-dots-inline">${generateRepDots()}</span>
-                            <span class="rep-label">Entraînement ${validationResult.nouvelleRepetition}/${this.SEUIL_REPETITIONS}</span>
+                            <span class="rep-label">Niveau ${validationResult.nouvelleRepetition}/${this.SEUIL_REPETITIONS}</span>
                         </div>
 
                         <!-- Messages -->
@@ -2834,9 +2834,12 @@ const EleveExercices = {
                             ` : ''}
 
                             ${isSuccess && prochaineDateStr && !validationResult.estMaitrise ? `
-                                <div class="bilan-prochaine">
-                                    <span class="prochaine-icon">📅</span>
-                                    <p>Prochain entraînement disponible le <strong>${prochaineDateStr}</strong></p>
+                                <div class="bilan-prochaine-new">
+                                    <p class="prochaine-main">🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${validationResult.nouvelleRepetition + 1} !</p>
+                                    <p class="prochaine-sub">En attendant, tu peux t'entraîner autant que tu veux</p>
+                                    <button class="btn btn-entrainer-libre" onclick="EleveExercices.startEntrainementLibre()">
+                                        💪 Continuer à s'entraîner
+                                    </button>
                                 </div>
                             ` : ''}
 
@@ -2876,6 +2879,14 @@ const EleveExercices = {
                 </div>
             </div>
         `;
+
+        // Déclencher l'animation de célébration si réussite (pas en entraînement libre)
+        if (isSuccess && !this.isEntrainementLibre) {
+            // Petit délai pour que le DOM soit rendu
+            setTimeout(() => {
+                this.triggerCelebration(validationResult.nouvelleRepetition);
+            }, 100);
+        }
 
         // Reset le flag entraînement libre
         this.isEntrainementLibre = false;
@@ -2937,6 +2948,81 @@ const EleveExercices = {
         if (this.currentExercise) {
             this.startExercise(this.currentExercise.id);
         }
+    },
+
+    /**
+     * Lance l'exercice courant en mode entraînement libre
+     */
+    startEntrainementLibre() {
+        if (this.currentExercise) {
+            this.startExercise(this.currentExercise.id, true);
+        }
+    },
+
+    /**
+     * Déclenche une animation de célébration (paillettes/confettis)
+     * @param {number} level - Niveau atteint (1-5), détermine l'intensité
+     */
+    triggerCelebration(level) {
+        // Supprimer une célébration existante
+        const existing = document.querySelector('.celebration-container');
+        if (existing) existing.remove();
+
+        // Créer le conteneur
+        const container = document.createElement('div');
+        container.className = `celebration-container level-${level}`;
+        document.body.appendChild(container);
+
+        // Configuration selon le niveau
+        const config = {
+            1: { sparkles: 20, confetti: 0, stars: 0, colors: ['#fcd34d', '#fbbf24', '#f59e0b'] },
+            2: { sparkles: 35, confetti: 0, stars: 0, colors: ['#fcd34d', '#fbbf24', '#f59e0b', '#34d399'] },
+            3: { sparkles: 40, confetti: 20, stars: 0, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6'] },
+            4: { sparkles: 50, confetti: 40, stars: 0, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6', '#a78bfa'] },
+            5: { sparkles: 60, confetti: 60, stars: 15, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fbbf24'] }
+        };
+
+        const cfg = config[Math.min(level, 5)] || config[1];
+
+        // Créer les paillettes
+        for (let i = 0; i < cfg.sparkles; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+            sparkle.style.left = Math.random() * 100 + '%';
+            sparkle.style.backgroundColor = cfg.colors[Math.floor(Math.random() * cfg.colors.length)];
+            sparkle.style.animationDelay = Math.random() * 0.5 + 's';
+            sparkle.style.width = (6 + Math.random() * 8) + 'px';
+            sparkle.style.height = sparkle.style.width;
+            container.appendChild(sparkle);
+        }
+
+        // Créer les confettis (niveau 3+)
+        for (let i = 0; i < cfg.confetti; i++) {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * 100 + '%';
+            confetti.style.backgroundColor = cfg.colors[Math.floor(Math.random() * cfg.colors.length)];
+            confetti.style.animationDelay = Math.random() * 0.8 + 's';
+            confetti.style.width = (6 + Math.random() * 6) + 'px';
+            confetti.style.height = (12 + Math.random() * 10) + 'px';
+            container.appendChild(confetti);
+        }
+
+        // Créer les étoiles dorées (niveau 5)
+        for (let i = 0; i < cfg.stars; i++) {
+            const star = document.createElement('div');
+            star.className = 'golden-star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 1 + 's';
+            star.style.width = (15 + Math.random() * 15) + 'px';
+            star.style.height = star.style.width;
+            container.appendChild(star);
+        }
+
+        // Supprimer après l'animation
+        setTimeout(() => {
+            container.remove();
+        }, 5000);
     },
 
     /**

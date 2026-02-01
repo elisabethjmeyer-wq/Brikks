@@ -4522,3 +4522,156 @@ body.document-fullscreen-active {
         padding: 1rem;
     }
 }
+
+/* ===== NOUVEAU MESSAGE PROCHAINE DATE ===== */
+.bilan-prochaine-new {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+    border: 1px solid #93c5fd;
+    margin-top: 0.5rem;
+}
+
+.bilan-prochaine-new .prochaine-main {
+    font-size: 1rem;
+    color: #1e40af;
+    margin: 0 0 0.5rem 0;
+}
+
+.bilan-prochaine-new .prochaine-main strong {
+    color: #1d4ed8;
+}
+
+.bilan-prochaine-new .prochaine-sub {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin: 0 0 1rem 0;
+}
+
+.btn-entrainer-libre {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-entrainer-libre:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* ===== ANIMATION PAILLETTES / CONFETTIS ===== */
+.celebration-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+.sparkle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: sparkle-fall linear forwards;
+}
+
+/* Niveaux de célébration - intensité progressive */
+.celebration-container.level-1 .sparkle { animation-duration: 2.5s; }
+.celebration-container.level-2 .sparkle { animation-duration: 2.8s; }
+.celebration-container.level-3 .sparkle { animation-duration: 3s; }
+.celebration-container.level-4 .sparkle { animation-duration: 3.2s; }
+.celebration-container.level-5 .sparkle { animation-duration: 3.5s; }
+
+/* Confettis (formes rectangulaires pour niveaux 3+) */
+.confetti {
+    position: absolute;
+    width: 8px;
+    height: 16px;
+    border-radius: 2px;
+    animation: confetti-fall linear forwards;
+}
+
+.celebration-container.level-3 .confetti { animation-duration: 3s; }
+.celebration-container.level-4 .confetti { animation-duration: 3.2s; }
+.celebration-container.level-5 .confetti { animation-duration: 3.5s; }
+
+/* Animation de chute des paillettes */
+@keyframes sparkle-fall {
+    0% {
+        transform: translateY(-20px) rotate(0deg) scale(0);
+        opacity: 1;
+    }
+    10% {
+        transform: translateY(0) rotate(36deg) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* Animation de chute des confettis (avec oscillation) */
+@keyframes confetti-fall {
+    0% {
+        transform: translateY(-20px) rotate(0deg) scale(0);
+        opacity: 1;
+    }
+    10% {
+        transform: translateY(0) rotate(36deg) scale(1);
+        opacity: 1;
+    }
+    25% {
+        transform: translateY(25vh) translateX(15px) rotate(180deg);
+    }
+    50% {
+        transform: translateY(50vh) translateX(-15px) rotate(360deg);
+    }
+    75% {
+        transform: translateY(75vh) translateX(10px) rotate(540deg);
+    }
+    100% {
+        transform: translateY(100vh) translateX(0) rotate(720deg) scale(0.3);
+        opacity: 0;
+    }
+}
+
+/* Étoiles dorées pour niveau 5 */
+.golden-star {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #ffd700, #ffec8b);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    animation: star-fall 4s linear forwards;
+}
+
+@keyframes star-fall {
+    0% {
+        transform: translateY(-30px) rotate(0deg) scale(0);
+        opacity: 1;
+    }
+    10% {
+        transform: translateY(0) rotate(36deg) scale(1.2);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(50vh) rotate(360deg) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh) rotate(720deg) scale(0.5);
+        opacity: 0;
+    }
+}
