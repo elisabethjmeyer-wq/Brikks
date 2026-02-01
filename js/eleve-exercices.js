@@ -1589,6 +1589,8 @@ const EleveExercices = {
     async startExercise(exerciceId, forceEntrainementLibre = false) {
         // Pour les savoir-faire, déterminer si c'est entrainement libre
         // Phase 1: Pas de popup de blocage, mais on track si espacement atteint ou non
+        console.log('[SF DEBUG startExercise] forceEntrainementLibre:', forceEntrainementLibre);
+
         if (this.currentType === 'savoir-faire') {
             const exo = this.exercices.find(e => String(e.id) === String(exerciceId));
             if (exo) {
@@ -1596,10 +1598,14 @@ const EleveExercices = {
                 const banqueExercices = this.exercices.filter(e => e.banque_id === banqueId);
                 const banqueStatus = this.getBanqueStatusSF(banqueId, banqueExercices);
 
+                console.log('[SF DEBUG startExercise] banqueStatus:', banqueStatus.status, '| EN_PAUSE:', this.STATUTS_SF.EN_PAUSE, '| MAITRISE:', this.STATUTS_SF.MAITRISE);
+
                 // Entrainement libre si: forcé, OU espacement non atteint, OU banque maîtrisée
                 this.isEntrainementLibre = forceEntrainementLibre ||
                     banqueStatus.status === this.STATUTS_SF.EN_PAUSE ||
                     banqueStatus.status === this.STATUTS_SF.MAITRISE;
+
+                console.log('[SF DEBUG startExercise] isEntrainementLibre final:', this.isEntrainementLibre);
             } else {
                 this.isEntrainementLibre = forceEntrainementLibre;
             }
