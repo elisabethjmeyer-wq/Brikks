@@ -1273,13 +1273,21 @@ textarea.answered {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-/* Masquer le document dans le corrigé */
-.mixte-document.correction-hidden,
-.mixte-left-column.correction-hidden {
-    display: none;
+/* Layout pleine largeur pour le corrigé */
+.document-mixte-container.correction-fullwidth {
+    display: block;
 }
 
-/* Bouton pour afficher/masquer le document */
+.document-mixte-container.correction-fullwidth .mixte-right-column {
+    width: 100%;
+    max-width: 100%;
+}
+
+.document-mixte-container.correction-fullwidth .mixte-section {
+    width: 100%;
+}
+
+/* Bouton pour ouvrir le modal document */
 .btn-toggle-document {
     display: inline-flex;
     align-items: center;
@@ -1299,6 +1307,76 @@ textarea.answered {
 .btn-toggle-document:hover {
     background: #e5e7eb;
     border-color: #9ca3af;
+}
+
+/* Modal pour le document */
+.document-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.document-modal-overlay.hidden {
+    display: none;
+}
+
+.document-modal {
+    background: white;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.document-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+.document-modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #1f2937;
+}
+
+.document-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.document-modal-close:hover {
+    color: #1f2937;
+}
+
+.document-modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.document-modal-body .mixte-section-header {
+    margin: -1.5rem -1.5rem 1rem -1.5rem;
+    border-radius: 0;
+}
+
+.document-modal-body .mixte-doc-content {
+    max-height: none;
 }
 
 .mixte-section-header {

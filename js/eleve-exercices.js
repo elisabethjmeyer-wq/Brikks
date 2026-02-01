@@ -3347,26 +3347,48 @@ const EleveExercices = {
 
     showDocumentMixteCorrige() {
         const data = this.mixteData || {};
+        const container = document.querySelector('.document-mixte-container');
 
-        // Masquer le document et ajouter un bouton pour le révéler
+        // Récupérer le contenu du document avant de le masquer
         const docSection = document.querySelector('.mixte-document') || document.querySelector('.mixte-left-column');
+        let documentHTML = '';
         if (docSection) {
-            docSection.classList.add('correction-hidden');
+            documentHTML = docSection.innerHTML;
+            // Supprimer complètement la section document du layout
+            docSection.remove();
+        }
 
-            // Créer le bouton "Voir le document" s'il n'existe pas déjà
-            if (!document.getElementById('toggleDocumentBtn')) {
+        // Passer le container en layout vertical pleine largeur
+        if (container) {
+            container.classList.remove('horizontal-layout');
+            container.classList.add('correction-fullwidth');
+
+            // Créer le bouton "Voir le document" et le modal s'ils n'existent pas
+            if (documentHTML && !document.getElementById('toggleDocumentBtn')) {
+                // Bouton pour ouvrir le modal
                 const toggleBtn = document.createElement('button');
                 toggleBtn.id = 'toggleDocumentBtn';
                 toggleBtn.className = 'btn-toggle-document';
                 toggleBtn.innerHTML = '📄 Voir le document';
-                // Utiliser setAttribute pour que l'onclick soit capturé dans le HTML
-                toggleBtn.setAttribute('onclick', 'EleveExercices.toggleDocumentVisibility()');
+                toggleBtn.setAttribute('onclick', 'EleveExercices.openDocumentModal()');
+                container.insertBefore(toggleBtn, container.firstChild);
 
-                // Insérer le bouton avant le document ou après le tableau
-                const container = document.querySelector('.document-mixte-container');
-                if (container) {
-                    container.insertBefore(toggleBtn, container.firstChild);
-                }
+                // Modal pour le document
+                const modal = document.createElement('div');
+                modal.id = 'documentModal';
+                modal.className = 'document-modal-overlay hidden';
+                modal.innerHTML = `
+                    <div class="document-modal">
+                        <div class="document-modal-header">
+                            <h3>📄 Document</h3>
+                            <button class="document-modal-close" onclick="EleveExercices.closeDocumentModal()">×</button>
+                        </div>
+                        <div class="document-modal-body">
+                            ${documentHTML}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(modal);
             }
         }
 
@@ -3402,19 +3424,22 @@ const EleveExercices = {
     },
 
     /**
-     * Toggle la visibilité du document dans le corrigé
+     * Ouvre le modal avec le document
      */
-    toggleDocumentVisibility() {
-        const docSection = document.querySelector('.mixte-document.correction-hidden') ||
-                          document.querySelector('.mixte-left-column.correction-hidden') ||
-                          document.querySelector('.mixte-document') ||
-                          document.querySelector('.mixte-left-column');
-        const toggleBtn = document.getElementById('toggleDocumentBtn');
+    openDocumentModal() {
+        const modal = document.getElementById('documentModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    },
 
-        if (docSection && toggleBtn) {
-            const isHidden = docSection.classList.contains('correction-hidden');
-            docSection.classList.toggle('correction-hidden');
-            toggleBtn.innerHTML = isHidden ? '📄 Masquer le document' : '📄 Voir le document';
+    /**
+     * Ferme le modal du document
+     */
+    closeDocumentModal() {
+        const modal = document.getElementById('documentModal');
+        if (modal) {
+            modal.classList.add('hidden');
         }
     },
 
