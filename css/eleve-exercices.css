@@ -3030,7 +3030,9 @@ body.document-fullscreen-active {
 }
 
 .result-view.sf {
-    /* Specific styles for SF can go here */
+    max-width: none;
+    margin: 0;
+    padding: 1.5rem;
 }
 
 .result-card {
