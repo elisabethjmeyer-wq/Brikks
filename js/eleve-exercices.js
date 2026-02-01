@@ -3305,9 +3305,8 @@ const EleveExercices = {
                     <span class="answer-text">${hasAnswer ? this.escapeHtml(userAnswer) : 'Non répondu'}</span>
                     <span class="answer-icon">✗</span>
                 </div>
-                <div class="correction-answer correct">
-                    <span class="answer-text">${this.escapeHtml(correctAnswer)}</span>
-                    <span class="answer-icon">✓</span>
+                <div class="correction-answer expected">
+                    <span class="answer-text">Réponse correcte : ${this.escapeHtml(correctAnswer)}</span>
                 </div>
             `;
         }

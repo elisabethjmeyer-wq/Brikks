@@ -1184,6 +1184,12 @@ textarea.answered {
     color: #991b1b;
 }
 
+.correction-answer.expected {
+    background: #f3f4f6;
+    border: 2px solid #9ca3af;
+    color: #374151;
+}
+
 .correction-answer .answer-text {
     flex: 1;
 }
