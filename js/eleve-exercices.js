@@ -262,15 +262,70 @@ const EleveExercices = {
                 this.statsSF = result.stats;
                 this.saveHistoriqueSFToCache(this.statsSF);
 
-                // OPTION B: Mettre à jour les stats par banque
+                // OPTION B: Mettre à jour les stats par banque EN FUSIONNANT avec les stats locales
+                // Cela évite d'écraser les mises à jour locales non encore persistées au backend
+                let newStatsBanque;
                 if (result.statsBanque) {
-                    this.statsSFBanque = result.statsBanque;
+                    newStatsBanque = result.statsBanque;
                 } else {
-                    this.statsSFBanque = this.computeStatsBanqueFromStatsExercice(this.statsSF);
+                    newStatsBanque = this.computeStatsBanqueFromStatsExercice(this.statsSF);
                 }
+                this.statsSFBanque = this.mergeStatsBanque(this.statsSFBanque, newStatsBanque);
                 this.saveHistoriqueSFBanqueToCache(this.statsSFBanque);
             }
         } catch (e) {}
+    },
+
+    /**
+     * Fusionne les stats banques locales avec celles du backend
+     * Garde toujours les valeurs les plus élevées/récentes pour éviter de perdre la progression
+     * @param {Object} localStats - Stats locales (peuvent contenir des mises à jour récentes)
+     * @param {Object} remoteStats - Stats du backend (peuvent être en retard)
+     * @returns {Object} Stats fusionnées
+     */
+    mergeStatsBanque(localStats, remoteStats) {
+        const merged = { ...remoteStats };
+
+        // Pour chaque banque locale, vérifier si elle a des valeurs plus récentes
+        for (const [banqueId, localStat] of Object.entries(localStats || {})) {
+            if (!merged[banqueId]) {
+                // Banque uniquement locale, la garder
+                merged[banqueId] = localStat;
+            } else {
+                // Comparer et garder les valeurs les plus élevées/récentes
+                const remoteStat = merged[banqueId];
+
+                // Garder la répétition la plus élevée
+                if ((localStat.repetitions_validees || 0) > (remoteStat.repetitions_validees || 0)) {
+                    merged[banqueId].repetitions_validees = localStat.repetitions_validees;
+                    merged[banqueId].date_derniere_validation = localStat.date_derniere_validation;
+                    merged[banqueId].exercices_reussis = localStat.exercices_reussis || [];
+                } else if ((localStat.repetitions_validees || 0) === (remoteStat.repetitions_validees || 0)) {
+                    // Même niveau, garder la date la plus récente
+                    if (localStat.date_derniere_validation && remoteStat.date_derniere_validation) {
+                        if (new Date(localStat.date_derniere_validation) > new Date(remoteStat.date_derniere_validation)) {
+                            merged[banqueId].date_derniere_validation = localStat.date_derniere_validation;
+                        }
+                    } else if (localStat.date_derniere_validation) {
+                        merged[banqueId].date_derniere_validation = localStat.date_derniere_validation;
+                    }
+                    // Fusionner les exercices réussis
+                    const allExos = new Set([
+                        ...(localStat.exercices_reussis || []),
+                        ...(remoteStat.exercices_reussis || [])
+                    ]);
+                    merged[banqueId].exercices_reussis = [...allExos];
+                }
+
+                // Garder le total de pratiques le plus élevé
+                merged[banqueId].total_pratiques = Math.max(
+                    localStat.total_pratiques || 0,
+                    remoteStat.total_pratiques || 0
+                );
+            }
+        }
+
+        return merged;
     },
 
     /**
@@ -303,13 +358,17 @@ const EleveExercices = {
                     sb.exercices_reussis.push(exoId);
                 }
 
-                // La répétition validée de la banque = nombre d'exercices différents réussis
-                sb.repetitions_validees = sb.exercices_reussis.length;
-
-                // Date de dernière validation = la plus récente
-                if (stats.date_derniere_validation) {
-                    if (!sb.date_derniere_validation || stats.date_derniere_validation > sb.date_derniere_validation) {
-                        sb.date_derniere_validation = stats.date_derniere_validation;
+                // Le niveau de la banque = niveau max atteint parmi tous les exercices (pas le nb d'exercices)
+                if (stats.repetitions_validees > sb.repetitions_validees) {
+                    sb.repetitions_validees = stats.repetitions_validees;
+                    // Date de dernière validation = celle de la pratique qui a atteint ce niveau
+                    sb.date_derniere_validation = stats.date_derniere_validation;
+                } else if (stats.repetitions_validees === sb.repetitions_validees) {
+                    // Même niveau, garder la date la plus récente
+                    if (stats.date_derniere_validation) {
+                        if (!sb.date_derniere_validation || stats.date_derniere_validation > sb.date_derniere_validation) {
+                            sb.date_derniere_validation = stats.date_derniere_validation;
+                        }
                     }
                 }
             }
