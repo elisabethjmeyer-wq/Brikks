@@ -3781,25 +3781,29 @@ body.document-fullscreen-active {
    ÉCRAN RÉSULTAT 2 BLOCS - SAVOIR-FAIRE
    ============================================ */
 .result-card-sf {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
     background: white;
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
     width: 100%;
+    min-height: 500px;
 }
 
-/* Bloc Bilan (haut) */
+@media (max-width: 900px) {
+    .result-card-sf {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Bloc Bilan (gauche) */
 .result-bilan {
     padding: 2rem;
-    border-bottom: 1px solid #e5e7eb;
+    border-right: 1px solid #e5e7eb;
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 2rem;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
 .bilan-header {
