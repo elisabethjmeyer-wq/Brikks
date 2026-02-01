@@ -5795,7 +5795,13 @@ function savePratiqueSF(data) {
       case 'date': return dateNow;
       case 'repetition_numero': return data.repetition_numero || 0;
       case 'dans_temps': return dansTemps;
-      case 'est_entrainement_libre': return data.est_entrainement_libre ? 'TRUE' : 'FALSE';
+      case 'est_entrainement_libre':
+        // Gérer les cas où false arrive comme string "false" via JSONP
+        const estLibre = data.est_entrainement_libre;
+        if (estLibre === false || estLibre === 'false' || estLibre === 'FALSE' || estLibre === 0 || estLibre === '0' || !estLibre) {
+          return 'FALSE';
+        }
+        return 'TRUE';
       default: return '';
     }
   });
