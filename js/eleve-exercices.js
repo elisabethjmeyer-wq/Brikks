@@ -2501,6 +2501,15 @@ const EleveExercices = {
 
             // Pour les savoir-faire, sauvegarder dans l'historique des pratiques avec nouvelles infos
             if (this.currentType === 'savoir-faire') {
+                // DEBUG: Afficher les détails de validation
+                console.log('[SF DEBUG] Validation details:', {
+                    score: percent,
+                    isEntrainementLibre: this.isEntrainementLibre,
+                    validationResult: validationResult,
+                    repetitionValidee: validationResult?.repetitionValidee,
+                    nouvelleRepetition: validationResult?.nouvelleRepetition
+                });
+
                 const pratiqueData = {
                     eleve_id: this.currentUser.id,
                     exercice_id: this.currentExercise.id,
