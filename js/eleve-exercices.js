@@ -3234,22 +3234,95 @@ const EleveExercices = {
 
     showCarteCorrige() {
         const marqueurs = this.carteMarqueurs || [];
+        const reponses = this.carteReponses || [];
+
         marqueurs.forEach((m, index) => {
             const badge = document.getElementById(`badge_${index}`);
+            const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+            const userAnswer = reponses[index] || '';
+            const correctAnswer = m.reponse || '';
+            const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswer);
+
             if (badge) {
-                // Prendre uniquement la première réponse acceptable
-                const fullAnswer = m.reponse || '';
-                const firstAnswer = fullAnswer.split(/[|;]/)[0].trim();
+                // Afficher la bonne réponse dans le badge (toujours en vert)
+                const firstAnswer = correctAnswer.split(/[|;]/)[0].trim();
                 badge.textContent = firstAnswer;
                 badge.classList.remove('hidden', 'incorrect');
                 badge.classList.add('correction');
             }
-            const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+
             if (marqueur) {
-                marqueur.classList.remove('incorrect');
+                // Colorer le marqueur selon le résultat
+                marqueur.classList.remove('incorrect', 'correct', 'answered');
                 marqueur.classList.add('show-correction');
+                marqueur.classList.add(isCorrect ? 'correction-correct' : 'correction-incorrect');
+
+                // Changer le onclick pour afficher le popup de correction
+                marqueur.onclick = () => this.openMarqueurCorrectionModal(index);
             }
         });
+    },
+
+    /**
+     * Ouvre le popup de correction pour un marqueur de carte cliquable
+     * @param {number} index - Index du marqueur
+     */
+    openMarqueurCorrectionModal(index) {
+        const marqueurs = this.carteMarqueurs || [];
+        const reponses = this.carteReponses || [];
+        const m = marqueurs[index];
+        if (!m) return;
+
+        const userAnswer = reponses[index] || '';
+        const correctAnswer = m.reponse || '';
+        const firstCorrectAnswer = correctAnswer.split(/[|;]/)[0].trim();
+        const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswer);
+        const hasAnswer = userAnswer.trim() !== '';
+
+        // Construire le contenu du popup
+        let bodyHTML = '';
+
+        if (isCorrect) {
+            // Réponse correcte : un seul encart vert
+            bodyHTML = `
+                <div class="correction-answer correct">
+                    <span class="answer-text">${this.escapeHtml(userAnswer)}</span>
+                    <span class="answer-icon">✓</span>
+                </div>
+            `;
+        } else {
+            // Réponse incorrecte ou non répondue
+            bodyHTML = `
+                <div class="correction-answer incorrect">
+                    <span class="answer-text">${hasAnswer ? this.escapeHtml(userAnswer) : 'Non répondu'}</span>
+                    <span class="answer-icon">✗</span>
+                </div>
+                <div class="correction-answer correct">
+                    <span class="answer-text">${this.escapeHtml(firstCorrectAnswer)}</span>
+                    <span class="answer-icon">✓</span>
+                </div>
+            `;
+        }
+
+        // Mettre à jour le modal
+        const modal = document.getElementById('marqueurModal');
+        if (modal) {
+            document.getElementById('modalMarqueurNum').textContent = index + 1;
+
+            // Remplacer le body du modal par le contenu de correction
+            const modalBody = modal.querySelector('.carte-modal-body');
+            if (modalBody) {
+                modalBody.innerHTML = bodyHTML;
+            }
+
+            // Cacher le footer (pas de boutons Annuler/Valider en mode correction)
+            const modalFooter = modal.querySelector('.carte-modal-footer');
+            if (modalFooter) {
+                modalFooter.style.display = 'none';
+            }
+
+            modal.classList.remove('hidden');
+        }
     },
 
     showQuestionOuverteCorrige() {
