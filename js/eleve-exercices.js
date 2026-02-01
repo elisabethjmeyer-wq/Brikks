@@ -3407,12 +3407,18 @@ const EleveExercices = {
                         input.classList.add(isCorrect ? 'correct' : 'incorrect');
                         input.disabled = true;
 
-                        // Si incorrect, afficher la bonne réponse à côté
+                        // Si non répondu, afficher un placeholder
+                        if (!userAnswer) {
+                            input.value = '(non répondu)';
+                            input.classList.add('empty-answer');
+                        }
+
+                        // Si incorrect, afficher la bonne réponse en dessous
                         if (!isCorrect) {
-                            const correctionSpan = document.createElement('span');
-                            correctionSpan.className = 'correction-expected';
-                            correctionSpan.innerHTML = `→ ${this.escapeHtml(firstCorrectAnswer)}`;
-                            input.parentNode.appendChild(correctionSpan);
+                            const correctionDiv = document.createElement('div');
+                            correctionDiv.className = 'correction-expected-below';
+                            correctionDiv.innerHTML = `Réponse : ${this.escapeHtml(firstCorrectAnswer)}`;
+                            input.parentNode.appendChild(correctionDiv);
                         }
                     }
                 }
