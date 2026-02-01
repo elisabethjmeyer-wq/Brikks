@@ -872,7 +872,7 @@ const EleveExercices = {
             raison: 'succes',
             message: estMaitrise
                 ? '🎉 Banque maîtrisée !'
-                : `Bravo ! Réussite ${nouvelleRep}/${this.SEUIL_REPETITIONS}`,
+                : `Bravo ! Entraînement ${nouvelleRep}/${this.SEUIL_REPETITIONS}`,
             conseil: estMaitrise
                 ? 'Félicitations ! Tu maîtrises cette banque !'
                 : '',
@@ -2821,7 +2821,7 @@ const EleveExercices = {
 
                         <div class="bilan-repetition-compact">
                             <span class="rep-dots-inline">${generateRepDots()}</span>
-                            <span class="rep-label">Réussite ${validationResult.nouvelleRepetition}/${this.SEUIL_REPETITIONS}</span>
+                            <span class="rep-label">Entraînement ${validationResult.nouvelleRepetition}/${this.SEUIL_REPETITIONS}</span>
                         </div>
 
                         <!-- Messages -->
@@ -2836,7 +2836,7 @@ const EleveExercices = {
                             ${isSuccess && prochaineDateStr && !validationResult.estMaitrise ? `
                                 <div class="bilan-prochaine">
                                     <span class="prochaine-icon">📅</span>
-                                    <p>Prochaine réussite disponible le <strong>${prochaineDateStr}</strong></p>
+                                    <p>Prochain entraînement disponible le <strong>${prochaineDateStr}</strong></p>
                                 </div>
                             ` : ''}
 
