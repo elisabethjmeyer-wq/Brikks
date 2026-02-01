@@ -875,14 +875,16 @@ const EleveExercices = {
 
         // Entraînement libre = ne compte pas pour la progression
         if (this.isEntrainementLibre) {
+            const isSuccessLibre = score === 100;
             return {
                 repetitionValidee: false,
                 nouvelleRepetition: repsActuelles,
                 raison: 'entrainement_libre',
-                message: 'Bon entraînement !',
+                message: isSuccessLibre ? 'Bravo !' : "Continue de t'entraîner, tu vas y arriver !",
                 conseil: '',
                 estMaitrise: repsActuelles >= this.SEUIL_REPETITIONS,
-                proposeNouvelExercice: false
+                proposeNouvelExercice: false,
+                scoreEntrainementLibre: score // Pour savoir si réussi ou non dans l'affichage
             };
         }
 
@@ -2887,6 +2889,17 @@ const EleveExercices = {
                         <div class="bilan-entrainement-libre-badge">
                             <span class="libre-badge-icon">🔄</span>
                             <span class="libre-badge-text">Entraînement libre</span>
+                        </div>
+                        <div class="bilan-actions-libre">
+                            ${validationResult.scoreEntrainementLibre === 100 ? `
+                                <button class="btn btn-primary btn-continuer-libre" onclick="EleveExercices.startEntrainementLibre()">
+                                    🔄 Continuer de s'entraîner
+                                </button>
+                            ` : `
+                                <button class="btn btn-primary btn-reessayer-libre" onclick="EleveExercices.restartExercise()">
+                                    🔄 Réessayer cet exercice
+                                </button>
+                            `}
                         </div>
                         `}
 
