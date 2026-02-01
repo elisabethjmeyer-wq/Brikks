@@ -3113,27 +3113,23 @@ const EleveExercices = {
                         correctionCell.className = 'correction-cell';
 
                         if (isCorrect) {
-                            // Réponse correcte : fond vert avec la réponse
+                            // Réponse correcte : fond vert
                             correctionCell.classList.add('correct');
-                            correctionCell.innerHTML = `
-                                <span class="answer-text">${this.escapeHtml(userAnswer)}</span>
-                                <span class="status-badge">✓</span>
-                            `;
-                        } else if (isEmpty) {
-                            // Pas de réponse : fond rouge/orange avec la bonne réponse
-                            correctionCell.classList.add('empty');
-                            correctionCell.innerHTML = `
-                                <span class="correct-answer">${this.escapeHtml(firstAnswer)}</span>
-                                <span class="status-badge">✗</span>
-                            `;
+                            correctionCell.innerHTML = `<span class="answer-text">${this.escapeHtml(userAnswer)}</span>`;
                         } else {
-                            // Réponse incorrecte : réponse barrée + bonne réponse
+                            // Incorrect ou vide : fond rouge avec la bonne réponse
                             correctionCell.classList.add('incorrect');
-                            correctionCell.innerHTML = `
-                                <span class="wrong-answer">${this.escapeHtml(userAnswer)}</span>
-                                <span class="correct-answer">${this.escapeHtml(firstAnswer)}</span>
-                                <span class="status-badge">✗</span>
-                            `;
+                            if (isEmpty) {
+                                // Pas de réponse : juste la bonne réponse
+                                correctionCell.innerHTML = `<span class="correct-answer">${this.escapeHtml(firstAnswer)}</span>`;
+                            } else {
+                                // Mauvaise réponse : réponse barrée + bonne réponse
+                                correctionCell.innerHTML = `
+                                    <span class="wrong-answer">${this.escapeHtml(userAnswer)}</span>
+                                    <span class="arrow">→</span>
+                                    <span class="correct-answer">${this.escapeHtml(firstAnswer)}</span>
+                                `;
+                            }
                         }
 
                         // Remplacer l'input par le conteneur de correction
