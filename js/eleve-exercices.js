@@ -3242,11 +3242,11 @@ const EleveExercices = {
             const userAnswer = reponses[index] || '';
             const correctAnswer = m.reponse || '';
             const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswer);
+            const firstCorrectAnswer = correctAnswer.split(/[|;]/)[0].trim();
 
             if (badge) {
                 // Afficher la bonne réponse dans le badge (toujours en vert)
-                const firstAnswer = correctAnswer.split(/[|;]/)[0].trim();
-                badge.textContent = firstAnswer;
+                badge.textContent = firstCorrectAnswer;
                 badge.classList.remove('hidden', 'incorrect');
                 badge.classList.add('correction');
             }
@@ -3257,8 +3257,14 @@ const EleveExercices = {
                 marqueur.classList.add('show-correction');
                 marqueur.classList.add(isCorrect ? 'correction-correct' : 'correction-incorrect');
 
-                // Changer le onclick pour afficher le popup de correction
-                marqueur.onclick = () => this.openMarqueurCorrectionModal(index);
+                // Stocker les données de correction dans des attributs data
+                marqueur.setAttribute('data-user-answer', userAnswer);
+                marqueur.setAttribute('data-correct-answer', firstCorrectAnswer);
+                marqueur.setAttribute('data-is-correct', isCorrect ? 'true' : 'false');
+                marqueur.setAttribute('data-correction-mode', 'true');
+
+                // Changer l'attribut onclick pour le mode correction
+                marqueur.setAttribute('onclick', `EleveExercices.openMarqueurCorrectionModal(${index})`);
             }
         });
     },
@@ -3268,15 +3274,17 @@ const EleveExercices = {
      * @param {number} index - Index du marqueur
      */
     openMarqueurCorrectionModal(index) {
-        const marqueurs = this.carteMarqueurs || [];
-        const reponses = this.carteReponses || [];
-        const m = marqueurs[index];
-        if (!m) return;
+        // Récupérer les données depuis les attributs du marqueur
+        const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
+        if (!marqueur || marqueur.getAttribute('data-correction-mode') !== 'true') {
+            // Si pas en mode correction, ouvrir le modal normal
+            this.openMarqueurModal(index);
+            return;
+        }
 
-        const userAnswer = reponses[index] || '';
-        const correctAnswer = m.reponse || '';
-        const firstCorrectAnswer = correctAnswer.split(/[|;]/)[0].trim();
-        const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswer);
+        const userAnswer = marqueur.getAttribute('data-user-answer') || '';
+        const correctAnswer = marqueur.getAttribute('data-correct-answer') || '';
+        const isCorrect = marqueur.getAttribute('data-is-correct') === 'true';
         const hasAnswer = userAnswer.trim() !== '';
 
         // Construire le contenu du popup
@@ -3298,7 +3306,7 @@ const EleveExercices = {
                     <span class="answer-icon">✗</span>
                 </div>
                 <div class="correction-answer correct">
-                    <span class="answer-text">${this.escapeHtml(firstCorrectAnswer)}</span>
+                    <span class="answer-text">${this.escapeHtml(correctAnswer)}</span>
                     <span class="answer-icon">✓</span>
                 </div>
             `;
