@@ -4031,6 +4031,28 @@ body.document-fullscreen-active {
     font-size: 0.85rem;
 }
 
+/* Badge entraînement libre - remplace la barre de niveau */
+.bilan-entrainement-libre-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    border: 1px solid #7dd3fc;
+    border-radius: 20px;
+    color: #0369a1;
+}
+
+.bilan-entrainement-libre-badge .libre-badge-icon {
+    font-size: 1rem;
+}
+
+.bilan-entrainement-libre-badge .libre-badge-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
 /* Messages dans le bilan - section pleine largeur */
 .bilan-messages {
     width: 100%;

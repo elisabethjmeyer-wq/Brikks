@@ -5999,14 +5999,11 @@ function getHistoriquePratiquesSF(data) {
       if (!sb.exercices_reussis.includes(exoId)) {
         sb.exercices_reussis.push(exoId);
       }
-      // La rep validée de la banque = nb d'exercices différents réussis
-      sb.repetitions_validees = sb.exercices_reussis.length;
-
-      // Date de dernière validation = la plus récente
-      if (exoStats.date_derniere_validation) {
-        if (!sb.date_derniere_validation || exoStats.date_derniere_validation > sb.date_derniere_validation) {
-          sb.date_derniere_validation = exoStats.date_derniere_validation;
-        }
+      // Le niveau de la banque = niveau max atteint parmi tous les exercices (pas le nb d'exercices)
+      if (exoStats.repetitions_validees > sb.repetitions_validees) {
+        sb.repetitions_validees = exoStats.repetitions_validees;
+        // Date de dernière validation = celle de la pratique qui a atteint ce niveau
+        sb.date_derniere_validation = exoStats.date_derniere_validation;
       }
     }
   });
