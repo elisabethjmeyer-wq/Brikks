@@ -833,8 +833,8 @@ const EleveExercices = {
                 repetitionValidee: false,
                 nouvelleRepetition: repsActuelles,
                 raison: 'score_insuffisant',
-                message: `Score insuffisant (${score}%)`,
-                conseil: 'Tu dois obtenir 100% pour valider. Un autre exercice va te être proposé !',
+                message: `Continue tes efforts ! (${score}%)`,
+                conseil: '',  // Plus de message culpabilisant
                 estMaitrise: false,
                 proposeNouvelExercice: true  // OPTION B: proposer un autre exercice
             };
@@ -846,8 +846,8 @@ const EleveExercices = {
                 repetitionValidee: false,
                 nouvelleRepetition: repsActuelles,
                 raison: 'temps_depasse',
-                message: `Trop lent (${this.formatTime(tempsPasse)} > ${this.formatTime(tempsPrevu)})`,
-                conseil: `À partir de la répétition ${this.REP_TEMPS_OBLIGATOIRE}, tu dois aussi respecter le temps. Un autre exercice va te être proposé !`,
+                message: `Presque ! Essaie d'aller plus vite`,
+                conseil: '',  // Plus de message culpabilisant
                 estMaitrise: false,
                 proposeNouvelExercice: true  // OPTION B: proposer un autre exercice
             };
@@ -872,10 +872,10 @@ const EleveExercices = {
             raison: 'succes',
             message: estMaitrise
                 ? '🎉 Banque maîtrisée !'
-                : `Répétition ${nouvelleRep}/${this.SEUIL_REPETITIONS} validée !`,
+                : `Bravo ! Réussite ${nouvelleRep}/${this.SEUIL_REPETITIONS}`,
             conseil: estMaitrise
-                ? 'Bravo ! Tu maîtrises cette banque !'
-                : `Prochaine répétition disponible dans ${joursAttente} jour${joursAttente > 1 ? 's' : ''}.`,
+                ? 'Félicitations ! Tu maîtrises cette banque !'
+                : '',
             prochaineDispo: prochaineDispo?.toISOString(),
             joursAttente: joursAttente,
             estMaitrise: estMaitrise,
@@ -2821,7 +2821,7 @@ const EleveExercices = {
 
                         <div class="bilan-repetition-compact">
                             <span class="rep-dots-inline">${generateRepDots()}</span>
-                            <span class="rep-label">Répétition ${validationResult.nouvelleRepetition}/${this.SEUIL_REPETITIONS}</span>
+                            <span class="rep-label">Réussite ${validationResult.nouvelleRepetition}/${this.SEUIL_REPETITIONS}</span>
                         </div>
 
                         <!-- Messages -->
@@ -2836,7 +2836,7 @@ const EleveExercices = {
                             ${isSuccess && prochaineDateStr && !validationResult.estMaitrise ? `
                                 <div class="bilan-prochaine">
                                     <span class="prochaine-icon">📅</span>
-                                    <p>Répétition ${validationResult.nouvelleRepetition + 1} compte à partir du <strong>${prochaineDateStr}</strong></p>
+                                    <p>Prochaine réussite disponible le <strong>${prochaineDateStr}</strong></p>
                                 </div>
                             ` : ''}
 
@@ -2857,7 +2857,7 @@ const EleveExercices = {
                             <div class="bilan-actions">
                                 ${!isSuccess && !this.isEntrainementLibre ? `
                                     <button class="btn btn-primary btn-restart-sf" onclick="EleveExercices.restartExercise()">
-                                        🔄 Réessayer
+                                        🔄 Réessayer cet exercice
                                     </button>
                                 ` : ''}
                             </div>
