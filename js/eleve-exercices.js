@@ -2163,6 +2163,34 @@ const EleveExercices = {
     // VALIDATION
     // ===============================
 
+    /**
+     * Bloque l'exercice pendant le chargement (après clic sur Terminer)
+     * Désactive tous les inputs et affiche un overlay
+     */
+    lockExercise() {
+        const exerciseContent = document.querySelector('.exercise-content');
+        if (!exerciseContent) return;
+
+        // Désactiver tous les champs de saisie
+        const inputs = exerciseContent.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.disabled = true;
+            input.classList.add('locked');
+        });
+
+        // Ajouter un overlay de chargement sur l'exercice
+        const overlay = document.createElement('div');
+        overlay.className = 'exercise-loading-overlay';
+        overlay.innerHTML = `
+            <div class="loading-spinner-container">
+                <div class="loading-spinner"></div>
+                <span class="loading-text">Calcul du résultat...</span>
+            </div>
+        `;
+        exerciseContent.style.position = 'relative';
+        exerciseContent.appendChild(overlay);
+    },
+
     async validateExercise() {
         if (!this.currentExercise) return;
 
@@ -2176,6 +2204,9 @@ const EleveExercices = {
             btnVerifier.disabled = true;
             btnVerifier.innerHTML = '<span class="spinner-small"></span> Validation...';
         }
+
+        // Bloquer tout l'exercice pendant le chargement
+        this.lockExercise();
 
         this.stopTimer();
 
