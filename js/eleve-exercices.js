@@ -2819,10 +2819,17 @@ const EleveExercices = {
                             <span class="temps-status ${tempsOK ? 'success' : 'warning'}">${tempsOK ? '✓' : '⚠️'}</span>
                         </div>
 
+                        ${!this.isEntrainementLibre ? `
                         <div class="bilan-repetition-compact">
                             <span class="rep-dots-inline">${generateRepDots()}</span>
                             <span class="rep-label">Niveau ${validationResult.nouvelleRepetition}/${this.SEUIL_REPETITIONS}</span>
                         </div>
+                        ` : `
+                        <div class="bilan-entrainement-libre-badge">
+                            <span class="libre-badge-icon">🔄</span>
+                            <span class="libre-badge-text">Entraînement libre</span>
+                        </div>
+                        `}
 
                         <!-- Messages -->
                         <div class="bilan-messages">
@@ -2850,12 +2857,6 @@ const EleveExercices = {
                                 </div>
                             ` : ''}
 
-                            ${this.isEntrainementLibre ? `
-                                <div class="bilan-libre">
-                                    <span class="libre-icon">ℹ️</span>
-                                    <p>Entraînement libre - ne compte pas pour ta progression</p>
-                                </div>
-                            ` : ''}
 
                             <div class="bilan-actions">
                                 ${!isSuccess && !this.isEntrainementLibre ? `
