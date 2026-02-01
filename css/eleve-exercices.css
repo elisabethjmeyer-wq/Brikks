@@ -1551,7 +1551,8 @@ textarea.answered {
     padding: 0.5rem 1rem;
     background: #fffbeb;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .mixte-tableau-row .cell-input {
@@ -1589,17 +1590,22 @@ textarea.answered {
     font-weight: 500;
 }
 
-/* Bonne réponse affichée à côté des erreurs */
-.correction-expected {
-    display: inline-block;
-    margin-left: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    background: #dcfce7;
-    border: 1px solid #22c55e;
-    border-radius: 4px;
-    color: #166534;
+/* Bonne réponse affichée en dessous des erreurs */
+.correction-expected-below {
+    display: block;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #f3f4f6;
+    border-left: 3px solid #9ca3af;
+    border-radius: 0 4px 4px 0;
+    color: #374151;
     font-size: 0.875rem;
-    font-weight: 500;
+}
+
+/* Input vide / non répondu */
+.cell-input.empty-answer {
+    font-style: italic;
+    color: #9ca3af !important;
 }
 
 /* Questions */
