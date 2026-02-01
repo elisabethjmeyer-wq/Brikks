@@ -4386,6 +4386,179 @@ body.document-fullscreen-active {
     padding-left: 0.75rem;
 }
 
+/* ================================================
+   NOUVEAU TABLEAU DE CORRECTION COMPARATIF
+   ================================================ */
+
+.correction-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.correction-table-display {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.correction-table-display thead {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.correction-table-display th {
+    padding: 0.875rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #d1d5db;
+    white-space: nowrap;
+}
+
+.correction-table-display th.col-question {
+    width: 25%;
+    min-width: 120px;
+}
+
+.correction-table-display th.col-reponse,
+.correction-table-display th.col-attendue {
+    width: 30%;
+    min-width: 150px;
+}
+
+.correction-table-display th.col-status {
+    width: 15%;
+    min-width: 80px;
+    text-align: center;
+}
+
+.correction-table-display td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.correction-table-display td.col-question {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+/* Réponses de l'élève - styles par statut */
+.correction-table-display td.col-reponse {
+    font-weight: 500;
+}
+
+.correction-table-display td.col-reponse.correct {
+    background: #ecfdf5;
+    color: #065f46;
+}
+
+.correction-table-display td.col-reponse.incorrect {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.correction-table-display td.col-reponse.open {
+    background: #eff6ff;
+    color: #1e40af;
+}
+
+/* Indicateur réponse vide */
+.correction-table-display .empty-answer {
+    color: #9ca3af;
+    font-style: italic;
+    font-weight: 400;
+}
+
+/* Réponse attendue */
+.correction-table-display td.col-attendue {
+    color: #059669;
+    font-weight: 500;
+    background: #f0fdf4;
+}
+
+/* Colonne statut */
+.correction-table-display td.col-status {
+    text-align: center;
+}
+
+.correction-table-display .status-icon {
+    font-size: 1.25rem;
+}
+
+/* Ligne avec statut */
+.correction-table-display tr.correction-row:hover {
+    background: #f9fafb;
+}
+
+.correction-table-display tr.correction-row.correct td.col-reponse {
+    border-left: 3px solid #10b981;
+}
+
+.correction-table-display tr.correction-row.incorrect td.col-reponse {
+    border-left: 3px solid #ef4444;
+}
+
+.correction-table-display tr.correction-row.open td.col-reponse {
+    border-left: 3px solid #3b82f6;
+}
+
+/* Dernière ligne sans bordure */
+.correction-table-display tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .correction-table-display {
+        font-size: 0.8rem;
+    }
+
+    .correction-table-display th,
+    .correction-table-display td {
+        padding: 0.5rem 0.625rem;
+    }
+
+    .correction-table-display th.col-question,
+    .correction-table-display th.col-reponse,
+    .correction-table-display th.col-attendue {
+        min-width: 100px;
+    }
+
+    .correction-table-display .status-icon {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .correction-table-wrapper {
+        margin: 0 -0.5rem;
+        border-radius: 8px;
+    }
+
+    .correction-table-display th.col-status,
+    .correction-table-display td.col-status {
+        display: none;
+    }
+
+    /* Afficher un indicateur visuel sur la réponse à la place */
+    .correction-table-display tr.correction-row.correct td.col-reponse::after {
+        content: ' ✅';
+    }
+
+    .correction-table-display tr.correction-row.incorrect td.col-reponse::after {
+        content: ' ❌';
+    }
+
+    .correction-table-display tr.correction-row.open td.col-reponse::after {
+        content: ' 📝';
+    }
+}
+
 /* Consigne dans la correction */
 .correction-consigne {
     background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);

@@ -2747,32 +2747,49 @@ const EleveExercices = {
         // Collecter les détails de correction
         const correctionDetails = this.collectExerciseDetails();
 
-        // Générer le HTML de correction avec erreurs visibles
+        // Générer le HTML de correction avec tableau clair montrant réponses élève vs attendues
         const generateCorrectionHTML = () => {
             if (correctionDetails.length === 0) {
-                return results.correctedHTML || '<p class="correction-fallback">Correction non disponible.</p>';
+                return '<p class="correction-fallback">Correction non disponible.</p>';
             }
 
-            let html = '<div class="correction-list">';
-            correctionDetails.forEach((detail, index) => {
+            let html = `
+                <div class="correction-table-wrapper">
+                    <table class="correction-table-display">
+                        <thead>
+                            <tr>
+                                <th class="col-question">Question</th>
+                                <th class="col-reponse">Ta réponse</th>
+                                <th class="col-attendue">Réponse attendue</th>
+                                <th class="col-status">Résultat</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            correctionDetails.forEach((detail) => {
                 const isCorrect = detail.correct === true;
-                const statusClass = isCorrect ? 'correct' : 'incorrect';
-                const statusIcon = isCorrect ? '✅' : '❌';
+                const isOpenQuestion = detail.isOpenQuestion === true;
+                const statusClass = isOpenQuestion ? 'open' : (isCorrect ? 'correct' : 'incorrect');
+                const statusIcon = isOpenQuestion ? '📝' : (isCorrect ? '✅' : '❌');
+                const userAnswer = detail.reponseUtilisateur || '';
+                const displayUserAnswer = userAnswer.trim() === '' ? '<span class="empty-answer">Non rempli</span>' : this.escapeHtml(userAnswer);
 
                 html += `
-                    <div class="correction-item ${statusClass}">
-                        <div class="correction-question">${this.escapeHtml(detail.question)}</div>
-                        <div class="correction-answer">
-                            <span class="answer-user ${statusClass}">
-                                ${this.escapeHtml(detail.reponseUtilisateur || '—')}
-                                <span class="answer-icon">${statusIcon}</span>
-                            </span>
-                            ${!isCorrect ? `<div class="answer-correct">→ ${this.escapeHtml(detail.reponseAttendue)}</div>` : ''}
-                        </div>
-                    </div>
+                    <tr class="correction-row ${statusClass}">
+                        <td class="col-question">${this.escapeHtml(detail.question)}</td>
+                        <td class="col-reponse ${statusClass}">${displayUserAnswer}</td>
+                        <td class="col-attendue">${this.escapeHtml(detail.reponseAttendue)}</td>
+                        <td class="col-status"><span class="status-icon">${statusIcon}</span></td>
+                    </tr>
                 `;
             });
-            html += '</div>';
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
             return html;
         };
 
@@ -2847,13 +2864,13 @@ const EleveExercices = {
                         </div>
                     </div>
 
-                    <!-- BLOC DROITE : CORRECTION (tableau de l'exercice avec couleurs) -->
+                    <!-- BLOC DROITE : CORRECTION (tableau comparatif réponses élève vs attendues) -->
                     <div class="result-correction">
                         <div class="correction-header">
                             <h3>📝 Correction</h3>
                         </div>
-                        <div class="correction-content correction-table">
-                            <div class="exercise-content">${results.correctedHTML || '<p class="correction-fallback">Correction non disponible.</p>'}</div>
+                        <div class="correction-content">
+                            ${generateCorrectionHTML()}
                         </div>
                     </div>
                 </div>
