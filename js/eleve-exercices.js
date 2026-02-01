@@ -2456,6 +2456,11 @@ const EleveExercices = {
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
         const tempsPrevu = this.currentExercise?.duree || 300; // duree est déjà en secondes
 
+        // IMPORTANT: Capturer isEntrainementLibre AU DÉBUT avant tout appel async
+        // Car la valeur peut changer pendant les awaits
+        const isEntrainementLibreSnapshot = this.isEntrainementLibre;
+        console.log('[SF] isEntrainementLibre capturé au début:', isEntrainementLibreSnapshot);
+
         // OPTION B: Pour les savoir-faire, calculer la validation au niveau BANQUE
         let validationResult = null;
         if (this.currentType === 'savoir-faire' && this.currentExercise) {
@@ -2476,7 +2481,7 @@ const EleveExercices = {
                 temps_prevu: tempsPrevu,
                 repetition_validee: validationResult.repetitionValidee,
                 nouvelle_repetition: validationResult.nouvelleRepetition,
-                est_entrainement_libre: this.isEntrainementLibre
+                est_entrainement_libre: isEntrainementLibreSnapshot  // Utiliser la valeur capturée
             };
             this.updateLocalStatsSF(pratiqueData);
         }
@@ -2510,7 +2515,8 @@ const EleveExercices = {
                 // DEBUG: Afficher les détails de validation
                 console.log('[SF DEBUG] Validation details:', {
                     score: percent,
-                    isEntrainementLibre: this.isEntrainementLibre,
+                    isEntrainementLibreSnapshot: isEntrainementLibreSnapshot,
+                    isEntrainementLibreActuel: this.isEntrainementLibre,
                     validationResult: validationResult,
                     repetitionValidee: validationResult?.repetitionValidee,
                     nouvelleRepetition: validationResult?.nouvelleRepetition
@@ -2525,7 +2531,7 @@ const EleveExercices = {
                     temps_prevu: tempsPrevu,
                     // Nouvelles données système 4 répétitions
                     repetition_numero: validationResult?.repetitionValidee ? validationResult.nouvelleRepetition : 0,
-                    est_entrainement_libre: this.isEntrainementLibre
+                    est_entrainement_libre: isEntrainementLibreSnapshot  // Utiliser la valeur capturée au début
                 };
                 console.log('[SF] Envoi sauvegarde pratique au backend:', pratiqueData);
                 try {
