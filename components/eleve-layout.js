@@ -29,9 +29,9 @@ const EleveLayout = {
             section: "📝 S'entraîner",
             sectionId: 'entrainement',
             items: [
-                { icon: '🔵', label: 'Connaissances', href: '/Brikks/eleve/connaissances.html', id: 'connaissances' },
-                { icon: '🟠', label: 'Savoir-faire', href: '/Brikks/eleve/savoir-faire.html', id: 'savoir-faire' },
-                { icon: '🔴', label: 'Compétences', href: '/Brikks/eleve/competences.html', id: 'competences' }
+                { icon: '🔵', label: 'Connaissances', href: '/Brikks/eleve/entrainements-conn.html', id: 'connaissances' },
+                { icon: '🟠', label: 'Savoir-faire', href: '/Brikks/eleve/entrainements-sf.html', id: 'savoir-faire' },
+                { icon: '🔴', label: 'Compétences', href: '/Brikks/eleve/entrainements-comp.html', id: 'competences' }
             ]
         },
         {
@@ -158,10 +158,24 @@ const EleveLayout = {
 
                     // Construire l'URL de la page
                     const elementCode = item.element_code || item.id;
-                    // Cas spécial : "accueil" ou "index" pointe vers /eleve/ (index.html)
-                    const href = (elementCode === 'accueil' || elementCode === 'index')
+
+                    // Mapping des codes vers les noms de fichiers réels
+                    const pageMapping = {
+                        'accueil': '',
+                        'index': '',
+                        'savoir-faire': 'entrainements-sf',
+                        'connaissances': 'entrainements-conn',
+                        'competences': 'entrainements-comp'
+                    };
+
+                    // Utiliser le mapping si disponible, sinon le code tel quel
+                    const pageName = pageMapping[elementCode] !== undefined
+                        ? pageMapping[elementCode]
+                        : elementCode;
+
+                    const href = pageName === ''
                         ? '/Brikks/eleve/'
-                        : `/Brikks/eleve/${elementCode}.html`;
+                        : `/Brikks/eleve/${pageName}.html`;
 
                     grouped[cat].items.push({
                         icon: item.icon || '📄',
