@@ -872,7 +872,7 @@ const EleveExercices = {
             raison: 'succes',
             message: estMaitrise
                 ? '🎉 Banque maîtrisée !'
-                : `Bravo ! Entraînement ${nouvelleRep}/${this.SEUIL_REPETITIONS}`,
+                : `Bravo ! Entraînement ${nouvelleRep}/${this.SEUIL_REPETITIONS} validé`,
             conseil: estMaitrise
                 ? 'Félicitations ! Tu maîtrises cette banque !'
                 : '',
