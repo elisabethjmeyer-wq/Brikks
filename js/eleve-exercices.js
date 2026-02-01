@@ -2055,7 +2055,7 @@ const EleveExercices = {
                             <div class="row-input">
                                 <input type="text" class="cell-input" id="mixte_element_${idx}"
                                        placeholder="${this.escapeHtml(el.placeholder || '')}" data-index="${idx}"
-                                       data-reponse="${this.escapeHtml(el.reponse || '')}">
+                                       data-reponse="${this.escapeHtml(el.reponse || '')}" autocomplete="off">
                             </div>
                         </div>
                     `;
@@ -2083,7 +2083,7 @@ const EleveExercices = {
                 `<tr>${colonnes.map((col, colIdx) => {
                     if (col.editable) {
                         return `<td class="cell-editable">
-                            <input type="text" class="cell-input" id="mixte_cell_${rowIdx}_${colIdx}" placeholder="..." data-row="${rowIdx}" data-col="${colIdx}">
+                            <input type="text" class="cell-input" id="mixte_cell_${rowIdx}_${colIdx}" placeholder="..." data-row="${rowIdx}" data-col="${colIdx}" autocomplete="off">
                         </td>`;
                     } else {
                         return `<td>${this.escapeHtml(ligne.cells[colIdx] || '')}</td>`;
@@ -3397,12 +3397,23 @@ const EleveExercices = {
                 if (el.type === 'row' && el.reponse) {
                     const input = document.getElementById(`mixte_element_${idx}`);
                     if (input) {
-                        // Prendre uniquement la première réponse acceptable
-                        const firstAnswer = el.reponse.split(/[|;]/)[0].trim();
-                        input.value = firstAnswer;
+                        const userAnswer = input.value.trim();
+                        const correctAnswerRaw = el.reponse;
+                        const firstCorrectAnswer = correctAnswerRaw.split(/[|;]/)[0].trim();
+                        const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswerRaw);
+
+                        // Garder la réponse de l'élève et colorer selon le résultat
                         input.classList.remove('incorrect', 'correct');
-                        input.classList.add('corrected');
+                        input.classList.add(isCorrect ? 'correct' : 'incorrect');
                         input.disabled = true;
+
+                        // Si incorrect, afficher la bonne réponse à côté
+                        if (!isCorrect) {
+                            const correctionSpan = document.createElement('span');
+                            correctionSpan.className = 'correction-expected';
+                            correctionSpan.innerHTML = `→ ${this.escapeHtml(firstCorrectAnswer)}`;
+                            input.parentNode.appendChild(correctionSpan);
+                        }
                     }
                 }
             });

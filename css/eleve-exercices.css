@@ -1589,6 +1589,19 @@ textarea.answered {
     font-weight: 500;
 }
 
+/* Bonne réponse affichée à côté des erreurs */
+.correction-expected {
+    display: inline-block;
+    margin-left: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: #dcfce7;
+    border: 1px solid #22c55e;
+    border-radius: 4px;
+    color: #166534;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
 /* Questions */
 .mixte-questions .mixte-section-header {
     background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
