@@ -2783,11 +2783,11 @@ const EleveExercices = {
                 </button>
 
                 <div class="result-card-sf">
-                    <!-- BLOC HAUT : BILAN -->
+                    <!-- BLOC GAUCHE : BILAN -->
                     <div class="result-bilan">
                         <div class="bilan-header ${resultType}">
                             <span class="bilan-icon">${isSuccess ? '✅' : (results.percent === 100 ? '⏱️' : '❌')}</span>
-                            <h2>${validationResult.message}</h2>
+                            <span class="bilan-message">${validationResult.message}</span>
                         </div>
 
                         <div class="bilan-score">
@@ -2797,28 +2797,17 @@ const EleveExercices = {
                             <span class="score-detail">${results.correct}/${results.total}</span>
                         </div>
 
-                        <div class="bilan-temps">
-                            <div class="temps-row">
-                                <span class="temps-label">⏱️ Ton temps</span>
-                                <span class="temps-value">${this.formatTime(timeSpent)}</span>
-                            </div>
-                            <div class="temps-row">
-                                <span class="temps-label">📊 Temps max</span>
-                                <span class="temps-value">${this.formatTime(tempsPrevu)}</span>
-                            </div>
-                            <div class="temps-badge ${tempsOK ? 'success' : 'warning'}">
-                                ${tempsOK ? '✓ Dans les temps' : `⚠️ +${this.formatTime(timeSpent - tempsPrevu)}`}
-                            </div>
+                        <div class="bilan-temps-compact">
+                            <span class="temps-info">⏱️ ${this.formatTime(timeSpent)} / ${this.formatTime(tempsPrevu)}</span>
+                            <span class="temps-status ${tempsOK ? 'success' : 'warning'}">${tempsOK ? '✓' : '⚠️'}</span>
                         </div>
 
-                        <div class="bilan-repetition">
-                            <div class="rep-progress">
-                                ${generateRepDots()}
-                            </div>
+                        <div class="bilan-repetition-compact">
+                            <span class="rep-dots-inline">${generateRepDots()}</span>
                             <span class="rep-label">Répétition ${validationResult.nouvelleRepetition}/${this.SEUIL_REPETITIONS}</span>
                         </div>
 
-                        <!-- Messages et actions sur toute la largeur -->
+                        <!-- Messages -->
                         <div class="bilan-messages">
                             ${validationResult.conseil && !isSuccess && !this.isEntrainementLibre ? `
                                 <div class="bilan-conseil warning">
@@ -2854,20 +2843,16 @@ const EleveExercices = {
                                         🔄 Réessayer
                                     </button>
                                 ` : ''}
-                                <button class="btn ${isSuccess ? 'btn-primary' : 'btn-secondary'}" onclick="EleveExercices.backToList()">
-                                    ← Retour aux exercices
-                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- BLOC BAS : CORRECTION (tableau de l'exercice avec couleurs) -->
+                    <!-- BLOC DROITE : CORRECTION (tableau de l'exercice avec couleurs) -->
                     <div class="result-correction">
                         <div class="correction-header">
                             <h3>📝 Correction</h3>
                         </div>
                         <div class="correction-content correction-table">
-                            ${results.consigneHTML ? `<div class="correction-consigne">${results.consigneHTML}</div>` : ''}
                             <div class="exercise-content">${results.correctedHTML || '<p class="correction-fallback">Correction non disponible.</p>'}</div>
                         </div>
                     </div>
