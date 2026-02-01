@@ -3648,14 +3648,15 @@ body.document-fullscreen-active {
 /* Actions dans le bilan */
 .bilan-actions {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     gap: 0.75rem;
-    flex-wrap: wrap;
-    justify-content: center;
+    align-items: stretch;
+    margin-top: 0.5rem;
 }
 
 .bilan-actions .btn {
-    padding: 0.75rem 1.25rem;
+    padding: 0.875rem 1.5rem;
+    width: 100%;
 }
 
 .btn-restart-sf {
@@ -3806,28 +3807,30 @@ body.document-fullscreen-active {
     gap: 1.5rem;
 }
 
+/* Header du bilan - emoji + message sur même ligne */
 .bilan-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     text-align: center;
 }
 
-.bilan-emoji {
-    font-size: 3rem;
-    margin-bottom: 0.25rem;
-}
-
-.bilan-header h2 {
-    font-size: 1.25rem;
-    color: #1f2937;
-    margin: 0;
-}
-
 .bilan-header .bilan-icon {
-    font-size: 2.5rem;
-    display: block;
-    margin-bottom: 0.25rem;
+    font-size: 1.5rem;
+}
+
+.bilan-header .bilan-message {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
 }
 
 .bilan-header.success {
+    color: #059669;
+}
+
+.bilan-header.success .bilan-message {
     color: #059669;
 }
 
@@ -3835,7 +3838,15 @@ body.document-fullscreen-active {
     color: #d97706;
 }
 
+.bilan-header.partial .bilan-message {
+    color: #d97706;
+}
+
 .bilan-header.error {
+    color: #dc2626;
+}
+
+.bilan-header.error .bilan-message {
     color: #dc2626;
 }
 
@@ -3965,6 +3976,59 @@ body.document-fullscreen-active {
     color: #6b7280;
     margin-top: 0.25rem;
     display: block;
+}
+
+/* Temps compact - une seule ligne */
+.bilan-temps-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.bilan-temps-compact .temps-info {
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.bilan-temps-compact .temps-status {
+    font-size: 1rem;
+}
+
+.bilan-temps-compact .temps-status.success {
+    color: #059669;
+}
+
+.bilan-temps-compact .temps-status.warning {
+    color: #d97706;
+}
+
+/* Répétition compact - une seule ligne */
+.bilan-repetition-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.bilan-repetition-compact .rep-dots-inline {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.bilan-repetition-compact .rep-dots-inline .rep-dot {
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+}
+
+.bilan-repetition-compact .rep-label {
+    margin: 0;
+    font-size: 0.85rem;
 }
 
 /* Messages dans le bilan - section pleine largeur */
