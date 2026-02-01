@@ -2864,13 +2864,13 @@ const EleveExercices = {
                         </div>
                     </div>
 
-                    <!-- BLOC DROITE : CORRECTION (tableau comparatif réponses élève vs attendues) -->
+                    <!-- BLOC DROITE : CORRECTION (tableau original avec corrections inline) -->
                     <div class="result-correction">
                         <div class="correction-header">
                             <h3>📝 Correction</h3>
                         </div>
-                        <div class="correction-content">
-                            ${generateCorrectionHTML()}
+                        <div class="correction-content correction-table">
+                            <div class="exercise-content">${results.correctedHTML || '<p class="correction-fallback">Correction non disponible.</p>'}</div>
                         </div>
                     </div>
                 </div>
@@ -3103,12 +3103,41 @@ const EleveExercices = {
                     const input = document.getElementById(`input_${rowIdx}_${colIdx}`);
                     if (input) {
                         const fullAnswer = ligne.cells[colIdx] || '';
-                        // Prendre uniquement la première réponse acceptable (avant | ou ;)
                         const firstAnswer = fullAnswer.split(/[|;]/)[0].trim();
-                        input.value = firstAnswer;
-                        input.classList.remove('incorrect', 'correct');
-                        input.classList.add('corrected');
-                        input.disabled = true;
+                        const userAnswer = input.value.trim();
+                        const isCorrect = input.classList.contains('correct');
+                        const isEmpty = userAnswer === '';
+
+                        // Créer un conteneur pour remplacer l'input
+                        const correctionCell = document.createElement('div');
+                        correctionCell.className = 'correction-cell';
+
+                        if (isCorrect) {
+                            // Réponse correcte : fond vert avec la réponse
+                            correctionCell.classList.add('correct');
+                            correctionCell.innerHTML = `
+                                <span class="answer-text">${this.escapeHtml(userAnswer)}</span>
+                                <span class="status-badge">✓</span>
+                            `;
+                        } else if (isEmpty) {
+                            // Pas de réponse : fond rouge/orange avec la bonne réponse
+                            correctionCell.classList.add('empty');
+                            correctionCell.innerHTML = `
+                                <span class="correct-answer">${this.escapeHtml(firstAnswer)}</span>
+                                <span class="status-badge">✗</span>
+                            `;
+                        } else {
+                            // Réponse incorrecte : réponse barrée + bonne réponse
+                            correctionCell.classList.add('incorrect');
+                            correctionCell.innerHTML = `
+                                <span class="wrong-answer">${this.escapeHtml(userAnswer)}</span>
+                                <span class="correct-answer">${this.escapeHtml(firstAnswer)}</span>
+                                <span class="status-badge">✗</span>
+                            `;
+                        }
+
+                        // Remplacer l'input par le conteneur de correction
+                        input.parentNode.replaceChild(correctionCell, input);
                     }
                 }
             });
