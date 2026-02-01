@@ -1273,6 +1273,34 @@ textarea.answered {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
+/* Masquer le document dans le corrigé */
+.mixte-document.correction-hidden,
+.mixte-left-column.correction-hidden {
+    display: none;
+}
+
+/* Bouton pour afficher/masquer le document */
+.btn-toggle-document {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    transition: all 0.2s;
+}
+
+.btn-toggle-document:hover {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+}
+
 .mixte-section-header {
     padding: 1rem 1.5rem;
     font-weight: 600;

@@ -3348,6 +3348,28 @@ const EleveExercices = {
     showDocumentMixteCorrige() {
         const data = this.mixteData || {};
 
+        // Masquer le document et ajouter un bouton pour le révéler
+        const docSection = document.querySelector('.mixte-document') || document.querySelector('.mixte-left-column');
+        if (docSection) {
+            docSection.classList.add('correction-hidden');
+
+            // Créer le bouton "Voir le document" s'il n'existe pas déjà
+            if (!document.getElementById('toggleDocumentBtn')) {
+                const toggleBtn = document.createElement('button');
+                toggleBtn.id = 'toggleDocumentBtn';
+                toggleBtn.className = 'btn-toggle-document';
+                toggleBtn.innerHTML = '📄 Voir le document';
+                // Utiliser setAttribute pour que l'onclick soit capturé dans le HTML
+                toggleBtn.setAttribute('onclick', 'EleveExercices.toggleDocumentVisibility()');
+
+                // Insérer le bouton avant le document ou après le tableau
+                const container = document.querySelector('.document-mixte-container');
+                if (container) {
+                    container.insertBefore(toggleBtn, container.firstChild);
+                }
+            }
+        }
+
         if (data.tableau && data.tableau.actif && this.mixteTableauElements) {
             this.mixteTableauElements.forEach((el, idx) => {
                 if (el.type === 'row' && el.reponse) {
@@ -3376,6 +3398,23 @@ const EleveExercices = {
                     correctionDiv.style.display = 'block';
                 }
             });
+        }
+    },
+
+    /**
+     * Toggle la visibilité du document dans le corrigé
+     */
+    toggleDocumentVisibility() {
+        const docSection = document.querySelector('.mixte-document.correction-hidden') ||
+                          document.querySelector('.mixte-left-column.correction-hidden') ||
+                          document.querySelector('.mixte-document') ||
+                          document.querySelector('.mixte-left-column');
+        const toggleBtn = document.getElementById('toggleDocumentBtn');
+
+        if (docSection && toggleBtn) {
+            const isHidden = docSection.classList.contains('correction-hidden');
+            docSection.classList.toggle('correction-hidden');
+            toggleBtn.innerHTML = isHidden ? '📄 Masquer le document' : '📄 Voir le document';
         }
     },
 
