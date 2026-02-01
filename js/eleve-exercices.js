@@ -1378,8 +1378,14 @@ const EleveExercices = {
     calculateBanqueStatsSF(exercices, banqueId) {
         const total = exercices.length;
 
+        // DEBUG: Afficher les clés disponibles et l'ID recherché
+        console.log('[DEBUG calculateBanqueStatsSF] banqueId recherché:', banqueId);
+        console.log('[DEBUG calculateBanqueStatsSF] Clés dans statsSFBanque:', Object.keys(this.statsSFBanque));
+        console.log('[DEBUG calculateBanqueStatsSF] statsSFBanque complet:', this.statsSFBanque);
+
         // Récupérer les stats de la banque (Option B)
         const statsBanque = this.statsSFBanque[String(banqueId)];
+        console.log('[DEBUG calculateBanqueStatsSF] Stats trouvées:', statsBanque);
         const repsValidees = statsBanque?.repetitions_validees || 0;
         const exercicesReussis = statsBanque?.exercices_reussis || [];
 
