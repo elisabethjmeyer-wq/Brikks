@@ -1065,7 +1065,7 @@ const EleveExercices = {
             const reps = banqueStatus.repetitions || 0;
             const simpleMessage = banqueStatus.status === this.STATUTS_SF.MAITRISE
                 ? 'Maîtrisé !'
-                : `${reps}/${this.SEUIL_REPETITIONS} répétitions`;
+                : `Niveau ${reps}/${this.SEUIL_REPETITIONS}`;
 
             html += `
                 <div class="banque-accordion-item ${this.currentType}${isExpanded ? ' expanded' : ''} ${statusClass}" data-banque-id="${banque.id}">
@@ -1135,13 +1135,13 @@ const EleveExercices = {
         const reps = banqueStatus.repetitions || 0;
         const dureeMinutes = exo.duree > 60 ? Math.floor(exo.duree / 60) : exo.duree;
 
-        // Info sur quand la répétition compte (si espacement non atteint)
+        // Info sur quand le niveau compte (si espacement non atteint)
         let infoEspacement = '';
         if (banqueStatus.status === this.STATUTS_SF.EN_PAUSE && banqueStatus.prochaineDispo) {
             const prochaineDateStr = new Date(banqueStatus.prochaineDispo).toLocaleDateString('fr-FR', {
                 weekday: 'long', day: 'numeric', month: 'short'
             });
-            infoEspacement = `<div class="info-espacement">ℹ️ Ta répétition ${reps + 1} compte à partir de ${prochaineDateStr}</div>`;
+            infoEspacement = `<div class="info-espacement">ℹ️ Ton niveau ${reps + 1} compte à partir de ${prochaineDateStr}</div>`;
         }
 
         return `
@@ -1389,16 +1389,16 @@ const EleveExercices = {
                         actionHint = 'Clique pour découvrir →';
                         break;
                     case 'en-cours':
-                        actionHint = `${statusSF.repetitions}/${this.SEUIL_REPETITIONS} répétitions`;
+                        actionHint = `Niveau ${statusSF.repetitions}/${this.SEUIL_REPETITIONS}`;
                         break;
                     case 'a-reviser':
-                        actionHint = `Répétition ${statusSF.repetitions + 1}/${this.SEUIL_REPETITIONS} dispo →`;
+                        actionHint = `Niveau ${statusSF.repetitions + 1}/${this.SEUIL_REPETITIONS} dispo →`;
                         break;
                     case 'en-pause':
                         actionHint = statusSF.message; // "Dispo dans Xj"
                         break;
                     case 'maitrise':
-                        actionHint = `${this.SEUIL_REPETITIONS}/${this.SEUIL_REPETITIONS} répétitions`;
+                        actionHint = `Niveau ${this.SEUIL_REPETITIONS}/${this.SEUIL_REPETITIONS}`;
                         break;
                     case 'rappel-suggere':
                         actionHint = statusSF.joursDepuis ? `${statusSF.joursDepuis}j sans pratiquer` : 'Rappel suggéré';
@@ -2951,12 +2951,29 @@ const EleveExercices = {
     },
 
     /**
-     * Lance l'exercice courant en mode entraînement libre
+     * Lance un exercice aléatoire de la même banque en mode entraînement libre
      */
     startEntrainementLibre() {
-        if (this.currentExercise) {
+        if (!this.currentExercise || !this.exercices) return;
+
+        // Récupérer tous les exercices de la même banque
+        const exercicesMêmeBanque = this.exercices.filter(
+            e => String(e.banque_id) === String(this.currentExercise.banque_id)
+        );
+
+        if (exercicesMêmeBanque.length <= 1) {
+            // Si un seul exercice, relancer le même
             this.startExercise(this.currentExercise.id, true);
+            return;
         }
+
+        // Exclure l'exercice courant et en choisir un aléatoire
+        const autresExercices = exercicesMêmeBanque.filter(
+            e => e.id !== this.currentExercise.id
+        );
+        const exerciceAleatoire = autresExercices[Math.floor(Math.random() * autresExercices.length)];
+
+        this.startExercise(exerciceAleatoire.id, true);
     },
 
     /**
