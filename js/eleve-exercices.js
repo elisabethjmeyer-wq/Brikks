@@ -1589,6 +1589,8 @@ const EleveExercices = {
     async startExercise(exerciceId, forceEntrainementLibre = false) {
         // Pour les savoir-faire, déterminer si c'est entrainement libre
         // Phase 1: Pas de popup de blocage, mais on track si espacement atteint ou non
+        console.log('[SF DEBUG startExercise] forceEntrainementLibre:', forceEntrainementLibre);
+
         if (this.currentType === 'savoir-faire') {
             const exo = this.exercices.find(e => String(e.id) === String(exerciceId));
             if (exo) {
@@ -1596,10 +1598,14 @@ const EleveExercices = {
                 const banqueExercices = this.exercices.filter(e => e.banque_id === banqueId);
                 const banqueStatus = this.getBanqueStatusSF(banqueId, banqueExercices);
 
+                console.log('[SF DEBUG startExercise] banqueStatus:', banqueStatus.status, '| EN_PAUSE:', this.STATUTS_SF.EN_PAUSE, '| MAITRISE:', this.STATUTS_SF.MAITRISE);
+
                 // Entrainement libre si: forcé, OU espacement non atteint, OU banque maîtrisée
                 this.isEntrainementLibre = forceEntrainementLibre ||
                     banqueStatus.status === this.STATUTS_SF.EN_PAUSE ||
                     banqueStatus.status === this.STATUTS_SF.MAITRISE;
+
+                console.log('[SF DEBUG startExercise] isEntrainementLibre final:', this.isEntrainementLibre);
             } else {
                 this.isEntrainementLibre = forceEntrainementLibre;
             }
@@ -2450,6 +2456,11 @@ const EleveExercices = {
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
         const tempsPrevu = this.currentExercise?.duree || 300; // duree est déjà en secondes
 
+        // IMPORTANT: Capturer isEntrainementLibre AU DÉBUT avant tout appel async
+        // Car la valeur peut changer pendant les awaits
+        const isEntrainementLibreSnapshot = this.isEntrainementLibre;
+        console.log('[SF] isEntrainementLibre capturé au début:', isEntrainementLibreSnapshot);
+
         // OPTION B: Pour les savoir-faire, calculer la validation au niveau BANQUE
         let validationResult = null;
         if (this.currentType === 'savoir-faire' && this.currentExercise) {
@@ -2470,7 +2481,7 @@ const EleveExercices = {
                 temps_prevu: tempsPrevu,
                 repetition_validee: validationResult.repetitionValidee,
                 nouvelle_repetition: validationResult.nouvelleRepetition,
-                est_entrainement_libre: this.isEntrainementLibre
+                est_entrainement_libre: isEntrainementLibreSnapshot  // Utiliser la valeur capturée
             };
             this.updateLocalStatsSF(pratiqueData);
         }
@@ -2501,6 +2512,16 @@ const EleveExercices = {
 
             // Pour les savoir-faire, sauvegarder dans l'historique des pratiques avec nouvelles infos
             if (this.currentType === 'savoir-faire') {
+                // DEBUG: Afficher les détails de validation
+                console.log('[SF DEBUG] Validation details:', {
+                    score: percent,
+                    isEntrainementLibreSnapshot: isEntrainementLibreSnapshot,
+                    isEntrainementLibreActuel: this.isEntrainementLibre,
+                    validationResult: validationResult,
+                    repetitionValidee: validationResult?.repetitionValidee,
+                    nouvelleRepetition: validationResult?.nouvelleRepetition
+                });
+
                 const pratiqueData = {
                     eleve_id: this.currentUser.id,
                     exercice_id: this.currentExercise.id,
@@ -2510,7 +2531,7 @@ const EleveExercices = {
                     temps_prevu: tempsPrevu,
                     // Nouvelles données système 4 répétitions
                     repetition_numero: validationResult?.repetitionValidee ? validationResult.nouvelleRepetition : 0,
-                    est_entrainement_libre: this.isEntrainementLibre
+                    est_entrainement_libre: isEntrainementLibreSnapshot  // Utiliser la valeur capturée au début
                 };
                 console.log('[SF] Envoi sauvegarde pratique au backend:', pratiqueData);
                 try {
