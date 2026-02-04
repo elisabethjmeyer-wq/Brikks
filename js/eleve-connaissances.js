@@ -2596,136 +2596,172 @@ const EleveConnaissances = {
         // Déterminer le message selon le score
         let messageIcon, messageTitle, messageClass;
         if (results.pourcentage >= 100) {
-            messageIcon = '🎉';
+            messageIcon = '✅';
             messageTitle = 'Parfait !';
             messageClass = 'success';
         } else if (results.pourcentage >= 80) {
-            messageIcon = '👏';
-            messageTitle = 'Très bien !';
+            messageIcon = '✅';
+            messageTitle = 'Bravo !';
             messageClass = 'success';
         } else if (results.pourcentage >= 50) {
             messageIcon = '💪';
             messageTitle = 'Pas mal !';
             messageClass = 'partial';
         } else {
-            messageIcon = '📚';
-            messageTitle = 'Continue à t\'entraîner !';
+            messageIcon = '❌';
+            messageTitle = 'Continue !';
             messageClass = 'error';
         }
 
-        // Message sur la progression de mémorisation
-        // Ne pas afficher de message de progression en mode entraînement libre
-        let progressionMessage = '';
-        if (!this.isTrainingMode && prog.success) {
-            if (prog.statut === 'memorise' && prog.reussi) {
-                // Seulement si l'élève a RÉUSSI et atteint le statut mémorisé
-                progressionMessage = `<div class="progression-message memorise">
-                    🎉 Félicitations ! Cet exercice est maintenant mémorisé définitivement !
-                </div>`;
-            } else if (prog.reussi) {
-                // Réussi mais pas encore mémorisé - message clair selon l'étape
-                const joursRestants = prog.prochaine_revision ? this.calculateDaysUntil(prog.prochaine_revision) : 1;
+        const isSuccess = !this.isTrainingMode && prog.reussi === true;
+        const SEUIL_ETAPES = 6; // 6 niveaux pour les connaissances
 
-                // Message selon l'étape atteinte
-                // Le backend démarre à étape 1 (nouveau) et passe à 2 après 1er succès
-                // Donc: étape 2 = 1ère mémo, étape 3 = 1ère révision, etc.
-                let messageEtape;
-                if (prog.etape <= 2) {
-                    messageEtape = "1ère mémorisation réussie";
-                } else if (prog.etape === 3) {
-                    messageEtape = "1ère révision réussie";
-                } else if (prog.etape === 4) {
-                    messageEtape = "2ème révision réussie";
-                } else if (prog.etape === 5) {
-                    messageEtape = "3ème révision réussie";
-                } else if (prog.etape === 6) {
-                    messageEtape = "4ème révision réussie";
-                } else {
-                    messageEtape = "5ème révision réussie";
-                }
-
-                progressionMessage = `<div class="progression-message success">
-                    ✅ Bravo ! ${messageEtape} !<br>
-                    <small>Reviens dans ${joursRestants} jour${joursRestants > 1 ? 's' : ''} pour ancrer cette connaissance.</small>
-                </div>`;
-            } else if (prog.reussi === false) {
-                // Explicitement échoué (pas null/undefined)
-                const seuil = prog.seuil || 80;
-                progressionMessage = `<div class="progression-message retry">
-                    📚 Il faut ${seuil}% pour valider. Tu peux réessayer maintenant !
-                </div>`;
+        // Générer les dots de progression (6 niveaux)
+        const generateProgDots = () => {
+            const currentEtape = prog.etape || 1;
+            let html = '<div class="prog-dots">';
+            for (let i = 1; i <= SEUIL_ETAPES; i++) {
+                const status = i <= currentEtape ? 'completed' : 'pending';
+                html += `<span class="prog-dot ${status}">${i}</span>`;
             }
-        } else if (this.isTrainingMode) {
-            progressionMessage = `<div class="progression-message info">
-                <small>Mode entraînement libre - ta progression n'est pas modifiée</small>
-            </div>`;
+            html += '</div>';
+            return html;
+        };
+
+        // Prochaine date formatée
+        let prochaineDateStr = '';
+        if (prog.prochaine_revision) {
+            prochaineDateStr = new Date(prog.prochaine_revision).toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            });
         }
 
         // Trouver l'entraînement suivant
         const nextEntrainement = this.findNextEntrainement();
 
+        // Générer le HTML de correction par étape
+        const generateCorrectionHTML = () => {
+            if (!results.etapes || results.etapes.length === 0) {
+                return '<p class="correction-fallback">Aucun détail disponible.</p>';
+            }
+
+            return results.etapes.map((etape, idx) => `
+                <div class="correction-etape ${etape.pourcentage >= 80 ? 'success' : etape.pourcentage >= 50 ? 'partial' : 'error'}">
+                    <div class="correction-etape-header">
+                        <span class="correction-etape-num">${idx + 1}</span>
+                        <span class="correction-etape-title">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</span>
+                        <span class="correction-etape-score">${etape.correct}/${etape.total}</span>
+                    </div>
+                    <div class="correction-etape-details">
+                        ${etape.details.map(d => `
+                            <div class="correction-item ${d.correct ? 'correct' : 'incorrect'}">
+                                <span class="correction-icon">${d.correct ? '✓' : '✗'}</span>
+                                <div class="correction-content">
+                                    <span class="correction-question">${this.escapeHtml(d.question || '')}</span>
+                                    ${!d.correct ? `
+                                        <div class="correction-answers">
+                                            <span class="user-answer">${d.reponse ? this.escapeHtml(d.reponse) : '<em>Non répondu</em>'}</span>
+                                            <span class="expected-answer">${this.escapeHtml(d.attendu)}</span>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        };
+
         container.innerHTML = `
-            <div class="result-view">
+            <div class="result-view conn">
                 <button class="exercise-back-btn" onclick="EleveConnaissances.backToList()">
                     ← Retour aux entraînements
                 </button>
 
-                <div class="result-card">
-                    <div class="result-header ${messageClass}">
-                        <div class="result-icon">${messageIcon}</div>
-                        <h2>${messageTitle}</h2>
-                        <div class="result-score">
-                            <span class="score-value">${results.pourcentage}%</span>
-                            <span class="score-detail">${results.totalCorrect}/${results.totalQuestions} correct${results.totalCorrect > 1 ? 's' : ''}</span>
+                <div class="result-card-conn">
+                    <!-- BLOC GAUCHE : BILAN -->
+                    <div class="result-bilan-conn">
+                        <div class="bilan-header ${messageClass}">
+                            <span class="bilan-icon">${messageIcon}</span>
+                            <span class="bilan-message">${messageTitle}</span>
                         </div>
-                    </div>
 
-                    ${progressionMessage}
+                        <div class="bilan-score">
+                            <div class="score-circle ${messageClass}">
+                                <span class="score-value">${results.pourcentage}%</span>
+                            </div>
+                            <span class="score-detail">${results.totalCorrect}/${results.totalQuestions}</span>
+                        </div>
 
-                    <div class="result-details">
-                        <h3>Détail par étape</h3>
-                        <div class="etapes-recap">
-                            ${results.etapes.map((etape, idx) => `
-                                <div class="etape-recap ${etape.pourcentage >= 80 ? 'success' : etape.pourcentage >= 50 ? 'partial' : 'error'}">
-                                    <div class="etape-recap-header" onclick="EleveConnaissances.toggleEtapeDetails(${idx})">
-                                        <span class="etape-recap-num">${idx + 1}</span>
-                                        <span class="etape-recap-title">${this.escapeHtml(etape.etapeTitre)}</span>
-                                        <span class="etape-recap-score">${etape.correct}/${etape.total}</span>
-                                        <span class="etape-recap-toggle">▼</span>
-                                    </div>
-                                    <div class="etape-recap-details" id="etapeDetails_${idx}" style="display: none;">
-                                        ${etape.details.map(d => `
-                                            <div class="detail-item ${d.correct ? 'correct' : 'incorrect'}">
-                                                <span class="detail-icon">${d.correct ? '✓' : '✗'}</span>
-                                                <span class="detail-question">${this.escapeHtml(d.question || '')}</span>
-                                                ${!d.correct ? `
-                                                    <div class="detail-correction">
-                                                        ${d.reponse ? `Ta réponse: <span class="user-answer">${this.escapeHtml(d.reponse)}</span>` : 'Pas de réponse'}
-                                                        <br>Réponse attendue: <span class="expected-answer">${this.escapeHtml(d.attendu)}</span>
-                                                    </div>
-                                                ` : ''}
-                                            </div>
-                                        `).join('')}
-                                    </div>
+                        ${!this.isTrainingMode ? `
+                        <div class="bilan-progression">
+                            ${generateProgDots()}
+                            <span class="prog-label">Niveau ${prog.etape || 1}/${SEUIL_ETAPES}</span>
+                        </div>
+                        ` : `
+                        <div class="bilan-training-badge">
+                            <span class="training-badge-icon">🔄</span>
+                            <span class="training-badge-text">Entraînement libre</span>
+                        </div>
+                        `}
+
+                        <!-- Messages selon le résultat -->
+                        <div class="bilan-messages">
+                            ${prog.statut === 'memorise' && prog.reussi ? `
+                                <div class="bilan-memorise">
+                                    <span class="memorise-icon">🎉</span>
+                                    <p>Cet entraînement est mémorisé !</p>
                                 </div>
-                            `).join('')}
+                            ` : ''}
+
+                            ${isSuccess && prochaineDateStr && prog.statut !== 'memorise' ? `
+                                <div class="bilan-prochaine">
+                                    <p class="prochaine-main">🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${(prog.etape || 1) + 1} !</p>
+                                    <p class="prochaine-sub">En attendant, tu peux t'entraîner autant que tu veux</p>
+                                    <button class="btn btn-training" onclick="EleveConnaissances.restartAsTraining()">
+                                        💪 Continuer à s'entraîner
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            ${!isSuccess && !this.isTrainingMode && prog.reussi === false ? `
+                                <div class="bilan-retry">
+                                    <p>📚 Il faut ${prog.seuil || 80}% pour valider.</p>
+                                    <button class="btn btn-primary" onclick="EleveConnaissances.restartEntrainement()">
+                                        🔄 Réessayer
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            ${this.isTrainingMode ? `
+                                <div class="bilan-training-info">
+                                    <small>Ta progression n'est pas modifiée en mode libre</small>
+                                    <button class="btn btn-primary" onclick="EleveConnaissances.restartEntrainement()">
+                                        🔄 Recommencer
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="bilan-actions">
+                            ${nextEntrainement && isSuccess ? `
+                                <button class="btn btn-primary" onclick="EleveConnaissances.startNextEntrainement()">
+                                    Passer au suivant →
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
 
-                    <div class="result-actions">
-                        ${!prog.reussi || this.isTrainingMode ? `
-                            <button class="btn btn-secondary" onclick="EleveConnaissances.restartEntrainement()">
-                                🔄 Recommencer
-                            </button>
-                        ` : ''}
-                        ${nextEntrainement ? `
-                            <button class="btn btn-primary" onclick="EleveConnaissances.startNextEntrainement()">
-                                Passer au suivant →
-                            </button>
-                        ` : ''}
-                        <button class="btn btn-outline" onclick="EleveConnaissances.backToList()">
-                            Retour à la liste
-                        </button>
+                    <!-- BLOC DROITE : CORRECTION -->
+                    <div class="result-correction-conn">
+                        <div class="correction-header">
+                            <h3>📝 Correction</h3>
+                        </div>
+                        <div class="correction-content">
+                            ${generateCorrectionHTML()}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2735,18 +2771,23 @@ const EleveConnaissances = {
         if (!this.isTrainingMode && prog.success) {
             setTimeout(() => {
                 if (prog.statut === 'memorise' && prog.reussi) {
-                    // Niveau 2 : Mémorisation complète !
                     this.celebrateMemorized();
-                    // Vérifier si toute la banque est maintenant complète
                     if (ent && ent.banque_exercice_id) {
                         this.checkAndCelebrateBanqueComplete(ent.banque_exercice_id);
                     }
                 } else if (prog.reussi) {
-                    // Niveau 1 : Réussite simple
                     this.celebrateSuccess();
                 }
-            }, 300); // Petit délai pour laisser le rendu se faire
+            }, 300);
         }
+    },
+
+    /**
+     * Redémarre l'entraînement en mode libre (pour continuer à s'entraîner après réussite)
+     */
+    restartAsTraining() {
+        this.isTrainingMode = true;
+        this.startEntrainement(this.currentEntrainement.id);
     },
 
     /**
