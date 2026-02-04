@@ -1797,11 +1797,16 @@
    ÉCRAN DE RÉSULTATS - NOUVEAU DESIGN 2 COLONNES
    ============================================ */
 
-.result-view.conn {
+#connaissances-content > .result-view.conn {
     max-width: none !important;
-    margin: 0;
-    padding: 1.5rem;
-    width: 100%;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+}
+
+.result-view.conn > .exercise-back-btn {
+    margin-bottom: 1rem;
 }
 
 /* Layout 2 colonnes */
@@ -1812,7 +1817,8 @@
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    width: 100%;
+    width: 100% !important;
+    max-width: none !important;
     min-height: 500px;
 }
 
