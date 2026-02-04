@@ -1798,9 +1798,10 @@
    ============================================ */
 
 .result-view.conn {
-    max-width: none;
+    max-width: none !important;
     margin: 0;
     padding: 1.5rem;
+    width: 100%;
 }
 
 /* Layout 2 colonnes */
