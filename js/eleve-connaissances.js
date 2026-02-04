@@ -1274,28 +1274,37 @@ const EleveConnaissances = {
             `;
         }
 
-        // Shuffle for student et stocker les données pour validation
-        const shuffled = [...cartes].sort(() => Math.random() - 0.5);
-        this.timelineCartes = cartes; // Garder l'original pour validation
+        // Stocker l'ordre original pour validation (l'ordre de création EST l'ordre correct)
+        this.timelineCartes = cartes;
+
+        // Créer un tableau avec les index originaux pour le mélange
+        const cartesAvecIndex = cartes.map((carte, originalIndex) => ({ ...carte, originalIndex }));
+
+        // Mélange Fisher-Yates (vrai mélange aléatoire)
+        const shuffled = [...cartesAvecIndex];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
 
         // Setup drag & drop after render ET sauvegarder l'ordre initial
         setTimeout(() => {
             this.setupTimelineDragDrop();
-            this.saveTimelineOrder(); // Sauvegarder l'ordre initial
+            this.saveTimelineOrder();
         }, 100);
 
         return `
             <div class="timeline-container">
                 <p class="timeline-instruction">Replacez les événements dans l'ordre chronologique en les faisant glisser.</p>
                 <div class="timeline-cards" id="timelineCards">
-                    ${shuffled.map((carte, idx) => {
+                    ${shuffled.map((carte) => {
                         // Construire le style d'image
                         let frontStyle = '';
                         if (carte.image_url) {
                             frontStyle = `style="background-image: url('${this.escapeHtml(carte.image_url)}'); background-size: cover; background-position: center;"`;
                         }
                         return `
-                        <div class="timeline-flip-card" draggable="true" data-id="${idx}" data-date="${carte.date}" data-titre="${this.escapeHtml(carte.titre)}">
+                        <div class="timeline-flip-card" draggable="true" data-original-index="${carte.originalIndex}" data-date="${carte.date}" data-titre="${this.escapeHtml(carte.titre)}">
                             <div class="flip-card-inner">
                                 <div class="flip-card-front" ${frontStyle}>
                                     <span class="flip-card-titre">${this.escapeHtml(carte.titre)}</span>
@@ -1364,6 +1373,7 @@ const EleveConnaissances = {
 
         const cards = Array.from(container.querySelectorAll('.timeline-flip-card'));
         const order = cards.map(card => ({
+            originalIndex: parseInt(card.dataset.originalIndex),
             date: card.dataset.date,
             titre: card.dataset.titre
         }));
@@ -1967,27 +1977,22 @@ const EleveConnaissances = {
 
             case 'timeline':
                 // Valider l'ordre des cartes
+                // L'ordre correct est l'ordre de création (index 0, 1, 2, 3...)
                 const cartes = donnees.cartes || [];
                 const cardsContainer = document.getElementById('timelineCards');
                 if (cardsContainer) {
                     const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-flip-card'));
                     total = cartes.length;
 
-                    // Trier les cartes par date pour avoir l'ordre correct
-                    const correctOrder = [...cartes].sort((a, b) => {
-                        const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
-                        const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
-                        return dateA - dateB;
-                    });
-
-                    placedCards.forEach((card, idx) => {
-                        const cardDate = card.dataset.date;
-                        const expectedDate = correctOrder[idx]?.date;
+                    placedCards.forEach((card, positionActuelle) => {
+                        // L'index original de cette carte (défini lors du rendu)
+                        const originalIndex = parseInt(card.dataset.originalIndex);
 
                         card.classList.remove('correct', 'incorrect');
                         card.classList.add('flippable'); // Permettre de retourner après validation
 
-                        if (String(cardDate) === String(expectedDate)) {
+                        // La carte est bien placée si son index original correspond à sa position actuelle
+                        if (originalIndex === positionActuelle) {
                             correct++;
                             card.classList.add('correct');
                         } else {
@@ -2346,35 +2351,30 @@ const EleveConnaissances = {
 
             case 'timeline':
                 // Pour timeline, vérifier l'ordre des cartes
+                // L'ordre correct est l'ordre de création (index 0, 1, 2, 3...)
                 const cartes = donnees.cartes || [];
                 total = cartes.length;
-
-                // Ordre correct (trié par date)
-                const correctOrder = [...cartes].sort((a, b) => {
-                    const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
-                    const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
-                    return dateA - dateB;
-                });
 
                 // Récupérer l'ordre actuel des cartes depuis le DOM ou les réponses sauvegardées
                 const container = document.getElementById('timelineCards');
                 let userOrder = [];
                 if (container) {
                     userOrder = Array.from(container.querySelectorAll('.timeline-flip-card')).map(card => ({
-                        date: card.dataset.date,
-                        titre: card.dataset.titre
+                        originalIndex: parseInt(card.dataset.originalIndex),
+                        titre: card.dataset.titre,
+                        date: card.dataset.date
                     }));
                 } else if (this.userAnswers['timeline_order']) {
                     userOrder = this.userAnswers['timeline_order'];
                 }
 
-                // Comparer chaque position
-                correctOrder.forEach((carte, idx) => {
-                    const userCarte = userOrder[idx];
-                    const isCorrect = userCarte && String(userCarte.date) === String(carte.date);
+                // Comparer chaque position : la carte à la position N doit avoir originalIndex = N
+                cartes.forEach((carte, positionAttendue) => {
+                    const userCarte = userOrder[positionAttendue];
+                    const isCorrect = userCarte && userCarte.originalIndex === positionAttendue;
                     if (isCorrect) correct++;
                     details.push({
-                        question: `Position ${idx + 1}`,
+                        question: `Position ${positionAttendue + 1}`,
                         reponse: userCarte ? userCarte.titre : 'Non placé',
                         attendu: `${carte.titre} (${carte.date})`,
                         correct: isCorrect
