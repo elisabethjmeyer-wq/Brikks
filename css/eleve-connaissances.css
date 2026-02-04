@@ -1798,9 +1798,9 @@
    ============================================ */
 
 .result-view.conn {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 1rem;
+    max-width: none;
+    margin: 0;
+    padding: 1.5rem;
 }
 
 /* Layout 2 colonnes */
@@ -1810,7 +1810,8 @@
     background: white;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 100%;
     min-height: 500px;
 }
 
