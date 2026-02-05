@@ -5604,6 +5604,11 @@ const AdminBanquesExercices = {
                         <input type="text" id="timelineConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Remettez les événements dans l\'ordre chronologique')}">
                     </div>
                     <div class="form-group">
+                        <label>🗺️ Fond de carte / Image de fond (optionnel)</label>
+                        <p class="form-help">URL d'une image partagée Google Drive (ou autre lien image) affichée en arrière-plan de l'exercice.</p>
+                        <input type="text" id="timelineFondDeCarte" class="form-input" placeholder="https://drive.google.com/file/d/..." value="${this.escapeHtml(data.fond_de_carte || '')}">
+                    </div>
+                    <div class="form-group">
                         <label>Aperçu des cartes (ordre correct)</label>
                         <p class="form-help">De gauche (le plus ancien) à droite (le plus récent). Glissez pour réordonner.</p>
                         <div id="timelineCardsPreview" class="timeline-cards-container">
@@ -5616,7 +5621,7 @@ const AdminBanquesExercices = {
                     </div>
                     <div class="form-group">
                         <label>Cartes (ordre chronologique)</label>
-                        <p class="form-help">Recto = ce que l'élève voit. Verso = révélé après validation.</p>
+                        <p class="form-help">Définissez chaque carte avec son titre, sa date et une image optionnelle.</p>
                         <div id="timelineEvents">
                             ${cartes.map((c, i) => this.renderTimelineCardForm(c, i)).join('')}
                         </div>
@@ -5987,15 +5992,13 @@ const AdminBanquesExercices = {
                     <span style="font-weight: 600; flex: 1;">Carte ${index + 1}</span>
                     <button type="button" class="btn-icon danger" onclick="this.closest('.timeline-card-form').remove(); AdminBanquesExercices.updateTimelinePreview(); AdminBanquesExercices.updateTimelineNumbers();" title="Supprimer">×</button>
                 </div>
-                <div class="timeline-card-form-body">
+                <div class="timeline-card-form-body" style="grid-template-columns: 1fr 1fr;">
                     <div class="timeline-card-form-section">
-                        <div class="section-label">📋 Recto (visible par l'élève)</div>
                         <input type="text" class="form-input timeline-titre" placeholder="Titre de l'événement" value="${this.escapeHtml(c.titre || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
-                        <input type="text" class="form-input timeline-image" placeholder="URL image de fond (optionnel)" value="${this.escapeHtml(c.image_url || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
+                        <input type="text" class="form-input timeline-image" placeholder="URL image carte (optionnel)" value="${this.escapeHtml(c.image_url || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
                     </div>
                     <div class="timeline-card-form-section">
-                        <div class="section-label">🔄 Verso (révélé après validation)</div>
-                        <input type="text" class="form-input timeline-date" placeholder="Date (ex: 1492)" value="${this.escapeHtml(c.date || '')}">
+                        <input type="text" class="form-input timeline-date" placeholder="Date (ex: -3300, 476, 1492)" value="${this.escapeHtml(c.date || '')}">
                         <input type="text" class="form-input timeline-explication" placeholder="Explication (optionnel)" value="${this.escapeHtml(c.explication || '')}">
                     </div>
                 </div>
@@ -6507,6 +6510,7 @@ const AdminBanquesExercices = {
                 })).filter(c => c.titre);
                 donnees = {
                     consigne: document.getElementById('timelineConsigne').value,
+                    fond_de_carte: document.getElementById('timelineFondDeCarte')?.value || '',
                     cartes: timelineCartes,
                     // Rétro-compatibilité
                     evenements: timelineCartes.map(c => c.titre)

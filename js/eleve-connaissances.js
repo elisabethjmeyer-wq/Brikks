@@ -1259,10 +1259,11 @@ const EleveConnaissances = {
     },
 
     /**
-     * Render Timeline (Flip cards)
+     * Render Timeline (cartes draggables avec fond de carte optionnel)
      */
     renderTimeline(donnees, questions) {
         const cartes = donnees.cartes || [];
+        const fondDeCarte = donnees.fond_de_carte || '';
 
         // Vérifier qu'on a des cartes
         if (cartes.length === 0) {
@@ -1293,27 +1294,25 @@ const EleveConnaissances = {
             this.saveTimelineOrder();
         }, 100);
 
+        // Fond de carte optionnel
+        const fondDeCarteHTML = fondDeCarte ? `
+            <div class="timeline-fond-de-carte">
+                <img src="${this.escapeHtml(fondDeCarte)}" alt="Fond de carte" class="timeline-fond-img">
+            </div>
+        ` : '';
+
         return `
             <div class="timeline-container">
                 <p class="timeline-instruction">Replacez les événements dans l'ordre chronologique en les faisant glisser.</p>
+                ${fondDeCarteHTML}
                 <div class="timeline-cards" id="timelineCards">
                     ${shuffled.map((carte) => {
-                        // Construire le style d'image
-                        let frontStyle = '';
-                        if (carte.image_url) {
-                            frontStyle = `style="background-image: url('${this.escapeHtml(carte.image_url)}'); background-size: cover; background-position: center;"`;
-                        }
+                        // Image optionnelle par carte
+                        const hasImage = carte.image_url ? true : false;
                         return `
-                        <div class="timeline-flip-card" draggable="true" data-original-index="${carte.originalIndex}" data-date="${carte.date}" data-titre="${this.escapeHtml(carte.titre)}">
-                            <div class="flip-card-inner">
-                                <div class="flip-card-front" ${frontStyle}>
-                                    <span class="flip-card-titre">${this.escapeHtml(carte.titre)}</span>
-                                </div>
-                                <div class="flip-card-back">
-                                    <span class="flip-card-date">${this.escapeHtml(carte.date)}</span>
-                                    ${carte.explication ? `<p class="flip-card-explication">${this.escapeHtml(carte.explication)}</p>` : ''}
-                                </div>
-                            </div>
+                        <div class="timeline-card ${hasImage ? 'has-image' : ''}" draggable="true" data-original-index="${carte.originalIndex}" data-date="${this.escapeHtml(carte.date || '')}" data-titre="${this.escapeHtml(carte.titre)}" data-explication="${this.escapeHtml(carte.explication || '')}">
+                            ${hasImage ? `<div class="timeline-card-img" style="background-image: url('${this.escapeHtml(carte.image_url)}');"></div>` : ''}
+                            <span class="timeline-card-titre">${this.escapeHtml(carte.titre)}</span>
                         </div>
                     `}).join('')}
                 </div>
@@ -1332,7 +1331,7 @@ const EleveConnaissances = {
         const container = document.getElementById('timelineCards');
         if (!container) return;
 
-        const cards = container.querySelectorAll('.timeline-flip-card');
+        const cards = container.querySelectorAll('.timeline-card');
 
         cards.forEach(card => {
             card.addEventListener('dragstart', (e) => {
@@ -1371,7 +1370,7 @@ const EleveConnaissances = {
         const container = document.getElementById('timelineCards');
         if (!container) return;
 
-        const cards = Array.from(container.querySelectorAll('.timeline-flip-card'));
+        const cards = Array.from(container.querySelectorAll('.timeline-card'));
         const order = cards.map(card => ({
             originalIndex: parseInt(card.dataset.originalIndex),
             date: card.dataset.date,
@@ -1981,22 +1980,29 @@ const EleveConnaissances = {
                 const cartes = donnees.cartes || [];
                 const cardsContainer = document.getElementById('timelineCards');
                 if (cardsContainer) {
-                    const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-flip-card'));
+                    const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-card'));
                     total = cartes.length;
 
                     placedCards.forEach((card, positionActuelle) => {
-                        // L'index original de cette carte (défini lors du rendu)
                         const originalIndex = parseInt(card.dataset.originalIndex);
 
                         card.classList.remove('correct', 'incorrect');
-                        card.classList.add('flippable'); // Permettre de retourner après validation
+                        card.setAttribute('draggable', 'false');
 
-                        // La carte est bien placée si son index original correspond à sa position actuelle
                         if (originalIndex === positionActuelle) {
                             correct++;
                             card.classList.add('correct');
                         } else {
                             card.classList.add('incorrect');
+                        }
+
+                        // Afficher la date sous le titre après validation
+                        const date = card.dataset.date;
+                        if (date && !card.querySelector('.timeline-card-date')) {
+                            const dateEl = document.createElement('span');
+                            dateEl.className = 'timeline-card-date';
+                            dateEl.textContent = date;
+                            card.appendChild(dateEl);
                         }
                     });
                 }
@@ -2359,7 +2365,7 @@ const EleveConnaissances = {
                 const container = document.getElementById('timelineCards');
                 let userOrder = [];
                 if (container) {
-                    userOrder = Array.from(container.querySelectorAll('.timeline-flip-card')).map(card => ({
+                    userOrder = Array.from(container.querySelectorAll('.timeline-card')).map(card => ({
                         originalIndex: parseInt(card.dataset.originalIndex),
                         titre: card.dataset.titre,
                         date: card.dataset.date

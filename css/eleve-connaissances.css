@@ -603,7 +603,7 @@
 }
 
 /* ============================================
-   TIMELINE (FLIP CARDS) FORMAT
+   TIMELINE FORMAT
    ============================================ */
 
 .timeline-container {
@@ -616,6 +616,23 @@
     font-size: 0.95rem;
 }
 
+/* Fond de carte (image d'arrière-plan optionnelle) */
+.timeline-fond-de-carte {
+    margin-bottom: 1.5rem;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.timeline-fond-img {
+    width: 100%;
+    display: block;
+    max-height: 400px;
+    object-fit: contain;
+    background: #f9fafb;
+}
+
 .timeline-cards {
     display: flex;
     flex-wrap: wrap;
@@ -623,30 +640,12 @@
     justify-content: center;
 }
 
-.timeline-flip-card {
-    width: 180px;
-    height: 220px;
-    perspective: 1000px;
-    cursor: grab;
-}
-
-/* Retournement seulement après validation (classe flippable ajoutée) */
-/* Pas de retournement au hover par défaut */
-
-.flip-card-inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.6s;
-    transform-style: preserve-3d;
-}
-
-.flip-card-front,
-.flip-card-back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
+/* Cartes timeline simples (draggables) */
+.timeline-card {
+    width: 160px;
+    min-height: 100px;
+    background: #3b82f6;
+    color: white;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
@@ -654,49 +653,49 @@
     justify-content: center;
     padding: 1rem;
     text-align: center;
+    cursor: grab;
+    transition: transform 0.15s, box-shadow 0.15s;
+    user-select: none;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 }
 
-.flip-card-front {
-    /* Couleur de fond par défaut (sera remplacée par background-image si présente) */
-    background-color: #3b82f6;
+.timeline-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
+}
+
+.timeline-card.has-image {
+    padding-top: 0;
+    overflow: hidden;
+}
+
+.timeline-card-img {
+    width: 100%;
+    height: 80px;
     background-size: cover;
     background-position: center;
-    color: white;
+    border-radius: 12px 12px 0 0;
+    flex-shrink: 0;
 }
 
-.flip-card-front::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 12px;
+.timeline-card.has-image .timeline-card-titre {
+    padding: 0.75rem 0.5rem;
 }
 
-.flip-card-titre {
-    position: relative;
-    z-index: 1;
+.timeline-card-titre {
     font-weight: 700;
-    font-size: 1rem;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    font-size: 0.95rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.flip-card-back {
-    background: linear-gradient(135deg, #f0f9ff, #dbeafe);
-    border: 2px solid #3b82f6;
-    transform: rotateY(180deg);
-}
-
-.flip-card-date {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1d4ed8;
-    margin-bottom: 0.5rem;
-}
-
-.flip-card-explication {
-    font-size: 0.85rem;
-    color: #4b5563;
-    margin: 0;
+/* Date affichée après validation */
+.timeline-card-date {
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    padding: 0.2rem 0.6rem;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    font-weight: 600;
 }
 
 /* ============================================
@@ -869,24 +868,21 @@
         flex-direction: column;
     }
 
-    .timeline-flip-card {
-        width: 150px;
-        height: 180px;
+    .timeline-card {
+        width: 130px;
+        min-height: 80px;
     }
 
-    .flip-card-titre {
-        font-size: 0.9rem;
-    }
-
-    .flip-card-date {
-        font-size: 1.25rem;
+    .timeline-card-titre {
+        font-size: 0.85rem;
     }
 }
 
 @media (max-width: 480px) {
-    .timeline-flip-card {
-        width: 130px;
-        height: 160px;
+    .timeline-card {
+        width: 110px;
+        min-height: 70px;
+        padding: 0.75rem;
     }
 
     .chrono-card-content {
@@ -1757,23 +1753,25 @@
 }
 
 /* ============================================
-   TIMELINE - CARTES RETOURNABLES
+   TIMELINE - ÉTATS VALIDATION & DRAG
    ============================================ */
 
-.timeline-flip-card.flippable {
-    cursor: pointer;
+.timeline-card.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    cursor: grabbing;
 }
 
-.timeline-flip-card.flippable:hover .flip-card-inner {
-    transform: rotateY(180deg);
+.timeline-card.correct {
+    background: #10b981;
+    box-shadow: 0 0 0 3px #10b981, 0 2px 8px rgba(16, 185, 129, 0.3);
+    cursor: default;
 }
 
-.timeline-flip-card.correct {
-    box-shadow: 0 0 0 3px #10b981;
-}
-
-.timeline-flip-card.incorrect {
-    box-shadow: 0 0 0 3px #ef4444;
+.timeline-card.incorrect {
+    background: #ef4444;
+    box-shadow: 0 0 0 3px #ef4444, 0 2px 8px rgba(239, 68, 68, 0.3);
+    cursor: default;
 }
 
 /* ============================================
@@ -2667,30 +2665,11 @@
 }
 
 /* ============================================
-   TIMELINE - DRAG & DROP
+   TIMELINE - DRAG & DROP (complément)
    ============================================ */
 
-.timeline-flip-card {
-    cursor: grab;
-    user-select: none;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.timeline-flip-card:active {
+.timeline-card:active:not(.correct):not(.incorrect) {
     cursor: grabbing;
-}
-
-.timeline-flip-card.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
-}
-
-.timeline-cards {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    justify-content: center;
-    min-height: 200px;
 }
 
 /* ============================================
