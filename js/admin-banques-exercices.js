@@ -5778,9 +5778,20 @@ const AdminBanquesExercices = {
                         <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addQuestionOuverteReponse()">+ Ajouter une réponse acceptée</button>
                     </div>
                     <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="questionOuverteCaseSensitive" ${data.case_sensitive ? 'checked' : ''}>
-                            Sensible à la casse (majuscules/minuscules)
+                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Mode de correction</label>
+                        <label style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="questionOuverteMode" value="souple" ${!data.comparaison_stricte ? 'checked' : ''} style="margin-top: 3px;">
+                            <span>
+                                <strong>Comparaison souple</strong> <span style="color: #6b7280; font-size: 0.85em;">(recommandé)</span><br>
+                                <span style="color: #6b7280; font-size: 0.85em;">Tolère les différences de casse, accents, pluriel, ordre et petits mots (le, la, les, un, de...). Chiffres romains, arabes et en lettres équivalents.</span>
+                            </span>
+                        </label>
+                        <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="questionOuverteMode" value="stricte" ${data.comparaison_stricte ? 'checked' : ''} style="margin-top: 3px;">
+                            <span>
+                                <strong>Réponse exacte</strong><br>
+                                <span style="color: #6b7280; font-size: 0.85em;">L'élève doit écrire exactement la réponse attendue (majuscules, accents, ponctuation...).</span>
+                            </span>
                         </label>
                     </div>
                     <div class="form-group">
@@ -5989,7 +6000,7 @@ const AdminBanquesExercices = {
                 </div>
                 <div class="timeline-card-form-body" style="display: flex; flex-direction: column; gap: 0.5rem;">
                     <input type="text" class="form-input timeline-titre" placeholder="Titre de l'événement" value="${this.escapeHtml(c.titre || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
-                    <input type="text" class="form-input timeline-image" placeholder="Image de fond (URL Google Drive partagée, optionnel)" value="${this.escapeHtml(c.image_url || '')}">
+                    <input type="text" class="form-input timeline-image" placeholder="Image de fond (URL Google Drive partagée, optionnel)" value="${this.escapeHtml(c.image_url || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
                 </div>
             </div>
         `;
@@ -6036,8 +6047,9 @@ const AdminBanquesExercices = {
         }
 
         container.innerHTML = cartes.map((c, i) => {
-            const bgStyle = c.image_url ? `background-image: url('${this.escapeHtml(c.image_url)}'); background-size: cover; background-position: center;` : '';
-            const hasImage = c.image_url ? 'has-image' : '';
+            const imageUrl = this.normalizeImageUrl(c.image_url);
+            const bgStyle = imageUrl ? `background-image: url('${this.escapeHtml(imageUrl)}'); background-size: cover; background-position: center;` : '';
+            const hasImage = imageUrl ? 'has-image' : '';
             return `
                 <div class="timeline-card ${hasImage}" draggable="true" data-index="${i}" style="${bgStyle}">
                     <span class="timeline-card-num">${c.num}</span>
@@ -6527,7 +6539,7 @@ const AdminBanquesExercices = {
                 donnees = {
                     question: document.getElementById('questionOuverteEnonce')?.value || '',
                     reponses_acceptees: reponsesAcceptees,
-                    case_sensitive: document.getElementById('questionOuverteCaseSensitive')?.checked || false
+                    comparaison_stricte: document.querySelector('input[name="questionOuverteMode"][value="stricte"]')?.checked || false
                 };
                 // Ajouter feedbacks si activés
                 if (document.getElementById('questionOuverteShowFeedback')?.checked) {
@@ -7036,6 +7048,23 @@ const AdminBanquesExercices = {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    },
+
+    normalizeImageUrl(url) {
+        if (!url) return '';
+        const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^\/\?]+)/);
+        if (driveFileMatch) {
+            return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
+        }
+        const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+        if (driveOpenMatch) {
+            return `https://lh3.googleusercontent.com/d/${driveOpenMatch[1]}`;
+        }
+        const driveUcMatch = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
+        if (driveUcMatch) {
+            return `https://lh3.googleusercontent.com/d/${driveUcMatch[1]}`;
+        }
+        return url;
     }
 };
 
