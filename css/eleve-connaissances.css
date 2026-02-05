@@ -616,23 +616,6 @@
     font-size: 0.95rem;
 }
 
-/* Fond de carte (image d'arrière-plan optionnelle) */
-.timeline-fond-de-carte {
-    margin-bottom: 1.5rem;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.timeline-fond-img {
-    width: 100%;
-    display: block;
-    max-height: 400px;
-    object-fit: contain;
-    background: #f9fafb;
-}
-
 .timeline-cards {
     display: flex;
     flex-wrap: wrap;
@@ -643,8 +626,10 @@
 /* Cartes timeline simples (draggables) */
 .timeline-card {
     width: 160px;
-    min-height: 100px;
-    background: #3b82f6;
+    min-height: 120px;
+    background-color: #3b82f6;
+    background-size: cover;
+    background-position: center;
     color: white;
     border-radius: 12px;
     display: flex;
@@ -657,6 +642,17 @@
     transition: transform 0.15s, box-shadow 0.15s;
     user-select: none;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Overlay sombre pour lisibilité du texte sur image de fond */
+.timeline-card.has-image::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 12px;
 }
 
 .timeline-card:hover {
@@ -664,38 +660,12 @@
     box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
 }
 
-.timeline-card.has-image {
-    padding-top: 0;
-    overflow: hidden;
-}
-
-.timeline-card-img {
-    width: 100%;
-    height: 80px;
-    background-size: cover;
-    background-position: center;
-    border-radius: 12px 12px 0 0;
-    flex-shrink: 0;
-}
-
-.timeline-card.has-image .timeline-card-titre {
-    padding: 0.75rem 0.5rem;
-}
-
 .timeline-card-titre {
+    position: relative;
+    z-index: 1;
     font-weight: 700;
     font-size: 0.95rem;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-/* Date affichée après validation */
-.timeline-card-date {
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
-    padding: 0.2rem 0.6rem;
-    background: rgba(255, 255, 255, 0.25);
-    border-radius: 6px;
-    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* ============================================
