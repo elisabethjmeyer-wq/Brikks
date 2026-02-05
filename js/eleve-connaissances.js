@@ -924,6 +924,8 @@ const EleveConnaissances = {
                 return this.renderCarte(donnees, questions);
             case 'question_ouverte':
                 return this.renderQuestionOuverte(donnees, questions);
+            case 'flashcard':
+                return this.renderFlashcard(donnees, questions);
             default:
                 return `<div class="unsupported-format">Format non supporté: ${format}<br><small>Données: ${JSON.stringify(donnees)}</small></div>`;
         }
@@ -991,6 +993,17 @@ const EleveConnaissances = {
                         texte: qc.donnees.texte || qc.donnees.question || '',
                         trous: qc.donnees.trous || []
                     }))
+                };
+
+            case 'flashcard':
+                // Combiner toutes les cartes
+                const allCartes = [];
+                questionContents.forEach(qc => {
+                    if (qc.donnees.cartes) allCartes.push(...qc.donnees.cartes);
+                });
+                return {
+                    consigne: questionContents[0]?.donnees?.consigne || '',
+                    cartes: allCartes
                 };
 
             default:
@@ -1720,6 +1733,190 @@ const EleveConnaissances = {
     },
 
     /**
+     * Render Flashcard
+     * Format: {consigne, cartes: [{recto, verso}]}
+     * Auto-évaluation: l'élève voit le recto, retourne la carte, puis dit s'il savait ou non
+     */
+    renderFlashcard(donnees, questions) {
+        const consigne = donnees.consigne || '';
+        const cartes = donnees.cartes || [];
+
+        if (cartes.length === 0) {
+            return `
+                <div class="format-no-data">
+                    <p>⚠️ Aucune carte configurée pour cet exercice.</p>
+                    <small>L'enseignant doit ajouter des cartes dans le formulaire d'édition.</small>
+                </div>
+            `;
+        }
+
+        // Initialiser l'état flashcard
+        this.flashcardState = {
+            currentIndex: 0,
+            total: cartes.length,
+            cartes: cartes,
+            results: [], // {recto, verso, savait: true/false}
+            flipped: false,
+            done: false
+        };
+
+        return `
+            <div class="flashcard-container">
+                ${consigne ? `<div class="flashcard-consigne">${this.escapeHtml(consigne)}</div>` : ''}
+                <div class="flashcard-progress">
+                    <span id="flashcardCounter">Carte 1 / ${cartes.length}</span>
+                    <div class="flashcard-progress-bar">
+                        <div class="flashcard-progress-fill" id="flashcardProgressFill" style="width: ${100 / cartes.length}%"></div>
+                    </div>
+                </div>
+                <div class="flashcard-scene" id="flashcardScene">
+                    <div class="flashcard-card" id="flashcardCard" onclick="EleveConnaissances.flipFlashcard()">
+                        <div class="flashcard-face flashcard-front">
+                            <div class="flashcard-face-label">Recto</div>
+                            <div class="flashcard-face-content" id="flashcardFront">${this.escapeHtml(cartes[0].recto)}</div>
+                            <div class="flashcard-flip-hint" id="flashcardFlipHint">Cliquez pour retourner</div>
+                        </div>
+                        <div class="flashcard-face flashcard-back">
+                            <div class="flashcard-face-label">Verso</div>
+                            <div class="flashcard-face-content" id="flashcardBack">${this.escapeHtml(cartes[0].verso)}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flashcard-actions" id="flashcardActions" style="display: none;">
+                    <button class="btn flashcard-btn-fail" onclick="EleveConnaissances.evaluateFlashcard(false)">
+                        ✗ Je ne savais pas
+                    </button>
+                    <button class="btn flashcard-btn-success" onclick="EleveConnaissances.evaluateFlashcard(true)">
+                        ✓ Je savais
+                    </button>
+                </div>
+                <div class="flashcard-summary" id="flashcardSummary" style="display: none;"></div>
+            </div>
+        `;
+    },
+
+    /**
+     * Retourne la flashcard courante
+     */
+    flipFlashcard() {
+        if (!this.flashcardState || this.flashcardState.done) return;
+        const card = document.getElementById('flashcardCard');
+        const actions = document.getElementById('flashcardActions');
+        const hint = document.getElementById('flashcardFlipHint');
+        if (!card) return;
+
+        this.flashcardState.flipped = !this.flashcardState.flipped;
+        card.classList.toggle('flipped', this.flashcardState.flipped);
+
+        if (this.flashcardState.flipped) {
+            // Montrer les boutons d'auto-évaluation
+            if (actions) actions.style.display = 'flex';
+            if (hint) hint.style.display = 'none';
+        } else {
+            if (actions) actions.style.display = 'none';
+            if (hint) hint.style.display = '';
+        }
+    },
+
+    /**
+     * L'élève évalue s'il savait ou non la réponse
+     */
+    evaluateFlashcard(savait) {
+        if (!this.flashcardState || this.flashcardState.done) return;
+
+        const state = this.flashcardState;
+        const carte = state.cartes[state.currentIndex];
+
+        // Enregistrer le résultat
+        state.results.push({
+            recto: carte.recto,
+            verso: carte.verso,
+            savait: savait
+        });
+
+        // Sauvegarder dans userAnswers pour la validation
+        this.userAnswers['flashcard'] = state.results;
+
+        state.currentIndex++;
+
+        if (state.currentIndex >= state.total) {
+            // Toutes les cartes ont été vues
+            state.done = true;
+            this.showFlashcardSummary();
+        } else {
+            // Passer à la carte suivante
+            this.showNextFlashcard();
+        }
+    },
+
+    /**
+     * Affiche la carte suivante
+     */
+    showNextFlashcard() {
+        const state = this.flashcardState;
+        const carte = state.cartes[state.currentIndex];
+
+        const card = document.getElementById('flashcardCard');
+        const front = document.getElementById('flashcardFront');
+        const back = document.getElementById('flashcardBack');
+        const actions = document.getElementById('flashcardActions');
+        const hint = document.getElementById('flashcardFlipHint');
+        const counter = document.getElementById('flashcardCounter');
+        const progressFill = document.getElementById('flashcardProgressFill');
+
+        if (card) {
+            card.classList.remove('flipped');
+            state.flipped = false;
+        }
+        if (front) front.textContent = carte.recto;
+        if (back) back.textContent = carte.verso;
+        if (actions) actions.style.display = 'none';
+        if (hint) hint.style.display = '';
+        if (counter) counter.textContent = `Carte ${state.currentIndex + 1} / ${state.total}`;
+        if (progressFill) progressFill.style.width = `${((state.currentIndex + 1) / state.total) * 100}%`;
+    },
+
+    /**
+     * Affiche le récapitulatif des flashcards
+     */
+    showFlashcardSummary() {
+        const state = this.flashcardState;
+        const scene = document.getElementById('flashcardScene');
+        const actions = document.getElementById('flashcardActions');
+        const summary = document.getElementById('flashcardSummary');
+        const counter = document.getElementById('flashcardCounter');
+        const progressFill = document.getElementById('flashcardProgressFill');
+
+        if (scene) scene.style.display = 'none';
+        if (actions) actions.style.display = 'none';
+
+        const nbSavait = state.results.filter(r => r.savait).length;
+        if (counter) counter.textContent = `Terminé : ${nbSavait} / ${state.total} cartes réussies`;
+        if (progressFill) progressFill.style.width = '100%';
+
+        if (summary) {
+            summary.style.display = 'block';
+            summary.innerHTML = `
+                <div class="flashcard-summary-score ${nbSavait === state.total ? 'perfect' : nbSavait >= state.total / 2 ? 'partial' : 'fail'}">
+                    <span class="flashcard-summary-icon">${nbSavait === state.total ? '🎉' : nbSavait >= state.total / 2 ? '💪' : '📚'}</span>
+                    <span class="flashcard-summary-text">${nbSavait} / ${state.total} cartes réussies</span>
+                </div>
+                <div class="flashcard-summary-details">
+                    ${state.results.map((r, i) => `
+                        <div class="flashcard-summary-item ${r.savait ? 'correct' : 'incorrect'}">
+                            <span class="flashcard-summary-item-icon">${r.savait ? '✓' : '✗'}</span>
+                            <div class="flashcard-summary-item-content">
+                                <span class="flashcard-summary-recto">${this.escapeHtml(r.recto)}</span>
+                                <span class="flashcard-summary-verso">→ ${this.escapeHtml(r.verso)}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    },
+
+    /**
      * Render Question ouverte
      * Format: {question, reponses_acceptees: [...], feedback_correct?, feedback_incorrect?}
      */
@@ -2102,6 +2299,15 @@ const EleveConnaissances = {
                     el.classList.add('incorrect');
                 });
                 break;
+
+            case 'flashcard':
+                // Auto-évaluation : on utilise les résultats stockés par l'élève
+                const flashResults = this.userAnswers['flashcard'] || [];
+                const flashCartes = donnees.cartes || [];
+                total = flashCartes.length;
+                correct = flashResults.filter(r => r.savait).length;
+                // Pas de feedback DOM à ajouter — le récap est déjà affiché par showFlashcardSummary
+                break;
         }
 
         // Show result banner
@@ -2462,6 +2668,22 @@ const EleveConnaissances = {
                     reponse: qoAnswer,
                     attendu: qoReponsesAcceptees.join(' / '),
                     correct: qoCorrect
+                });
+                break;
+
+            case 'flashcard':
+                const flashResults = this.userAnswers['flashcard'] || [];
+                const flashCartes = donnees.cartes || [];
+                total = flashCartes.length;
+                correct = flashResults.filter(r => r.savait).length;
+                flashCartes.forEach((carte, idx) => {
+                    const result = flashResults[idx];
+                    details.push({
+                        question: carte.recto,
+                        reponse: result ? (result.savait ? 'Je savais' : 'Je ne savais pas') : 'Non évalué',
+                        attendu: carte.verso,
+                        correct: result ? result.savait : false
+                    });
                 });
                 break;
         }
