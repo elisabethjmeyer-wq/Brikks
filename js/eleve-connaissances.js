@@ -1428,8 +1428,8 @@ const EleveConnaissances = {
         }
 
         // Mélanger les deux colonnes indépendamment
-        const elementsGauche = this.shuffleArray(paires.map((p, i) => ({ texte: p.element1, id: i })));
-        const elementsDroite = this.shuffleArray(paires.map((p, i) => ({ texte: p.element2, id: i })));
+        const elementsGauche = this.shuffleArray(paires.map((p, i) => ({ texte: p.element1, type: p.element1_type || 'text', id: i })));
+        const elementsDroite = this.shuffleArray(paires.map((p, i) => ({ texte: p.element2, type: p.element2_type || 'text', id: i })));
 
         return `
             <div class="association-container">
@@ -1437,17 +1437,21 @@ const EleveConnaissances = {
                 <div class="association-columns">
                     <div class="association-column association-gauche">
                         ${elementsGauche.map(el => `
-                            <div class="association-item" data-id="${el.id}" onclick="EleveConnaissances.selectAssociationItem(this, 'gauche')">
-                                <span class="association-text">${this.escapeHtml(el.texte)}</span>
+                            <div class="association-item ${el.type === 'image' ? 'association-item-image' : ''}" data-id="${el.id}" onclick="EleveConnaissances.selectAssociationItem(this, 'gauche')">
+                                ${el.type === 'image'
+                                    ? `<img class="association-img" src="${this.escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
+                                    : `<span class="association-text">${this.escapeHtml(el.texte)}</span>`}
                                 <span class="association-link-indicator"></span>
                             </div>
                         `).join('')}
                     </div>
                     <div class="association-column association-droite">
                         ${elementsDroite.map(el => `
-                            <div class="association-item" data-id="${el.id}" onclick="EleveConnaissances.selectAssociationItem(this, 'droite')">
+                            <div class="association-item ${el.type === 'image' ? 'association-item-image' : ''}" data-id="${el.id}" onclick="EleveConnaissances.selectAssociationItem(this, 'droite')">
                                 <span class="association-link-indicator"></span>
-                                <span class="association-text">${this.escapeHtml(el.texte)}</span>
+                                ${el.type === 'image'
+                                    ? `<img class="association-img" src="${this.escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
+                                    : `<span class="association-text">${this.escapeHtml(el.texte)}</span>`}
                             </div>
                         `).join('')}
                     </div>
@@ -2405,8 +2409,11 @@ const EleveConnaissances = {
 
                     details.push({
                         question: paire.element1,
+                        questionType: paire.element1_type || 'text',
                         reponse: userReponse,
+                        reponseType: userPair && assocPaires[parseInt(userPair.droite)] ? (assocPaires[parseInt(userPair.droite)].element2_type || 'text') : 'text',
                         attendu: paire.element2,
+                        attenduType: paire.element2_type || 'text',
                         correct: isCorrect
                     });
                 });
@@ -2633,20 +2640,27 @@ const EleveConnaissances = {
                         <span class="correction-etape-score">${etape.correct}/${etape.total}</span>
                     </div>
                     <div class="correction-etape-details">
-                        ${etape.details.map(d => `
+                        ${etape.details.map(d => {
+                            const renderVal = (val, type) => {
+                                if (type === 'image' && val && val !== 'Non associé') {
+                                    return `<img src="${this.escapeHtml(this.normalizeImageUrl(val))}" class="correction-img" alt="">`;
+                                }
+                                return val ? this.escapeHtml(val) : '<em>Non répondu</em>';
+                            };
+                            return `
                             <div class="correction-item ${d.correct ? 'correct' : 'incorrect'}">
                                 <span class="correction-icon">${d.correct ? '✓' : '✗'}</span>
                                 <div class="correction-content">
-                                    <span class="correction-question">${this.escapeHtml(d.question || '')}</span>
+                                    <span class="correction-question">${renderVal(d.question, d.questionType)}</span>
                                     ${!d.correct ? `
                                         <div class="correction-answers">
-                                            <span class="user-answer">${d.reponse ? this.escapeHtml(d.reponse) : '<em>Non répondu</em>'}</span>
-                                            <span class="expected-answer">${this.escapeHtml(d.attendu)}</span>
+                                            <span class="user-answer">${renderVal(d.reponse, d.reponseType)}</span>
+                                            <span class="expected-answer">${renderVal(d.attendu, d.attenduType)}</span>
                                         </div>
                                     ` : ''}
                                 </div>
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 </div>
             `).join('');

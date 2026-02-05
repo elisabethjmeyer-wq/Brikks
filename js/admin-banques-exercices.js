@@ -4037,22 +4037,26 @@ const AdminBanquesExercices = {
                 try { donnees = JSON.parse(donnees); } catch(e) { donnees = {}; }
             }
 
-            // Extraire le texte selon le type de question
-            let questionText = 'Question sans titre';
-            if (donnees.question) {
-                questionText = donnees.question;
-            } else if (donnees.enonce) {
-                questionText = donnees.enonce;
-            } else if (donnees.texte) {
-                questionText = donnees.texte;
-            } else if (donnees.consigne) {
-                questionText = donnees.consigne;
-            } else if (donnees.propositions && donnees.propositions.length > 0) {
-                questionText = donnees.propositions[0].texte || 'Vrai/Faux';
-            } else if (donnees.cartes && donnees.cartes.length > 0) {
-                questionText = `Timeline: ${donnees.cartes[0].titre || 'Cartes'}`;
-            } else if (donnees.evenements && donnees.evenements.length > 0) {
-                questionText = `Chronologie: ${donnees.evenements[0].evenement || 'Événements'}`;
+            // Titre prof prioritaire s'il existe
+            let questionText = q.titre_prof || '';
+            if (!questionText) {
+                if (donnees.question) {
+                    questionText = donnees.question;
+                } else if (donnees.enonce) {
+                    questionText = donnees.enonce;
+                } else if (donnees.texte) {
+                    questionText = donnees.texte;
+                } else if (donnees.consigne) {
+                    questionText = donnees.consigne;
+                } else if (donnees.propositions && donnees.propositions.length > 0) {
+                    questionText = donnees.propositions[0].texte || 'Vrai/Faux';
+                } else if (donnees.cartes && donnees.cartes.length > 0) {
+                    questionText = `Timeline: ${donnees.cartes[0].titre || 'Cartes'}`;
+                } else if (donnees.evenements && donnees.evenements.length > 0) {
+                    questionText = `Chronologie: ${donnees.evenements[0].evenement || 'Événements'}`;
+                } else {
+                    questionText = 'Question sans titre';
+                }
             }
 
             return `
@@ -5277,6 +5281,9 @@ const AdminBanquesExercices = {
     },
 
     getQuestionPreview(question) {
+        // Titre prof prioritaire s'il existe
+        if (question.titre_prof) return question.titre_prof;
+
         if (!question.donnees) return 'Question sans contenu';
 
         switch (question.type) {
@@ -5422,15 +5429,18 @@ const AdminBanquesExercices = {
 
         const titleEl = document.getElementById('questionModalTitle');
         const typeSelect = document.getElementById('questionType');
+        const titreProfInput = document.getElementById('questionTitreProf');
         const builderContainer = document.getElementById('questionBuilder');
 
         titleEl.textContent = question ? 'Modifier la question' : 'Nouvelle question';
 
         if (question) {
             typeSelect.value = question.type || 'qcm';
+            if (titreProfInput) titreProfInput.value = question.titre_prof || '';
             this.renderQuestionBuilder(question.type, question.donnees);
         } else {
             typeSelect.value = 'qcm';
+            if (titreProfInput) titreProfInput.value = '';
             this.renderQuestionBuilder('qcm', {});
         }
 
@@ -5639,15 +5649,9 @@ const AdminBanquesExercices = {
                     </div>
                     <div class="form-group">
                         <label>Paires à associer</label>
+                        <p class="form-help">Pour chaque élément, choisissez texte ou image (URL Google Drive partagée).</p>
                         <div id="assocPaires">
-                            ${pairesAssoc.map((p, i) => `
-                                <div class="pair-row" style="display: flex; gap: 8px; margin-bottom: 8px;">
-                                    <input type="text" class="form-input assoc-left" placeholder="Élément 1" value="${this.escapeHtml(p.element1 || '')}">
-                                    <span style="padding: 8px;">↔</span>
-                                    <input type="text" class="form-input assoc-right" placeholder="Élément 2" value="${this.escapeHtml(p.element2 || '')}">
-                                    <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
-                                </div>
-                            `).join('')}
+                            ${pairesAssoc.map((p, i) => this.renderAssocPairRow(p)).join('')}
                         </div>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addAssocPair()">+ Ajouter une paire</button>
                     </div>
@@ -6133,19 +6137,57 @@ const AdminBanquesExercices = {
         });
     },
 
+    renderAssocPairRow(p = {}) {
+        const e1 = p.element1 || '';
+        const e2 = p.element2 || '';
+        const t1 = p.element1_type || 'text';
+        const t2 = p.element2_type || 'text';
+        return `
+            <div class="pair-row" style="display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start;">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                    <select class="form-select assoc-type-left" style="font-size: 0.8em; padding: 4px 6px;" onchange="AdminBanquesExercices.toggleAssocPreview(this)">
+                        <option value="text" ${t1 === 'text' ? 'selected' : ''}>Texte</option>
+                        <option value="image" ${t1 === 'image' ? 'selected' : ''}>Image</option>
+                    </select>
+                    <input type="text" class="form-input assoc-left" placeholder="${t1 === 'image' ? 'URL Google Drive partagée' : 'Texte élément 1'}" value="${this.escapeHtml(e1)}">
+                    ${t1 === 'image' && e1 ? `<img src="${this.escapeHtml(this.normalizeImageUrl(e1))}" style="max-height: 60px; border-radius: 6px; object-fit: cover;" onerror="this.style.display='none'">` : ''}
+                </div>
+                <span style="padding: 8px; margin-top: 22px;">↔</span>
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                    <select class="form-select assoc-type-right" style="font-size: 0.8em; padding: 4px 6px;" onchange="AdminBanquesExercices.toggleAssocPreview(this)">
+                        <option value="text" ${t2 === 'text' ? 'selected' : ''}>Texte</option>
+                        <option value="image" ${t2 === 'image' ? 'selected' : ''}>Image</option>
+                    </select>
+                    <input type="text" class="form-input assoc-right" placeholder="${t2 === 'image' ? 'URL Google Drive partagée' : 'Texte élément 2'}" value="${this.escapeHtml(e2)}">
+                    ${t2 === 'image' && e2 ? `<img src="${this.escapeHtml(this.normalizeImageUrl(e2))}" style="max-height: 60px; border-radius: 6px; object-fit: cover;" onerror="this.style.display='none'">` : ''}
+                </div>
+                <button type="button" class="btn btn-sm" style="margin-top: 22px;" onclick="this.closest('.pair-row').remove()">X</button>
+            </div>
+        `;
+    },
+
+    toggleAssocPreview(selectEl) {
+        const row = selectEl.closest('.pair-row');
+        if (!row) return;
+        // Re-render the row with updated data
+        const typeLeft = row.querySelector('.assoc-type-left').value;
+        const typeRight = row.querySelector('.assoc-type-right').value;
+        const valLeft = row.querySelector('.assoc-left').value;
+        const valRight = row.querySelector('.assoc-right').value;
+        const newRow = document.createElement('div');
+        newRow.innerHTML = this.renderAssocPairRow({
+            element1: valLeft, element1_type: typeLeft,
+            element2: valRight, element2_type: typeRight
+        });
+        row.replaceWith(newRow.firstElementChild);
+    },
+
     addAssocPair() {
         const container = document.getElementById('assocPaires');
         if (!container) return;
         const div = document.createElement('div');
-        div.className = 'pair-row';
-        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px;';
-        div.innerHTML = `
-            <input type="text" class="form-input assoc-left" placeholder="Élément 1">
-            <span style="padding: 8px;">↔</span>
-            <input type="text" class="form-input assoc-right" placeholder="Élément 2">
-            <button type="button" class="btn btn-sm" onclick="this.parentElement.remove()">X</button>
-        `;
-        container.appendChild(div);
+        div.innerHTML = this.renderAssocPairRow();
+        container.appendChild(div.firstElementChild);
     },
 
     // ========== QUESTION OUVERTE BUILDER ==========
@@ -6516,7 +6558,9 @@ const AdminBanquesExercices = {
                     consigne: document.getElementById('assocConsigne').value,
                     paires: Array.from(document.querySelectorAll('#assocPaires .pair-row')).map(row => ({
                         element1: row.querySelector('.assoc-left').value,
-                        element2: row.querySelector('.assoc-right').value
+                        element1_type: row.querySelector('.assoc-type-left')?.value || 'text',
+                        element2: row.querySelector('.assoc-right').value,
+                        element2_type: row.querySelector('.assoc-type-right')?.value || 'text'
                     })).filter(p => p.element1 && p.element2)
                 };
                 break;
@@ -6551,18 +6595,22 @@ const AdminBanquesExercices = {
                 break;
         }
 
+        const titreProf = document.getElementById('questionTitreProf')?.value?.trim() || '';
+
         try {
             let result;
             if (this.currentQuestionId) {
                 result = await this.callAPI('updateQuestionConnaissances', {
                     id: this.currentQuestionId,
                     type: type,
+                    titre_prof: titreProf,
                     donnees: JSON.stringify(donnees)
                 });
             } else {
                 result = await this.callAPI('createQuestionConnaissances', {
                     banque_id: this.currentQuestionBanqueId,
                     type: type,
+                    titre_prof: titreProf,
                     donnees: JSON.stringify(donnees)
                 });
             }
