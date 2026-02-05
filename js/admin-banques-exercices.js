@@ -20,12 +20,13 @@ const AdminBanquesExercices = {
     formatsQuestions: [
         { id: '1', code: 'qcm', nom: 'QCM', icone: '📝', description: 'Questions à choix multiples' },
         { id: '2', code: 'vrai_faux', nom: 'Vrai / Faux', icone: '✅', description: 'Questions vrai ou faux' },
-        { id: '3', code: 'chronologie', nom: 'Frise chronologique', icone: '📅', description: 'Événements à ordonner' },
-        { id: '4', code: 'association', nom: 'Association', icone: '🔗', description: 'Relier des éléments' },
-        { id: '5', code: 'texte_trou', nom: 'Texte à trous', icone: '✍️', description: 'Compléter un texte' },
-        { id: '6', code: 'categorisation', nom: 'Catégorisation', icone: '📂', description: 'Classer par catégories' },
-        { id: '7', code: 'carte', nom: 'Carte', icone: '🗺️', description: 'Localisation géographique' },
-        { id: '8', code: 'flashcard', nom: 'Flashcards', icone: '🃏', description: 'Cartes recto-verso (auto-évaluation)' }
+        { id: '3', code: 'chronologie', nom: 'Chronologie', icone: '📅', description: 'Événements à ordonner' },
+        { id: '4', code: 'timeline', nom: 'Timeline', icone: '🖼️', description: 'Cartes à ordonner sur une frise' },
+        { id: '5', code: 'association', nom: 'Association', icone: '🔗', description: 'Relier des éléments' },
+        { id: '6', code: 'texte_trou', nom: 'Texte à trous', icone: '✍️', description: 'Compléter un texte' },
+        { id: '7', code: 'carte', nom: 'Carte cliquable', icone: '🗺️', description: 'Localisation géographique' },
+        { id: '8', code: 'question_ouverte', nom: 'Question ouverte', icone: '✏️', description: 'Réponse libre de l\'élève' },
+        { id: '9', code: 'flashcard', nom: 'Flashcards', icone: '🃏', description: 'Cartes recto-verso (auto-évaluation)' }
     ],
     banquesExercicesConn: [],
     entrainementsConn: [],
