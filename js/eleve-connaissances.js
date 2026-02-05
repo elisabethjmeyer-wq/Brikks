@@ -2675,12 +2675,12 @@ const EleveConnaissances = {
         };
 
         container.innerHTML = `
-            <div class="result-view conn">
+            <div class="result-view conn" style="max-width:none;width:100%;margin:0;padding:1.5rem;box-sizing:border-box;">
                 <button class="exercise-back-btn" onclick="EleveConnaissances.backToList()">
                     ← Retour aux entraînements
                 </button>
 
-                <div class="result-card-conn">
+                <div class="result-card-conn" style="width:100%;max-width:none;">
                     <!-- BLOC GAUCHE : BILAN -->
                     <div class="result-bilan-conn">
                         <div class="bilan-header ${messageClass}">

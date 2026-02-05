@@ -1791,7 +1791,6 @@
     background: #fee2e2 !important;
     color: #991b1b;
 }
-}
 
 /* ============================================
    ÉCRAN DE RÉSULTATS - NOUVEAU DESIGN 2 COLONNES
@@ -1801,7 +1800,7 @@
     max-width: none !important;
     width: 100% !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 1.5rem !important;
     box-sizing: border-box;
 }
 
