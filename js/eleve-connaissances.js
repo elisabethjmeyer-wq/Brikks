@@ -1873,10 +1873,16 @@ const EleveConnaissances = {
                     qcmFeedback.style.display = 'block';
                     qcmFeedback.className = `qcm-feedback ${correct === 1 ? 'correct' : 'incorrect'}`;
                     qcmFeedback.textContent = correct === 1 ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
-                    if (correct === 1 && donnees.feedback_correct) {
+
+                    // Feedback spécifique à l'option choisie
+                    const feedbacksOptions = donnees.feedbacks_options || [];
+                    const chosenIdx = parseInt(userAnswer);
+                    if (feedbacksOptions[chosenIdx]) {
+                        qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
+                    } else if (correct === 1 && donnees.feedback_correct) {
+                        // Fallback ancien format global
                         qcmFeedback.textContent += ` ${donnees.feedback_correct}`;
-                    }
-                    if (correct === 0 && donnees.feedback_incorrect) {
+                    } else if (correct === 0 && donnees.feedback_incorrect) {
                         qcmFeedback.textContent += ` ${donnees.feedback_incorrect}`;
                     }
                 }
@@ -2296,11 +2302,14 @@ const EleveConnaissances = {
                     }
                     const isCorrect = correctIndices.includes(parseInt(userAnswer));
                     if (isCorrect) correct = 1;
+                    const qcmFeedbacksOptions = donnees.feedbacks_options || [];
+                    const qcmChosenFeedback = userAnswer !== undefined ? qcmFeedbacksOptions[parseInt(userAnswer)] || '' : '';
                     details.push({
                         question: donnees.question || donnees.enonce,
                         reponse: userAnswer !== undefined ? choices[userAnswer]?.texte || choices[userAnswer] : null,
                         attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
-                        correct: isCorrect
+                        correct: isCorrect,
+                        feedback: qcmChosenFeedback
                     });
                 }
                 break;
@@ -2658,6 +2667,7 @@ const EleveConnaissances = {
                                             <span class="expected-answer">${renderVal(d.attendu, d.attenduType)}</span>
                                         </div>
                                     ` : ''}
+                                    ${d.feedback ? `<div class="correction-feedback">${this.escapeHtml(d.feedback)}</div>` : ''}
                                 </div>
                             </div>
                         `}).join('')}

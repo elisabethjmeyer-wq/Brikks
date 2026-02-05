@@ -2230,6 +2230,14 @@
     font-weight: 600;
 }
 
+.correction-feedback {
+    margin-top: 0.4rem;
+    font-size: 0.82rem;
+    color: #4b5563;
+    font-style: italic;
+    line-height: 1.4;
+}
+
 /* Fallback si pas de correction */
 .correction-fallback {
     text-align: center;
