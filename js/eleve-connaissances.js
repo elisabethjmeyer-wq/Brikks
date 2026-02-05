@@ -1298,8 +1298,9 @@ const EleveConnaissances = {
                 <p class="timeline-instruction">Replacez les événements dans l'ordre chronologique en les faisant glisser.</p>
                 <div class="timeline-cards" id="timelineCards">
                     ${shuffled.map((carte) => {
-                        const hasImage = carte.image_url ? true : false;
-                        const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(carte.image_url)}');"` : '';
+                        const imageUrl = this.normalizeImageUrl(carte.image_url);
+                        const hasImage = imageUrl ? true : false;
+                        const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
                         return `
                         <div class="timeline-card ${hasImage ? 'has-image' : ''}" draggable="true" data-original-index="${carte.originalIndex}" data-titre="${this.escapeHtml(carte.titre)}" ${imgStyle}>
                             <span class="timeline-card-titre">${this.escapeHtml(carte.titre)}</span>
@@ -2945,6 +2946,27 @@ const EleveConnaissances = {
         }
 
         return false;
+    },
+
+    /**
+     * Convertit une URL Google Drive partagée en URL d'image directe.
+     * Ex: https://drive.google.com/file/d/ABC123/view → https://lh3.googleusercontent.com/d/ABC123
+     */
+    normalizeImageUrl(url) {
+        if (!url) return '';
+        const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^\/\?]+)/);
+        if (driveFileMatch) {
+            return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
+        }
+        const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+        if (driveOpenMatch) {
+            return `https://lh3.googleusercontent.com/d/${driveOpenMatch[1]}`;
+        }
+        const driveUcMatch = url.match(/drive\.google\.com\/uc\?.*id=([^&]+)/);
+        if (driveUcMatch) {
+            return `https://lh3.googleusercontent.com/d/${driveUcMatch[1]}`;
+        }
+        return url;
     },
 
     formatTime(seconds) {
