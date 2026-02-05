@@ -5466,6 +5466,8 @@ const AdminBanquesExercices = {
                     ? data.reponses_correctes
                     : (data.reponse_correcte !== undefined ? [data.reponse_correcte] : [0]);
 
+                const existingFeedbacks = data.feedbacks_options || [];
+
                 html = `
                     <div class="form-group">
                         <label>Question</label>
@@ -5473,44 +5475,37 @@ const AdminBanquesExercices = {
                     </div>
                     <div class="form-group">
                         <label>Options de réponse</label>
-                        <p class="form-help">Cochez la ou les bonnes réponses</p>
+                        <p class="form-help">Cochez la ou les bonnes réponses. Ajoutez un feedback personnalisé pour chaque option (optionnel).</p>
                         <div id="qcmOptionsList">
                             ${existingOptions.length > 0 ? existingOptions.map((opt, i) => `
-                                <div class="qcm-option-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-                                    <input type="checkbox" class="qcm-correct-checkbox" ${correctAnswers.includes(i) ? 'checked' : ''} title="Cocher si bonne réponse">
-                                    <input type="text" class="form-input qcm-option-text" placeholder="Option ${i + 1}" value="${this.escapeHtml(opt)}">
-                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
+                                <div class="qcm-option-row" style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="checkbox" class="qcm-correct-checkbox" ${correctAnswers.includes(i) ? 'checked' : ''} title="Cocher si bonne réponse">
+                                        <input type="text" class="form-input qcm-option-text" placeholder="Option ${i + 1}" value="${this.escapeHtml(opt)}" style="flex: 1;">
+                                        <button type="button" class="btn-icon danger" onclick="this.closest('.qcm-option-row').remove()" title="Supprimer">×</button>
+                                    </div>
+                                    <input type="text" class="form-input qcm-option-feedback" placeholder="Feedback si cette option est choisie (optionnel)" value="${this.escapeHtml(existingFeedbacks[i] || '')}" style="margin-top: 6px; font-size: 0.85em;">
                                 </div>
                             `).join('') : `
-                                <div class="qcm-option-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-                                    <input type="checkbox" class="qcm-correct-checkbox" checked title="Cocher si bonne réponse">
-                                    <input type="text" class="form-input qcm-option-text" placeholder="Option 1" value="">
-                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
+                                <div class="qcm-option-row" style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="checkbox" class="qcm-correct-checkbox" checked title="Cocher si bonne réponse">
+                                        <input type="text" class="form-input qcm-option-text" placeholder="Option 1" value="" style="flex: 1;">
+                                        <button type="button" class="btn-icon danger" onclick="this.closest('.qcm-option-row').remove()" title="Supprimer">×</button>
+                                    </div>
+                                    <input type="text" class="form-input qcm-option-feedback" placeholder="Feedback si cette option est choisie (optionnel)" value="" style="margin-top: 6px; font-size: 0.85em;">
                                 </div>
-                                <div class="qcm-option-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-                                    <input type="checkbox" class="qcm-correct-checkbox" title="Cocher si bonne réponse">
-                                    <input type="text" class="form-input qcm-option-text" placeholder="Option 2" value="">
-                                    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
+                                <div class="qcm-option-row" style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="checkbox" class="qcm-correct-checkbox" title="Cocher si bonne réponse">
+                                        <input type="text" class="form-input qcm-option-text" placeholder="Option 2" value="" style="flex: 1;">
+                                        <button type="button" class="btn-icon danger" onclick="this.closest('.qcm-option-row').remove()" title="Supprimer">×</button>
+                                    </div>
+                                    <input type="text" class="form-input qcm-option-feedback" placeholder="Feedback si cette option est choisie (optionnel)" value="" style="margin-top: 6px; font-size: 0.85em;">
                                 </div>
                             `}
                         </div>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addQcmOption()">+ Ajouter une option</button>
-                    </div>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="qcmShowFeedback" ${data.feedback_correct || data.feedback_incorrect ? 'checked' : ''} onchange="document.getElementById('qcmFeedbackSection').style.display = this.checked ? 'block' : 'none'">
-                            Ajouter des feedbacks (optionnel)
-                        </label>
-                    </div>
-                    <div id="qcmFeedbackSection" style="display: ${data.feedback_correct || data.feedback_incorrect ? 'block' : 'none'};">
-                        <div class="form-group">
-                            <label>Feedback si bonne réponse</label>
-                            <textarea id="qcmFeedbackCorrect" class="form-textarea" rows="2" placeholder="Bravo !">${this.escapeHtml(data.feedback_correct || '')}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Feedback si mauvaise réponse</label>
-                            <textarea id="qcmFeedbackIncorrect" class="form-textarea" rows="2" placeholder="Explication...">${this.escapeHtml(data.feedback_incorrect || '')}</textarea>
-                        </div>
                     </div>
                 `;
                 break;
@@ -5830,11 +5825,14 @@ const AdminBanquesExercices = {
         const count = container.children.length + 1;
         const div = document.createElement('div');
         div.className = 'qcm-option-row';
-        div.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px; align-items: center;';
+        div.style.cssText = 'margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;';
         div.innerHTML = `
-            <input type="checkbox" class="qcm-correct-checkbox" title="Cocher si bonne réponse">
-            <input type="text" class="form-input qcm-option-text" placeholder="Option ${count}" value="">
-            <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="checkbox" class="qcm-correct-checkbox" title="Cocher si bonne réponse">
+                <input type="text" class="form-input qcm-option-text" placeholder="Option ${count}" value="" style="flex: 1;">
+                <button type="button" class="btn-icon danger" onclick="this.closest('.qcm-option-row').remove()" title="Supprimer">×</button>
+            </div>
+            <input type="text" class="form-input qcm-option-feedback" placeholder="Feedback si cette option est choisie (optionnel)" value="" style="margin-top: 6px; font-size: 0.85em;">
         `;
         container.appendChild(div);
     },
@@ -6481,14 +6479,16 @@ const AdminBanquesExercices = {
 
         switch (type) {
             case 'qcm':
-                // Récupérer les options et bonnes réponses depuis les nouvelles lignes
+                // Récupérer les options, bonnes réponses et feedbacks depuis les lignes
                 const optionRows = document.querySelectorAll('#qcmOptionsList .qcm-option-row');
                 const options = [];
                 const reponsesCorrectes = [];
+                const feedbacksOptions = [];
                 optionRows.forEach((row, idx) => {
                     const text = row.querySelector('.qcm-option-text')?.value?.trim();
                     if (text) {
                         options.push(text);
+                        feedbacksOptions.push(row.querySelector('.qcm-option-feedback')?.value?.trim() || '');
                         if (row.querySelector('.qcm-correct-checkbox')?.checked) {
                             reponsesCorrectes.push(options.length - 1);
                         }
@@ -6498,15 +6498,9 @@ const AdminBanquesExercices = {
                     question: document.getElementById('qcmQuestion').value,
                     options: options,
                     reponses_correctes: reponsesCorrectes,
-                    reponse_correcte: reponsesCorrectes[0] || 0 // Rétro-compatibilité
+                    reponse_correcte: reponsesCorrectes[0] || 0,
+                    feedbacks_options: feedbacksOptions
                 };
-                // Ajouter feedbacks si activés
-                if (document.getElementById('qcmShowFeedback')?.checked) {
-                    const feedbackCorrect = document.getElementById('qcmFeedbackCorrect')?.value?.trim();
-                    const feedbackIncorrect = document.getElementById('qcmFeedbackIncorrect')?.value?.trim();
-                    if (feedbackCorrect) donnees.feedback_correct = feedbackCorrect;
-                    if (feedbackIncorrect) donnees.feedback_incorrect = feedbackIncorrect;
-                }
                 break;
 
             case 'vrai_faux':
