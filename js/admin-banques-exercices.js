@@ -5592,21 +5592,16 @@ const AdminBanquesExercices = {
                 let cartes = data.cartes || [];
                 if (cartes.length === 0 && data.evenements) {
                     // Migration depuis l'ancien format
-                    cartes = data.evenements.map(e => ({ titre: e, date: '', image_url: '', explication: '' }));
+                    cartes = data.evenements.map(e => ({ titre: e, image_url: '' }));
                 }
                 if (cartes.length === 0) {
-                    cartes = [{ titre: '', date: '', image_url: '', explication: '' }];
+                    cartes = [{ titre: '', image_url: '' }];
                 }
 
                 html = `
                     <div class="form-group">
                         <label>Consigne</label>
                         <input type="text" id="timelineConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Remettez les événements dans l\'ordre chronologique')}">
-                    </div>
-                    <div class="form-group">
-                        <label>🗺️ Fond de carte / Image de fond (optionnel)</label>
-                        <p class="form-help">URL d'une image partagée Google Drive (ou autre lien image) affichée en arrière-plan de l'exercice.</p>
-                        <input type="text" id="timelineFondDeCarte" class="form-input" placeholder="https://drive.google.com/file/d/..." value="${this.escapeHtml(data.fond_de_carte || '')}">
                     </div>
                     <div class="form-group">
                         <label>Aperçu des cartes (ordre correct)</label>
@@ -5621,7 +5616,7 @@ const AdminBanquesExercices = {
                     </div>
                     <div class="form-group">
                         <label>Cartes (ordre chronologique)</label>
-                        <p class="form-help">Définissez chaque carte avec son titre, sa date et une image optionnelle.</p>
+                        <p class="form-help">Définissez chaque carte avec son titre et une image de fond optionnelle.</p>
                         <div id="timelineEvents">
                             ${cartes.map((c, i) => this.renderTimelineCardForm(c, i)).join('')}
                         </div>
@@ -5984,7 +5979,7 @@ const AdminBanquesExercices = {
 
     // ========== TIMELINE CARTES BUILDER ==========
     renderTimelineCardForm(carte, index) {
-        const c = carte || { titre: '', date: '', image_url: '', explication: '' };
+        const c = carte || { titre: '', image_url: '' };
         return `
             <div class="timeline-card-form" data-index="${index}">
                 <div class="timeline-card-form-header">
@@ -5992,15 +5987,9 @@ const AdminBanquesExercices = {
                     <span style="font-weight: 600; flex: 1;">Carte ${index + 1}</span>
                     <button type="button" class="btn-icon danger" onclick="this.closest('.timeline-card-form').remove(); AdminBanquesExercices.updateTimelinePreview(); AdminBanquesExercices.updateTimelineNumbers();" title="Supprimer">×</button>
                 </div>
-                <div class="timeline-card-form-body" style="grid-template-columns: 1fr 1fr;">
-                    <div class="timeline-card-form-section">
-                        <input type="text" class="form-input timeline-titre" placeholder="Titre de l'événement" value="${this.escapeHtml(c.titre || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
-                        <input type="text" class="form-input timeline-image" placeholder="URL image carte (optionnel)" value="${this.escapeHtml(c.image_url || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
-                    </div>
-                    <div class="timeline-card-form-section">
-                        <input type="text" class="form-input timeline-date" placeholder="Date (ex: -3300, 476, 1492)" value="${this.escapeHtml(c.date || '')}">
-                        <input type="text" class="form-input timeline-explication" placeholder="Explication (optionnel)" value="${this.escapeHtml(c.explication || '')}">
-                    </div>
+                <div class="timeline-card-form-body" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <input type="text" class="form-input timeline-titre" placeholder="Titre de l'événement" value="${this.escapeHtml(c.titre || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
+                    <input type="text" class="form-input timeline-image" placeholder="Image de fond (URL Google Drive partagée, optionnel)" value="${this.escapeHtml(c.image_url || '')}">
                 </div>
             </div>
         `;
@@ -6011,7 +6000,7 @@ const AdminBanquesExercices = {
         if (!container) return;
         const count = container.children.length;
         const div = document.createElement('div');
-        div.innerHTML = this.renderTimelineCardForm({ titre: '', date: '', image_url: '', explication: '' }, count);
+        div.innerHTML = this.renderTimelineCardForm({ titre: '', image_url: '' }, count);
         container.appendChild(div.firstElementChild);
         this.updateTimelinePreview();
     },
@@ -6114,9 +6103,7 @@ const AdminBanquesExercices = {
         forms.forEach(form => {
             cartesData.push({
                 titre: form.querySelector('.timeline-titre')?.value || '',
-                image_url: form.querySelector('.timeline-image')?.value || '',
-                date: form.querySelector('.timeline-date')?.value || '',
-                explication: form.querySelector('.timeline-explication')?.value || ''
+                image_url: form.querySelector('.timeline-image')?.value || ''
             });
         });
 
@@ -6501,18 +6488,13 @@ const AdminBanquesExercices = {
                 break;
 
             case 'timeline':
-                // Nouveau format avec cartes complètes
                 const timelineCartes = Array.from(document.querySelectorAll('#timelineEvents .timeline-card-form')).map(form => ({
                     titre: form.querySelector('.timeline-titre')?.value || '',
-                    image_url: form.querySelector('.timeline-image')?.value || '',
-                    date: form.querySelector('.timeline-date')?.value || '',
-                    explication: form.querySelector('.timeline-explication')?.value || ''
+                    image_url: form.querySelector('.timeline-image')?.value || ''
                 })).filter(c => c.titre);
                 donnees = {
                     consigne: document.getElementById('timelineConsigne').value,
-                    fond_de_carte: document.getElementById('timelineFondDeCarte')?.value || '',
                     cartes: timelineCartes,
-                    // Rétro-compatibilité
                     evenements: timelineCartes.map(c => c.titre)
                 };
                 break;

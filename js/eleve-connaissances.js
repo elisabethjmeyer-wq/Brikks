@@ -1259,11 +1259,10 @@ const EleveConnaissances = {
     },
 
     /**
-     * Render Timeline (cartes draggables avec fond de carte optionnel)
+     * Render Timeline (cartes draggables avec image de fond optionnelle par carte)
      */
     renderTimeline(donnees, questions) {
         const cartes = donnees.cartes || [];
-        const fondDeCarte = donnees.fond_de_carte || '';
 
         // Vérifier qu'on a des cartes
         if (cartes.length === 0) {
@@ -1294,24 +1293,15 @@ const EleveConnaissances = {
             this.saveTimelineOrder();
         }, 100);
 
-        // Fond de carte optionnel
-        const fondDeCarteHTML = fondDeCarte ? `
-            <div class="timeline-fond-de-carte">
-                <img src="${this.escapeHtml(fondDeCarte)}" alt="Fond de carte" class="timeline-fond-img">
-            </div>
-        ` : '';
-
         return `
             <div class="timeline-container">
                 <p class="timeline-instruction">Replacez les événements dans l'ordre chronologique en les faisant glisser.</p>
-                ${fondDeCarteHTML}
                 <div class="timeline-cards" id="timelineCards">
                     ${shuffled.map((carte) => {
-                        // Image optionnelle par carte
                         const hasImage = carte.image_url ? true : false;
+                        const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(carte.image_url)}');"` : '';
                         return `
-                        <div class="timeline-card ${hasImage ? 'has-image' : ''}" draggable="true" data-original-index="${carte.originalIndex}" data-date="${this.escapeHtml(carte.date || '')}" data-titre="${this.escapeHtml(carte.titre)}" data-explication="${this.escapeHtml(carte.explication || '')}">
-                            ${hasImage ? `<div class="timeline-card-img" style="background-image: url('${this.escapeHtml(carte.image_url)}');"></div>` : ''}
+                        <div class="timeline-card ${hasImage ? 'has-image' : ''}" draggable="true" data-original-index="${carte.originalIndex}" data-titre="${this.escapeHtml(carte.titre)}" ${imgStyle}>
                             <span class="timeline-card-titre">${this.escapeHtml(carte.titre)}</span>
                         </div>
                     `}).join('')}
@@ -1373,7 +1363,6 @@ const EleveConnaissances = {
         const cards = Array.from(container.querySelectorAll('.timeline-card'));
         const order = cards.map(card => ({
             originalIndex: parseInt(card.dataset.originalIndex),
-            date: card.dataset.date,
             titre: card.dataset.titre
         }));
         this.userAnswers['timeline_order'] = order;
@@ -1995,15 +1984,6 @@ const EleveConnaissances = {
                         } else {
                             card.classList.add('incorrect');
                         }
-
-                        // Afficher la date sous le titre après validation
-                        const date = card.dataset.date;
-                        if (date && !card.querySelector('.timeline-card-date')) {
-                            const dateEl = document.createElement('span');
-                            dateEl.className = 'timeline-card-date';
-                            dateEl.textContent = date;
-                            card.appendChild(dateEl);
-                        }
                     });
                 }
                 break;
@@ -2367,8 +2347,7 @@ const EleveConnaissances = {
                 if (container) {
                     userOrder = Array.from(container.querySelectorAll('.timeline-card')).map(card => ({
                         originalIndex: parseInt(card.dataset.originalIndex),
-                        titre: card.dataset.titre,
-                        date: card.dataset.date
+                        titre: card.dataset.titre
                     }));
                 } else if (this.userAnswers['timeline_order']) {
                     userOrder = this.userAnswers['timeline_order'];
@@ -2382,7 +2361,7 @@ const EleveConnaissances = {
                     details.push({
                         question: `Position ${positionAttendue + 1}`,
                         reponse: userCarte ? userCarte.titre : 'Non placé',
-                        attendu: `${carte.titre} (${carte.date})`,
+                        attendu: carte.titre,
                         correct: isCorrect
                     });
                 });
