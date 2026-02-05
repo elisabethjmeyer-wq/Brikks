@@ -24,7 +24,8 @@ const AdminBanquesExercices = {
         { id: '4', code: 'association', nom: 'Association', icone: '🔗', description: 'Relier des éléments' },
         { id: '5', code: 'texte_trou', nom: 'Texte à trous', icone: '✍️', description: 'Compléter un texte' },
         { id: '6', code: 'categorisation', nom: 'Catégorisation', icone: '📂', description: 'Classer par catégories' },
-        { id: '7', code: 'carte', nom: 'Carte', icone: '🗺️', description: 'Localisation géographique' }
+        { id: '7', code: 'carte', nom: 'Carte', icone: '🗺️', description: 'Localisation géographique' },
+        { id: '8', code: 'flashcard', nom: 'Flashcards', icone: '🃏', description: 'Cartes recto-verso (auto-évaluation)' }
     ],
     banquesExercicesConn: [],
     entrainementsConn: [],
@@ -3210,7 +3211,8 @@ const AdminBanquesExercices = {
         'timeline': 'Timeline',
         'association': 'Association',
         'texte_trou': 'Texte à trous',
-        'ordre': 'Mise en ordre'
+        'ordre': 'Mise en ordre',
+        'flashcard': 'Flashcards'
     },
 
     /**
@@ -5300,6 +5302,9 @@ const AdminBanquesExercices = {
                 return (question.donnees.texte || '').substring(0, 60) || 'Texte à trous';
             case 'carte':
                 return (question.donnees.consigne || '').substring(0, 60) || 'Carte cliquable';
+            case 'flashcard':
+                const fc = question.donnees.cartes || [];
+                return fc.length > 0 ? `Flashcards (${fc.length} cartes)` : 'Flashcards';
             default:
                 return 'Question';
         }
@@ -5812,6 +5817,24 @@ const AdminBanquesExercices = {
                 `;
                 break;
 
+            case 'flashcard':
+                const flashcartes = data.cartes || [{ recto: '', verso: '' }];
+                html = `
+                    <div class="form-group">
+                        <label>Consigne</label>
+                        <input type="text" id="flashcardConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Retournez chaque carte et évaluez-vous')}">
+                    </div>
+                    <div class="form-group">
+                        <label>Cartes</label>
+                        <p class="form-help">Recto = question/indice visible, Verso = réponse révélée au retournement.</p>
+                        <div id="flashcardCartes">
+                            ${flashcartes.map((c, i) => this.renderFlashcardForm(c, i)).join('')}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addFlashcard()">+ Ajouter une carte</button>
+                    </div>
+                `;
+                break;
+
             default:
                 html = '<p>Type de question non supporté</p>';
         }
@@ -6185,6 +6208,30 @@ const AdminBanquesExercices = {
         if (!container) return;
         const div = document.createElement('div');
         div.innerHTML = this.renderAssocPairRow();
+        container.appendChild(div.firstElementChild);
+    },
+
+    // ========== FLASHCARD BUILDER ==========
+    renderFlashcardForm(carte, index) {
+        const c = carte || { recto: '', verso: '' };
+        return `
+            <div class="flashcard-form-item" style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-weight: 600; font-size: 0.9em;">Carte ${index + 1}</span>
+                    <button type="button" class="btn-icon danger" onclick="this.closest('.flashcard-form-item').remove()" title="Supprimer">×</button>
+                </div>
+                <input type="text" class="form-input flashcard-recto" placeholder="Recto (question / indice)" value="${this.escapeHtml(c.recto || '')}" style="margin-bottom: 6px;">
+                <input type="text" class="form-input flashcard-verso" placeholder="Verso (réponse)" value="${this.escapeHtml(c.verso || '')}">
+            </div>
+        `;
+    },
+
+    addFlashcard() {
+        const container = document.getElementById('flashcardCartes');
+        if (!container) return;
+        const count = container.children.length;
+        const div = document.createElement('div');
+        div.innerHTML = this.renderFlashcardForm({ recto: '', verso: '' }, count);
         container.appendChild(div.firstElementChild);
     },
 
@@ -6586,6 +6633,16 @@ const AdminBanquesExercices = {
                     if (feedbackCorrect) donnees.feedback_correct = feedbackCorrect;
                     if (feedbackIncorrect) donnees.feedback_incorrect = feedbackIncorrect;
                 }
+                break;
+
+            case 'flashcard':
+                donnees = {
+                    consigne: document.getElementById('flashcardConsigne')?.value || '',
+                    cartes: Array.from(document.querySelectorAll('#flashcardCartes .flashcard-form-item')).map(item => ({
+                        recto: item.querySelector('.flashcard-recto')?.value?.trim() || '',
+                        verso: item.querySelector('.flashcard-verso')?.value?.trim() || ''
+                    })).filter(c => c.recto && c.verso)
+                };
                 break;
         }
 
