@@ -1716,7 +1716,7 @@ const EleveConnaissances = {
 
     /**
      * Render Question ouverte
-     * Format: {question, reponses_acceptees: [...], case_sensitive?, feedback_correct?, feedback_incorrect?}
+     * Format: {question, reponses_acceptees: [...], feedback_correct?, feedback_incorrect?}
      */
     renderQuestionOuverte(donnees, questions) {
         const question = donnees.question || donnees.enonce || '';
@@ -2029,17 +2029,12 @@ const EleveConnaissances = {
                 total = 1;
                 const qoAnswer = this.userAnswers['question_ouverte'];
                 const qoReponsesAcceptees = donnees.reponses_acceptees || [];
-                const caseSensitive = donnees.case_sensitive || false;
                 const qoFeedback = document.getElementById('feedback_question_ouverte');
                 const qoInput = document.getElementById('questionOuverteReponse');
 
                 let qoCorrect = false;
                 if (qoAnswer) {
-                    const userValue = caseSensitive ? qoAnswer.trim() : qoAnswer.trim().toLowerCase();
-                    qoCorrect = qoReponsesAcceptees.some(rep => {
-                        const expected = caseSensitive ? rep.trim() : rep.trim().toLowerCase();
-                        return userValue === expected;
-                    });
+                    qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep));
                 }
 
                 if (qoCorrect) correct = 1;
@@ -2438,14 +2433,9 @@ const EleveConnaissances = {
                 total = 1;
                 const qoAnswer = this.userAnswers['question_ouverte'];
                 const qoReponsesAcceptees = donnees.reponses_acceptees || [];
-                const caseSensitive = donnees.case_sensitive || false;
                 let qoCorrect = false;
                 if (qoAnswer) {
-                    const userValue = caseSensitive ? qoAnswer.trim() : qoAnswer.trim().toLowerCase();
-                    qoCorrect = qoReponsesAcceptees.some(rep => {
-                        const expected = caseSensitive ? rep.trim() : rep.trim().toLowerCase();
-                        return userValue === expected;
-                    });
+                    qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep));
                 }
                 if (qoCorrect) correct = 1;
                 details.push({
@@ -2908,6 +2898,53 @@ const EleveConnaissances = {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    },
+
+    /**
+     * Normalise un texte pour comparaison tolérante :
+     * - minuscules
+     * - suppression des accents (é→e, â→a, etc.)
+     * - suppression de la ponctuation
+     * - espaces multiples → un seul espace
+     * - trim
+     */
+    normalizeText(text) {
+        if (!text) return '';
+        return text
+            .trim()
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // accents
+            .replace(/['']/g, ' ')                            // apostrophes → espace
+            .replace(/[^a-z0-9\s,]/g, '')                     // garder lettres, chiffres, espaces, virgules
+            .replace(/\s+/g, ' ')                              // espaces multiples
+            .trim();
+    },
+
+    /**
+     * Compare une réponse élève à une réponse attendue avec tolérance :
+     * - Normalisation (accents, casse, ponctuation)
+     * - Si la réponse contient des virgules : comparaison par éléments triés
+     *   (l'ordre n'a pas d'importance)
+     */
+    compareAnswers(userAnswer, expectedAnswer) {
+        const normUser = this.normalizeText(userAnswer);
+        const normExpected = this.normalizeText(expectedAnswer);
+
+        // Comparaison directe
+        if (normUser === normExpected) return true;
+
+        // Si virgule présente dans la réponse attendue : comparer par éléments triés
+        if (normExpected.includes(',')) {
+            const userParts = normUser.split(',').map(s => s.trim()).filter(Boolean).sort();
+            const expectedParts = normExpected.split(',').map(s => s.trim()).filter(Boolean).sort();
+
+            if (userParts.length === expectedParts.length &&
+                userParts.every((part, i) => part === expectedParts[i])) {
+                return true;
+            }
+        }
+
+        return false;
     },
 
     formatTime(seconds) {
