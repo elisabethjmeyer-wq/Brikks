@@ -26,6 +26,9 @@ const EleveConnaissances = {
     userAnswers: {},
     // Stocke les questions sélectionnées par étape (pour validation cohérente)
     selectedQuestionsPerEtape: {},
+    // Résultats par étape (remplis au fur et à mesure de la validation)
+    etapesResults: [],
+    currentEtapeValidated: false,
 
     // Cache config (5 minutes TTL)
     CACHE_KEY: 'brikks_conn_eleve_cache',
@@ -657,6 +660,8 @@ const EleveConnaissances = {
             this.currentBanque = this.banques.find(b => b.id === entrainement.banque_exercice_id);
             this.currentEtapeIndex = 0;
             this.userAnswers = {};
+            this.etapesResults = [];
+            this.currentEtapeValidated = false;
             this.exerciseStartTime = Date.now();
 
             // Get etapes for this entrainement
@@ -705,6 +710,10 @@ const EleveConnaissances = {
             .filter(eq => eq.etape_id === currentEtape.id)
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
+        const isValidated = this.currentEtapeValidated;
+        const isLastEtape = this.currentEtapeIndex >= etapes.length - 1;
+        const isFlashcard = currentEtape.format_code === 'flashcard';
+
         container.innerHTML = `
             <div class="exercise-view">
                 <button class="exercise-back-btn" onclick="EleveConnaissances.backToList()">
@@ -722,37 +731,23 @@ const EleveConnaissances = {
                         </div>
                         ${ent.duree ? `
                             <div class="exercise-timer" id="exerciseTimer">
-                                <span id="timerDisplay">${this.formatTime(ent.duree * 60)}</span>
+                                <span id="timerDisplay">${this.formatTime(this.timeRemaining || ent.duree * 60)}</span>
                             </div>
                         ` : ''}
                     </div>
 
-                    <!-- Barre de progression des étapes avec navigation -->
+                    <!-- Barre de progression des étapes -->
                     <div class="etapes-navigation">
-                        <button class="etape-nav-btn prev ${this.currentEtapeIndex === 0 ? 'disabled' : ''}"
-                                onclick="EleveConnaissances.previousEtape()"
-                                ${this.currentEtapeIndex === 0 ? 'disabled' : ''}>
-                            ←
-                        </button>
                         <div class="etapes-progress">
-                            ${etapes.map((etape, idx) => `
-                                <div class="etape-dot ${idx < this.currentEtapeIndex ? 'completed' : ''} ${idx === this.currentEtapeIndex ? 'current' : ''}"
+                            ${etapes.map((etape, idx) => {
+                                const validated = idx < this.etapesResults.length;
+                                const isCurrent = idx === this.currentEtapeIndex;
+                                return `<div class="etape-dot ${validated ? 'completed' : ''} ${isCurrent ? 'current' : ''}"
                                      title="Étape ${idx + 1}">
-                                    ${idx + 1}
-                                </div>
-                            `).join('<div class="etape-connector"></div>')}
+                                    ${validated ? '✓' : idx + 1}
+                                </div>`;
+                            }).join('<div class="etape-connector"></div>')}
                         </div>
-                        ${this.currentEtapeIndex < etapes.length - 1 ? `
-                            <button class="etape-nav-btn next"
-                                    onclick="EleveConnaissances.nextEtape()">
-                                →
-                            </button>
-                        ` : `
-                            <button class="etape-nav-btn next finish-btn"
-                                    onclick="EleveConnaissances.finishEntrainement()">
-                                Terminer ✓
-                            </button>
-                        `}
                     </div>
 
                     <!-- Titre de l'étape -->
@@ -762,11 +757,25 @@ const EleveConnaissances = {
                     </div>
 
                     <!-- Contenu de l'étape (questions) -->
-                    <div class="exercise-content">
+                    <div class="exercise-content ${isValidated ? 'validated' : ''}" id="exerciseContent">
                         ${this.renderEtapeContent(currentEtape, etapeQuestions)}
                     </div>
 
-                    <div class="result-banner" id="resultBanner"></div>
+                    <!-- Zone de feedback (visible après validation) -->
+                    <div class="etape-feedback" id="etapeFeedback" style="display: none;"></div>
+
+                    <!-- Bouton d'action -->
+                    <div class="etape-action-bar" id="etapeActionBar">
+                        ${isFlashcard ? '' : (isValidated ? `
+                            <button class="btn-etape-action next-btn" onclick="EleveConnaissances.${isLastEtape ? 'finishEntrainement' : 'nextEtape'}()">
+                                ${isLastEtape ? 'Terminer ✓' : 'Suivant →'}
+                            </button>
+                        ` : `
+                            <button class="btn-etape-action validate-btn" onclick="EleveConnaissances.validateCurrentEtape()">
+                                Valider
+                            </button>
+                        `)}
+                    </div>
                 </div>
             </div>
         `;
@@ -912,8 +921,11 @@ const EleveConnaissances = {
             case 'qcm':
                 return this.renderQCM(donnees, questions);
             case 'chronologie':
-                return this.renderChronologie(donnees, questions);
             case 'timeline':
+                // Mode texte (paires date/événement) ou mode cartes (drag & drop)
+                if (donnees.paires && donnees.mode) {
+                    return this.renderChronologie(donnees, questions);
+                }
                 return this.renderTimeline(donnees, questions);
             case 'texte_trou':
             case 'texte_trous':
@@ -967,14 +979,21 @@ const EleveConnaissances = {
                 // Combiner les événements/paires de toutes les questions
                 const allEvents = [];
                 const allPaires = [];
+                let timelineMode = undefined;
+                let timelineConsigne = undefined;
                 questionContents.forEach(qc => {
                     if (qc.donnees.evenements) allEvents.push(...qc.donnees.evenements);
                     if (qc.donnees.paires) allPaires.push(...qc.donnees.paires);
+                    if (qc.donnees.mode) timelineMode = qc.donnees.mode;
+                    if (qc.donnees.consigne) timelineConsigne = qc.donnees.consigne;
                 });
-                return {
+                const combined = {
                     evenements: allEvents.length > 0 ? allEvents : undefined,
                     paires: allPaires.length > 0 ? allPaires : undefined
                 };
+                if (timelineMode) combined.mode = timelineMode;
+                if (timelineConsigne) combined.consigne = timelineConsigne;
+                return combined;
 
             case 'association':
                 // Combiner toutes les paires
@@ -1914,6 +1933,9 @@ const EleveConnaissances = {
                 </div>
             `;
         }
+
+        // Auto-valider l'étape flashcard et afficher le bouton Suivant
+        this.validateCurrentEtape();
     },
 
     /**
@@ -1966,45 +1988,22 @@ const EleveConnaissances = {
     },
 
     /**
-     * Validate current etape
+     * Validate current etape — feedback immédiat style Projet Voltaire
      * Récupère les données via la jointure etapeQuestions → questionsConnaissances
+     * Affiche le feedback inline, désactive les inputs, puis affiche le bouton Suivant
      */
-    validateEtape() {
+    validateCurrentEtape() {
+        if (this.currentEtapeValidated) return;
+
         const currentEtape = this.currentEtapes[this.currentEtapeIndex];
-
-        // Récupérer les données via la jointure (même logique que renderEtapeContent)
-        let donnees = {};
-        const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
-            String(eq.etape_id) === String(currentEtape.id)
-        );
-
-        if (linkedQuestionRefs.length > 0) {
-            const questionRef = linkedQuestionRefs[0];
-            const questionContent = this.questionsConnaissances.find(q =>
-                String(q.id) === String(questionRef.question_id)
-            );
-            if (questionContent && questionContent.donnees) {
-                donnees = questionContent.donnees;
-                if (typeof donnees === 'string') {
-                    try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
-                }
-            }
-        }
-
-        // Fallback sur etape.donnees si pas trouvé via jointure
-        if (Object.keys(donnees).length === 0 && currentEtape.donnees) {
-            donnees = currentEtape.donnees;
-            if (typeof donnees === 'string') {
-                try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
-            }
-        }
+        const donnees = this.getEtapeDonnees(currentEtape);
 
         let correct = 0;
         let total = 0;
+        let details = [];
 
         switch (currentEtape.format_code) {
             case 'vrai_faux':
-                // Format simple: {question, reponse}
                 if (donnees.reponse !== undefined && !donnees.propositions) {
                     total = 1;
                     const answer = this.userAnswers['vf_0'];
@@ -2020,8 +2019,8 @@ const EleveConnaissances = {
                         if (donnees.feedback_vrai && isCorrect) feedback.textContent += ` - ${donnees.feedback_vrai}`;
                         if (donnees.feedback_faux && !isCorrect) feedback.textContent += ` - ${donnees.feedback_faux}`;
                     }
+                    details.push({ question: donnees.question, reponse: answer, attendu: expected, correct: isCorrect });
                 } else {
-                    // Format multi: {propositions: [...]}
                     const propositions = donnees.propositions || [];
                     propositions.forEach((prop, idx) => {
                         total++;
@@ -2035,35 +2034,28 @@ const EleveConnaissances = {
                             feedback.style.display = 'block';
                             feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
                             feedback.textContent = isCorrect ? '✓ Correct' : `✗ La bonne réponse était: ${expected}`;
-                            if (!isCorrect && prop.feedback) {
-                                feedback.textContent += ` - ${prop.feedback}`;
-                            }
+                            if (!isCorrect && prop.feedback) feedback.textContent += ` - ${prop.feedback}`;
                         }
+                        details.push({ question: prop.texte, reponse: answer, attendu: expected, correct: isCorrect });
                     });
                 }
                 break;
 
             case 'qcm':
                 total = 1;
-                // Accepter 'choix' ou 'options'
                 const choices = donnees.choix || donnees.options || [];
                 const userAnswer = this.userAnswers['qcm'];
 
-                // Accepter différents formats de réponses correctes
                 let correctIndices = [];
                 if (donnees.reponses_correctes && Array.isArray(donnees.reponses_correctes)) {
                     correctIndices = donnees.reponses_correctes;
                 } else if (donnees.reponse_correcte !== undefined) {
                     correctIndices = [donnees.reponse_correcte];
                 } else {
-                    correctIndices = choices
-                        .map((c, i) => c.correct ? i : -1)
-                        .filter(i => i >= 0);
+                    correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
                 }
 
-                if (correctIndices.includes(parseInt(userAnswer))) {
-                    correct = 1;
-                }
+                if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
 
                 const qcmFeedback = document.getElementById('feedback_qcm');
                 if (qcmFeedback) {
@@ -2071,81 +2063,94 @@ const EleveConnaissances = {
                     qcmFeedback.className = `qcm-feedback ${correct === 1 ? 'correct' : 'incorrect'}`;
                     qcmFeedback.textContent = correct === 1 ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
 
-                    // Feedback spécifique à l'option choisie
                     const feedbacksOptions = donnees.feedbacks_options || [];
                     const chosenIdx = parseInt(userAnswer);
                     if (feedbacksOptions[chosenIdx]) {
                         qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
                     } else if (correct === 1 && donnees.feedback_correct) {
-                        // Fallback ancien format global
                         qcmFeedback.textContent += ` ${donnees.feedback_correct}`;
                     } else if (correct === 0 && donnees.feedback_incorrect) {
                         qcmFeedback.textContent += ` ${donnees.feedback_incorrect}`;
                     }
                 }
+                details.push({ question: donnees.question, reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null, attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '), correct: correct === 1 });
                 break;
 
             case 'chronologie':
-                // Valider les réponses saisies dans les champs
-                const chronoAnswers = this.userAnswers['chrono'] || {};
-                const paires = donnees.paires || donnees.evenements || [];
-                const mode = donnees.mode || 'date';
+            case 'timeline':
+                if (donnees.paires && donnees.mode) {
+                    // Mode texte (chronologie)
+                    const chronoAnswers = this.userAnswers['chrono'] || {};
+                    const paires = donnees.paires || donnees.evenements || [];
+                    const mode = donnees.mode || 'date';
 
-                // Trier les événements pour correspondre à l'ordre d'affichage
-                const sortedEvents = [...paires].sort((a, b) => {
-                    const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
-                    const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
-                    return dateA - dateB;
-                });
+                    const sortedEvents = [...paires].sort((a, b) => {
+                        const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
+                        const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
+                        return dateA - dateB;
+                    });
 
-                sortedEvents.forEach((evt, idx) => {
-                    total++;
-                    const answer = chronoAnswers[idx];
-                    const inputEl = document.querySelector(`.chrono-input[data-index="${idx}"]`);
+                    sortedEvents.forEach((evt, idx) => {
+                        total++;
+                        const answer = chronoAnswers[idx];
+                        const inputEl = document.querySelector(`.chrono-input[data-index="${idx}"]`);
+                        if (!inputEl) return;
 
-                    if (!inputEl) return;
+                        let isCorrect = false;
+                        let correctValue = mode === 'evenement' ? evt.evenement : String(evt.date);
+                        let reponsesAcceptees = evt.reponses_acceptees || [];
 
-                    let isCorrect = false;
-                    let correctValue = mode === 'evenement' ? evt.evenement : String(evt.date);
-                    let reponsesAcceptees = evt.reponses_acceptees || [];
-
-                    if (answer && answer.value) {
-                        const userValue = answer.value.trim().toLowerCase();
-                        const correctLower = correctValue.trim().toLowerCase();
-
-                        // Vérifier la réponse principale
-                        if (userValue === correctLower) {
-                            isCorrect = true;
+                        if (answer && answer.value) {
+                            const userValue = answer.value.trim().toLowerCase();
+                            if (userValue === correctValue.trim().toLowerCase()) isCorrect = true;
+                            if (!isCorrect && reponsesAcceptees.length > 0) {
+                                isCorrect = reponsesAcceptees.some(alt => alt.trim().toLowerCase() === userValue);
+                            }
                         }
-                        // Vérifier les réponses alternatives
-                        if (!isCorrect && reponsesAcceptees.length > 0) {
-                            isCorrect = reponsesAcceptees.some(alt =>
-                                alt.trim().toLowerCase() === userValue
-                            );
+
+                        inputEl.classList.remove('correct', 'incorrect');
+                        if (isCorrect) {
+                            correct++;
+                            inputEl.classList.add('correct');
+                        } else {
+                            inputEl.classList.add('incorrect');
+                            const container = inputEl.closest('.chrono-input-zone');
+                            if (container && !container.querySelector('.chrono-correction')) {
+                                const correction = document.createElement('span');
+                                correction.className = 'chrono-correction';
+                                correction.textContent = correctValue;
+                                container.appendChild(correction);
+                            }
                         }
+                        details.push({ question: mode === 'evenement' ? evt.date : evt.evenement, reponse: answer?.value, attendu: correctValue, correct: isCorrect });
+                    });
+                } else {
+                    // Mode drag (timeline cartes)
+                    const cartes = donnees.cartes || [];
+                    const cardsContainer = document.getElementById('timelineCards');
+                    if (cardsContainer) {
+                        const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-card'));
+                        total = cartes.length;
+
+                        placedCards.forEach((card, positionActuelle) => {
+                            const originalIndex = parseInt(card.dataset.originalIndex);
+                            card.classList.remove('correct', 'incorrect');
+                            card.setAttribute('draggable', 'false');
+
+                            if (originalIndex === positionActuelle) {
+                                correct++;
+                                card.classList.add('correct');
+                            } else {
+                                card.classList.add('incorrect');
+                            }
+                            details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
+                        });
                     }
-
-                    inputEl.classList.remove('correct', 'incorrect');
-                    if (isCorrect) {
-                        correct++;
-                        inputEl.classList.add('correct');
-                    } else {
-                        inputEl.classList.add('incorrect');
-                        // Afficher la bonne réponse après le champ
-                        const container = inputEl.closest('.chrono-input-zone');
-                        if (container && !container.querySelector('.chrono-correction')) {
-                            const correction = document.createElement('span');
-                            correction.className = 'chrono-correction';
-                            correction.textContent = correctValue;
-                            container.appendChild(correction);
-                        }
-                    }
-                });
+                }
                 break;
 
             case 'texte_trou':
             case 'texte_trous':
-                // Valider les trous remplis
                 const trouInputs = document.querySelectorAll('.trou-input');
                 const trous = donnees.trous || [];
 
@@ -2154,52 +2159,25 @@ const EleveConnaissances = {
                     const userValue = input.value.trim().toLowerCase();
                     const correctValue = input.dataset.answer ? input.dataset.answer.toLowerCase() : '';
 
-                    // Chercher les alternatives pour ce trou
                     let alternatives = [];
                     if (trous[idx] && trous[idx].alternatives) {
                         alternatives = trous[idx].alternatives.map(a => a.toLowerCase());
                     }
 
                     input.classList.remove('correct', 'incorrect');
-
-                    if (userValue === correctValue || alternatives.includes(userValue)) {
+                    const isOk = userValue === correctValue || alternatives.includes(userValue);
+                    if (isOk) {
                         correct++;
                         input.classList.add('correct');
                     } else {
                         input.classList.add('incorrect');
                     }
+                    details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: input.dataset.answer, correct: isOk });
                 });
                 break;
 
-            case 'timeline':
-                // Valider l'ordre des cartes
-                // L'ordre correct est l'ordre de création (index 0, 1, 2, 3...)
-                const cartes = donnees.cartes || [];
-                const cardsContainer = document.getElementById('timelineCards');
-                if (cardsContainer) {
-                    const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-card'));
-                    total = cartes.length;
-
-                    placedCards.forEach((card, positionActuelle) => {
-                        const originalIndex = parseInt(card.dataset.originalIndex);
-
-                        card.classList.remove('correct', 'incorrect');
-                        card.setAttribute('draggable', 'false');
-
-                        if (originalIndex === positionActuelle) {
-                            correct++;
-                            card.classList.add('correct');
-                        } else {
-                            card.classList.add('incorrect');
-                        }
-                    });
-                }
-                break;
-
             case 'carte':
-                // Valider les réponses textuelles pour chaque marqueur (format v2)
                 const marqueurs = donnees.marqueurs || [];
-
                 marqueurs.forEach((m, idx) => {
                     total++;
                     const answer = this.userAnswers['carte_' + idx];
@@ -2207,14 +2185,10 @@ const EleveConnaissances = {
                     const answerItem = document.querySelector(`.carte-answer-item[data-index="${idx}"]`);
 
                     if (answer) {
-                        // Normaliser les réponses pour comparaison
                         const userValue = answer.trim().toLowerCase();
                         const expectedValue = (m.reponse || '').trim().toLowerCase();
-
-                        // Vérifier aussi les réponses alternatives acceptées
                         const reponsesAcceptees = m.reponses_acceptees || [];
                         const allAccepted = [expectedValue, ...reponsesAcceptees.map(r => r.trim().toLowerCase())];
-
                         const isCorrect = allAccepted.some(rep => userValue === rep);
 
                         if (isCorrect) {
@@ -2225,10 +2199,11 @@ const EleveConnaissances = {
                             if (marker) marker.classList.add('incorrect');
                             if (answerItem) answerItem.classList.add('incorrect');
                         }
+                        details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrect });
                     } else {
-                        // Pas de réponse donnée
                         if (marker) marker.classList.add('incorrect');
                         if (answerItem) answerItem.classList.add('incorrect');
+                        details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
                     }
                 });
                 break;
@@ -2238,14 +2213,13 @@ const EleveConnaissances = {
                 const qoAnswer = this.userAnswers['question_ouverte'];
                 const qoReponsesAcceptees = donnees.reponses_acceptees || [];
                 const qoStricte = donnees.comparaison_stricte || false;
-                const qoFeedback = document.getElementById('feedback_question_ouverte');
+                const qoFeedbackEl = document.getElementById('feedback_question_ouverte');
                 const qoInput = document.getElementById('questionOuverteReponse');
 
                 let qoCorrect = false;
                 if (qoAnswer) {
                     qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep, qoStricte));
                 }
-
                 if (qoCorrect) correct = 1;
 
                 if (qoInput) {
@@ -2253,17 +2227,18 @@ const EleveConnaissances = {
                     qoInput.classList.add(qoCorrect ? 'correct' : 'incorrect');
                 }
 
-                if (qoFeedback) {
-                    qoFeedback.style.display = 'block';
-                    qoFeedback.className = `question-ouverte-feedback ${qoCorrect ? 'correct' : 'incorrect'}`;
+                if (qoFeedbackEl) {
+                    qoFeedbackEl.style.display = 'block';
+                    qoFeedbackEl.className = `question-ouverte-feedback ${qoCorrect ? 'correct' : 'incorrect'}`;
                     if (qoCorrect) {
-                        qoFeedback.textContent = '✓ Correct !';
-                        if (donnees.feedback_correct) qoFeedback.textContent += ` ${donnees.feedback_correct}`;
+                        qoFeedbackEl.textContent = '✓ Correct !';
+                        if (donnees.feedback_correct) qoFeedbackEl.textContent += ` ${donnees.feedback_correct}`;
                     } else {
-                        qoFeedback.textContent = `✗ La bonne réponse était: ${qoReponsesAcceptees[0] || ''}`;
-                        if (donnees.feedback_incorrect) qoFeedback.textContent += ` ${donnees.feedback_incorrect}`;
+                        qoFeedbackEl.textContent = `✗ La bonne réponse était: ${qoReponsesAcceptees[0] || ''}`;
+                        if (donnees.feedback_incorrect) qoFeedbackEl.textContent += ` ${donnees.feedback_incorrect}`;
                     }
                 }
+                details.push({ question: donnees.question, reponse: qoAnswer, attendu: qoReponsesAcceptees.join(' / '), correct: qoCorrect });
                 break;
 
             case 'association':
@@ -2275,400 +2250,14 @@ const EleveConnaissances = {
                     const gaucheEl = document.querySelector(`.association-gauche .association-item[data-id="${up.gauche}"]`);
                     const droiteEl = document.querySelector(`.association-droite .association-item[data-id="${up.droite}"]`);
 
-                    // Enlever la classe paired et mettre correct ou incorrect
                     if (up.gauche === up.droite) {
                         correct++;
-                        [gaucheEl, droiteEl].forEach(el => {
-                            if (el) {
-                                el.classList.remove('paired');
-                                el.classList.add('correct');
-                            }
-                        });
+                        [gaucheEl, droiteEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('correct'); } });
                     } else {
-                        [gaucheEl, droiteEl].forEach(el => {
-                            if (el) {
-                                el.classList.remove('paired');
-                                el.classList.add('incorrect');
-                            }
-                        });
+                        [gaucheEl, droiteEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('incorrect'); } });
                     }
                 });
-
-                // Marquer les éléments non appariés comme incorrects
-                document.querySelectorAll('.association-item:not(.correct):not(.incorrect)').forEach(el => {
-                    el.classList.add('incorrect');
-                });
-                break;
-
-            case 'flashcard':
-                // Auto-évaluation : on utilise les résultats stockés par l'élève
-                const flashResults = this.userAnswers['flashcard'] || [];
-                const flashCartes = donnees.cartes || [];
-                total = flashCartes.length;
-                correct = flashResults.filter(r => r.savait).length;
-                // Pas de feedback DOM à ajouter — le récap est déjà affiché par showFlashcardSummary
-                break;
-        }
-
-        // Show result banner
-        const banner = document.getElementById('resultBanner');
-        const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
-        if (banner) {
-            banner.className = `result-banner show ${percent === 100 ? 'success' : percent >= 50 ? 'partial' : 'error'}`;
-            banner.textContent = `Score: ${correct}/${total} (${percent}%)`;
-        }
-    },
-
-    /**
-     * Navigate to previous etape
-     */
-    previousEtape() {
-        if (this.currentEtapeIndex > 0) {
-            this.currentEtapeIndex--;
-            this.renderEntrainementView();
-        }
-    },
-
-    /**
-     * Navigate to next etape
-     */
-    nextEtape() {
-        if (this.currentEtapeIndex < this.currentEtapes.length - 1) {
-            this.currentEtapeIndex++;
-            this.renderEntrainementView();
-        }
-    },
-
-    /**
-     * Finish the entrainement - Calcule le score et affiche le récapitulatif
-     */
-    async finishEntrainement() {
-        this.stopTimer();
-
-        // Calculer le score de toutes les étapes
-        const results = this.validateAllEtapes();
-        this.lastResults = results;
-
-        // Sauvegarder la progression et attendre le résultat
-        // pour avoir lastProgressionResult avant le rendu
-        await this.saveProgression(results);
-
-        // Afficher l'écran de résultats (maintenant lastProgressionResult est défini)
-        this.renderResultScreen(results);
-    },
-
-    /**
-     * Valide toutes les étapes et retourne les résultats
-     */
-    validateAllEtapes() {
-        const etapesResults = [];
-        let totalCorrect = 0;
-        let totalQuestions = 0;
-
-        this.currentEtapes.forEach((etape, etapeIndex) => {
-            const result = this.validateSingleEtape(etape, etapeIndex);
-            etapesResults.push(result);
-            totalCorrect += result.correct;
-            totalQuestions += result.total;
-        });
-
-        const pourcentage = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
-
-        return {
-            etapes: etapesResults,
-            totalCorrect,
-            totalQuestions,
-            pourcentage
-        };
-    },
-
-    /**
-     * Valide une étape spécifique (sans afficher le feedback)
-     */
-    validateSingleEtape(etape, etapeIndex) {
-        // Utiliser les questions stockées lors du rendu (mode aléatoire ou manuel)
-        let donnees = {};
-        let format = etape.format_code;
-
-        // Vérifier si on a des questions stockées pour cette étape
-        if (this.selectedQuestionsPerEtape[etape.id]) {
-            console.log('[EleveConnaissances] validateSingleEtape - utilisation des questions stockées pour étape', etape.id);
-            donnees = this.selectedQuestionsPerEtape[etape.id].donnees;
-            format = this.selectedQuestionsPerEtape[etape.id].format || format;
-        } else {
-            // Fallback: récupérer les données via la jointure (ancien comportement)
-            console.log('[EleveConnaissances] validateSingleEtape - fallback sur jointure pour étape', etape.id);
-            const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
-                String(eq.etape_id) === String(etape.id)
-            );
-
-            if (linkedQuestionRefs.length > 0) {
-                // Récupérer TOUTES les questions liées
-                const allQuestionContents = [];
-                linkedQuestionRefs.forEach(questionRef => {
-                    let questionContent = this.questionsConnaissances.find(q =>
-                        String(q.id) === String(questionRef.question_id)
-                    );
-                    if (questionContent && questionContent.donnees) {
-                        let qDonnees = questionContent.donnees;
-                        if (typeof qDonnees === 'string') {
-                            try { qDonnees = JSON.parse(qDonnees); } catch (e) { qDonnees = {}; }
-                        }
-                        allQuestionContents.push({
-                            id: questionContent.id,
-                            donnees: qDonnees
-                        });
-                    }
-                });
-
-                if (allQuestionContents.length === 1) {
-                    donnees = allQuestionContents[0].donnees;
-                } else if (allQuestionContents.length > 1) {
-                    donnees = this.combineQuestionsData(format, allQuestionContents);
-                }
-            }
-
-            // Fallback sur etape.donnees
-            if (Object.keys(donnees).length === 0 && etape.donnees) {
-                donnees = etape.donnees;
-                if (typeof donnees === 'string') {
-                    try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
-                }
-            }
-        }
-
-        let correct = 0;
-        let total = 0;
-        let details = [];
-
-        // Logique de validation selon le format
-        switch (format) {
-            case 'vrai_faux':
-                if (donnees.reponse !== undefined && !donnees.propositions) {
-                    total = 1;
-                    const answer = this.userAnswers['vf_0'];
-                    const expected = donnees.reponse === true || donnees.reponse === 'vrai' ? 'vrai' : 'faux';
-                    const isCorrect = answer === expected;
-                    if (isCorrect) correct++;
-                    details.push({ question: donnees.question, reponse: answer, attendu: expected, correct: isCorrect });
-                } else {
-                    const propositions = donnees.propositions || [];
-                    propositions.forEach((prop, idx) => {
-                        total++;
-                        const answer = this.userAnswers[`vf_${idx}`];
-                        const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
-                        const isCorrect = answer === expected;
-                        if (isCorrect) correct++;
-                        details.push({ question: prop.texte, reponse: answer, attendu: expected, correct: isCorrect });
-                    });
-                }
-                break;
-
-            case 'qcm':
-                // Vérifier si on a plusieurs questions QCM
-                if (donnees.multiQuestions && Array.isArray(donnees.multiQuestions)) {
-                    donnees.multiQuestions.forEach((mq, qIdx) => {
-                        total++;
-                        const qChoices = mq.choix || [];
-                        const qUserAnswer = this.userAnswers[`qcm_${qIdx}`];
-                        let qCorrectIndices = [];
-
-                        // Déterminer les réponses correctes
-                        if (mq.reponses_correctes && Array.isArray(mq.reponses_correctes)) {
-                            qCorrectIndices = mq.reponses_correctes;
-                        } else if (mq.reponse !== undefined) {
-                            qCorrectIndices = [parseInt(mq.reponse)];
-                        } else if (mq.reponse_correcte !== undefined) {
-                            qCorrectIndices = [parseInt(mq.reponse_correcte)];
-                        } else {
-                            qCorrectIndices = qChoices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
-                        }
-
-                        const qIsCorrect = qCorrectIndices.includes(parseInt(qUserAnswer));
-                        if (qIsCorrect) correct++;
-                        details.push({
-                            question: mq.question || mq.enonce,
-                            reponse: qUserAnswer !== undefined ? qChoices[qUserAnswer]?.texte || qChoices[qUserAnswer] : null,
-                            attendu: qCorrectIndices.map(i => qChoices[i]?.texte || qChoices[i]).join(', '),
-                            correct: qIsCorrect
-                        });
-                    });
-                } else {
-                    // QCM simple (une seule question)
-                    total = 1;
-                    const choices = donnees.choix || donnees.options || [];
-                    const userAnswer = this.userAnswers['qcm'];
-                    let correctIndices = [];
-                    if (donnees.reponses_correctes && Array.isArray(donnees.reponses_correctes)) {
-                        correctIndices = donnees.reponses_correctes;
-                    } else if (donnees.reponse_correcte !== undefined) {
-                        correctIndices = [donnees.reponse_correcte];
-                    } else {
-                        correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
-                    }
-                    const isCorrect = correctIndices.includes(parseInt(userAnswer));
-                    if (isCorrect) correct = 1;
-                    const qcmFeedbacksOptions = donnees.feedbacks_options || [];
-                    const qcmChosenFeedback = userAnswer !== undefined ? qcmFeedbacksOptions[parseInt(userAnswer)] || '' : '';
-                    details.push({
-                        question: donnees.question || donnees.enonce,
-                        reponse: userAnswer !== undefined ? choices[userAnswer]?.texte || choices[userAnswer] : null,
-                        attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
-                        correct: isCorrect,
-                        feedback: qcmChosenFeedback
-                    });
-                }
-                break;
-
-            case 'chronologie':
-                const chronoAnswers = this.userAnswers['chrono'] || {};
-                const paires = donnees.paires || donnees.evenements || [];
-                const mode = donnees.mode || 'date';
-                const sortedEvents = [...paires].sort((a, b) => {
-                    const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
-                    const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
-                    return dateA - dateB;
-                });
-                sortedEvents.forEach((evt, idx) => {
-                    total++;
-                    const answer = chronoAnswers[idx];
-                    const correctValue = mode === 'evenement' ? evt.evenement : String(evt.date);
-                    const reponsesAcceptees = evt.reponses_acceptees || [];
-                    let isCorrectAnswer = false;
-                    if (answer && answer.value) {
-                        const userValue = answer.value.trim().toLowerCase();
-                        const correctLower = correctValue.trim().toLowerCase();
-                        isCorrectAnswer = userValue === correctLower ||
-                            reponsesAcceptees.some(alt => alt.trim().toLowerCase() === userValue);
-                    }
-                    if (isCorrectAnswer) correct++;
-                    details.push({
-                        question: mode === 'evenement' ? evt.date : evt.evenement,
-                        reponse: answer?.value || null,
-                        attendu: correctValue,
-                        correct: isCorrectAnswer
-                    });
-                });
-                break;
-
-            case 'timeline':
-                // Pour timeline, vérifier l'ordre des cartes
-                // L'ordre correct est l'ordre de création (index 0, 1, 2, 3...)
-                const cartes = donnees.cartes || [];
-                total = cartes.length;
-
-                // Récupérer l'ordre actuel des cartes depuis le DOM ou les réponses sauvegardées
-                const container = document.getElementById('timelineCards');
-                let userOrder = [];
-                if (container) {
-                    userOrder = Array.from(container.querySelectorAll('.timeline-card')).map(card => ({
-                        originalIndex: parseInt(card.dataset.originalIndex),
-                        titre: card.dataset.titre
-                    }));
-                } else if (this.userAnswers['timeline_order']) {
-                    userOrder = this.userAnswers['timeline_order'];
-                }
-
-                // Comparer chaque position : la carte à la position N doit avoir originalIndex = N
-                cartes.forEach((carte, positionAttendue) => {
-                    const userCarte = userOrder[positionAttendue];
-                    const isCorrect = userCarte && userCarte.originalIndex === positionAttendue;
-                    if (isCorrect) correct++;
-                    details.push({
-                        question: `Position ${positionAttendue + 1}`,
-                        reponse: userCarte ? userCarte.titre : 'Non placé',
-                        attendu: carte.titre,
-                        correct: isCorrect
-                    });
-                });
-                break;
-
-            case 'texte_trou':
-            case 'texte_trous':
-                const texte = donnees.texte || '';
-                const matches = texte.match(/\{([^}]+)\}/g) || [];
-                matches.forEach((match, idx) => {
-                    total++;
-                    const expected = match.replace(/[{}]/g, '');
-                    const input = document.getElementById(`trou_${idx}`);
-                    const userValue = input ? input.value.trim() : '';
-                    const isCorrectTrou = userValue.toLowerCase() === expected.toLowerCase();
-                    if (isCorrectTrou) correct++;
-                    details.push({ question: `Trou ${idx + 1}`, reponse: userValue, attendu: expected, correct: isCorrectTrou });
-                });
-                break;
-
-            case 'association':
-                const assocPaires = donnees.paires || [];
-                total = assocPaires.length;
-                const userPairs = this.userAnswers['association'] || [];
-
-                // Pour chaque paire correcte, vérifier si l'utilisateur l'a trouvée
-                assocPaires.forEach((paire, idx) => {
-                    // Chercher si l'utilisateur a fait cette association
-                    const userMatch = userPairs.find(up =>
-                        String(up.gauche) === String(idx) && String(up.droite) === String(idx)
-                    );
-                    const isCorrect = !!userMatch;
-                    if (isCorrect) correct++;
-
-                    // Trouver ce que l'utilisateur a associé à cet élément
-                    const userPair = userPairs.find(up => String(up.gauche) === String(idx));
-                    let userReponse = 'Non associé';
-                    if (userPair) {
-                        const droiteIdx = parseInt(userPair.droite);
-                        if (assocPaires[droiteIdx]) {
-                            userReponse = assocPaires[droiteIdx].element2;
-                        }
-                    }
-
-                    details.push({
-                        question: paire.element1,
-                        questionType: paire.element1_type || 'text',
-                        reponse: userReponse,
-                        reponseType: userPair && assocPaires[parseInt(userPair.droite)] ? (assocPaires[parseInt(userPair.droite)].element2_type || 'text') : 'text',
-                        attendu: paire.element2,
-                        attenduType: paire.element2_type || 'text',
-                        correct: isCorrect
-                    });
-                });
-                break;
-
-            case 'carte':
-                const marqueurs = donnees.marqueurs || [];
-                marqueurs.forEach((m, idx) => {
-                    total++;
-                    const answer = this.userAnswers['carte_' + idx];
-                    if (answer) {
-                        const userValue = answer.trim().toLowerCase();
-                        const expectedValue = (m.reponse || '').trim().toLowerCase();
-                        const reponsesAcceptees = m.reponses_acceptees || [];
-                        const allAccepted = [expectedValue, ...reponsesAcceptees.map(r => r.trim().toLowerCase())];
-                        const isCorrectCarte = allAccepted.some(rep => userValue === rep);
-                        if (isCorrectCarte) correct++;
-                        details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrectCarte });
-                    } else {
-                        details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
-                    }
-                });
-                break;
-
-            case 'question_ouverte':
-                total = 1;
-                const qoAnswer = this.userAnswers['question_ouverte'];
-                const qoReponsesAcceptees = donnees.reponses_acceptees || [];
-                const qoStricte = donnees.comparaison_stricte || false;
-                let qoCorrect = false;
-                if (qoAnswer) {
-                    qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep, qoStricte));
-                }
-                if (qoCorrect) correct = 1;
-                details.push({
-                    question: donnees.question,
-                    reponse: qoAnswer,
-                    attendu: qoReponsesAcceptees.join(' / '),
-                    correct: qoCorrect
-                });
+                document.querySelectorAll('.association-item:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
                 break;
 
             case 'flashcard':
@@ -2678,27 +2267,175 @@ const EleveConnaissances = {
                 correct = flashResults.filter(r => r.savait).length;
                 flashCartes.forEach((carte, idx) => {
                     const result = flashResults[idx];
-                    details.push({
-                        question: carte.recto,
-                        reponse: result ? (result.savait ? 'Je savais' : 'Je ne savais pas') : 'Non évalué',
-                        attendu: carte.verso,
-                        correct: result ? result.savait : false
-                    });
+                    details.push({ question: carte.recto, reponse: result ? (result.savait ? 'Je savais' : 'Je ne savais pas') : 'Non évalué', attendu: carte.verso, correct: result ? result.savait : false });
                 });
                 break;
         }
 
-        return {
-            etapeIndex,
-            etapeTitre: etape.titre || `Étape ${etapeIndex + 1}`,
-            format: etape.format_code,
+        // Marquer l'étape comme validée
+        this.currentEtapeValidated = true;
+        const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+        // Stocker le résultat pour le bilan final
+        this.etapesResults[this.currentEtapeIndex] = {
+            etapeIndex: this.currentEtapeIndex,
+            etapeTitre: currentEtape.titre || `Étape ${this.currentEtapeIndex + 1}`,
+            format: currentEtape.format_code,
             correct,
             total,
-            pourcentage: total > 0 ? Math.round((correct / total) * 100) : 0,
+            pourcentage: percent,
             details,
             donnees
         };
+
+        // Désactiver les inputs
+        const content = document.getElementById('exerciseContent');
+        if (content) {
+            content.classList.add('validated');
+            content.querySelectorAll('input, select, textarea, button').forEach(el => {
+                if (!el.closest('.etape-action-bar')) el.disabled = true;
+            });
+            // Désactiver les clics sur les items d'association
+            content.querySelectorAll('.association-item').forEach(el => {
+                el.style.pointerEvents = 'none';
+            });
+        }
+
+        // Afficher le bandeau de feedback
+        const feedbackZone = document.getElementById('etapeFeedback');
+        if (feedbackZone) {
+            feedbackZone.style.display = 'block';
+            feedbackZone.className = `etape-feedback ${percent === 100 ? 'success' : percent >= 50 ? 'partial' : 'error'}`;
+            feedbackZone.innerHTML = `
+                <div class="etape-feedback-icon">${percent === 100 ? '✓' : percent >= 50 ? '~' : '✗'}</div>
+                <div class="etape-feedback-text">
+                    <strong>${percent === 100 ? 'Bravo !' : percent >= 50 ? 'Pas mal !' : 'Dommage...'}</strong>
+                    <span>${correct}/${total} correct${correct > 1 ? 's' : ''}</span>
+                </div>
+            `;
+        }
+
+        // Remplacer le bouton Valider par Suivant / Terminer
+        const actionBar = document.getElementById('etapeActionBar');
+        const isLastEtape = this.currentEtapeIndex >= this.currentEtapes.length - 1;
+        if (actionBar) {
+            actionBar.innerHTML = `
+                <button class="btn-etape-action next-btn" onclick="EleveConnaissances.${isLastEtape ? 'finishEntrainement' : 'nextEtape'}()">
+                    ${isLastEtape ? 'Terminer ✓' : 'Suivant →'}
+                </button>
+            `;
+        }
     },
+
+    /**
+     * Récupère les données d'une étape (jointure etapeQuestions → questionsConnaissances)
+     */
+    getEtapeDonnees(etape) {
+        let donnees = {};
+        const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
+            String(eq.etape_id) === String(etape.id)
+        );
+
+        if (linkedQuestionRefs.length > 0) {
+            const questionRef = linkedQuestionRefs[0];
+            const questionContent = this.questionsConnaissances.find(q =>
+                String(q.id) === String(questionRef.question_id)
+            );
+            if (questionContent && questionContent.donnees) {
+                donnees = questionContent.donnees;
+                if (typeof donnees === 'string') {
+                    try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+                }
+            }
+        }
+
+        if (Object.keys(donnees).length === 0 && etape.donnees) {
+            donnees = etape.donnees;
+            if (typeof donnees === 'string') {
+                try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+            }
+        }
+        return donnees;
+    },
+
+    /**
+     * Navigate to previous etape (désactivé dans le nouveau flux)
+     */
+    previousEtape() {
+        // Plus de retour en arrière dans le nouveau flux
+    },
+
+    /**
+     * Navigate to next etape — uniquement après validation
+     */
+    nextEtape() {
+        if (!this.currentEtapeValidated) return;
+        if (this.currentEtapeIndex < this.currentEtapes.length - 1) {
+            this.currentEtapeIndex++;
+            this.currentEtapeValidated = false;
+            this.renderEntrainementView();
+        }
+    },
+
+    /**
+     * Finish the entrainement - Utilise les résultats déjà calculés par validateCurrentEtape
+     */
+    async finishEntrainement() {
+        this.stopTimer();
+
+        // Si l'étape courante n'a pas encore été validée (ex: timer expiré), la valider
+        if (!this.currentEtapeValidated) {
+            this.validateCurrentEtape();
+        }
+
+        // Compiler les résultats à partir des étapes déjà validées
+        const results = this.compileResults();
+        this.lastResults = results;
+
+        await this.saveProgression(results);
+        this.renderResultScreen(results);
+    },
+
+    /**
+     * Compile les résultats depuis etapesResults (déjà remplis par validateCurrentEtape)
+     */
+    compileResults() {
+        let totalCorrect = 0;
+        let totalQuestions = 0;
+
+        // Pour les étapes non encore validées (timer expiré), créer un résultat vide
+        this.currentEtapes.forEach((etape, idx) => {
+            if (!this.etapesResults[idx]) {
+                this.etapesResults[idx] = {
+                    etapeIndex: idx,
+                    etapeTitre: etape.titre || `Étape ${idx + 1}`,
+                    format: etape.format_code,
+                    correct: 0,
+                    total: 0,
+                    pourcentage: 0,
+                    details: [],
+                    donnees: {}
+                };
+            }
+        });
+
+        this.etapesResults.forEach(result => {
+            totalCorrect += result.correct;
+            totalQuestions += result.total;
+        });
+
+        const pourcentage = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+        return {
+            etapes: this.etapesResults,
+            totalCorrect,
+            totalQuestions,
+            pourcentage
+        };
+    },
+
+    // validateSingleEtape supprimé — les résultats sont maintenant
+    // stockés par validateCurrentEtape() dans this.etapesResults
 
     /**
      * Sauvegarde la progression dans le backend
@@ -2857,135 +2594,98 @@ const EleveConnaissances = {
         // Trouver l'entraînement suivant
         const nextEntrainement = this.findNextEntrainement();
 
-        // Générer le HTML de correction par étape
-        const generateCorrectionHTML = () => {
-            if (!results.etapes || results.etapes.length === 0) {
-                return '<p class="correction-fallback">Aucun détail disponible.</p>';
-            }
-
-            return results.etapes.map((etape, idx) => `
-                <div class="correction-etape ${etape.pourcentage >= 80 ? 'success' : etape.pourcentage >= 50 ? 'partial' : 'error'}">
-                    <div class="correction-etape-header">
-                        <span class="correction-etape-num">${idx + 1}</span>
-                        <span class="correction-etape-title">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</span>
-                        <span class="correction-etape-score">${etape.correct}/${etape.total}</span>
-                    </div>
-                    <div class="correction-etape-details">
-                        ${etape.details.map(d => {
-                            const renderVal = (val, type) => {
-                                if (type === 'image' && val && val !== 'Non associé') {
-                                    return `<img src="${this.escapeHtml(this.normalizeImageUrl(val))}" class="correction-img" alt="">`;
-                                }
-                                return val ? this.escapeHtml(val) : '<em>Non répondu</em>';
-                            };
-                            return `
-                            <div class="correction-item ${d.correct ? 'correct' : 'incorrect'}">
-                                <span class="correction-icon">${d.correct ? '✓' : '✗'}</span>
-                                <div class="correction-content">
-                                    <span class="correction-question">${renderVal(d.question, d.questionType)}</span>
-                                    ${!d.correct ? `
-                                        <div class="correction-answers">
-                                            <span class="user-answer">${renderVal(d.reponse, d.reponseType)}</span>
-                                            <span class="expected-answer">${renderVal(d.attendu, d.attenduType)}</span>
-                                        </div>
-                                    ` : ''}
-                                    ${d.feedback ? `<div class="correction-feedback">${this.escapeHtml(d.feedback)}</div>` : ''}
-                                </div>
-                            </div>
-                        `}).join('')}
-                    </div>
+        // Résumé des étapes (simple ✓/✗ par étape, pas de correction détaillée)
+        const generateEtapesSummary = () => {
+            if (!results.etapes || results.etapes.length === 0) return '';
+            return `
+                <div class="bilan-etapes-summary">
+                    ${results.etapes.map((etape, idx) => `
+                        <div class="bilan-etape-row ${etape.pourcentage >= 80 ? 'success' : etape.pourcentage >= 50 ? 'partial' : 'error'}">
+                            <span class="bilan-etape-icon">${etape.pourcentage >= 80 ? '✓' : '✗'}</span>
+                            <span class="bilan-etape-name">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</span>
+                            <span class="bilan-etape-score">${etape.correct}/${etape.total}</span>
+                        </div>
+                    `).join('')}
                 </div>
-            `).join('');
+            `;
         };
 
         container.innerHTML = `
-            <div class="result-view conn" style="max-width:none;width:100%;margin:0;padding:1.5rem;box-sizing:border-box;">
+            <div class="result-view conn" style="max-width:600px;margin:0 auto;padding:1.5rem;box-sizing:border-box;">
                 <button class="exercise-back-btn" onclick="EleveConnaissances.backToList()">
                     ← Retour aux entraînements
                 </button>
 
-                <div class="result-card-conn" style="width:100%;max-width:none;">
-                    <!-- BLOC GAUCHE : BILAN -->
-                    <div class="result-bilan-conn">
-                        <div class="bilan-header ${messageClass}">
-                            <span class="bilan-icon">${messageIcon}</span>
-                            <span class="bilan-message">${messageTitle}</span>
-                        </div>
-
-                        <div class="bilan-score">
-                            <div class="score-circle ${messageClass}">
-                                <span class="score-value">${results.pourcentage}%</span>
-                            </div>
-                            <span class="score-detail">${results.totalCorrect}/${results.totalQuestions}</span>
-                        </div>
-
-                        ${!this.isTrainingMode ? `
-                        <div class="bilan-progression">
-                            ${generateProgDots()}
-                            <span class="prog-label">Niveau ${prog.etape || 1}/${SEUIL_ETAPES}</span>
-                        </div>
-                        ` : `
-                        <div class="bilan-training-badge">
-                            <span class="training-badge-icon">🔄</span>
-                            <span class="training-badge-text">Entraînement libre</span>
-                        </div>
-                        `}
-
-                        <!-- Messages selon le résultat -->
-                        <div class="bilan-messages">
-                            ${prog.statut === 'memorise' && prog.reussi ? `
-                                <div class="bilan-memorise">
-                                    <span class="memorise-icon">🎉</span>
-                                    <p>Cet entraînement est mémorisé !</p>
-                                </div>
-                            ` : ''}
-
-                            ${isSuccess && prochaineDateStr && prog.statut !== 'memorise' ? `
-                                <div class="bilan-prochaine">
-                                    <p class="prochaine-main">🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${(prog.etape || 1) + 1} !</p>
-                                    <p class="prochaine-sub">En attendant, tu peux t'entraîner autant que tu veux</p>
-                                    <button class="btn btn-training" onclick="EleveConnaissances.restartAsTraining()">
-                                        💪 Continuer à s'entraîner
-                                    </button>
-                                </div>
-                            ` : ''}
-
-                            ${!isSuccess && !this.isTrainingMode && prog.reussi === false ? `
-                                <div class="bilan-retry">
-                                    <p>📚 Il faut ${prog.seuil || 80}% pour valider.</p>
-                                    <button class="btn btn-primary" onclick="EleveConnaissances.restartEntrainement()">
-                                        🔄 Réessayer
-                                    </button>
-                                </div>
-                            ` : ''}
-
-                            ${this.isTrainingMode ? `
-                                <div class="bilan-training-info">
-                                    <small>Ta progression n'est pas modifiée en mode libre</small>
-                                    <button class="btn btn-primary" onclick="EleveConnaissances.restartEntrainement()">
-                                        🔄 Recommencer
-                                    </button>
-                                </div>
-                            ` : ''}
-                        </div>
-
-                        <div class="bilan-actions">
-                            ${nextEntrainement && isSuccess ? `
-                                <button class="btn btn-primary" onclick="EleveConnaissances.startNextEntrainement()">
-                                    Passer au suivant →
-                                </button>
-                            ` : ''}
-                        </div>
+                <div class="result-card-conn-centered">
+                    <div class="bilan-header ${messageClass}">
+                        <span class="bilan-icon">${messageIcon}</span>
+                        <span class="bilan-message">${messageTitle}</span>
                     </div>
 
-                    <!-- BLOC DROITE : CORRECTION -->
-                    <div class="result-correction-conn">
-                        <div class="correction-header">
-                            <h3>📝 Correction</h3>
+                    <div class="bilan-score">
+                        <div class="score-circle ${messageClass}">
+                            <span class="score-value">${results.pourcentage}%</span>
                         </div>
-                        <div class="correction-content">
-                            ${generateCorrectionHTML()}
-                        </div>
+                        <span class="score-detail">${results.totalCorrect}/${results.totalQuestions}</span>
+                    </div>
+
+                    ${generateEtapesSummary()}
+
+                    ${!this.isTrainingMode ? `
+                    <div class="bilan-progression">
+                        ${generateProgDots()}
+                        <span class="prog-label">Niveau ${prog.etape || 1}/${SEUIL_ETAPES}</span>
+                    </div>
+                    ` : `
+                    <div class="bilan-training-badge">
+                        <span class="training-badge-icon">🔄</span>
+                        <span class="training-badge-text">Entraînement libre</span>
+                    </div>
+                    `}
+
+                    <div class="bilan-messages">
+                        ${prog.statut === 'memorise' && prog.reussi ? `
+                            <div class="bilan-memorise">
+                                <span class="memorise-icon">🎉</span>
+                                <p>Cet entraînement est mémorisé !</p>
+                            </div>
+                        ` : ''}
+
+                        ${isSuccess && prochaineDateStr && prog.statut !== 'memorise' ? `
+                            <div class="bilan-prochaine">
+                                <p class="prochaine-main">🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${(prog.etape || 1) + 1} !</p>
+                                <p class="prochaine-sub">En attendant, tu peux t'entraîner autant que tu veux</p>
+                                <button class="btn btn-training" onclick="EleveConnaissances.restartAsTraining()">
+                                    Continuer à s'entraîner
+                                </button>
+                            </div>
+                        ` : ''}
+
+                        ${!isSuccess && !this.isTrainingMode && prog.reussi === false ? `
+                            <div class="bilan-retry">
+                                <p>Il faut ${prog.seuil || 80}% pour valider.</p>
+                                <button class="btn btn-primary" onclick="EleveConnaissances.restartEntrainement()">
+                                    Réessayer
+                                </button>
+                            </div>
+                        ` : ''}
+
+                        ${this.isTrainingMode ? `
+                            <div class="bilan-training-info">
+                                <small>Ta progression n'est pas modifiée en mode libre</small>
+                                <button class="btn btn-primary" onclick="EleveConnaissances.restartEntrainement()">
+                                    Recommencer
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="bilan-actions">
+                        ${nextEntrainement && isSuccess ? `
+                            <button class="btn btn-primary" onclick="EleveConnaissances.startNextEntrainement()">
+                                Passer au suivant →
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -3385,7 +3085,7 @@ const EleveConnaissances = {
         const labels = {
             'vrai_faux': 'Vrai/Faux',
             'qcm': 'QCM',
-            'chronologie': 'Chronologie',
+            'chronologie': 'Frise chronologique',
             'timeline': 'Frise chronologique',
             'texte_trous': 'Texte à trous'
         };

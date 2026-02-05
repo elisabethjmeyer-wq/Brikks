@@ -20,8 +20,7 @@ const AdminBanquesExercices = {
     formatsQuestions: [
         { id: '1', code: 'qcm', nom: 'QCM', icone: '📝', description: 'Questions à choix multiples' },
         { id: '2', code: 'vrai_faux', nom: 'Vrai / Faux', icone: '✅', description: 'Questions vrai ou faux' },
-        { id: '3', code: 'chronologie', nom: 'Chronologie', icone: '📅', description: 'Événements à ordonner' },
-        { id: '4', code: 'timeline', nom: 'Timeline', icone: '🖼️', description: 'Cartes à ordonner sur une frise' },
+        { id: '3', code: 'timeline', nom: 'Frise chronologique', icone: '📅', description: 'Texte ou cartes à ordonner chronologiquement' },
         { id: '5', code: 'association', nom: 'Association', icone: '🔗', description: 'Relier des éléments' },
         { id: '6', code: 'texte_trou', nom: 'Texte à trous', icone: '✍️', description: 'Compléter un texte' },
         { id: '7', code: 'carte', nom: 'Carte cliquable', icone: '🗺️', description: 'Localisation géographique' },
@@ -3208,8 +3207,8 @@ const AdminBanquesExercices = {
     questionTypeNames: {
         'qcm': 'QCM',
         'vrai_faux': 'Vrai/Faux',
-        'chronologie': 'Chronologie',
-        'timeline': 'Timeline',
+        'chronologie': 'Frise chronologique',
+        'timeline': 'Frise chronologique',
         'association': 'Association',
         'texte_trou': 'Texte à trous',
         'ordre': 'Mise en ordre',
@@ -3831,13 +3830,15 @@ const AdminBanquesExercices = {
     },
 
     countQuestionsForFormat(formatCode) {
-        // Chaque format doit correspondre exactement
-        return this.questionsConnaissances.filter(q => q.type === formatCode).length;
+        return this.getQuestionsForFormat(formatCode).length;
     },
 
     // Filtre les questions disponibles pour un format donné
     getQuestionsForFormat(formatCode) {
-        // Chaque format doit correspondre exactement (pas de mélange chronologie/timeline)
+        // Timeline unifié : inclure aussi les anciennes questions chronologie
+        if (formatCode === 'timeline') {
+            return this.questionsConnaissances.filter(q => q.type === 'timeline' || q.type === 'chronologie');
+        }
         return this.questionsConnaissances.filter(q => q.type === formatCode);
     },
 
@@ -5295,10 +5296,10 @@ const AdminBanquesExercices = {
             case 'question_ouverte':
                 return (question.donnees.question || '').substring(0, 60) || 'Question sans texte';
             case 'chronologie':
+            case 'timeline':
+                return (question.donnees.consigne || '').substring(0, 60) || 'Frise chronologique';
             case 'association':
                 return (question.donnees.consigne || '').substring(0, 60) || 'Exercice d\'association';
-            case 'timeline':
-                return (question.donnees.consigne || '').substring(0, 60) || 'Exercice de timeline';
             case 'texte_trou':
                 return (question.donnees.texte || '').substring(0, 60) || 'Texte à trous';
             case 'carte':
@@ -5441,7 +5442,9 @@ const AdminBanquesExercices = {
         titleEl.textContent = question ? 'Modifier la question' : 'Nouvelle question';
 
         if (question) {
-            typeSelect.value = question.type || 'qcm';
+            // Rétro-compat: mapper chronologie → timeline
+            const qType = question.type === 'chronologie' ? 'timeline' : (question.type || 'qcm');
+            typeSelect.value = qType;
             if (titreProfInput) titreProfInput.value = question.titre_prof || '';
             this.renderQuestionBuilder(question.type, question.donnees);
         } else {
@@ -5548,61 +5551,18 @@ const AdminBanquesExercices = {
                 `;
                 break;
 
-            case 'chronologie':
-                const pairesChronologie = data.paires || [{ date: '', evenement: '', cache: 'date' }];
-                const modeChrono = data.mode || 'date'; // 'date' = élève trouve la date, 'evenement' = élève trouve l'événement
-                html = `
-                    <div class="form-group">
-                        <label>Consigne</label>
-                        <input type="text" id="chronoConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Complétez la frise chronologique')}">
-                    </div>
-                    <div class="form-group">
-                        <label>Que doit trouver l'élève ?</label>
-                        <div class="chrono-mode-selector" style="display: flex; gap: 1rem; margin-top: 0.5rem;">
-                            <label class="radio-card ${modeChrono === 'date' ? 'selected' : ''}" style="flex: 1; padding: 1rem; border: 2px solid ${modeChrono === 'date' ? 'var(--primary)' : 'var(--gray-200)'}; border-radius: 8px; cursor: pointer; text-align: center;">
-                                <input type="radio" name="chronoMode" value="date" ${modeChrono === 'date' ? 'checked' : ''} onchange="AdminBanquesExercices.updateChronoMode(this.value)" style="display: none;">
-                                <div style="font-weight: 600; margin-bottom: 0.25rem;">📅 Les dates</div>
-                                <div style="font-size: 0.8rem; color: var(--gray-500);">L'événement est affiché, l'élève trouve la date</div>
-                            </label>
-                            <label class="radio-card ${modeChrono === 'evenement' ? 'selected' : ''}" style="flex: 1; padding: 1rem; border: 2px solid ${modeChrono === 'evenement' ? 'var(--primary)' : 'var(--gray-200)'}; border-radius: 8px; cursor: pointer; text-align: center;">
-                                <input type="radio" name="chronoMode" value="evenement" ${modeChrono === 'evenement' ? 'checked' : ''} onchange="AdminBanquesExercices.updateChronoMode(this.value)" style="display: none;">
-                                <div style="font-weight: 600; margin-bottom: 0.25rem;">📝 Les événements</div>
-                                <div style="font-size: 0.8rem; color: var(--gray-500);">La date est affichée, l'élève trouve l'événement</div>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Aperçu de la frise <span style="font-weight: normal; color: var(--gray-500);">(triée par date)</span></label>
-                        <div id="chronoFrisePreview" class="chrono-frise-preview">
-                            <div class="chrono-frise-arrow">
-                                <div class="chrono-frise-line"></div>
-                                <div class="chrono-frise-arrow-head"></div>
-                            </div>
-                            <div id="chronoFriseMarkers" class="chrono-frise-markers"></div>
-                        </div>
-                        <p class="form-help" style="margin-top: 0.5rem;">Les éléments en <span style="background: #f3e8ff; color: #7c3aed; padding: 2px 6px; border-radius: 4px;">violet</span> sont cachés pour l'élève.</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Événements</label>
-                        <p class="form-help">Les événements seront automatiquement triés par date sur la frise. Vous pouvez ajouter des réponses alternatives acceptées.</p>
-                        <div id="chronoPaires">
-                            ${pairesChronologie.map((p, i) => this.renderChronoEventRow(p, i)).join('')}
-                        </div>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addChronoPair()">+ Ajouter un événement</button>
-                    </div>
-                `;
-                // Initialiser la prévisualisation après le rendu
-                setTimeout(() => {
-                    this.chronoMode = modeChrono;
-                    this.updateChronoPreview();
-                }, 50);
-                break;
+            case 'chronologie': // rétro-compatibilité anciennes questions
+            case 'timeline': {
+                // Détecter le sous-mode depuis les données existantes
+                const isTexteMode = !!(data.paires && data.mode) || type === 'chronologie';
 
-            case 'timeline':
-                // Convertir ancien format (array de strings) en nouveau format (array d'objets)
+                // --- Préparer les données Mode texte ---
+                const pairesChronologie = data.paires || [{ date: '', evenement: '', cache: 'date' }];
+                const modeChrono = data.mode || 'date';
+
+                // --- Préparer les données Mode cartes ---
                 let cartes = data.cartes || [];
-                if (cartes.length === 0 && data.evenements) {
-                    // Migration depuis l'ancien format
+                if (cartes.length === 0 && data.evenements && !isTexteMode) {
                     cartes = data.evenements.map(e => ({ titre: e, image_url: '' }));
                 }
                 if (cartes.length === 0) {
@@ -5610,36 +5570,104 @@ const AdminBanquesExercices = {
                 }
 
                 html = `
+                    <!-- Toggle mode texte / cartes -->
                     <div class="form-group">
-                        <label>Consigne</label>
-                        <input type="text" id="timelineConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Remettez les événements dans l\'ordre chronologique')}">
+                        <label>Type de frise</label>
+                        <div class="timeline-mode-toggle" style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                            <label class="radio-card ${isTexteMode ? 'selected' : ''}" style="flex: 1; padding: 1rem; border: 2px solid ${isTexteMode ? 'var(--primary)' : 'var(--gray-200)'}; border-radius: 8px; cursor: pointer; text-align: center;">
+                                <input type="radio" name="timelineMode" value="texte" ${isTexteMode ? 'checked' : ''} onchange="AdminBanquesExercices.toggleTimelineMode(this.value)" style="display: none;">
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">📝 Mode texte</div>
+                                <div style="font-size: 0.8rem; color: var(--gray-500);">L'élève complète les dates ou événements manquants</div>
+                            </label>
+                            <label class="radio-card ${!isTexteMode ? 'selected' : ''}" style="flex: 1; padding: 1rem; border: 2px solid ${!isTexteMode ? 'var(--primary)' : 'var(--gray-200)'}; border-radius: 8px; cursor: pointer; text-align: center;">
+                                <input type="radio" name="timelineMode" value="cartes" ${!isTexteMode ? 'checked' : ''} onchange="AdminBanquesExercices.toggleTimelineMode(this.value)" style="display: none;">
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">🖼️ Mode cartes</div>
+                                <div style="font-size: 0.8rem; color: var(--gray-500);">L'élève remet les cartes dans l'ordre chronologique</div>
+                            </label>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Aperçu des cartes (ordre correct)</label>
-                        <p class="form-help">De gauche (le plus ancien) à droite (le plus récent). Glissez pour réordonner.</p>
-                        <div id="timelineCardsPreview" class="timeline-cards-container">
+
+                    <!-- ===== Contenu Mode Texte ===== -->
+                    <div id="timelineTexteMode" style="display: ${isTexteMode ? 'block' : 'none'}">
+                        <div class="form-group">
+                            <label>Consigne</label>
+                            <input type="text" id="chronoConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Complétez la frise chronologique')}">
                         </div>
-                        <div class="timeline-axis">
-                            <span class="timeline-axis-label">Ancien</span>
-                            <div class="timeline-axis-line"></div>
-                            <span class="timeline-axis-label">Récent</span>
+                        <div class="form-group">
+                            <label>Que doit trouver l'élève ?</label>
+                            <div class="chrono-mode-selector" style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                <label class="radio-card ${modeChrono === 'date' ? 'selected' : ''}" style="flex: 1; padding: 1rem; border: 2px solid ${modeChrono === 'date' ? 'var(--primary)' : 'var(--gray-200)'}; border-radius: 8px; cursor: pointer; text-align: center;">
+                                    <input type="radio" name="chronoMode" value="date" ${modeChrono === 'date' ? 'checked' : ''} onchange="AdminBanquesExercices.updateChronoMode(this.value)" style="display: none;">
+                                    <div style="font-weight: 600; margin-bottom: 0.25rem;">📅 Les dates</div>
+                                    <div style="font-size: 0.8rem; color: var(--gray-500);">L'événement est affiché, l'élève trouve la date</div>
+                                </label>
+                                <label class="radio-card ${modeChrono === 'evenement' ? 'selected' : ''}" style="flex: 1; padding: 1rem; border: 2px solid ${modeChrono === 'evenement' ? 'var(--primary)' : 'var(--gray-200)'}; border-radius: 8px; cursor: pointer; text-align: center;">
+                                    <input type="radio" name="chronoMode" value="evenement" ${modeChrono === 'evenement' ? 'checked' : ''} onchange="AdminBanquesExercices.updateChronoMode(this.value)" style="display: none;">
+                                    <div style="font-weight: 600; margin-bottom: 0.25rem;">📝 Les événements</div>
+                                    <div style="font-size: 0.8rem; color: var(--gray-500);">La date est affichée, l'élève trouve l'événement</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Aperçu de la frise <span style="font-weight: normal; color: var(--gray-500);">(triée par date)</span></label>
+                            <div id="chronoFrisePreview" class="chrono-frise-preview">
+                                <div class="chrono-frise-arrow">
+                                    <div class="chrono-frise-line"></div>
+                                    <div class="chrono-frise-arrow-head"></div>
+                                </div>
+                                <div id="chronoFriseMarkers" class="chrono-frise-markers"></div>
+                            </div>
+                            <p class="form-help" style="margin-top: 0.5rem;">Les éléments en <span style="background: #f3e8ff; color: #7c3aed; padding: 2px 6px; border-radius: 4px;">violet</span> sont cachés pour l'élève.</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Événements</label>
+                            <p class="form-help">Les événements seront automatiquement triés par date sur la frise. Vous pouvez ajouter des réponses alternatives acceptées.</p>
+                            <div id="chronoPaires">
+                                ${pairesChronologie.map((p, i) => this.renderChronoEventRow(p, i)).join('')}
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addChronoPair()">+ Ajouter un événement</button>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Cartes (ordre chronologique)</label>
-                        <p class="form-help">Définissez chaque carte avec son titre et une image de fond optionnelle.</p>
-                        <div id="timelineEvents">
-                            ${cartes.map((c, i) => this.renderTimelineCardForm(c, i)).join('')}
+
+                    <!-- ===== Contenu Mode Cartes ===== -->
+                    <div id="timelineCartesMode" style="display: ${!isTexteMode ? 'block' : 'none'}">
+                        <div class="form-group">
+                            <label>Consigne</label>
+                            <input type="text" id="timelineConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Remettez les événements dans l\'ordre chronologique')}">
                         </div>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addTimelineEvent()">+ Ajouter une carte</button>
+                        <div class="form-group">
+                            <label>Aperçu des cartes (ordre correct)</label>
+                            <p class="form-help">De gauche (le plus ancien) à droite (le plus récent). Glissez pour réordonner.</p>
+                            <div id="timelineCardsPreview" class="timeline-cards-container">
+                            </div>
+                            <div class="timeline-axis">
+                                <span class="timeline-axis-label">Ancien</span>
+                                <div class="timeline-axis-line"></div>
+                                <span class="timeline-axis-label">Récent</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Cartes (ordre chronologique)</label>
+                            <p class="form-help">Définissez chaque carte avec son titre et une image de fond optionnelle.</p>
+                            <div id="timelineEvents">
+                                ${cartes.map((c, i) => this.renderTimelineCardForm(c, i)).join('')}
+                            </div>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addTimelineEvent()">+ Ajouter une carte</button>
+                        </div>
                     </div>
                 `;
-                // Initialiser la prévisualisation et le drag & drop
+                // Initialiser les prévisualisations
                 setTimeout(() => {
-                    this.updateTimelinePreview();
-                    this.initTimelineDragDrop();
+                    if (isTexteMode) {
+                        this.chronoMode = modeChrono;
+                        this.updateChronoPreview();
+                    } else {
+                        this.updateTimelinePreview();
+                        this.initTimelineDragDrop();
+                    }
                 }, 50);
                 break;
+            }
 
             case 'association':
                 const pairesAssoc = data.paires || [{ element1: '', element2: '' }];
@@ -5926,6 +5954,38 @@ const AdminBanquesExercices = {
     },
 
     chronoMode: 'date', // 'date' ou 'evenement'
+
+    toggleTimelineMode(mode) {
+        const texteDiv = document.getElementById('timelineTexteMode');
+        const cartesDiv = document.getElementById('timelineCartesMode');
+        if (!texteDiv || !cartesDiv) return;
+
+        if (mode === 'texte') {
+            texteDiv.style.display = 'block';
+            cartesDiv.style.display = 'none';
+            // Init chrono preview
+            this.chronoMode = this.chronoMode || 'date';
+            this.updateChronoPreview();
+        } else {
+            texteDiv.style.display = 'none';
+            cartesDiv.style.display = 'block';
+            // Init timeline preview
+            this.updateTimelinePreview();
+            this.initTimelineDragDrop();
+        }
+
+        // Mettre à jour le style des radio cards
+        document.querySelectorAll('.timeline-mode-toggle .radio-card').forEach(card => {
+            const input = card.querySelector('input[type="radio"]');
+            if (input.value === mode) {
+                card.style.borderColor = 'var(--primary)';
+                card.classList.add('selected');
+            } else {
+                card.style.borderColor = 'var(--gray-200)';
+                card.classList.remove('selected');
+            }
+        });
+    },
 
     updateChronoNumbers() {
         const blocks = document.querySelectorAll('#chronoPaires .chrono-event-block');
@@ -6522,7 +6582,7 @@ const AdminBanquesExercices = {
     },
 
     async saveQuestionConnaissances() {
-        const type = document.getElementById('questionType').value;
+        let type = document.getElementById('questionType').value;
         let donnees = {};
 
         switch (type) {
@@ -6565,35 +6625,42 @@ const AdminBanquesExercices = {
                 }
                 break;
 
-            case 'chronologie':
-                donnees = {
-                    consigne: document.getElementById('chronoConsigne').value,
-                    mode: this.chronoMode || 'date', // 'date' ou 'evenement'
-                    paires: Array.from(document.querySelectorAll('#chronoPaires .chrono-event-block')).map(block => {
-                        const altInputs = block.querySelectorAll('.chrono-alt-input');
-                        const reponses_acceptees = Array.from(altInputs)
-                            .map(input => input.value.trim())
-                            .filter(v => v !== '');
-                        return {
-                            date: block.querySelector('.chrono-date').value,
-                            evenement: block.querySelector('.chrono-event').value,
-                            reponses_acceptees: reponses_acceptees
-                        };
-                    }).filter(p => p.date && p.evenement)
-                };
+            case 'chronologie': // rétro-compatibilité
+            case 'timeline': {
+                const timelineMode = document.querySelector('input[name="timelineMode"]:checked')?.value || 'cartes';
+                if (timelineMode === 'texte') {
+                    // Mode texte (ex-chronologie)
+                    donnees = {
+                        consigne: document.getElementById('chronoConsigne').value,
+                        mode: this.chronoMode || 'date',
+                        paires: Array.from(document.querySelectorAll('#chronoPaires .chrono-event-block')).map(block => {
+                            const altInputs = block.querySelectorAll('.chrono-alt-input');
+                            const reponses_acceptees = Array.from(altInputs)
+                                .map(input => input.value.trim())
+                                .filter(v => v !== '');
+                            return {
+                                date: block.querySelector('.chrono-date').value,
+                                evenement: block.querySelector('.chrono-event').value,
+                                reponses_acceptees: reponses_acceptees
+                            };
+                        }).filter(p => p.date && p.evenement)
+                    };
+                } else {
+                    // Mode cartes
+                    const timelineCartes = Array.from(document.querySelectorAll('#timelineEvents .timeline-card-form')).map(form => ({
+                        titre: form.querySelector('.timeline-titre')?.value || '',
+                        image_url: form.querySelector('.timeline-image')?.value || ''
+                    })).filter(c => c.titre);
+                    donnees = {
+                        consigne: document.getElementById('timelineConsigne').value,
+                        cartes: timelineCartes,
+                        evenements: timelineCartes.map(c => c.titre)
+                    };
+                }
+                // Forcer le type à 'timeline' pour uniformiser
+                type = 'timeline';
                 break;
-
-            case 'timeline':
-                const timelineCartes = Array.from(document.querySelectorAll('#timelineEvents .timeline-card-form')).map(form => ({
-                    titre: form.querySelector('.timeline-titre')?.value || '',
-                    image_url: form.querySelector('.timeline-image')?.value || ''
-                })).filter(c => c.titre);
-                donnees = {
-                    consigne: document.getElementById('timelineConsigne').value,
-                    cartes: timelineCartes,
-                    evenements: timelineCartes.map(c => c.titre)
-                };
-                break;
+            }
 
             case 'association':
                 donnees = {
@@ -7111,9 +7178,11 @@ const AdminBanquesExercices = {
             let globalOrdre = 1;
             for (const etape of etapesConfig) {
                 // Get all questions of this type for this banque
-                const questionsOfType = this.questionsConnaissances.filter(q =>
-                    q.banque_id === banqueId && q.type === etape.type
-                );
+                const questionsOfType = this.questionsConnaissances.filter(q => {
+                    if (q.banque_id !== banqueId) return false;
+                    if (etape.type === 'timeline') return q.type === 'timeline' || q.type === 'chronologie';
+                    return q.type === etape.type;
+                });
 
                 // Random selection
                 const shuffled = [...questionsOfType].sort(() => Math.random() - 0.5);
