@@ -1463,11 +1463,15 @@ const EleveConnaissances = {
         const elementsGauche = this.shuffleArray(paires.map((p, i) => ({ texte: p.element1, type: p.element1_type || 'text', id: i })));
         const elementsDroite = this.shuffleArray(paires.map((p, i) => ({ texte: p.element2, type: p.element2_type || 'text', id: i })));
 
+        // Détecter si les colonnes ont des images
+        const gaucheHasImages = elementsGauche.some(el => el.type === 'image');
+        const droiteHasImages = elementsDroite.some(el => el.type === 'image');
+
         return `
             <div class="association-container">
                 <p class="association-instruction">${this.escapeHtml(consigne)}</p>
                 <div class="association-columns">
-                    <div class="association-column association-gauche">
+                    <div class="association-column association-gauche ${gaucheHasImages ? 'has-images' : ''}">
                         ${elementsGauche.map(el => `
                             <div class="association-item ${el.type === 'image' ? 'association-item-image' : ''}" data-id="${el.id}" onclick="EleveConnaissances.selectAssociationItem(this, 'gauche')">
                                 ${el.type === 'image'
@@ -1477,7 +1481,7 @@ const EleveConnaissances = {
                             </div>
                         `).join('')}
                     </div>
-                    <div class="association-column association-droite">
+                    <div class="association-column association-droite ${droiteHasImages ? 'has-images' : ''}">
                         ${elementsDroite.map(el => `
                             <div class="association-item ${el.type === 'image' ? 'association-item-image' : ''}" data-id="${el.id}" onclick="EleveConnaissances.selectAssociationItem(this, 'droite')">
                                 <span class="association-link-indicator"></span>
@@ -2145,6 +2149,27 @@ const EleveConnaissances = {
                             }
                             details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
                         });
+
+                        // Afficher la correction si pas tout correct
+                        if (correct < total) {
+                            const existingCorrection = document.querySelector('.timeline-container .correction-section');
+                            if (!existingCorrection) {
+                                const correctionHtml = `
+                                    <div class="correction-section">
+                                        <h4>Ordre correct</h4>
+                                        <div class="correction-list">
+                                            ${cartes.map((carte, i) => `
+                                                <div class="correction-item">
+                                                    <span class="order-num">${i + 1}</span>
+                                                    <span class="item-text">${this.escapeHtml(carte.titre)}</span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `;
+                                cardsContainer.insertAdjacentHTML('afterend', correctionHtml);
+                            }
+                        }
                     }
                 }
                 break;
@@ -2256,8 +2281,36 @@ const EleveConnaissances = {
                     } else {
                         [gaucheEl, droiteEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('incorrect'); } });
                     }
+                    details.push({
+                        question: assocPaires.find(p => p.element1 === up.gauche || `pair-${assocPaires.indexOf(p)}` === up.gauche)?.element1 || up.gauche,
+                        reponse: assocPaires.find(p => p.element2 === up.droite || `pair-${assocPaires.indexOf(p)}` === up.droite)?.element2 || up.droite,
+                        correct: up.gauche === up.droite
+                    });
                 });
                 document.querySelectorAll('.association-item:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
+
+                // Afficher la correction si pas tout correct
+                if (correct < total) {
+                    const assocContainer = document.querySelector('.association-container');
+                    const existingCorrection = assocContainer?.querySelector('.correction-section');
+                    if (assocContainer && !existingCorrection) {
+                        const correctionHtml = `
+                            <div class="correction-section">
+                                <h4>Associations correctes</h4>
+                                <div class="correction-list association-correction-list">
+                                    ${assocPaires.map((paire, i) => `
+                                        <div class="correction-item association-correction-item">
+                                            <span class="assoc-left-text">${this.escapeHtml(paire.element1)}</span>
+                                            <span class="assoc-arrow">↔</span>
+                                            <span class="assoc-right-text">${this.escapeHtml(paire.element2)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                        assocContainer.insertAdjacentHTML('afterend', correctionHtml);
+                    }
+                }
                 break;
 
             case 'flashcard':

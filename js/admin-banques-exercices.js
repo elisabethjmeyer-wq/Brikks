@@ -221,6 +221,8 @@ const AdminBanquesExercices = {
             // Les formats sont pré-définis dans le code, on ne les écrase que si l'API retourne des données
             if (formatsQResult.success && formatsQResult.data && formatsQResult.data.length > 0) {
                 this.formatsQuestions = formatsQResult.data;
+                // Normaliser les formats après chargement
+                this.normalizeFormatsQuestions();
             }
             if (banquesExConnResult.success) {
                 this.banquesExercicesConn = banquesExConnResult.data || [];
@@ -3827,6 +3829,40 @@ const AdminBanquesExercices = {
                 }
             });
         });
+    },
+
+    /**
+     * Normalise les formats chargés depuis le Google Sheet :
+     * - Fusionne chronologie dans timeline (un seul format "Frise chronologique")
+     * - Ajoute flashcard si absent
+     */
+    normalizeFormatsQuestions() {
+        if (!this.formatsQuestions) return;
+
+        // 1. Retirer l'entrée chronologie (les questions chronologie seront affichées sous timeline)
+        this.formatsQuestions = this.formatsQuestions.filter(f => f.code !== 'chronologie');
+
+        // 2. Mettre à jour l'entrée timeline
+        const timelineFormat = this.formatsQuestions.find(f => f.code === 'timeline');
+        if (timelineFormat) {
+            timelineFormat.nom = 'Frise chronologique';
+            timelineFormat.icone = '📅';
+            timelineFormat.description = 'Texte ou cartes à ordonner chronologiquement';
+        }
+
+        // 3. Ajouter flashcard si absent
+        const hasFlashcard = this.formatsQuestions.some(f => f.code === 'flashcard');
+        if (!hasFlashcard) {
+            this.formatsQuestions.push({
+                id: 'fmt_flashcard',
+                code: 'flashcard',
+                nom: 'Flashcards',
+                icone: '🃏',
+                description: 'Cartes recto-verso (auto-évaluation)'
+            });
+        }
+
+        console.log('Formats normalisés:', this.formatsQuestions.map(f => f.code));
     },
 
     countQuestionsForFormat(formatCode) {
