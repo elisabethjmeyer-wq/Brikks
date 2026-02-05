@@ -5778,9 +5778,20 @@ const AdminBanquesExercices = {
                         <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addQuestionOuverteReponse()">+ Ajouter une réponse acceptée</button>
                     </div>
                     <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="questionOuverteCaseSensitive" ${data.case_sensitive ? 'checked' : ''}>
-                            Sensible à la casse (majuscules/minuscules)
+                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Mode de correction</label>
+                        <label style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="questionOuverteMode" value="souple" ${!data.comparaison_stricte ? 'checked' : ''} style="margin-top: 3px;">
+                            <span>
+                                <strong>Comparaison souple</strong> <span style="color: #6b7280; font-size: 0.85em;">(recommandé)</span><br>
+                                <span style="color: #6b7280; font-size: 0.85em;">Tolère les différences de casse, accents, pluriel, ordre et petits mots (le, la, les, un, de...). Chiffres romains, arabes et en lettres équivalents.</span>
+                            </span>
+                        </label>
+                        <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="questionOuverteMode" value="stricte" ${data.comparaison_stricte ? 'checked' : ''} style="margin-top: 3px;">
+                            <span>
+                                <strong>Réponse exacte</strong><br>
+                                <span style="color: #6b7280; font-size: 0.85em;">L'élève doit écrire exactement la réponse attendue (majuscules, accents, ponctuation...).</span>
+                            </span>
                         </label>
                     </div>
                     <div class="form-group">
@@ -6528,7 +6539,7 @@ const AdminBanquesExercices = {
                 donnees = {
                     question: document.getElementById('questionOuverteEnonce')?.value || '',
                     reponses_acceptees: reponsesAcceptees,
-                    case_sensitive: document.getElementById('questionOuverteCaseSensitive')?.checked || false
+                    comparaison_stricte: document.querySelector('input[name="questionOuverteMode"][value="stricte"]')?.checked || false
                 };
                 // Ajouter feedbacks si activés
                 if (document.getElementById('questionOuverteShowFeedback')?.checked) {

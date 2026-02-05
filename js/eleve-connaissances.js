@@ -2030,12 +2030,13 @@ const EleveConnaissances = {
                 total = 1;
                 const qoAnswer = this.userAnswers['question_ouverte'];
                 const qoReponsesAcceptees = donnees.reponses_acceptees || [];
+                const qoStricte = donnees.comparaison_stricte || false;
                 const qoFeedback = document.getElementById('feedback_question_ouverte');
                 const qoInput = document.getElementById('questionOuverteReponse');
 
                 let qoCorrect = false;
                 if (qoAnswer) {
-                    qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep));
+                    qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep, qoStricte));
                 }
 
                 if (qoCorrect) correct = 1;
@@ -2434,9 +2435,10 @@ const EleveConnaissances = {
                 total = 1;
                 const qoAnswer = this.userAnswers['question_ouverte'];
                 const qoReponsesAcceptees = donnees.reponses_acceptees || [];
+                const qoStricte = donnees.comparaison_stricte || false;
                 let qoCorrect = false;
                 if (qoAnswer) {
-                    qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep));
+                    qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep, qoStricte));
                 }
                 if (qoCorrect) correct = 1;
                 details.push({
@@ -2901,48 +2903,154 @@ const EleveConnaissances = {
         return div.innerHTML;
     },
 
-    /**
-     * Normalise un texte pour comparaison tolérante :
-     * - minuscules
-     * - suppression des accents (é→e, â→a, etc.)
-     * - suppression de la ponctuation
-     * - espaces multiples → un seul espace
-     * - trim
-     */
-    normalizeText(text) {
-        if (!text) return '';
-        return text
-            .trim()
-            .toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // accents
-            .replace(/['']/g, ' ')                            // apostrophes → espace
-            .replace(/[^a-z0-9\s,]/g, '')                     // garder lettres, chiffres, espaces, virgules
-            .replace(/\s+/g, ' ')                              // espaces multiples
-            .trim();
+    // ========== PIPELINE COMPARAISON SOUPLE ==========
+
+    /** Mots-outils français à ignorer en mode souple */
+    STOP_WORDS: new Set([
+        'le', 'la', 'les', 'l', 'un', 'une', 'des', 'du', 'de', 'd',
+        'a', 'au', 'aux', 'et', 'ou', 'en', 'dans', 'sur', 'par', 'pour'
+    ]),
+
+    /** Table chiffres écrits → arabe (1-30) */
+    NOMBRES_LETTRES: {
+        'zero': '0', 'un': '1', 'deux': '2', 'trois': '3', 'quatre': '4',
+        'cinq': '5', 'six': '6', 'sept': '7', 'huit': '8', 'neuf': '9',
+        'dix': '10', 'onze': '11', 'douze': '12', 'treize': '13', 'quatorze': '14',
+        'quinze': '15', 'seize': '16', 'dix-sept': '17', 'dix-huit': '18', 'dix-neuf': '19',
+        'vingt': '20', 'vingt-et-un': '21', 'vingt-deux': '22', 'vingt-trois': '23',
+        'vingt-quatre': '24', 'vingt-cinq': '25', 'vingt-six': '26', 'vingt-sept': '27',
+        'vingt-huit': '28', 'vingt-neuf': '29', 'trente': '30',
+        'premier': '1', 'premiere': '1', 'deuxieme': '2', 'troisieme': '3',
+        'quatrieme': '4', 'cinquieme': '5', 'sixieme': '6', 'septieme': '7',
+        'huitieme': '8', 'neuvieme': '9', 'dixieme': '10',
+        'onzieme': '11', 'douzieme': '12', 'treizieme': '13', 'quatorzieme': '14',
+        'quinzieme': '15', 'seizieme': '16', 'vingtieme': '20', 'trentieme': '30'
+    },
+
+    /** Table chiffres romains → arabe */
+    ROMAINS: {
+        'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7, 'VIII': 8,
+        'IX': 9, 'X': 10, 'XI': 11, 'XII': 12, 'XIII': 13, 'XIV': 14, 'XV': 15,
+        'XVI': 16, 'XVII': 17, 'XVIII': 18, 'XIX': 19, 'XX': 20, 'XXI': 21,
+        'XXII': 22, 'XXIII': 23, 'XXIV': 24, 'XXV': 25, 'XXVI': 26, 'XXVII': 27,
+        'XXVIII': 28, 'XXIX': 29, 'XXX': 30
     },
 
     /**
-     * Compare une réponse élève à une réponse attendue avec tolérance :
-     * - Normalisation (accents, casse, ponctuation)
-     * - Si la réponse contient des virgules : comparaison par éléments triés
-     *   (l'ordre n'a pas d'importance)
+     * Convertit les chiffres romains en arabes dans un texte.
+     * Cherche les mots composés uniquement de I, V, X et les convertit.
      */
-    compareAnswers(userAnswer, expectedAnswer) {
-        const normUser = this.normalizeText(userAnswer);
-        const normExpected = this.normalizeText(expectedAnswer);
+    convertRomainToArabe(text) {
+        return text.replace(/\b([IVXLC]+)\b/g, (match) => {
+            if (this.ROMAINS[match] !== undefined) {
+                return String(this.ROMAINS[match]);
+            }
+            return match;
+        });
+    },
 
-        // Comparaison directe
+    /**
+     * Convertit les nombres écrits en lettres en arabes.
+     * Ex: "quatorze" → "14", "vingt-deux" → "22"
+     */
+    convertNombresLettres(text) {
+        // D'abord les composés (vingt-deux, dix-sept, etc.)
+        for (const [lettres, chiffre] of Object.entries(this.NOMBRES_LETTRES)) {
+            if (lettres.includes('-')) {
+                const regex = new RegExp('\\b' + lettres.replace('-', '[\\s-]') + '\\b', 'g');
+                text = text.replace(regex, chiffre);
+            }
+        }
+        // Puis les simples
+        for (const [lettres, chiffre] of Object.entries(this.NOMBRES_LETTRES)) {
+            if (!lettres.includes('-')) {
+                const regex = new RegExp('\\b' + lettres + '\\b', 'g');
+                text = text.replace(regex, chiffre);
+            }
+        }
+        return text;
+    },
+
+    /**
+     * Singularisation légère du français :
+     * - eaux → eau (gâteaux → gâteau)
+     * - aux → al (animaux → animal)
+     * - s final retiré (chats → chat)
+     * - x final retiré (cheveux → cheveu)
+     */
+    simpleStem(word) {
+        if (word.length <= 2) return word;
+        if (word.endsWith('eaux')) return word.slice(0, -1);       // eaux → eau
+        if (word.endsWith('aux')) return word.slice(0, -3) + 'al'; // aux → al
+        if (word.endsWith('s')) return word.slice(0, -1);          // s final
+        if (word.endsWith('x')) return word.slice(0, -1);          // x final
+        return word;
+    },
+
+    /**
+     * Normalise un texte pour comparaison tolérante (mode souple) :
+     * - minuscules + suppression accents
+     * - conversion romains → arabes, lettres → arabes
+     * - suppression ponctuation
+     * - suppression mots-outils
+     * - singularisation légère
+     */
+    normalizeSouple(text) {
+        if (!text) return '';
+        // Convertir romains AVANT la mise en minuscules
+        let t = this.convertRomainToArabe(text.trim());
+        t = t.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // accents
+            .replace(/['']/g, ' ')                            // apostrophes → espace
+            .replace(/[^a-z0-9\s\-]/g, '')                    // garder lettres, chiffres, espaces, tirets
+            .replace(/\s+/g, ' ')
+            .trim();
+        // Convertir nombres en lettres → arabes
+        t = this.convertNombresLettres(t);
+        // Supprimer mots-outils et appliquer stemming
+        const words = t.split(' ')
+            .filter(w => !this.STOP_WORDS.has(w))
+            .map(w => this.simpleStem(w));
+        return words.join(' ');
+    },
+
+    /**
+     * Sépare un texte brut en éléments (split sur "," et " et " et " ou ").
+     * À appeler AVANT normalisation pour conserver les délimiteurs.
+     */
+    splitElements(text) {
+        return text
+            .split(/\s*,\s*|\s+et\s+|\s+ou\s+/i)
+            .map(s => s.trim())
+            .filter(Boolean);
+    },
+
+    /**
+     * Compare une réponse élève à une réponse attendue.
+     * @param {string} userAnswer - réponse de l'élève
+     * @param {string} expectedAnswer - réponse attendue
+     * @param {boolean} stricte - si true, comparaison exacte ; si false, pipeline souple
+     */
+    compareAnswers(userAnswer, expectedAnswer, stricte) {
+        if (!userAnswer || !expectedAnswer) return false;
+
+        // Mode strict : comparaison exacte (trim seulement)
+        if (stricte) {
+            return userAnswer.trim() === expectedAnswer.trim();
+        }
+
+        // Mode souple : comparaison directe après normalisation
+        const normUser = this.normalizeSouple(userAnswer);
+        const normExpected = this.normalizeSouple(expectedAnswer);
         if (normUser === normExpected) return true;
 
-        // Si virgule présente dans la réponse attendue : comparer par éléments triés
-        if (normExpected.includes(',')) {
-            const userParts = normUser.split(',').map(s => s.trim()).filter(Boolean).sort();
-            const expectedParts = normExpected.split(',').map(s => s.trim()).filter(Boolean).sort();
+        // Comparaison par éléments : splitter le texte BRUT, puis normaliser chaque partie
+        const userParts = this.splitElements(userAnswer).map(p => this.normalizeSouple(p)).sort();
+        const expectedParts = this.splitElements(expectedAnswer).map(p => this.normalizeSouple(p)).sort();
 
-            if (userParts.length === expectedParts.length &&
-                userParts.every((part, i) => part === expectedParts[i])) {
-                return true;
-            }
+        if (userParts.length === expectedParts.length && userParts.length > 0 &&
+            userParts.every((part, i) => part === expectedParts[i])) {
+            return true;
         }
 
         return false;
