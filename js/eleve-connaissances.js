@@ -2783,6 +2783,56 @@ const EleveConnaissances = {
     },
 
     /**
+     * Génère le HTML du détail des erreurs (pour la colonne droite en cas d'échec)
+     */
+    generateErrorDetails(results) {
+        if (!results.etapes || results.etapes.length === 0) {
+            return `
+                <div class="correction-empty">
+                    <p>Détail non disponible.</p>
+                </div>
+            `;
+        }
+        const hasErrors = results.etapes.some(e => e.details && e.details.some(d => !d.correct));
+        if (!hasErrors) {
+            return `
+                <div class="felicitation-panel success">
+                    <div class="felicitation-icon">🎉</div>
+                    <h3>Aucune erreur !</h3>
+                    <p>Tu as tout réussi, bravo !</p>
+                </div>
+            `;
+        }
+        const errorGroups = results.etapes.map((etape, idx) => {
+            const errors = (etape.details || []).filter(d => !d.correct);
+            if (errors.length === 0) return '';
+            return `
+                <div class="correction-etape-group">
+                    <div class="correction-etape-title">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</div>
+                    ${errors.map(err => `
+                        <div class="correction-error-row">
+                            <div class="correction-error-q">${this.escapeHtml(String(err.question || ''))}</div>
+                            <div class="correction-error-answers">
+                                <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
+                                ${err.attendu ? `<span class="correction-expected">→ ${this.escapeHtml(String(err.attendu))}</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="correction-header-conn">
+                <h3>📝 Détail des erreurs</h3>
+            </div>
+            <div class="correction-body-conn">
+                ${errorGroups}
+            </div>
+        `;
+    },
+
+    /**
      * Affiche l'écran de résultats avec récapitulatif
      */
     renderResultScreen(results) {
@@ -2837,7 +2887,7 @@ const EleveConnaissances = {
 
         const nextEntrainement = this.findNextEntrainement();
 
-        // Image de félicitation (colonne droite)
+        // Colonne droite : félicitation (réussite) ou détail des erreurs (échec)
         const generateFelicitationPanel = () => {
             if (prog.statut === 'memorise' && prog.reussi) {
                 return `
@@ -2857,22 +2907,8 @@ const EleveConnaissances = {
                     </div>
                 `;
             }
-            if (results.pourcentage >= 50) {
-                return `
-                    <div class="felicitation-panel encouragement">
-                        <div class="felicitation-icon">💪</div>
-                        <h3>Presque !</h3>
-                        <p>Tu n'es pas loin du compte. Révise encore un peu et tu y arriveras !</p>
-                    </div>
-                `;
-            }
-            return `
-                <div class="felicitation-panel retry">
-                    <div class="felicitation-icon">📚</div>
-                    <h3>Continue tes efforts !</h3>
-                    <p>La répétition est la clé de la mémorisation. N'hésite pas à réessayer !</p>
-                </div>
-            `;
+            // Échec : afficher le détail des erreurs
+            return this.generateErrorDetails(results);
         };
 
         container.innerHTML = `
@@ -2956,8 +2992,8 @@ const EleveConnaissances = {
                         </div>
                     </div>
 
-                    <!-- COLONNE DROITE : FÉLICITATION -->
-                    <div class="result-felicitation-conn">
+                    <!-- COLONNE DROITE : FÉLICITATION ou ERREURS -->
+                    <div class="result-right-conn ${isSuccess || (prog.statut === 'memorise' && prog.reussi) ? 'is-felicitation' : 'is-correction'}">
                         ${generateFelicitationPanel()}
                     </div>
                 </div>

@@ -2425,13 +2425,24 @@
     background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
 }
 
-/* COLONNE DROITE : FÉLICITATION */
-.result-felicitation-conn {
+/* COLONNE DROITE : FÉLICITATION (réussite) ou CORRECTION (échec) */
+.result-right-conn {
+    background: #fafafa;
+}
+
+/* Mode félicitation : centré */
+.result-right-conn.is-felicitation {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    background: #fafafa;
+}
+
+/* Mode correction : flex column avec scroll */
+.result-right-conn.is-correction {
+    display: flex;
+    flex-direction: column;
+    max-height: 600px;
 }
 
 .felicitation-panel {
@@ -2462,14 +2473,95 @@
 
 .felicitation-panel.memorise h3 { color: #b45309; }
 .felicitation-panel.success h3 { color: #059669; }
-.felicitation-panel.encouragement h3 { color: #d97706; }
-.felicitation-panel.retry h3 { color: #6b7280; }
 
 @keyframes felicitation-bounce {
     0% { transform: scale(0); opacity: 0; }
     50% { transform: scale(1.2); opacity: 1; }
     70% { transform: scale(0.9); }
     100% { transform: scale(1); }
+}
+
+/* Correction : header + body */
+.correction-header-conn {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+    flex-shrink: 0;
+}
+
+.correction-header-conn h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #374151;
+}
+
+.correction-body-conn {
+    padding: 1rem 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Groupes d'erreurs par étape */
+.correction-etape-group {
+    margin-bottom: 1.25rem;
+}
+
+.correction-etape-group:last-child {
+    margin-bottom: 0;
+}
+
+.correction-etape-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.correction-error-row {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.correction-error-row:last-child {
+    border-bottom: none;
+}
+
+.correction-error-q {
+    font-size: 0.9rem;
+    color: #374151;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.correction-error-answers {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.correction-given {
+    font-size: 0.85rem;
+    color: #dc2626;
+    text-decoration: line-through;
+}
+
+.correction-expected {
+    font-size: 0.85rem;
+    color: #059669;
+    font-weight: 600;
+}
+
+.correction-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #9ca3af;
 }
 
 /* ============================================
