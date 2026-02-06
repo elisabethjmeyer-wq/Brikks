@@ -2613,6 +2613,11 @@ const EleveConnaissances = {
         if (this.currentEtapeIndex < this.currentEtapes.length - 1) {
             this.currentEtapeIndex++;
             this.currentEtapeValidated = false;
+            // Réinitialiser les réponses et états pour la nouvelle étape
+            this.userAnswers = {};
+            this.associationSelection = { grid: null, chip: null };
+            this.associationPairs = [];
+            this.associationPairCounter = 0;
             this.renderEntrainementView();
         }
     },
