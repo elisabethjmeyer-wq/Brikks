@@ -3572,17 +3572,25 @@ const AdminBanquesExercices = {
     },
 
     async wizardNextStep() {
-        if (!this.validateWizardStep(this.wizardData.currentStep)) return;
+        // Éviter les doubles clics
+        if (this._navigating) return;
+        this._navigating = true;
 
-        // Sauvegarder les données de l'étape actuelle
-        await this.saveWizardStepData(this.wizardData.currentStep);
+        try {
+            if (!this.validateWizardStep(this.wizardData.currentStep)) return;
 
-        if (this.wizardData.currentStep < 4) {
-            this.wizardData.currentStep++;
-            this.renderWizardStep(this.wizardData.currentStep);
-        } else {
-            // Étape finale - Publier
-            await this.finalizeEntrainement();
+            // Sauvegarder les données de l'étape actuelle
+            await this.saveWizardStepData(this.wizardData.currentStep);
+
+            if (this.wizardData.currentStep < 4) {
+                this.wizardData.currentStep++;
+                this.renderWizardStep(this.wizardData.currentStep);
+            } else {
+                // Étape finale - Publier
+                await this.finalizeEntrainement();
+            }
+        } finally {
+            this._navigating = false;
         }
     },
 
@@ -3798,8 +3806,9 @@ const AdminBanquesExercices = {
 
     renderWizardEtapeItem(etape, index) {
         const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
-        const questionsCount = etape.questions ? etape.questions.length :
-            (this.etapeQuestionsConn ? this.etapeQuestionsConn.filter(eq => eq.etape_id === etape.id).length : 0);
+        // Utiliser getSelectedQuestionsForEtape qui filtre les questions existantes
+        const selectedQuestions = this.getSelectedQuestionsForEtape(etape.id);
+        const questionsCount = selectedQuestions.length;
 
         return `
             <div class="wizard-etape-item" data-id="${etape.id || 'temp-' + index}" draggable="true">
@@ -3838,6 +3847,8 @@ const AdminBanquesExercices = {
             item.addEventListener('dragend', () => {
                 item.classList.remove('dragging');
                 draggedItem = null;
+                // Sauvegarder le nouvel ordre après le drag-and-drop
+                this.saveWizardEtapesOrder(list);
             });
 
             item.addEventListener('dragover', (e) => {
@@ -3853,6 +3864,45 @@ const AdminBanquesExercices = {
                 }
             });
         });
+    },
+
+    async saveWizardEtapesOrder(container) {
+        // Récupérer le nouvel ordre depuis le DOM
+        const items = container.querySelectorAll('.wizard-etape-item');
+        const newOrder = [];
+
+        items.forEach((item, index) => {
+            const etapeId = item.dataset.id;
+            // Ignorer les IDs temporaires
+            if (etapeId && !etapeId.startsWith('temp-')) {
+                newOrder.push({ id: etapeId, ordre: index + 1 });
+            }
+        });
+
+        if (newOrder.length === 0) return;
+
+        try {
+            // Sauvegarder en parallèle
+            const updatePromises = newOrder.map(({ id, ordre }) =>
+                this.callAPI('updateEtapeConn', { id, ordre })
+            );
+            await Promise.all(updatePromises);
+
+            // Mettre à jour les données locales
+            newOrder.forEach(({ id, ordre }) => {
+                const etape = this.wizardData.etapes.find(e => e.id === id);
+                if (etape) etape.ordre = ordre;
+                const etapeConn = this.etapesConn.find(e => e.id === id);
+                if (etapeConn) etapeConn.ordre = ordre;
+            });
+
+            // Réorganiser wizardData.etapes selon le nouvel ordre
+            this.wizardData.etapes.sort((a, b) => a.ordre - b.ordre);
+
+            console.log('Ordre des étapes sauvegardé');
+        } catch (error) {
+            console.error('Erreur sauvegarde ordre:', error);
+        }
     },
 
     /**
@@ -3903,16 +3953,23 @@ const AdminBanquesExercices = {
     },
 
     async addWizardEtape(formatCode) {
-        if (!this.wizardData.entrainement) {
-            // D'abord sauvegarder l'entraînement
-            if (!this.validateWizardStep(1)) return;
-            await this.saveWizardStepData(1);
-        }
-
-        const format = this.formatsQuestions.find(f => f.code === formatCode);
-        const ordre = this.wizardData.etapes.length + 1;
+        // Empêcher les doubles clics
+        if (this._addingEtape) return;
+        this._addingEtape = true;
 
         try {
+            if (!this.wizardData.entrainement) {
+                // D'abord sauvegarder l'entraînement
+                if (!this.validateWizardStep(1)) {
+                    this._addingEtape = false;
+                    return;
+                }
+                await this.saveWizardStepData(1);
+            }
+
+            const format = this.formatsQuestions.find(f => f.code === formatCode);
+            const ordre = this.wizardData.etapes.length + 1;
+
             const result = await this.callAPI('createEtapeConn', {
                 entrainement_id: this.wizardData.entrainement.id,
                 format_code: formatCode,
@@ -3922,14 +3979,25 @@ const AdminBanquesExercices = {
             });
 
             if (result.success) {
-                await this.loadDataFromAPI();
-                this.wizardData.etapes = this.etapesConn.filter(e => e.entrainement_id === this.wizardData.entrainement.id);
+                // Mise à jour locale au lieu de loadDataFromAPI
+                const newEtape = {
+                    id: result.id,
+                    entrainement_id: this.wizardData.entrainement.id,
+                    format_code: formatCode,
+                    ordre: ordre,
+                    mode_selection: 'manuel',
+                    nb_questions: 5
+                };
+                this.etapesConn.push(newEtape);
+                this.wizardData.etapes.push(newEtape);
                 this.renderWizardStep(2);
             } else {
                 alert('Erreur: ' + (result.error || 'Erreur inconnue'));
             }
         } catch (error) {
             console.error('Erreur ajout étape:', error);
+        } finally {
+            this._addingEtape = false;
         }
     },
 
@@ -3942,8 +4010,13 @@ const AdminBanquesExercices = {
         try {
             const result = await this.callAPI('deleteEtapeConn', { id: etape.id });
             if (result.success) {
-                await this.loadDataFromAPI();
-                this.wizardData.etapes = this.etapesConn.filter(e => e.entrainement_id === this.wizardData.entrainement.id);
+                // Mise à jour locale au lieu de loadDataFromAPI
+                this.etapesConn = this.etapesConn.filter(e => e.id !== etape.id);
+                this.wizardData.etapes.splice(index, 1);
+                // Supprimer aussi les questions sélectionnées pour cette étape
+                if (this.wizardData.selectedQuestions) {
+                    delete this.wizardData.selectedQuestions[etape.id];
+                }
                 this.renderWizardStep(2);
             }
         } catch (error) {
@@ -3952,8 +4025,13 @@ const AdminBanquesExercices = {
     },
 
     async moveWizardEtape(index, direction) {
+        // Éviter les doubles clics
+        if (this._movingEtape) return;
+
         const newIndex = index + direction;
         if (newIndex < 0 || newIndex >= this.wizardData.etapes.length) return;
+
+        this._movingEtape = true;
 
         // Échanger les positions
         const etapes = [...this.wizardData.etapes];
@@ -3961,14 +4039,26 @@ const AdminBanquesExercices = {
 
         // Mettre à jour l'ordre dans la base
         try {
-            for (let i = 0; i < etapes.length; i++) {
-                await this.callAPI('updateEtapeConn', { id: etapes[i].id, ordre: i + 1 });
-            }
-            await this.loadDataFromAPI();
-            this.wizardData.etapes = this.etapesConn.filter(e => e.entrainement_id === this.wizardData.entrainement.id);
+            // Appels API en parallèle pour plus de rapidité
+            const updatePromises = etapes.map((etape, i) =>
+                this.callAPI('updateEtapeConn', { id: etape.id, ordre: i + 1 })
+            );
+            await Promise.all(updatePromises);
+
+            // Mise à jour locale au lieu de recharger toutes les données
+            this.wizardData.etapes = etapes;
+
+            // Mettre à jour aussi etapesConn
+            etapes.forEach((etape, i) => {
+                const found = this.etapesConn.find(e => e.id === etape.id);
+                if (found) found.ordre = i + 1;
+            });
+
             this.renderWizardStep(2);
         } catch (error) {
             console.error('Erreur réordonnancement:', error);
+        } finally {
+            this._movingEtape = false;
         }
     },
 
@@ -4405,41 +4495,53 @@ const AdminBanquesExercices = {
     },
 
     async finalizeEntrainement() {
-        console.log('[Admin] ===== FINALISATION ENTRAINEMENT =====');
-        console.log('[Admin] wizardData.etapes:', this.wizardData.etapes);
-        console.log('[Admin] wizardData.selectedQuestions:', this.wizardData.selectedQuestions);
+        // Éviter les doubles clics sur "Valider et fermer"
+        if (this._finalizing) return;
+        this._finalizing = true;
 
-        // Sauvegarder les questions sélectionnées pour chaque étape
-        if (this.wizardData.selectedQuestions && this.wizardData.etapes) {
-            for (const etape of this.wizardData.etapes) {
-                const selectedIds = this.wizardData.selectedQuestions[etape.id] || [];
-                // Convertir les IDs en format attendu par le backend: [{question_id: 'xxx'}, ...]
-                const questionsFormatted = selectedIds.map(id => ({ question_id: id }));
+        try {
+            console.log('[Admin] ===== FINALISATION ENTRAINEMENT =====');
+            console.log('[Admin] wizardData.etapes:', this.wizardData.etapes);
+            console.log('[Admin] wizardData.selectedQuestions:', this.wizardData.selectedQuestions);
 
-                console.log(`[Admin] Sauvegarde étape ${etape.id} (${etape.format_code}): ${selectedIds.length} questions`, questionsFormatted);
+            // Sauvegarder les questions sélectionnées pour chaque étape (en parallèle)
+            if (this.wizardData.selectedQuestions && this.wizardData.etapes) {
+                const savePromises = this.wizardData.etapes.map(async (etape) => {
+                    const selectedIds = this.wizardData.selectedQuestions[etape.id] || [];
+                    // Convertir les IDs en format attendu par le backend: [{question_id: 'xxx'}, ...]
+                    const questionsFormatted = selectedIds.map(id => ({ question_id: id }));
 
-                try {
-                    // IMPORTANT: JSON.stringify pour que le tableau passe correctement via URL
-                    const result = await this.callAPI('setEtapeQuestionsConn', {
-                        etape_id: etape.id,
-                        questions: JSON.stringify(questionsFormatted)
-                    });
-                    console.log(`[Admin] Résultat sauvegarde étape ${etape.id}:`, result);
-                } catch (error) {
-                    console.error(`Erreur sauvegarde questions étape ${etape.id}:`, error);
-                }
+                    console.log(`[Admin] Sauvegarde étape ${etape.id} (${etape.format_code}): ${selectedIds.length} questions`, questionsFormatted);
+
+                    try {
+                        // IMPORTANT: JSON.stringify pour que le tableau passe correctement via URL
+                        const result = await this.callAPI('setEtapeQuestionsConn', {
+                            etape_id: etape.id,
+                            questions: JSON.stringify(questionsFormatted)
+                        });
+                        console.log(`[Admin] Résultat sauvegarde étape ${etape.id}:`, result);
+                        return result;
+                    } catch (error) {
+                        console.error(`Erreur sauvegarde questions étape ${etape.id}:`, error);
+                        throw error;
+                    }
+                });
+
+                await Promise.all(savePromises);
+            } else {
+                console.warn('[Admin] Pas de questions à sauvegarder - wizardData.selectedQuestions ou etapes manquants');
             }
-        } else {
-            console.warn('[Admin] Pas de questions à sauvegarder - wizardData.selectedQuestions ou etapes manquants');
+
+            // Fermer le wizard et rafraîchir l'affichage
+            this.closeEntrainementWizard();
+            await this.loadDataFromAPI();
+            this.renderBanques();
+
+            // Afficher un message de succès
+            this.showNotification('Entraînement sauvegardé avec succès !', 'success');
+        } finally {
+            this._finalizing = false;
         }
-
-        // Fermer le wizard et rafraîchir l'affichage
-        this.closeEntrainementWizard();
-        await this.loadDataFromAPI();
-        this.renderBanques();
-
-        // Afficher un message de succès
-        this.showNotification('Entraînement sauvegardé avec succès !', 'success');
     },
 
     showNotification(message, type = 'info') {
