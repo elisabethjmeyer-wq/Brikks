@@ -138,6 +138,21 @@ const EleveConnaissances = {
             this.callAPI('getQuestionsConnaissances', {})
         ]);
 
+        // Logger les erreurs API
+        const apiResults = [
+            { name: 'banques', result: banquesResult },
+            { name: 'entrainements', result: entrainementsResult },
+            { name: 'etapes', result: etapesResult },
+            { name: 'etapeQuestions', result: etapeQuestionsResult },
+            { name: 'formats', result: formatsResult },
+            { name: 'questions', result: questionsResult }
+        ];
+        apiResults.forEach(({ name, result }) => {
+            if (!result.success) {
+                console.warn(`[EleveConnaissances] API ${name} échouée:`, result.error || 'Erreur inconnue');
+            }
+        });
+
         const data = {
             banques: banquesResult.success ? banquesResult.data : [],
             entrainements: entrainementsResult.success ? entrainementsResult.data : [],
@@ -184,7 +199,9 @@ const EleveConnaissances = {
     async refreshDataInBackground() {
         try {
             await this.loadData();
-        } catch (error) {}
+        } catch (error) {
+            console.warn('[EleveConnaissances] Erreur lors du rafraîchissement en arrière-plan:', error);
+        }
     },
 
     callAPI(action, params = {}) {
@@ -663,6 +680,12 @@ const EleveConnaissances = {
             this.etapesResults = [];
             this.currentEtapeValidated = false;
             this.exerciseStartTime = Date.now();
+            // Réinitialiser les états d'association
+            this.associationSelection = { gauche: null, droite: null };
+            this.associationPairs = [];
+            this.associationPairCounter = 0;
+            // Réinitialiser les données stockées par étape
+            this.selectedQuestionsPerEtape = {};
 
             // Get etapes for this entrainement
             const entrainementEtapes = this.etapes
@@ -2000,7 +2023,9 @@ const EleveConnaissances = {
         if (this.currentEtapeValidated) return;
 
         const currentEtape = this.currentEtapes[this.currentEtapeIndex];
-        const donnees = this.getEtapeDonnees(currentEtape);
+        // Utiliser les données combinées stockées lors du rendu (inclut multiQuestions)
+        const storedData = this.selectedQuestionsPerEtape[currentEtape.id];
+        const donnees = storedData?.donnees || this.getEtapeDonnees(currentEtape);
 
         let correct = 0;
         let total = 0;
@@ -2046,38 +2071,90 @@ const EleveConnaissances = {
                 break;
 
             case 'qcm':
-                total = 1;
-                const choices = donnees.choix || donnees.options || [];
-                const userAnswer = this.userAnswers['qcm'];
+                // Mode multi-questions (plusieurs QCM dans une étape)
+                if (donnees.multiQuestions && donnees.multiQuestions.length > 0) {
+                    donnees.multiQuestions.forEach((q, qIdx) => {
+                        total++;
+                        const choices = q.choix || q.options || [];
+                        const userAnswer = this.userAnswers[`qcm_${qIdx}`];
 
-                let correctIndices = [];
-                if (donnees.reponses_correctes && Array.isArray(donnees.reponses_correctes)) {
-                    correctIndices = donnees.reponses_correctes;
-                } else if (donnees.reponse_correcte !== undefined) {
-                    correctIndices = [donnees.reponse_correcte];
+                        let correctIndices = [];
+                        if (q.reponses_correctes && Array.isArray(q.reponses_correctes)) {
+                            correctIndices = q.reponses_correctes;
+                        } else if (q.reponse !== undefined) {
+                            correctIndices = [q.reponse];
+                        } else if (q.reponse_correcte !== undefined) {
+                            correctIndices = [q.reponse_correcte];
+                        } else {
+                            correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
+                        }
+
+                        const isCorrect = correctIndices.includes(parseInt(userAnswer));
+                        if (isCorrect) correct++;
+
+                        const qcmFeedback = document.getElementById(`feedback_qcm_${qIdx}`);
+                        if (qcmFeedback) {
+                            qcmFeedback.style.display = 'block';
+                            qcmFeedback.className = `qcm-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+                            qcmFeedback.textContent = isCorrect ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
+
+                            const feedbacksOptions = q.feedbacks_options || [];
+                            const chosenIdx = parseInt(userAnswer);
+                            if (feedbacksOptions[chosenIdx]) {
+                                qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
+                            } else if (isCorrect && q.feedback_correct) {
+                                qcmFeedback.textContent += ` ${q.feedback_correct}`;
+                            } else if (!isCorrect && q.feedback_incorrect) {
+                                qcmFeedback.textContent += ` ${q.feedback_incorrect}`;
+                            }
+                        }
+                        details.push({
+                            question: q.question,
+                            reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
+                            attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
+                            correct: isCorrect
+                        });
+                    });
                 } else {
-                    correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
-                }
+                    // Mode simple (une seule question QCM)
+                    total = 1;
+                    const choices = donnees.choix || donnees.options || [];
+                    const userAnswer = this.userAnswers['qcm'];
 
-                if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
-
-                const qcmFeedback = document.getElementById('feedback_qcm');
-                if (qcmFeedback) {
-                    qcmFeedback.style.display = 'block';
-                    qcmFeedback.className = `qcm-feedback ${correct === 1 ? 'correct' : 'incorrect'}`;
-                    qcmFeedback.textContent = correct === 1 ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
-
-                    const feedbacksOptions = donnees.feedbacks_options || [];
-                    const chosenIdx = parseInt(userAnswer);
-                    if (feedbacksOptions[chosenIdx]) {
-                        qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
-                    } else if (correct === 1 && donnees.feedback_correct) {
-                        qcmFeedback.textContent += ` ${donnees.feedback_correct}`;
-                    } else if (correct === 0 && donnees.feedback_incorrect) {
-                        qcmFeedback.textContent += ` ${donnees.feedback_incorrect}`;
+                    let correctIndices = [];
+                    if (donnees.reponses_correctes && Array.isArray(donnees.reponses_correctes)) {
+                        correctIndices = donnees.reponses_correctes;
+                    } else if (donnees.reponse_correcte !== undefined) {
+                        correctIndices = [donnees.reponse_correcte];
+                    } else {
+                        correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
                     }
+
+                    if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
+
+                    const qcmFeedback = document.getElementById('feedback_qcm');
+                    if (qcmFeedback) {
+                        qcmFeedback.style.display = 'block';
+                        qcmFeedback.className = `qcm-feedback ${correct === 1 ? 'correct' : 'incorrect'}`;
+                        qcmFeedback.textContent = correct === 1 ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
+
+                        const feedbacksOptions = donnees.feedbacks_options || [];
+                        const chosenIdx = parseInt(userAnswer);
+                        if (feedbacksOptions[chosenIdx]) {
+                            qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
+                        } else if (correct === 1 && donnees.feedback_correct) {
+                            qcmFeedback.textContent += ` ${donnees.feedback_correct}`;
+                        } else if (correct === 0 && donnees.feedback_incorrect) {
+                            qcmFeedback.textContent += ` ${donnees.feedback_incorrect}`;
+                        }
+                    }
+                    details.push({
+                        question: donnees.question,
+                        reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
+                        attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
+                        correct: correct === 1
+                    });
                 }
-                details.push({ question: donnees.question, reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null, attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '), correct: correct === 1 });
                 break;
 
             case 'chronologie':
@@ -2764,7 +2841,8 @@ const EleveConnaissances = {
      */
     restartAsTraining() {
         this.isTrainingMode = true;
-        this.startEntrainement(this.currentEntrainement.id);
+        // Passer true pour skipAvailabilityCheck afin de ne pas écraser isTrainingMode
+        this.startEntrainement(this.currentEntrainement.id, true);
     },
 
     /**
@@ -2796,7 +2874,7 @@ const EleveConnaissances = {
         if (!this.currentBanque || !this.entrainements) return null;
 
         const currentBanqueEntrainements = this.entrainements
-            .filter(e => String(e.banque_id) === String(this.currentBanque.id))
+            .filter(e => String(e.banque_exercice_id) === String(this.currentBanque.id))
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         const currentIndex = currentBanqueEntrainements.findIndex(e => e.id === this.currentEntrainement.id);
@@ -3140,7 +3218,12 @@ const EleveConnaissances = {
             'qcm': 'QCM',
             'chronologie': 'Frise chronologique',
             'timeline': 'Frise chronologique',
-            'texte_trous': 'Texte à trous'
+            'texte_trou': 'Texte à trous',
+            'texte_trous': 'Texte à trous',
+            'association': 'Association',
+            'carte': 'Carte',
+            'question_ouverte': 'Question ouverte',
+            'flashcard': 'Flashcards'
         };
         return labels[formatCode] || formatCode;
     },
