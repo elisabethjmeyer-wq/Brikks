@@ -89,6 +89,7 @@ const AdminBanquesExercices = {
                 this.competencesReferentiel = cached.competencesReferentiel || [];
                 this.banquesQuestions = cached.banquesQuestions || [];
                 this.questionsConnaissances = cached.questionsConnaissances || [];
+                this.normalizeQuestionsTypes();
                 this.setupEventListeners();
                 this.updateCounts();
                 this.renderBanques();
@@ -146,6 +147,38 @@ const AdminBanquesExercices = {
         try {
             localStorage.removeItem(this.CACHE_KEY);
         } catch (e) {}
+    },
+
+    // Normalise les types de questions (trim, lowercase, underscores, inférence si vide)
+    normalizeQuestionsTypes() {
+        if (!this.questionsConnaissances) return;
+        let fixed = 0;
+        this.questionsConnaissances.forEach(q => {
+            const originalType = q.type;
+            // Parse donnees si nécessaire
+            if (q.donnees && typeof q.donnees === 'string') {
+                try { q.donnees = JSON.parse(q.donnees); } catch(e) { q.donnees = {}; }
+            }
+            // Normaliser: trim + lowercase + remplacer espaces/tirets par underscores
+            if (q.type) {
+                q.type = String(q.type).trim().toLowerCase().replace(/[\s-]+/g, '_');
+            }
+            // Si type vide/absent, inférer depuis la structure de donnees
+            if (!q.type && q.donnees && typeof q.donnees === 'object') {
+                q.type = this.inferQuestionType(q.donnees);
+                if (q.type) {
+                    console.log(`[NormalizeTypes] Question ${q.id}: type inféré = '${q.type}' (était vide)`);
+                    fixed++;
+                }
+            }
+            if (originalType && q.type !== String(originalType).trim().toLowerCase().replace(/[\s-]+/g, '_')) {
+                console.log(`[NormalizeTypes] Question ${q.id}: type normalisé '${originalType}' → '${q.type}'`);
+                fixed++;
+            }
+        });
+        if (fixed > 0) {
+            console.log(`[NormalizeTypes] ${fixed} question(s) corrigée(s)`);
+        }
     },
 
     async refreshDataInBackground() {
@@ -208,13 +241,19 @@ const AdminBanquesExercices = {
             }
             if (questionsConnResult.success) {
                 this.questionsConnaissances = questionsConnResult.data || [];
-                // Parse JSON donnees
-                this.questionsConnaissances = this.questionsConnaissances.map(q => {
-                    if (q.donnees && typeof q.donnees === 'string') {
-                        try { q.donnees = JSON.parse(q.donnees); } catch(e) { q.donnees = {}; }
-                    }
-                    return q;
+                this.normalizeQuestionsTypes();
+                // Diagnostic: afficher les types de questions pour déboguer le comptage
+                const typeCounts = {};
+                this.questionsConnaissances.forEach(q => {
+                    const t = q.type || '(vide)';
+                    typeCounts[t] = (typeCounts[t] || 0) + 1;
                 });
+                console.log('[Diagnostic] Questions par type:', typeCounts);
+                console.log('[Diagnostic] Total questions:', this.questionsConnaissances.length);
+                if (typeCounts['(vide)']) {
+                    console.warn('[Diagnostic] Questions sans type détecté:',
+                        this.questionsConnaissances.filter(q => !q.type).map(q => ({id: q.id, donnees_keys: Object.keys(q.donnees || {})})));
+                }
             }
 
             // Nouveau système Connaissances
@@ -3945,6 +3984,30 @@ const AdminBanquesExercices = {
         }
 
         console.log('Formats normalisés:', this.formatsQuestions.map(f => f.code));
+    },
+
+    // Infère le type de question depuis la structure de ses données
+    inferQuestionType(donnees) {
+        if (!donnees || typeof donnees !== 'object') return '';
+        // Flashcard: a des cartes avec recto/verso
+        if (donnees.cartes && Array.isArray(donnees.cartes) && donnees.cartes.length > 0 && donnees.cartes[0].recto !== undefined) {
+            return 'flashcard';
+        }
+        // Question ouverte: a reponses_acceptees
+        if (donnees.reponses_acceptees) return 'question_ouverte';
+        // QCM: a options + reponses_correctes ou reponse_correcte
+        if (donnees.options && (donnees.reponses_correctes || donnees.reponse_correcte !== undefined)) return 'qcm';
+        // Vrai/Faux: a question + reponse (vrai/faux)
+        if (donnees.question && donnees.reponse && (donnees.reponse === 'vrai' || donnees.reponse === 'faux')) return 'vrai_faux';
+        // Timeline: a cartes (sans recto) ou evenements
+        if (donnees.cartes || donnees.evenements) return 'timeline';
+        // Association: a paires avec element1/element2
+        if (donnees.paires && donnees.paires.length > 0 && donnees.paires[0].element1 !== undefined) return 'association';
+        // Texte à trous: structure spécifique
+        if (donnees.texte || donnees.segments) return 'texte_trou';
+        // Carte géo
+        if (donnees.marqueurs || donnees.carte_url) return 'carte';
+        return '';
     },
 
     countQuestionsForFormat(formatCode) {
