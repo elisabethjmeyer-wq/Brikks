@@ -691,7 +691,7 @@ const EleveConnaissances = {
             this.currentEtapeValidated = false;
             this.exerciseStartTime = Date.now();
             // Réinitialiser les états d'association
-            this.associationSelection = { gauche: null, droite: null };
+            this.associationSelection = { grid: null, chip: null };
             this.associationPairs = [];
             this.associationPairCounter = 0;
             // Réinitialiser les données stockées par étape
@@ -1493,40 +1493,78 @@ const EleveConnaissances = {
             `;
         }
 
-        // Mélanger les deux colonnes indépendamment
-        const elementsGauche = this.shuffleArray(paires.map((p, i) => ({ texte: p.element1, type: p.element1_type || 'text', id: i })));
-        const elementsDroite = this.shuffleArray(paires.map((p, i) => ({ texte: p.element2, type: p.element2_type || 'text', id: i })));
+        // Construire les éléments des deux côtés
+        const elementsGauche = paires.map((p, i) => ({ texte: p.element1, type: p.element1_type || 'text', id: i }));
+        const elementsDroite = paires.map((p, i) => ({ texte: p.element2, type: p.element2_type || 'text', id: i }));
 
-        // Détecter si les colonnes ont des images
         const gaucheHasImages = elementsGauche.some(el => el.type === 'image');
         const droiteHasImages = elementsDroite.some(el => el.type === 'image');
+
+        // Déterminer le layout : quel groupe va en grille (haut), quel en chips (bas)
+        let gridElements, chipElements, gridSide, chipSide;
+        if (droiteHasImages && !gaucheHasImages) {
+            // Cas classique : images à droite → grille images en haut, textes en chips en bas
+            gridElements = this.shuffleArray([...elementsDroite]);
+            chipElements = this.shuffleArray([...elementsGauche]);
+            gridSide = 'droite';
+            chipSide = 'gauche';
+        } else if (gaucheHasImages && !droiteHasImages) {
+            // Images à gauche → grille images en haut, textes en chips en bas
+            gridElements = this.shuffleArray([...elementsGauche]);
+            chipElements = this.shuffleArray([...elementsDroite]);
+            gridSide = 'gauche';
+            chipSide = 'droite';
+        } else {
+            // Texte↔texte ou image↔image : gauche en grille, droite en chips
+            gridElements = this.shuffleArray([...elementsGauche]);
+            chipElements = this.shuffleArray([...elementsDroite]);
+            gridSide = 'gauche';
+            chipSide = 'droite';
+        }
+
+        const gridHasImages = gridElements.some(el => el.type === 'image');
+        const chipHasImages = chipElements.some(el => el.type === 'image');
+        // Si les chips sont des textes longs (> 40 chars), les afficher en colonne
+        const isDefinitions = !chipHasImages && chipElements.some(el => el.texte.length > 40);
+
+        // Stocker le mapping pour la validation
+        this._assocGridSide = gridSide;
+        this._assocChipSide = chipSide;
 
         return `
             <div class="association-container">
                 <p class="association-instruction">${this.escapeHtml(consigne)}</p>
-                <div class="association-columns" id="associationColumns">
-                    <svg class="association-svg-lines" id="associationSvgLines"></svg>
-                    <div class="association-column association-gauche ${gaucheHasImages ? 'has-images' : ''}">
-                        ${elementsGauche.map(el => `
-                            <div class="association-item ${el.type === 'image' ? 'association-item-image' : ''}" data-id="${el.id}" data-side="gauche" onclick="EleveConnaissances.selectAssociationItem(this, 'gauche')">
-                                ${el.type === 'image'
-                                    ? `<img class="association-img" src="${this.escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
-                                    : `<span class="association-text">${this.escapeHtml(el.texte)}</span>`}
-                                <span class="association-link-indicator"></span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="association-column association-droite ${droiteHasImages ? 'has-images' : ''}">
-                        ${elementsDroite.map(el => `
-                            <div class="association-item ${el.type === 'image' ? 'association-item-image' : ''}" data-id="${el.id}" data-side="droite" onclick="EleveConnaissances.selectAssociationItem(this, 'droite')">
-                                <span class="association-link-indicator"></span>
-                                ${el.type === 'image'
-                                    ? `<img class="association-img" src="${this.escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
-                                    : `<span class="association-text">${this.escapeHtml(el.texte)}</span>`}
-                            </div>
-                        `).join('')}
-                    </div>
+
+                <!-- Grille (images ou termes courts) -->
+                <div class="association-grid" id="associationGrid">
+                    ${gridElements.map(el => `
+                        <div class="association-grid-card ${!gridHasImages ? 'is-text' : ''}"
+                             data-id="${el.id}" data-side="${gridSide}"
+                             onclick="EleveConnaissances.selectAssociationItem(this, 'grid')">
+                            ${el.type === 'image'
+                                ? `<img class="assoc-card-img" src="${this.escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
+                                : `<span class="assoc-card-text">${this.escapeHtml(el.texte)}</span>`}
+                            <span class="assoc-card-indicator"></span>
+                            <span class="assoc-paired-label"></span>
+                        </div>
+                    `).join('')}
                 </div>
+
+                <div class="association-zone-label">Sélectionnez un élément ci-dessus puis son correspondant ci-dessous</div>
+
+                <!-- Chips (noms / définitions) -->
+                <div class="association-chips ${isDefinitions ? 'is-definitions' : ''}" id="associationChips">
+                    ${chipElements.map(el => `
+                        <div class="association-chip ${chipHasImages ? 'chip-image' : ''}"
+                             data-id="${el.id}" data-side="${chipSide}"
+                             onclick="EleveConnaissances.selectAssociationItem(this, 'chip')">
+                            ${el.type === 'image'
+                                ? `<img src="${this.escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
+                                : this.escapeHtml(el.texte)}
+                        </div>
+                    `).join('')}
+                </div>
+
                 <div class="association-feedback" id="association_feedback" style="display: none;"></div>
             </div>
         `;
@@ -1535,139 +1573,114 @@ const EleveConnaissances = {
     // Couleurs pour les paires
     PAIR_COLORS: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f97316', '#6366f1'],
 
-    /**
-     * Dessine les lignes SVG entre les éléments appariés
-     */
-    drawAssociationLines() {
-        const svg = document.getElementById('associationSvgLines');
-        const container = document.getElementById('associationColumns');
-        if (!svg || !container) return;
-
-        svg.innerHTML = '';
-        const containerRect = container.getBoundingClientRect();
-
-        this.associationPairs.forEach(pair => {
-            const gaucheEl = container.querySelector(`.association-gauche .association-item[data-id="${pair.gauche}"]`);
-            const droiteEl = container.querySelector(`.association-droite .association-item[data-id="${pair.droite}"]`);
-            if (!gaucheEl || !droiteEl) return;
-
-            const gRect = gaucheEl.getBoundingClientRect();
-            const dRect = droiteEl.getBoundingClientRect();
-
-            const x1 = gRect.right - containerRect.left;
-            const y1 = gRect.top + gRect.height / 2 - containerRect.top;
-            const x2 = dRect.left - containerRect.left;
-            const y2 = dRect.top + dRect.height / 2 - containerRect.top;
-
-            const colorIdx = (pair.pairNum - 1) % this.PAIR_COLORS.length;
-            const color = this.PAIR_COLORS[colorIdx];
-
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', x1);
-            line.setAttribute('y1', y1);
-            line.setAttribute('x2', x2);
-            line.setAttribute('y2', y2);
-            line.setAttribute('stroke', color);
-            line.setAttribute('data-pair', pair.pairNum);
-            svg.appendChild(line);
-        });
-    },
-
     // Association selection state
-    associationSelection: { gauche: null, droite: null },
+    associationSelection: { grid: null, chip: null },
     associationPairs: [],
     associationPairCounter: 0,
+    _assocGridSide: 'gauche',
+    _assocChipSide: 'droite',
 
-    selectAssociationItem(element, side) {
+    selectAssociationItem(element, zone) {
+        // zone = 'grid' ou 'chip'
         const id = element.dataset.id;
 
-        // Si l'élément est déjà apparié, le désapparier au clic
+        // Si déjà pairé, défaire la paire
         if (element.classList.contains('paired')) {
-            this.unpairAssociationItem(element, side, id);
+            this.unpairAssociationItem(element, zone, id);
             return;
         }
 
-        // Toggle selection
-        if (this.associationSelection[side] === id) {
+        // Toggle selection dans cette zone
+        if (this.associationSelection[zone] === id) {
             element.classList.remove('selected');
-            this.associationSelection[side] = null;
+            this.associationSelection[zone] = null;
         } else {
-            // Deselect previous selection on this side
-            document.querySelectorAll(`.association-${side} .association-item.selected`)
-                .forEach(el => el.classList.remove('selected'));
+            // Déselectionner la sélection précédente dans cette zone
+            const container = zone === 'grid' ? '#associationGrid' : '#associationChips';
+            document.querySelectorAll(`${container} .selected`).forEach(el => el.classList.remove('selected'));
             element.classList.add('selected');
-            this.associationSelection[side] = id;
+            this.associationSelection[zone] = id;
         }
 
-        // Check if both sides selected - create pair
-        if (this.associationSelection.gauche !== null && this.associationSelection.droite !== null) {
+        // Si les deux zones ont une sélection → créer la paire
+        if (this.associationSelection.grid !== null && this.associationSelection.chip !== null) {
             this.associationPairCounter++;
             const pairNum = this.associationPairCounter;
 
-            this.associationPairs.push({
-                gauche: this.associationSelection.gauche,
-                droite: this.associationSelection.droite,
+            // Mapper vers gauche/droite pour la validation
+            const gridId = this.associationSelection.grid;
+            const chipId = this.associationSelection.chip;
+            const pairData = {
+                gauche: this._assocGridSide === 'gauche' ? gridId : chipId,
+                droite: this._assocGridSide === 'droite' ? gridId : chipId,
                 pairNum: pairNum
-            });
+            };
+            this.associationPairs.push(pairData);
             this.saveAnswer('association', this.associationPairs);
 
-            // Mark as paired avec couleur de paire
-            const gaucheEl = document.querySelector(`.association-gauche .association-item[data-id="${this.associationSelection.gauche}"]`);
-            const droiteEl = document.querySelector(`.association-droite .association-item[data-id="${this.associationSelection.droite}"]`);
+            // Trouver les éléments visuels
+            const gridEl = document.querySelector(`#associationGrid .association-grid-card[data-id="${gridId}"]`);
+            const chipEl = document.querySelector(`#associationChips .association-chip[data-id="${chipId}"]`);
             const colorIdx = (pairNum - 1) % this.PAIR_COLORS.length;
             const colorClass = `association-pair-color-${colorIdx + 1}`;
 
-            [gaucheEl, droiteEl].forEach(el => {
-                if (el) {
-                    el.classList.remove('selected');
-                    el.classList.add('paired', colorClass);
-                    el.dataset.pairNum = pairNum;
-                    const indicator = el.querySelector('.association-link-indicator');
-                    if (indicator) {
-                        indicator.textContent = pairNum;
-                        indicator.classList.add('has-pair');
-                    }
+            // Marquer la carte grille
+            if (gridEl) {
+                gridEl.classList.remove('selected');
+                gridEl.classList.add('paired', colorClass);
+                gridEl.dataset.pairNum = pairNum;
+                const indicator = gridEl.querySelector('.assoc-card-indicator');
+                if (indicator) indicator.textContent = pairNum;
+                // Coller le label du chip sous la carte
+                const label = gridEl.querySelector('.assoc-paired-label');
+                if (label && chipEl) {
+                    label.textContent = chipEl.textContent.trim() || '🖼';
                 }
-            });
+            }
 
-            this.associationSelection = { gauche: null, droite: null };
+            // Marquer le chip
+            if (chipEl) {
+                chipEl.classList.remove('selected');
+                chipEl.classList.add('paired', colorClass);
+                chipEl.dataset.pairNum = pairNum;
+            }
 
-            // Dessiner les lignes de connexion
-            setTimeout(() => this.drawAssociationLines(), 50);
+            this.associationSelection = { grid: null, chip: null };
         }
     },
 
-    unpairAssociationItem(element, side, id) {
+    unpairAssociationItem(element, zone, id) {
         const pairNum = element.dataset.pairNum;
         if (!pairNum) return;
 
-        // Trouver et supprimer la paire
         const pairIndex = this.associationPairs.findIndex(p => String(p.pairNum) === String(pairNum));
         if (pairIndex > -1) {
             const pair = this.associationPairs[pairIndex];
             this.associationPairs.splice(pairIndex, 1);
             this.saveAnswer('association', this.associationPairs);
 
-            // Réinitialiser les deux éléments de la paire
-            const gaucheEl = document.querySelector(`.association-gauche .association-item[data-id="${pair.gauche}"]`);
-            const droiteEl = document.querySelector(`.association-droite .association-item[data-id="${pair.droite}"]`);
+            // Retrouver les IDs grille/chip
+            const gridId = this._assocGridSide === 'gauche' ? pair.gauche : pair.droite;
+            const chipId = this._assocChipSide === 'gauche' ? pair.gauche : pair.droite;
 
-            [gaucheEl, droiteEl].forEach(el => {
+            const gridEl = document.querySelector(`#associationGrid .association-grid-card[data-id="${gridId}"]`);
+            const chipEl = document.querySelector(`#associationChips .association-chip[data-id="${chipId}"]`);
+
+            [gridEl, chipEl].forEach(el => {
                 if (el) {
-                    // Retirer toutes les classes de couleur de paire
                     for (let i = 1; i <= 8; i++) el.classList.remove(`association-pair-color-${i}`);
                     el.classList.remove('paired', 'selected');
                     delete el.dataset.pairNum;
-                    const indicator = el.querySelector('.association-link-indicator');
-                    if (indicator) {
-                        indicator.textContent = '';
-                        indicator.classList.remove('has-pair');
-                    }
                 }
             });
 
-            // Redessiner les lignes
-            setTimeout(() => this.drawAssociationLines(), 50);
+            // Réinitialiser l'indicateur et le label de la carte
+            if (gridEl) {
+                const indicator = gridEl.querySelector('.assoc-card-indicator');
+                if (indicator) indicator.textContent = '';
+                const label = gridEl.querySelector('.assoc-paired-label');
+                if (label) label.textContent = '';
+            }
         }
     },
 
@@ -2411,22 +2424,28 @@ const EleveConnaissances = {
                 const userPairs = this.userAnswers['association'] || [];
 
                 userPairs.forEach(up => {
-                    const gaucheEl = document.querySelector(`.association-gauche .association-item[data-id="${up.gauche}"]`);
-                    const droiteEl = document.querySelector(`.association-droite .association-item[data-id="${up.droite}"]`);
+                    // Retrouver les éléments visuels (grille + chip)
+                    const gridId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
+                    const chipId = this._assocChipSide === 'gauche' ? up.gauche : up.droite;
+                    const gridEl = document.querySelector(`#associationGrid .association-grid-card[data-id="${gridId}"]`);
+                    const chipEl = document.querySelector(`#associationChips .association-chip[data-id="${chipId}"]`);
 
-                    if (up.gauche === up.droite) {
+                    const isCorrect = String(up.gauche) === String(up.droite);
+                    if (isCorrect) {
                         correct++;
-                        [gaucheEl, droiteEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('correct'); } });
+                        [gridEl, chipEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('correct'); } });
                     } else {
-                        [gaucheEl, droiteEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('incorrect'); } });
+                        [gridEl, chipEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('incorrect'); } });
                     }
                     details.push({
-                        question: assocPaires.find(p => p.element1 === up.gauche || `pair-${assocPaires.indexOf(p)}` === up.gauche)?.element1 || up.gauche,
-                        reponse: assocPaires.find(p => p.element2 === up.droite || `pair-${assocPaires.indexOf(p)}` === up.droite)?.element2 || up.droite,
-                        correct: up.gauche === up.droite
+                        question: assocPaires[parseInt(up.gauche)]?.element1 || up.gauche,
+                        reponse: assocPaires[parseInt(up.droite)]?.element2 || up.droite,
+                        correct: isCorrect
                     });
                 });
-                document.querySelectorAll('.association-item:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
+                // Marquer les éléments non appariés comme incorrects
+                document.querySelectorAll('#associationGrid .association-grid-card:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
+                document.querySelectorAll('#associationChips .association-chip:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
 
                 // Afficher la correction si pas tout correct
                 if (correct < total) {
@@ -2493,8 +2512,8 @@ const EleveConnaissances = {
             content.querySelectorAll('input, select, textarea, button').forEach(el => {
                 if (!el.closest('.etape-action-bar')) el.disabled = true;
             });
-            // Désactiver les clics sur les items d'association
-            content.querySelectorAll('.association-item').forEach(el => {
+            // Désactiver les clics sur les items d'association (grille + chips)
+            content.querySelectorAll('.association-grid-card, .association-chip').forEach(el => {
                 el.style.pointerEvents = 'none';
             });
         }
@@ -2968,7 +2987,7 @@ const EleveConnaissances = {
         this.currentEtapeIndex = 0;
         this.userAnswers = {};
         // Réinitialiser les états d'association
-        this.associationSelection = { gauche: null, droite: null };
+        this.associationSelection = { grid: null, chip: null };
         this.associationPairs = [];
         this.associationPairCounter = 0;
         this.renderEntrainementView();

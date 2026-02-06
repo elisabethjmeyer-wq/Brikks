@@ -904,7 +904,7 @@
 }
 
 /* ============================================
-   ASSOCIATION FORMAT
+   ASSOCIATION FORMAT — Layout grille + chips
    ============================================ */
 
 .association-container {
@@ -919,39 +919,6 @@
     margin-bottom: 1.5rem;
 }
 
-.association-columns {
-    display: flex;
-    justify-content: center;
-    gap: 3rem;
-    position: relative;
-}
-
-/* Zone SVG pour les lignes de connexion */
-.association-svg-lines {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.association-svg-lines line {
-    stroke-width: 2.5;
-    stroke-linecap: round;
-    transition: stroke 0.3s ease;
-}
-
-.association-column {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    max-width: 340px;
-    z-index: 2;
-}
-
 /* Couleurs par paire */
 .association-pair-color-1 { --pair-color: #3b82f6; --pair-bg: #dbeafe; }
 .association-pair-color-2 { --pair-color: #8b5cf6; --pair-bg: #ede9fe; }
@@ -962,38 +929,115 @@
 .association-pair-color-7 { --pair-color: #f97316; --pair-bg: #ffedd5; }
 .association-pair-color-8 { --pair-color: #6366f1; --pair-bg: #e0e7ff; }
 
-.association-item {
+/* --- ZONE GRILLE (groupe A : images ou termes courts) --- */
+.association-grid {
     display: flex;
-    align-items: center;
-    padding: 0.85rem 1rem;
-    background: #f8fafc;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Carte image dans la grille */
+.association-grid-card {
+    width: 180px;
+    background: white;
+    border: 2.5px solid #e2e8f0;
+    border-radius: 14px;
     cursor: pointer;
     transition: all 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
     position: relative;
 }
 
-.association-gauche .association-item {
-    justify-content: space-between;
+.association-grid-card:hover {
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.18);
 }
 
-.association-droite .association-item {
-    justify-content: flex-start;
-}
-
-.association-item:hover {
+.association-grid-card.selected {
     border-color: #3b82f6;
     background: #eff6ff;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-}
-
-.association-item.selected {
-    border-color: #3b82f6;
-    background: #dbeafe;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
     animation: association-pulse 0.3s ease;
+}
+
+.association-grid-card.paired {
+    border-color: var(--pair-color, #6366f1);
+    background: var(--pair-bg, #e0e7ff);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.association-grid-card .assoc-card-img {
+    width: 100%;
+    height: 150px;
+    object-fit: contain;
+    padding: 8px;
+    pointer-events: none;
+}
+
+/* Zone "tag collé" sous l'image quand pairé */
+.association-grid-card .assoc-paired-label {
+    display: none;
+    width: 100%;
+    padding: 6px 10px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--pair-color, #6366f1);
+    background: var(--pair-bg, #e0e7ff);
+    border-top: 1.5px solid var(--pair-color, #6366f1);
+}
+
+.association-grid-card.paired .assoc-paired-label {
+    display: block;
+}
+
+/* Carte texte dans la grille (cas texte↔texte groupe A) */
+.association-grid-card.is-text {
+    width: auto;
+    min-width: 140px;
+    max-width: 250px;
+    padding: 0.85rem 1.2rem;
+    justify-content: center;
+}
+
+.association-grid-card .assoc-card-text {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    text-align: center;
+    padding: 0.5rem;
+}
+
+/* Numéro indicateur sur les cartes */
+.association-grid-card .assoc-card-indicator {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+    transition: all 0.25s ease;
+}
+
+.association-grid-card.selected .assoc-card-indicator {
+    background: #3b82f6;
+}
+
+.association-grid-card.paired .assoc-card-indicator {
+    background: var(--pair-color, #6366f1);
 }
 
 @keyframes association-pulse {
@@ -1002,85 +1046,100 @@
     100% { transform: scale(1); }
 }
 
-/* Apparié — couleur de la paire */
-.association-item.paired {
+/* --- ZONE CHIPS (groupe B : noms / définitions) --- */
+.association-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 14px;
+    border: 2px dashed #e2e8f0;
+    min-height: 50px;
+}
+
+.association-chips.is-definitions {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.association-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.1rem;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #374151;
+    transition: all 0.25s ease;
+    user-select: none;
+}
+
+.association-chip:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(59, 130, 246, 0.12);
+}
+
+.association-chip.selected {
+    border-color: #3b82f6;
+    background: #dbeafe;
+    color: #1d4ed8;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.association-chip.paired {
     border-color: var(--pair-color, #6366f1);
     background: var(--pair-bg, #e0e7ff);
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.association-item.paired .association-link-indicator {
-    background: var(--pair-color, #6366f1);
-}
-
-/* Ancien style linked pour rétro-compatibilité */
-.association-item.linked {
-    border-color: #10b981;
-    background: #d1fae5;
-    cursor: default;
+    color: var(--pair-color, #6366f1);
     opacity: 0.7;
+    cursor: pointer;
 }
 
-.association-text {
-    font-size: 1rem;
-    color: #374151;
-    font-weight: 500;
+.association-chip.paired:hover {
+    opacity: 1;
 }
 
-/* Éléments image dans association */
-.association-item-image {
-    padding: 0.75rem;
-    justify-content: center;
-    min-height: 120px;
-    background: white;
+/* Chip image (cas image↔image) */
+.association-chip.chip-image {
+    padding: 0.4rem;
+    border-radius: 12px;
 }
 
-.association-img {
-    max-width: 100%;
-    max-height: 200px;
-    width: auto;
-    height: auto;
+.association-chip.chip-image img {
+    max-height: 80px;
+    max-width: 120px;
     object-fit: contain;
     border-radius: 8px;
     pointer-events: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
 }
 
-.association-item:hover .association-img {
-    transform: scale(1.02);
+/* Chip définition longue */
+.association-chips.is-definitions .association-chip {
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.9rem;
 }
 
-/* Meilleur affichage colonne avec images */
-.association-column.has-images {
-    max-width: 400px;
-}
-
-.association-column.has-images .association-item {
-    min-height: 140px;
-    flex-direction: column;
+/* Label séparateur entre les zones */
+.association-zone-label {
     text-align: center;
-    gap: 0.5rem;
-    position: relative;
-    padding: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0.25rem 0;
 }
 
-.association-column.has-images .association-item .association-link-indicator {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-}
-
-.association-column.has-images.association-gauche .association-item .association-link-indicator {
-    right: auto;
-    left: 8px;
-}
-
-.association-column.has-images .association-img {
-    max-height: 180px;
-    margin: 0 auto;
-}
+/* --- Legacy selectors (plus utilisés, gardés pour sécurité) --- */
 
 /* Images dans le bilan/correction */
 .correction-img {
@@ -1090,54 +1149,27 @@
     vertical-align: middle;
 }
 
-.association-link-indicator {
-    min-width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    background: #e2e8f0;
-    margin: 0 0.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: white;
-    transition: all 0.25s ease;
-}
-
-.association-item.selected .association-link-indicator {
-    background: #3b82f6;
-}
-
-/* Indicateur avec numéro de paire */
-.association-link-indicator.has-pair {
-    background: var(--pair-color, #6366f1);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-}
-
-.association-item.linked .association-link-indicator {
-    background: #10b981;
-}
-
 /* Après validation - correct */
-.association-item.correct {
+.association-grid-card.correct,
+.association-chip.correct {
     border-color: #10b981;
     background: #d1fae5;
     animation: feedback-correct 0.5s ease;
 }
 
-.association-item.correct .association-link-indicator {
+.association-grid-card.correct .assoc-card-indicator {
     background: #10b981;
 }
 
 /* Après validation - incorrect */
-.association-item.incorrect {
+.association-grid-card.incorrect,
+.association-chip.incorrect {
     border-color: #ef4444;
     background: #fee2e2;
     animation: feedback-shake 0.4s ease;
 }
 
-.association-item.incorrect .association-link-indicator {
+.association-grid-card.incorrect .assoc-card-indicator {
     background: #ef4444;
 }
 
@@ -1188,38 +1220,32 @@
     flex-shrink: 0;
 }
 
-/* Responsive */
+/* Responsive association */
 @media (max-width: 600px) {
-    .association-columns {
-        gap: 1rem;
+    .association-grid-card {
+        width: 140px;
     }
-
-    .association-column,
-    .association-column.has-images {
-        max-width: 48%;
+    .association-grid-card .assoc-card-img {
+        height: 110px;
     }
-
-    .association-img,
-    .association-column.has-images .association-img {
-        max-height: 120px;
+    .association-grid-card.is-text {
+        min-width: 110px;
     }
-
-    .association-column.has-images .association-item {
-        min-height: 100px;
-        padding: 0.5rem;
+    .association-chip {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.9rem;
     }
 }
 
 @media (max-width: 400px) {
-    .association-columns {
-        flex-direction: column;
-        align-items: center;
+    .association-grid {
+        gap: 0.5rem;
     }
-
-    .association-column,
-    .association-column.has-images {
-        max-width: 100%;
-        width: 100%;
+    .association-grid-card {
+        width: 120px;
+    }
+    .association-grid-card .assoc-card-img {
+        height: 90px;
     }
 }
 
@@ -2073,30 +2099,7 @@
     border-left: 3px solid #ef4444;
 }
 
-/* Correction spécifique pour association */
-.association-correction-list {
-    gap: 0.75rem;
-}
-
-.association-correction-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-}
-
-.association-correction-item .assoc-left-text,
-.association-correction-item .assoc-right-text {
-    flex: 1;
-    font-weight: 500;
-    color: #334155;
-}
-
-.association-correction-item .assoc-arrow {
-    color: #0ea5e9;
-    font-weight: 700;
-    font-size: 1.1rem;
-}
+/* Correction spécifique pour association (voir section ASSOCIATION FORMAT) */
 
 /* ============================================
    TIMELINE - ÉTATS VALIDATION & DRAG
