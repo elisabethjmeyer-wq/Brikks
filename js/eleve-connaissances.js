@@ -2447,28 +2447,33 @@ const EleveConnaissances = {
                 document.querySelectorAll('#associationGrid .association-grid-card:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
                 document.querySelectorAll('#associationChips .association-chip:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
 
-                // Afficher la correction si pas tout correct
+                // Afficher la correction en grille compacte si pas tout correct
                 if (correct < total) {
                     const assocContainer = document.querySelector('.association-container');
                     const existingCorrection = assocContainer?.querySelector('.correction-section');
                     if (assocContainer && !existingCorrection) {
-                        const renderAssocElement = (text, type) => {
-                            if (type === 'image') {
-                                return `<img src="${this.escapeHtml(this.normalizeImageUrl(text))}" alt="" style="max-height:70px;max-width:120px;object-fit:contain;border-radius:6px;">`;
-                            }
-                            return `<span>${this.escapeHtml(text)}</span>`;
-                        };
+                        const hasImages = assocPaires.some(p => p.element1_type === 'image' || p.element2_type === 'image');
                         const correctionHtml = `
-                            <div class="correction-section">
+                            <div class="correction-section assoc-correction-compact">
                                 <h4>Associations correctes</h4>
-                                <div class="correction-list association-correction-list">
-                                    ${assocPaires.map((paire, i) => `
-                                        <div class="association-correction-item">
-                                            <span class="assoc-element">${renderAssocElement(paire.element1, paire.element1_type)}</span>
-                                            <span class="assoc-arrow">↔</span>
-                                            <span class="assoc-element">${renderAssocElement(paire.element2, paire.element2_type)}</span>
-                                        </div>
-                                    `).join('')}
+                                <div class="assoc-correction-grid">
+                                    ${assocPaires.map((paire, i) => {
+                                        const imgEl = paire.element1_type === 'image' ? paire.element1 : (paire.element2_type === 'image' ? paire.element2 : null);
+                                        const txtEl = paire.element1_type === 'image' ? paire.element2 : paire.element1;
+                                        const txt2El = paire.element2_type === 'image' ? paire.element1 : paire.element2;
+                                        if (imgEl) {
+                                            return `<div class="assoc-correction-card">
+                                                <img src="${this.escapeHtml(this.normalizeImageUrl(imgEl))}" alt="">
+                                                <span class="assoc-correction-label">${this.escapeHtml(paire.element1_type === 'image' ? paire.element2 : paire.element1)}</span>
+                                            </div>`;
+                                        } else {
+                                            return `<div class="assoc-correction-card text-only">
+                                                <span class="assoc-correction-term">${this.escapeHtml(paire.element1)}</span>
+                                                <span class="assoc-correction-sep">=</span>
+                                                <span class="assoc-correction-def">${this.escapeHtml(paire.element2)}</span>
+                                            </div>`;
+                                        }
+                                    }).join('')}
                                 </div>
                             </div>
                         `;
