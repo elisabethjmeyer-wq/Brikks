@@ -108,22 +108,32 @@ const EleveConnaissances = {
         // TODO: Remettre le filtre statut === 'publie' en production
         // Pour l'instant, on affiche tout pour le test
         this.banques = data.banques || [];
-        this.entrainements = data.entrainements || [];
-        this.etapes = data.etapes || [];
-        this.etapeQuestions = data.etapeQuestions || [];
         this.formatsQuestions = data.formatsQuestions || [];
-        this.questionsConnaissances = data.questionsConnaissances || [];  // Questions avec donnees
+        this.questionsConnaissances = data.questionsConnaissances || [];
+
+        // Filtrer les données orphelines pour éviter les erreurs d'affichage
+        const banqueIds = new Set(this.banques.map(b => String(b.id)));
+        this.entrainements = (data.entrainements || []).filter(e => banqueIds.has(String(e.banque_exercice_id)));
+
+        const entrainementIds = new Set(this.entrainements.map(e => String(e.id)));
+        this.etapes = (data.etapes || []).filter(et => entrainementIds.has(String(et.entrainement_id)));
+
+        const etapeIds = new Set(this.etapes.map(et => String(et.id)));
+        const questionIds = new Set(this.questionsConnaissances.map(q => String(q.id)));
+        this.etapeQuestions = (data.etapeQuestions || []).filter(eq =>
+            etapeIds.has(String(eq.etape_id)) && questionIds.has(String(eq.question_id))
+        );
+
         this.banques.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
         this.entrainements.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         // Debug log
-        console.log('[EleveConnaissances] Données chargées:', {
+        console.log('[EleveConnaissances] Données chargées (après filtrage orphelins):', {
             banques: this.banques.length,
             entrainements: this.entrainements.length,
             etapes: this.etapes.length,
             etapeQuestions: this.etapeQuestions.length,
-            questionsConnaissances: this.questionsConnaissances.length,
-            data: data
+            questionsConnaissances: this.questionsConnaissances.length
         });
     },
 
@@ -874,14 +884,13 @@ const EleveConnaissances = {
                 console.log('[EleveConnaissances] Mode manuel - Questions liées (refs):', linkedQuestionRefs);
 
                 for (const questionRef of linkedQuestionRefs) {
-                    let questionContent = this.questionsConnaissances.find(q =>
+                    const questionContent = this.questionsConnaissances.find(q =>
                         String(q.id) === String(questionRef.question_id)
                     );
 
-                    // FALLBACK: Si question non trouvée par ID, chercher par format/type
-                    if (!questionContent && format) {
-                        console.warn(`[EleveConnaissances] Question ID ${questionRef.question_id} non trouvée! Recherche fallback par type ${format}...`);
-                        questionContent = this.questionsConnaissances.find(q => q.type === format);
+                    if (!questionContent) {
+                        console.warn(`[EleveConnaissances] Question ID ${questionRef.question_id} non trouvée, ignorée`);
+                        continue;
                     }
 
                     if (questionContent) {

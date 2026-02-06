@@ -648,6 +648,9 @@ function handleRequest(e) {
       case 'setEtapeQuestionsConn':
         result = setEtapeQuestionsConn(request);
         break;
+      case 'cleanupOrphanedData':
+        result = cleanupOrphanedData();
+        break;
 
       default:
         result = { success: false, error: 'Action non reconnue: ' + action };
@@ -7229,12 +7232,32 @@ function deleteQuestionConnaissances(data) {
 
   for (let i = allData.length - 1; i >= 1; i--) {
     if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      // CASCADE: Supprimer les références à cette question dans ETAPE_QUESTIONS_CONN
+      deleteEtapeQuestionsForQuestion(data.id);
       sheet.deleteRow(i + 1);
       return { success: true, message: 'Question supprimée' };
     }
   }
 
   return { success: false, error: 'Question non trouvée' };
+}
+
+/**
+ * Supprime toutes les références à une question dans ETAPE_QUESTIONS_CONN
+ */
+function deleteEtapeQuestionsForQuestion(questionId) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
+  if (!sheet) return;
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const questionIdCol = headers.indexOf('question_id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][questionIdCol]).trim() === String(questionId).trim()) {
+      sheet.deleteRow(i + 1);
+    }
+  }
 }
 
 // ========================================
@@ -7444,12 +7467,35 @@ function deleteBanqueExercicesConn(data) {
 
   for (let i = allData.length - 1; i >= 1; i--) {
     if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
+      // CASCADE: Supprimer tous les entraînements de cette banque (et leurs étapes/questions)
+      deleteEntrainementsForBanque(data.id);
       sheet.deleteRow(i + 1);
-      return { success: true, message: 'Banque supprimée' };
+      return { success: true, message: 'Banque et ses entraînements supprimés' };
     }
   }
 
   return { success: false, error: 'Banque non trouvée' };
+}
+
+/**
+ * Supprime tous les entraînements d'une banque (cascade)
+ */
+function deleteEntrainementsForBanque(banqueId) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+  if (!sheet) return;
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const idCol = headers.indexOf('id');
+  const banqueCol = headers.indexOf('banque_exercice_id');
+
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][banqueCol]).trim() === String(banqueId).trim()) {
+      // CASCADE: supprimer les étapes de cet entraînement (et leurs questions)
+      deleteEtapesForEntrainement(allData[i][idCol]);
+      sheet.deleteRow(i + 1);
+    }
+  }
 }
 
 // ========== ENTRAINEMENTS CONNAISSANCES ==========
@@ -7877,4 +7923,110 @@ function setEtapeQuestionsConn(data) {
   });
 
   return { success: true, message: `${questions.length} questions définies pour l'étape` };
+}
+
+/**
+ * Nettoie les données orphelines dans toutes les feuilles connaissances.
+ * Supprime en cascade : entrainements sans banque, étapes sans entrainement,
+ * liens étape-questions sans étape ou sans question valide.
+ */
+function cleanupOrphanedData() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let cleaned = { entrainements: 0, etapes: 0, etapeQuestions: 0 };
+
+  // 1. Collecter les IDs existants des banques
+  const banquesSheet = ss.getSheetByName(SHEETS.BANQUES_EXERCICES_CONN);
+  const banqueIds = new Set();
+  if (banquesSheet) {
+    const bData = banquesSheet.getDataRange().getValues();
+    const bHeaders = bData[0].map(h => String(h).toLowerCase().trim());
+    const bIdCol = bHeaders.indexOf('id');
+    for (let i = 1; i < bData.length; i++) {
+      const id = String(bData[i][bIdCol]).trim();
+      if (id) banqueIds.add(id);
+    }
+  }
+
+  // 2. Nettoyer ENTRAINEMENTS_CONN : supprimer ceux dont banque_exercice_id n'existe plus
+  const entrSheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+  const entrainementIds = new Set();
+  if (entrSheet) {
+    const eData = entrSheet.getDataRange().getValues();
+    const eHeaders = eData[0].map(h => String(h).toLowerCase().trim());
+    const eIdCol = eHeaders.indexOf('id');
+    const eBanqueCol = eHeaders.indexOf('banque_exercice_id');
+
+    for (let i = eData.length - 1; i >= 1; i--) {
+      const banqueId = String(eData[i][eBanqueCol]).trim();
+      const entrId = String(eData[i][eIdCol]).trim();
+      if (!banqueId || !banqueIds.has(banqueId)) {
+        // Supprimer les étapes de cet entrainement orphelin
+        deleteEtapesForEntrainement(entrId);
+        entrSheet.deleteRow(i + 1);
+        cleaned.entrainements++;
+      } else {
+        entrainementIds.add(entrId);
+      }
+    }
+  }
+
+  // 3. Nettoyer ETAPES_CONN : supprimer celles dont entrainement_id n'existe plus
+  const etapesSheet = ss.getSheetByName(SHEETS.ETAPES_CONN);
+  const etapeIds = new Set();
+  if (etapesSheet) {
+    const stData = etapesSheet.getDataRange().getValues();
+    const stHeaders = stData[0].map(h => String(h).toLowerCase().trim());
+    const stIdCol = stHeaders.indexOf('id');
+    const stEntrCol = stHeaders.indexOf('entrainement_id');
+
+    for (let i = stData.length - 1; i >= 1; i--) {
+      const entrId = String(stData[i][stEntrCol]).trim();
+      const etapeId = String(stData[i][stIdCol]).trim();
+      if (!entrId || !entrainementIds.has(entrId)) {
+        // Supprimer les liens question de cette étape orpheline
+        deleteEtapeQuestionsForEtape(etapeId);
+        etapesSheet.deleteRow(i + 1);
+        cleaned.etapes++;
+      } else {
+        etapeIds.add(etapeId);
+      }
+    }
+  }
+
+  // 4. Nettoyer ETAPE_QUESTIONS_CONN : supprimer les liens vers étapes ou questions inexistantes
+  const eqSheet = ss.getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
+  if (eqSheet) {
+    // Collecter les IDs de questions existantes
+    const questionsSheet = ss.getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
+    const questionIds = new Set();
+    if (questionsSheet) {
+      const qData = questionsSheet.getDataRange().getValues();
+      const qHeaders = qData[0].map(h => String(h).toLowerCase().trim());
+      const qIdCol = qHeaders.indexOf('id');
+      for (let i = 1; i < qData.length; i++) {
+        const id = String(qData[i][qIdCol]).trim();
+        if (id) questionIds.add(id);
+      }
+    }
+
+    const eqData = eqSheet.getDataRange().getValues();
+    const eqHeaders = eqData[0].map(h => String(h).toLowerCase().trim());
+    const eqEtapeCol = eqHeaders.indexOf('etape_id');
+    const eqQuestionCol = eqHeaders.indexOf('question_id');
+
+    for (let i = eqData.length - 1; i >= 1; i--) {
+      const etapeId = String(eqData[i][eqEtapeCol]).trim();
+      const questionId = String(eqData[i][eqQuestionCol]).trim();
+      if (!etapeId || !etapeIds.has(etapeId) || !questionId || !questionIds.has(questionId)) {
+        eqSheet.deleteRow(i + 1);
+        cleaned.etapeQuestions++;
+      }
+    }
+  }
+
+  return {
+    success: true,
+    message: `Nettoyage terminé: ${cleaned.entrainements} entraînements, ${cleaned.etapes} étapes, ${cleaned.etapeQuestions} liens question supprimés`,
+    cleaned: cleaned
+  };
 }
