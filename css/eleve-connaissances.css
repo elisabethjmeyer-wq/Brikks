@@ -909,6 +909,7 @@
 
 .association-container {
     padding: 1rem 0;
+    position: relative;
 }
 
 .association-instruction {
@@ -920,8 +921,26 @@
 
 .association-columns {
     display: flex;
-    justify-content: space-around;
-    gap: 2rem;
+    justify-content: center;
+    gap: 3rem;
+    position: relative;
+}
+
+/* Zone SVG pour les lignes de connexion */
+.association-svg-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.association-svg-lines line {
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transition: stroke 0.3s ease;
 }
 
 .association-column {
@@ -929,18 +948,30 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    max-width: 300px;
+    max-width: 340px;
+    z-index: 2;
 }
+
+/* Couleurs par paire */
+.association-pair-color-1 { --pair-color: #3b82f6; --pair-bg: #dbeafe; }
+.association-pair-color-2 { --pair-color: #8b5cf6; --pair-bg: #ede9fe; }
+.association-pair-color-3 { --pair-color: #ec4899; --pair-bg: #fce7f3; }
+.association-pair-color-4 { --pair-color: #f59e0b; --pair-bg: #fef3c7; }
+.association-pair-color-5 { --pair-color: #10b981; --pair-bg: #d1fae5; }
+.association-pair-color-6 { --pair-color: #06b6d4; --pair-bg: #cffafe; }
+.association-pair-color-7 { --pair-color: #f97316; --pair-bg: #ffedd5; }
+.association-pair-color-8 { --pair-color: #6366f1; --pair-bg: #e0e7ff; }
 
 .association-item {
     display: flex;
     align-items: center;
-    padding: 1rem;
+    padding: 0.85rem 1rem;
     background: #f8fafc;
     border: 2px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
+    position: relative;
 }
 
 .association-gauche .association-item {
@@ -954,22 +985,36 @@
 .association-item:hover {
     border-color: #3b82f6;
     background: #eff6ff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
 
 .association-item.selected {
     border-color: #3b82f6;
     background: #dbeafe;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    animation: association-pulse 0.3s ease;
 }
 
-/* Apparié mais pas encore validé (neutre, pas de feedback) */
+@keyframes association-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+}
+
+/* Apparié — couleur de la paire */
 .association-item.paired {
-    border-color: #6366f1;
-    background: #e0e7ff;
+    border-color: var(--pair-color, #6366f1);
+    background: var(--pair-bg, #e0e7ff);
     cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-/* Ancien style linked pour rétro-compatibilité - utilisé après validation si correct */
+.association-item.paired .association-link-indicator {
+    background: var(--pair-color, #6366f1);
+}
+
+/* Ancien style linked pour rétro-compatibilité */
 .association-item.linked {
     border-color: #10b981;
     background: #d1fae5;
@@ -980,30 +1025,40 @@
 .association-text {
     font-size: 1rem;
     color: #374151;
+    font-weight: 500;
 }
 
 /* Éléments image dans association */
 .association-item-image {
     padding: 0.75rem;
     justify-content: center;
-    min-height: 100px;
+    min-height: 120px;
     background: white;
 }
 
 .association-img {
     max-width: 100%;
-    max-height: 140px;
+    max-height: 200px;
     width: auto;
     height: auto;
     object-fit: contain;
     border-radius: 8px;
     pointer-events: none;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.association-item:hover .association-img {
+    transform: scale(1.02);
 }
 
 /* Meilleur affichage colonne avec images */
+.association-column.has-images {
+    max-width: 400px;
+}
+
 .association-column.has-images .association-item {
-    min-height: 130px;
+    min-height: 140px;
     flex-direction: column;
     text-align: center;
     gap: 0.5rem;
@@ -1023,7 +1078,7 @@
 }
 
 .association-column.has-images .association-img {
-    max-height: 100px;
+    max-height: 180px;
     margin: 0 auto;
 }
 
@@ -1036,8 +1091,8 @@
 }
 
 .association-link-indicator {
-    min-width: 24px;
-    height: 24px;
+    min-width: 26px;
+    height: 26px;
     border-radius: 50%;
     background: #e2e8f0;
     margin: 0 0.5rem;
@@ -1045,9 +1100,9 @@
     align-items: center;
     justify-content: center;
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 700;
     color: white;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
 }
 
 .association-item.selected .association-link-indicator {
@@ -1056,11 +1111,8 @@
 
 /* Indicateur avec numéro de paire */
 .association-link-indicator.has-pair {
-    background: #6366f1;
-}
-
-.association-item.paired .association-link-indicator {
-    background: #6366f1;
+    background: var(--pair-color, #6366f1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
 .association-item.linked .association-link-indicator {
@@ -1071,6 +1123,7 @@
 .association-item.correct {
     border-color: #10b981;
     background: #d1fae5;
+    animation: feedback-correct 0.5s ease;
 }
 
 .association-item.correct .association-link-indicator {
@@ -1081,6 +1134,7 @@
 .association-item.incorrect {
     border-color: #ef4444;
     background: #fee2e2;
+    animation: feedback-shake 0.4s ease;
 }
 
 .association-item.incorrect .association-link-indicator {
@@ -1095,17 +1149,180 @@
     font-weight: 500;
 }
 
+/* Correction association enrichie (avec images) */
+.association-correction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.association-correction-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #f0fdf4;
+    border-radius: 10px;
+    border: 1px solid #bbf7d0;
+}
+
+.association-correction-item .assoc-element {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+}
+
+.association-correction-item .assoc-element img {
+    max-height: 70px;
+    max-width: 120px;
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.association-correction-item .assoc-arrow {
+    font-size: 1.2rem;
+    color: #10b981;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
+    .association-columns {
+        gap: 1rem;
+    }
+
+    .association-column,
+    .association-column.has-images {
+        max-width: 48%;
+    }
+
+    .association-img,
+    .association-column.has-images .association-img {
+        max-height: 120px;
+    }
+
+    .association-column.has-images .association-item {
+        min-height: 100px;
+        padding: 0.5rem;
+    }
+}
+
+@media (max-width: 400px) {
     .association-columns {
         flex-direction: column;
         align-items: center;
     }
 
-    .association-column {
+    .association-column,
+    .association-column.has-images {
         max-width: 100%;
         width: 100%;
     }
+}
+
+/* ============================================
+   ANIMATIONS FEEDBACK (tous formats)
+   ============================================ */
+
+@keyframes feedback-correct {
+    0% { transform: scale(1); }
+    30% { transform: scale(1.04); background: #bbf7d0; }
+    100% { transform: scale(1); }
+}
+
+@keyframes feedback-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+}
+
+@keyframes feedback-slide-in {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes feedback-pop {
+    0% { transform: scale(0.8); opacity: 0; }
+    60% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Appliquer les animations de feedback aux éléments validés */
+.vf-feedback, .qcm-feedback, .question-ouverte-feedback {
+    animation: feedback-slide-in 0.4s ease;
+}
+
+.trou-input.correct, .chrono-input.correct, .question-ouverte-input.correct {
+    animation: feedback-correct 0.5s ease;
+}
+
+.trou-input.incorrect, .chrono-input.incorrect, .question-ouverte-input.incorrect {
+    animation: feedback-shake 0.4s ease;
+}
+
+.timeline-card.correct {
+    animation: feedback-correct 0.5s ease;
+}
+
+.timeline-card.incorrect {
+    animation: feedback-shake 0.4s ease;
+}
+
+/* Bandeau de feedback amélioré */
+.etape-feedback {
+    animation: feedback-slide-in 0.4s ease;
+}
+
+/* Correction section animated */
+.correction-section {
+    animation: feedback-slide-in 0.5s ease;
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+}
+
+.correction-section h4 {
+    font-size: 0.95rem;
+    color: #166534;
+    margin: 0 0 0.75rem;
+    font-weight: 600;
+}
+
+.correction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.correction-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    background: white;
+    font-size: 0.9rem;
+}
+
+.correction-item .order-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #10b981;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
 }
 
 /* ============================================
@@ -3235,6 +3452,7 @@
     padding: 1rem 1.5rem;
     border-radius: 12px;
     margin-top: 1rem;
+    animation: feedback-slide-in 0.4s ease;
 }
 
 .etape-feedback.success {
