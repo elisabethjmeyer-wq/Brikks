@@ -2850,12 +2850,21 @@ const EleveConnaissances = {
         const niveauValide = Math.max((prog.etape || 1) - 1, 0);
         const isSuccess = !this.isTrainingMode && prog.reussi === true;
 
-        // Déterminer le type de résultat
+        // Le score atteint-il le seuil de réussite ? (indépendant du mode)
+        const seuilReussite = prog.seuil || 80;
+        const scoreOK = results.pourcentage >= seuilReussite;
+
+        // Déterminer le type de résultat basé sur le SCORE (pas uniquement la progression)
         let resultType, messageIcon, messageTitle;
-        if (isSuccess) {
+        if (results.pourcentage >= 100) {
             resultType = 'success';
             messageIcon = '✅';
-            messageTitle = prog.statut === 'memorise' ? 'Mémorisé !' : `Bravo ! Niveau ${niveauValide}/${SEUIL_ETAPES} atteint`;
+            messageTitle = isSuccess && prog.statut === 'memorise' ? 'Mémorisé !' :
+                           isSuccess ? `Parfait ! Niveau ${niveauValide}/${SEUIL_ETAPES} atteint` : 'Parfait !';
+        } else if (scoreOK) {
+            resultType = 'success';
+            messageIcon = '✅';
+            messageTitle = isSuccess ? `Bravo ! Niveau ${niveauValide}/${SEUIL_ETAPES} atteint` : 'Bravo !';
         } else if (results.pourcentage >= 50) {
             resultType = 'partial';
             messageIcon = '💪';
@@ -2887,8 +2896,8 @@ const EleveConnaissances = {
 
         const nextEntrainement = this.findNextEntrainement();
 
-        // Colonne droite : félicitation (réussite) ou détail des erreurs (échec)
-        const generateFelicitationPanel = () => {
+        // Colonne droite : félicitation (score >= seuil) ou détail des erreurs (score < seuil)
+        const generateRightPanel = () => {
             if (prog.statut === 'memorise' && prog.reussi) {
                 return `
                     <div class="felicitation-panel memorise">
@@ -2898,16 +2907,21 @@ const EleveConnaissances = {
                     </div>
                 `;
             }
-            if (isSuccess) {
+            if (scoreOK) {
+                const msg = isSuccess
+                    ? `Niveau ${niveauValide} validé ! Continue comme ça !`
+                    : results.pourcentage >= 100
+                        ? 'Sans faute, bravo !'
+                        : 'Tu as atteint le seuil de réussite !';
                 return `
                     <div class="felicitation-panel success">
-                        <div class="felicitation-icon">🎉</div>
-                        <h3>Niveau ${niveauValide} validé !</h3>
-                        <p>Continue comme ça, tu es sur la bonne voie pour tout mémoriser !</p>
+                        <div class="felicitation-icon">${results.pourcentage >= 100 ? '🎉' : '👏'}</div>
+                        <h3>${results.pourcentage >= 100 ? 'Parfait !' : 'Bien joué !'}</h3>
+                        <p>${msg}</p>
                     </div>
                 `;
             }
-            // Échec : afficher le détail des erreurs
+            // Score < seuil : afficher le détail des erreurs
             return this.generateErrorDetails(results);
         };
 
@@ -2993,8 +3007,8 @@ const EleveConnaissances = {
                     </div>
 
                     <!-- COLONNE DROITE : FÉLICITATION ou ERREURS -->
-                    <div class="result-right-conn ${isSuccess || (prog.statut === 'memorise' && prog.reussi) ? 'is-felicitation' : 'is-correction'}">
-                        ${generateFelicitationPanel()}
+                    <div class="result-right-conn ${scoreOK || (prog.statut === 'memorise' && prog.reussi) ? 'is-felicitation' : 'is-correction'}">
+                        ${generateRightPanel()}
                     </div>
                 </div>
             </div>
