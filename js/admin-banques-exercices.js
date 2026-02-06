@@ -40,7 +40,7 @@ const AdminBanquesExercices = {
     CACHE_TTL: 3 * 60 * 1000, // 3 minutes pour admin (refresh plus fréquent)
 
     // Current tab type
-    currentType: 'savoir-faire',
+    currentType: 'connaissances',
 
     // Filters
     filters: {
