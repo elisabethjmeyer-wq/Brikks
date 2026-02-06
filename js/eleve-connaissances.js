@@ -2445,36 +2445,49 @@ const EleveConnaissances = {
                 });
                 // Marquer les éléments non appariés comme incorrects
                 document.querySelectorAll('#associationGrid .association-grid-card:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
-                document.querySelectorAll('#associationChips .association-chip:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
 
-                // Afficher la correction si pas tout correct
-                if (correct < total) {
-                    const assocContainer = document.querySelector('.association-container');
-                    const existingCorrection = assocContainer?.querySelector('.correction-section');
-                    if (assocContainer && !existingCorrection) {
-                        const renderAssocElement = (text, type) => {
-                            if (type === 'image') {
-                                return `<img src="${this.escapeHtml(this.normalizeImageUrl(text))}" alt="" style="max-height:70px;max-width:120px;object-fit:contain;border-radius:6px;">`;
-                            }
-                            return `<span>${this.escapeHtml(text)}</span>`;
-                        };
-                        const correctionHtml = `
-                            <div class="correction-section">
-                                <h4>Associations correctes</h4>
-                                <div class="correction-list association-correction-list">
-                                    ${assocPaires.map((paire, i) => `
-                                        <div class="association-correction-item">
-                                            <span class="assoc-element">${renderAssocElement(paire.element1, paire.element1_type)}</span>
-                                            <span class="assoc-arrow">↔</span>
-                                            <span class="assoc-element">${renderAssocElement(paire.element2, paire.element2_type)}</span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        `;
-                        assocContainer.insertAdjacentHTML('afterend', correctionHtml);
+                // Cacher les chips et le label d'instruction
+                const chipsZone = document.querySelector('#associationChips');
+                if (chipsZone) chipsZone.style.display = 'none';
+                const zoneLabel = document.querySelector('.association-zone-label');
+                if (zoneLabel) zoneLabel.style.display = 'none';
+
+                // Mettre à jour les labels sous chaque carte avec la correction
+                const getChipText = (id) => {
+                    const p = assocPaires[parseInt(id)];
+                    if (!p) return '?';
+                    return this._assocChipSide === 'gauche' ? p.element1 : p.element2;
+                };
+
+                document.querySelectorAll('#associationGrid .association-grid-card').forEach(card => {
+                    const cardId = card.dataset.id;
+                    const correctText = getChipText(cardId);
+                    const label = card.querySelector('.assoc-paired-label');
+                    if (!label) return;
+
+                    label.style.display = 'block';
+                    const userPair = userPairs.find(up => {
+                        const gId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
+                        return String(gId) === String(cardId);
+                    });
+
+                    if (userPair) {
+                        const chipId = this._assocChipSide === 'gauche' ? userPair.gauche : userPair.droite;
+                        const isCorrect = String(userPair.gauche) === String(userPair.droite);
+                        const studentText = getChipText(chipId);
+
+                        if (isCorrect) {
+                            label.className = 'assoc-paired-label assoc-label-success';
+                            label.innerHTML = `<span class="assoc-answer-ok">✓ ${this.escapeHtml(correctText)}</span>`;
+                        } else {
+                            label.className = 'assoc-paired-label assoc-label-error';
+                            label.innerHTML = `<span class="assoc-answer-wrong">✗ ${this.escapeHtml(studentText)}</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+                        }
+                    } else {
+                        label.className = 'assoc-paired-label assoc-label-error';
+                        label.innerHTML = `<span class="assoc-answer-wrong">✗ —</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
                     }
-                }
+                });
                 break;
 
             case 'flashcard':
@@ -2518,8 +2531,9 @@ const EleveConnaissances = {
             });
         }
 
-        // Afficher le bandeau de feedback
+        // Bandeau unifié : feedback + bouton dans un seul bloc
         const feedbackZone = document.getElementById('etapeFeedback');
+        const isLastEtape = this.currentEtapeIndex >= this.currentEtapes.length - 1;
         if (feedbackZone) {
             feedbackZone.style.display = 'block';
             const feedbackClass = percent === 100 ? 'success' : percent >= 50 ? 'partial' : 'error';
@@ -2531,26 +2545,26 @@ const EleveConnaissances = {
                 error: { icon: '✗', title: 'Dommage...', sub: 'Regarde la correction et réessaie.' }
             };
             const msg = messages[feedbackClass];
+            const btnAction = isLastEtape ? 'finishEntrainement' : 'nextEtape';
+            const btnLabel = isLastEtape ? 'Terminer ✓' : 'Suivant →';
 
             feedbackZone.innerHTML = `
-                <div class="etape-feedback-icon">${msg.icon}</div>
-                <div class="etape-feedback-text">
-                    <strong>${msg.title}</strong>
-                    <span>${correct}/${total} correct${correct > 1 ? 's' : ''} — ${msg.sub}</span>
+                <div class="etape-feedback-main">
+                    <div class="etape-feedback-icon">${msg.icon}</div>
+                    <div class="etape-feedback-text">
+                        <strong>${msg.title}</strong>
+                        <span>${correct}/${total} correct${correct > 1 ? 's' : ''} — ${msg.sub}</span>
+                    </div>
+                    <button class="btn-etape-action next-btn" onclick="EleveConnaissances.${btnAction}()">
+                        ${btnLabel}
+                    </button>
                 </div>
             `;
         }
 
-        // Remplacer le bouton Valider par Suivant / Terminer
+        // Cacher l'ancienne barre d'action (le bouton est dans le bandeau)
         const actionBar = document.getElementById('etapeActionBar');
-        const isLastEtape = this.currentEtapeIndex >= this.currentEtapes.length - 1;
-        if (actionBar) {
-            actionBar.innerHTML = `
-                <button class="btn-etape-action next-btn" onclick="EleveConnaissances.${isLastEtape ? 'finishEntrainement' : 'nextEtape'}()">
-                    ${isLastEtape ? 'Terminer ✓' : 'Suivant →'}
-                </button>
-            `;
-        }
+        if (actionBar) actionBar.style.display = 'none';
     },
 
     /**
