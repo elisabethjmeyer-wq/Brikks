@@ -2791,6 +2791,11 @@ const EleveConnaissances = {
         const banque = this.currentBanque;
         const prog = this.lastProgressionResult || {};
 
+        // Temps passé
+        const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
+        const tempsPrevu = (ent.duree || 5) * 60; // duree est en minutes
+        const tempsOK = timeSpent <= tempsPrevu;
+
         // Déterminer le message selon le score
         let messageIcon, messageTitle, messageClass;
         if (results.pourcentage >= 100) {
@@ -2812,9 +2817,9 @@ const EleveConnaissances = {
         }
 
         const isSuccess = !this.isTrainingMode && prog.reussi === true;
-        const SEUIL_ETAPES = 6; // 6 niveaux pour les connaissances
+        const SEUIL_ETAPES = 6;
 
-        // Générer les dots de progression (6 niveaux)
+        // Dots de progression
         const generateProgDots = () => {
             const currentEtape = prog.etape || 1;
             let html = '<div class="prog-dots">';
@@ -2826,108 +2831,123 @@ const EleveConnaissances = {
             return html;
         };
 
-        // Prochaine date formatée
+        // Date prochaine
         let prochaineDateStr = '';
         if (prog.prochaine_revision) {
             prochaineDateStr = new Date(prog.prochaine_revision).toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long'
+                weekday: 'long', day: 'numeric', month: 'long'
             });
         }
 
-        // Trouver l'entraînement suivant
         const nextEntrainement = this.findNextEntrainement();
 
-        // Résumé des étapes (simple ✓/✗ par étape, pas de correction détaillée)
+        // Résumé des étapes avec barres
         const generateEtapesSummary = () => {
             if (!results.etapes || results.etapes.length === 0) return '';
             return `
                 <div class="bilan-etapes-summary">
-                    ${results.etapes.map((etape, idx) => `
-                        <div class="bilan-etape-row ${etape.pourcentage >= 80 ? 'success' : etape.pourcentage >= 50 ? 'partial' : 'error'}">
-                            <span class="bilan-etape-icon">${etape.pourcentage >= 80 ? '✓' : '✗'}</span>
-                            <span class="bilan-etape-name">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</span>
-                            <span class="bilan-etape-score">${etape.correct}/${etape.total}</span>
-                        </div>
-                    `).join('')}
+                    ${results.etapes.map((etape, idx) => {
+                        const pct = etape.total > 0 ? Math.round((etape.correct / etape.total) * 100) : 0;
+                        const cls = pct >= 80 ? 'success' : pct >= 50 ? 'partial' : 'error';
+                        return `
+                            <div class="bilan-etape-row ${cls}">
+                                <span class="bilan-etape-icon">${pct >= 80 ? '✓' : '✗'}</span>
+                                <span class="bilan-etape-name">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</span>
+                                <div class="bilan-etape-bar">
+                                    <div class="bilan-etape-bar-fill ${cls}" style="width:${pct}%"></div>
+                                </div>
+                                <span class="bilan-etape-score">${etape.correct}/${etape.total}</span>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             `;
         };
 
         container.innerHTML = `
-            <div class="result-view conn" style="max-width:600px;margin:0 auto;padding:1.5rem;box-sizing:border-box;">
+            <div class="result-view conn">
                 <button class="exercise-back-btn" onclick="EleveConnaissances.backToList()">
                     ← Retour aux entraînements
                 </button>
 
-                <div class="result-card-conn-centered">
-                    <div class="bilan-header ${messageClass}">
-                        <span class="bilan-icon">${messageIcon}</span>
-                        <span class="bilan-message">${messageTitle}</span>
+                <div class="result-card-conn-new">
+                    <!-- En-tête avec icône et message -->
+                    <div class="bilan-header-conn ${messageClass}">
+                        <span class="bilan-icon-conn">${messageIcon}</span>
+                        <span class="bilan-message-conn">${messageTitle}${isSuccess && prog.statut !== 'memorise' ? ` Niveau ${prog.etape || 1}/${SEUIL_ETAPES} atteint` : ''}</span>
                     </div>
 
-                    <div class="bilan-score">
-                        <div class="score-circle ${messageClass}">
-                            <span class="score-value">${results.pourcentage}%</span>
+                    <!-- Score + Timer côte à côte -->
+                    <div class="bilan-score-row">
+                        <div class="bilan-score-block">
+                            <div class="score-circle-conn ${messageClass}">
+                                <span class="score-value-conn">${results.pourcentage}%</span>
+                            </div>
+                            <span class="score-detail-conn">${results.totalCorrect}/${results.totalQuestions}</span>
                         </div>
-                        <span class="score-detail">${results.totalCorrect}/${results.totalQuestions}</span>
+                        ${ent.duree ? `
+                        <div class="bilan-timer-block">
+                            <span class="timer-label-conn">⏱️ ${this.formatTime(timeSpent)} / ${this.formatTime(tempsPrevu)}</span>
+                            <span class="timer-status-conn ${tempsOK ? 'ok' : 'warn'}">${tempsOK ? '✓' : '⚠️'}</span>
+                        </div>
+                        ` : ''}
                     </div>
 
+                    <!-- Résumé des étapes -->
                     ${generateEtapesSummary()}
 
+                    <!-- Dots de progression -->
                     ${!this.isTrainingMode ? `
-                    <div class="bilan-progression">
+                    <div class="bilan-progression-conn">
                         ${generateProgDots()}
                         <span class="prog-label">Niveau ${prog.etape || 1}/${SEUIL_ETAPES}</span>
                     </div>
                     ` : `
-                    <div class="bilan-training-badge">
-                        <span class="training-badge-icon">🔄</span>
-                        <span class="training-badge-text">Entraînement libre</span>
+                    <div class="bilan-training-badge-conn">
+                        <span>🔄</span>
+                        <span>Entraînement libre</span>
                     </div>
                     `}
 
-                    <div class="bilan-messages">
+                    <!-- Messages contextuels -->
+                    <div class="bilan-messages-conn">
                         ${prog.statut === 'memorise' && prog.reussi ? `
-                            <div class="bilan-memorise">
-                                <span class="memorise-icon">🎉</span>
+                            <div class="bilan-msg memorise">
+                                <span>🎉</span>
                                 <p>Cet entraînement est mémorisé !</p>
                             </div>
                         ` : ''}
 
                         ${isSuccess && prochaineDateStr && prog.statut !== 'memorise' ? `
-                            <div class="bilan-prochaine">
-                                <p class="prochaine-main">🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${(prog.etape || 1) + 1} !</p>
-                                <p class="prochaine-sub">En attendant, tu peux t'entraîner autant que tu veux</p>
-                                <button class="btn btn-training" onclick="EleveConnaissances.restartAsTraining()">
-                                    Continuer à s'entraîner
+                            <div class="bilan-msg prochaine">
+                                <p>🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${(prog.etape || 1) + 1} !</p>
+                                <p class="sub">En attendant, tu peux t'entraîner autant que tu veux</p>
+                                <button class="btn-bilan primary" onclick="EleveConnaissances.restartAsTraining()">
+                                    💪 Continuer à s'entraîner
                                 </button>
                             </div>
                         ` : ''}
 
                         ${!isSuccess && !this.isTrainingMode && prog.reussi === false ? `
-                            <div class="bilan-retry">
+                            <div class="bilan-msg retry">
                                 <p>Il faut ${prog.seuil || 80}% pour valider.</p>
-                                <button class="btn btn-primary" onclick="EleveConnaissances.restartEntrainement()">
-                                    Réessayer
+                                <button class="btn-bilan primary" onclick="EleveConnaissances.restartEntrainement()">
+                                    🔄 Réessayer
                                 </button>
                             </div>
                         ` : ''}
 
                         ${this.isTrainingMode ? `
-                            <div class="bilan-training-info">
+                            <div class="bilan-msg training">
                                 <small>Ta progression n'est pas modifiée en mode libre</small>
-                                <button class="btn btn-primary" onclick="EleveConnaissances.restartEntrainement()">
+                                <button class="btn-bilan primary" onclick="EleveConnaissances.restartEntrainement()">
                                     Recommencer
                                 </button>
                             </div>
                         ` : ''}
-                    </div>
 
-                    <div class="bilan-actions">
                         ${nextEntrainement && isSuccess ? `
-                            <button class="btn btn-primary" onclick="EleveConnaissances.startNextEntrainement()">
+                            <button class="btn-bilan secondary" onclick="EleveConnaissances.startNextEntrainement()">
                                 Passer au suivant →
                             </button>
                         ` : ''}

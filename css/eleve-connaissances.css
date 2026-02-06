@@ -3537,17 +3537,98 @@
     pointer-events: none;
 }
 
-/* Bilan simplifié (centré, sans colonne correction) */
-.result-card-conn-centered {
+/* ============================================
+   BILAN CONNAISSANCES — Nouvelle version
+   ============================================ */
+
+.result-view.conn {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 1.5rem;
+}
+
+.result-card-conn-new {
     background: white;
     border-radius: 16px;
-    padding: 2rem;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    padding: 2rem 2rem 1.5rem;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* En-tête */
+.bilan-header-conn {
     text-align: center;
 }
 
+.bilan-icon-conn {
+    font-size: 1.5rem;
+    vertical-align: middle;
+}
+
+.bilan-message-conn {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-left: 0.4rem;
+}
+
+.bilan-header-conn.success .bilan-message-conn { color: #059669; }
+.bilan-header-conn.partial .bilan-message-conn { color: #d97706; }
+.bilan-header-conn.error .bilan-message-conn { color: #dc2626; }
+
+/* Score + Timer côte à côte */
+.bilan-score-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.bilan-score-block {
+    text-align: center;
+}
+
+.score-circle-conn {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 0.3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.score-value-conn {
+    font-size: 1.8rem;
+    font-weight: 800;
+}
+
+.score-circle-conn.success { background: #d1fae5; color: #059669; }
+.score-circle-conn.partial { background: #fef3c7; color: #d97706; }
+.score-circle-conn.error { background: #fee2e2; color: #dc2626; }
+
+.score-detail-conn {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.bilan-timer-block {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.timer-status-conn.ok { color: #059669; }
+.timer-status-conn.warn { color: #d97706; }
+
+/* Résumé des étapes avec barres */
 .bilan-etapes-summary {
-    margin: 1.5rem 0;
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
@@ -3556,39 +3637,27 @@
 .bilan-etape-row {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem 0.8rem;
+    gap: 0.5rem;
+    padding: 0.45rem 0.7rem;
     border-radius: 8px;
     font-size: 0.9rem;
-    text-align: left;
 }
 
-.bilan-etape-row.success {
-    background: #f0fdf4;
-}
-
-.bilan-etape-row.partial {
-    background: #fffbeb;
-}
-
-.bilan-etape-row.error {
-    background: #fef2f2;
-}
+.bilan-etape-row.success { background: #f0fdf4; }
+.bilan-etape-row.partial { background: #fffbeb; }
+.bilan-etape-row.error { background: #fef2f2; }
 
 .bilan-etape-icon {
     font-weight: 700;
     font-size: 1rem;
     flex-shrink: 0;
+    width: 1.2rem;
+    text-align: center;
 }
 
-.bilan-etape-row.success .bilan-etape-icon {
-    color: #16a34a;
-}
-
-.bilan-etape-row.partial .bilan-etape-icon,
-.bilan-etape-row.error .bilan-etape-icon {
-    color: #dc2626;
-}
+.bilan-etape-row.success .bilan-etape-icon { color: #16a34a; }
+.bilan-etape-row.partial .bilan-etape-icon { color: #d97706; }
+.bilan-etape-row.error .bilan-etape-icon { color: #dc2626; }
 
 .bilan-etape-name {
     flex: 1;
@@ -3596,10 +3665,166 @@
     color: #374151;
 }
 
+.bilan-etape-bar {
+    width: 60px;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.bilan-etape-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+.bilan-etape-bar-fill.success { background: #16a34a; }
+.bilan-etape-bar-fill.partial { background: #d97706; }
+.bilan-etape-bar-fill.error { background: #dc2626; }
+
 .bilan-etape-score {
     font-weight: 600;
     color: #6b7280;
     font-size: 0.85rem;
+    min-width: 2.5rem;
+    text-align: right;
+}
+
+/* Dots de progression */
+.bilan-progression-conn {
+    text-align: center;
+}
+
+/* Badge entraînement libre */
+.bilan-training-badge-conn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+    border: 1px solid #7dd3fc;
+    border-radius: 20px;
+    color: #0369a1;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Messages contextuels */
+.bilan-messages-conn {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.bilan-msg {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 12px;
+}
+
+.bilan-msg p {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+}
+
+.bilan-msg p:last-child {
+    margin-bottom: 0;
+}
+
+.bilan-msg .sub {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.bilan-msg.memorise {
+    background: linear-gradient(135deg, #dbeafe, #ede9fe);
+    border: 1px solid #93c5fd;
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.bilan-msg.prochaine {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    border: 1px solid #93c5fd;
+}
+
+.bilan-msg.prochaine p { color: #1e40af; }
+.bilan-msg.prochaine strong { color: #1d4ed8; }
+
+.bilan-msg.retry {
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+}
+
+.bilan-msg.retry p { color: #92400e; }
+
+.bilan-msg.training {
+    background: #f3f4f6;
+}
+
+.bilan-msg.training small {
+    display: block;
+    margin-bottom: 0.75rem;
+    color: #6b7280;
+}
+
+/* Boutons bilan */
+.btn-bilan {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    text-align: center;
+    width: 100%;
+    margin-top: 0.25rem;
+}
+
+.btn-bilan:hover {
+    transform: translateY(-1px);
+}
+
+.btn-bilan.primary {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    box-shadow: 0 3px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-bilan.primary:hover {
+    box-shadow: 0 5px 16px rgba(59, 130, 246, 0.4);
+}
+
+.btn-bilan.secondary {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 3px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-bilan.secondary:hover {
+    box-shadow: 0 5px 16px rgba(16, 185, 129, 0.4);
+}
+
+@media (max-width: 500px) {
+    .result-card-conn-new {
+        padding: 1.5rem 1rem;
+    }
+    .bilan-score-row {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .score-circle-conn {
+        width: 80px;
+        height: 80px;
+    }
+    .score-value-conn {
+        font-size: 1.5rem;
+    }
 }
 
 /* ============================================
