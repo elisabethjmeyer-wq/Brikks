@@ -3603,6 +3603,30 @@ const AdminBanquesExercices = {
                 return true;
             case 3:
                 // Vérifier que chaque étape a des questions configurées
+                const etapesProblemes = [];
+                for (const etape of this.wizardData.etapes) {
+                    const availableQuestions = this.getQuestionsForFormat(etape.format_code);
+
+                    if (etape.mode_selection === 'aleatoire') {
+                        // Mode aléatoire: vérifier nb_questions > 0 et <= disponibles
+                        const nbQuestions = parseInt(etape.nb_questions) || 0;
+                        if (nbQuestions <= 0) {
+                            etapesProblemes.push(`Étape "${etape.format_code}": nombre de questions non défini`);
+                        } else if (nbQuestions > availableQuestions.length) {
+                            etapesProblemes.push(`Étape "${etape.format_code}": ${nbQuestions} demandées mais seulement ${availableQuestions.length} disponibles`);
+                        }
+                    } else {
+                        // Mode manuel: vérifier qu'au moins une question est sélectionnée
+                        const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
+                        if (selectedIds.length === 0) {
+                            etapesProblemes.push(`Étape "${etape.format_code}": aucune question sélectionnée`);
+                        }
+                    }
+                }
+                if (etapesProblemes.length > 0) {
+                    alert('Configuration incomplète:\n\n• ' + etapesProblemes.join('\n• '));
+                    return false;
+                }
                 return true;
             case 4:
                 return true;
@@ -4138,13 +4162,57 @@ const AdminBanquesExercices = {
 
     async setEtapeMode(etapeId, mode) {
         try {
+            // Sauvegarder l'état des accordéons ouverts avant le changement
+            const openPanels = this.getOpenAccordionPanels();
+
             await this.callAPI('updateEtapeConn', { id: etapeId, mode_selection: mode });
-            await this.loadDataFromAPI();
-            this.wizardData.etapes = this.etapesConn.filter(e => e.entrainement_id === this.wizardData.entrainement.id);
+
+            // Mise à jour locale au lieu de recharger toutes les données
+            const etape = this.etapesConn.find(e => e.id === etapeId);
+            if (etape) {
+                etape.mode_selection = mode;
+            }
+            const wizardEtape = this.wizardData.etapes.find(e => e.id === etapeId);
+            if (wizardEtape) {
+                wizardEtape.mode_selection = mode;
+            }
+
+            // IMPORTANT: Vider les questions sélectionnées pour cette étape
+            // Cela corrige le bug du comptage incorrect (14/3, 3/1, etc.)
+            if (this.wizardData.selectedQuestions) {
+                delete this.wizardData.selectedQuestions[etapeId];
+            }
+
+            // Re-render et restaurer l'état des accordéons
             this.renderWizardStep(3);
+            this.restoreOpenAccordionPanels(openPanels);
         } catch (error) {
             console.error('Erreur changement mode:', error);
         }
+    },
+
+    // Récupère les index des accordéons ouverts
+    getOpenAccordionPanels() {
+        const openIndexes = [];
+        document.querySelectorAll('.etape-questions-panel').forEach((panel, index) => {
+            if (panel.style.display !== 'none') {
+                openIndexes.push(index);
+            }
+        });
+        return openIndexes;
+    },
+
+    // Restaure les accordéons qui étaient ouverts
+    restoreOpenAccordionPanels(indexes) {
+        indexes.forEach(index => {
+            const panel = document.getElementById(`etapePanel${index}`);
+            if (panel) {
+                panel.style.display = 'block';
+                const header = panel.previousElementSibling;
+                const icon = header?.querySelector('.toggle-icon');
+                if (icon) icon.textContent = '▲';
+            }
+        });
     },
 
     async setEtapeNbQuestions(etapeId, nb) {
