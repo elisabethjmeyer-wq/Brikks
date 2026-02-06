@@ -3420,7 +3420,7 @@
 .flashcard-card {
     position: relative;
     width: 100%;
-    min-height: 220px;
+    height: 280px; /* Hauteur fixe pour éviter les problèmes de débordement */
     cursor: pointer;
     transform-style: preserve-3d;
     transition: transform 0.5s ease;
@@ -3436,16 +3436,16 @@
     top: 0;
     left: 0;
     width: 100%;
-    min-height: 220px;
+    height: 100%; /* Prend toute la hauteur du parent */
     backface-visibility: hidden;
     border-radius: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 2rem 1.5rem;
+    padding: 1.5rem;
     box-sizing: border-box;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* Cache le débordement */
 }
 
 .flashcard-front {
@@ -3465,23 +3465,32 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: #9ca3af;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
+    flex-shrink: 0; /* Ne pas rétrécir le label */
 }
 
 .flashcard-face-content {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 600;
     color: #1f2937;
     text-align: center;
     word-break: break-word;
     line-height: 1.5;
+    flex: 1; /* Prend l'espace disponible */
+    overflow-y: auto; /* Scroll si contenu trop long */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.5rem;
 }
 
 .flashcard-flip-hint {
-    margin-top: 1rem;
+    margin-top: 0.5rem;
     font-size: 0.8rem;
     color: #9ca3af;
     font-style: italic;
+    flex-shrink: 0; /* Ne pas rétrécir le hint */
 }
 
 /* Action buttons */
