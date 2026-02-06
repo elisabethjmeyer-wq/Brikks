@@ -906,7 +906,6 @@ const EleveConnaissances = {
                             donnees = {};
                         }
                     }
-                    console.log(`[EleveConnaissances] Question ${questionContent.id} (${questionContent.type}) donnees:`, donnees);
                     allQuestionContents.push({
                         id: questionContent.id,
                         donnees: donnees
@@ -1482,8 +1481,6 @@ const EleveConnaissances = {
      * Format: {consigne, paires: [{element1, element2}, ...]}
      */
     renderAssociation(donnees, questions) {
-        console.log('[EleveConnaissances] renderAssociation - donnees reçues:', JSON.stringify(donnees));
-        console.log('[EleveConnaissances] renderAssociation - type:', typeof donnees);
         const consigne = donnees.consigne || 'Associez les éléments correspondants';
         const paires = donnees.paires || [];
 
@@ -1507,10 +1504,11 @@ const EleveConnaissances = {
         return `
             <div class="association-container">
                 <p class="association-instruction">${this.escapeHtml(consigne)}</p>
-                <div class="association-columns">
+                <div class="association-columns" id="associationColumns">
+                    <svg class="association-svg-lines" id="associationSvgLines"></svg>
                     <div class="association-column association-gauche ${gaucheHasImages ? 'has-images' : ''}">
                         ${elementsGauche.map(el => `
-                            <div class="association-item ${el.type === 'image' ? 'association-item-image' : ''}" data-id="${el.id}" onclick="EleveConnaissances.selectAssociationItem(this, 'gauche')">
+                            <div class="association-item ${el.type === 'image' ? 'association-item-image' : ''}" data-id="${el.id}" data-side="gauche" onclick="EleveConnaissances.selectAssociationItem(this, 'gauche')">
                                 ${el.type === 'image'
                                     ? `<img class="association-img" src="${this.escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
                                     : `<span class="association-text">${this.escapeHtml(el.texte)}</span>`}
@@ -1520,7 +1518,7 @@ const EleveConnaissances = {
                     </div>
                     <div class="association-column association-droite ${droiteHasImages ? 'has-images' : ''}">
                         ${elementsDroite.map(el => `
-                            <div class="association-item ${el.type === 'image' ? 'association-item-image' : ''}" data-id="${el.id}" onclick="EleveConnaissances.selectAssociationItem(this, 'droite')">
+                            <div class="association-item ${el.type === 'image' ? 'association-item-image' : ''}" data-id="${el.id}" data-side="droite" onclick="EleveConnaissances.selectAssociationItem(this, 'droite')">
                                 <span class="association-link-indicator"></span>
                                 ${el.type === 'image'
                                     ? `<img class="association-img" src="${this.escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
@@ -1532,6 +1530,47 @@ const EleveConnaissances = {
                 <div class="association-feedback" id="association_feedback" style="display: none;"></div>
             </div>
         `;
+    },
+
+    // Couleurs pour les paires
+    PAIR_COLORS: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f97316', '#6366f1'],
+
+    /**
+     * Dessine les lignes SVG entre les éléments appariés
+     */
+    drawAssociationLines() {
+        const svg = document.getElementById('associationSvgLines');
+        const container = document.getElementById('associationColumns');
+        if (!svg || !container) return;
+
+        svg.innerHTML = '';
+        const containerRect = container.getBoundingClientRect();
+
+        this.associationPairs.forEach(pair => {
+            const gaucheEl = container.querySelector(`.association-gauche .association-item[data-id="${pair.gauche}"]`);
+            const droiteEl = container.querySelector(`.association-droite .association-item[data-id="${pair.droite}"]`);
+            if (!gaucheEl || !droiteEl) return;
+
+            const gRect = gaucheEl.getBoundingClientRect();
+            const dRect = droiteEl.getBoundingClientRect();
+
+            const x1 = gRect.right - containerRect.left;
+            const y1 = gRect.top + gRect.height / 2 - containerRect.top;
+            const x2 = dRect.left - containerRect.left;
+            const y2 = dRect.top + dRect.height / 2 - containerRect.top;
+
+            const colorIdx = (pair.pairNum - 1) % this.PAIR_COLORS.length;
+            const color = this.PAIR_COLORS[colorIdx];
+
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x1);
+            line.setAttribute('y1', y1);
+            line.setAttribute('x2', x2);
+            line.setAttribute('y2', y2);
+            line.setAttribute('stroke', color);
+            line.setAttribute('data-pair', pair.pairNum);
+            svg.appendChild(line);
+        });
     },
 
     // Association selection state
@@ -1572,16 +1611,17 @@ const EleveConnaissances = {
             });
             this.saveAnswer('association', this.associationPairs);
 
-            // Mark as paired (sans indiquer si c'est correct)
+            // Mark as paired avec couleur de paire
             const gaucheEl = document.querySelector(`.association-gauche .association-item[data-id="${this.associationSelection.gauche}"]`);
             const droiteEl = document.querySelector(`.association-droite .association-item[data-id="${this.associationSelection.droite}"]`);
+            const colorIdx = (pairNum - 1) % this.PAIR_COLORS.length;
+            const colorClass = `association-pair-color-${colorIdx + 1}`;
 
             [gaucheEl, droiteEl].forEach(el => {
                 if (el) {
                     el.classList.remove('selected');
-                    el.classList.add('paired');
+                    el.classList.add('paired', colorClass);
                     el.dataset.pairNum = pairNum;
-                    // Ajouter un indicateur de numéro de paire
                     const indicator = el.querySelector('.association-link-indicator');
                     if (indicator) {
                         indicator.textContent = pairNum;
@@ -1591,6 +1631,9 @@ const EleveConnaissances = {
             });
 
             this.associationSelection = { gauche: null, droite: null };
+
+            // Dessiner les lignes de connexion
+            setTimeout(() => this.drawAssociationLines(), 50);
         }
     },
 
@@ -1611,6 +1654,8 @@ const EleveConnaissances = {
 
             [gaucheEl, droiteEl].forEach(el => {
                 if (el) {
+                    // Retirer toutes les classes de couleur de paire
+                    for (let i = 1; i <= 8; i++) el.classList.remove(`association-pair-color-${i}`);
                     el.classList.remove('paired', 'selected');
                     delete el.dataset.pairNum;
                     const indicator = el.querySelector('.association-link-indicator');
@@ -1620,6 +1665,9 @@ const EleveConnaissances = {
                     }
                 }
             });
+
+            // Redessiner les lignes
+            setTimeout(() => this.drawAssociationLines(), 50);
         }
     },
 
@@ -2385,15 +2433,21 @@ const EleveConnaissances = {
                     const assocContainer = document.querySelector('.association-container');
                     const existingCorrection = assocContainer?.querySelector('.correction-section');
                     if (assocContainer && !existingCorrection) {
+                        const renderAssocElement = (text, type) => {
+                            if (type === 'image') {
+                                return `<img src="${this.escapeHtml(this.normalizeImageUrl(text))}" alt="" style="max-height:70px;max-width:120px;object-fit:contain;border-radius:6px;">`;
+                            }
+                            return `<span>${this.escapeHtml(text)}</span>`;
+                        };
                         const correctionHtml = `
                             <div class="correction-section">
                                 <h4>Associations correctes</h4>
                                 <div class="correction-list association-correction-list">
                                     ${assocPaires.map((paire, i) => `
-                                        <div class="correction-item association-correction-item">
-                                            <span class="assoc-left-text">${this.escapeHtml(paire.element1)}</span>
+                                        <div class="association-correction-item">
+                                            <span class="assoc-element">${renderAssocElement(paire.element1, paire.element1_type)}</span>
                                             <span class="assoc-arrow">↔</span>
-                                            <span class="assoc-right-text">${this.escapeHtml(paire.element2)}</span>
+                                            <span class="assoc-element">${renderAssocElement(paire.element2, paire.element2_type)}</span>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -2449,12 +2503,21 @@ const EleveConnaissances = {
         const feedbackZone = document.getElementById('etapeFeedback');
         if (feedbackZone) {
             feedbackZone.style.display = 'block';
-            feedbackZone.className = `etape-feedback ${percent === 100 ? 'success' : percent >= 50 ? 'partial' : 'error'}`;
+            const feedbackClass = percent === 100 ? 'success' : percent >= 50 ? 'partial' : 'error';
+            feedbackZone.className = `etape-feedback ${feedbackClass}`;
+
+            const messages = {
+                success: { icon: '✓', title: 'Bravo !', sub: 'Parfait, continue comme ça !' },
+                partial: { icon: '~', title: 'Pas mal !', sub: 'Tu y es presque, encore un effort.' },
+                error: { icon: '✗', title: 'Dommage...', sub: 'Regarde la correction et réessaie.' }
+            };
+            const msg = messages[feedbackClass];
+
             feedbackZone.innerHTML = `
-                <div class="etape-feedback-icon">${percent === 100 ? '✓' : percent >= 50 ? '~' : '✗'}</div>
+                <div class="etape-feedback-icon">${msg.icon}</div>
                 <div class="etape-feedback-text">
-                    <strong>${percent === 100 ? 'Bravo !' : percent >= 50 ? 'Pas mal !' : 'Dommage...'}</strong>
-                    <span>${correct}/${total} correct${correct > 1 ? 's' : ''}</span>
+                    <strong>${msg.title}</strong>
+                    <span>${correct}/${total} correct${correct > 1 ? 's' : ''} — ${msg.sub}</span>
                 </div>
             `;
         }
