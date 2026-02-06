@@ -3000,6 +3000,8 @@ const EleveConnaissances = {
     restartEntrainement() {
         this.currentEtapeIndex = 0;
         this.userAnswers = {};
+        this.currentEtapeValidated = false;
+        this.etapesResults = [];
         // Réinitialiser les états d'association
         this.associationSelection = { grid: null, chip: null };
         this.associationPairs = [];
