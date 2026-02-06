@@ -3579,8 +3579,11 @@ const AdminBanquesExercices = {
         try {
             if (!this.validateWizardStep(this.wizardData.currentStep)) return;
 
-            // Sauvegarder les données de l'étape actuelle
-            await this.saveWizardStepData(this.wizardData.currentStep);
+            // Seule l'étape 1 nécessite une sauvegarde bloquante (création/mise à jour)
+            // Les étapes 2 et 3 sauvegardent au fur et à mesure
+            if (this.wizardData.currentStep === 1) {
+                await this.saveWizardStepData(1);
+            }
 
             if (this.wizardData.currentStep < 4) {
                 this.wizardData.currentStep++;
@@ -3811,7 +3814,7 @@ const AdminBanquesExercices = {
         const questionsCount = selectedQuestions.length;
 
         return `
-            <div class="wizard-etape-item" data-id="${etape.id || 'temp-' + index}" draggable="true">
+            <div class="wizard-etape-item" data-id="${etape.id || 'temp-' + index}" data-index="${index}" draggable="true">
                 <div class="etape-drag-handle">☰</div>
                 <div class="etape-number">${index + 1}</div>
                 <div class="etape-format-icon">${format.icone || '📋'}</div>
@@ -3823,8 +3826,6 @@ const AdminBanquesExercices = {
                     </div>
                 </div>
                 <div class="etape-actions">
-                    <button class="btn-icon" onclick="AdminBanquesExercices.moveWizardEtape(${index}, -1)" title="Monter">↑</button>
-                    <button class="btn-icon" onclick="AdminBanquesExercices.moveWizardEtape(${index}, 1)" title="Descendre">↓</button>
                     <button class="btn-icon danger" onclick="AdminBanquesExercices.removeWizardEtape(${index})" title="Supprimer">🗑️</button>
                 </div>
             </div>
@@ -3842,11 +3843,18 @@ const AdminBanquesExercices = {
             item.addEventListener('dragstart', (e) => {
                 draggedItem = item;
                 item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
             });
 
             item.addEventListener('dragend', () => {
                 item.classList.remove('dragging');
                 draggedItem = null;
+                // Mettre à jour les numéros visuels immédiatement
+                const allItems = list.querySelectorAll('.wizard-etape-item');
+                allItems.forEach((el, i) => {
+                    const numEl = el.querySelector('.etape-number');
+                    if (numEl) numEl.textContent = i + 1;
+                });
                 // Sauvegarder le nouvel ordre après le drag-and-drop
                 this.saveWizardEtapesOrder(list);
             });
@@ -3945,17 +3953,24 @@ const AdminBanquesExercices = {
 
     // Filtre les questions disponibles pour un format donné
     getQuestionsForFormat(formatCode) {
+        const questions = this.questionsConnaissances || [];
         // Timeline unifié : inclure aussi les anciennes questions chronologie
         if (formatCode === 'timeline') {
-            return this.questionsConnaissances.filter(q => q.type === 'timeline' || q.type === 'chronologie');
+            return questions.filter(q => q.type === 'timeline' || q.type === 'chronologie');
         }
-        return this.questionsConnaissances.filter(q => q.type === formatCode);
+        return questions.filter(q => q.type === formatCode);
     },
 
     async addWizardEtape(formatCode) {
         // Empêcher les doubles clics
         if (this._addingEtape) return;
         this._addingEtape = true;
+
+        // Désactiver visuellement les boutons de format pendant l'ajout
+        document.querySelectorAll('.format-card').forEach(btn => {
+            btn.style.pointerEvents = 'none';
+            btn.style.opacity = '0.6';
+        });
 
         try {
             if (!this.wizardData.entrainement) {
@@ -3998,6 +4013,10 @@ const AdminBanquesExercices = {
             console.error('Erreur ajout étape:', error);
         } finally {
             this._addingEtape = false;
+            document.querySelectorAll('.format-card').forEach(btn => {
+                btn.style.pointerEvents = '';
+                btn.style.opacity = '';
+            });
         }
     },
 
@@ -4017,6 +4036,8 @@ const AdminBanquesExercices = {
                 if (this.wizardData.selectedQuestions) {
                     delete this.wizardData.selectedQuestions[etape.id];
                 }
+                // Mettre à jour les ordres après suppression
+                this.wizardData.etapes.forEach((e, i) => e.ordre = i + 1);
                 this.renderWizardStep(2);
             }
         } catch (error) {
@@ -4499,6 +4520,13 @@ const AdminBanquesExercices = {
         if (this._finalizing) return;
         this._finalizing = true;
 
+        // Feedback visuel sur le bouton
+        const nextBtn = document.getElementById('wizardNextBtn');
+        if (nextBtn) {
+            nextBtn.disabled = true;
+            nextBtn.textContent = 'Sauvegarde...';
+        }
+
         try {
             console.log('[Admin] ===== FINALISATION ENTRAINEMENT =====');
             console.log('[Admin] wizardData.etapes:', this.wizardData.etapes);
@@ -4541,6 +4569,10 @@ const AdminBanquesExercices = {
             this.showNotification('Entraînement sauvegardé avec succès !', 'success');
         } finally {
             this._finalizing = false;
+            if (nextBtn) {
+                nextBtn.disabled = false;
+                nextBtn.textContent = '✓ Valider et fermer';
+            }
         }
     },
 
