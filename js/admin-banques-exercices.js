@@ -3514,13 +3514,15 @@ const AdminBanquesExercices = {
     openEntrainementWizard(entrainement = null, banqueId = null) {
         const etapes = entrainement ? this.etapesConn.filter(e => e.entrainement_id === entrainement.id) : [];
 
-        // Initialiser les sélections de questions depuis les données serveur
+        // Initialiser les sélections de questions depuis les données serveur (dédupliquées)
         const selectedQuestions = {};
         if (entrainement && this.etapeQuestionsConn) {
             etapes.forEach(etape => {
-                selectedQuestions[etape.id] = this.etapeQuestionsConn
-                    .filter(eq => eq.etape_id === etape.id)
-                    .map(eq => eq.question_id);
+                selectedQuestions[etape.id] = [...new Set(
+                    this.etapeQuestionsConn
+                        .filter(eq => eq.etape_id === etape.id)
+                        .map(eq => eq.question_id)
+                )];
             });
         }
 
@@ -4483,8 +4485,8 @@ const AdminBanquesExercices = {
                 .map(eq => eq.question_id);
         }
 
-        // Filtrer pour ne garder que les IDs qui existent dans les questions disponibles
-        return selectedIds.filter(id => availableQuestionIds.includes(id));
+        // Dédupliquer + filtrer pour ne garder que les IDs qui existent dans les questions disponibles
+        return [...new Set(selectedIds)].filter(id => availableQuestionIds.includes(id));
     },
 
     // ===== ÉTAPE 4: VALIDATION =====
@@ -4598,7 +4600,8 @@ const AdminBanquesExercices = {
             // Sauvegarder les questions sélectionnées pour chaque étape (en parallèle)
             if (this.wizardData.selectedQuestions && this.wizardData.etapes) {
                 const savePromises = this.wizardData.etapes.map(async (etape) => {
-                    const selectedIds = this.wizardData.selectedQuestions[etape.id] || [];
+                    // Dédupliquer les IDs avant sauvegarde
+                    const selectedIds = [...new Set(this.wizardData.selectedQuestions[etape.id] || [])];
                     // Convertir les IDs en format attendu par le backend: [{question_id: 'xxx'}, ...]
                     const questionsFormatted = selectedIds.map(id => ({ question_id: id }));
 
