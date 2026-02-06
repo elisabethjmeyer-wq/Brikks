@@ -3579,8 +3579,11 @@ const AdminBanquesExercices = {
         try {
             if (!this.validateWizardStep(this.wizardData.currentStep)) return;
 
-            // Sauvegarder les données de l'étape actuelle
-            await this.saveWizardStepData(this.wizardData.currentStep);
+            // Seule l'étape 1 nécessite une sauvegarde bloquante (création/mise à jour)
+            // Les étapes 2 et 3 sauvegardent au fur et à mesure
+            if (this.wizardData.currentStep === 1) {
+                await this.saveWizardStepData(1);
+            }
 
             if (this.wizardData.currentStep < 4) {
                 this.wizardData.currentStep++;
@@ -3846,6 +3849,12 @@ const AdminBanquesExercices = {
             item.addEventListener('dragend', () => {
                 item.classList.remove('dragging');
                 draggedItem = null;
+                // Mettre à jour les numéros visuels immédiatement
+                const allItems = list.querySelectorAll('.wizard-etape-item');
+                allItems.forEach((el, i) => {
+                    const numEl = el.querySelector('.etape-number');
+                    if (numEl) numEl.textContent = i + 1;
+                });
                 // Sauvegarder le nouvel ordre après le drag-and-drop
                 this.saveWizardEtapesOrder(list);
             });
@@ -3957,6 +3966,12 @@ const AdminBanquesExercices = {
         if (this._addingEtape) return;
         this._addingEtape = true;
 
+        // Désactiver visuellement les boutons de format pendant l'ajout
+        document.querySelectorAll('.format-card').forEach(btn => {
+            btn.style.pointerEvents = 'none';
+            btn.style.opacity = '0.6';
+        });
+
         try {
             if (!this.wizardData.entrainement) {
                 // D'abord sauvegarder l'entraînement
@@ -3998,6 +4013,10 @@ const AdminBanquesExercices = {
             console.error('Erreur ajout étape:', error);
         } finally {
             this._addingEtape = false;
+            document.querySelectorAll('.format-card').forEach(btn => {
+                btn.style.pointerEvents = '';
+                btn.style.opacity = '';
+            });
         }
     },
 
@@ -4017,6 +4036,8 @@ const AdminBanquesExercices = {
                 if (this.wizardData.selectedQuestions) {
                     delete this.wizardData.selectedQuestions[etape.id];
                 }
+                // Mettre à jour les ordres après suppression
+                this.wizardData.etapes.forEach((e, i) => e.ordre = i + 1);
                 this.renderWizardStep(2);
             }
         } catch (error) {
@@ -4499,6 +4520,13 @@ const AdminBanquesExercices = {
         if (this._finalizing) return;
         this._finalizing = true;
 
+        // Feedback visuel sur le bouton
+        const nextBtn = document.getElementById('wizardNextBtn');
+        if (nextBtn) {
+            nextBtn.disabled = true;
+            nextBtn.textContent = 'Sauvegarde...';
+        }
+
         try {
             console.log('[Admin] ===== FINALISATION ENTRAINEMENT =====');
             console.log('[Admin] wizardData.etapes:', this.wizardData.etapes);
@@ -4541,6 +4569,10 @@ const AdminBanquesExercices = {
             this.showNotification('Entraînement sauvegardé avec succès !', 'success');
         } finally {
             this._finalizing = false;
+            if (nextBtn) {
+                nextBtn.disabled = false;
+                nextBtn.textContent = '✓ Valider et fermer';
+            }
         }
     },
 
