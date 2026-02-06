@@ -511,15 +511,15 @@ const EleveConnaissances = {
                     break;
                 case 'a-reviser':
                     statusBadge = '<span class="entrainement-badge urgent">⚡ À réviser</span>';
-                    actionHint = `${reussites}/7 réussies`;
+                    actionHint = `${reussites}/6 réussies`;
                     break;
                 case 'verrouille':
                     statusBadge = `<span class="entrainement-badge locked">⏳ Dans ${statusInfo.joursRestants}j</span>`;
-                    actionHint = `${reussites}/7 réussies`;
+                    actionHint = `${reussites}/6 réussies`;
                     break;
                 case 'memorise':
                     statusBadge = '<span class="entrainement-badge done">✅ Mémorisé</span>';
-                    actionHint = '7/7 réussies';
+                    actionHint = '6/6 réussies';
                     break;
             }
 
@@ -2749,7 +2749,7 @@ const EleveConnaissances = {
                     reviens <strong>${dateStr}</strong> pour la prochaine révision.
                 </p>
                 <div class="locked-modal-info">
-                    <div class="locked-modal-etape">Étape ${prog.etape}/7</div>
+                    <div class="locked-modal-etape">Niveau ${Math.max((prog.etape || 1) - 1, 0)}/6 validé</div>
                     <div class="locked-modal-jours">${status.joursRestants} jour${status.joursRestants > 1 ? 's' : ''} restant${status.joursRestants > 1 ? 's' : ''}</div>
                 </div>
                 <div class="locked-modal-actions">
@@ -2820,11 +2820,13 @@ const EleveConnaissances = {
         const SEUIL_ETAPES = 6;
 
         // Dots de progression
+        // prog.etape = prochain niveau à tenter (déjà incrémenté côté serveur)
+        // Donc niveaux validés = prog.etape - 1
+        const niveauValide = Math.max((prog.etape || 1) - 1, 0);
         const generateProgDots = () => {
-            const currentEtape = prog.etape || 1;
             let html = '<div class="prog-dots">';
             for (let i = 1; i <= SEUIL_ETAPES; i++) {
-                const status = i <= currentEtape ? 'completed' : 'pending';
+                const status = i <= niveauValide ? 'completed' : 'pending';
                 html += `<span class="prog-dot ${status}">${i}</span>`;
             }
             html += '</div>';
@@ -2908,7 +2910,7 @@ const EleveConnaissances = {
                     <div class="result-bilan-conn">
                         <div class="bilan-header-conn ${messageClass}">
                             <span class="bilan-icon-conn">${messageIcon}</span>
-                            <span class="bilan-message-conn">${messageTitle}${isSuccess && prog.statut !== 'memorise' ? ` Niveau ${prog.etape || 1}/${SEUIL_ETAPES} atteint` : ''}</span>
+                            <span class="bilan-message-conn">${messageTitle}${isSuccess && prog.statut !== 'memorise' ? ` Niveau ${niveauValide}/${SEUIL_ETAPES} atteint` : ''}</span>
                         </div>
 
                         <div class="bilan-score-block">
@@ -2930,7 +2932,7 @@ const EleveConnaissances = {
                         ${!this.isTrainingMode ? `
                         <div class="bilan-progression-conn">
                             ${generateProgDots()}
-                            <span class="prog-label">Niveau ${prog.etape || 1}/${SEUIL_ETAPES}</span>
+                            <span class="prog-label">Niveau ${niveauValide}/${SEUIL_ETAPES}</span>
                         </div>
                         ` : `
                         <div class="bilan-training-badge-conn">
@@ -2949,7 +2951,7 @@ const EleveConnaissances = {
 
                             ${isSuccess && prochaineDateStr && prog.statut !== 'memorise' ? `
                                 <div class="bilan-msg prochaine">
-                                    <p>🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${(prog.etape || 1) + 1} !</p>
+                                    <p>🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${prog.etape || 1} !</p>
                                     <p class="sub">En attendant, tu peux t'entraîner autant que tu veux</p>
                                     <button class="btn-bilan primary" onclick="EleveConnaissances.restartAsTraining()">
                                         💪 Continuer à s'entraîner

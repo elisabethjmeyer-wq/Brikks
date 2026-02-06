@@ -3542,19 +3542,146 @@
    ============================================ */
 
 .result-view.conn {
-    max-width: 560px;
+    max-width: 900px;
     margin: 0 auto;
     padding: 1.5rem;
 }
 
-.result-card-conn-new {
+/* Layout 2 colonnes bilan + correction */
+.result-card-conn-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     background: white;
     border-radius: 16px;
-    padding: 2rem 2rem 1.5rem;
+    overflow: hidden;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    min-height: 400px;
+}
+
+@media (max-width: 768px) {
+    .result-card-conn-2col {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Colonne gauche : Bilan */
+.result-bilan-conn {
+    padding: 1.5rem;
+    border-right: 1px solid #e5e7eb;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .result-bilan-conn {
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+    }
+}
+
+/* Colonne droite : Correction */
+.result-correction-conn {
+    display: flex;
+    flex-direction: column;
+    max-height: 600px;
+}
+
+.correction-header-conn {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.correction-header-conn h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #374151;
+}
+
+.correction-body-conn {
+    padding: 1rem 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Aucune erreur */
+.correction-perfect {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #059669;
+}
+
+.correction-perfect-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.correction-perfect p {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.correction-perfect small {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+/* Groupe d'erreurs par étape */
+.correction-etape-group {
+    margin-bottom: 1rem;
+}
+
+.correction-etape-group:last-child {
+    margin-bottom: 0;
+}
+
+.correction-etape-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.correction-error-row {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.correction-error-row:last-child {
+    border-bottom: none;
+}
+
+.correction-error-q {
+    font-size: 0.9rem;
+    color: #374151;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.correction-error-answers {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.correction-given {
+    font-size: 0.85rem;
+    color: #dc2626;
+    text-decoration: line-through;
+}
+
+.correction-expected {
+    font-size: 0.85rem;
+    color: #059669;
+    font-weight: 600;
 }
 
 /* En-tête */
@@ -3811,12 +3938,11 @@
 }
 
 @media (max-width: 500px) {
-    .result-card-conn-new {
-        padding: 1.5rem 1rem;
+    .result-card-conn-2col {
+        min-height: auto;
     }
-    .bilan-score-row {
-        flex-direction: column;
-        gap: 0.75rem;
+    .result-bilan-conn {
+        padding: 1rem;
     }
     .score-circle-conn {
         width: 80px;
@@ -3824,6 +3950,9 @@
     }
     .score-value-conn {
         font-size: 1.5rem;
+    }
+    .correction-body-conn {
+        padding: 0.75rem 1rem;
     }
 }
 
