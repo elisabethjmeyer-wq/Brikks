@@ -2788,52 +2788,46 @@ const EleveConnaissances = {
     renderResultScreen(results) {
         const container = document.getElementById('connaissances-content');
         const ent = this.currentEntrainement;
-        const banque = this.currentBanque;
         const prog = this.lastProgressionResult || {};
 
         // Temps passé
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
-        const tempsPrevu = (ent.duree || 5) * 60; // duree est en minutes
+        const tempsPrevu = (ent.duree || 5) * 60;
         const tempsOK = timeSpent <= tempsPrevu;
 
-        // Déterminer le message selon le score
-        let messageIcon, messageTitle, messageClass;
-        if (results.pourcentage >= 100) {
+        // prog.etape = prochain niveau à tenter (déjà incrémenté côté serveur)
+        const SEUIL_ETAPES = 6;
+        const niveauValide = Math.max((prog.etape || 1) - 1, 0);
+        const isSuccess = !this.isTrainingMode && prog.reussi === true;
+
+        // Déterminer le type de résultat
+        let resultType, messageIcon, messageTitle;
+        if (isSuccess) {
+            resultType = 'success';
             messageIcon = '✅';
-            messageTitle = 'Parfait !';
-            messageClass = 'success';
-        } else if (results.pourcentage >= 80) {
-            messageIcon = '✅';
-            messageTitle = 'Bravo !';
-            messageClass = 'success';
+            messageTitle = prog.statut === 'memorise' ? 'Mémorisé !' : `Bravo ! Niveau ${niveauValide}/${SEUIL_ETAPES} atteint`;
         } else if (results.pourcentage >= 50) {
+            resultType = 'partial';
             messageIcon = '💪';
             messageTitle = 'Pas mal !';
-            messageClass = 'partial';
         } else {
+            resultType = 'error';
             messageIcon = '❌';
             messageTitle = 'Continue !';
-            messageClass = 'error';
         }
 
-        const isSuccess = !this.isTrainingMode && prog.reussi === true;
-        const SEUIL_ETAPES = 6;
-
-        // Dots de progression
-        // prog.etape = prochain niveau à tenter (déjà incrémenté côté serveur)
-        // Donc niveaux validés = prog.etape - 1
-        const niveauValide = Math.max((prog.etape || 1) - 1, 0);
+        // Dots de progression (6 niveaux)
         const generateProgDots = () => {
-            let html = '<div class="prog-dots">';
+            let html = '<div class="rep-dots">';
             for (let i = 1; i <= SEUIL_ETAPES; i++) {
                 const status = i <= niveauValide ? 'completed' : 'pending';
-                html += `<span class="prog-dot ${status}">${i}</span>`;
+                html += `<span class="rep-dot ${status}">${i}</span>`;
             }
             html += '</div>';
             return html;
         };
 
-        // Date prochaine
+        // Date prochaine révision
         let prochaineDateStr = '';
         if (prog.prochaine_revision) {
             prochaineDateStr = new Date(prog.prochaine_revision).toLocaleDateString('fr-FR', {
@@ -2843,60 +2837,42 @@ const EleveConnaissances = {
 
         const nextEntrainement = this.findNextEntrainement();
 
-        // Résumé des étapes avec barres
-        const generateEtapesSummary = () => {
-            if (!results.etapes || results.etapes.length === 0) return '';
-            return `
-                <div class="bilan-etapes-summary">
-                    ${results.etapes.map((etape, idx) => {
-                        const pct = etape.total > 0 ? Math.round((etape.correct / etape.total) * 100) : 0;
-                        const cls = pct >= 80 ? 'success' : pct >= 50 ? 'partial' : 'error';
-                        return `
-                            <div class="bilan-etape-row ${cls}">
-                                <span class="bilan-etape-icon">${pct >= 80 ? '✓' : '✗'}</span>
-                                <span class="bilan-etape-name">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</span>
-                                <div class="bilan-etape-bar">
-                                    <div class="bilan-etape-bar-fill ${cls}" style="width:${pct}%"></div>
-                                </div>
-                                <span class="bilan-etape-score">${etape.correct}/${etape.total}</span>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-        };
-
-        // Générer le détail des erreurs pour la colonne droite
-        const generateErrorDetails = () => {
-            if (!results.etapes || results.etapes.length === 0) return '';
-            const hasErrors = results.etapes.some(e => e.details && e.details.some(d => !d.correct));
-            if (!hasErrors) {
+        // Image de félicitation (colonne droite)
+        const generateFelicitationPanel = () => {
+            if (prog.statut === 'memorise' && prog.reussi) {
                 return `
-                    <div class="correction-perfect">
-                        <span class="correction-perfect-icon">🎉</span>
-                        <p>Aucune erreur !</p>
-                        <small>Tu as tout réussi, bravo !</small>
+                    <div class="felicitation-panel memorise">
+                        <div class="felicitation-icon">🏆</div>
+                        <h3>Mémorisé !</h3>
+                        <p>Tu maîtrises parfaitement cet entraînement. Les connaissances sont ancrées dans ta mémoire long terme !</p>
                     </div>
                 `;
             }
-            return results.etapes.map((etape, idx) => {
-                const errors = (etape.details || []).filter(d => !d.correct);
-                if (errors.length === 0) return '';
+            if (isSuccess) {
                 return `
-                    <div class="correction-etape-group">
-                        <div class="correction-etape-title">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</div>
-                        ${errors.map(err => `
-                            <div class="correction-error-row">
-                                <div class="correction-error-q">${this.escapeHtml(String(err.question || ''))}</div>
-                                <div class="correction-error-answers">
-                                    <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
-                                    ${err.attendu ? `<span class="correction-expected">→ ${this.escapeHtml(String(err.attendu))}</span>` : ''}
-                                </div>
-                            </div>
-                        `).join('')}
+                    <div class="felicitation-panel success">
+                        <div class="felicitation-icon">🎉</div>
+                        <h3>Niveau ${niveauValide} validé !</h3>
+                        <p>Continue comme ça, tu es sur la bonne voie pour tout mémoriser !</p>
                     </div>
                 `;
-            }).join('');
+            }
+            if (results.pourcentage >= 50) {
+                return `
+                    <div class="felicitation-panel encouragement">
+                        <div class="felicitation-icon">💪</div>
+                        <h3>Presque !</h3>
+                        <p>Tu n'es pas loin du compte. Révise encore un peu et tu y arriveras !</p>
+                    </div>
+                `;
+            }
+            return `
+                <div class="felicitation-panel retry">
+                    <div class="felicitation-icon">📚</div>
+                    <h3>Continue tes efforts !</h3>
+                    <p>La répétition est la clé de la mémorisation. N'hésite pas à réessayer !</p>
+                </div>
+            `;
         };
 
         container.innerHTML = `
@@ -2905,126 +2881,97 @@ const EleveConnaissances = {
                     ← Retour aux entraînements
                 </button>
 
-                <div class="result-card-conn-2col">
+                <div class="result-card-conn">
                     <!-- COLONNE GAUCHE : BILAN -->
                     <div class="result-bilan-conn">
-                        <div class="bilan-header-conn ${messageClass}">
-                            <span class="bilan-icon-conn">${messageIcon}</span>
-                            <span class="bilan-message-conn">${messageTitle}${isSuccess && prog.statut !== 'memorise' ? ` Niveau ${niveauValide}/${SEUIL_ETAPES} atteint` : ''}</span>
+                        <div class="bilan-header ${resultType}">
+                            <span class="bilan-icon">${messageIcon}</span>
+                            <span class="bilan-message">${messageTitle}</span>
                         </div>
 
-                        <div class="bilan-score-block">
-                            <div class="score-circle-conn ${messageClass}">
-                                <span class="score-value-conn">${results.pourcentage}%</span>
+                        <div class="bilan-score">
+                            <div class="score-circle ${resultType}">
+                                <span class="score-value">${results.pourcentage}%</span>
                             </div>
-                            <span class="score-detail-conn">${results.totalCorrect}/${results.totalQuestions}</span>
+                            <span class="score-detail">${results.totalCorrect}/${results.totalQuestions}</span>
                         </div>
 
-                        ${ent.duree ? `
-                        <div class="bilan-timer-block">
-                            <span class="timer-label-conn">⏱️ ${this.formatTime(timeSpent)} / ${this.formatTime(tempsPrevu)}</span>
-                            <span class="timer-status-conn ${tempsOK ? 'ok' : 'warn'}">${tempsOK ? '✓' : '⚠️'}</span>
+                        <div class="bilan-temps-compact">
+                            <span class="temps-info">⏱️ ${this.formatTime(timeSpent)} / ${this.formatTime(tempsPrevu)}</span>
+                            <span class="temps-status ${tempsOK ? 'success' : 'warning'}">${tempsOK ? '✓' : '⚠️'}</span>
                         </div>
-                        ` : ''}
-
-                        ${generateEtapesSummary()}
 
                         ${!this.isTrainingMode ? `
-                        <div class="bilan-progression-conn">
-                            ${generateProgDots()}
-                            <span class="prog-label">Niveau ${niveauValide}/${SEUIL_ETAPES}</span>
+                        <div class="bilan-repetition-compact">
+                            <span class="rep-dots-inline">${generateProgDots()}</span>
+                            <span class="rep-label">Niveau ${niveauValide}/${SEUIL_ETAPES}</span>
                         </div>
                         ` : `
-                        <div class="bilan-training-badge-conn">
-                            <span>🔄</span>
-                            <span>Entraînement libre</span>
+                        <div class="bilan-entrainement-libre-badge">
+                            <span class="libre-badge-icon">🔄</span>
+                            <span class="libre-badge-text">Entraînement libre</span>
                         </div>
                         `}
 
-                        <div class="bilan-messages-conn">
+                        <div class="bilan-messages">
                             ${prog.statut === 'memorise' && prog.reussi ? `
-                                <div class="bilan-msg memorise">
-                                    <span>🎉</span>
+                                <div class="bilan-maitrise">
+                                    <span class="maitrise-icon">🎉</span>
                                     <p>Cet entraînement est mémorisé !</p>
                                 </div>
                             ` : ''}
 
                             ${isSuccess && prochaineDateStr && prog.statut !== 'memorise' ? `
-                                <div class="bilan-msg prochaine">
-                                    <p>🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${prog.etape || 1} !</p>
-                                    <p class="sub">En attendant, tu peux t'entraîner autant que tu veux</p>
-                                    <button class="btn-bilan primary" onclick="EleveConnaissances.restartAsTraining()">
-                                        💪 Continuer à s'entraîner
-                                    </button>
+                                <div class="bilan-prochaine-new">
+                                    <p class="prochaine-main">🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${prog.etape || 1} !</p>
                                 </div>
                             ` : ''}
 
                             ${!isSuccess && !this.isTrainingMode && prog.reussi === false ? `
-                                <div class="bilan-msg retry">
-                                    <p>Il faut ${prog.seuil || 80}% pour valider.</p>
-                                    <button class="btn-bilan primary" onclick="EleveConnaissances.restartEntrainement()">
+                                <div class="bilan-conseil warning">
+                                    <span class="conseil-icon">💡</span>
+                                    <p>Il faut ${prog.seuil || 80}% pour valider ce niveau.</p>
+                                </div>
+                            ` : ''}
+
+                            <div class="bilan-actions">
+                                ${!isSuccess && !this.isTrainingMode ? `
+                                    <button class="btn btn-primary btn-restart-conn" onclick="EleveConnaissances.restartEntrainement()">
                                         🔄 Réessayer
                                     </button>
-                                </div>
-                            ` : ''}
+                                ` : ''}
 
-                            ${this.isTrainingMode ? `
-                                <div class="bilan-msg training">
-                                    <small>Ta progression n'est pas modifiée en mode libre</small>
-                                    <button class="btn-bilan primary" onclick="EleveConnaissances.restartEntrainement()">
-                                        Recommencer
+                                ${this.isTrainingMode ? `
+                                    <button class="btn btn-primary btn-restart-conn" onclick="EleveConnaissances.restartEntrainement()">
+                                        🔄 Recommencer
                                     </button>
-                                </div>
-                            ` : ''}
+                                ` : ''}
 
-                            ${nextEntrainement && isSuccess ? `
-                                <button class="btn-bilan secondary" onclick="EleveConnaissances.startNextEntrainement()">
-                                    Passer au suivant →
-                                </button>
-                            ` : ''}
-                        </div>
-                    </div>
-
-                    <!-- COLONNE DROITE : CORRECTION -->
-                    <div class="result-correction-conn">
-                        <div class="correction-header-conn">
-                            <h3>📝 Correction</h3>
-                        </div>
-                        <div class="correction-body-conn">
-                            ${generateErrorDetails()}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-                                <button class="btn-bilan primary" onclick="EleveConnaissances.restartEntrainement()">
-                                    Recommencer
-                                </button>
+                                ${nextEntrainement && isSuccess ? `
+                                    <button class="btn btn-primary btn-next-conn" onclick="EleveConnaissances.startNextEntrainement()">
+                                        Passer au suivant →
+                                    </button>
+                                ` : ''}
                             </div>
-                        ` : ''}
+                        </div>
+                    </div>
 
-                        ${nextEntrainement && isSuccess ? `
-                            <button class="btn-bilan secondary" onclick="EleveConnaissances.startNextEntrainement()">
-                                Passer au suivant →
-                            </button>
-                        ` : ''}
+                    <!-- COLONNE DROITE : FÉLICITATION -->
+                    <div class="result-felicitation-conn">
+                        ${generateFelicitationPanel()}
                     </div>
                 </div>
             </div>
         `;
 
-        // Déclencher les célébrations appropriées (seulement si pas en mode entraînement libre)
-        if (!this.isTrainingMode && prog.success) {
+        // Déclencher les animations paillettes si réussite (pas en mode libre)
+        if (isSuccess && !this.isTrainingMode) {
             setTimeout(() => {
-                if (prog.statut === 'memorise' && prog.reussi) {
-                    this.celebrateMemorized();
-                    if (ent && ent.banque_exercice_id) {
-                        this.checkAndCelebrateBanqueComplete(ent.banque_exercice_id);
-                    }
-                } else if (prog.reussi) {
-                    this.celebrateSuccess();
+                this.triggerCelebration(niveauValide);
+                if (prog.statut === 'memorise' && ent && ent.banque_exercice_id) {
+                    this.checkAndCelebrateBanqueComplete(ent.banque_exercice_id);
                 }
-            }, 300);
+            }, 100);
         }
     },
 
@@ -3431,72 +3378,71 @@ const EleveConnaissances = {
     },
 
     // ============================================
-    // CÉLÉBRATIONS - Animations confetti
+    // CÉLÉBRATIONS - Animations paillettes progressives (6 niveaux)
     // ============================================
 
     /**
-     * Célébration niveau 1 : Réussite (score ≥ seuil)
-     * Confettis modérés qui tombent doucement
+     * Animation de célébration progressive selon le niveau validé
+     * Intensité croissante : paillettes → confettis → étoiles dorées
      */
-    celebrateSuccess() {
-        if (typeof confetti === 'undefined') return;
+    triggerCelebration(level) {
+        // Supprimer une célébration existante
+        const existing = document.querySelector('.celebration-container');
+        if (existing) existing.remove();
 
-        // Confettis doux depuis le haut
-        confetti({
-            particleCount: 50,
-            spread: 60,
-            origin: { y: 0.3 },
-            colors: ['#10b981', '#3b82f6', '#f59e0b'],
-            ticks: 200,
-            gravity: 1.2,
-            scalar: 1
-        });
-    },
+        const container = document.createElement('div');
+        container.className = `celebration-container level-${level}`;
+        document.body.appendChild(container);
 
-    /**
-     * Célébration niveau 2 : Mémorisation complète (étape 7/7)
-     * Explosion de confettis + étoiles
-     */
-    celebrateMemorized() {
-        if (typeof confetti === 'undefined') return;
-
-        const duration = 2000;
-        const end = Date.now() + duration;
-
-        // Explosion depuis les deux côtés
-        const frame = () => {
-            confetti({
-                particleCount: 3,
-                angle: 60,
-                spread: 55,
-                origin: { x: 0 },
-                colors: ['#10b981', '#059669', '#fbbf24', '#f59e0b']
-            });
-            confetti({
-                particleCount: 3,
-                angle: 120,
-                spread: 55,
-                origin: { x: 1 },
-                colors: ['#10b981', '#059669', '#fbbf24', '#f59e0b']
-            });
-
-            if (Date.now() < end) {
-                requestAnimationFrame(frame);
-            }
+        // Configuration progressive pour 6 niveaux
+        const config = {
+            1: { sparkles: 20, confetti: 0, stars: 0, colors: ['#fcd34d', '#fbbf24', '#f59e0b'] },
+            2: { sparkles: 30, confetti: 0, stars: 0, colors: ['#fcd34d', '#fbbf24', '#f59e0b', '#34d399'] },
+            3: { sparkles: 40, confetti: 15, stars: 0, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6'] },
+            4: { sparkles: 45, confetti: 30, stars: 0, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6', '#a78bfa'] },
+            5: { sparkles: 50, confetti: 45, stars: 8, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6', '#a78bfa'] },
+            6: { sparkles: 60, confetti: 60, stars: 15, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fbbf24'] }
         };
-        frame();
 
-        // Burst central avec étoiles
-        setTimeout(() => {
-            confetti({
-                particleCount: 100,
-                spread: 100,
-                origin: { y: 0.5 },
-                colors: ['#fbbf24', '#f59e0b', '#10b981'],
-                shapes: ['star', 'circle'],
-                scalar: 1.2
-            });
-        }, 300);
+        const cfg = config[Math.min(level, 6)] || config[1];
+
+        // Paillettes
+        for (let i = 0; i < cfg.sparkles; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+            sparkle.style.left = Math.random() * 100 + '%';
+            sparkle.style.backgroundColor = cfg.colors[Math.floor(Math.random() * cfg.colors.length)];
+            sparkle.style.animationDelay = Math.random() * 0.5 + 's';
+            sparkle.style.width = (6 + Math.random() * 8) + 'px';
+            sparkle.style.height = sparkle.style.width;
+            container.appendChild(sparkle);
+        }
+
+        // Confettis (niveau 3+)
+        for (let i = 0; i < cfg.confetti; i++) {
+            const confettiEl = document.createElement('div');
+            confettiEl.className = 'confetti';
+            confettiEl.style.left = Math.random() * 100 + '%';
+            confettiEl.style.backgroundColor = cfg.colors[Math.floor(Math.random() * cfg.colors.length)];
+            confettiEl.style.animationDelay = Math.random() * 0.8 + 's';
+            confettiEl.style.width = (6 + Math.random() * 6) + 'px';
+            confettiEl.style.height = (12 + Math.random() * 10) + 'px';
+            container.appendChild(confettiEl);
+        }
+
+        // Étoiles dorées (niveau 5+)
+        for (let i = 0; i < cfg.stars; i++) {
+            const star = document.createElement('div');
+            star.className = 'golden-star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.animationDelay = Math.random() * 1 + 's';
+            star.style.width = (15 + Math.random() * 15) + 'px';
+            star.style.height = star.style.width;
+            container.appendChild(star);
+        }
+
+        // Supprimer après l'animation
+        setTimeout(() => container.remove(), 5000);
     },
 
     /**
