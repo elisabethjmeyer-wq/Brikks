@@ -906,7 +906,6 @@ const EleveConnaissances = {
                             donnees = {};
                         }
                     }
-                    console.log(`[EleveConnaissances] Question ${questionContent.id} (${questionContent.type}) donnees:`, donnees);
                     allQuestionContents.push({
                         id: questionContent.id,
                         donnees: donnees
@@ -1482,8 +1481,6 @@ const EleveConnaissances = {
      * Format: {consigne, paires: [{element1, element2}, ...]}
      */
     renderAssociation(donnees, questions) {
-        console.log('[EleveConnaissances] renderAssociation - donnees reçues:', JSON.stringify(donnees));
-        console.log('[EleveConnaissances] renderAssociation - type:', typeof donnees);
         const consigne = donnees.consigne || 'Associez les éléments correspondants';
         const paires = donnees.paires || [];
 
