@@ -7858,6 +7858,14 @@ function setEtapeQuestionsConn(data) {
     questions = [];
   }
 
+  // Dédupliquer par question_id pour éviter les doublons
+  const seen = new Set();
+  questions = questions.filter(q => {
+    if (!q.question_id || seen.has(q.question_id)) return false;
+    seen.add(q.question_id);
+    return true;
+  });
+
   // Ajouter les nouvelles questions
   questions.forEach((q, index) => {
     createEtapeQuestionConn({
