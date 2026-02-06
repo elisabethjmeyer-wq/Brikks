@@ -997,6 +997,41 @@
     display: block;
 }
 
+/* Labels de correction après validation */
+.assoc-paired-label.assoc-label-success {
+    display: block;
+    background: #dcfce7;
+    border-top: 1.5px solid #86efac;
+    color: #166534;
+}
+
+.assoc-paired-label.assoc-label-error {
+    display: block;
+    background: #fee2e2;
+    border-top: 1.5px solid #fca5a5;
+    color: #dc2626;
+    padding: 4px 8px;
+}
+
+.assoc-answer-ok {
+    font-weight: 600;
+    color: #166534;
+}
+
+.assoc-answer-wrong {
+    display: block;
+    text-decoration: line-through;
+    font-size: 0.78rem;
+    opacity: 0.75;
+}
+
+.assoc-answer-right {
+    display: block;
+    color: #166534;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
 /* Carte texte dans la grille (cas texte↔texte groupe A) */
 .association-grid-card.is-text {
     width: auto;
@@ -1181,86 +1216,11 @@
     font-weight: 500;
 }
 
-/* Correction association — grille compacte */
-.assoc-correction-compact {
-    padding: 1rem;
-}
-
-.assoc-correction-compact h4 {
-    margin: 0 0 0.75rem 0;
-    font-size: 0.95rem;
-}
-
-.assoc-correction-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.75rem;
-}
-
-.assoc-correction-card {
-    width: 140px;
-    background: #f0fdf4;
-    border: 2px solid #86efac;
-    border-radius: 12px;
-    overflow: hidden;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.assoc-correction-card img {
-    width: 100%;
-    height: 100px;
-    object-fit: contain;
-    padding: 6px;
-}
-
-.assoc-correction-label {
-    display: block;
-    width: 100%;
-    padding: 5px 8px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #166534;
-    background: #dcfce7;
-    border-top: 1px solid #bbf7d0;
-}
-
-/* Cas texte↔texte */
-.assoc-correction-card.text-only {
-    width: auto;
-    min-width: 160px;
-    max-width: 280px;
-    flex-direction: row;
-    padding: 0.5rem 0.75rem;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-.assoc-correction-term {
-    font-weight: 600;
-    color: #166534;
-    font-size: 0.85rem;
-}
-
-.assoc-correction-sep {
-    color: #86efac;
-    font-weight: 700;
-}
-
-.assoc-correction-def {
-    color: #334155;
-    font-size: 0.85rem;
-}
-
+/* Responsive labels correction */
 @media (max-width: 600px) {
-    .assoc-correction-card {
-        width: 110px;
-    }
-    .assoc-correction-card img {
-        height: 75px;
+    .assoc-answer-wrong,
+    .assoc-answer-right {
+        font-size: 0.75rem;
     }
 }
 
@@ -3491,15 +3451,26 @@
     box-shadow: 0 5px 16px rgba(16, 185, 129, 0.4);
 }
 
-/* Bandeau de feedback après validation */
+/* Bandeau de feedback unifié (feedback + bouton) */
 .etape-feedback {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
     padding: 1rem 1.5rem;
     border-radius: 12px;
     margin-top: 1rem;
     animation: feedback-slide-in 0.4s ease;
+}
+
+.etape-feedback-main {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.etape-feedback-main .etape-feedback-text {
+    flex: 1;
+}
+
+.etape-feedback-main .btn-etape-action {
+    flex-shrink: 0;
 }
 
 .etape-feedback.success {

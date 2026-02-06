@@ -2445,41 +2445,49 @@ const EleveConnaissances = {
                 });
                 // Marquer les éléments non appariés comme incorrects
                 document.querySelectorAll('#associationGrid .association-grid-card:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
-                document.querySelectorAll('#associationChips .association-chip:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
 
-                // Afficher la correction en grille compacte si pas tout correct
-                if (correct < total) {
-                    const assocContainer = document.querySelector('.association-container');
-                    const existingCorrection = assocContainer?.querySelector('.correction-section');
-                    if (assocContainer && !existingCorrection) {
-                        const hasImages = assocPaires.some(p => p.element1_type === 'image' || p.element2_type === 'image');
-                        const correctionHtml = `
-                            <div class="correction-section assoc-correction-compact">
-                                <h4>Associations correctes</h4>
-                                <div class="assoc-correction-grid">
-                                    ${assocPaires.map((paire, i) => {
-                                        const imgEl = paire.element1_type === 'image' ? paire.element1 : (paire.element2_type === 'image' ? paire.element2 : null);
-                                        const txtEl = paire.element1_type === 'image' ? paire.element2 : paire.element1;
-                                        const txt2El = paire.element2_type === 'image' ? paire.element1 : paire.element2;
-                                        if (imgEl) {
-                                            return `<div class="assoc-correction-card">
-                                                <img src="${this.escapeHtml(this.normalizeImageUrl(imgEl))}" alt="">
-                                                <span class="assoc-correction-label">${this.escapeHtml(paire.element1_type === 'image' ? paire.element2 : paire.element1)}</span>
-                                            </div>`;
-                                        } else {
-                                            return `<div class="assoc-correction-card text-only">
-                                                <span class="assoc-correction-term">${this.escapeHtml(paire.element1)}</span>
-                                                <span class="assoc-correction-sep">=</span>
-                                                <span class="assoc-correction-def">${this.escapeHtml(paire.element2)}</span>
-                                            </div>`;
-                                        }
-                                    }).join('')}
-                                </div>
-                            </div>
-                        `;
-                        assocContainer.insertAdjacentHTML('afterend', correctionHtml);
+                // Cacher les chips et le label d'instruction
+                const chipsZone = document.querySelector('#associationChips');
+                if (chipsZone) chipsZone.style.display = 'none';
+                const zoneLabel = document.querySelector('.association-zone-label');
+                if (zoneLabel) zoneLabel.style.display = 'none';
+
+                // Mettre à jour les labels sous chaque carte avec la correction
+                const getChipText = (id) => {
+                    const p = assocPaires[parseInt(id)];
+                    if (!p) return '?';
+                    return this._assocChipSide === 'gauche' ? p.element1 : p.element2;
+                };
+
+                document.querySelectorAll('#associationGrid .association-grid-card').forEach(card => {
+                    const cardId = card.dataset.id;
+                    const correctText = getChipText(cardId);
+                    const label = card.querySelector('.assoc-paired-label');
+                    if (!label) return;
+
+                    label.style.display = 'block';
+                    const userPair = userPairs.find(up => {
+                        const gId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
+                        return String(gId) === String(cardId);
+                    });
+
+                    if (userPair) {
+                        const chipId = this._assocChipSide === 'gauche' ? userPair.gauche : userPair.droite;
+                        const isCorrect = String(userPair.gauche) === String(userPair.droite);
+                        const studentText = getChipText(chipId);
+
+                        if (isCorrect) {
+                            label.className = 'assoc-paired-label assoc-label-success';
+                            label.innerHTML = `<span class="assoc-answer-ok">✓ ${this.escapeHtml(correctText)}</span>`;
+                        } else {
+                            label.className = 'assoc-paired-label assoc-label-error';
+                            label.innerHTML = `<span class="assoc-answer-wrong">✗ ${this.escapeHtml(studentText)}</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+                        }
+                    } else {
+                        label.className = 'assoc-paired-label assoc-label-error';
+                        label.innerHTML = `<span class="assoc-answer-wrong">✗ —</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
                     }
-                }
+                });
                 break;
 
             case 'flashcard':
@@ -2523,8 +2531,9 @@ const EleveConnaissances = {
             });
         }
 
-        // Afficher le bandeau de feedback
+        // Bandeau unifié : feedback + bouton dans un seul bloc
         const feedbackZone = document.getElementById('etapeFeedback');
+        const isLastEtape = this.currentEtapeIndex >= this.currentEtapes.length - 1;
         if (feedbackZone) {
             feedbackZone.style.display = 'block';
             const feedbackClass = percent === 100 ? 'success' : percent >= 50 ? 'partial' : 'error';
@@ -2536,26 +2545,26 @@ const EleveConnaissances = {
                 error: { icon: '✗', title: 'Dommage...', sub: 'Regarde la correction et réessaie.' }
             };
             const msg = messages[feedbackClass];
+            const btnAction = isLastEtape ? 'finishEntrainement' : 'nextEtape';
+            const btnLabel = isLastEtape ? 'Terminer ✓' : 'Suivant →';
 
             feedbackZone.innerHTML = `
-                <div class="etape-feedback-icon">${msg.icon}</div>
-                <div class="etape-feedback-text">
-                    <strong>${msg.title}</strong>
-                    <span>${correct}/${total} correct${correct > 1 ? 's' : ''} — ${msg.sub}</span>
+                <div class="etape-feedback-main">
+                    <div class="etape-feedback-icon">${msg.icon}</div>
+                    <div class="etape-feedback-text">
+                        <strong>${msg.title}</strong>
+                        <span>${correct}/${total} correct${correct > 1 ? 's' : ''} — ${msg.sub}</span>
+                    </div>
+                    <button class="btn-etape-action next-btn" onclick="EleveConnaissances.${btnAction}()">
+                        ${btnLabel}
+                    </button>
                 </div>
             `;
         }
 
-        // Remplacer le bouton Valider par Suivant / Terminer
+        // Cacher l'ancienne barre d'action (le bouton est dans le bandeau)
         const actionBar = document.getElementById('etapeActionBar');
-        const isLastEtape = this.currentEtapeIndex >= this.currentEtapes.length - 1;
-        if (actionBar) {
-            actionBar.innerHTML = `
-                <button class="btn-etape-action next-btn" onclick="EleveConnaissances.${isLastEtape ? 'finishEntrainement' : 'nextEtape'}()">
-                    ${isLastEtape ? 'Terminer ✓' : 'Suivant →'}
-                </button>
-            `;
-        }
+        if (actionBar) actionBar.style.display = 'none';
     },
 
     /**
