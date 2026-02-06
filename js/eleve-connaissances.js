@@ -2896,32 +2896,21 @@ const EleveConnaissances = {
 
         const nextEntrainement = this.findNextEntrainement();
 
-        // Colonne droite : félicitation (score >= seuil) ou détail des erreurs (score < seuil)
+        // Colonne droite : félicitation si 100% sans erreur, sinon détail des erreurs
+        const hasErrors = results.etapes && results.etapes.some(e => e.details && e.details.some(d => !d.correct));
         const generateRightPanel = () => {
-            if (prog.statut === 'memorise' && prog.reussi) {
+            if (!hasErrors) {
+                // Sans faute → félicitation
+                const isMemorise = prog.statut === 'memorise' && prog.reussi;
                 return `
-                    <div class="felicitation-panel memorise">
-                        <div class="felicitation-icon">🏆</div>
-                        <h3>Mémorisé !</h3>
-                        <p>Tu maîtrises parfaitement cet entraînement. Les connaissances sont ancrées dans ta mémoire long terme !</p>
+                    <div class="felicitation-panel ${isMemorise ? 'memorise' : 'success'}">
+                        <div class="felicitation-icon">${isMemorise ? '🏆' : '🎉'}</div>
+                        <h3>${isMemorise ? 'Mémorisé !' : isSuccess ? `Niveau ${niveauValide} validé !` : 'Parfait !'}</h3>
+                        <p>${isMemorise ? 'Tu maîtrises parfaitement cet entraînement. Les connaissances sont ancrées dans ta mémoire long terme !' : 'Sans faute, bravo !'}</p>
                     </div>
                 `;
             }
-            if (scoreOK) {
-                const msg = isSuccess
-                    ? `Niveau ${niveauValide} validé ! Continue comme ça !`
-                    : results.pourcentage >= 100
-                        ? 'Sans faute, bravo !'
-                        : 'Tu as atteint le seuil de réussite !';
-                return `
-                    <div class="felicitation-panel success">
-                        <div class="felicitation-icon">${results.pourcentage >= 100 ? '🎉' : '👏'}</div>
-                        <h3>${results.pourcentage >= 100 ? 'Parfait !' : 'Bien joué !'}</h3>
-                        <p>${msg}</p>
-                    </div>
-                `;
-            }
-            // Score < seuil : afficher le détail des erreurs
+            // Dès qu'il y a des erreurs → détail des erreurs
             return this.generateErrorDetails(results);
         };
 
@@ -3007,7 +2996,7 @@ const EleveConnaissances = {
                     </div>
 
                     <!-- COLONNE DROITE : FÉLICITATION ou ERREURS -->
-                    <div class="result-right-conn ${scoreOK || (prog.statut === 'memorise' && prog.reussi) ? 'is-felicitation' : 'is-correction'}">
+                    <div class="result-right-conn ${!hasErrors ? 'is-felicitation' : 'is-correction'}">
                         ${generateRightPanel()}
                     </div>
                 </div>
