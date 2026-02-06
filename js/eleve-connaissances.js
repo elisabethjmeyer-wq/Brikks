@@ -2864,82 +2864,137 @@ const EleveConnaissances = {
             `;
         };
 
+        // Générer le détail des erreurs pour la colonne droite
+        const generateErrorDetails = () => {
+            if (!results.etapes || results.etapes.length === 0) return '';
+            const hasErrors = results.etapes.some(e => e.details && e.details.some(d => !d.correct));
+            if (!hasErrors) {
+                return `
+                    <div class="correction-perfect">
+                        <span class="correction-perfect-icon">🎉</span>
+                        <p>Aucune erreur !</p>
+                        <small>Tu as tout réussi, bravo !</small>
+                    </div>
+                `;
+            }
+            return results.etapes.map((etape, idx) => {
+                const errors = (etape.details || []).filter(d => !d.correct);
+                if (errors.length === 0) return '';
+                return `
+                    <div class="correction-etape-group">
+                        <div class="correction-etape-title">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</div>
+                        ${errors.map(err => `
+                            <div class="correction-error-row">
+                                <div class="correction-error-q">${this.escapeHtml(String(err.question || ''))}</div>
+                                <div class="correction-error-answers">
+                                    <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
+                                    ${err.attendu ? `<span class="correction-expected">→ ${this.escapeHtml(String(err.attendu))}</span>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }).join('');
+        };
+
         container.innerHTML = `
             <div class="result-view conn">
                 <button class="exercise-back-btn" onclick="EleveConnaissances.backToList()">
                     ← Retour aux entraînements
                 </button>
 
-                <div class="result-card-conn-new">
-                    <!-- En-tête avec icône et message -->
-                    <div class="bilan-header-conn ${messageClass}">
-                        <span class="bilan-icon-conn">${messageIcon}</span>
-                        <span class="bilan-message-conn">${messageTitle}${isSuccess && prog.statut !== 'memorise' ? ` Niveau ${prog.etape || 1}/${SEUIL_ETAPES} atteint` : ''}</span>
-                    </div>
+                <div class="result-card-conn-2col">
+                    <!-- COLONNE GAUCHE : BILAN -->
+                    <div class="result-bilan-conn">
+                        <div class="bilan-header-conn ${messageClass}">
+                            <span class="bilan-icon-conn">${messageIcon}</span>
+                            <span class="bilan-message-conn">${messageTitle}${isSuccess && prog.statut !== 'memorise' ? ` Niveau ${prog.etape || 1}/${SEUIL_ETAPES} atteint` : ''}</span>
+                        </div>
 
-                    <!-- Score + Timer côte à côte -->
-                    <div class="bilan-score-row">
                         <div class="bilan-score-block">
                             <div class="score-circle-conn ${messageClass}">
                                 <span class="score-value-conn">${results.pourcentage}%</span>
                             </div>
                             <span class="score-detail-conn">${results.totalCorrect}/${results.totalQuestions}</span>
                         </div>
+
                         ${ent.duree ? `
                         <div class="bilan-timer-block">
                             <span class="timer-label-conn">⏱️ ${this.formatTime(timeSpent)} / ${this.formatTime(tempsPrevu)}</span>
                             <span class="timer-status-conn ${tempsOK ? 'ok' : 'warn'}">${tempsOK ? '✓' : '⚠️'}</span>
                         </div>
                         ` : ''}
-                    </div>
 
-                    <!-- Résumé des étapes -->
-                    ${generateEtapesSummary()}
+                        ${generateEtapesSummary()}
 
-                    <!-- Dots de progression -->
-                    ${!this.isTrainingMode ? `
-                    <div class="bilan-progression-conn">
-                        ${generateProgDots()}
-                        <span class="prog-label">Niveau ${prog.etape || 1}/${SEUIL_ETAPES}</span>
-                    </div>
-                    ` : `
-                    <div class="bilan-training-badge-conn">
-                        <span>🔄</span>
-                        <span>Entraînement libre</span>
-                    </div>
-                    `}
+                        ${!this.isTrainingMode ? `
+                        <div class="bilan-progression-conn">
+                            ${generateProgDots()}
+                            <span class="prog-label">Niveau ${prog.etape || 1}/${SEUIL_ETAPES}</span>
+                        </div>
+                        ` : `
+                        <div class="bilan-training-badge-conn">
+                            <span>🔄</span>
+                            <span>Entraînement libre</span>
+                        </div>
+                        `}
 
-                    <!-- Messages contextuels -->
-                    <div class="bilan-messages-conn">
-                        ${prog.statut === 'memorise' && prog.reussi ? `
-                            <div class="bilan-msg memorise">
-                                <span>🎉</span>
-                                <p>Cet entraînement est mémorisé !</p>
-                            </div>
-                        ` : ''}
+                        <div class="bilan-messages-conn">
+                            ${prog.statut === 'memorise' && prog.reussi ? `
+                                <div class="bilan-msg memorise">
+                                    <span>🎉</span>
+                                    <p>Cet entraînement est mémorisé !</p>
+                                </div>
+                            ` : ''}
 
-                        ${isSuccess && prochaineDateStr && prog.statut !== 'memorise' ? `
-                            <div class="bilan-msg prochaine">
-                                <p>🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${(prog.etape || 1) + 1} !</p>
-                                <p class="sub">En attendant, tu peux t'entraîner autant que tu veux</p>
-                                <button class="btn-bilan primary" onclick="EleveConnaissances.restartAsTraining()">
-                                    💪 Continuer à s'entraîner
+                            ${isSuccess && prochaineDateStr && prog.statut !== 'memorise' ? `
+                                <div class="bilan-msg prochaine">
+                                    <p>🎯 Reviens le <strong>${prochaineDateStr}</strong> pour valider le niveau ${(prog.etape || 1) + 1} !</p>
+                                    <p class="sub">En attendant, tu peux t'entraîner autant que tu veux</p>
+                                    <button class="btn-bilan primary" onclick="EleveConnaissances.restartAsTraining()">
+                                        💪 Continuer à s'entraîner
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            ${!isSuccess && !this.isTrainingMode && prog.reussi === false ? `
+                                <div class="bilan-msg retry">
+                                    <p>Il faut ${prog.seuil || 80}% pour valider.</p>
+                                    <button class="btn-bilan primary" onclick="EleveConnaissances.restartEntrainement()">
+                                        🔄 Réessayer
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            ${this.isTrainingMode ? `
+                                <div class="bilan-msg training">
+                                    <small>Ta progression n'est pas modifiée en mode libre</small>
+                                    <button class="btn-bilan primary" onclick="EleveConnaissances.restartEntrainement()">
+                                        Recommencer
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            ${nextEntrainement && isSuccess ? `
+                                <button class="btn-bilan secondary" onclick="EleveConnaissances.startNextEntrainement()">
+                                    Passer au suivant →
                                 </button>
-                            </div>
-                        ` : ''}
+                            ` : ''}
+                        </div>
+                    </div>
 
-                        ${!isSuccess && !this.isTrainingMode && prog.reussi === false ? `
-                            <div class="bilan-msg retry">
-                                <p>Il faut ${prog.seuil || 80}% pour valider.</p>
-                                <button class="btn-bilan primary" onclick="EleveConnaissances.restartEntrainement()">
-                                    🔄 Réessayer
-                                </button>
-                            </div>
-                        ` : ''}
-
-                        ${this.isTrainingMode ? `
-                            <div class="bilan-msg training">
-                                <small>Ta progression n'est pas modifiée en mode libre</small>
+                    <!-- COLONNE DROITE : CORRECTION -->
+                    <div class="result-correction-conn">
+                        <div class="correction-header-conn">
+                            <h3>📝 Correction</h3>
+                        </div>
+                        <div class="correction-body-conn">
+                            ${generateErrorDetails()}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
                                 <button class="btn-bilan primary" onclick="EleveConnaissances.restartEntrainement()">
                                     Recommencer
                                 </button>
