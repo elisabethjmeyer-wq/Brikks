@@ -893,21 +893,24 @@ const EleveConnaissances = {
                         continue;
                     }
 
-                    if (questionContent) {
-                        let donnees = questionContent.donnees || {};
-                        if (typeof donnees === 'string') {
-                            try {
+                    let donnees = questionContent.donnees || {};
+                    if (typeof donnees === 'string') {
+                        try {
+                            donnees = JSON.parse(donnees);
+                            // Double-encodage possible : si le résultat est encore une string, re-parser
+                            if (typeof donnees === 'string') {
                                 donnees = JSON.parse(donnees);
-                            } catch (e) {
-                                console.error('[EleveConnaissances] Erreur parsing donnees:', e);
-                                donnees = {};
                             }
+                        } catch (e) {
+                            console.error('[EleveConnaissances] Erreur parsing donnees:', e);
+                            donnees = {};
                         }
-                        allQuestionContents.push({
-                            id: questionContent.id,
-                            donnees: donnees
-                        });
                     }
+                    console.log(`[EleveConnaissances] Question ${questionContent.id} (${questionContent.type}) donnees:`, donnees);
+                    allQuestionContents.push({
+                        id: questionContent.id,
+                        donnees: donnees
+                    });
                 }
             }
         }
@@ -1479,6 +1482,8 @@ const EleveConnaissances = {
      * Format: {consigne, paires: [{element1, element2}, ...]}
      */
     renderAssociation(donnees, questions) {
+        console.log('[EleveConnaissances] renderAssociation - donnees reçues:', JSON.stringify(donnees));
+        console.log('[EleveConnaissances] renderAssociation - type:', typeof donnees);
         const consigne = donnees.consigne || 'Associez les éléments correspondants';
         const paires = donnees.paires || [];
 
