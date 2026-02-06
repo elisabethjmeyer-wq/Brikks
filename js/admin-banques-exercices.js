@@ -3572,22 +3572,25 @@ const AdminBanquesExercices = {
     },
 
     async wizardNextStep() {
-        if (!this.validateWizardStep(this.wizardData.currentStep)) return;
+        // Éviter les doubles clics
+        if (this._navigating) return;
+        this._navigating = true;
 
-        const currentStep = this.wizardData.currentStep;
+        try {
+            if (!this.validateWizardStep(this.wizardData.currentStep)) return;
 
-        // Seule l'étape 1 nécessite une sauvegarde bloquante (création/mise à jour de l'entraînement)
-        // Les étapes 2 et 3 sauvegardent au fur et à mesure, pas besoin de bloquer
-        if (currentStep === 1) {
-            await this.saveWizardStepData(1);
-        }
+            // Sauvegarder les données de l'étape actuelle
+            await this.saveWizardStepData(this.wizardData.currentStep);
 
-        if (currentStep < 4) {
-            this.wizardData.currentStep++;
-            this.renderWizardStep(this.wizardData.currentStep);
-        } else {
-            // Étape finale - Publier
-            await this.finalizeEntrainement();
+            if (this.wizardData.currentStep < 4) {
+                this.wizardData.currentStep++;
+                this.renderWizardStep(this.wizardData.currentStep);
+            } else {
+                // Étape finale - Publier
+                await this.finalizeEntrainement();
+            }
+        } finally {
+            this._navigating = false;
         }
     },
 
@@ -3803,11 +3806,9 @@ const AdminBanquesExercices = {
 
     renderWizardEtapeItem(etape, index) {
         const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
-        // Compter les questions réellement sélectionnées pour cette étape
-        const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
-        const questionsCount = etape.mode_selection === 'aleatoire'
-            ? (parseInt(etape.nb_questions) || 5)
-            : selectedIds.length;
+        // Utiliser getSelectedQuestionsForEtape qui filtre les questions existantes
+        const selectedQuestions = this.getSelectedQuestionsForEtape(etape.id);
+        const questionsCount = selectedQuestions.length;
 
         return `
             <div class="wizard-etape-item" data-id="${etape.id || 'temp-' + index}" data-index="${index}" draggable="true">
@@ -3845,29 +3846,8 @@ const AdminBanquesExercices = {
             item.addEventListener('dragend', () => {
                 item.classList.remove('dragging');
                 draggedItem = null;
-
-                // Mettre à jour wizardData.etapes depuis le nouvel ordre DOM
-                const items = list.querySelectorAll('.wizard-etape-item');
-                const newEtapes = [];
-                items.forEach((el, i) => {
-                    const id = el.dataset.id;
-                    const etape = this.wizardData.etapes.find(e => String(e.id) === id);
-                    if (etape) {
-                        etape.ordre = i + 1;
-                        newEtapes.push(etape);
-                    }
-                });
-                this.wizardData.etapes = newEtapes;
-
-                // Mettre à jour les numéros visuels
-                items.forEach((el, i) => {
-                    const numEl = el.querySelector('.etape-number');
-                    if (numEl) numEl.textContent = i + 1;
-                    el.dataset.index = i;
-                });
-
-                // Sauvegarder l'ordre en arrière-plan (sans bloquer l'UI)
-                this.saveEtapesOrder();
+                // Sauvegarder le nouvel ordre après le drag-and-drop
+                this.saveWizardEtapesOrder(list);
             });
 
             item.addEventListener('dragover', (e) => {
@@ -3885,13 +3865,40 @@ const AdminBanquesExercices = {
         });
     },
 
-    // Sauvegarde l'ordre des étapes en arrière-plan (appels parallèles)
-    async saveEtapesOrder() {
+    async saveWizardEtapesOrder(container) {
+        // Récupérer le nouvel ordre depuis le DOM
+        const items = container.querySelectorAll('.wizard-etape-item');
+        const newOrder = [];
+
+        items.forEach((item, index) => {
+            const etapeId = item.dataset.id;
+            // Ignorer les IDs temporaires
+            if (etapeId && !etapeId.startsWith('temp-')) {
+                newOrder.push({ id: etapeId, ordre: index + 1 });
+            }
+        });
+
+        if (newOrder.length === 0) return;
+
         try {
-            const promises = this.wizardData.etapes.map((etape, i) =>
-                this.callAPI('updateEtapeConn', { id: etape.id, ordre: i + 1 })
+            // Sauvegarder en parallèle
+            const updatePromises = newOrder.map(({ id, ordre }) =>
+                this.callAPI('updateEtapeConn', { id, ordre })
             );
-            await Promise.all(promises);
+            await Promise.all(updatePromises);
+
+            // Mettre à jour les données locales
+            newOrder.forEach(({ id, ordre }) => {
+                const etape = this.wizardData.etapes.find(e => e.id === id);
+                if (etape) etape.ordre = ordre;
+                const etapeConn = this.etapesConn.find(e => e.id === id);
+                if (etapeConn) etapeConn.ordre = ordre;
+            });
+
+            // Réorganiser wizardData.etapes selon le nouvel ordre
+            this.wizardData.etapes.sort((a, b) => a.ordre - b.ordre);
+
+            console.log('Ordre des étapes sauvegardé');
         } catch (error) {
             console.error('Erreur sauvegarde ordre:', error);
         }
@@ -3946,23 +3953,21 @@ const AdminBanquesExercices = {
     },
 
     async addWizardEtape(formatCode) {
-        // Protection contre le double-clic
+        // Empêcher les doubles clics
         if (this._addingEtape) return;
         this._addingEtape = true;
-
-        // Désactiver visuellement les boutons de format
-        document.querySelectorAll('.format-card').forEach(btn => {
-            btn.style.pointerEvents = 'none';
-            btn.style.opacity = '0.6';
-        });
 
         try {
             if (!this.wizardData.entrainement) {
                 // D'abord sauvegarder l'entraînement
-                if (!this.validateWizardStep(1)) return;
+                if (!this.validateWizardStep(1)) {
+                    this._addingEtape = false;
+                    return;
+                }
                 await this.saveWizardStepData(1);
             }
 
+            const format = this.formatsQuestions.find(f => f.code === formatCode);
             const ordre = this.wizardData.etapes.length + 1;
 
             const result = await this.callAPI('createEtapeConn', {
@@ -3974,7 +3979,7 @@ const AdminBanquesExercices = {
             });
 
             if (result.success) {
-                // Ajouter localement la nouvelle étape sans reload complet
+                // Mise à jour locale au lieu de loadDataFromAPI
                 const newEtape = {
                     id: result.id,
                     entrainement_id: this.wizardData.entrainement.id,
@@ -3983,8 +3988,8 @@ const AdminBanquesExercices = {
                     mode_selection: 'manuel',
                     nb_questions: 5
                 };
-                this.wizardData.etapes.push(newEtape);
                 this.etapesConn.push(newEtape);
+                this.wizardData.etapes.push(newEtape);
                 this.renderWizardStep(2);
             } else {
                 alert('Erreur: ' + (result.error || 'Erreur inconnue'));
@@ -3993,11 +3998,6 @@ const AdminBanquesExercices = {
             console.error('Erreur ajout étape:', error);
         } finally {
             this._addingEtape = false;
-            // Réactiver les boutons
-            document.querySelectorAll('.format-card').forEach(btn => {
-                btn.style.pointerEvents = '';
-                btn.style.opacity = '';
-            });
         }
     },
 
@@ -4010,15 +4010,13 @@ const AdminBanquesExercices = {
         try {
             const result = await this.callAPI('deleteEtapeConn', { id: etape.id });
             if (result.success) {
-                // Supprimer localement sans reload complet
-                this.wizardData.etapes.splice(index, 1);
+                // Mise à jour locale au lieu de loadDataFromAPI
                 this.etapesConn = this.etapesConn.filter(e => e.id !== etape.id);
-                // Nettoyer les questions sélectionnées pour cette étape
+                this.wizardData.etapes.splice(index, 1);
+                // Supprimer aussi les questions sélectionnées pour cette étape
                 if (this.wizardData.selectedQuestions) {
                     delete this.wizardData.selectedQuestions[etape.id];
                 }
-                // Mettre à jour les ordres
-                this.wizardData.etapes.forEach((e, i) => e.ordre = i + 1);
                 this.renderWizardStep(2);
             }
         } catch (error) {
@@ -4027,21 +4025,41 @@ const AdminBanquesExercices = {
     },
 
     async moveWizardEtape(index, direction) {
+        // Éviter les doubles clics
+        if (this._movingEtape) return;
+
         const newIndex = index + direction;
         if (newIndex < 0 || newIndex >= this.wizardData.etapes.length) return;
 
-        // Échanger les positions localement
-        [this.wizardData.etapes[index], this.wizardData.etapes[newIndex]] =
-            [this.wizardData.etapes[newIndex], this.wizardData.etapes[index]];
+        this._movingEtape = true;
 
-        // Mettre à jour les ordres
-        this.wizardData.etapes.forEach((e, i) => e.ordre = i + 1);
+        // Échanger les positions
+        const etapes = [...this.wizardData.etapes];
+        [etapes[index], etapes[newIndex]] = [etapes[newIndex], etapes[index]];
 
-        // Re-render immédiat (avant la sauvegarde API)
-        this.renderWizardStep(2);
+        // Mettre à jour l'ordre dans la base
+        try {
+            // Appels API en parallèle pour plus de rapidité
+            const updatePromises = etapes.map((etape, i) =>
+                this.callAPI('updateEtapeConn', { id: etape.id, ordre: i + 1 })
+            );
+            await Promise.all(updatePromises);
 
-        // Sauvegarder en arrière-plan (appels parallèles)
-        this.saveEtapesOrder();
+            // Mise à jour locale au lieu de recharger toutes les données
+            this.wizardData.etapes = etapes;
+
+            // Mettre à jour aussi etapesConn
+            etapes.forEach((etape, i) => {
+                const found = this.etapesConn.find(e => e.id === etape.id);
+                if (found) found.ordre = i + 1;
+            });
+
+            this.renderWizardStep(2);
+        } catch (error) {
+            console.error('Erreur réordonnancement:', error);
+        } finally {
+            this._movingEtape = false;
+        }
     },
 
     // ===== ÉTAPE 3: QUESTIONS =====
@@ -4477,29 +4495,41 @@ const AdminBanquesExercices = {
     },
 
     async finalizeEntrainement() {
-        // Protection contre double-clic
+        // Éviter les doubles clics sur "Valider et fermer"
         if (this._finalizing) return;
         this._finalizing = true;
 
-        // Désactiver le bouton et montrer le chargement
-        const nextBtn = document.getElementById('wizardNextBtn');
-        if (nextBtn) {
-            nextBtn.disabled = true;
-            nextBtn.textContent = 'Sauvegarde...';
-        }
-
         try {
-            // Sauvegarder les questions sélectionnées pour chaque étape EN PARALLÈLE
+            console.log('[Admin] ===== FINALISATION ENTRAINEMENT =====');
+            console.log('[Admin] wizardData.etapes:', this.wizardData.etapes);
+            console.log('[Admin] wizardData.selectedQuestions:', this.wizardData.selectedQuestions);
+
+            // Sauvegarder les questions sélectionnées pour chaque étape (en parallèle)
             if (this.wizardData.selectedQuestions && this.wizardData.etapes) {
-                const promises = this.wizardData.etapes.map(etape => {
+                const savePromises = this.wizardData.etapes.map(async (etape) => {
                     const selectedIds = this.wizardData.selectedQuestions[etape.id] || [];
+                    // Convertir les IDs en format attendu par le backend: [{question_id: 'xxx'}, ...]
                     const questionsFormatted = selectedIds.map(id => ({ question_id: id }));
-                    return this.callAPI('setEtapeQuestionsConn', {
-                        etape_id: etape.id,
-                        questions: JSON.stringify(questionsFormatted)
-                    });
+
+                    console.log(`[Admin] Sauvegarde étape ${etape.id} (${etape.format_code}): ${selectedIds.length} questions`, questionsFormatted);
+
+                    try {
+                        // IMPORTANT: JSON.stringify pour que le tableau passe correctement via URL
+                        const result = await this.callAPI('setEtapeQuestionsConn', {
+                            etape_id: etape.id,
+                            questions: JSON.stringify(questionsFormatted)
+                        });
+                        console.log(`[Admin] Résultat sauvegarde étape ${etape.id}:`, result);
+                        return result;
+                    } catch (error) {
+                        console.error(`Erreur sauvegarde questions étape ${etape.id}:`, error);
+                        throw error;
+                    }
                 });
-                await Promise.all(promises);
+
+                await Promise.all(savePromises);
+            } else {
+                console.warn('[Admin] Pas de questions à sauvegarder - wizardData.selectedQuestions ou etapes manquants');
             }
 
             // Fermer le wizard et rafraîchir l'affichage
@@ -4507,16 +4537,10 @@ const AdminBanquesExercices = {
             await this.loadDataFromAPI();
             this.renderBanques();
 
+            // Afficher un message de succès
             this.showNotification('Entraînement sauvegardé avec succès !', 'success');
-        } catch (error) {
-            console.error('Erreur finalisation:', error);
-            this.showNotification('Erreur lors de la sauvegarde', 'error');
         } finally {
             this._finalizing = false;
-            if (nextBtn) {
-                nextBtn.disabled = false;
-                nextBtn.textContent = '✓ Valider et fermer';
-            }
         }
     },
 
