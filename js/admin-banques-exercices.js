@@ -4287,15 +4287,30 @@ const AdminBanquesExercices = {
     },
 
     // Récupérer les questions sélectionnées pour une étape (local ou serveur)
+    // IMPORTANT: Filtre les IDs pour ne garder que ceux qui existent réellement
     getSelectedQuestionsForEtape(etapeId) {
+        // Trouver l'étape pour connaître son format
+        const etape = this.wizardData?.etapes?.find(e => e.id === etapeId) ||
+                      this.etapesConn?.find(e => e.id === etapeId);
+
+        // Obtenir les IDs des questions réellement disponibles pour ce format
+        const availableQuestionIds = etape ?
+            this.getQuestionsForFormat(etape.format_code).map(q => q.id) : [];
+
+        let selectedIds = [];
+
         // D'abord vérifier les sélections locales du wizard
         if (this.wizardData?.selectedQuestions?.[etapeId]) {
-            return this.wizardData.selectedQuestions[etapeId];
+            selectedIds = this.wizardData.selectedQuestions[etapeId];
+        } else {
+            // Sinon utiliser les données serveur
+            selectedIds = (this.etapeQuestionsConn || [])
+                .filter(eq => eq.etape_id === etapeId)
+                .map(eq => eq.question_id);
         }
-        // Sinon utiliser les données serveur
-        return (this.etapeQuestionsConn || [])
-            .filter(eq => eq.etape_id === etapeId)
-            .map(eq => eq.question_id);
+
+        // Filtrer pour ne garder que les IDs qui existent dans les questions disponibles
+        return selectedIds.filter(id => availableQuestionIds.includes(id));
     },
 
     // ===== ÉTAPE 4: VALIDATION =====
