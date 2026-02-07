@@ -7886,43 +7886,55 @@ function setEtapeQuestionsConn(data) {
     return { success: false, error: 'etape_id et questions requis' };
   }
 
-  // Supprimer les questions existantes
-  deleteEtapeQuestionsForEtape(data.etape_id);
+  // Verrou pour éviter les modifications concurrentes sur le sheet
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000); // Attendre max 15 secondes
+  } catch (e) {
+    return { success: false, error: 'Opération en cours, veuillez réessayer' };
+  }
 
-  // Parser les questions si c'est une string JSON (envoyé via URL)
-  let questions = data.questions;
-  if (typeof questions === 'string') {
-    try {
-      questions = JSON.parse(questions);
-    } catch (e) {
-      return { success: false, error: 'Format questions invalide: ' + e.message };
+  try {
+    // Supprimer les questions existantes
+    deleteEtapeQuestionsForEtape(data.etape_id);
+
+    // Parser les questions si c'est une string JSON (envoyé via URL)
+    var questions = data.questions;
+    if (typeof questions === 'string') {
+      try {
+        questions = JSON.parse(questions);
+      } catch (e) {
+        return { success: false, error: 'Format questions invalide: ' + e.message };
+      }
     }
-  }
 
-  // S'assurer que c'est un tableau
-  if (!Array.isArray(questions)) {
-    questions = [];
-  }
+    // S'assurer que c'est un tableau
+    if (!Array.isArray(questions)) {
+      questions = [];
+    }
 
-  // Dédupliquer par question_id pour éviter les doublons
-  const seen = new Set();
-  questions = questions.filter(q => {
-    if (!q.question_id || seen.has(q.question_id)) return false;
-    seen.add(q.question_id);
-    return true;
-  });
-
-  // Ajouter les nouvelles questions
-  questions.forEach((q, index) => {
-    createEtapeQuestionConn({
-      etape_id: data.etape_id,
-      question_id: q.question_id,
-      banque_question_id: q.banque_question_id || '',
-      ordre: index + 1
+    // Dédupliquer par question_id pour éviter les doublons
+    var seen = {};
+    questions = questions.filter(function(q) {
+      if (!q.question_id || seen[q.question_id]) return false;
+      seen[q.question_id] = true;
+      return true;
     });
-  });
 
-  return { success: true, message: `${questions.length} questions définies pour l'étape` };
+    // Ajouter les nouvelles questions
+    questions.forEach(function(q, index) {
+      createEtapeQuestionConn({
+        etape_id: data.etape_id,
+        question_id: q.question_id,
+        banque_question_id: q.banque_question_id || '',
+        ordre: index + 1
+      });
+    });
+
+    return { success: true, message: questions.length + ' questions définies pour l\'étape' };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**

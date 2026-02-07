@@ -4353,11 +4353,10 @@ const AdminBanquesExercices = {
                 wizardEtape.mode_selection = mode;
             }
 
-            // IMPORTANT: Vider les questions sélectionnées pour cette étape
-            // Cela corrige le bug du comptage incorrect (14/3, 3/1, etc.)
-            if (this.wizardData.selectedQuestions) {
-                delete this.wizardData.selectedQuestions[etapeId];
-            }
+            // NOTE: On ne supprime PAS les questions sélectionnées ici.
+            // Le changement de mode est un choix d'affichage/comportement,
+            // pas une raison de perdre les sélections manuelles existantes.
+            // Les sélections sont conservées pour permettre un retour au mode manuel.
 
             // Re-render et restaurer l'état des accordéons
             this.renderWizardStep(3);
@@ -4597,11 +4596,19 @@ const AdminBanquesExercices = {
             console.log('[Admin] wizardData.etapes:', this.wizardData.etapes);
             console.log('[Admin] wizardData.selectedQuestions:', this.wizardData.selectedQuestions);
 
-            // Sauvegarder les questions sélectionnées pour chaque étape (en parallèle)
-            if (this.wizardData.selectedQuestions && this.wizardData.etapes) {
-                const savePromises = this.wizardData.etapes.map(async (etape) => {
-                    // Dédupliquer les IDs avant sauvegarde
-                    const selectedIds = [...new Set(this.wizardData.selectedQuestions[etape.id] || [])];
+            // Sauvegarder les questions sélectionnées pour chaque étape MANUELLEMENT
+            // IMPORTANT: Sauvegarde séquentielle pour éviter les race conditions sur le sheet
+            if (this.wizardData.etapes) {
+                for (const etape of this.wizardData.etapes) {
+                    // Ne sauvegarder que les étapes en mode manuel
+                    // Les étapes en mode aléatoire n'utilisent pas ETAPE_QUESTIONS_CONN
+                    if (etape.mode_selection === 'aleatoire') {
+                        console.log(`[Admin] Étape ${etape.id} (${etape.format_code}): mode aléatoire, pas de sauvegarde de questions`);
+                        continue;
+                    }
+
+                    // Utiliser getSelectedQuestionsForEtape qui gère le fallback vers les données serveur
+                    const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
                     // Convertir les IDs en format attendu par le backend: [{question_id: 'xxx'}, ...]
                     const questionsFormatted = selectedIds.map(id => ({ question_id: id }));
 
@@ -4614,16 +4621,13 @@ const AdminBanquesExercices = {
                             questions: JSON.stringify(questionsFormatted)
                         });
                         console.log(`[Admin] Résultat sauvegarde étape ${etape.id}:`, result);
-                        return result;
                     } catch (error) {
                         console.error(`Erreur sauvegarde questions étape ${etape.id}:`, error);
                         throw error;
                     }
-                });
-
-                await Promise.all(savePromises);
+                }
             } else {
-                console.warn('[Admin] Pas de questions à sauvegarder - wizardData.selectedQuestions ou etapes manquants');
+                console.warn('[Admin] Pas d\'étapes à sauvegarder');
             }
 
             // Fermer le wizard et rafraîchir l'affichage
