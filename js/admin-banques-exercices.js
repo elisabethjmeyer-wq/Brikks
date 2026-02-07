@@ -23,7 +23,7 @@ const AdminBanquesExercices = {
         { id: '3', code: 'timeline', nom: 'Frise chronologique', icone: '📅', description: 'Texte ou cartes à ordonner chronologiquement' },
         { id: '5', code: 'association', nom: 'Association', icone: '🔗', description: 'Relier des éléments' },
         { id: '6', code: 'texte_trou', nom: 'Texte à trous', icone: '✍️', description: 'Compléter un texte' },
-        { id: '7', code: 'carte', nom: 'Carte cliquable', icone: '🗺️', description: 'Localisation géographique' },
+        { id: '7', code: 'carte', nom: 'Image cliquable', icone: '🗺️', description: 'Localisation géographique' },
         { id: '8', code: 'question_ouverte', nom: 'Question ouverte', icone: '✏️', description: 'Réponse libre de l\'élève' },
         { id: '9', code: 'flashcard', nom: 'Flashcards', icone: '🃏', description: 'Cartes recto-verso (auto-évaluation)' }
     ],
@@ -54,7 +54,7 @@ const AdminBanquesExercices = {
         rows: []
     },
 
-    // Carte cliquable builder state
+    // Image cliquable builder state
     carteBuilder: {
         imageUrl: '',
         marqueurs: []
@@ -449,7 +449,7 @@ const AdminBanquesExercices = {
                     this.previewExercice();
                     break;
 
-                // Carte cliquable
+                // Image cliquable
                 case 'addMarqueurBtn':
                     this.addMarqueurManual();
                     break;
@@ -5607,7 +5607,7 @@ const AdminBanquesExercices = {
             case 'texte_trou':
                 return (question.donnees.texte || '').substring(0, 60) || 'Texte à trous';
             case 'carte':
-                return (question.donnees.consigne || '').substring(0, 60) || 'Carte cliquable';
+                return (question.donnees.consigne || '').substring(0, 60) || 'Image cliquable';
             case 'flashcard':
                 const fc = question.donnees.cartes || [];
                 return fc.length > 0 ? `Flashcards (${fc.length} cartes)` : 'Flashcards';
