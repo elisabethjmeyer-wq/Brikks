@@ -317,6 +317,7 @@
     border: 1px solid #fecaca;
 }
 
+
 /* ============================================
    QCM FORMAT
    ============================================ */
@@ -399,10 +400,10 @@
     border: 1px solid #e5e7eb;
 }
 
-/* Bouton Valider / Suivant par question QCM */
-.qcm-question-action {
-    margin-top: 1rem;
-    text-align: center;
+/* Bouton Valider / Suivant par question (QCM et V/F) — en dehors de l'encart */
+.qcm-question-action,
+.vf-question-action {
+    margin-top: 0.75rem;
 }
 
 .btn-qcm-validate,
