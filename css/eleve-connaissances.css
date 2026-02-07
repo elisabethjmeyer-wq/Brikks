@@ -379,7 +379,7 @@
 .qcm-multi-container {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1rem;
 }
 
 .qcm-question-block {
@@ -387,6 +387,50 @@
     border-radius: 12px;
     padding: 1.5rem;
     border: 1px solid #e5e7eb;
+}
+
+/* Navigation sous-carrousel QCM multi-questions */
+.qcm-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.75rem 0 0.25rem;
+}
+
+.qcm-nav-arrow {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    background: white;
+    color: #374151;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.qcm-nav-arrow:hover:not(:disabled) {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: #eff6ff;
+}
+
+.qcm-nav-arrow:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.qcm-nav-counter {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6b7280;
+    min-width: 120px;
+    text-align: center;
 }
 
 .qcm-question-block .question-enonce {
