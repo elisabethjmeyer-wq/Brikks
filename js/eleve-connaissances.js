@@ -2830,7 +2830,7 @@ const EleveConnaissances = {
             if (!val || val === '—') return `<span class="${className}">—</span>`;
             const str = String(val);
             if (isImageUrl(str)) {
-                return `<img class="correction-mini-img ${className}" src="${this.escapeHtml(str)}" alt="" />`;
+                return `<img class="correction-mini-img ${className}" src="${this.escapeHtml(this.normalizeImageUrl(str))}" alt="" />`;
             }
             return `<span class="${className}">${this.escapeHtml(str)}</span>`;
         };
@@ -2854,7 +2854,7 @@ const EleveConnaissances = {
                                 if (img) {
                                     return `
                                         <div class="correction-assoc-card">
-                                            <img src="${this.escapeHtml(img)}" alt="" />
+                                            <img src="${this.escapeHtml(this.normalizeImageUrl(img))}" alt="" />
                                             <span class="correction-assoc-label">${this.escapeHtml(text)}</span>
                                         </div>
                                     `;
