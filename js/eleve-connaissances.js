@@ -2835,68 +2835,164 @@ const EleveConnaissances = {
             return `<span class="${className}">${this.escapeHtml(str)}</span>`;
         };
 
-        const errorGroups = results.etapes.map((etape, idx) => {
-            const errors = (etape.details || []).filter(d => !d.correct);
-            if (errors.length === 0) return '';
+        // Préparer les données par étape
+        const etapesData = results.etapes.map((etape, idx) => {
+            const allDetails = etape.details || [];
+            const errors = allDetails.filter(d => !d.correct);
+            const correct = allDetails.filter(d => d.correct).length;
+            const total = allDetails.length;
+            return { etape, idx, errors, correct, total, hasErr: errors.length > 0 };
+        });
 
-            // Association : mini-grid avec les bonnes paires (images + labels)
-            if (etape.format === 'association' && etape.donnees?.paires) {
-                const paires = etape.donnees.paires;
-                return `
-                    <div class="correction-etape-group">
-                        <div class="correction-etape-title">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</div>
-                        <div class="correction-assoc-grid">
-                            ${paires.map(p => {
-                                const el1 = p.element1;
-                                const el2 = p.element2;
-                                const img = isImageUrl(el1) ? el1 : (isImageUrl(el2) ? el2 : null);
-                                const text = isImageUrl(el1) ? el2 : el1;
-                                if (img) {
-                                    return `
-                                        <div class="correction-assoc-card">
-                                            <img src="${this.escapeHtml(this.normalizeImageUrl(img))}" alt="" />
-                                            <span class="correction-assoc-label">${this.escapeHtml(text)}</span>
-                                        </div>
-                                    `;
-                                }
-                                // Texte ↔ Texte
-                                return `
-                                    <div class="correction-assoc-card text-only">
-                                        <span class="correction-assoc-text">${this.escapeHtml(el1)}</span>
-                                        <span class="correction-assoc-label">${this.escapeHtml(el2)}</span>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
+        // Slide 0 : Vue d'ensemble
+        const overviewSlide = `
+            <div class="carousel-slide" data-slide="0">
+                <div class="carousel-slide-header overview-header">
+                    <span class="carousel-slide-title">Vue d'ensemble</span>
+                </div>
+                <div class="carousel-slide-content">
+                    <div class="overview-list">
+                        ${etapesData.map((ed, i) => `
+                            <div class="overview-row ${ed.hasErr ? 'has-errors' : 'all-correct'}" onclick="EleveConnaissances.carouselGoTo(${i + 1})">
+                                <span class="overview-status">${ed.hasErr ? '❌' : '✅'}</span>
+                                <div class="overview-info">
+                                    <span class="overview-etape-name">${this.escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))}</span>
+                                    <span class="overview-score">${ed.correct}/${ed.total} correct</span>
+                                </div>
+                                ${ed.hasErr ? '<span class="overview-arrow">→</span>' : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <p class="overview-hint">Clique sur une étape ou utilise les flèches pour voir le détail</p>
+                </div>
+            </div>
+        `;
+
+        // Slides 1..N : une par étape
+        const etapeSlides = etapesData.map((ed, i) => {
+            let content = '';
+            if (!ed.hasErr) {
+                content = `
+                    <div class="carousel-etape-success">
+                        <span class="carousel-etape-success-icon">✅</span>
+                        <p>Tout bon, bravo !</p>
                     </div>
                 `;
+            } else if (ed.etape.format === 'association' && ed.etape.donnees?.paires) {
+                const paires = ed.etape.donnees.paires;
+                content = `
+                    <div class="correction-assoc-grid">
+                        ${paires.map(p => {
+                            const el1 = p.element1;
+                            const el2 = p.element2;
+                            const img = isImageUrl(el1) ? el1 : (isImageUrl(el2) ? el2 : null);
+                            const text = isImageUrl(el1) ? el2 : el1;
+                            if (img) {
+                                return `
+                                    <div class="correction-assoc-card">
+                                        <img src="${this.escapeHtml(this.normalizeImageUrl(img))}" alt="" />
+                                        <span class="correction-assoc-label">${this.escapeHtml(text)}</span>
+                                    </div>
+                                `;
+                            }
+                            return `
+                                <div class="correction-assoc-card text-only">
+                                    <span class="correction-assoc-text">${this.escapeHtml(el1)}</span>
+                                    <span class="correction-assoc-label">${this.escapeHtml(el2)}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            } else {
+                content = ed.errors.map(err => `
+                    <div class="correction-error-row">
+                        <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
+                        <div class="correction-error-answers">
+                            <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
+                            ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
+                        </div>
+                    </div>
+                `).join('');
             }
 
-            // Autres formats : lignes textuelles
             return `
-                <div class="correction-etape-group">
-                    <div class="correction-etape-title">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</div>
-                    ${errors.map(err => `
-                        <div class="correction-error-row">
-                            <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
-                            <div class="correction-error-answers">
-                                <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
-                                ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
-                            </div>
-                        </div>
-                    `).join('')}
+                <div class="carousel-slide" data-slide="${i + 1}" style="display:none;">
+                    <div class="carousel-slide-header">
+                        <span class="carousel-slide-title">${this.escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))}</span>
+                        <span class="carousel-slide-score ${ed.hasErr ? 'has-errors' : 'all-correct'}">${ed.hasErr ? '❌' : '✅'} ${ed.correct}/${ed.total}</span>
+                    </div>
+                    <div class="carousel-slide-content">
+                        ${content}
+                    </div>
                 </div>
             `;
         }).join('');
 
+        const totalSlides = etapesData.length + 1; // overview + étapes
+
+        // Dots : premier = losange (overview), reste = ronds
+        const dots = Array.from({ length: totalSlides }, (_, i) => {
+            const dotClass = i === 0 ? 'carousel-dot overview-dot active' : `carousel-dot ${etapesData[i - 1].hasErr ? 'dot-error' : 'dot-success'}`;
+            return `<button class="${dotClass}" onclick="EleveConnaissances.carouselGoTo(${i})" aria-label="Slide ${i}"></button>`;
+        }).join('');
+
         return `
             <div class="correction-header-conn">
-                <h3>📝 Détail des erreurs</h3>
+                <div class="carousel-nav">
+                    <button class="carousel-arrow carousel-prev" onclick="EleveConnaissances.carouselPrev()" disabled>←</button>
+                    <h3>📝 Détail des erreurs</h3>
+                    <button class="carousel-arrow carousel-next" onclick="EleveConnaissances.carouselNext()">→</button>
+                </div>
             </div>
-            <div class="correction-body-conn">
-                ${errorGroups}
+            <div class="carousel-container">
+                ${overviewSlide}
+                ${etapeSlides}
+            </div>
+            <div class="carousel-dots">
+                ${dots}
             </div>
         `;
+    },
+
+    /** Navigation carrousel : aller à un slide */
+    carouselGoTo(index) {
+        const container = document.querySelector('.carousel-container');
+        if (!container) return;
+        const slides = container.querySelectorAll('.carousel-slide');
+        const totalSlides = slides.length;
+        if (index < 0 || index >= totalSlides) return;
+
+        this._carouselIndex = index;
+
+        // Afficher/masquer les slides
+        slides.forEach((slide, i) => {
+            slide.style.display = i === index ? '' : 'none';
+        });
+
+        // Mettre à jour les dots
+        const dots = document.querySelectorAll('.carousel-dots .carousel-dot');
+        dots.forEach((dot, i) => {
+            dot.classList.toggle('active', i === index);
+        });
+
+        // Mettre à jour les flèches
+        const prevBtn = document.querySelector('.carousel-prev');
+        const nextBtn = document.querySelector('.carousel-next');
+        if (prevBtn) prevBtn.disabled = index === 0;
+        if (nextBtn) nextBtn.disabled = index === totalSlides - 1;
+    },
+
+    /** Navigation carrousel : slide précédent */
+    carouselPrev() {
+        const idx = this._carouselIndex || 0;
+        this.carouselGoTo(idx - 1);
+    },
+
+    /** Navigation carrousel : slide suivant */
+    carouselNext() {
+        const idx = this._carouselIndex || 0;
+        this.carouselGoTo(idx + 1);
     },
 
     /**
@@ -3069,6 +3165,9 @@ const EleveConnaissances = {
                 </div>
             </div>
         `;
+
+        // Initialiser le carrousel si présent
+        this._carouselIndex = 0;
 
         // Déclencher les animations paillettes si réussite (pas en mode libre)
         if (isSuccess && !this.isTrainingMode) {
