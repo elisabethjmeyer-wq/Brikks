@@ -814,16 +814,17 @@ const EleveConnaissances = {
             </div>
         `;
 
-        // QCM multi-questions : masquer le bouton Valider de l'étape + afficher le compteur dans le header
+        // Multi-questions (QCM ou V/F) : masquer le bouton Valider de l'étape + afficher le compteur
         const qcmMulti = document.querySelector('.qcm-multi-container[data-total-q]');
-        if (qcmMulti) {
-            const totalQ = parseInt(qcmMulti.getAttribute('data-total-q'));
-            if (totalQ > 1) {
-                const validateBtn = document.querySelector('#etapeActionBar .validate-btn');
-                if (validateBtn) validateBtn.style.display = 'none';
-                const headerCounter = document.getElementById('qcmHeaderCounter');
-                if (headerCounter) headerCounter.textContent = `Question 1 / ${totalQ}`;
-            }
+        const vfMulti = document.querySelector('.vrai-faux-container[data-total-vf]');
+        const multiTotal = qcmMulti ? parseInt(qcmMulti.getAttribute('data-total-q'))
+                         : vfMulti ? parseInt(vfMulti.getAttribute('data-total-vf'))
+                         : 0;
+        if (multiTotal > 1) {
+            const validateBtn = document.querySelector('#etapeActionBar .validate-btn');
+            if (validateBtn) validateBtn.style.display = 'none';
+            const headerCounter = document.getElementById('qcmHeaderCounter');
+            if (headerCounter) headerCounter.textContent = `Question 1 / ${multiTotal}`;
         }
 
         if (ent.duree && !this.timer) {
@@ -1124,12 +1125,18 @@ const EleveConnaissances = {
             `;
         }
 
+        const totalVf = items.length;
+        if (totalVf > 1) {
+            this._vfNavIndex = 0;
+            this._vfResults = {};
+        }
+
         return `
-            <div class="vrai-faux-container">
+            <div class="vrai-faux-container" ${totalVf > 1 ? `data-total-vf="${totalVf}"` : ''}>
                 ${questionText ? `<div class="question-enonce">${this.escapeHtml(questionText)}</div>` : ''}
                 <div class="vrai-faux-items">
                     ${items.map((item, idx) => `
-                        <div class="vrai-faux-item" data-index="${idx}">
+                        <div class="vrai-faux-item" data-index="${idx}" ${totalVf > 1 && idx > 0 ? 'style="display:none;"' : ''}>
                             <div class="vf-proposition">${this.escapeHtml(item.texte || item)}</div>
                             <div class="vf-choices">
                                 <label class="vf-choice">
@@ -1142,6 +1149,11 @@ const EleveConnaissances = {
                                 </label>
                             </div>
                             <div class="vf-feedback" id="feedback_vf_${idx}" style="display: none;"></div>
+                            ${totalVf > 1 ? `
+                                <div class="vf-question-action" id="vf_action_${idx}">
+                                    <button class="btn-qcm-validate" onclick="EleveConnaissances.validateVfQuestion(${idx})">Valider</button>
+                                </div>
+                            ` : ''}
                         </div>
                     `).join('')}
                 </div>
@@ -2147,22 +2159,37 @@ const EleveConnaissances = {
                     details.push({ question: donnees.question, reponse: answer, attendu: expected, correct: isCorrect });
                 } else {
                     const propositions = donnees.propositions || [];
-                    propositions.forEach((prop, idx) => {
-                        total++;
-                        const answer = this.userAnswers[`vf_${idx}`];
-                        const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
-                        const isCorrect = answer === expected;
-                        if (isCorrect) correct++;
+                    // Si validation question par question (carrousel), récupérer les résultats déjà stockés
+                    if (this._vfResults && Object.keys(this._vfResults).length > 0) {
+                        propositions.forEach((prop, idx) => {
+                            total++;
+                            const r = this._vfResults[idx];
+                            if (r) {
+                                if (r.correct) correct++;
+                                details.push(r);
+                            } else {
+                                const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
+                                details.push({ question: prop.texte, reponse: null, attendu: expected, correct: false });
+                            }
+                        });
+                    } else {
+                        propositions.forEach((prop, idx) => {
+                            total++;
+                            const answer = this.userAnswers[`vf_${idx}`];
+                            const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
+                            const isCorrect = answer === expected;
+                            if (isCorrect) correct++;
 
-                        const feedback = document.getElementById(`feedback_vf_${idx}`);
-                        if (feedback) {
-                            feedback.style.display = 'block';
-                            feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-                            feedback.textContent = isCorrect ? '✓ Correct' : `✗ La bonne réponse était: ${expected}`;
-                            if (!isCorrect && prop.feedback) feedback.textContent += ` - ${prop.feedback}`;
-                        }
-                        details.push({ question: prop.texte, reponse: answer, attendu: expected, correct: isCorrect });
-                    });
+                            const feedback = document.getElementById(`feedback_vf_${idx}`);
+                            if (feedback) {
+                                feedback.style.display = 'block';
+                                feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+                                feedback.textContent = isCorrect ? '✓ Correct' : `✗ La bonne réponse était: ${expected}`;
+                                if (!isCorrect && prop.feedback) feedback.textContent += ` - ${prop.feedback}`;
+                            }
+                            details.push({ question: prop.texte, reponse: answer, attendu: expected, correct: isCorrect });
+                        });
+                    }
                 }
                 break;
 
@@ -3041,6 +3068,83 @@ const EleveConnaissances = {
     carouselNext() {
         const idx = this._carouselIndex || 0;
         this.carouselGoTo(idx + 1);
+    },
+
+    /** Valide une proposition Vrai/Faux individuelle dans le carrousel */
+    validateVfQuestion(idx) {
+        if (this._vfResults && this._vfResults[idx]) return;
+
+        const currentEtape = this.currentEtapes[this.currentEtapeIndex];
+        const storedData = this.selectedQuestionsPerEtape[currentEtape.id];
+        const donnees = storedData?.donnees || this.getEtapeDonnees(currentEtape);
+        const propositions = donnees.propositions || [];
+        const prop = propositions[idx];
+        if (!prop) return;
+
+        const answer = this.userAnswers[`vf_${idx}`];
+        const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
+        const isCorrect = answer === expected;
+
+        // Afficher le feedback
+        const feedback = document.getElementById(`feedback_vf_${idx}`);
+        if (feedback) {
+            feedback.style.display = 'block';
+            feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+            feedback.textContent = isCorrect ? '✓ Correct' : `✗ La bonne réponse était: ${expected}`;
+            if (!isCorrect && prop.feedback) feedback.textContent += ` - ${prop.feedback}`;
+        }
+
+        // Verrouiller les choix
+        const item = document.querySelector(`.vrai-faux-item[data-index="${idx}"]`);
+        if (item) {
+            item.querySelectorAll('input').forEach(el => el.disabled = true);
+        }
+
+        // Stocker le résultat
+        this._vfResults[idx] = {
+            question: prop.texte,
+            reponse: answer,
+            attendu: expected,
+            correct: isCorrect
+        };
+
+        // Remplacer le bouton
+        const totalVf = propositions.length;
+        const allValidated = Object.keys(this._vfResults).length >= totalVf;
+        const actionDiv = document.getElementById(`vf_action_${idx}`);
+
+        if (allValidated) {
+            if (actionDiv) actionDiv.innerHTML = '';
+            this.validateCurrentEtape();
+        } else {
+            if (actionDiv) {
+                actionDiv.innerHTML = `<button class="btn-qcm-next" onclick="EleveConnaissances.vfNavNext()">Suivant →</button>`;
+            }
+        }
+    },
+
+    /** Navigation Vrai/Faux : aller à une proposition */
+    vfNavGoTo(index) {
+        const container = document.querySelector('.vrai-faux-container');
+        if (!container) return;
+        const items = container.querySelectorAll('.vrai-faux-item');
+        const total = items.length;
+        if (index < 0 || index >= total) return;
+
+        this._vfNavIndex = index;
+
+        items.forEach((item, i) => {
+            item.style.display = i === index ? '' : 'none';
+        });
+
+        const headerCounter = document.getElementById('qcmHeaderCounter');
+        if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
+    },
+
+    /** Navigation Vrai/Faux : proposition suivante */
+    vfNavNext() {
+        const idx = this._vfNavIndex || 0;
+        this.vfNavGoTo(idx + 1);
     },
 
     /** Valide une question QCM individuelle dans le carrousel multi-questions */
