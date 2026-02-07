@@ -1145,14 +1145,16 @@ const EleveConnaissances = {
     renderQCM(donnees, questions) {
         // Format multi-questions (plusieurs QCM dans une étape)
         if (donnees.multiQuestions && donnees.multiQuestions.length > 0) {
+            this._qcmNavIndex = 0;
+            const totalQ = donnees.multiQuestions.length;
             return `
-                <div class="qcm-multi-container">
+                <div class="qcm-multi-container" data-total-q="${totalQ}">
                     ${donnees.multiQuestions.map((q, qIdx) => {
                         const choices = q.choix || q.options || [];
                         const multiple = q.multiple || false;
 
                         if (choices.length === 0) {
-                            return `<div class="qcm-question-block" data-question="${qIdx}">
+                            return `<div class="qcm-question-block" data-question="${qIdx}" ${qIdx > 0 ? 'style="display:none;"' : ''}>
                                 <div class="format-no-data">Question ${qIdx + 1}: Pas de choix configurés</div>
                             </div>`;
                         }
@@ -1162,7 +1164,7 @@ const EleveConnaissances = {
                         const shuffledChoices = this.shuffleArray([...indexedChoices]);
 
                         return `
-                            <div class="qcm-question-block" data-question="${qIdx}">
+                            <div class="qcm-question-block" data-question="${qIdx}" ${qIdx > 0 ? 'style="display:none;"' : ''}>
                                 <div class="question-enonce">${this.escapeHtml(q.question || `Question ${qIdx + 1}`)}</div>
                                 <div class="qcm-choices">
                                     ${shuffledChoices.map(({ choice, originalIdx }) => `
@@ -1179,6 +1181,13 @@ const EleveConnaissances = {
                             </div>
                         `;
                     }).join('')}
+                    ${totalQ > 1 ? `
+                        <div class="qcm-nav">
+                            <button class="qcm-nav-arrow qcm-nav-prev" onclick="EleveConnaissances.qcmNavPrev()" disabled>←</button>
+                            <span class="qcm-nav-counter">Question 1 / ${totalQ}</span>
+                            <button class="qcm-nav-arrow qcm-nav-next" onclick="EleveConnaissances.qcmNavNext()">→</button>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }
@@ -2993,6 +3002,41 @@ const EleveConnaissances = {
     carouselNext() {
         const idx = this._carouselIndex || 0;
         this.carouselGoTo(idx + 1);
+    },
+
+    /** Navigation QCM multi-questions : aller à une question */
+    qcmNavGoTo(index) {
+        const container = document.querySelector('.qcm-multi-container');
+        if (!container) return;
+        const blocks = container.querySelectorAll('.qcm-question-block');
+        const total = blocks.length;
+        if (index < 0 || index >= total) return;
+
+        this._qcmNavIndex = index;
+
+        blocks.forEach((block, i) => {
+            block.style.display = i === index ? '' : 'none';
+        });
+
+        const counter = container.querySelector('.qcm-nav-counter');
+        if (counter) counter.textContent = `Question ${index + 1} / ${total}`;
+
+        const prevBtn = container.querySelector('.qcm-nav-prev');
+        const nextBtn = container.querySelector('.qcm-nav-next');
+        if (prevBtn) prevBtn.disabled = index === 0;
+        if (nextBtn) nextBtn.disabled = index === total - 1;
+    },
+
+    /** Navigation QCM : question précédente */
+    qcmNavPrev() {
+        const idx = this._qcmNavIndex || 0;
+        this.qcmNavGoTo(idx - 1);
+    },
+
+    /** Navigation QCM : question suivante */
+    qcmNavNext() {
+        const idx = this._qcmNavIndex || 0;
+        this.qcmNavGoTo(idx + 1);
     },
 
     /**
