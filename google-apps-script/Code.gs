@@ -7148,7 +7148,7 @@ function createQuestionConnaissances(data) {
   if (!sheet) {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     sheet = ss.insertSheet(SHEETS.QUESTIONS_CONNAISSANCES);
-    sheet.appendRow(['id', 'banque_id', 'type', 'donnees', 'difficulte', 'date_creation']);
+    sheet.appendRow(['id', 'banque_id', 'type', 'titre_prof', 'donnees', 'difficulte', 'date_creation']);
   }
 
   if (!data.banque_id || !data.type || !data.donnees) {
@@ -7200,7 +7200,7 @@ function updateQuestionConnaissances(data) {
     return { success: false, error: 'Question non trouvée' };
   }
 
-  const updates = ['type', 'donnees', 'difficulte'];
+  const updates = ['type', 'titre_prof', 'donnees', 'difficulte'];
   updates.forEach(col => {
     if (data[col] !== undefined) {
       const colIndex = headers.indexOf(col);

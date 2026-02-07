@@ -4277,27 +4277,8 @@ const AdminBanquesExercices = {
                 try { donnees = JSON.parse(donnees); } catch(e) { donnees = {}; }
             }
 
-            // Titre prof prioritaire s'il existe
-            let questionText = q.titre_prof || '';
-            if (!questionText) {
-                if (donnees.question) {
-                    questionText = donnees.question;
-                } else if (donnees.enonce) {
-                    questionText = donnees.enonce;
-                } else if (donnees.texte) {
-                    questionText = donnees.texte;
-                } else if (donnees.consigne) {
-                    questionText = donnees.consigne;
-                } else if (donnees.propositions && donnees.propositions.length > 0) {
-                    questionText = donnees.propositions[0].texte || 'Vrai/Faux';
-                } else if (donnees.cartes && donnees.cartes.length > 0) {
-                    questionText = `Timeline: ${donnees.cartes[0].titre || 'Cartes'}`;
-                } else if (donnees.evenements && donnees.evenements.length > 0) {
-                    questionText = `Chronologie: ${donnees.evenements[0].evenement || 'Événements'}`;
-                } else {
-                    questionText = 'Question sans titre';
-                }
-            }
+            // Afficher le titre prof (identifiant interne pour le professeur)
+            let questionText = q.titre_prof || 'Sans titre prof';
 
             return `
                 <label class="question-checkbox ${selectedIds.includes(q.id) ? 'selected' : ''}" data-banque="${q.banque_id}">
