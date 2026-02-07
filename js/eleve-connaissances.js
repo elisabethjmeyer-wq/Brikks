@@ -2443,6 +2443,22 @@ const EleveConnaissances = {
                         correct: isCorrect
                     });
                 });
+                // Ajouter les éléments non associés comme erreurs
+                for (let i = 0; i < assocPaires.length; i++) {
+                    const gridId = String(i);
+                    const isMatched = userPairs.some(up => {
+                        const upGridId = this._assocGridSide === 'gauche' ? String(up.gauche) : String(up.droite);
+                        return upGridId === gridId;
+                    });
+                    if (!isMatched) {
+                        details.push({
+                            question: assocPaires[i].element1,
+                            reponse: '—',
+                            attendu: assocPaires[i].element2,
+                            correct: false
+                        });
+                    }
+                }
                 // Marquer les éléments non appariés comme incorrects
                 document.querySelectorAll('#associationGrid .association-grid-card:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
 
@@ -2803,18 +2819,69 @@ const EleveConnaissances = {
                 </div>
             `;
         }
+
+        const isImageUrl = (str) => {
+            if (!str) return false;
+            const s = String(str).trim().toLowerCase();
+            return s.startsWith('http') && (s.includes('drive.google') || s.includes('imgur') || /\.(jpg|jpeg|png|gif|webp|svg)/.test(s));
+        };
+
+        const renderElement = (val, className) => {
+            if (!val || val === '—') return `<span class="${className}">—</span>`;
+            const str = String(val);
+            if (isImageUrl(str)) {
+                return `<img class="correction-mini-img ${className}" src="${this.escapeHtml(str)}" alt="" />`;
+            }
+            return `<span class="${className}">${this.escapeHtml(str)}</span>`;
+        };
+
         const errorGroups = results.etapes.map((etape, idx) => {
             const errors = (etape.details || []).filter(d => !d.correct);
             if (errors.length === 0) return '';
+
+            // Association : mini-grid avec les bonnes paires (images + labels)
+            if (etape.format === 'association' && etape.donnees?.paires) {
+                const paires = etape.donnees.paires;
+                return `
+                    <div class="correction-etape-group">
+                        <div class="correction-etape-title">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</div>
+                        <div class="correction-assoc-grid">
+                            ${paires.map(p => {
+                                const el1 = p.element1;
+                                const el2 = p.element2;
+                                const img = isImageUrl(el1) ? el1 : (isImageUrl(el2) ? el2 : null);
+                                const text = isImageUrl(el1) ? el2 : el1;
+                                if (img) {
+                                    return `
+                                        <div class="correction-assoc-card">
+                                            <img src="${this.escapeHtml(img)}" alt="" />
+                                            <span class="correction-assoc-label">${this.escapeHtml(text)}</span>
+                                        </div>
+                                    `;
+                                }
+                                // Texte ↔ Texte
+                                return `
+                                    <div class="correction-assoc-card text-only">
+                                        <span class="correction-assoc-text">${this.escapeHtml(el1)}</span>
+                                        <span class="correction-assoc-label">${this.escapeHtml(el2)}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Autres formats : lignes textuelles
             return `
                 <div class="correction-etape-group">
                     <div class="correction-etape-title">${this.escapeHtml(etape.etapeTitre || 'Étape ' + (idx + 1))}</div>
                     ${errors.map(err => `
                         <div class="correction-error-row">
-                            <div class="correction-error-q">${this.escapeHtml(String(err.question || ''))}</div>
+                            <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
                             <div class="correction-error-answers">
                                 <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
-                                ${err.attendu ? `<span class="correction-expected">→ ${this.escapeHtml(String(err.attendu))}</span>` : ''}
+                                ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
                             </div>
                         </div>
                     `).join('')}
