@@ -813,6 +813,16 @@ const EleveConnaissances = {
             </div>
         `;
 
+        // Masquer le bouton Valider si QCM multi-questions (visible uniquement sur dernière question)
+        const qcmMulti = document.querySelector('.qcm-multi-container[data-total-q]');
+        if (qcmMulti) {
+            const totalQ = parseInt(qcmMulti.getAttribute('data-total-q'));
+            if (totalQ > 1) {
+                const validateBtn = document.querySelector('#etapeActionBar .validate-btn');
+                if (validateBtn) validateBtn.style.display = 'none';
+            }
+        }
+
         if (ent.duree && !this.timer) {
             this.startTimer(ent.duree);
         }
@@ -3025,6 +3035,12 @@ const EleveConnaissances = {
         const nextBtn = container.querySelector('.qcm-nav-next');
         if (prevBtn) prevBtn.disabled = index === 0;
         if (nextBtn) nextBtn.disabled = index === total - 1;
+
+        // Afficher le bouton Valider uniquement sur la dernière question
+        const validateBtn = document.querySelector('#etapeActionBar .validate-btn');
+        if (validateBtn && total > 1) {
+            validateBtn.style.display = index === total - 1 ? '' : 'none';
+        }
     },
 
     /** Navigation QCM : question précédente */
