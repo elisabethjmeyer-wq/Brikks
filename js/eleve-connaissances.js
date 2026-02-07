@@ -3047,7 +3047,7 @@ const EleveConnaissances = {
                                     </button>
                                 ` : ''}
 
-                                ${this.isTrainingMode ? `
+                                ${this.isTrainingMode && !scoreOK ? `
                                     <button class="btn btn-primary btn-restart-conn" onclick="EleveConnaissances.restartEntrainement()">
                                         🔄 Recommencer
                                     </button>
