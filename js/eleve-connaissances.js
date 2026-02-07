@@ -786,6 +786,7 @@ const EleveConnaissances = {
                     <!-- Titre de l'étape -->
                     <div class="etape-header">
                         <h2>${this.escapeHtml(currentEtape.titre || 'Étape ' + (this.currentEtapeIndex + 1))}</h2>
+                        <span class="qcm-header-counter" id="qcmHeaderCounter"></span>
                         <span class="etape-format-badge">${this.getFormatLabel(currentEtape.format_code)}</span>
                     </div>
 
@@ -813,13 +814,15 @@ const EleveConnaissances = {
             </div>
         `;
 
-        // Masquer le bouton Valider de l'étape si QCM multi-questions (chaque question a son propre bouton)
+        // QCM multi-questions : masquer le bouton Valider de l'étape + afficher le compteur dans le header
         const qcmMulti = document.querySelector('.qcm-multi-container[data-total-q]');
         if (qcmMulti) {
             const totalQ = parseInt(qcmMulti.getAttribute('data-total-q'));
             if (totalQ > 1) {
                 const validateBtn = document.querySelector('#etapeActionBar .validate-btn');
                 if (validateBtn) validateBtn.style.display = 'none';
+                const headerCounter = document.getElementById('qcmHeaderCounter');
+                if (headerCounter) headerCounter.textContent = `Question 1 / ${totalQ}`;
             }
         }
 
@@ -1197,13 +1200,6 @@ const EleveConnaissances = {
                             </div>
                         `;
                     }).join('')}
-                    ${totalQ > 1 ? `
-                        <div class="qcm-nav">
-                            <button class="qcm-nav-arrow qcm-nav-prev" onclick="EleveConnaissances.qcmNavPrev()" disabled>←</button>
-                            <span class="qcm-nav-counter">Question 1 / ${totalQ}</span>
-                            <button class="qcm-nav-arrow qcm-nav-next" onclick="EleveConnaissances.qcmNavNext()">→</button>
-                        </div>
-                    ` : ''}
                 </div>
             `;
         }
@@ -3154,19 +3150,9 @@ const EleveConnaissances = {
             block.style.display = i === index ? '' : 'none';
         });
 
-        const counter = container.querySelector('.qcm-nav-counter');
-        if (counter) counter.textContent = `Question ${index + 1} / ${total}`;
-
-        const prevBtn = container.querySelector('.qcm-nav-prev');
-        const nextBtn = container.querySelector('.qcm-nav-next');
-        if (prevBtn) prevBtn.disabled = index === 0;
-        if (nextBtn) nextBtn.disabled = index === total - 1;
-    },
-
-    /** Navigation QCM : question précédente */
-    qcmNavPrev() {
-        const idx = this._qcmNavIndex || 0;
-        this.qcmNavGoTo(idx - 1);
+        // Mettre à jour le compteur dans le header de l'étape
+        const headerCounter = document.getElementById('qcmHeaderCounter');
+        if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
     },
 
     /** Navigation QCM : question suivante */
