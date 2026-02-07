@@ -900,10 +900,18 @@ const EleveConnaissances = {
                 }
             } else {
                 // MODE MANUEL : Utiliser les questions liées via ETAPE_QUESTIONS_CONN
-                const linkedQuestionRefs = this.etapeQuestions.filter(eq =>
+                const rawLinkedRefs = this.etapeQuestions.filter(eq =>
                     String(eq.etape_id) === String(etape.id)
                 );
-                console.log('[EleveConnaissances] Mode manuel - Questions liées (refs):', linkedQuestionRefs);
+                // Dédupliquer par question_id pour éviter les doublons (flashcards dupliquées, etc.)
+                const seenQuestionIds = new Set();
+                const linkedQuestionRefs = rawLinkedRefs.filter(eq => {
+                    const qId = String(eq.question_id);
+                    if (seenQuestionIds.has(qId)) return false;
+                    seenQuestionIds.add(qId);
+                    return true;
+                });
+                console.log('[EleveConnaissances] Mode manuel - Questions liées (refs, dédupliquées):', linkedQuestionRefs.length, '/', rawLinkedRefs.length);
 
                 for (const questionRef of linkedQuestionRefs) {
                     const questionContent = this.questionsConnaissances.find(q =>
