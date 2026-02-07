@@ -2225,7 +2225,7 @@ const EleveConnaissances = {
                         feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
                         const vfChosenFb = this.userAnswers['vf_0'] === 'vrai' ? donnees.feedback_vrai : donnees.feedback_faux;
                         if (vfChosenFb) {
-                            feedback.textContent = vfChosenFb;
+                            feedback.textContent = `${isCorrect ? '✓' : '✗'} ${vfChosenFb}`;
                         } else {
                             feedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
                         }
@@ -2259,7 +2259,7 @@ const EleveConnaissances = {
                                 feedback.style.display = 'block';
                                 feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
                                 if (prop.feedback) {
-                                    feedback.textContent = prop.feedback;
+                                    feedback.textContent = `${isCorrect ? '✓' : '✗'} ${prop.feedback}`;
                                 } else {
                                     feedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
                                 }
@@ -3277,8 +3277,9 @@ const EleveConnaissances = {
             feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
             // Feedback basé sur le CHOIX de l'élève (pas correct/incorrect)
             const chosenFeedback = answer === 'vrai' ? prop.feedback_vrai : prop.feedback_faux;
+            const vfSymbol = isCorrect ? '✓' : '✗';
             if (chosenFeedback) {
-                feedback.textContent = chosenFeedback;
+                feedback.textContent = `${vfSymbol} ${chosenFeedback}`;
             } else {
                 feedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
             }
@@ -3378,12 +3379,13 @@ const EleveConnaissances = {
             // Feedback admin prioritaire : par option, puis correct/incorrect
             const feedbacksOptions = q.feedbacks_options || [];
             const chosenIdx = parseInt(userAnswer);
+            const qcmSymbol = isCorrect ? '✓' : '✗';
             if (feedbacksOptions[chosenIdx]) {
-                qcmFeedback.textContent = feedbacksOptions[chosenIdx];
+                qcmFeedback.textContent = `${qcmSymbol} ${feedbacksOptions[chosenIdx]}`;
             } else if (isCorrect && q.feedback_correct) {
-                qcmFeedback.textContent = q.feedback_correct;
+                qcmFeedback.textContent = `✓ ${q.feedback_correct}`;
             } else if (!isCorrect && q.feedback_incorrect) {
-                qcmFeedback.textContent = q.feedback_incorrect;
+                qcmFeedback.textContent = `✗ ${q.feedback_incorrect}`;
             } else {
                 qcmFeedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
             }
