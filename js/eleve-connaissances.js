@@ -3269,11 +3269,12 @@ const EleveConnaissances = {
         if (feedback) {
             feedback.style.display = 'block';
             feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-            feedback.textContent = isCorrect ? '✓ Correct' : `✗ La bonne réponse était: ${expected}`;
             // Feedback basé sur le CHOIX de l'élève (pas correct/incorrect)
             const chosenFeedback = answer === 'vrai' ? prop.feedback_vrai : prop.feedback_faux;
             if (chosenFeedback) {
-                feedback.textContent += ` - ${chosenFeedback}`;
+                feedback.textContent = chosenFeedback;
+            } else {
+                feedback.textContent = isCorrect ? '✓ Correct' : `✗ La bonne réponse était: ${expected}`;
             }
         }
 
@@ -3368,16 +3369,17 @@ const EleveConnaissances = {
         if (qcmFeedback) {
             qcmFeedback.style.display = 'block';
             qcmFeedback.className = `qcm-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-            qcmFeedback.textContent = isCorrect ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
-
+            // Feedback admin prioritaire : par option, puis correct/incorrect
             const feedbacksOptions = q.feedbacks_options || [];
             const chosenIdx = parseInt(userAnswer);
             if (feedbacksOptions[chosenIdx]) {
-                qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
+                qcmFeedback.textContent = feedbacksOptions[chosenIdx];
             } else if (isCorrect && q.feedback_correct) {
-                qcmFeedback.textContent += ` ${q.feedback_correct}`;
+                qcmFeedback.textContent = q.feedback_correct;
             } else if (!isCorrect && q.feedback_incorrect) {
-                qcmFeedback.textContent += ` ${q.feedback_incorrect}`;
+                qcmFeedback.textContent = q.feedback_incorrect;
+            } else {
+                qcmFeedback.textContent = isCorrect ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
             }
         }
 
