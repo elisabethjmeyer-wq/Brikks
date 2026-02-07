@@ -1149,12 +1149,12 @@ const EleveConnaissances = {
                                 </label>
                             </div>
                             <div class="vf-feedback" id="feedback_vf_${idx}" style="display: none;"></div>
-                            ${totalVf > 1 ? `
-                                <div class="vf-question-action" id="vf_action_${idx}">
-                                    <button class="btn-qcm-validate" onclick="EleveConnaissances.validateVfQuestion(${idx})">Valider</button>
-                                </div>
-                            ` : ''}
                         </div>
+                        ${totalVf > 1 ? `
+                            <div class="vf-question-action" id="vf_action_${idx}" data-for-vf="${idx}" ${idx > 0 ? 'style="display:none;"' : ''}>
+                                <button class="btn-qcm-validate" onclick="EleveConnaissances.validateVfQuestion(${idx})">Valider</button>
+                            </div>
+                        ` : ''}
                     `).join('')}
                 </div>
             </div>
@@ -1204,12 +1204,12 @@ const EleveConnaissances = {
                                     `).join('')}
                                 </div>
                                 <div class="qcm-feedback" id="feedback_qcm_${qIdx}" style="display: none;"></div>
-                                ${totalQ > 1 ? `
-                                    <div class="qcm-question-action" id="qcm_action_${qIdx}">
-                                        <button class="btn-qcm-validate" onclick="EleveConnaissances.validateQcmQuestion(${qIdx})">Valider</button>
-                                    </div>
-                                ` : ''}
                             </div>
+                            ${totalQ > 1 ? `
+                                <div class="qcm-question-action" id="qcm_action_${qIdx}" data-for-qcm="${qIdx}" ${qIdx > 0 ? 'style="display:none;"' : ''}>
+                                    <button class="btn-qcm-validate" onclick="EleveConnaissances.validateQcmQuestion(${qIdx})">Valider</button>
+                                </div>
+                            ` : ''}
                         `;
                     }).join('')}
                 </div>
@@ -3137,6 +3137,12 @@ const EleveConnaissances = {
             item.style.display = i === index ? '' : 'none';
         });
 
+        // Afficher/masquer les boutons d'action correspondants
+        container.querySelectorAll('.vf-question-action').forEach(action => {
+            const forIdx = parseInt(action.getAttribute('data-for-vf'));
+            action.style.display = forIdx === index ? '' : 'none';
+        });
+
         const headerCounter = document.getElementById('qcmHeaderCounter');
         if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
     },
@@ -3252,6 +3258,12 @@ const EleveConnaissances = {
 
         blocks.forEach((block, i) => {
             block.style.display = i === index ? '' : 'none';
+        });
+
+        // Afficher/masquer les boutons d'action correspondants
+        container.querySelectorAll('.qcm-question-action').forEach(action => {
+            const forIdx = parseInt(action.getAttribute('data-for-qcm'));
+            action.style.display = forIdx === index ? '' : 'none';
         });
 
         // Mettre à jour le compteur dans le header de l'étape
