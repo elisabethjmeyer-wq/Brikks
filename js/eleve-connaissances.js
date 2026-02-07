@@ -3270,10 +3270,10 @@ const EleveConnaissances = {
             feedback.style.display = 'block';
             feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
             feedback.textContent = isCorrect ? '✓ Correct' : `✗ La bonne réponse était: ${expected}`;
-            if (isCorrect && prop.feedback_vrai) {
-                feedback.textContent += ` - ${prop.feedback_vrai}`;
-            } else if (!isCorrect && (prop.feedback || prop.feedback_faux)) {
-                feedback.textContent += ` - ${prop.feedback || prop.feedback_faux}`;
+            // Feedback basé sur le CHOIX de l'élève (pas correct/incorrect)
+            const chosenFeedback = answer === 'vrai' ? prop.feedback_vrai : prop.feedback_faux;
+            if (chosenFeedback) {
+                feedback.textContent += ` - ${chosenFeedback}`;
             }
         }
 
