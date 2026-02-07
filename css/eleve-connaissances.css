@@ -2564,6 +2564,72 @@
     color: #9ca3af;
 }
 
+/* Mini-grid de correction pour les associations */
+.correction-assoc-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+    padding: 0.5rem 0;
+}
+
+.correction-assoc-card {
+    width: 120px;
+    background: #f0fdf4;
+    border: 2px solid #86efac;
+    border-radius: 10px;
+    overflow: hidden;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.correction-assoc-card img {
+    width: 100%;
+    height: 90px;
+    object-fit: cover;
+    display: block;
+}
+
+.correction-assoc-label {
+    display: block;
+    padding: 0.4rem 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #059669;
+    background: #ecfdf5;
+    border-top: 1px solid #bbf7d0;
+}
+
+.correction-assoc-card.text-only {
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    justify-content: center;
+    min-height: 80px;
+}
+
+.correction-assoc-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #374151;
+}
+
+.correction-assoc-card.text-only .correction-assoc-label {
+    border-top: none;
+    background: none;
+    padding: 0;
+    font-size: 0.8rem;
+}
+
+.correction-mini-img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 4px;
+    vertical-align: middle;
+}
+
 /* ============================================
    ANIMATIONS PAILLETTES (celebration)
    ============================================ */
