@@ -2098,13 +2098,13 @@ const EleveConnaissances = {
     },
 
     /**
-     * Affiche le récapitulatif des flashcards
+     * Termine les flashcards et passe directement à la validation de l'étape
+     * (pas de résumé intermédiaire, l'élève a déjà vu les réponses au verso)
      */
     showFlashcardSummary() {
         const state = this.flashcardState;
         const scene = document.getElementById('flashcardScene');
         const actions = document.getElementById('flashcardActions');
-        const summary = document.getElementById('flashcardSummary');
         const counter = document.getElementById('flashcardCounter');
         const progressFill = document.getElementById('flashcardProgressFill');
 
@@ -2115,28 +2115,11 @@ const EleveConnaissances = {
         if (counter) counter.textContent = `Terminé : ${nbSavait} / ${state.total} cartes réussies`;
         if (progressFill) progressFill.style.width = '100%';
 
-        if (summary) {
-            summary.style.display = 'block';
-            summary.innerHTML = `
-                <div class="flashcard-summary-score ${nbSavait === state.total ? 'perfect' : nbSavait >= state.total / 2 ? 'partial' : 'fail'}">
-                    <span class="flashcard-summary-icon">${nbSavait === state.total ? '🎉' : nbSavait >= state.total / 2 ? '💪' : '📚'}</span>
-                    <span class="flashcard-summary-text">${nbSavait} / ${state.total} cartes réussies</span>
-                </div>
-                <div class="flashcard-summary-details">
-                    ${state.results.map((r, i) => `
-                        <div class="flashcard-summary-item ${r.savait ? 'correct' : 'incorrect'}">
-                            <span class="flashcard-summary-item-icon">${r.savait ? '✓' : '✗'}</span>
-                            <div class="flashcard-summary-item-content">
-                                <span class="flashcard-summary-recto">${this.escapeHtml(r.recto)}</span>
-                                <span class="flashcard-summary-verso">→ ${this.escapeHtml(r.verso)}</span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
+        // Masquer le résumé détaillé (doublon avec le bilan final)
+        const summary = document.getElementById('flashcardSummary');
+        if (summary) summary.style.display = 'none';
 
-        // Auto-valider l'étape flashcard et afficher le bouton Suivant
+        // Valider directement l'étape → affiche le bandeau vert
         this.validateCurrentEtape();
     },
 
