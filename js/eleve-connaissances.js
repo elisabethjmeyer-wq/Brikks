@@ -814,17 +814,25 @@ const EleveConnaissances = {
             </div>
         `;
 
-        // Multi-questions (QCM ou V/F) : masquer le bouton Valider de l'étape + afficher le compteur
+        // Multi-questions (QCM, V/F, QO) : masquer le bouton Valider de l'étape + afficher le compteur
         const qcmMulti = document.querySelector('.qcm-multi-container[data-total-q]');
         const vfMulti = document.querySelector('.vrai-faux-container[data-total-vf]');
+        const qoMulti = document.querySelector('.qo-multi-container[data-total-qo]');
+        const flashcardContainer = document.querySelector('.flashcard-container');
         const multiTotal = qcmMulti ? parseInt(qcmMulti.getAttribute('data-total-q'))
                          : vfMulti ? parseInt(vfMulti.getAttribute('data-total-vf'))
+                         : qoMulti ? parseInt(qoMulti.getAttribute('data-total-qo'))
                          : 0;
         if (multiTotal > 1) {
             const validateBtn = document.querySelector('#etapeActionBar .validate-btn');
             if (validateBtn) validateBtn.style.display = 'none';
             const headerCounter = document.getElementById('qcmHeaderCounter');
             if (headerCounter) headerCounter.textContent = `Question 1 / ${multiTotal}`;
+        }
+        // Flashcard : afficher le compteur "Carte X / Y" dans le header
+        if (flashcardContainer && this.flashcardState) {
+            const headerCounter = document.getElementById('qcmHeaderCounter');
+            if (headerCounter) headerCounter.textContent = `Carte 1 / ${this.flashcardState.total}`;
         }
 
         if (ent.duree && !this.timer) {
@@ -1066,6 +1074,18 @@ const EleveConnaissances = {
                         id: qc.id,
                         texte: qc.donnees.texte || qc.donnees.question || '',
                         trous: qc.donnees.trous || []
+                    }))
+                };
+
+            case 'question_ouverte':
+                return {
+                    multiQuestions: questionContents.map((qc, idx) => ({
+                        id: qc.id,
+                        question: qc.donnees.question || qc.donnees.enonce || `Question ${idx + 1}`,
+                        reponses_acceptees: qc.donnees.reponses_acceptees || [],
+                        comparaison_stricte: qc.donnees.comparaison_stricte || false,
+                        feedback_correct: qc.donnees.feedback_correct,
+                        feedback_incorrect: qc.donnees.feedback_incorrect
                     }))
                 };
 
@@ -2035,6 +2055,9 @@ const EleveConnaissances = {
         if (hint) hint.style.display = '';
         if (counter) counter.textContent = `Carte ${state.currentIndex + 1} / ${state.total}`;
         if (progressFill) progressFill.style.width = `${((state.currentIndex + 1) / state.total) * 100}%`;
+        // Mettre à jour le compteur dans le header
+        const headerCounter = document.getElementById('qcmHeaderCounter');
+        if (headerCounter) headerCounter.textContent = `Carte ${state.currentIndex + 1} / ${state.total}`;
     },
 
     /**
@@ -2085,6 +2108,39 @@ const EleveConnaissances = {
      * Format: {question, reponses_acceptees: [...], feedback_correct?, feedback_incorrect?}
      */
     renderQuestionOuverte(donnees, questions) {
+        // Format multi-questions
+        if (donnees.multiQuestions && donnees.multiQuestions.length > 0) {
+            const totalQo = donnees.multiQuestions.length;
+            if (totalQo > 1) {
+                this._qoNavIndex = 0;
+                this._qoResults = {};
+            }
+            return `
+                <div class="qo-multi-container" ${totalQo > 1 ? `data-total-qo="${totalQo}"` : ''}>
+                    ${donnees.multiQuestions.map((q, qIdx) => `
+                        <div class="question-ouverte-container" data-qo-index="${qIdx}" ${totalQo > 1 && qIdx > 0 ? 'style="display:none;"' : ''}>
+                            <div class="question-ouverte-enonce">${this.escapeHtml(q.question)}</div>
+                            <div class="question-ouverte-input-wrapper">
+                                <input type="text"
+                                       class="question-ouverte-input"
+                                       id="questionOuverteReponse_${qIdx}"
+                                       placeholder="Tapez votre réponse..."
+                                       autocomplete="off"
+                                       oninput="EleveConnaissances.saveAnswer('question_ouverte_${qIdx}', this.value)">
+                            </div>
+                            <div class="question-ouverte-feedback" id="feedback_question_ouverte_${qIdx}" style="display: none;"></div>
+                        </div>
+                        ${totalQo > 1 ? `
+                            <div class="qo-question-action" id="qo_action_${qIdx}" data-for-qo="${qIdx}" ${qIdx > 0 ? 'style="display:none;"' : ''}>
+                                <button class="btn-qcm-validate" onclick="EleveConnaissances.validateQoQuestion(${qIdx})">Valider</button>
+                            </div>
+                        ` : ''}
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Format simple (une seule question)
         const question = donnees.question || donnees.enonce || '';
         const reponsesAcceptees = donnees.reponses_acceptees || [];
 
@@ -2468,36 +2524,51 @@ const EleveConnaissances = {
                 break;
 
             case 'question_ouverte':
-                total = 1;
-                const qoAnswer = this.userAnswers['question_ouverte'];
-                const qoReponsesAcceptees = donnees.reponses_acceptees || [];
-                const qoStricte = donnees.comparaison_stricte || false;
-                const qoFeedbackEl = document.getElementById('feedback_question_ouverte');
-                const qoInput = document.getElementById('questionOuverteReponse');
+                // Multi-questions avec résultats pré-validés
+                if (donnees.multiQuestions && donnees.multiQuestions.length > 0 && this._qoResults && Object.keys(this._qoResults).length > 0) {
+                    donnees.multiQuestions.forEach((q, qIdx) => {
+                        total++;
+                        const r = this._qoResults[qIdx];
+                        if (r) {
+                            if (r.correct) correct++;
+                            details.push(r);
+                        } else {
+                            details.push({ question: q.question, reponse: null, attendu: (q.reponses_acceptees || []).join(' / '), correct: false });
+                        }
+                    });
+                } else {
+                    // Format simple (une seule question)
+                    total = 1;
+                    const qoAnswer = this.userAnswers['question_ouverte'];
+                    const qoReponsesAcceptees = donnees.reponses_acceptees || [];
+                    const qoStricte = donnees.comparaison_stricte || false;
+                    const qoFeedbackEl = document.getElementById('feedback_question_ouverte');
+                    const qoInput = document.getElementById('questionOuverteReponse');
 
-                let qoCorrect = false;
-                if (qoAnswer) {
-                    qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep, qoStricte));
-                }
-                if (qoCorrect) correct = 1;
-
-                if (qoInput) {
-                    qoInput.classList.remove('correct', 'incorrect');
-                    qoInput.classList.add(qoCorrect ? 'correct' : 'incorrect');
-                }
-
-                if (qoFeedbackEl) {
-                    qoFeedbackEl.style.display = 'block';
-                    qoFeedbackEl.className = `question-ouverte-feedback ${qoCorrect ? 'correct' : 'incorrect'}`;
-                    if (qoCorrect) {
-                        qoFeedbackEl.textContent = '✓ Correct !';
-                        if (donnees.feedback_correct) qoFeedbackEl.textContent += ` ${donnees.feedback_correct}`;
-                    } else {
-                        qoFeedbackEl.textContent = `✗ La bonne réponse était: ${qoReponsesAcceptees[0] || ''}`;
-                        if (donnees.feedback_incorrect) qoFeedbackEl.textContent += ` ${donnees.feedback_incorrect}`;
+                    let qoCorrect = false;
+                    if (qoAnswer) {
+                        qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep, qoStricte));
                     }
+                    if (qoCorrect) correct = 1;
+
+                    if (qoInput) {
+                        qoInput.classList.remove('correct', 'incorrect');
+                        qoInput.classList.add(qoCorrect ? 'correct' : 'incorrect');
+                    }
+
+                    if (qoFeedbackEl) {
+                        qoFeedbackEl.style.display = 'block';
+                        qoFeedbackEl.className = `question-ouverte-feedback ${qoCorrect ? 'correct' : 'incorrect'}`;
+                        if (qoCorrect) {
+                            qoFeedbackEl.textContent = '✓ Correct !';
+                            if (donnees.feedback_correct) qoFeedbackEl.textContent += ` ${donnees.feedback_correct}`;
+                        } else {
+                            qoFeedbackEl.textContent = `✗ La bonne réponse était: ${qoReponsesAcceptees[0] || ''}`;
+                            if (donnees.feedback_incorrect) qoFeedbackEl.textContent += ` ${donnees.feedback_incorrect}`;
+                        }
+                    }
+                    details.push({ question: donnees.question, reponse: qoAnswer, attendu: qoReponsesAcceptees.join(' / '), correct: qoCorrect });
                 }
-                details.push({ question: donnees.question, reponse: qoAnswer, attendu: qoReponsesAcceptees.join(' / '), correct: qoCorrect });
                 break;
 
             case 'association':
@@ -3075,6 +3146,99 @@ const EleveConnaissances = {
     carouselNext() {
         const idx = this._carouselIndex || 0;
         this.carouselGoTo(idx + 1);
+    },
+
+    /** Valide une question ouverte individuelle dans le carrousel */
+    validateQoQuestion(qIdx) {
+        if (this._qoResults && this._qoResults[qIdx]) return;
+
+        const currentEtape = this.currentEtapes[this.currentEtapeIndex];
+        const storedData = this.selectedQuestionsPerEtape[currentEtape.id];
+        const donnees = storedData?.donnees || this.getEtapeDonnees(currentEtape);
+        const q = donnees.multiQuestions[qIdx];
+        if (!q) return;
+
+        const userAnswer = this.userAnswers[`question_ouverte_${qIdx}`];
+        const reponsesAcceptees = q.reponses_acceptees || [];
+        const stricte = q.comparaison_stricte || false;
+
+        let isCorrect = false;
+        if (userAnswer) {
+            isCorrect = reponsesAcceptees.some(rep => this.compareAnswers(userAnswer, rep, stricte));
+        }
+
+        // Feedback
+        const feedbackEl = document.getElementById(`feedback_question_ouverte_${qIdx}`);
+        const inputEl = document.getElementById(`questionOuverteReponse_${qIdx}`);
+
+        if (inputEl) {
+            inputEl.classList.remove('correct', 'incorrect');
+            inputEl.classList.add(isCorrect ? 'correct' : 'incorrect');
+            inputEl.disabled = true;
+        }
+
+        if (feedbackEl) {
+            feedbackEl.style.display = 'block';
+            feedbackEl.className = `question-ouverte-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+            if (isCorrect) {
+                feedbackEl.textContent = '✓ Correct !';
+                if (q.feedback_correct) feedbackEl.textContent += ` ${q.feedback_correct}`;
+            } else {
+                feedbackEl.textContent = `✗ La bonne réponse était: ${reponsesAcceptees[0] || ''}`;
+                if (q.feedback_incorrect) feedbackEl.textContent += ` ${q.feedback_incorrect}`;
+            }
+        }
+
+        // Stocker le résultat
+        this._qoResults[qIdx] = {
+            question: q.question,
+            reponse: userAnswer,
+            attendu: reponsesAcceptees.join(' / '),
+            correct: isCorrect
+        };
+
+        // Remplacer le bouton
+        const totalQo = donnees.multiQuestions.length;
+        const allValidated = Object.keys(this._qoResults).length >= totalQo;
+        const actionDiv = document.getElementById(`qo_action_${qIdx}`);
+
+        if (allValidated) {
+            if (actionDiv) actionDiv.innerHTML = '';
+            this.validateCurrentEtape();
+        } else {
+            if (actionDiv) {
+                actionDiv.innerHTML = `<button class="btn-qcm-next" onclick="EleveConnaissances.qoNavNext()">Suivant →</button>`;
+            }
+        }
+    },
+
+    /** Navigation Question Ouverte : aller à une question */
+    qoNavGoTo(index) {
+        const container = document.querySelector('.qo-multi-container');
+        if (!container) return;
+        const items = container.querySelectorAll('.question-ouverte-container');
+        const total = items.length;
+        if (index < 0 || index >= total) return;
+
+        this._qoNavIndex = index;
+
+        items.forEach((item, i) => {
+            item.style.display = i === index ? '' : 'none';
+        });
+
+        container.querySelectorAll('.qo-question-action').forEach(action => {
+            const forIdx = parseInt(action.getAttribute('data-for-qo'));
+            action.style.display = forIdx === index ? '' : 'none';
+        });
+
+        const headerCounter = document.getElementById('qcmHeaderCounter');
+        if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
+    },
+
+    /** Navigation Question Ouverte : question suivante */
+    qoNavNext() {
+        const idx = this._qoNavIndex || 0;
+        this.qoNavGoTo(idx + 1);
     },
 
     /** Valide une proposition Vrai/Faux individuelle dans le carrousel */
