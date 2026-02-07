@@ -7285,7 +7285,7 @@ function getFormatsQuestions() {
       ['fmt_timeline', 'Timeline', 'timeline', '🎴', 'Cartes à ordonner chronologiquement (retournables après correction)', '{}', 'oui', 4],
       ['fmt_association', 'Association', 'association', '🔗', 'Associer des éléments entre eux', '{}', 'oui', 5],
       ['fmt_texte_trou', 'Texte à trous', 'texte_trou', '📝', 'Compléter un texte avec les mots manquants', '{}', 'oui', 6],
-      ['fmt_carte', 'Carte cliquable', 'carte', '🗺️', 'Localiser des éléments sur une carte ou image', '{}', 'oui', 7],
+      ['fmt_carte', 'Image cliquable', 'carte', '🗺️', 'Localiser des éléments sur une carte ou image', '{}', 'oui', 7],
       ['fmt_question_ouverte', 'Question ouverte', 'question_ouverte', '✏️', 'Question avec réponse libre (texte)', '{}', 'oui', 8]
     ];
     defaultFormats.forEach(row => sheet.appendRow(row));

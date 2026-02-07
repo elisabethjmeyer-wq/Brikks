@@ -400,11 +400,20 @@
     border: 1px solid #e5e7eb;
 }
 
-/* Bouton Valider / Suivant par question (QCM, V/F, QO) — en dehors de l'encart */
+/* Bouton Valider / Suivant par question (QCM, V/F, QO, multi-format) — en dehors de l'encart */
 .qcm-question-action,
 .vf-question-action,
-.qo-question-action {
+.qo-question-action,
+.multi-format-action {
     margin-top: 0.75rem;
+}
+
+/* Feedback inline pour le carousel multi-format */
+.multi-format-feedback {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
 }
 
 .btn-qcm-validate,

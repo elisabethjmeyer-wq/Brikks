@@ -814,14 +814,16 @@ const EleveConnaissances = {
             </div>
         `;
 
-        // Multi-questions (QCM, V/F, QO) : masquer le bouton Valider de l'étape + afficher le compteur
+        // Multi-questions (QCM, V/F, QO, et formats génériques) : masquer le bouton Valider de l'étape + afficher le compteur
         const qcmMulti = document.querySelector('.qcm-multi-container[data-total-q]');
         const vfMulti = document.querySelector('.vrai-faux-container[data-total-vf]');
         const qoMulti = document.querySelector('.qo-multi-container[data-total-qo]');
+        const mfMulti = document.querySelector('.multi-format-container[data-total-mf]');
         const flashcardContainer = document.querySelector('.flashcard-container');
         const multiTotal = qcmMulti ? parseInt(qcmMulti.getAttribute('data-total-q'))
                          : vfMulti ? parseInt(vfMulti.getAttribute('data-total-vf'))
                          : qoMulti ? parseInt(qoMulti.getAttribute('data-total-qo'))
+                         : mfMulti ? parseInt(mfMulti.getAttribute('data-total-mf'))
                          : 0;
         if (multiTotal > 1) {
             const validateBtn = document.querySelector('#etapeActionBar .validate-btn');
@@ -986,6 +988,10 @@ const EleveConnaissances = {
                 return this.renderQCM(donnees, questions);
             case 'chronologie':
             case 'timeline':
+                // Multi-questions : déléguer au render qui détecte multiQuestions
+                if (donnees.multiQuestions) {
+                    return this.renderChronologie(donnees, questions);
+                }
                 // Mode texte (paires date/événement) ou mode cartes (drag & drop)
                 if (donnees.paires && donnees.mode) {
                     return this.renderChronologie(donnees, questions);
@@ -1047,41 +1053,44 @@ const EleveConnaissances = {
 
             case 'chronologie':
             case 'timeline':
-                // Combiner les événements/paires de toutes les questions
-                const allEvents = [];
-                const allPaires = [];
-                let timelineMode = undefined;
-                let timelineConsigne = undefined;
-                questionContents.forEach(qc => {
-                    if (qc.donnees.evenements) allEvents.push(...qc.donnees.evenements);
-                    if (qc.donnees.paires) allPaires.push(...qc.donnees.paires);
-                    if (qc.donnees.mode) timelineMode = qc.donnees.mode;
-                    if (qc.donnees.consigne) timelineConsigne = qc.donnees.consigne;
-                });
-                const combined = {
-                    evenements: allEvents.length > 0 ? allEvents : undefined,
-                    paires: allPaires.length > 0 ? allPaires : undefined
+                // Chaque question chrono/timeline séparément
+                return {
+                    multiQuestions: questionContents.map(qc => ({
+                        id: qc.id,
+                        ...qc.donnees
+                    }))
                 };
-                if (timelineMode) combined.mode = timelineMode;
-                if (timelineConsigne) combined.consigne = timelineConsigne;
-                return combined;
 
             case 'association':
-                // Combiner toutes les paires
-                const pairs = [];
-                questionContents.forEach(qc => {
-                    if (qc.donnees.paires) pairs.push(...qc.donnees.paires);
-                });
-                return { paires: pairs };
+                // Chaque question association séparément
+                return {
+                    multiQuestions: questionContents.map(qc => ({
+                        id: qc.id,
+                        consigne: qc.donnees.consigne,
+                        paires: qc.donnees.paires || []
+                    }))
+                };
 
             case 'texte_trou':
             case 'texte_trous':
-                // Pour texte à trous, on peut combiner les textes
+                // Chaque texte à trous séparément
                 return {
-                    multiTextes: questionContents.map((qc, idx) => ({
+                    multiQuestions: questionContents.map(qc => ({
                         id: qc.id,
                         texte: qc.donnees.texte || qc.donnees.question || '',
+                        mots: qc.donnees.mots || [],
                         trous: qc.donnees.trous || []
+                    }))
+                };
+
+            case 'carte':
+                // Chaque image cliquable séparément
+                return {
+                    multiQuestions: questionContents.map(qc => ({
+                        id: qc.id,
+                        consigne: qc.donnees.consigne,
+                        image_url: qc.donnees.image_url,
+                        marqueurs: qc.donnees.marqueurs || []
                     }))
                 };
 
@@ -1297,6 +1306,10 @@ const EleveConnaissances = {
      * - mode 'evenement' : La date est affichée, l'élève trouve l'événement
      */
     renderChronologie(donnees, questions) {
+        // Multi-question : carousel render-on-demand
+        if (donnees.multiQuestions && donnees.multiQuestions.length > 1) {
+            return this.renderMultiFormat('chronologie', donnees, questions);
+        }
         // Accepter 'paires' ou 'evenements' comme nom de champ
         const events = donnees.paires || donnees.evenements || [];
         const mode = donnees.mode || 'date'; // 'date' = élève tape dates, 'evenement' = élève tape événements
@@ -1396,6 +1409,10 @@ const EleveConnaissances = {
      * Render Timeline (cartes draggables avec image de fond optionnelle par carte)
      */
     renderTimeline(donnees, questions) {
+        // Multi-question : carousel render-on-demand
+        if (donnees.multiQuestions && donnees.multiQuestions.length > 1) {
+            return this.renderMultiFormat('timeline', donnees, questions);
+        }
         const cartes = donnees.cartes || [];
 
         // Vérifier qu'on a des cartes
@@ -1507,6 +1524,10 @@ const EleveConnaissances = {
      * Render Texte à trous
      */
     renderTexteTrous(donnees, questions) {
+        // Multi-question : carousel render-on-demand
+        if (donnees.multiQuestions && donnees.multiQuestions.length > 1) {
+            return this.renderMultiFormat('texte_trou', donnees, questions);
+        }
         let texte = donnees.texte || '';
         const mots = donnees.mots || [];
 
@@ -1549,6 +1570,10 @@ const EleveConnaissances = {
      * Format: {consigne, paires: [{element1, element2}, ...]}
      */
     renderAssociation(donnees, questions) {
+        // Multi-question : carousel render-on-demand
+        if (donnees.multiQuestions && donnees.multiQuestions.length > 1) {
+            return this.renderMultiFormat('association', donnees, questions);
+        }
         const consigne = donnees.consigne || 'Associez les éléments correspondants';
         const paires = donnees.paires || [];
 
@@ -1758,6 +1783,10 @@ const EleveConnaissances = {
      * Format: {consigne, image_url, marqueurs: [{id, x, y, reponse, reponses_acceptees?}, ...]}
      */
     renderCarte(donnees, questions) {
+        // Multi-question : carousel render-on-demand
+        if (donnees.multiQuestions && donnees.multiQuestions.length > 1) {
+            return this.renderMultiFormat('carte', donnees, questions);
+        }
         const consigne = donnees.consigne || 'Identifiez les éléments numérotés sur la carte';
         const imageUrl = donnees.image_url || '';
         const marqueurs = donnees.marqueurs || [];
@@ -2386,6 +2415,10 @@ const EleveConnaissances = {
 
             case 'chronologie':
             case 'timeline':
+                if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
+                    Object.values(this._multiFormatState.results).forEach(r => { total += r.total; correct += r.correct; details.push(...r.details); });
+                    break;
+                }
                 if (donnees.paires && donnees.mode) {
                     // Mode texte (chronologie)
                     const chronoAnswers = this.userAnswers['chrono'] || {};
@@ -2480,6 +2513,10 @@ const EleveConnaissances = {
 
             case 'texte_trou':
             case 'texte_trous':
+                if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
+                    Object.values(this._multiFormatState.results).forEach(r => { total += r.total; correct += r.correct; details.push(...r.details); });
+                    break;
+                }
                 const trouInputs = document.querySelectorAll('.trou-input');
                 const trous = donnees.trous || [];
 
@@ -2506,6 +2543,10 @@ const EleveConnaissances = {
                 break;
 
             case 'carte':
+                if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
+                    Object.values(this._multiFormatState.results).forEach(r => { total += r.total; correct += r.correct; details.push(...r.details); });
+                    break;
+                }
                 const marqueurs = donnees.marqueurs || [];
                 marqueurs.forEach((m, idx) => {
                     total++;
@@ -2586,6 +2627,10 @@ const EleveConnaissances = {
                 break;
 
             case 'association':
+                if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
+                    Object.values(this._multiFormatState.results).forEach(r => { total += r.total; correct += r.correct; details.push(...r.details); });
+                    break;
+                }
                 const assocPaires = donnees.paires || [];
                 total = assocPaires.length;
                 const userPairs = this.userAnswers['association'] || [];
@@ -3253,6 +3298,431 @@ const EleveConnaissances = {
     qoNavNext() {
         const idx = this._qoNavIndex || 0;
         this.qoNavGoTo(idx + 1);
+    },
+
+    // ===== CAROUSEL GÉNÉRIQUE MULTI-FORMAT (render-on-demand) =====
+
+    /**
+     * Affiche un carousel multi-question pour les formats:
+     * texte_trou, association, chronologie, timeline, carte
+     */
+    renderMultiFormat(format, donnees, questions) {
+        const multiQ = donnees.multiQuestions;
+        this._multiFormatState = {
+            format: format,
+            questions: multiQ,
+            currentIndex: 0,
+            results: {},
+            totalQuestions: multiQ.length
+        };
+
+        // Rendre la première question
+        const firstHtml = this.renderSingleFormatQuestion(format, multiQ[0]);
+
+        return `
+            <div class="multi-format-container" data-format="${format}" data-total-mf="${multiQ.length}">
+                <div class="multi-format-content" id="multiFormatContent">
+                    ${firstHtml}
+                </div>
+                <div class="multi-format-action" id="multiFormatAction">
+                    <button class="btn-qcm-validate" onclick="EleveConnaissances.validateMultiFormatQuestion()">Valider</button>
+                </div>
+            </div>
+        `;
+    },
+
+    /** Rend une seule question pour un format donné */
+    renderSingleFormatQuestion(format, qData) {
+        switch (format) {
+            case 'texte_trou':
+            case 'texte_trous':
+                return this.renderTexteTrous(qData, []);
+            case 'association':
+                return this.renderAssociation(qData, []);
+            case 'chronologie':
+                if (qData.paires && qData.mode) return this.renderChronologie(qData, []);
+                return this.renderTimeline(qData, []);
+            case 'timeline':
+                if (qData.paires && qData.mode) return this.renderChronologie(qData, []);
+                return this.renderTimeline(qData, []);
+            case 'carte':
+                return this.renderCarte(qData, []);
+            default:
+                return '<div class="format-no-data"><p>Format non supporté</p></div>';
+        }
+    },
+
+    /** Valide la question courante du carousel multi-format */
+    validateMultiFormatQuestion() {
+        const state = this._multiFormatState;
+        if (!state) return;
+        const idx = state.currentIndex;
+        const qData = state.questions[idx];
+
+        // Exécuter la validation spécifique au format
+        const result = this.runFormatValidation(state.format, qData);
+        state.results[idx] = result;
+
+        // Afficher le feedback
+        const container = document.getElementById('multiFormatContent');
+        let feedbackEl = container.querySelector('.multi-format-feedback');
+        if (!feedbackEl) {
+            feedbackEl = document.createElement('div');
+            feedbackEl.className = 'multi-format-feedback';
+            container.appendChild(feedbackEl);
+        }
+        feedbackEl.style.display = 'block';
+        if (result.correct === result.total) {
+            feedbackEl.className = 'multi-format-feedback vf-feedback correct';
+            feedbackEl.textContent = '✓ Correct';
+        } else {
+            feedbackEl.className = 'multi-format-feedback vf-feedback incorrect';
+            feedbackEl.textContent = `✗ ${result.correct}/${result.total} correct${result.correct > 1 ? 's' : ''}`;
+        }
+
+        // Mettre à jour le bouton d'action
+        const actionDiv = document.getElementById('multiFormatAction');
+        const allValidated = Object.keys(state.results).length >= state.totalQuestions;
+
+        if (allValidated) {
+            if (actionDiv) actionDiv.innerHTML = '';
+            this.validateCurrentEtape();
+        } else {
+            if (actionDiv) {
+                actionDiv.innerHTML = `<button class="btn-qcm-next" onclick="EleveConnaissances.multiFormatNext()">Suivant →</button>`;
+            }
+        }
+    },
+
+    /** Passe à la question suivante du carousel multi-format */
+    multiFormatNext() {
+        const state = this._multiFormatState;
+        if (!state) return;
+        state.currentIndex++;
+        const idx = state.currentIndex;
+        const qData = state.questions[idx];
+
+        // Nettoyer les réponses spécifiques au format précédent
+        this.clearFormatAnswers(state.format);
+
+        // Rendre la nouvelle question
+        const content = document.getElementById('multiFormatContent');
+        content.innerHTML = this.renderSingleFormatQuestion(state.format, qData);
+
+        // Remettre le bouton Valider
+        const actionDiv = document.getElementById('multiFormatAction');
+        if (actionDiv) {
+            actionDiv.innerHTML = `<button class="btn-qcm-validate" onclick="EleveConnaissances.validateMultiFormatQuestion()">Valider</button>`;
+        }
+
+        // Mettre à jour le compteur dans le header
+        const headerCounter = document.getElementById('qcmHeaderCounter');
+        if (headerCounter) headerCounter.textContent = `Question ${idx + 1} / ${state.totalQuestions}`;
+
+        // Re-setup spécifique au format (drag & drop, etc.)
+        this.setupFormatAfterRender(state.format);
+    },
+
+    /** Nettoie les réponses utilisateur pour le format courant */
+    clearFormatAnswers(format) {
+        switch (format) {
+            case 'association':
+                this.userAnswers['association'] = [];
+                break;
+            case 'chronologie':
+            case 'timeline':
+                this.userAnswers['chrono'] = {};
+                break;
+            case 'carte':
+                Object.keys(this.userAnswers).forEach(key => {
+                    if (key.startsWith('carte_')) delete this.userAnswers[key];
+                });
+                break;
+        }
+    },
+
+    /** Re-setup après render-on-demand (drag & drop, etc.) */
+    setupFormatAfterRender(format) {
+        switch (format) {
+            case 'chronologie':
+            case 'timeline':
+                setTimeout(() => {
+                    if (document.querySelector('.timeline-cards')) {
+                        this.setupTimelineDragDrop();
+                        this.saveTimelineOrder();
+                    }
+                }, 100);
+                break;
+        }
+    },
+
+    /** Exécute la validation spécifique au format et retourne { correct, total, details } */
+    runFormatValidation(format, qData) {
+        switch (format) {
+            case 'texte_trou':
+            case 'texte_trous':
+                return this.runTexteValidation(qData);
+            case 'association':
+                return this.runAssociationValidation(qData);
+            case 'chronologie':
+            case 'timeline':
+                if (qData.paires && qData.mode) return this.runChronoValidation(qData);
+                return this.runTimelineValidation(qData);
+            case 'carte':
+                return this.runCarteValidation(qData);
+            default:
+                return { correct: 0, total: 0, details: [] };
+        }
+    },
+
+    /** Validation texte à trous */
+    runTexteValidation(qData) {
+        const container = document.getElementById('multiFormatContent');
+        const trouInputs = container.querySelectorAll('.trou-input');
+        let correct = 0, total = 0;
+        const details = [];
+
+        trouInputs.forEach((input, idx) => {
+            total++;
+            const userValue = input.value.trim().toLowerCase();
+            const correctValue = input.dataset.answer ? input.dataset.answer.toLowerCase() : '';
+            let alternatives = [];
+            if (qData.trous && qData.trous[idx] && qData.trous[idx].alternatives) {
+                alternatives = qData.trous[idx].alternatives.map(a => a.toLowerCase());
+            }
+            input.classList.remove('correct', 'incorrect');
+            const isOk = userValue === correctValue || alternatives.includes(userValue);
+            if (isOk) {
+                correct++;
+                input.classList.add('correct');
+            } else {
+                input.classList.add('incorrect');
+            }
+            details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: input.dataset.answer, correct: isOk });
+        });
+
+        return { correct, total, details };
+    },
+
+    /** Validation chronologie (mode texte) */
+    runChronoValidation(qData) {
+        const container = document.getElementById('multiFormatContent');
+        const events = qData.paires || qData.evenements || [];
+        const mode = qData.mode || 'date';
+        let correct = 0, total = 0;
+        const details = [];
+
+        const sortedEvents = [...events].sort((a, b) => {
+            const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
+            const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
+            return dateA - dateB;
+        });
+
+        sortedEvents.forEach((evt, idx) => {
+            total++;
+            const inputEl = container.querySelector(`.chrono-input[data-index="${idx}"]`);
+            if (!inputEl) return;
+
+            let isCorrect = false;
+            const correctValue = mode === 'evenement' ? evt.evenement : String(evt.date);
+            const reponsesAcceptees = evt.reponses_acceptees || [];
+            const userValue = inputEl.value.trim().toLowerCase();
+
+            if (userValue) {
+                if (userValue === correctValue.trim().toLowerCase()) isCorrect = true;
+                if (!isCorrect && reponsesAcceptees.length > 0) {
+                    isCorrect = reponsesAcceptees.some(alt => alt.trim().toLowerCase() === userValue);
+                }
+            }
+
+            inputEl.classList.remove('correct', 'incorrect');
+            if (isCorrect) {
+                correct++;
+                inputEl.classList.add('correct');
+            } else {
+                inputEl.classList.add('incorrect');
+                const inputZone = inputEl.closest('.chrono-input-zone');
+                if (inputZone && !inputZone.querySelector('.chrono-correction')) {
+                    const correction = document.createElement('span');
+                    correction.className = 'chrono-correction';
+                    correction.textContent = correctValue;
+                    inputZone.appendChild(correction);
+                }
+            }
+            details.push({ question: mode === 'evenement' ? evt.date : evt.evenement, reponse: userValue, attendu: correctValue, correct: isCorrect });
+        });
+
+        return { correct, total, details };
+    },
+
+    /** Validation timeline (mode drag & drop) */
+    runTimelineValidation(qData) {
+        const container = document.getElementById('multiFormatContent');
+        const cartes = qData.cartes || [];
+        let correct = 0;
+        const total = cartes.length;
+        const details = [];
+
+        const cardsContainer = container.querySelector('.timeline-cards');
+        if (cardsContainer) {
+            const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-card'));
+            placedCards.forEach((card, positionActuelle) => {
+                const originalIndex = parseInt(card.dataset.originalIndex);
+                card.classList.remove('correct', 'incorrect');
+                card.setAttribute('draggable', 'false');
+
+                if (originalIndex === positionActuelle) {
+                    correct++;
+                    card.classList.add('correct');
+                } else {
+                    card.classList.add('incorrect');
+                }
+                details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
+            });
+
+            if (correct < total) {
+                const correctionHtml = `
+                    <div class="correction-section">
+                        <h4>Ordre correct</h4>
+                        <div class="correction-list">
+                            ${cartes.map((carte, i) => `
+                                <div class="correction-item">
+                                    <span class="order-num">${i + 1}</span>
+                                    <span class="item-text">${this.escapeHtml(carte.titre)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                cardsContainer.insertAdjacentHTML('afterend', correctionHtml);
+            }
+        }
+
+        return { correct, total, details };
+    },
+
+    /** Validation association */
+    runAssociationValidation(qData) {
+        const container = document.getElementById('multiFormatContent');
+        const assocPaires = qData.paires || [];
+        let correct = 0;
+        const total = assocPaires.length;
+        const details = [];
+        const userPairs = this.userAnswers['association'] || [];
+
+        userPairs.forEach(up => {
+            const gridId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
+            const chipId = this._assocChipSide === 'gauche' ? up.gauche : up.droite;
+            const gridEl = container.querySelector(`.association-grid-card[data-id="${gridId}"]`);
+            const chipEl = container.querySelector(`.association-chip[data-id="${chipId}"]`);
+
+            const isCorrect = String(up.gauche) === String(up.droite);
+            if (isCorrect) {
+                correct++;
+                [gridEl, chipEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('correct'); } });
+            } else {
+                [gridEl, chipEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('incorrect'); } });
+            }
+            details.push({
+                question: assocPaires[parseInt(up.gauche)]?.element1 || up.gauche,
+                reponse: assocPaires[parseInt(up.droite)]?.element2 || up.droite,
+                correct: isCorrect
+            });
+        });
+
+        // Éléments non associés = erreurs
+        for (let i = 0; i < assocPaires.length; i++) {
+            const gridId = String(i);
+            const isMatched = userPairs.some(up => {
+                const upGridId = this._assocGridSide === 'gauche' ? String(up.gauche) : String(up.droite);
+                return upGridId === gridId;
+            });
+            if (!isMatched) {
+                details.push({ question: assocPaires[i].element1, reponse: '—', attendu: assocPaires[i].element2, correct: false });
+            }
+        }
+
+        // Feedback visuel
+        container.querySelectorAll('.association-grid-card:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
+        const chipsZone = container.querySelector('.association-chips');
+        if (chipsZone) chipsZone.style.display = 'none';
+        const zoneLabel = container.querySelector('.association-zone-label');
+        if (zoneLabel) zoneLabel.style.display = 'none';
+
+        const getChipText = (id) => {
+            const p = assocPaires[parseInt(id)];
+            if (!p) return '?';
+            return this._assocChipSide === 'gauche' ? p.element1 : p.element2;
+        };
+
+        container.querySelectorAll('.association-grid-card').forEach(card => {
+            const cardId = card.dataset.id;
+            const correctText = getChipText(cardId);
+            const label = card.querySelector('.assoc-paired-label');
+            if (!label) return;
+
+            label.style.display = 'block';
+            const userPair = userPairs.find(up => {
+                const gId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
+                return String(gId) === String(cardId);
+            });
+
+            if (userPair) {
+                const chipId = this._assocChipSide === 'gauche' ? userPair.gauche : userPair.droite;
+                const isCorrect = String(userPair.gauche) === String(userPair.droite);
+                const studentText = getChipText(chipId);
+                if (isCorrect) {
+                    label.className = 'assoc-paired-label assoc-label-success';
+                    label.innerHTML = `<span class="assoc-answer-ok">✓ ${this.escapeHtml(correctText)}</span>`;
+                } else {
+                    label.className = 'assoc-paired-label assoc-label-error';
+                    label.innerHTML = `<span class="assoc-answer-wrong">✗ ${this.escapeHtml(studentText)}</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+                }
+            } else {
+                label.className = 'assoc-paired-label assoc-label-error';
+                label.innerHTML = `<span class="assoc-answer-wrong">✗ —</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+            }
+        });
+
+        return { correct, total, details };
+    },
+
+    /** Validation carte/image cliquable */
+    runCarteValidation(qData) {
+        const container = document.getElementById('multiFormatContent');
+        const marqueurs = qData.marqueurs || [];
+        let correct = 0, total = 0;
+        const details = [];
+
+        marqueurs.forEach((m, idx) => {
+            total++;
+            const answer = this.userAnswers['carte_' + idx];
+            const marker = container.querySelector(`.carte-marker-v2[data-index="${idx}"]`);
+
+            if (answer) {
+                const userValue = answer.trim().toLowerCase();
+                const expectedValue = (m.reponse || '').trim().toLowerCase();
+                const reponsesAcceptees = m.reponses_acceptees || [];
+                const allAccepted = [expectedValue, ...reponsesAcceptees.map(r => r.trim().toLowerCase())];
+                const isCorrect = allAccepted.some(rep => userValue === rep);
+
+                if (isCorrect) {
+                    correct++;
+                    if (marker) marker.classList.add('correct');
+                } else {
+                    if (marker) marker.classList.add('incorrect');
+                }
+                details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrect });
+            } else {
+                if (marker) marker.classList.add('incorrect');
+                details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
+            }
+        });
+
+        // Fermer le popup si ouvert
+        this.closeCartePopup?.();
+
+        return { correct, total, details };
     },
 
     /** Valide une proposition Vrai/Faux individuelle dans le carrousel */
