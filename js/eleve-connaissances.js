@@ -2753,7 +2753,7 @@ const EleveConnaissances = {
             const messages = {
                 success: { icon: '✓', title: 'Bravo !', sub: 'Parfait, continue comme ça !' },
                 partial: { icon: '~', title: 'Pas mal !', sub: 'Tu y es presque, encore un effort.' },
-                error: { icon: '✗', title: 'Dommage...', sub: '' }
+                error: { icon: '✗', title: '', sub: '' }
             };
             const msg = messages[feedbackClass];
             const btnAction = isLastEtape ? 'finishEntrainement' : 'nextEtape';
@@ -2763,7 +2763,7 @@ const EleveConnaissances = {
                 <div class="etape-feedback-main">
                     <div class="etape-feedback-icon">${msg.icon}</div>
                     <div class="etape-feedback-text">
-                        <strong>${msg.title}</strong>
+                        ${msg.title ? `<strong>${msg.title}</strong>` : ''}
                         <span>${correct}/${total} correct${correct > 1 ? 's' : ''}${msg.sub ? ' — ' + msg.sub : ''}</span>
                     </div>
                     <button class="btn-etape-action next-btn" onclick="EleveConnaissances.${btnAction}()">
