@@ -400,9 +400,10 @@
     border: 1px solid #e5e7eb;
 }
 
-/* Bouton Valider / Suivant par question (QCM et V/F) — en dehors de l'encart */
+/* Bouton Valider / Suivant par question (QCM, V/F, QO) — en dehors de l'encart */
 .qcm-question-action,
-.vf-question-action {
+.vf-question-action,
+.qo-question-action {
     margin-top: 0.75rem;
 }
 
