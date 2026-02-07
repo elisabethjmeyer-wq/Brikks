@@ -1005,7 +1005,10 @@ const EleveConnaissances = {
                     propositions: questionContents.map((qc, idx) => ({
                         id: qc.id,
                         texte: qc.donnees.question || qc.donnees.enonce || `Question ${idx + 1}`,
-                        reponse: qc.donnees.reponse
+                        reponse: qc.donnees.reponse,
+                        feedback: qc.donnees.feedback,
+                        feedback_vrai: qc.donnees.feedback_vrai,
+                        feedback_faux: qc.donnees.feedback_faux
                     }))
                 };
 
@@ -1018,7 +1021,11 @@ const EleveConnaissances = {
                         question: qc.donnees.question || qc.donnees.enonce || `Question ${idx + 1}`,
                         choix: qc.donnees.choix || qc.donnees.options || [],
                         reponse: qc.donnees.reponse || qc.donnees.reponse_correcte,
-                        multiple: qc.donnees.multiple || false
+                        reponses_correctes: qc.donnees.reponses_correctes,
+                        multiple: qc.donnees.multiple || false,
+                        feedbacks_options: qc.donnees.feedbacks_options,
+                        feedback_correct: qc.donnees.feedback_correct,
+                        feedback_incorrect: qc.donnees.feedback_incorrect
                     }))
                 };
 
@@ -3091,7 +3098,11 @@ const EleveConnaissances = {
             feedback.style.display = 'block';
             feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
             feedback.textContent = isCorrect ? '✓ Correct' : `✗ La bonne réponse était: ${expected}`;
-            if (!isCorrect && prop.feedback) feedback.textContent += ` - ${prop.feedback}`;
+            if (isCorrect && prop.feedback_vrai) {
+                feedback.textContent += ` - ${prop.feedback_vrai}`;
+            } else if (!isCorrect && (prop.feedback || prop.feedback_faux)) {
+                feedback.textContent += ` - ${prop.feedback || prop.feedback_faux}`;
+            }
         }
 
         // Verrouiller les choix
