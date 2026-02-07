@@ -813,7 +813,7 @@ const EleveConnaissances = {
             </div>
         `;
 
-        // Masquer le bouton Valider si QCM multi-questions (visible uniquement sur dernière question)
+        // Masquer le bouton Valider de l'étape si QCM multi-questions (chaque question a son propre bouton)
         const qcmMulti = document.querySelector('.qcm-multi-container[data-total-q]');
         if (qcmMulti) {
             const totalQ = parseInt(qcmMulti.getAttribute('data-total-q'));
@@ -1156,6 +1156,7 @@ const EleveConnaissances = {
         // Format multi-questions (plusieurs QCM dans une étape)
         if (donnees.multiQuestions && donnees.multiQuestions.length > 0) {
             this._qcmNavIndex = 0;
+            this._qcmResults = {};
             const totalQ = donnees.multiQuestions.length;
             return `
                 <div class="qcm-multi-container" data-total-q="${totalQ}">
@@ -1188,6 +1189,11 @@ const EleveConnaissances = {
                                     `).join('')}
                                 </div>
                                 <div class="qcm-feedback" id="feedback_qcm_${qIdx}" style="display: none;"></div>
+                                ${totalQ > 1 ? `
+                                    <div class="qcm-question-action" id="qcm_action_${qIdx}">
+                                        <button class="btn-qcm-validate" onclick="EleveConnaissances.validateQcmQuestion(${qIdx})">Valider</button>
+                                    </div>
+                                ` : ''}
                             </div>
                         `;
                     }).join('')}
@@ -2167,48 +2173,75 @@ const EleveConnaissances = {
             case 'qcm':
                 // Mode multi-questions (plusieurs QCM dans une étape)
                 if (donnees.multiQuestions && donnees.multiQuestions.length > 0) {
-                    donnees.multiQuestions.forEach((q, qIdx) => {
-                        total++;
-                        const choices = q.choix || q.options || [];
-                        const userAnswer = this.userAnswers[`qcm_${qIdx}`];
-
-                        let correctIndices = [];
-                        if (q.reponses_correctes && Array.isArray(q.reponses_correctes)) {
-                            correctIndices = q.reponses_correctes;
-                        } else if (q.reponse !== undefined) {
-                            correctIndices = [q.reponse];
-                        } else if (q.reponse_correcte !== undefined) {
-                            correctIndices = [q.reponse_correcte];
-                        } else {
-                            correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
-                        }
-
-                        const isCorrect = correctIndices.includes(parseInt(userAnswer));
-                        if (isCorrect) correct++;
-
-                        const qcmFeedback = document.getElementById(`feedback_qcm_${qIdx}`);
-                        if (qcmFeedback) {
-                            qcmFeedback.style.display = 'block';
-                            qcmFeedback.className = `qcm-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-                            qcmFeedback.textContent = isCorrect ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
-
-                            const feedbacksOptions = q.feedbacks_options || [];
-                            const chosenIdx = parseInt(userAnswer);
-                            if (feedbacksOptions[chosenIdx]) {
-                                qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
-                            } else if (isCorrect && q.feedback_correct) {
-                                qcmFeedback.textContent += ` ${q.feedback_correct}`;
-                            } else if (!isCorrect && q.feedback_incorrect) {
-                                qcmFeedback.textContent += ` ${q.feedback_incorrect}`;
+                    // Si validation question par question (carrousel), récupérer les résultats déjà stockés
+                    if (this._qcmResults && Object.keys(this._qcmResults).length > 0) {
+                        donnees.multiQuestions.forEach((q, qIdx) => {
+                            total++;
+                            const r = this._qcmResults[qIdx];
+                            if (r) {
+                                if (r.correct) correct++;
+                                details.push(r);
+                            } else {
+                                // Question non validée = incorrecte
+                                const choices = q.choix || q.options || [];
+                                let correctIndices = [];
+                                if (q.reponses_correctes && Array.isArray(q.reponses_correctes)) correctIndices = q.reponses_correctes;
+                                else if (q.reponse !== undefined) correctIndices = [q.reponse];
+                                else if (q.reponse_correcte !== undefined) correctIndices = [q.reponse_correcte];
+                                else correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
+                                details.push({
+                                    question: q.question,
+                                    reponse: null,
+                                    attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
+                                    correct: false
+                                });
                             }
-                        }
-                        details.push({
-                            question: q.question,
-                            reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
-                            attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
-                            correct: isCorrect
                         });
-                    });
+                    } else {
+                        // Fallback : validation classique (1 seule question ou pas de carrousel)
+                        donnees.multiQuestions.forEach((q, qIdx) => {
+                            total++;
+                            const choices = q.choix || q.options || [];
+                            const userAnswer = this.userAnswers[`qcm_${qIdx}`];
+
+                            let correctIndices = [];
+                            if (q.reponses_correctes && Array.isArray(q.reponses_correctes)) {
+                                correctIndices = q.reponses_correctes;
+                            } else if (q.reponse !== undefined) {
+                                correctIndices = [q.reponse];
+                            } else if (q.reponse_correcte !== undefined) {
+                                correctIndices = [q.reponse_correcte];
+                            } else {
+                                correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
+                            }
+
+                            const isCorrect = correctIndices.includes(parseInt(userAnswer));
+                            if (isCorrect) correct++;
+
+                            const qcmFeedback = document.getElementById(`feedback_qcm_${qIdx}`);
+                            if (qcmFeedback) {
+                                qcmFeedback.style.display = 'block';
+                                qcmFeedback.className = `qcm-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+                                qcmFeedback.textContent = isCorrect ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
+
+                                const feedbacksOptions = q.feedbacks_options || [];
+                                const chosenIdx = parseInt(userAnswer);
+                                if (feedbacksOptions[chosenIdx]) {
+                                    qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
+                                } else if (isCorrect && q.feedback_correct) {
+                                    qcmFeedback.textContent += ` ${q.feedback_correct}`;
+                                } else if (!isCorrect && q.feedback_incorrect) {
+                                    qcmFeedback.textContent += ` ${q.feedback_incorrect}`;
+                                }
+                            }
+                            details.push({
+                                question: q.question,
+                                reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
+                                attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
+                                correct: isCorrect
+                            });
+                        });
+                    }
                 } else {
                     // Mode simple (une seule question QCM)
                     total = 1;
@@ -3014,6 +3047,99 @@ const EleveConnaissances = {
         this.carouselGoTo(idx + 1);
     },
 
+    /** Valide une question QCM individuelle dans le carrousel multi-questions */
+    validateQcmQuestion(qIdx) {
+        // Éviter la double validation
+        if (this._qcmResults && this._qcmResults[qIdx]) return;
+
+        const currentEtape = this.currentEtapes[this.currentEtapeIndex];
+        const storedData = this.selectedQuestionsPerEtape[currentEtape.id];
+        const donnees = storedData?.donnees || this.getEtapeDonnees(currentEtape);
+        const q = donnees.multiQuestions[qIdx];
+        if (!q) return;
+
+        const choices = q.choix || q.options || [];
+        const userAnswer = this.userAnswers[`qcm_${qIdx}`];
+
+        let correctIndices = [];
+        if (q.reponses_correctes && Array.isArray(q.reponses_correctes)) {
+            correctIndices = q.reponses_correctes;
+        } else if (q.reponse !== undefined) {
+            correctIndices = [q.reponse];
+        } else if (q.reponse_correcte !== undefined) {
+            correctIndices = [q.reponse_correcte];
+        } else {
+            correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
+        }
+
+        const isCorrect = correctIndices.includes(parseInt(userAnswer));
+
+        // Afficher le feedback
+        const qcmFeedback = document.getElementById(`feedback_qcm_${qIdx}`);
+        if (qcmFeedback) {
+            qcmFeedback.style.display = 'block';
+            qcmFeedback.className = `qcm-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+            qcmFeedback.textContent = isCorrect ? '✓ Correct !' : `✗ Ce n'est pas la bonne réponse.`;
+
+            const feedbacksOptions = q.feedbacks_options || [];
+            const chosenIdx = parseInt(userAnswer);
+            if (feedbacksOptions[chosenIdx]) {
+                qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
+            } else if (isCorrect && q.feedback_correct) {
+                qcmFeedback.textContent += ` ${q.feedback_correct}`;
+            } else if (!isCorrect && q.feedback_incorrect) {
+                qcmFeedback.textContent += ` ${q.feedback_incorrect}`;
+            }
+        }
+
+        // Verrouiller les choix de cette question
+        const block = document.querySelector(`.qcm-question-block[data-question="${qIdx}"]`);
+        if (block) {
+            block.querySelectorAll('input').forEach(el => el.disabled = true);
+        }
+
+        // Stocker le résultat
+        this._qcmResults[qIdx] = {
+            question: q.question,
+            reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
+            attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
+            correct: isCorrect
+        };
+
+        // Remplacer le bouton : "Valider" → "Suivant →" ou déclencher la validation globale
+        const totalQ = donnees.multiQuestions.length;
+        const allValidated = Object.keys(this._qcmResults).length >= totalQ;
+        const actionDiv = document.getElementById(`qcm_action_${qIdx}`);
+
+        if (allValidated) {
+            // Toutes les questions ont été validées → déclencher la validation de l'étape
+            if (actionDiv) actionDiv.innerHTML = '';
+            this.validateCurrentEtape();
+        } else if (qIdx < totalQ - 1) {
+            // Pas la dernière → bouton "Suivant →"
+            if (actionDiv) {
+                actionDiv.innerHTML = `<button class="btn-qcm-next" onclick="EleveConnaissances.qcmNavNext()">Suivant →</button>`;
+            }
+        } else {
+            // Dernière question mais d'autres avant ne sont pas validées
+            if (actionDiv) {
+                actionDiv.innerHTML = `<button class="btn-qcm-next" onclick="EleveConnaissances.qcmNavGoTo(${this.findNextUnvalidatedQcm()})">← Revenir aux questions non validées</button>`;
+            }
+        }
+    },
+
+    /** Trouve la prochaine question QCM non validée */
+    findNextUnvalidatedQcm() {
+        const currentEtape = this.currentEtapes[this.currentEtapeIndex];
+        const storedData = this.selectedQuestionsPerEtape[currentEtape.id];
+        const donnees = storedData?.donnees || this.getEtapeDonnees(currentEtape);
+        const totalQ = donnees.multiQuestions ? donnees.multiQuestions.length : 0;
+        for (let i = 0; i < totalQ; i++) {
+            if (!this._qcmResults[i]) return i;
+        }
+        return 0;
+    },
+
     /** Navigation QCM multi-questions : aller à une question */
     qcmNavGoTo(index) {
         const container = document.querySelector('.qcm-multi-container');
@@ -3035,12 +3161,6 @@ const EleveConnaissances = {
         const nextBtn = container.querySelector('.qcm-nav-next');
         if (prevBtn) prevBtn.disabled = index === 0;
         if (nextBtn) nextBtn.disabled = index === total - 1;
-
-        // Afficher le bouton Valider uniquement sur la dernière question
-        const validateBtn = document.querySelector('#etapeActionBar .validate-btn');
-        if (validateBtn && total > 1) {
-            validateBtn.style.display = index === total - 1 ? '' : 'none';
-        }
     },
 
     /** Navigation QCM : question précédente */

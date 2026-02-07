@@ -433,6 +433,41 @@
     text-align: center;
 }
 
+/* Bouton Valider / Suivant par question QCM */
+.qcm-question-action {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.btn-qcm-validate,
+.btn-qcm-next {
+    padding: 0.6rem 2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-qcm-validate {
+    background: #6366f1;
+    color: white;
+}
+
+.btn-qcm-validate:hover {
+    background: #4f46e5;
+}
+
+.btn-qcm-next {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-qcm-next:hover {
+    background: #2563eb;
+}
+
 .qcm-question-block .question-enonce {
     font-size: 1.05rem;
     font-weight: 500;
