@@ -3700,6 +3700,27 @@ const AdminBanquesExercices = {
                     banque_exercice_id: this.wizardData.banqueId
                 };
 
+                // ✅ VALIDATIONS WIZARD (même que saveEntrainementConnAndEdit)
+                if (!formData.titre) {
+                    alert('Le titre est requis');
+                    return;
+                }
+
+                if (formData.duree <= 0 || formData.duree > 999) {
+                    alert('La durée doit être entre 1 et 999 minutes');
+                    return;
+                }
+
+                if (formData.seuil < 0 || formData.seuil > 100) {
+                    alert('Le seuil doit être entre 0 et 100%');
+                    return;
+                }
+
+                if (!['brouillon', 'publie'].includes(formData.statut)) {
+                    alert('Statut invalide. Doit être "brouillon" ou "publie"');
+                    return;
+                }
+
                 if (this.wizardData.entrainement) {
                     // Mise à jour
                     formData.id = this.wizardData.entrainement.id;
