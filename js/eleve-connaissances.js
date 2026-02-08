@@ -3002,17 +3002,22 @@ const EleveConnaissances = {
         let totalCorrect = 0;
         let totalQuestions = 0;
 
-        // Pour les étapes non encore validées (timer expiré), créer un résultat vide
+        // Pour les étapes non encore validées (timer expiré), créer un résultat avec le vrai total attendu
         this.currentEtapes.forEach((etape, idx) => {
             if (!this.etapesResults[idx]) {
+                const expectedTotal = this.getExpectedQuestionCount(etape);
+                const details = [];
+                for (let i = 0; i < expectedTotal; i++) {
+                    details.push({ question: `Question ${i + 1}`, reponse: null, attendu: '—', correct: false });
+                }
                 this.etapesResults[idx] = {
                     etapeIndex: idx,
                     etapeTitre: etape.titre || `Étape ${idx + 1}`,
                     format: etape.format_code,
                     correct: 0,
-                    total: 0,
+                    total: expectedTotal,
                     pourcentage: 0,
-                    details: [],
+                    details,
                     donnees: {}
                 };
             }
@@ -3033,8 +3038,38 @@ const EleveConnaissances = {
         };
     },
 
-    // validateSingleEtape supprimé — les résultats sont maintenant
-    // stockés par validateCurrentEtape() dans this.etapesResults
+    /**
+     * Estime le nombre de questions attendues pour une étape non visitée.
+     */
+    getExpectedQuestionCount(etape) {
+        const storedData = this.selectedQuestionsPerEtape[etape.id];
+        const donnees = storedData?.donnees || this.getEtapeDonnees(etape);
+        const format = etape.format_code;
+
+        switch (format) {
+            case 'qcm':
+                return donnees.multiQuestions?.length || 1;
+            case 'vrai_faux':
+                return donnees.propositions?.length || 1;
+            case 'chronologie':
+            case 'timeline':
+                return donnees.cartes?.length || donnees.paires?.length || 1;
+            case 'texte_trou':
+            case 'texte_trous':
+                if (donnees.multiQuestions?.length > 1) return donnees.multiQuestions.length;
+                return (donnees.texte || '').match(/\{[^}]+\}/g)?.length || 1;
+            case 'association':
+                return donnees.paires?.length || 1;
+            case 'carte':
+                return donnees.marqueurs?.length || 1;
+            case 'question_ouverte':
+                return donnees.multiQuestions?.length || 1;
+            case 'flashcard':
+                return donnees.cartes?.length || 1;
+            default:
+                return 1;
+        }
+    },
 
     /**
      * Sauvegarde la progression dans le backend
