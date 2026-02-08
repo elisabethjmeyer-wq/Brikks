@@ -2870,6 +2870,48 @@
     color: #9ca3af;
 }
 
+/* Sous-questions : séparation visuelle dans le carousel de correction */
+.correction-sub-question {
+    padding: 1rem 0;
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 1rem;
+}
+
+.correction-sub-question:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.correction-sub-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.correction-sub-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.correction-sub-format {
+    font-size: 0.8rem;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+}
+
+.correction-sub-score {
+    margin-left: auto;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #dc2626;
+}
+
 /* Mini frise de correction pour les timelines */
 .correction-timeline-hint {
     text-align: center;

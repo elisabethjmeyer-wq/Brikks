@@ -2552,7 +2552,7 @@ const EleveConnaissances = {
             case 'chronologie':
             case 'timeline':
                 if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
-                    Object.values(this._multiFormatState.results).forEach(r => { total += r.total; correct += r.correct; details.push(...r.details); });
+                    Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
                     break;
                 }
                 if (donnees.paires && donnees.mode) {
@@ -2637,7 +2637,7 @@ const EleveConnaissances = {
             case 'texte_trou':
             case 'texte_trous':
                 if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
-                    Object.values(this._multiFormatState.results).forEach(r => { total += r.total; correct += r.correct; details.push(...r.details); });
+                    Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
                     break;
                 }
                 const trouInputs = document.querySelectorAll('.trou-input');
@@ -2667,7 +2667,7 @@ const EleveConnaissances = {
 
             case 'carte':
                 if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
-                    Object.values(this._multiFormatState.results).forEach(r => { total += r.total; correct += r.correct; details.push(...r.details); });
+                    Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
                     break;
                 }
                 const marqueurs = donnees.marqueurs || [];
@@ -2754,7 +2754,7 @@ const EleveConnaissances = {
 
             case 'association':
                 if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
-                    Object.values(this._multiFormatState.results).forEach(r => { total += r.total; correct += r.correct; details.push(...r.details); });
+                    Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
                     break;
                 }
                 const assocPaires = donnees.paires || [];
@@ -2861,6 +2861,14 @@ const EleveConnaissances = {
         const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
 
         // Stocker le résultat pour le bilan final
+        // Si multi-format, conserver les données de chaque sous-question pour la correction visuelle
+        const subQuestions = (this._multiFormatState && this._multiFormatState.questions)
+            ? this._multiFormatState.questions.map((q, qIdx) => ({
+                qData: q,
+                result: this._multiFormatState.results[qIdx] || { correct: 0, total: 0, details: [] }
+            }))
+            : null;
+
         this.etapesResults[this.currentEtapeIndex] = {
             etapeIndex: this.currentEtapeIndex,
             etapeTitre: currentEtape.titre || `Étape ${this.currentEtapeIndex + 1}`,
@@ -2869,7 +2877,8 @@ const EleveConnaissances = {
             total,
             pourcentage: percent,
             details,
-            donnees
+            donnees,
+            subQuestions
         };
 
         // Désactiver les inputs
@@ -3244,27 +3253,23 @@ const EleveConnaissances = {
             </div>
         `;
 
-        // Slides 1..N : une par étape avec erreurs uniquement
-        const etapeSlides = etapesWithErrors.map((ed, i) => {
-            let content = '';
-            const fmt = ed.etape.format;
-            const donnees = ed.etape.donnees || {};
+        // Helper : rend la correction d'une sous-question selon son format
+        const renderSingleCorrection = (qData, qDetails, qErrors) => {
+            const hasCartes = qData.cartes?.length > 0;
+            const hasPaires = qData.paires?.length > 0;
+            const hasMode = !!qData.mode;
+            const hasMarqueurs = qData.marqueurs?.length > 0;
 
-            if ((fmt === 'chronologie' || fmt === 'timeline') && donnees.cartes?.length > 0) {
-                // Timeline : frise de l'élève (avec erreurs) + frise correcte
-                const allDetails = ed.etape.details || [];
-                const studentCards = allDetails.map((d, idx) => ({
-                    titre: d.reponse,
-                    correct: d.correct,
-                    attendu: d.attendu
+            if (hasCartes) {
+                // Timeline (cartes drag & drop) : frise élève + frise correcte
+                const studentCards = qDetails.map(d => ({
+                    titre: d.reponse, correct: d.correct, attendu: d.attendu
                 }));
-
-                // Frise de l'élève (ta réponse)
                 const studentHtml = studentCards.length > 0 ? `
                     <p class="correction-timeline-hint correction-timeline-hint--student">Ta réponse :</p>
                     <div class="correction-timeline-cards">
                         ${studentCards.map((sc, ci) => {
-                            const carte = donnees.cartes.find(c => c.titre === sc.titre) || {};
+                            const carte = qData.cartes.find(c => c.titre === sc.titre) || {};
                             const imageUrl = carte.image_url ? this.normalizeImageUrl(carte.image_url) : '';
                             const hasImage = !!imageUrl;
                             const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
@@ -3278,12 +3283,10 @@ const EleveConnaissances = {
                         }).join('')}
                     </div>
                 ` : '';
-
-                // Frise correcte
                 const correctHtml = `
                     <p class="correction-timeline-hint correction-timeline-hint--correct">Ordre correct :</p>
                     <div class="correction-timeline-cards">
-                        ${donnees.cartes.map((carte, ci) => {
+                        ${qData.cartes.map((carte, ci) => {
                             const imageUrl = carte.image_url ? this.normalizeImageUrl(carte.image_url) : '';
                             const hasImage = !!imageUrl;
                             const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
@@ -3296,40 +3299,28 @@ const EleveConnaissances = {
                         }).join('')}
                     </div>
                 `;
+                return studentHtml + correctHtml;
+            }
 
-                content = studentHtml + correctHtml;
-            } else if (fmt === 'flashcard' && donnees.cartes?.length > 0) {
-                // Flashcards : recto/verso des cartes ratées
-                const allDetails = ed.etape.details || [];
-                const failedIndices = allDetails.map((d, di) => !d.correct ? di : -1).filter(di => di >= 0);
-                const failedCartes = failedIndices.map(fi => donnees.cartes[fi]).filter(Boolean);
-                content = failedCartes.map(carte => `
-                    <div class="correction-flashcard-row">
-                        <div class="correction-flashcard-recto">${this.escapeHtml(carte.recto)}</div>
-                        <span class="correction-flashcard-arrow">→</span>
-                        <div class="correction-flashcard-verso">${this.escapeHtml(carte.verso)}</div>
-                    </div>
-                `).join('');
-            } else if (fmt === 'carte' && donnees.marqueurs?.length > 0 && donnees.image_url) {
-                // Image cliquable : uniquement les marqueurs ratés
-                const allDetails = ed.etape.details || [];
-                const failedDetails = allDetails.filter(d => !d.correct);
-                content = failedDetails.map(err => `
+            if (hasPaires && hasMode) {
+                // Chronologie texte (frise avec dates/événements à compléter) : erreurs uniquement
+                return qErrors.map(err => `
                     <div class="correction-error-row">
                         <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
                         <div class="correction-error-answers">
                             <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
-                            ${err.attendu ? `<span class="correction-expected">→ ${renderElement((err.attendu || '').split('|')[0], 'correction-expected-val')}</span>` : ''}
+                            ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
                         </div>
                     </div>
                 `).join('');
-            } else if (fmt === 'association' && donnees.paires?.length > 0) {
-                // Association : uniquement les paires ratées
-                const allDetails = ed.etape.details || [];
-                const failedPairIndices = allDetails.map((d, di) => !d.correct ? di : -1).filter(di => di >= 0);
-                const failedPaires = failedPairIndices.map(fi => donnees.paires[fi]).filter(Boolean);
-                const pairesToShow = failedPaires.length > 0 ? failedPaires : donnees.paires;
-                content = `
+            }
+
+            if (hasPaires) {
+                // Association
+                const failedPairIndices = qDetails.map((d, di) => !d.correct ? di : -1).filter(di => di >= 0);
+                const failedPaires = failedPairIndices.map(fi => qData.paires[fi]).filter(Boolean);
+                const pairesToShow = failedPaires.length > 0 ? failedPaires : qData.paires;
+                return `
                     <div class="correction-assoc-grid">
                         ${pairesToShow.map(p => {
                             const el1 = p.element1;
@@ -3353,17 +3344,95 @@ const EleveConnaissances = {
                         }).join('')}
                     </div>
                 `;
-            } else {
-                // QCM, V/F, Texte à trous, Question ouverte : erreurs uniquement
-                content = ed.errors.map(err => `
+            }
+
+            if (hasMarqueurs && qData.image_url) {
+                // Carte / image cliquable
+                const failedDetails = qDetails.filter(d => !d.correct);
+                return failedDetails.map(err => `
                     <div class="correction-error-row">
                         <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
                         <div class="correction-error-answers">
                             <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
-                            ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
+                            ${err.attendu ? `<span class="correction-expected">→ ${renderElement((err.attendu || '').split('|')[0], 'correction-expected-val')}</span>` : ''}
                         </div>
                     </div>
                 `).join('');
+            }
+
+            // Fallback : erreurs texte (QCM, V/F, Texte à trous, Question ouverte)
+            return qErrors.map(err => `
+                <div class="correction-error-row">
+                    <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
+                    <div class="correction-error-answers">
+                        <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
+                        ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        // Helper : détermine le label du sous-format d'une question
+        const getSubFormatLabel = (qData, fallbackFormat) => {
+            if (qData.cartes?.length > 0) return 'Frise à cartes';
+            if (qData.paires?.length > 0 && qData.mode) return 'Frise chronologique';
+            if (qData.paires?.length > 0) return 'Association';
+            if (qData.marqueurs?.length > 0) return 'Carte';
+            if (qData.texte) return 'Texte à trous';
+            return this.getFormatLabel(fallbackFormat || '');
+        };
+
+        // Slides 1..N : une par étape avec erreurs uniquement
+        const etapeSlides = etapesWithErrors.map((ed, i) => {
+            let content = '';
+            const fmt = ed.etape.format;
+            const donnees = ed.etape.donnees || {};
+            const subQuestions = ed.etape.subQuestions;
+
+            // Multi-questions : rendre chaque sous-question séparément avec le bon format visuel
+            if (subQuestions && subQuestions.length > 1) {
+                content = subQuestions.map((sq, qIdx) => {
+                    const qDetails = sq.result.details || [];
+                    const qErrors = qDetails.filter(d => !d.correct);
+                    if (qErrors.length === 0) return ''; // pas d'erreurs dans cette sous-question
+                    const subLabel = getSubFormatLabel(sq.qData, fmt);
+                    const subContent = renderSingleCorrection(sq.qData, qDetails, qErrors);
+                    return `
+                        <div class="correction-sub-question">
+                            <div class="correction-sub-header">
+                                <span class="correction-sub-title">Exercice ${qIdx + 1}/${subQuestions.length}</span>
+                                <span class="correction-sub-format">${this.escapeHtml(subLabel)}</span>
+                                <span class="correction-sub-score">${sq.result.correct}/${sq.result.total}</span>
+                            </div>
+                            ${subContent}
+                        </div>
+                    `;
+                }).filter(Boolean).join('');
+            } else if ((fmt === 'chronologie' || fmt === 'timeline') && donnees.cartes?.length > 0) {
+                // Timeline simple (pas multi) : frise élève + frise correcte
+                const allDetails = ed.etape.details || [];
+                content = renderSingleCorrection(donnees, allDetails, ed.errors);
+            } else if (fmt === 'flashcard' && donnees.cartes?.length > 0) {
+                // Flashcards : recto/verso des cartes ratées
+                const allDetails = ed.etape.details || [];
+                const failedIndices = allDetails.map((d, di) => !d.correct ? di : -1).filter(di => di >= 0);
+                const failedCartes = failedIndices.map(fi => donnees.cartes[fi]).filter(Boolean);
+                content = failedCartes.map(carte => `
+                    <div class="correction-flashcard-row">
+                        <div class="correction-flashcard-recto">${this.escapeHtml(carte.recto)}</div>
+                        <span class="correction-flashcard-arrow">→</span>
+                        <div class="correction-flashcard-verso">${this.escapeHtml(carte.verso)}</div>
+                    </div>
+                `).join('');
+            } else if (fmt === 'carte' && donnees.marqueurs?.length > 0 && donnees.image_url) {
+                // Image cliquable simple
+                content = renderSingleCorrection(donnees, ed.etape.details || [], ed.errors);
+            } else if (fmt === 'association' && donnees.paires?.length > 0) {
+                // Association simple
+                content = renderSingleCorrection(donnees, ed.etape.details || [], ed.errors);
+            } else {
+                // QCM, V/F, Texte à trous, Question ouverte : erreurs uniquement
+                content = renderSingleCorrection(donnees, ed.etape.details || [], ed.errors);
             }
 
             return `
