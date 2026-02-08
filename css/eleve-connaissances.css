@@ -3466,6 +3466,36 @@
     display: none;
 }
 
+/* Labels de correction après validation */
+.carte-label-correct {
+    color: #059669;
+    font-weight: 600;
+}
+
+.carte-label-wrong {
+    color: #dc2626;
+    text-decoration: line-through;
+}
+
+.carte-label-arrow {
+    color: #6b7280;
+    margin: 0 2px;
+}
+
+/* Marqueur non répondu : pastille rouge avec style distinct */
+.carte-marker-v2.not-answered {
+    background: #ef4444;
+    opacity: 0.75;
+}
+
+/* Label plus lisible après validation */
+.carte-marker-v2.correct .carte-marker-answer-label,
+.carte-marker-v2.incorrect .carte-marker-answer-label {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
 /* ============================================
    NOUVELLES AMÉLIORATIONS UX - 2024
    ============================================ */
