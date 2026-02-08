@@ -280,18 +280,20 @@ const AdminBanquesExercices = {
             this.saveToCache();
         } catch (error) {
             console.error('Erreur chargement donnees:', error);
-            // Initialize with empty arrays if API fails
-            this.banques = [];
-            this.formats = [];
-            this.exercices = [];
-            this.tachesComplexes = [];
-            this.competencesReferentiel = [];
-            this.banquesQuestions = [];
-            this.questionsConnaissances = [];
-            this.formatsQuestions = [];
-            this.banquesExercicesConn = [];
-            this.entrainementsConn = [];
-            this.etapesConn = [];
+            // En cas d'erreur API (timeout, etc.), ne pas écraser les données valides existantes
+            // formatsQuestions garde son initialisation par défaut ou sa dernière valeur valide
+            // Seulement réinitialiser les données du serveur si elle n'existent pas
+            if (!this.banques) this.banques = [];
+            if (!this.formats) this.formats = [];
+            if (!this.exercices) this.exercices = [];
+            if (!this.tachesComplexes) this.tachesComplexes = [];
+            if (!this.competencesReferentiel) this.competencesReferentiel = [];
+            if (!this.banquesQuestions) this.banquesQuestions = [];
+            if (!this.questionsConnaissances) this.questionsConnaissances = [];
+            // formatsQuestions n'est pas réinitialisée - elle garde son initialisation par défaut
+            if (!this.banquesExercicesConn) this.banquesExercicesConn = [];
+            if (!this.entrainementsConn) this.entrainementsConn = [];
+            if (!this.etapesConn) this.etapesConn = [];
         }
     },
 
