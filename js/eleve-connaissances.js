@@ -1521,6 +1521,82 @@ const EleveConnaissances = {
     },
 
     /**
+     * Ajoute un toggle "Ma réponse" / "Correction" au-dessus des cartes timeline.
+     * Permet à l'élève de basculer entre son ordre et l'ordre correct avec animation.
+     */
+    addTimelineToggle(cardsContainer, cartes, studentOrder) {
+        // Ne pas ajouter si déjà présent
+        if (cardsContainer.parentElement.querySelector('.timeline-toggle')) return;
+
+        const toggleHtml = `
+            <div class="timeline-toggle">
+                <button class="toggle-btn active" data-view="student">Ma réponse</button>
+                <button class="toggle-btn" data-view="correction">Correction</button>
+            </div>
+        `;
+        cardsContainer.insertAdjacentHTML('beforebegin', toggleHtml);
+
+        const toggleContainer = cardsContainer.parentElement.querySelector('.timeline-toggle');
+        const btnStudent = toggleContainer.querySelector('[data-view="student"]');
+        const btnCorrection = toggleContainer.querySelector('[data-view="correction"]');
+
+        // L'ordre correct = les originalIndex en ordre croissant (0, 1, 2, 3, ...)
+        const correctOrder = cartes.map((_, i) => i);
+
+        const reorderCards = (targetOrder, activeBtn, inactiveBtn) => {
+            activeBtn.classList.add('active');
+            inactiveBtn.classList.remove('active');
+
+            const cards = Array.from(cardsContainer.querySelectorAll('.timeline-card'));
+            // Créer un map originalIndex → élément DOM
+            const cardsByOriginal = {};
+            cards.forEach(c => { cardsByOriginal[parseInt(c.dataset.originalIndex)] = c; });
+
+            // Ajouter la classe d'animation
+            cardsContainer.classList.add('reordering');
+
+            // Réordonner le DOM selon targetOrder
+            targetOrder.forEach(origIdx => {
+                const card = cardsByOriginal[origIdx];
+                if (card) cardsContainer.appendChild(card);
+            });
+
+            // Mettre à jour les classes correct/incorrect
+            const reorderedCards = Array.from(cardsContainer.querySelectorAll('.timeline-card'));
+            const isShowingCorrection = activeBtn === btnCorrection;
+
+            reorderedCards.forEach((card, pos) => {
+                const origIdx = parseInt(card.dataset.originalIndex);
+                card.classList.remove('correct', 'incorrect');
+                if (isShowingCorrection) {
+                    // En mode correction, tout est dans le bon ordre
+                    card.classList.add('correct');
+                } else {
+                    // En mode "Ma réponse", on remontre le résultat original
+                    if (origIdx === pos) {
+                        card.classList.add('correct');
+                    } else {
+                        card.classList.add('incorrect');
+                    }
+                }
+            });
+
+            // Retirer la classe après l'animation
+            setTimeout(() => cardsContainer.classList.remove('reordering'), 450);
+        };
+
+        btnStudent.addEventListener('click', () => {
+            if (btnStudent.classList.contains('active')) return;
+            reorderCards(studentOrder, btnStudent, btnCorrection);
+        });
+
+        btnCorrection.addEventListener('click', () => {
+            if (btnCorrection.classList.contains('active')) return;
+            reorderCards(correctOrder, btnCorrection, btnStudent);
+        });
+    },
+
+    /**
      * Render Texte à trous
      */
     renderTexteTrous(donnees, questions) {
@@ -2456,6 +2532,9 @@ const EleveConnaissances = {
                         const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-card'));
                         total = cartes.length;
 
+                        // Sauvegarder l'ordre de l'élève avant validation
+                        const studentOrder = placedCards.map(c => parseInt(c.dataset.originalIndex));
+
                         placedCards.forEach((card, positionActuelle) => {
                             const originalIndex = parseInt(card.dataset.originalIndex);
                             card.classList.remove('correct', 'incorrect');
@@ -2464,19 +2543,16 @@ const EleveConnaissances = {
                             if (originalIndex === positionActuelle) {
                                 correct++;
                                 card.classList.add('correct');
-                                // Badge ✓ sur les cartes bien placées
-                                if (!card.querySelector('.timeline-badge')) {
-                                    card.insertAdjacentHTML('beforeend', '<span class="timeline-badge correct-badge">✓</span>');
-                                }
                             } else {
                                 card.classList.add('incorrect');
-                                // Badge avec la bonne position sur les cartes mal placées
-                                if (!card.querySelector('.timeline-badge')) {
-                                    card.insertAdjacentHTML('beforeend', `<span class="timeline-badge incorrect-badge">→ ${originalIndex + 1}</span>`);
-                                }
                             }
                             details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
                         });
+
+                        // Ajouter le toggle Ma réponse / Correction si pas tout correct
+                        if (correct < total) {
+                            this.addTimelineToggle(cardsContainer, cartes, studentOrder);
+                        }
                     }
                 }
                 break;
@@ -3536,6 +3612,9 @@ const EleveConnaissances = {
         const cardsContainer = container.querySelector('.timeline-cards');
         if (cardsContainer) {
             const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-card'));
+            // Sauvegarder l'ordre de l'élève avant validation
+            const studentOrder = placedCards.map(c => parseInt(c.dataset.originalIndex));
+
             placedCards.forEach((card, positionActuelle) => {
                 const originalIndex = parseInt(card.dataset.originalIndex);
                 card.classList.remove('correct', 'incorrect');
@@ -3544,19 +3623,16 @@ const EleveConnaissances = {
                 if (originalIndex === positionActuelle) {
                     correct++;
                     card.classList.add('correct');
-                    // Badge ✓ sur les cartes bien placées
-                    if (!card.querySelector('.timeline-badge')) {
-                        card.insertAdjacentHTML('beforeend', '<span class="timeline-badge correct-badge">✓</span>');
-                    }
                 } else {
                     card.classList.add('incorrect');
-                    // Badge avec la bonne position sur les cartes mal placées
-                    if (!card.querySelector('.timeline-badge')) {
-                        card.insertAdjacentHTML('beforeend', `<span class="timeline-badge incorrect-badge">→ ${originalIndex + 1}</span>`);
-                    }
                 }
                 details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
             });
+
+            // Ajouter le toggle Ma réponse / Correction si pas tout correct
+            if (correct < total) {
+                this.addTimelineToggle(cardsContainer, cartes, studentOrder);
+            }
         }
 
         return { correct, total, details };
