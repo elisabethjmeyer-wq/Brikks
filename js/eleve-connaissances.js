@@ -3251,9 +3251,37 @@ const EleveConnaissances = {
             const donnees = ed.etape.donnees || {};
 
             if ((fmt === 'chronologie' || fmt === 'timeline') && donnees.cartes?.length > 0) {
-                // Timeline : mini frise avec toutes les cartes dans le bon ordre
-                content = `
-                    <p class="correction-timeline-hint">Ordre correct :</p>
+                // Timeline : frise de l'élève (avec erreurs) + frise correcte
+                const allDetails = ed.etape.details || [];
+                const studentCards = allDetails.map((d, idx) => ({
+                    titre: d.reponse,
+                    correct: d.correct,
+                    attendu: d.attendu
+                }));
+
+                // Frise de l'élève (ta réponse)
+                const studentHtml = studentCards.length > 0 ? `
+                    <p class="correction-timeline-hint correction-timeline-hint--student">Ta réponse :</p>
+                    <div class="correction-timeline-cards">
+                        ${studentCards.map((sc, ci) => {
+                            const carte = donnees.cartes.find(c => c.titre === sc.titre) || {};
+                            const imageUrl = carte.image_url ? this.normalizeImageUrl(carte.image_url) : '';
+                            const hasImage = !!imageUrl;
+                            const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
+                            const statusClass = sc.correct ? 'card-correct' : 'card-incorrect';
+                            return `
+                                <div class="correction-timeline-card ${hasImage ? 'has-image' : ''} ${statusClass}" ${imgStyle}>
+                                    <span class="correction-timeline-pos">${ci + 1}</span>
+                                    <span class="correction-timeline-titre">${this.escapeHtml(sc.titre || '—')}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : '';
+
+                // Frise correcte
+                const correctHtml = `
+                    <p class="correction-timeline-hint correction-timeline-hint--correct">Ordre correct :</p>
                     <div class="correction-timeline-cards">
                         ${donnees.cartes.map((carte, ci) => {
                             const imageUrl = carte.image_url ? this.normalizeImageUrl(carte.image_url) : '';
@@ -3268,6 +3296,8 @@ const EleveConnaissances = {
                         }).join('')}
                     </div>
                 `;
+
+                content = studentHtml + correctHtml;
             } else if (fmt === 'flashcard' && donnees.cartes?.length > 0) {
                 // Flashcards : recto/verso des cartes ratées
                 const allDetails = ed.etape.details || [];
