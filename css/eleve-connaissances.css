@@ -2189,6 +2189,7 @@
     justify-content: center;
     gap: 0;
     margin-bottom: 1rem;
+    pointer-events: auto;
 }
 
 .timeline-toggle .toggle-btn {
@@ -3938,6 +3939,12 @@
 .exercise-content.validated {
     opacity: 0.85;
     pointer-events: none;
+}
+
+/* Réactiver les interactions pour le toggle timeline et ses cartes après validation */
+.exercise-content.validated .timeline-toggle,
+.exercise-content.validated .timeline-cards {
+    pointer-events: auto;
 }
 
 /* (styles bilan connaissances déplacés dans le bloc unifié plus haut) */
