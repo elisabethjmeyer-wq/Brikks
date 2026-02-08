@@ -4054,11 +4054,18 @@ const AdminBanquesExercices = {
     // Filtre les questions disponibles pour un format donné
     getQuestionsForFormat(formatCode) {
         const questions = this.questionsConnaissances || [];
+
+        // Si on crée un nouvel entraînement depuis une banque spécifique, filtrer par banque
+        let filtered = questions;
+        if (this.wizardData && this.wizardData.banqueId && !this.wizardData.entrainement) {
+            filtered = questions.filter(q => q.banque_id === this.wizardData.banqueId);
+        }
+
         // Timeline unifié : inclure aussi les anciennes questions chronologie
         if (formatCode === 'timeline') {
-            return questions.filter(q => q.type === 'timeline' || q.type === 'chronologie');
+            return filtered.filter(q => q.type === 'timeline' || q.type === 'chronologie');
         }
-        return questions.filter(q => q.type === formatCode);
+        return filtered.filter(q => q.type === formatCode);
     },
 
     async addWizardEtape(formatCode) {
@@ -5625,7 +5632,7 @@ const AdminBanquesExercices = {
                             <h4>Questions</h4>
                             <div class="exercices-header-actions">
                                 <button class="btn btn-primary btn-sm" onclick="AdminBanquesExercices.addQuestionConnaissances('${banque.id}')">+ Ajouter</button>
-                                <button class="btn btn-success btn-sm" onclick="AdminBanquesExercices.openEntrainementModal('${banque.id}')" ${questions.length === 0 ? 'disabled title="Ajoutez des questions d\'abord"' : ''}>🎯 Créer entraînement</button>
+                                <button class="btn btn-success btn-sm" onclick="AdminBanquesExercices.openEntrainementWizard(null, '${banque.id}')" ${questions.length === 0 ? 'disabled title="Ajoutez des questions d\'abord"' : ''}>🎯 Créer entraînement</button>
                             </div>
                         </div>
                         ${this.renderQuestionsConnaissances(questions, banque.id)}
@@ -7381,215 +7388,6 @@ const AdminBanquesExercices = {
         document.getElementById('deleteModal').classList.remove('hidden');
     },
 
-    // ========== ENTRAINEMENTS CONNAISSANCES ==========
-    openEntrainementModal(banqueId) {
-        const banque = this.banquesQuestions.find(b => b.id === banqueId);
-        if (!banque) return;
-
-        const questions = this.questionsConnaissances.filter(q => q.banque_id === banqueId);
-        if (questions.length === 0) {
-            alert('Ajoutez des questions à cette banque avant de créer un entraînement.');
-            return;
-        }
-
-        // Vérifier que le modal existe (problème de cache possible)
-        const modal = document.getElementById('entrainementConnModal');
-        const etapesContainer = document.getElementById('entrainementEtapesConfig');
-
-        if (!modal || !etapesContainer) {
-            alert('Erreur : Veuillez rafraîchir la page (Ctrl+Shift+R) pour charger la nouvelle version.');
-            return;
-        }
-
-        // Populate modal
-        document.getElementById('entrainementBanqueId').value = banqueId;
-        document.getElementById('entrainementTitre').value = 'Entraînement - ' + (banque.titre || '');
-        document.getElementById('entrainementDescription').value = '';
-        document.getElementById('entrainementSeuil').value = 80;
-        document.getElementById('entrainementStatut').value = 'brouillon';
-
-        // Count questions by type
-        const questionsByType = {};
-        questions.forEach(q => {
-            questionsByType[q.type] = (questionsByType[q.type] || 0) + 1;
-        });
-        let etapeNum = 1;
-        etapesContainer.innerHTML = Object.entries(questionsByType).map(([type, count]) => {
-            const typeName = this.questionTypeNames[type] || type;
-            const defaultNb = Math.min(3, count); // Default to 3 questions or max available
-            const html = `
-                <div class="etape-row active" data-type="${type}">
-                    <input type="checkbox" class="etape-checkbox" name="etapeEnabled" value="${type}" checked
-                           onchange="AdminBanquesExercices.toggleEtape(this)">
-                    <div class="etape-info">
-                        <span class="etape-name">Étape ${etapeNum} : ${typeName}</span>
-                        <span class="etape-count">${count} question(s) disponible(s)</span>
-                    </div>
-                    <input type="number" class="etape-number-input" name="etapeNb_${type}"
-                           value="${defaultNb}" min="1" max="${count}"
-                           onchange="AdminBanquesExercices.updateTotalQuestions()">
-                    <span class="etape-number-label">question(s)</span>
-                </div>
-            `;
-            etapeNum++;
-            return html;
-        }).join('');
-
-        // Update total
-        this.updateTotalQuestions();
-
-        document.getElementById('entrainementConnModal').classList.remove('hidden');
-    },
-
-    toggleEtape(checkbox) {
-        const row = checkbox.closest('.etape-row');
-        const numberInput = row.querySelector('.etape-number-input');
-
-        if (checkbox.checked) {
-            row.classList.add('active');
-            numberInput.disabled = false;
-        } else {
-            row.classList.remove('active');
-            numberInput.disabled = true;
-        }
-
-        this.updateTotalQuestions();
-        this.renumberEtapes();
-    },
-
-    renumberEtapes() {
-        const rows = document.querySelectorAll('.etape-row');
-        let etapeNum = 1;
-        rows.forEach(row => {
-            const checkbox = row.querySelector('.etape-checkbox');
-            const nameSpan = row.querySelector('.etape-name');
-            const type = row.dataset.type;
-            const typeName = this.questionTypeNames[type] || type;
-
-            if (checkbox.checked) {
-                nameSpan.textContent = `Étape ${etapeNum} : ${typeName}`;
-                etapeNum++;
-            } else {
-                nameSpan.textContent = `(Désactivé) ${typeName}`;
-            }
-        });
-    },
-
-    updateTotalQuestions() {
-        let total = 0;
-        document.querySelectorAll('.etape-row').forEach(row => {
-            const checkbox = row.querySelector('.etape-checkbox');
-            const numberInput = row.querySelector('.etape-number-input');
-            if (checkbox.checked && numberInput.value) {
-                total += parseInt(numberInput.value) || 0;
-            }
-        });
-
-        const info = document.getElementById('totalQuestionsInfo');
-        if (info) {
-            info.textContent = `Total : ${total} question(s)`;
-        }
-    },
-
-    closeEntrainementModal() {
-        document.getElementById('entrainementConnModal').classList.add('hidden');
-    },
-
-    async saveEntrainement() {
-        const banqueId = document.getElementById('entrainementBanqueId').value;
-        const titre = document.getElementById('entrainementTitre').value.trim();
-        const description = document.getElementById('entrainementDescription').value.trim();
-        const seuil = parseInt(document.getElementById('entrainementSeuil').value) || 80;
-        const statut = document.getElementById('entrainementStatut').value;
-
-        if (!titre) {
-            alert('Le titre est requis');
-            return;
-        }
-
-        // Get etapes configuration from the modal
-        const etapesConfig = [];
-        let etapeNum = 1;
-        document.querySelectorAll('.etape-row').forEach(row => {
-            const checkbox = row.querySelector('.etape-checkbox');
-            const numberInput = row.querySelector('.etape-number-input');
-            const type = row.dataset.type;
-
-            if (checkbox.checked && numberInput.value) {
-                etapesConfig.push({
-                    etape: etapeNum,
-                    type: type,
-                    nbQuestions: parseInt(numberInput.value) || 1
-                });
-                etapeNum++;
-            }
-        });
-
-        if (etapesConfig.length === 0) {
-            alert('Activez au moins une étape');
-            return;
-        }
-
-        // Calculate total questions
-        const totalQuestions = etapesConfig.reduce((sum, e) => sum + e.nbQuestions, 0);
-
-        try {
-            // Create the entrainement with etapes info
-            const entrainementData = {
-                titre: titre,
-                description: description,
-                niveau: 'connaissances',
-                duree_estimee: Math.ceil(totalQuestions * 1.5), // ~1.5 min per question
-                statut: statut,
-                seuil_validation: seuil,
-                nb_etapes: etapesConfig.length
-            };
-
-            const result = await this.callAPI('createEntrainement', entrainementData);
-
-            if (!result.success) {
-                alert('Erreur: ' + (result.error || 'Erreur création entraînement'));
-                return;
-            }
-
-            const entrainementId = result.id;
-
-            // Add questions to the entrainement, organized by étapes
-            let globalOrdre = 1;
-            for (const etape of etapesConfig) {
-                // Get all questions of this type for this banque
-                const questionsOfType = this.questionsConnaissances.filter(q => {
-                    if (q.banque_id !== banqueId) return false;
-                    if (etape.type === 'timeline') return q.type === 'timeline' || q.type === 'chronologie';
-                    return q.type === etape.type;
-                });
-
-                // Random selection
-                const shuffled = [...questionsOfType].sort(() => Math.random() - 0.5);
-                const selected = shuffled.slice(0, etape.nbQuestions);
-
-                // Save each question with its etape number
-                for (const q of selected) {
-                    await this.callAPI('createEntrainementQuestion', {
-                        entrainement_id: entrainementId,
-                        question_id: q.id,
-                        banque_id: banqueId,
-                        question_type: q.type,
-                        ordre: globalOrdre,
-                        etape: etape.etape
-                    });
-                    globalOrdre++;
-                }
-            }
-
-            this.closeEntrainementModal();
-            alert(`Entraînement créé avec ${totalQuestions} questions réparties en ${etapesConfig.length} étape(s) !`);
-
-        } catch (error) {
-            console.error('Erreur création entraînement:', error);
-            alert('Erreur lors de la création de l\'entraînement');
-        }
-    },
 
     // ========== UTILS ==========
     escapeHtml(str) {
