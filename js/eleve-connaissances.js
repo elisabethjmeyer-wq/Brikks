@@ -3247,11 +3247,61 @@ const EleveConnaissances = {
         // Slides 1..N : une par étape avec erreurs uniquement
         const etapeSlides = etapesWithErrors.map((ed, i) => {
             let content = '';
-            if (ed.etape.format === 'association' && ed.etape.donnees?.paires) {
-                const paires = ed.etape.donnees.paires;
+            const fmt = ed.etape.format;
+            const donnees = ed.etape.donnees || {};
+
+            if ((fmt === 'chronologie' || fmt === 'timeline') && donnees.cartes?.length > 0) {
+                // Timeline : mini frise avec toutes les cartes dans le bon ordre
+                content = `
+                    <p class="correction-timeline-hint">Ordre correct :</p>
+                    <div class="correction-timeline-cards">
+                        ${donnees.cartes.map((carte, ci) => {
+                            const imageUrl = carte.image_url ? this.normalizeImageUrl(carte.image_url) : '';
+                            const hasImage = !!imageUrl;
+                            const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
+                            return `
+                                <div class="correction-timeline-card ${hasImage ? 'has-image' : ''}" ${imgStyle}>
+                                    <span class="correction-timeline-pos">${ci + 1}</span>
+                                    <span class="correction-timeline-titre">${this.escapeHtml(carte.titre)}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            } else if (fmt === 'flashcard' && donnees.cartes?.length > 0) {
+                // Flashcards : recto/verso des cartes ratées
+                const allDetails = ed.etape.details || [];
+                const failedIndices = allDetails.map((d, di) => !d.correct ? di : -1).filter(di => di >= 0);
+                const failedCartes = failedIndices.map(fi => donnees.cartes[fi]).filter(Boolean);
+                content = failedCartes.map(carte => `
+                    <div class="correction-flashcard-row">
+                        <div class="correction-flashcard-recto">${this.escapeHtml(carte.recto)}</div>
+                        <span class="correction-flashcard-arrow">→</span>
+                        <div class="correction-flashcard-verso">${this.escapeHtml(carte.verso)}</div>
+                    </div>
+                `).join('');
+            } else if (fmt === 'carte' && donnees.marqueurs?.length > 0 && donnees.image_url) {
+                // Image cliquable : uniquement les marqueurs ratés
+                const allDetails = ed.etape.details || [];
+                const failedDetails = allDetails.filter(d => !d.correct);
+                content = failedDetails.map(err => `
+                    <div class="correction-error-row">
+                        <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
+                        <div class="correction-error-answers">
+                            <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
+                            ${err.attendu ? `<span class="correction-expected">→ ${renderElement((err.attendu || '').split('|')[0], 'correction-expected-val')}</span>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } else if (fmt === 'association' && donnees.paires?.length > 0) {
+                // Association : uniquement les paires ratées
+                const allDetails = ed.etape.details || [];
+                const failedPairIndices = allDetails.map((d, di) => !d.correct ? di : -1).filter(di => di >= 0);
+                const failedPaires = failedPairIndices.map(fi => donnees.paires[fi]).filter(Boolean);
+                const pairesToShow = failedPaires.length > 0 ? failedPaires : donnees.paires;
                 content = `
                     <div class="correction-assoc-grid">
-                        ${paires.map(p => {
+                        ${pairesToShow.map(p => {
                             const el1 = p.element1;
                             const el2 = p.element2;
                             const img = isImageUrl(el1) ? el1 : (isImageUrl(el2) ? el2 : null);
@@ -3274,6 +3324,7 @@ const EleveConnaissances = {
                     </div>
                 `;
             } else {
+                // QCM, V/F, Texte à trous, Question ouverte : erreurs uniquement
                 content = ed.errors.map(err => `
                     <div class="correction-error-row">
                         <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
