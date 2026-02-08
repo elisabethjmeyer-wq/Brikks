@@ -7607,6 +7607,8 @@ function deleteEntrainementConn(data) {
     if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
       // Supprimer aussi les étapes associées
       deleteEtapesForEntrainement(data.id);
+      // Supprimer aussi la progression de mémorisation
+      deleteProgressionForEntrainement(data.id);
       sheet.deleteRow(i + 1);
       return { success: true, message: 'Entraînement supprimé' };
     }
@@ -7874,6 +7876,26 @@ function deleteEtapeQuestionsForEtape(etapeId) {
 
   for (let i = allData.length - 1; i >= 1; i--) {
     if (String(allData[i][etapeIdCol]).trim() === String(etapeId).trim()) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+}
+
+/**
+ * Nettoie les données de PROGRESSION_MEMORISATION quand un entraînement est supprimé
+ * Évite les données orphelines
+ */
+function deleteProgressionForEntrainement(entrainementId) {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.PROGRESSION_MEMORISATION);
+  if (!sheet) return;
+
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).toLowerCase().trim());
+  const entrainementIdCol = headers.indexOf('entrainement_id');
+
+  // Parcourir en sens inverse pour ne pas décaler les indices lors de la suppression
+  for (let i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][entrainementIdCol]).trim() === String(entrainementId).trim()) {
       sheet.deleteRow(i + 1);
     }
   }
