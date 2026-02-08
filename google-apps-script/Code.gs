@@ -7893,11 +7893,22 @@ function deleteProgressionForEntrainement(entrainementId) {
   const headers = allData[0].map(h => String(h).toLowerCase().trim());
   const entrainementIdCol = headers.indexOf('entrainement_id');
 
-  // Parcourir en sens inverse pour ne pas décaler les indices lors de la suppression
+  if (entrainementIdCol === -1) {
+    // Colonne entrainement_id non trouvée
+    return;
+  }
+
+  // Collecter les numéros de ligne à supprimer (en sens inverse pour éviter les décalages)
+  const rowsToDelete = [];
   for (let i = allData.length - 1; i >= 1; i--) {
     if (String(allData[i][entrainementIdCol]).trim() === String(entrainementId).trim()) {
-      sheet.deleteRow(i + 1);
+      rowsToDelete.push(i + 1); // Google Sheets utilise 1-indexing
     }
+  }
+
+  // Supprimer les lignes (déjà en sens inverse, donc pas de décalage)
+  for (const rowIndex of rowsToDelete) {
+    sheet.deleteRow(rowIndex);
   }
 }
 
