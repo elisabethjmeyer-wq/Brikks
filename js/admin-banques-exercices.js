@@ -5000,6 +5000,22 @@ const AdminBanquesExercices = {
             return;
         }
 
+        // ✅ VALIDATIONS AJOUTÉES
+        if (duree <= 0 || duree > 999) {
+            alert('La durée doit être entre 1 et 999 minutes');
+            return;
+        }
+
+        if (seuil < 0 || seuil > 100) {
+            alert('Le seuil doit être entre 0 et 100%');
+            return;
+        }
+
+        if (!['brouillon', 'publie'].includes(statut)) {
+            alert('Statut invalide. Doit être "brouillon" ou "publie"');
+            return;
+        }
+
         const data = { titre, description, duree, seuil, statut, banque_exercice_id: banqueExerciceId };
 
         try {
@@ -5192,6 +5208,26 @@ const AdminBanquesExercices = {
         const nbQuestions = modeSelection === 'aleatoire' ?
             parseInt(document.getElementById('etapeNbQuestions').value) || 5 : 0;
 
+        // ✅ VALIDATIONS AJOUTÉES
+        // Valider format_code
+        const formatValides = this.formatsQuestions.map(f => f.code);
+        if (!formatValides.includes(formatCode)) {
+            alert(`Format invalide: "${formatCode}". Formats valides: ${formatValides.join(', ')}`);
+            return;
+        }
+
+        // Valider mode_selection
+        if (!['manuel', 'aleatoire'].includes(modeSelection)) {
+            alert(`Mode invalide: "${modeSelection}". Doit être 'manuel' ou 'aleatoire'`);
+            return;
+        }
+
+        // Valider nbQuestions si mode aleatoire
+        if (modeSelection === 'aleatoire' && nbQuestions <= 0) {
+            alert('Le nombre de questions doit être supérieur à 0 en mode aléatoire');
+            return;
+        }
+
         // Calculer l'ordre (dernier + 1)
         const existingEtapes = this.etapesConn.filter(e => e.entrainement_id === entrainementId);
         const ordre = existingEtapes.length + 1;
@@ -5261,14 +5297,16 @@ const AdminBanquesExercices = {
 
         // Filtrer les questions par format
         const availableQuestions = this.questionsConnaissances.filter(q => {
-            // Mapper le type de question au format
+            // Mapper le type de question au format (doit correspondre avec formatsQuestions codes)
             const typeToFormat = {
                 'qcm': 'qcm',
-                'vrai_faux': 'qcm',
+                'vrai_faux': 'vrai_faux',
                 'chronologie': 'timeline',
                 'timeline': 'timeline',
                 'association': 'association',
-                'texte_trou': 'texte_trous'
+                'texte_trou': 'texte_trou',
+                'carte': 'carte',
+                'flashcard': 'flashcard'
             };
             return typeToFormat[q.type] === etape.format_code || etape.format_code === 'mixte';
         });
@@ -5388,15 +5426,18 @@ const AdminBanquesExercices = {
                 });
             } else {
                 // Sauvegarder les questions sélectionnées
-                const selectedQuestions = [];
+                const selectedIds = [];
                 document.querySelectorAll('.conn-question-picker-item input:checked').forEach(cb => {
                     const item = cb.closest('.conn-question-picker-item');
-                    selectedQuestions.push(item.dataset.questionId);
+                    selectedIds.push(item.dataset.questionId);
                 });
+
+                // Harmoniser le format avec finalizeEntrainement (ligne 4602)
+                const questionsFormatted = selectedIds.map(id => ({ question_id: id }));
 
                 await this.callAPI('setEtapeQuestionsConn', {
                     etape_id: etapeId,
-                    question_ids: selectedQuestions
+                    questions: JSON.stringify(questionsFormatted)
                 });
             }
 
