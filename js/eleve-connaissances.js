@@ -2894,8 +2894,8 @@ const EleveConnaissances = {
             feedbackZone.className = `etape-feedback ${feedbackClass}`;
 
             const messages = {
-                success: { icon: '✓', title: 'Bravo !', sub: 'Parfait, continue comme ça !' },
-                partial: { icon: '~', title: 'Pas mal !', sub: 'Tu y es presque, encore un effort.' },
+                success: { icon: '✓', title: 'Bravo !', sub: '' },
+                partial: { icon: '~', title: '', sub: '' },
                 error: { icon: '✗', title: '', sub: '' }
             };
             const msg = messages[feedbackClass];
