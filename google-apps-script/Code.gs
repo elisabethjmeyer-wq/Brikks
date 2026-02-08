@@ -64,7 +64,8 @@ const SHEETS = {
   EleveConnexions: 'EleveConnexions',
   CompetencesReferentiel: 'CompetencesReferentiel',
   CriteresReussite: 'CriteresReussite',
-  TachesComplexes: 'TachesComplexes'
+  TachesComplexes: 'TachesComplexes',
+  EleveTachesComplexes: 'EleveTachesComplexes'
 };
 
 // ========================================
