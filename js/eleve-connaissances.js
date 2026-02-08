@@ -2981,6 +2981,9 @@ const EleveConnaissances = {
             this.associationSelection = { grid: null, chip: null };
             this.associationPairs = [];
             this.associationPairCounter = 0;
+            this._multiFormatState = null;
+            this._qcmResults = {};
+            this._qoResults = {};
             this.renderEntrainementView();
         }
     },
@@ -3735,6 +3738,9 @@ const EleveConnaissances = {
         switch (format) {
             case 'association':
                 this.userAnswers['association'] = [];
+                this.associationPairs = [];
+                this.associationSelection = { grid: null, chip: null };
+                this.associationPairCounter = 0;
                 break;
             case 'chronologie':
             case 'timeline':
@@ -4486,6 +4492,10 @@ const EleveConnaissances = {
         this.associationSelection = { grid: null, chip: null };
         this.associationPairs = [];
         this.associationPairCounter = 0;
+        // Réinitialiser les états multi-format
+        this._multiFormatState = null;
+        this._qcmResults = {};
+        this._qoResults = {};
         this.renderEntrainementView();
     },
 
