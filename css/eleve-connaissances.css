@@ -2936,6 +2936,32 @@
     line-height: 1.2;
 }
 
+/* Timeline correction : carte correcte / incorrecte */
+.correction-timeline-hint--student {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.correction-timeline-hint--correct {
+    color: #059669;
+    font-weight: 600;
+    margin-top: 1rem;
+}
+
+.correction-timeline-card.card-incorrect {
+    background-color: #ef4444;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.correction-timeline-card.card-incorrect .correction-timeline-pos {
+    color: #ef4444;
+}
+
+.correction-timeline-card.card-correct {
+    background-color: #10b981;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
 /* Correction flashcards : recto → verso */
 .correction-flashcard-row {
     display: flex;
