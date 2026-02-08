@@ -32,14 +32,9 @@ const SHEETS = {
   METHODOLOGIE: 'METHODOLOGIE',
   PROGRESSION_METHODOLOGIE: 'PROGRESSION_METHODOLOGIE',
   PROGRESSION_LECONS: 'PROGRESSION_LECONS',
-  // Anciennes tables (conservées pour compatibilité)
-  METHODOLOGIE_CATEGORIES: 'METHODOLOGIE_CATEGORIES',
-  METHODOLOGIE_COMPETENCES: 'METHODOLOGIE_COMPETENCES',
-  METHODOLOGIE_ETAPES: 'METHODOLOGIE_ETAPES',
   // Entraînements
   FORMATS: 'FORMATS',
   QUESTIONS: 'QUESTIONS',
-  TAGS: 'TAGS',
   ENTRAINEMENTS: 'ENTRAINEMENTS',
   ENTRAINEMENT_QUESTIONS: 'ENTRAINEMENT_QUESTIONS',
   RESULTATS_ENTRAINEMENT: 'RESULTATS_ENTRAINEMENT',
@@ -64,7 +59,12 @@ const SHEETS = {
   // Système de mémorisation (répétition espacée)
   PROGRESSION_MEMORISATION: 'PROGRESSION_MEMORISATION',
   // Historique des pratiques savoir-faire (pour calcul automatisation)
-  HISTORIQUE_PRATIQUES_SF: 'HISTORIQUE_PRATIQUES_SF'
+  HISTORIQUE_PRATIQUES_SF: 'HISTORIQUE_PRATIQUES_SF',
+  // Suivi et compétences
+  EleveConnexions: 'EleveConnexions',
+  CompetencesReferentiel: 'CompetencesReferentiel',
+  CriteresReussite: 'CriteresReussite',
+  TachesComplexes: 'TachesComplexes'
 };
 
 // ========================================

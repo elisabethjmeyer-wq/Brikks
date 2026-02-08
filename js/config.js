@@ -32,13 +32,39 @@ const CONFIG = {
         PROGRESSION_METHODOLOGIE: 'PROGRESSION_METHODOLOGIE',
         PROGRESSION_LECONS: 'PROGRESSION_LECONS',
         BEX_CONFIG: 'BEX_CONFIG',
-        // Entraînements
+        // Entraînements (ancien système)
         FORMATS: 'FORMATS',
         QUESTIONS: 'QUESTIONS',
-        TAGS: 'TAGS',
         ENTRAINEMENTS: 'ENTRAINEMENTS',
         ENTRAINEMENT_QUESTIONS: 'ENTRAINEMENT_QUESTIONS',
-        RESULTATS_ENTRAINEMENT: 'RESULTATS_ENTRAINEMENT'
+        RESULTATS_ENTRAINEMENT: 'RESULTATS_ENTRAINEMENT',
+        // Évaluations
+        EVALUATIONS: 'EVALUATIONS',
+        EVALUATION_QUESTIONS: 'EVALUATION_QUESTIONS',
+        EVALUATION_RESULTATS: 'EVALUATION_RESULTATS',
+        // Banques d'exercices
+        BANQUES_EXERCICES: 'BANQUES_EXERCICES',
+        FORMATS_EXERCICES: 'FORMATS_EXERCICES',
+        EXERCICES: 'EXERCICES',
+        RESULTATS_EXERCICES: 'RESULTATS_EXERCICES',
+        // Banques de questions (entraînements connaissances)
+        BANQUES_QUESTIONS: 'BANQUES_QUESTIONS',
+        QUESTIONS_CONNAISSANCES: 'QUESTIONS_CONNAISSANCES',
+        // Nouveau système Connaissances (structure complète)
+        BANQUES_EXERCICES_CONN: 'BANQUES_EXERCICES_CONN',
+        ENTRAINEMENTS_CONN: 'ENTRAINEMENTS_CONN',
+        ETAPES_CONN: 'ETAPES_CONN',
+        ETAPE_QUESTIONS_CONN: 'ETAPE_QUESTIONS_CONN',
+        FORMATS_QUESTIONS: 'FORMATS_QUESTIONS',
+        // Système de mémorisation
+        PROGRESSION_MEMORISATION: 'PROGRESSION_MEMORISATION',
+        // Historique des pratiques
+        HISTORIQUE_PRATIQUES_SF: 'HISTORIQUE_PRATIQUES_SF',
+        // Suivi et compétences
+        EleveConnexions: 'EleveConnexions',
+        CompetencesReferentiel: 'CompetencesReferentiel',
+        CriteresReussite: 'CriteresReussite',
+        TachesComplexes: 'TachesComplexes'
     },
 
     // URLs de redirection (avec préfixe GitHub Pages)
