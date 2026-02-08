@@ -2183,6 +2183,35 @@
     cursor: default;
 }
 
+/* Badge de correction sur les cartes timeline */
+.timeline-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 2;
+    min-width: 26px;
+    height: 26px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0 6px;
+    line-height: 1;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.timeline-badge.correct-badge {
+    background: white;
+    color: #10b981;
+}
+
+.timeline-badge.incorrect-badge {
+    background: white;
+    color: #ef4444;
+}
+
 /* ============================================
    TEXTE A TROUS - VALIDATION
    ============================================ */
