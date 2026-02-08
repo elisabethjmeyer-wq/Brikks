@@ -2464,32 +2464,19 @@ const EleveConnaissances = {
                             if (originalIndex === positionActuelle) {
                                 correct++;
                                 card.classList.add('correct');
+                                // Badge ✓ sur les cartes bien placées
+                                if (!card.querySelector('.timeline-badge')) {
+                                    card.insertAdjacentHTML('beforeend', '<span class="timeline-badge correct-badge">✓</span>');
+                                }
                             } else {
                                 card.classList.add('incorrect');
+                                // Badge avec la bonne position sur les cartes mal placées
+                                if (!card.querySelector('.timeline-badge')) {
+                                    card.insertAdjacentHTML('beforeend', `<span class="timeline-badge incorrect-badge">→ ${originalIndex + 1}</span>`);
+                                }
                             }
                             details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
                         });
-
-                        // Afficher la correction si pas tout correct
-                        if (correct < total) {
-                            const existingCorrection = document.querySelector('.timeline-container .correction-section');
-                            if (!existingCorrection) {
-                                const correctionHtml = `
-                                    <div class="correction-section">
-                                        <h4>Ordre correct</h4>
-                                        <div class="correction-list">
-                                            ${cartes.map((carte, i) => `
-                                                <div class="correction-item">
-                                                    <span class="order-num">${i + 1}</span>
-                                                    <span class="item-text">${this.escapeHtml(carte.titre)}</span>
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-                                `;
-                                cardsContainer.insertAdjacentHTML('afterend', correctionHtml);
-                            }
-                        }
                     }
                 }
                 break;
@@ -3557,28 +3544,19 @@ const EleveConnaissances = {
                 if (originalIndex === positionActuelle) {
                     correct++;
                     card.classList.add('correct');
+                    // Badge ✓ sur les cartes bien placées
+                    if (!card.querySelector('.timeline-badge')) {
+                        card.insertAdjacentHTML('beforeend', '<span class="timeline-badge correct-badge">✓</span>');
+                    }
                 } else {
                     card.classList.add('incorrect');
+                    // Badge avec la bonne position sur les cartes mal placées
+                    if (!card.querySelector('.timeline-badge')) {
+                        card.insertAdjacentHTML('beforeend', `<span class="timeline-badge incorrect-badge">→ ${originalIndex + 1}</span>`);
+                    }
                 }
                 details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
             });
-
-            if (correct < total) {
-                const correctionHtml = `
-                    <div class="correction-section">
-                        <h4>Ordre correct</h4>
-                        <div class="correction-list">
-                            ${cartes.map((carte, i) => `
-                                <div class="correction-item">
-                                    <span class="order-num">${i + 1}</span>
-                                    <span class="item-text">${this.escapeHtml(carte.titre)}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-                cardsContainer.insertAdjacentHTML('afterend', correctionHtml);
-            }
         }
 
         return { correct, total, details };
