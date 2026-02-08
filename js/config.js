@@ -32,10 +32,6 @@ const CONFIG = {
         PROGRESSION_METHODOLOGIE: 'PROGRESSION_METHODOLOGIE',
         PROGRESSION_LECONS: 'PROGRESSION_LECONS',
         BEX_CONFIG: 'BEX_CONFIG',
-        // Anciennes tables méthodologie (conservées pour compatibilité)
-        METHODOLOGIE_CATEGORIES: 'METHODOLOGIE_CATEGORIES',
-        METHODOLOGIE_COMPETENCES: 'METHODOLOGIE_COMPETENCES',
-        METHODOLOGIE_ETAPES: 'METHODOLOGIE_ETAPES',
         // Entraînements (ancien système)
         FORMATS: 'FORMATS',
         QUESTIONS: 'QUESTIONS',
@@ -63,7 +59,12 @@ const CONFIG = {
         // Système de mémorisation
         PROGRESSION_MEMORISATION: 'PROGRESSION_MEMORISATION',
         // Historique des pratiques
-        HISTORIQUE_PRATIQUES_SF: 'HISTORIQUE_PRATIQUES_SF'
+        HISTORIQUE_PRATIQUES_SF: 'HISTORIQUE_PRATIQUES_SF',
+        // Suivi et compétences
+        EleveConnexions: 'EleveConnexions',
+        CompetencesReferentiel: 'CompetencesReferentiel',
+        CriteresReussite: 'CriteresReussite',
+        TachesComplexes: 'TachesComplexes'
     },
 
     // URLs de redirection (avec préfixe GitHub Pages)
