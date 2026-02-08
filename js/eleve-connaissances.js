@@ -2031,7 +2031,7 @@ const EleveConnaissances = {
 
     /**
      * Applique le mode correction sur les marqueurs carte après validation.
-     * - Affiche un badge vert avec la bonne réponse à côté de chaque marqueur
+     * - Pastille vert/rouge pour feedback visuel immédiat
      * - Swap le onclick pour ouvrir le popup de correction au lieu du popup de saisie
      */
     applyCarteCorrectionMode(marker, idx, isCorrect, studentAnswer, correctAnswer) {
@@ -2043,13 +2043,10 @@ const EleveConnaissances = {
         marker.setAttribute('data-is-correct', isCorrect ? 'true' : 'false');
         marker.setAttribute('data-correction-mode', 'true');
 
-        // Afficher le badge avec la bonne réponse
+        // Masquer le badge texte pour éviter les chevauchements — le détail est dans le popup
         const label = marker.querySelector('.carte-marker-answer-label');
         if (label) {
-            label.textContent = correctAnswer;
-            label.classList.remove('hidden');
-            label.classList.add('correction-badge');
-            marker.classList.add('answered');
+            label.style.display = 'none';
         }
 
         // Remplacer le onclick par le popup de correction

@@ -3272,10 +3272,8 @@ const EleveExercices = {
             const firstCorrectAnswer = correctAnswer.split(/[|;]/)[0].trim();
 
             if (badge) {
-                // Afficher la bonne réponse dans le badge (toujours en vert)
-                badge.textContent = firstCorrectAnswer;
-                badge.classList.remove('hidden', 'incorrect');
-                badge.classList.add('correction');
+                // Masquer le badge texte pour éviter les chevauchements — le détail est dans le popup
+                badge.classList.add('hidden');
             }
 
             if (marqueur) {
