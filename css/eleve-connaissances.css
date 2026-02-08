@@ -3466,34 +3466,73 @@
     display: none;
 }
 
-/* Labels de correction après validation */
-.carte-label-correct {
-    color: #059669;
+/* Badge correction : affiché à côté du marqueur avec la bonne réponse */
+.carte-marker-answer-label.correction-badge {
+    background: #10b981;
+    color: white;
     font-weight: 600;
-}
-
-.carte-label-wrong {
-    color: #dc2626;
-    text-decoration: line-through;
-}
-
-.carte-label-arrow {
-    color: #6b7280;
-    margin: 0 2px;
-}
-
-/* Marqueur non répondu : pastille rouge avec style distinct */
-.carte-marker-v2.not-answered {
-    background: #ef4444;
-    opacity: 0.75;
-}
-
-/* Label plus lisible après validation */
-.carte-marker-v2.correct .carte-marker-answer-label,
-.carte-marker-v2.incorrect .carte-marker-answer-label {
     font-size: 0.75rem;
-    padding: 3px 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    padding: 4px 10px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Réactiver les marqueurs carte après validation pour les popups de correction */
+.exercise-content.validated .carte-markers-layer-v2,
+.exercise-content.validated .carte-marker-v2,
+.exercise-content.validated .carte-popup {
+    pointer-events: auto;
+}
+
+/* Popup de correction : boîtes de réponse */
+.carte-correction-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.carte-correction-box:last-child {
+    margin-bottom: 0;
+}
+
+.carte-correction-box.correct {
+    background: #d1fae5;
+    border: 2px solid #10b981;
+    color: #065f46;
+}
+
+.carte-correction-box.incorrect {
+    background: #fee2e2;
+    border: 2px solid #ef4444;
+    color: #991b1b;
+}
+
+.carte-correction-box.expected {
+    background: #f3f4f6;
+    border: 2px solid #9ca3af;
+    color: #374151;
+}
+
+.carte-correction-text {
+    flex: 1;
+}
+
+.carte-correction-icon {
+    font-size: 1.25rem;
+    margin-left: 0.75rem;
+}
+
+.carte-correction-box.correct .carte-correction-icon {
+    color: #10b981;
+}
+
+.carte-correction-box.incorrect .carte-correction-icon {
+    color: #ef4444;
 }
 
 /* ============================================

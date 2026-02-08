@@ -1949,6 +1949,9 @@ const EleveConnaissances = {
     carteActiveIndex: null,
 
     openCartePopup(index, event) {
+        // Bloquer l'ouverture si l'étape est déjà validée
+        if (this.currentEtapeValidated) return;
+
         this.carteActiveIndex = index;
         const popup = document.getElementById('cartePopup');
         const numSpan = document.getElementById('cartePopupNum');
@@ -2027,26 +2030,80 @@ const EleveConnaissances = {
     },
 
     /**
-     * Met à jour le label d'un marqueur carte après validation.
-     * - Correct : affiche la réponse en vert
-     * - Incorrect : réponse élève barrée en rouge + bonne réponse en vert
-     * - Non répondu : bonne réponse en vert
+     * Applique le mode correction sur les marqueurs carte après validation.
+     * - Affiche un badge vert avec la bonne réponse à côté de chaque marqueur
+     * - Swap le onclick pour ouvrir le popup de correction au lieu du popup de saisie
      */
-    updateCarteLabel(marker, isCorrect, studentAnswer, correctAnswer) {
+    applyCarteCorrectionMode(marker, idx, isCorrect, studentAnswer, correctAnswer) {
         if (!marker) return;
+
+        // Stocker les données de correction dans le DOM
+        marker.setAttribute('data-user-answer', studentAnswer || '');
+        marker.setAttribute('data-correct-answer', correctAnswer);
+        marker.setAttribute('data-is-correct', isCorrect ? 'true' : 'false');
+        marker.setAttribute('data-correction-mode', 'true');
+
+        // Afficher le badge avec la bonne réponse
         const label = marker.querySelector('.carte-marker-answer-label');
-        if (!label) return;
-
-        // Forcer l'affichage du label (même si non répondu)
-        marker.classList.add('answered');
-
-        if (isCorrect) {
-            label.innerHTML = `<span class="carte-label-correct">${this.escapeHtml(studentAnswer)}</span>`;
-        } else if (studentAnswer) {
-            label.innerHTML = `<span class="carte-label-wrong">${this.escapeHtml(studentAnswer)}</span> <span class="carte-label-arrow">→</span> <span class="carte-label-correct">${this.escapeHtml(correctAnswer)}</span>`;
-        } else {
-            label.innerHTML = `<span class="carte-label-correct">${this.escapeHtml(correctAnswer)}</span>`;
+        if (label) {
+            label.textContent = correctAnswer;
+            label.classList.remove('hidden');
+            label.classList.add('correction-badge');
+            marker.classList.add('answered');
         }
+
+        // Remplacer le onclick par le popup de correction
+        marker.setAttribute('onclick', `EleveConnaissances.openCarteCorrectionPopup(${idx})`);
+    },
+
+    /**
+     * Ouvre un popup de correction (lecture seule) pour un marqueur carte.
+     * Affiche la réponse de l'élève et la bonne réponse.
+     */
+    openCarteCorrectionPopup(index) {
+        const marker = document.querySelector(`.carte-marker-v2[data-index="${index}"]`);
+        if (!marker) return;
+
+        const userAnswer = marker.getAttribute('data-user-answer') || '';
+        const correctAnswer = marker.getAttribute('data-correct-answer') || '';
+        const isCorrect = marker.getAttribute('data-is-correct') === 'true';
+        const hasAnswer = userAnswer.trim() !== '';
+
+        // Construire le contenu du popup selon le résultat
+        let bodyHTML = '';
+        if (isCorrect) {
+            bodyHTML = `
+                <div class="carte-correction-box correct">
+                    <span class="carte-correction-text">${this.escapeHtml(userAnswer)}</span>
+                    <span class="carte-correction-icon">✓</span>
+                </div>
+            `;
+        } else {
+            bodyHTML = `
+                <div class="carte-correction-box incorrect">
+                    <span class="carte-correction-text">${hasAnswer ? this.escapeHtml(userAnswer) : 'Non répondu'}</span>
+                    <span class="carte-correction-icon">✗</span>
+                </div>
+                <div class="carte-correction-box expected">
+                    <span class="carte-correction-text">Réponse correcte : ${this.escapeHtml(correctAnswer)}</span>
+                </div>
+            `;
+        }
+
+        // Réutiliser le popup existant en mode correction
+        const popup = document.getElementById('cartePopup');
+        if (!popup) return;
+
+        const numSpan = document.getElementById('cartePopupNum');
+        if (numSpan) numSpan.textContent = index + 1;
+
+        const body = popup.querySelector('.carte-popup-body');
+        if (body) body.innerHTML = bodyHTML;
+
+        const footer = popup.querySelector('.carte-popup-footer');
+        if (footer) footer.style.display = 'none';
+
+        popup.style.display = 'flex';
     },
 
     /**
@@ -2639,12 +2696,12 @@ const EleveConnaissances = {
                             if (marker) marker.classList.add('incorrect');
                             if (answerItem) answerItem.classList.add('incorrect');
                         }
-                        this.updateCarteLabel(marker, isCorrect, answer, correctAnswer);
+                        this.applyCarteCorrectionMode(marker, idx, isCorrect, answer, correctAnswer);
                         details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrect });
                     } else {
-                        if (marker) marker.classList.add('incorrect', 'not-answered');
+                        if (marker) marker.classList.add('incorrect');
                         if (answerItem) answerItem.classList.add('incorrect');
-                        this.updateCarteLabel(marker, false, null, correctAnswer);
+                        this.applyCarteCorrectionMode(marker, idx, false, null, correctAnswer);
                         details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
                     }
                 });
@@ -3776,11 +3833,11 @@ const EleveConnaissances = {
                 } else {
                     if (marker) marker.classList.add('incorrect');
                 }
-                this.updateCarteLabel(marker, isCorrect, answer, correctAnswer);
+                this.applyCarteCorrectionMode(marker, idx, isCorrect, answer, correctAnswer);
                 details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrect });
             } else {
-                if (marker) marker.classList.add('incorrect', 'not-answered');
-                this.updateCarteLabel(marker, false, null, correctAnswer);
+                if (marker) marker.classList.add('incorrect');
+                this.applyCarteCorrectionMode(marker, idx, false, null, correctAnswer);
                 details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
             }
         });
