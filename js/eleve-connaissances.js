@@ -2880,7 +2880,7 @@ const EleveConnaissances = {
         if (content) {
             content.classList.add('validated');
             content.querySelectorAll('input, select, textarea, button').forEach(el => {
-                if (!el.closest('.etape-action-bar') && !el.closest('.timeline-toggle')) el.disabled = true;
+                if (!el.closest('.etape-action-bar') && !el.closest('.timeline-toggle') && !el.closest('.carte-popup')) el.disabled = true;
             });
             // Désactiver les clics sur les items d'association (grille + chips)
             content.querySelectorAll('.association-grid-card, .association-chip').forEach(el => {
