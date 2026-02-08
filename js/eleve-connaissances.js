@@ -3182,7 +3182,10 @@ const EleveConnaissances = {
             return { etape, idx, errors, correct, total, hasErr: errors.length > 0 };
         });
 
-        // Slide 0 : Vue d'ensemble
+        // Filtrer : seules les étapes avec erreurs sont affichées
+        const etapesWithErrors = etapesData.filter(ed => ed.hasErr);
+
+        // Slide 0 : Vue d'ensemble (uniquement les étapes avec erreurs)
         const overviewSlide = `
             <div class="carousel-slide" data-slide="0">
                 <div class="carousel-slide-header overview-header">
@@ -3190,14 +3193,14 @@ const EleveConnaissances = {
                 </div>
                 <div class="carousel-slide-content">
                     <div class="overview-list">
-                        ${etapesData.map((ed, i) => `
-                            <div class="overview-row ${ed.hasErr ? 'has-errors' : 'all-correct'}" onclick="EleveConnaissances.carouselGoTo(${i + 1})">
-                                <span class="overview-status">${ed.hasErr ? '❌' : '✅'}</span>
+                        ${etapesWithErrors.map((ed, i) => `
+                            <div class="overview-row has-errors" onclick="EleveConnaissances.carouselGoTo(${i + 1})">
+                                <span class="overview-status">❌</span>
                                 <div class="overview-info">
                                     <span class="overview-etape-name">${this.escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))}</span>
                                     <span class="overview-score">${ed.correct}/${ed.total} correct</span>
                                 </div>
-                                ${ed.hasErr ? '<span class="overview-arrow">→</span>' : ''}
+                                <span class="overview-arrow">→</span>
                             </div>
                         `).join('')}
                     </div>
@@ -3206,17 +3209,10 @@ const EleveConnaissances = {
             </div>
         `;
 
-        // Slides 1..N : une par étape
-        const etapeSlides = etapesData.map((ed, i) => {
+        // Slides 1..N : une par étape avec erreurs uniquement
+        const etapeSlides = etapesWithErrors.map((ed, i) => {
             let content = '';
-            if (!ed.hasErr) {
-                content = `
-                    <div class="carousel-etape-success">
-                        <span class="carousel-etape-success-icon">✅</span>
-                        <p>Tout bon, bravo !</p>
-                    </div>
-                `;
-            } else if (ed.etape.format === 'association' && ed.etape.donnees?.paires) {
+            if (ed.etape.format === 'association' && ed.etape.donnees?.paires) {
                 const paires = ed.etape.donnees.paires;
                 content = `
                     <div class="correction-assoc-grid">
@@ -3267,11 +3263,11 @@ const EleveConnaissances = {
             `;
         }).join('');
 
-        const totalSlides = etapesData.length + 1; // overview + étapes
+        const totalSlides = etapesWithErrors.length + 1; // overview + étapes avec erreurs
 
-        // Dots : premier = losange (overview), reste = ronds
+        // Dots : premier = losange (overview), reste = ronds (erreurs uniquement)
         const dots = Array.from({ length: totalSlides }, (_, i) => {
-            const dotClass = i === 0 ? 'carousel-dot overview-dot active' : `carousel-dot ${etapesData[i - 1].hasErr ? 'dot-error' : 'dot-success'}`;
+            const dotClass = i === 0 ? 'carousel-dot overview-dot active' : 'carousel-dot dot-error';
             return `<button class="${dotClass}" onclick="EleveConnaissances.carouselGoTo(${i})" aria-label="Slide ${i}"></button>`;
         }).join('');
 
