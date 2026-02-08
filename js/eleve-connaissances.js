@@ -3232,7 +3232,7 @@ const EleveConnaissances = {
                             <div class="overview-row has-errors" onclick="EleveConnaissances.carouselGoTo(${i + 1})">
                                 <span class="overview-status">❌</span>
                                 <div class="overview-info">
-                                    <span class="overview-etape-name">${this.escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))}</span>
+                                    <span class="overview-etape-name">${this.escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))} — ${this.getFormatLabel(ed.etape.format)}</span>
                                     <span class="overview-score">${ed.correct}/${ed.total} correct</span>
                                 </div>
                                 <span class="overview-arrow">→</span>
@@ -3288,7 +3288,7 @@ const EleveConnaissances = {
             return `
                 <div class="carousel-slide" data-slide="${i + 1}" style="display:none;">
                     <div class="carousel-slide-header">
-                        <span class="carousel-slide-title">${this.escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))}</span>
+                        <span class="carousel-slide-title">${this.escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))} — ${this.getFormatLabel(ed.etape.format)}</span>
                         <span class="carousel-slide-score ${ed.hasErr ? 'has-errors' : 'all-correct'}">${ed.hasErr ? '❌' : '✅'} ${ed.correct}/${ed.total}</span>
                     </div>
                     <div class="carousel-slide-content">
@@ -4663,7 +4663,7 @@ const EleveConnaissances = {
             'texte_trou': 'Texte à trous',
             'texte_trous': 'Texte à trous',
             'association': 'Association',
-            'carte': 'Carte',
+            'carte': 'Image cliquable',
             'question_ouverte': 'Question ouverte',
             'flashcard': 'Flashcards'
         };
