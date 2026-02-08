@@ -2027,6 +2027,29 @@ const EleveConnaissances = {
     },
 
     /**
+     * Met à jour le label d'un marqueur carte après validation.
+     * - Correct : affiche la réponse en vert
+     * - Incorrect : réponse élève barrée en rouge + bonne réponse en vert
+     * - Non répondu : bonne réponse en vert
+     */
+    updateCarteLabel(marker, isCorrect, studentAnswer, correctAnswer) {
+        if (!marker) return;
+        const label = marker.querySelector('.carte-marker-answer-label');
+        if (!label) return;
+
+        // Forcer l'affichage du label (même si non répondu)
+        marker.classList.add('answered');
+
+        if (isCorrect) {
+            label.innerHTML = `<span class="carte-label-correct">${this.escapeHtml(studentAnswer)}</span>`;
+        } else if (studentAnswer) {
+            label.innerHTML = `<span class="carte-label-wrong">${this.escapeHtml(studentAnswer)}</span> <span class="carte-label-arrow">→</span> <span class="carte-label-correct">${this.escapeHtml(correctAnswer)}</span>`;
+        } else {
+            label.innerHTML = `<span class="carte-label-correct">${this.escapeHtml(correctAnswer)}</span>`;
+        }
+    },
+
+    /**
      * Render Flashcard
      * Format: {consigne, cartes: [{recto, verso}]}
      * Auto-évaluation: l'élève voit le recto, retourne la carte, puis dit s'il savait ou non
@@ -2599,6 +2622,7 @@ const EleveConnaissances = {
                     const answer = this.userAnswers['carte_' + idx];
                     const marker = document.querySelector(`.carte-marker-v2[data-index="${idx}"]`);
                     const answerItem = document.querySelector(`.carte-answer-item[data-index="${idx}"]`);
+                    const correctAnswer = (m.reponse || '').split('|')[0].trim();
 
                     if (answer) {
                         const userValue = answer.trim().toLowerCase();
@@ -2615,10 +2639,12 @@ const EleveConnaissances = {
                             if (marker) marker.classList.add('incorrect');
                             if (answerItem) answerItem.classList.add('incorrect');
                         }
+                        this.updateCarteLabel(marker, isCorrect, answer, correctAnswer);
                         details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrect });
                     } else {
-                        if (marker) marker.classList.add('incorrect');
+                        if (marker) marker.classList.add('incorrect', 'not-answered');
                         if (answerItem) answerItem.classList.add('incorrect');
+                        this.updateCarteLabel(marker, false, null, correctAnswer);
                         details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
                     }
                 });
@@ -3735,6 +3761,7 @@ const EleveConnaissances = {
             total++;
             const answer = this.userAnswers['carte_' + idx];
             const marker = container.querySelector(`.carte-marker-v2[data-index="${idx}"]`);
+            const correctAnswer = (m.reponse || '').split('|')[0].trim();
 
             if (answer) {
                 const userValue = answer.trim().toLowerCase();
@@ -3749,9 +3776,11 @@ const EleveConnaissances = {
                 } else {
                     if (marker) marker.classList.add('incorrect');
                 }
+                this.updateCarteLabel(marker, isCorrect, answer, correctAnswer);
                 details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrect });
             } else {
-                if (marker) marker.classList.add('incorrect');
+                if (marker) marker.classList.add('incorrect', 'not-answered');
+                this.updateCarteLabel(marker, false, null, correctAnswer);
                 details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
             }
         });
