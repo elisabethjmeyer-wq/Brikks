@@ -3618,12 +3618,19 @@ const AdminBanquesExercices = {
         this._navigating = true;
 
         try {
-            if (!this.validateWizardStep(this.wizardData.currentStep)) return;
+            if (!this.validateWizardStep(this.wizardData.currentStep)) {
+                this._navigating = false;
+                return;
+            }
 
             // Seule l'étape 1 nécessite une sauvegarde bloquante (création/mise à jour)
             // Les étapes 2 et 3 sauvegardent au fur et à mesure
             if (this.wizardData.currentStep === 1) {
-                await this.saveWizardStepData(1);
+                const saved = await this.saveWizardStepData(1);
+                if (!saved) {
+                    this._navigating = false;
+                    return;
+                }
             }
 
             if (this.wizardData.currentStep < 4) {
@@ -3646,6 +3653,26 @@ const AdminBanquesExercices = {
                     alert('Le titre est requis');
                     return false;
                 }
+
+                // Validations pour durée et seuil
+                const duree = parseInt(document.getElementById('wizardDuree')?.value) || 15;
+                if (duree <= 0 || duree > 999) {
+                    alert('La durée doit être entre 1 et 999 minutes');
+                    return false;
+                }
+
+                const seuil = parseInt(document.getElementById('wizardSeuil')?.value) || 80;
+                if (seuil < 0 || seuil > 100) {
+                    alert('Le seuil doit être entre 0 et 100%');
+                    return false;
+                }
+
+                const statut = document.getElementById('wizardStatut')?.value;
+                if (!['brouillon', 'publie'].includes(statut)) {
+                    alert('Statut invalide. Doit être "brouillon" ou "publie"');
+                    return false;
+                }
+
                 return true;
             case 2:
                 if (this.wizardData.etapes.length === 0) {
@@ -3700,26 +3727,8 @@ const AdminBanquesExercices = {
                     banque_exercice_id: this.wizardData.banqueId
                 };
 
-                // ✅ VALIDATIONS WIZARD (même que saveEntrainementConnAndEdit)
-                if (!formData.titre) {
-                    alert('Le titre est requis');
-                    return;
-                }
-
-                if (formData.duree <= 0 || formData.duree > 999) {
-                    alert('La durée doit être entre 1 et 999 minutes');
-                    return;
-                }
-
-                if (formData.seuil < 0 || formData.seuil > 100) {
-                    alert('Le seuil doit être entre 0 et 100%');
-                    return;
-                }
-
-                if (!['brouillon', 'publie'].includes(formData.statut)) {
-                    alert('Statut invalide. Doit être "brouillon" ou "publie"');
-                    return;
-                }
+                // Les validations ont déjà été vérifiées par validateWizardStep()
+                // On procède directement à la sauvegarde
 
                 if (this.wizardData.entrainement) {
                     // Mise à jour
@@ -3727,7 +3736,9 @@ const AdminBanquesExercices = {
                     const result = await this.callAPI('updateEntrainementConn', formData);
                     if (result.success) {
                         Object.assign(this.wizardData.entrainement, formData);
+                        return true;
                     }
+                    return false;
                 } else {
                     // Création
                     const result = await this.callAPI('createEntrainementConn', formData);
@@ -3735,15 +3746,16 @@ const AdminBanquesExercices = {
                         await this.loadDataFromAPI();
                         this.wizardData.entrainement = this.entrainementsConn.find(e => e.id === result.id);
                         this.wizardData.isEditing = true;
+                        return true;
                     }
+                    return false;
                 }
-                break;
             case 2:
                 // Les étapes sont sauvegardées au fur et à mesure
-                break;
+                return true;
             case 3:
                 // Les questions sont sauvegardées au fur et à mesure
-                break;
+                return true;
         }
     },
 
@@ -3803,11 +3815,11 @@ const AdminBanquesExercices = {
                     <div class="form-row">
                         <div class="form-group">
                             <label>Durée (minutes)</label>
-                            <input type="number" class="form-input" id="wizardDuree" value="${e.duree || 15}" min="5" max="120">
+                            <input type="number" class="form-input" id="wizardDuree" value="${e.duree || 15}" min="1" max="999">
                         </div>
                         <div class="form-group">
                             <label>Seuil de réussite (%)</label>
-                            <input type="number" class="form-input" id="wizardSeuil" value="${e.seuil || 80}" min="50" max="100">
+                            <input type="number" class="form-input" id="wizardSeuil" value="${e.seuil || 80}" min="0" max="100">
                         </div>
                     </div>
                     <div class="form-group">
