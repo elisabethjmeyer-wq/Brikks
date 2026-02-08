@@ -4270,13 +4270,21 @@ const AdminBanquesExercices = {
                     </div>
                     <div class="random-config" id="randomConfig${index}" style="display: ${etape.mode_selection === 'aleatoire' ? 'block' : 'none'};">
                         <div class="form-row">
-                            <label>Banque source :</label>
-                            <select class="form-select" onchange="AdminBanquesExercices.setEtapeBanqueSource('${etape.id}', this.value)">
-                                <option value="" ${!etape.banque_source_id ? 'selected' : ''}>Toutes les banques</option>
-                                ${this.banquesQuestions.map(b => `
-                                    <option value="${b.id}" ${String(etape.banque_source_id) === String(b.id) ? 'selected' : ''}>${this.escapeHtml(b.titre)}</option>
-                                `).join('')}
-                            </select>
+                            ${this.wizardData.banqueId ? `
+                                <label>Banque source :</label>
+                                <div class="form-input" style="background: var(--bg-secondary); padding: 10px; border-radius: 4px;">
+                                    ${this.banquesQuestions.find(b => b.id === this.wizardData.banqueId)?.titre || 'Banque'}
+                                    <span class="hint" style="display: block; margin-top: 4px;">Fixée à la banque sélectionnée</span>
+                                </div>
+                            ` : `
+                                <label>Banque source :</label>
+                                <select class="form-select" onchange="AdminBanquesExercices.setEtapeBanqueSource('${etape.id}', this.value)">
+                                    <option value="" ${!etape.banque_source_id ? 'selected' : ''}>Toutes les banques</option>
+                                    ${this.banquesQuestions.map(b => `
+                                        <option value="${b.id}" ${String(etape.banque_source_id) === String(b.id) ? 'selected' : ''}>${this.escapeHtml(b.titre)}</option>
+                                    `).join('')}
+                                </select>
+                            `}
                         </div>
                         <div class="form-row">
                             <label>Nombre de questions :</label>
