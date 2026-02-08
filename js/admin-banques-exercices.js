@@ -4052,6 +4052,33 @@ const AdminBanquesExercices = {
     },
 
     // Filtre les questions disponibles pour un format donné
+    getQuestionsForFormatAndBanque(formatCode, etapeId) {
+        const questions = this.questionsConnaissances || [];
+        const etape = this.wizardData.etapes.find(e => e.id === etapeId);
+
+        // Déterminer la banque source
+        let banqueFilter = null;
+        if (etape && etape.banque_source_id) {
+            // Utiliser la banque source définie dans l'étape
+            banqueFilter = etape.banque_source_id;
+        } else if (this.wizardData && this.wizardData.banqueId && !this.wizardData.entrainement) {
+            // Sinon, utiliser la banque du wizard (si création depuis une banque)
+            banqueFilter = this.wizardData.banqueId;
+        }
+
+        // Filtrer par banque si applicable
+        let filtered = questions;
+        if (banqueFilter) {
+            filtered = questions.filter(q => q.banque_id === banqueFilter);
+        }
+
+        // Timeline unifié : inclure aussi les anciennes questions chronologie
+        if (formatCode === 'timeline') {
+            return filtered.filter(q => q.type === 'timeline' || q.type === 'chronologie');
+        }
+        return filtered.filter(q => q.type === formatCode);
+    },
+
     getQuestionsForFormat(formatCode) {
         const questions = this.questionsConnaissances || [];
 
@@ -4227,7 +4254,7 @@ const AdminBanquesExercices = {
     renderWizardEtapeQuestions(etape, index) {
         const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
         const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
-        const availableQuestions = this.getQuestionsForFormat(etape.format_code);
+        const availableQuestions = this.getQuestionsForFormatAndBanque(etape.format_code, etape.id);
 
         // Récupérer les banques qui contiennent des questions de ce format
         const banquesAvecQuestions = [...new Set(availableQuestions.map(q => q.banque_id))];
@@ -4271,7 +4298,7 @@ const AdminBanquesExercices = {
                     <div class="random-config" id="randomConfig${index}" style="display: ${etape.mode_selection === 'aleatoire' ? 'block' : 'none'};">
                         <div class="form-row">
                             <label>Banque source :</label>
-                            <select class="form-select" ${this.wizardData.banqueId ? 'disabled' : ''} onchange="AdminBanquesExercices.setEtapeBanqueSource('${etape.id}', this.value)">
+                            <select class="form-select" onchange="AdminBanquesExercices.setEtapeBanqueSource('${etape.id}', this.value)">
                                 <option value="" ${!etape.banque_source_id ? 'selected' : ''}>Toutes les banques</option>
                                 ${this.banquesQuestions.map(b => `
                                     <option value="${b.id}" ${String(etape.banque_source_id) === String(b.id) ? 'selected' : ''}>${this.escapeHtml(b.titre)}</option>
@@ -4434,8 +4461,39 @@ const AdminBanquesExercices = {
             if (etape) {
                 etape.banque_source_id = banqueId || '';
             }
+            // Aussi mettre à jour dans wizardData
+            const wizardEtape = this.wizardData.etapes.find(e => e.id === etapeId);
+            if (wizardEtape) {
+                wizardEtape.banque_source_id = banqueId || '';
+            }
+
+            // Redessiner l'étape pour mettre à jour le compteur
+            this.updateRandomConfigDisplay(etapeId);
         } catch (error) {
             console.error('Erreur mise à jour banque source:', error);
+        }
+    },
+
+    updateRandomConfigDisplay(etapeId) {
+        const etape = this.wizardData.etapes.find(e => e.id === etapeId);
+        if (!etape) return;
+
+        // Calculer le nombre de questions disponibles avec la nouvelle banque source
+        const availableQuestions = this.getQuestionsForFormatAndBanque(etape.format_code, etapeId);
+
+        // Trouver l'index de l'étape pour localiser le bon panneau
+        const etapeIndex = this.wizardData.etapes.findIndex(e => e.id === etapeId);
+
+        // Mettre à jour le compteur dans le DOM
+        const hintSpan = document.querySelector(`#randomConfig${etapeIndex} .hint`);
+        if (hintSpan) {
+            hintSpan.textContent = `/ ${availableQuestions.length} disponibles`;
+        }
+
+        // Aussi mettre à jour le max du champ nombre de questions
+        const numberInput = document.querySelector(`#randomConfig${etapeIndex} input[type="number"]`);
+        if (numberInput) {
+            numberInput.max = Math.max(availableQuestions.length, 1);
         }
     },
 
