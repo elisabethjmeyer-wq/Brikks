@@ -410,6 +410,7 @@
     align-items: center;
     gap: 0.75rem;
     margin-top: 0.75rem;
+    padding-right: 1.5rem;  /* Décalage vers la gauche (marge à droite) */
 }
 
 /* Feedback inline pour le carousel multi-format */
@@ -4059,7 +4060,7 @@
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    padding: 1.5rem 0 0.5rem;
+    padding: 1.5rem 1.5rem 0.5rem 0;  /* Décalage vers la gauche (marge à droite) */
     gap: 1rem;
 }
 
