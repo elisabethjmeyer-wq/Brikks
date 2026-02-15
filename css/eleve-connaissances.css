@@ -4050,11 +4050,13 @@
    VALIDATION PAR ÉTAPE (style Projet Voltaire)
    ============================================ */
 
-/* Bouton d'action (Valider / Suivant / Terminer) */
+/* Bouton d'action (Valider / Suivant / Terminer) - Positionné à DROITE */
 .etape-action-bar {
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
+    align-items: center;
     padding: 1.5rem 0 0.5rem;
+    gap: 1rem;
 }
 
 .btn-etape-action {
@@ -4600,20 +4602,6 @@
     color: #dc2626;
 }
 
-/* ============================================
-   BOUTONS D'ACTION - Alignement à droite
-   ============================================ */
-
-.etape-action-bar {
-    margin-top: 2rem;
-    padding: 1.5rem 0;
-    border-top: 1px solid #e5e7eb;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
 
 .btn-etape-action {
     padding: 0.875rem 2rem;
