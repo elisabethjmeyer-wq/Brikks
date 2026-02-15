@@ -2993,12 +2993,9 @@ const EleveConnaissances = {
             });
         }
 
-        // Afficher un feedback global unifié EN HAUT pour les formats multi
-        // qui ne montrent pas le feedback inline
-        const isMultiFormatWithGlobalFeedback = ['association', 'chronologie', 'timeline', 'texte_trou', 'texte_trous', 'carte'].includes(currentEtape.format_code);
-        if (isMultiFormatWithGlobalFeedback) {
-            this.displayGlobalFeedback(correct, total);
-        }
+        // NOTE: Pour les formats multi-questions (Association, Chrono, Texte à trous via renderMultiFormat),
+        // le feedback est déjà affiché par validateMultiFormatQuestion() pour chaque question.
+        // Pas de feedback global supplémentaire (éviter doublon)
 
         // Affichage du bouton "Suivant" dans la zone d'action habituelle avec meilleur styling
         const isLastEtape = this.currentEtapeIndex >= this.currentEtapes.length - 1;
