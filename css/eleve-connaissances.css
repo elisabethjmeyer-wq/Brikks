@@ -950,6 +950,10 @@
     font-weight: 500;
 }
 
+.empty-state {
+    padding: 2rem;
+}
+
 .format-no-data small {
     font-size: 0.9rem;
     color: #b45309;
@@ -4064,26 +4068,7 @@
     gap: 1rem;
 }
 
-.btn-etape-action {
-    padding: 0.8rem 2.5rem;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.btn-etape-action.next-btn {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    box-shadow: 0 3px 12px rgba(16, 185, 129, 0.3);
-}
-
-.btn-etape-action.next-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 5px 16px rgba(16, 185, 129, 0.4);
-}
+/* NOTE: Button definitions consolidated at line 4611 (removed duplicate definitions) */
 
 /* Bandeau de feedback unifié (feedback + bouton) */
 .etape-feedback {
