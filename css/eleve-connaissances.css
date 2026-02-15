@@ -4067,17 +4067,6 @@
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.btn-etape-action.validate-btn {
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
-    color: white;
-    box-shadow: 0 3px 12px rgba(99, 102, 241, 0.3);
-}
-
-.btn-etape-action.validate-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 5px 16px rgba(99, 102, 241, 0.4);
-}
-
 .btn-etape-action.next-btn {
     background: linear-gradient(135deg, #10b981, #059669);
     color: white;
@@ -4681,6 +4670,117 @@
 .btn-etape-action:disabled:hover {
     transform: none;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Bouton Valider - style unifié avec les autres boutons */
+.btn-etape-action.validate-btn {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+}
+
+.btn-etape-action.validate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.btn-etape-action.validate-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* ============================================
+   FEEDBACK GLOBAL EN HAUT (Multi-formats)
+   ============================================ */
+
+.etape-global-feedback {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    border-radius: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+    border: 1px solid transparent;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.etape-global-feedback.correct {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    color: #065f46;
+    border: 1px solid #86efac;
+}
+
+.etape-global-feedback.incorrect {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    color: #7f1d1d;
+    border: 1px solid #fecaca;
+}
+
+/* Structure du feedback avec header et score */
+.etape-global-feedback .feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.etape-global-feedback .feedback-icon {
+    font-size: 1.2rem;
+    min-width: 1.5rem;
+    text-align: center;
+    display: inline-block;
+}
+
+.etape-global-feedback .feedback-message {
+    flex: 1;
+}
+
+.etape-global-feedback .feedback-score-line {
+    font-size: 0.95rem;
+    border-top: 1px solid;
+    padding-top: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.etape-global-feedback.correct .feedback-score-line {
+    border-top-color: #86efac;
+}
+
+.etape-global-feedback.incorrect .feedback-score-line {
+    border-top-color: #fecaca;
+}
+
+.etape-global-feedback .score-label {
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.etape-global-feedback .score-value {
+    font-weight: 700;
+    font-size: 1.1rem;
+    font-family: 'Monaco', 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}
+
+.etape-global-feedback.correct .score-value {
+    color: #059669;
+}
+
+.etape-global-feedback.incorrect .score-value {
+    color: #dc2626;
 }
 
 /* Responsive: bouton sur mobile */
