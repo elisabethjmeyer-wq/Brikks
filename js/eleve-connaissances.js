@@ -798,17 +798,13 @@ const EleveConnaissances = {
                     <!-- Zone de feedback (visible après validation) -->
                     <div class="etape-feedback" id="etapeFeedback" style="display: none;"></div>
 
-                    <!-- Bouton d'action -->
+                    <!-- Bouton d'action (à droite, unifié pour tous les formats) -->
                     <div class="etape-action-bar" id="etapeActionBar">
-                        ${isFlashcard ? '' : (isValidated ? `
-                            <button class="btn-etape-action next-btn" onclick="EleveConnaissances.${isLastEtape ? 'finishEntrainement' : 'nextEtape'}()">
-                                ${isLastEtape ? 'Terminer ✓' : 'Suivant →'}
+                        ${isFlashcard ? '' : `
+                            <button class="btn-etape-action ${isValidated ? (isLastEtape ? 'finish-btn' : 'next-btn') : 'validate-btn'}" onclick="EleveConnaissances.${isValidated ? (isLastEtape ? 'finishEntrainement' : 'nextEtape') : 'validateCurrentEtape'}()">
+                                ${isValidated ? (isLastEtape ? 'Terminer ✓' : 'Suivant →') : 'Valider'}
                             </button>
-                        ` : `
-                            <button class="btn-etape-action validate-btn" onclick="EleveConnaissances.validateCurrentEtape()">
-                                Valider
-                            </button>
-                        `)}
+                        `}
                     </div>
                 </div>
             </div>
@@ -2359,6 +2355,82 @@ const EleveConnaissances = {
     },
 
     /**
+     * Helper: Extrait le texte du feedback selon le format de question
+     * Centralise la logique pour avoir un seul point de contrôle
+     * @param {string} format - Type de question (qcm, vf, qo, association, etc.)
+     * @param {boolean} isCorrect - Réponse correcte?
+     * @param {object} questionData - Données de la question
+     * @param {any} userAnswer - Réponse de l'utilisateur
+     * @param {object} result - Résultat de validation (si multi-format)
+     * @returns {string} Texte du feedback
+     */
+    /**
+     * Crée et affiche un feedback global EN HAUT du contenu d'exercice
+     * Utile pour les formats multi-questions (Association, Chrono, Carte, Texte à trous)
+     * qui ne montrent pas le feedback inline
+     */
+    displayGlobalFeedback(correct, total) {
+        const content = document.getElementById('exerciseContent');
+        if (!content) return;
+
+        // Chercher ou créer le conteneur de feedback global
+        let globalFeedback = content.querySelector('.etape-global-feedback');
+        if (!globalFeedback) {
+            globalFeedback = document.createElement('div');
+            globalFeedback.className = 'etape-global-feedback';
+            // Insérer EN HAUT du contenu
+            content.insertBefore(globalFeedback, content.firstChild);
+        }
+
+        // Afficher le feedback unifié
+        const isCorrect = correct === total && total > 0;
+        const feedbackText = isCorrect ? 'Correct !' : 'Réponse incorrecte';
+
+        globalFeedback.id = 'etapeGlobalFeedback';
+        globalFeedback.style.display = 'block';
+
+        this.displayUnifiedFeedback(
+            'etapeGlobalFeedback',
+            isCorrect,
+            feedbackText,
+            correct,
+            total,
+            'question-feedback'
+        );
+    },
+
+    extractFeedbackText(format, isCorrect, questionData, userAnswer, result = null) {
+        switch (format) {
+            case 'qcm':
+                if (isCorrect && questionData.feedback_correct) return questionData.feedback_correct;
+                if (!isCorrect && questionData.feedback_incorrect) return questionData.feedback_incorrect;
+                return isCorrect ? 'Correct !' : 'Mauvaise réponse';
+
+            case 'vf':
+                if (isCorrect && questionData.feedback_vrai) return questionData.feedback_vrai;
+                if (!isCorrect && questionData.feedback_faux) return questionData.feedback_faux;
+                return isCorrect ? 'Correct !' : 'Mauvaise réponse';
+
+            case 'question_ouverte':
+                if (isCorrect && questionData.feedback_correct) return questionData.feedback_correct;
+                if (!isCorrect) {
+                    const correctAnswer = (questionData.reponses_acceptees && questionData.reponses_acceptees[0]) || '';
+                    let text = `La bonne réponse était: ${correctAnswer}`;
+                    if (questionData.feedback_incorrect) text += ` ${questionData.feedback_incorrect}`;
+                    return text;
+                }
+                return isCorrect ? 'Correct !' : 'Mauvaise réponse';
+
+            case 'multi_format':
+                // Pour les formats multiples (texte, association, chrono, carte)
+                return isCorrect ? 'Correct !' : 'Réponse incorrecte';
+
+            default:
+                return isCorrect ? 'Correct !' : 'Incorrect';
+        }
+    },
+
+    /**
      * Affiche le feedback unifié pour une question
      * Format: [Feedback pédagogique] + [X/Y points]
      */
@@ -2665,13 +2737,7 @@ const EleveConnaissances = {
                                 card.classList.add('incorrect');
                             }
 
-                            // Ajouter l'affichage du score
-                            if (!card.querySelector('.timeline-card-score')) {
-                                const scoreSpan = document.createElement('span');
-                                scoreSpan.className = 'timeline-card-score';
-                                scoreSpan.textContent = isCorrect ? ' — 1/1 point' : ' — 0/1 point';
-                                card.appendChild(scoreSpan);
-                            }
+                            // Score affiché globalement en haut, pas inline
 
                             details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
                         });
@@ -2712,14 +2778,7 @@ const EleveConnaissances = {
                         input.classList.add('incorrect');
                     }
 
-                    // Ajouter l'affichage du score
-                    const container = input.closest('.trou-input-zone');
-                    if (container && !container.querySelector('.trou-score')) {
-                        const scoreSpan = document.createElement('span');
-                        scoreSpan.className = 'trou-score';
-                        scoreSpan.textContent = isOk ? ' — 1/1 point' : ' — 0/1 point';
-                        container.appendChild(scoreSpan);
-                    }
+                    // Score affiché globalement en haut, pas inline
 
                     details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: input.dataset.answer, correct: isOk });
                 });
@@ -2757,13 +2816,7 @@ const EleveConnaissances = {
                         // Apply correction mode visualization
                         this.applyCarteCorrectionMode(marker, idx, isCorrect, answer, correctAnswer);
 
-                        // Ajouter l'affichage du score
-                        if (answerItem && !answerItem.querySelector('.carte-answer-score')) {
-                            const scoreSpan = document.createElement('span');
-                            scoreSpan.className = 'carte-answer-score';
-                            scoreSpan.textContent = isCorrect ? ' — 1/1 point' : ' — 0/1 point';
-                            answerItem.appendChild(scoreSpan);
-                        }
+                        // Score affiché globalement en haut, pas inline
 
                         details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrect });
                     } else {
@@ -2888,44 +2941,6 @@ const EleveConnaissances = {
                 if (chipsZone) chipsZone.style.display = 'none';
                 const zoneLabel = document.querySelector('.association-zone-label');
                 if (zoneLabel) zoneLabel.style.display = 'none';
-
-                // Mettre à jour les labels sous chaque carte avec la correction
-                const getChipText = (id) => {
-                    const p = assocPaires[parseInt(id)];
-                    if (!p) return '?';
-                    return this._assocChipSide === 'gauche' ? p.element1 : p.element2;
-                };
-
-                document.querySelectorAll('#associationGrid .association-grid-card').forEach(card => {
-                    const cardId = card.dataset.id;
-                    const correctText = getChipText(cardId);
-                    const label = card.querySelector('.assoc-paired-label');
-                    if (!label) return;
-
-                    label.style.display = 'block';
-                    const userPair = userPairs.find(up => {
-                        const gId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
-                        return String(gId) === String(cardId);
-                    });
-
-                    if (userPair) {
-                        const chipId = this._assocChipSide === 'gauche' ? userPair.gauche : userPair.droite;
-                        const isCorrect = String(userPair.gauche) === String(userPair.droite);
-                        const studentText = getChipText(chipId);
-                        const scoreDisplay = isCorrect ? '1/1 point' : '0/1 point';
-
-                        if (isCorrect) {
-                            label.className = 'assoc-paired-label assoc-label-success';
-                            label.innerHTML = `<span class="assoc-answer-ok">✓ ${this.escapeHtml(correctText)}</span><span class="assoc-score">— ${scoreDisplay}</span>`;
-                        } else {
-                            label.className = 'assoc-paired-label assoc-label-error';
-                            label.innerHTML = `<span class="assoc-answer-wrong">✗ ${this.escapeHtml(studentText)}</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span><span class="assoc-score">— ${scoreDisplay}</span>`;
-                        }
-                    } else {
-                        label.className = 'assoc-paired-label assoc-label-error';
-                        label.innerHTML = `<span class="assoc-answer-wrong">✗ —</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span><span class="assoc-score">— 0/1 point</span>`;
-                    }
-                });
                 break;
 
             case 'flashcard':
@@ -2978,8 +2993,13 @@ const EleveConnaissances = {
             });
         }
 
-        // ✅ Feedback global d'étape supprimé
-        // Le feedback détaillé + points s'affiche après chaque question
+        // Afficher un feedback global unifié EN HAUT pour les formats multi
+        // qui ne montrent pas le feedback inline
+        const isMultiFormatWithGlobalFeedback = ['association', 'chronologie', 'timeline', 'texte_trou', 'texte_trous', 'carte'].includes(currentEtape.format_code);
+        if (isMultiFormatWithGlobalFeedback) {
+            this.displayGlobalFeedback(correct, total);
+        }
+
         // Affichage du bouton "Suivant" dans la zone d'action habituelle avec meilleur styling
         const isLastEtape = this.currentEtapeIndex >= this.currentEtapes.length - 1;
         const actionBar = document.getElementById('etapeActionBar');
@@ -3598,27 +3618,24 @@ const EleveConnaissances = {
             isCorrect = reponsesAcceptees.some(rep => this.compareAnswers(userAnswer, rep, stricte));
         }
 
-        // Feedback
-        const feedbackEl = document.getElementById(`feedback_question_ouverte_${qIdx}`);
+        // Marquer l'input comme correct/incorrect
         const inputEl = document.getElementById(`questionOuverteReponse_${qIdx}`);
-
         if (inputEl) {
             inputEl.classList.remove('correct', 'incorrect');
             inputEl.classList.add(isCorrect ? 'correct' : 'incorrect');
             inputEl.disabled = true;
         }
 
-        if (feedbackEl) {
-            feedbackEl.style.display = 'block';
-            feedbackEl.className = `question-ouverte-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-            if (isCorrect) {
-                feedbackEl.textContent = '✓ Correct !';
-                if (q.feedback_correct) feedbackEl.textContent += ` ${q.feedback_correct}`;
-            } else {
-                feedbackEl.textContent = `✗ La bonne réponse était: ${reponsesAcceptees[0] || ''}`;
-                if (q.feedback_incorrect) feedbackEl.textContent += ` ${q.feedback_incorrect}`;
-            }
-        }
+        // Afficher le feedback unifié avec score
+        const feedbackText = this.extractFeedbackText('question_ouverte', isCorrect, q, userAnswer);
+        this.displayUnifiedFeedback(
+            `feedback_question_ouverte_${qIdx}`,
+            isCorrect,
+            feedbackText,
+            isCorrect ? 1 : 0,
+            1,
+            'question-feedback'
+        );
 
         // Stocker le résultat
         this._qoResults[qIdx] = {
@@ -3737,22 +3754,29 @@ const EleveConnaissances = {
 
         // Afficher le feedback avec points
         const container = document.getElementById('multiFormatContent');
-        let feedbackEl = container.querySelector('.multi-format-feedback');
+        let feedbackEl = document.getElementById('multiFormatFeedback');
         if (!feedbackEl) {
             feedbackEl = document.createElement('div');
+            feedbackEl.id = 'multiFormatFeedback';
             feedbackEl.className = 'multi-format-feedback';
             container.appendChild(feedbackEl);
         }
         feedbackEl.style.display = 'block';
 
-        // Format unifié avec points : [✓/✗ Feedback] — [X/Y points]
+        // Afficher le feedback unifié (format 2 lignes: message + score)
         const isCorrect = result.correct === result.total;
-        const icon = isCorrect ? '✓' : '✗';
-        const scoreDisplay = `${result.correct}/${result.total} point${result.total > 1 ? 's' : ''}`;
-        let feedbackText = isCorrect ? 'Correct' : 'Réponse incorrecte';
+        const feedbackText = isCorrect ? 'Correct' : 'Réponse incorrecte';
 
-        feedbackEl.className = `multi-format-feedback question-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-        feedbackEl.textContent = `${icon} ${feedbackText} — ${scoreDisplay}`;
+        // Utiliser la fonction unifiée de feedback
+        feedbackEl.id = 'multiFormatFeedback'; // S'assurer que l'ID existe
+        this.displayUnifiedFeedback(
+            'multiFormatFeedback',
+            isCorrect,
+            feedbackText,
+            result.correct,
+            result.total,
+            'question-feedback'
+        );
 
         // Mettre à jour le bouton d'action dans un conteneur propre
         const actionDiv = document.getElementById('multiFormatAction');
