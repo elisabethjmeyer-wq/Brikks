@@ -2362,12 +2362,20 @@ const EleveConnaissances = {
      * Affiche le feedback unifié pour une question
      * Format: [Feedback pédagogique] + [X/Y points]
      */
-    displayUnifiedFeedback(feedbackElementId, isCorrect, feedbackText, score, maxScore) {
+    displayUnifiedFeedback(feedbackElementId, isCorrect, feedbackText, score, maxScore, format = null) {
         const feedbackEl = document.getElementById(feedbackElementId);
         if (!feedbackEl) return;
 
         feedbackEl.style.display = 'block';
-        feedbackEl.className = `question-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+
+        // Adapter la classe CSS selon le format
+        let feedbackClass = 'question-feedback';
+        if (format === 'qcm' || feedbackElementId.includes('qcm')) {
+            feedbackClass = 'qcm-feedback';
+        } else if (format === 'vf' || feedbackElementId.includes('vf')) {
+            feedbackClass = 'vf-feedback';
+        }
+        feedbackEl.className = `${feedbackClass} ${isCorrect ? 'correct' : 'incorrect'}`;
 
         // Format: [✓/✗ + feedback pédagogique] + [score]
         const icon = isCorrect ? '✓' : '✗';
@@ -2514,7 +2522,7 @@ const EleveConnaissances = {
                             }
 
                             // Utiliser la fonction unifiée de feedback
-                            this.displayUnifiedFeedback(`feedback_qcm_${qIdx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
+                            this.displayUnifiedFeedback(`feedback_qcm_${qIdx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1, 'qcm');
                             details.push({
                                 question: q.question,
                                 reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
@@ -2554,7 +2562,7 @@ const EleveConnaissances = {
                     }
 
                     // Utiliser la fonction unifiée de feedback
-                    this.displayUnifiedFeedback('feedback_qcm', correct === 1, feedbackText, correct, 1);
+                    this.displayUnifiedFeedback('feedback_qcm', correct === 1, feedbackText, correct, 1, 'qcm');
                     details.push({
                         question: donnees.question,
                         reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
@@ -2962,23 +2970,16 @@ const EleveConnaissances = {
             });
         }
 
-        // Feedback zone unifiée : affiche statut global (succès/partiel/erreur) + bouton
-        const feedbackZone = document.getElementById('etapeFeedback');
+        // ✅ Feedback global d'étape supprimé
+        // Le feedback détaillé + points s'affiche après chaque question
+        // Affichage du bouton "Suivant" dans la zone d'action habituelle
         const isLastEtape = this.currentEtapeIndex >= this.currentEtapes.length - 1;
-        if (feedbackZone) {
-            feedbackZone.style.display = 'block';
-            const feedbackClass = percent === 100 ? 'success' : percent >= 50 ? 'partial' : 'error';
-            feedbackZone.className = `etape-feedback ${feedbackClass}`;
-
-            const messages = {
-                success: { icon: '✓', title: 'Bravo !', sub: '' },
-                partial: { icon: '~', title: '', sub: '' },
-                error: { icon: '✗', title: '', sub: '' }
-            };
-            const msg = messages[feedbackClass];
+        const actionBar = document.getElementById('etapeActionBar');
+        if (actionBar) {
             const btnAction = isLastEtape ? 'finishEntrainement' : 'nextEtape';
             const btnLabel = isLastEtape ? 'Terminer ✓' : 'Suivant →';
-            feedbackZone.innerHTML = `<strong>${msg.icon} ${msg.title}</strong><button class="btn-etape-action next-btn" onclick="EleveConnaissances.${btnAction}()">${btnLabel}</button>`;
+            actionBar.style.display = 'block';
+            actionBar.innerHTML = `<button class="btn-etape-action next-btn" onclick="EleveConnaissances.${btnAction}()">${btnLabel}</button>`;
         }
     },
 
