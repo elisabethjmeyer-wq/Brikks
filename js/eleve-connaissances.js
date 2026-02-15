@@ -2359,6 +2359,27 @@ const EleveConnaissances = {
     },
 
     /**
+     * Affiche le feedback unifié pour une question
+     * Format: [Feedback pédagogique] + [X/Y points]
+     */
+    displayUnifiedFeedback(feedbackElementId, isCorrect, feedbackText, score, maxScore) {
+        const feedbackEl = document.getElementById(feedbackElementId);
+        if (!feedbackEl) return;
+
+        feedbackEl.style.display = 'block';
+        feedbackEl.className = `question-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+
+        // Format: [✓/✗ + feedback pédagogique] + [score]
+        const icon = isCorrect ? '✓' : '✗';
+        const scoreDisplay = `${score}/${maxScore} point${maxScore > 1 ? 's' : ''}`;
+
+        let content = `${icon} ${feedbackText || (isCorrect ? 'Correct' : 'Incorrect')}`;
+        content += ` — ${scoreDisplay}`;
+
+        feedbackEl.textContent = content;
+    },
+
+    /**
      * Validate current etape — feedback immédiat style Projet Voltaire
      * Récupère les données via la jointure etapeQuestions → questionsConnaissances
      * Affiche le feedback inline, désactive les inputs, puis affiche le bouton Suivant
@@ -2384,17 +2405,15 @@ const EleveConnaissances = {
                     const isCorrect = answer === expected;
                     if (isCorrect) correct++;
 
-                    const feedback = document.getElementById('feedback_vf_0');
-                    if (feedback) {
-                        feedback.style.display = 'block';
-                        feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-                        const vfChosenFb = this.userAnswers['vf_0'] === 'vrai' ? donnees.feedback_vrai : donnees.feedback_faux;
-                        if (vfChosenFb) {
-                            feedback.textContent = `${isCorrect ? '✓' : '✗'} ${vfChosenFb}`;
-                        } else {
-                            feedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
-                        }
+                    // Construire le texte du feedback
+                    let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
+                    const vfChosenFb = this.userAnswers['vf_0'] === 'vrai' ? donnees.feedback_vrai : donnees.feedback_faux;
+                    if (vfChosenFb) {
+                        feedbackText = vfChosenFb;
                     }
+
+                    // Utiliser la fonction unifiée de feedback
+                    this.displayUnifiedFeedback('feedback_vf_0', isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
                     details.push({ question: donnees.question, reponse: answer, attendu: expected, correct: isCorrect });
                 } else {
                     const propositions = donnees.propositions || [];
@@ -2419,16 +2438,14 @@ const EleveConnaissances = {
                             const isCorrect = answer === expected;
                             if (isCorrect) correct++;
 
-                            const feedback = document.getElementById(`feedback_vf_${idx}`);
-                            if (feedback) {
-                                feedback.style.display = 'block';
-                                feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-                                if (prop.feedback) {
-                                    feedback.textContent = `${isCorrect ? '✓' : '✗'} ${prop.feedback}`;
-                                } else {
-                                    feedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
-                                }
+                            // Construire le texte du feedback
+                            let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
+                            if (prop.feedback) {
+                                feedbackText = prop.feedback;
                             }
+
+                            // Utiliser la fonction unifiée de feedback
+                            this.displayUnifiedFeedback(`feedback_vf_${idx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
                             details.push({ question: prop.texte, reponse: answer, attendu: expected, correct: isCorrect });
                         });
                     }
@@ -2483,22 +2500,21 @@ const EleveConnaissances = {
                             const isCorrect = correctIndices.includes(parseInt(userAnswer));
                             if (isCorrect) correct++;
 
-                            const qcmFeedback = document.getElementById(`feedback_qcm_${qIdx}`);
-                            if (qcmFeedback) {
-                                qcmFeedback.style.display = 'block';
-                                qcmFeedback.className = `qcm-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-                                qcmFeedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
+                            // Construire le texte du feedback
+                            let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
+                            const feedbacksOptions = q.feedbacks_options || [];
+                            const chosenIdx = parseInt(userAnswer);
 
-                                const feedbacksOptions = q.feedbacks_options || [];
-                                const chosenIdx = parseInt(userAnswer);
-                                if (feedbacksOptions[chosenIdx]) {
-                                    qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
-                                } else if (isCorrect && q.feedback_correct) {
-                                    qcmFeedback.textContent += ` ${q.feedback_correct}`;
-                                } else if (!isCorrect && q.feedback_incorrect) {
-                                    qcmFeedback.textContent += ` ${q.feedback_incorrect}`;
-                                }
+                            if (feedbacksOptions[chosenIdx]) {
+                                feedbackText = feedbacksOptions[chosenIdx];
+                            } else if (isCorrect && q.feedback_correct) {
+                                feedbackText = q.feedback_correct;
+                            } else if (!isCorrect && q.feedback_incorrect) {
+                                feedbackText = q.feedback_incorrect;
                             }
+
+                            // Utiliser la fonction unifiée de feedback
+                            this.displayUnifiedFeedback(`feedback_qcm_${qIdx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
                             details.push({
                                 question: q.question,
                                 reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
@@ -2524,22 +2540,21 @@ const EleveConnaissances = {
 
                     if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
 
-                    const qcmFeedback = document.getElementById('feedback_qcm');
-                    if (qcmFeedback) {
-                        qcmFeedback.style.display = 'block';
-                        qcmFeedback.className = `qcm-feedback ${correct === 1 ? 'correct' : 'incorrect'}`;
-                        qcmFeedback.textContent = correct === 1 ? '✓ Correct' : '✗ Mauvaise réponse';
+                    // Construire le texte du feedback
+                    let feedbackText = correct === 1 ? 'Correct' : 'Mauvaise réponse';
+                    const feedbacksOptions = donnees.feedbacks_options || [];
+                    const chosenIdx = parseInt(userAnswer);
 
-                        const feedbacksOptions = donnees.feedbacks_options || [];
-                        const chosenIdx = parseInt(userAnswer);
-                        if (feedbacksOptions[chosenIdx]) {
-                            qcmFeedback.textContent += ` ${feedbacksOptions[chosenIdx]}`;
-                        } else if (correct === 1 && donnees.feedback_correct) {
-                            qcmFeedback.textContent += ` ${donnees.feedback_correct}`;
-                        } else if (correct === 0 && donnees.feedback_incorrect) {
-                            qcmFeedback.textContent += ` ${donnees.feedback_incorrect}`;
-                        }
+                    if (feedbacksOptions[chosenIdx]) {
+                        feedbackText = feedbacksOptions[chosenIdx];
+                    } else if (correct === 1 && donnees.feedback_correct) {
+                        feedbackText = donnees.feedback_correct;
+                    } else if (correct === 0 && donnees.feedback_incorrect) {
+                        feedbackText = donnees.feedback_incorrect;
                     }
+
+                    // Utiliser la fonction unifiée de feedback
+                    this.displayUnifiedFeedback('feedback_qcm', correct === 1, feedbackText, correct, 1);
                     details.push({
                         question: donnees.question,
                         reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
@@ -2599,6 +2614,15 @@ const EleveConnaissances = {
                                 container.appendChild(correction);
                             }
                         }
+
+                        // Ajouter l'affichage du score
+                        const container = inputEl.closest('.chrono-input-zone');
+                        if (container && !container.querySelector('.chrono-score')) {
+                            const scoreSpan = document.createElement('span');
+                            scoreSpan.className = 'chrono-score';
+                            scoreSpan.textContent = isCorrect ? ' — 1/1 point' : ' — 0/1 point';
+                            container.appendChild(scoreSpan);
+                        }
                         details.push({ question: mode === 'evenement' ? evt.date : evt.evenement, reponse: answer?.value, attendu: correctValue, correct: isCorrect });
                     });
                 } else {
@@ -2617,12 +2641,22 @@ const EleveConnaissances = {
                             card.classList.remove('correct', 'incorrect');
                             card.setAttribute('draggable', 'false');
 
-                            if (originalIndex === positionActuelle) {
+                            const isCorrect = originalIndex === positionActuelle;
+                            if (isCorrect) {
                                 correct++;
                                 card.classList.add('correct');
                             } else {
                                 card.classList.add('incorrect');
                             }
+
+                            // Ajouter l'affichage du score
+                            if (!card.querySelector('.timeline-card-score')) {
+                                const scoreSpan = document.createElement('span');
+                                scoreSpan.className = 'timeline-card-score';
+                                scoreSpan.textContent = isCorrect ? ' — 1/1 point' : ' — 0/1 point';
+                                card.appendChild(scoreSpan);
+                            }
+
                             details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
                         });
 
@@ -2661,6 +2695,16 @@ const EleveConnaissances = {
                     } else {
                         input.classList.add('incorrect');
                     }
+
+                    // Ajouter l'affichage du score
+                    const container = input.closest('.trou-input-zone');
+                    if (container && !container.querySelector('.trou-score')) {
+                        const scoreSpan = document.createElement('span');
+                        scoreSpan.className = 'trou-score';
+                        scoreSpan.textContent = isOk ? ' — 1/1 point' : ' — 0/1 point';
+                        container.appendChild(scoreSpan);
+                    }
+
                     details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: input.dataset.answer, correct: isOk });
                 });
                 break;
@@ -2693,12 +2737,34 @@ const EleveConnaissances = {
                             if (marker) marker.classList.add('incorrect');
                             if (answerItem) answerItem.classList.add('incorrect');
                         }
+
+                        // Apply correction mode visualization
                         this.applyCarteCorrectionMode(marker, idx, isCorrect, answer, correctAnswer);
+
+                        // Ajouter l'affichage du score
+                        if (answerItem && !answerItem.querySelector('.carte-answer-score')) {
+                            const scoreSpan = document.createElement('span');
+                            scoreSpan.className = 'carte-answer-score';
+                            scoreSpan.textContent = isCorrect ? ' — 1/1 point' : ' — 0/1 point';
+                            answerItem.appendChild(scoreSpan);
+                        }
+
                         details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrect });
                     } else {
                         if (marker) marker.classList.add('incorrect');
                         if (answerItem) answerItem.classList.add('incorrect');
+
+                        // Apply correction mode visualization
                         this.applyCarteCorrectionMode(marker, idx, false, null, correctAnswer);
+
+                        // Ajouter l'affichage du score
+                        if (answerItem && !answerItem.querySelector('.carte-answer-score')) {
+                            const scoreSpan = document.createElement('span');
+                            scoreSpan.className = 'carte-answer-score';
+                            scoreSpan.textContent = ' — 0/1 point';
+                            answerItem.appendChild(scoreSpan);
+                        }
+
                         details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
                     }
                 });
@@ -2738,15 +2804,16 @@ const EleveConnaissances = {
                     }
 
                     if (qoFeedbackEl) {
-                        qoFeedbackEl.style.display = 'block';
-                        qoFeedbackEl.className = `question-ouverte-feedback ${qoCorrect ? 'correct' : 'incorrect'}`;
-                        if (qoCorrect) {
-                            qoFeedbackEl.textContent = '✓ Correct !';
-                            if (donnees.feedback_correct) qoFeedbackEl.textContent += ` ${donnees.feedback_correct}`;
-                        } else {
-                            qoFeedbackEl.textContent = `✗ La bonne réponse était: ${qoReponsesAcceptees[0] || ''}`;
-                            if (donnees.feedback_incorrect) qoFeedbackEl.textContent += ` ${donnees.feedback_incorrect}`;
+                        // Construire le texte du feedback
+                        let feedbackText = qoCorrect ? 'Correct !' : `La bonne réponse était: ${qoReponsesAcceptees[0] || ''}`;
+                        if (qoCorrect && donnees.feedback_correct) {
+                            feedbackText = donnees.feedback_correct;
+                        } else if (!qoCorrect && donnees.feedback_incorrect) {
+                            feedbackText += ` ${donnees.feedback_incorrect}`;
                         }
+
+                        // Utiliser la fonction unifiée de feedback
+                        this.displayUnifiedFeedback('feedback_question_ouverte', qoCorrect, feedbackText, qoCorrect ? 1 : 0, 1);
                     }
                     details.push({ question: donnees.question, reponse: qoAnswer, attendu: qoReponsesAcceptees.join(' / '), correct: qoCorrect });
                 }
@@ -2829,17 +2896,18 @@ const EleveConnaissances = {
                         const chipId = this._assocChipSide === 'gauche' ? userPair.gauche : userPair.droite;
                         const isCorrect = String(userPair.gauche) === String(userPair.droite);
                         const studentText = getChipText(chipId);
+                        const scoreDisplay = isCorrect ? '1/1 point' : '0/1 point';
 
                         if (isCorrect) {
                             label.className = 'assoc-paired-label assoc-label-success';
-                            label.innerHTML = `<span class="assoc-answer-ok">✓ ${this.escapeHtml(correctText)}</span>`;
+                            label.innerHTML = `<span class="assoc-answer-ok">✓ ${this.escapeHtml(correctText)}</span><span class="assoc-score">— ${scoreDisplay}</span>`;
                         } else {
                             label.className = 'assoc-paired-label assoc-label-error';
-                            label.innerHTML = `<span class="assoc-answer-wrong">✗ ${this.escapeHtml(studentText)}</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+                            label.innerHTML = `<span class="assoc-answer-wrong">✗ ${this.escapeHtml(studentText)}</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span><span class="assoc-score">— ${scoreDisplay}</span>`;
                         }
                     } else {
                         label.className = 'assoc-paired-label assoc-label-error';
-                        label.innerHTML = `<span class="assoc-answer-wrong">✗ —</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+                        label.innerHTML = `<span class="assoc-answer-wrong">✗ —</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span><span class="assoc-score">— 0/1 point</span>`;
                     }
                 });
                 break;
@@ -2894,7 +2962,7 @@ const EleveConnaissances = {
             });
         }
 
-        // Bandeau unifié : feedback + bouton dans un seul bloc
+        // Feedback zone unifiée : affiche statut global (succès/partiel/erreur) + bouton
         const feedbackZone = document.getElementById('etapeFeedback');
         const isLastEtape = this.currentEtapeIndex >= this.currentEtapes.length - 1;
         if (feedbackZone) {
@@ -2910,24 +2978,8 @@ const EleveConnaissances = {
             const msg = messages[feedbackClass];
             const btnAction = isLastEtape ? 'finishEntrainement' : 'nextEtape';
             const btnLabel = isLastEtape ? 'Terminer ✓' : 'Suivant →';
-
-            feedbackZone.innerHTML = `
-                <div class="etape-feedback-main">
-                    <div class="etape-feedback-icon">${msg.icon}</div>
-                    <div class="etape-feedback-text">
-                        ${msg.title ? `<strong>${msg.title}</strong>` : ''}
-                        <span>${correct}/${total} correct${correct > 1 ? 's' : ''}${msg.sub ? ' — ' + msg.sub : ''}</span>
-                    </div>
-                    <button class="btn-etape-action next-btn" onclick="EleveConnaissances.${btnAction}()">
-                        ${btnLabel}
-                    </button>
-                </div>
-            `;
+            feedbackZone.innerHTML = `<strong>${msg.icon} ${msg.title}</strong><button class="btn-etape-action next-btn" onclick="EleveConnaissances.${btnAction}()">${btnLabel}</button>`;
         }
-
-        // Cacher l'ancienne barre d'action (le bouton est dans le bandeau)
-        const actionBar = document.getElementById('etapeActionBar');
-        if (actionBar) actionBar.style.display = 'none';
     },
 
     /**
