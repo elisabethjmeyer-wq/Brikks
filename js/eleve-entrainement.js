@@ -8,6 +8,7 @@ const EleveEntrainement = {
     training: null,
     steps: [],
     currentStepIndex: 0,
+    currentQuestionIndex: 0,  // Index de la question dans l'étape actuelle
     answers: {},
     results: {},
     duration: 0,        // Durée totale en secondes (définie par l'admin)
@@ -695,7 +696,6 @@ const EleveEntrainement = {
     // ========== FORMAT QCM ==========
     renderQCM(step) {
         const container = document.getElementById('exerciseContainer');
-        const isVerified = this.results[this.currentStepIndex]?.verified;
 
         // Initialiser le mélange des options si pas encore fait
         if (!this.answers[this.currentStepIndex]) {
@@ -709,6 +709,27 @@ const EleveEntrainement = {
 
         const stepAnswers = this.answers[this.currentStepIndex];
 
+        // Si toutes les questions ont été répondues, afficher le résumé de l'étape
+        const allAnswered = step.questions.every(q => stepAnswers[q.id] !== undefined);
+        if (allAnswered && this.currentQuestionIndex >= step.questions.length) {
+            this.renderQCMStepSummary(step, stepAnswers);
+            return;
+        }
+
+        // Sinon, afficher une seule question à la fois
+        const currentQuestion = step.questions[this.currentQuestionIndex];
+        if (!currentQuestion) {
+            // Sécurité : si on dépasse le nombre de questions, afficher le résumé
+            this.currentQuestionIndex = step.questions.length;
+            this.renderQCM(step);
+            return;
+        }
+
+        const questionResult = this.results[`${this.currentStepIndex}-${this.currentQuestionIndex}`];
+        const isQuestionVerified = questionResult?.verified || false;
+        const selectedOriginalIndex = stepAnswers[currentQuestion.id];
+        const isAnswered = selectedOriginalIndex !== undefined;
+
         container.innerHTML = `
             <div class="exercise-card">
                 <div class="exercise-header">
@@ -717,20 +738,114 @@ const EleveEntrainement = {
                         <h2>${step.titre}</h2>
                         <p>${step.description}</p>
                     </div>
-                    <span class="exercise-badge">${step.questions.length} questions</span>
+                    <span class="exercise-badge">Question ${this.currentQuestionIndex + 1} / ${step.questions.length}</span>
                 </div>
 
                 <div class="exercise-body">
                     <div class="qcm-questions-list">
-                        ${step.questions.map((q, qIndex) => this.renderQCMQuestion(q, qIndex, stepAnswers, isVerified)).join('')}
+                        ${this.renderQCMQuestion(currentQuestion, this.currentQuestionIndex, stepAnswers, isQuestionVerified)}
                     </div>
 
                     <div class="exercise-actions">
-                        ${this.renderNavigationButtons()}
+                        ${this.renderQCMQuestionButtons(step, isAnswered, isQuestionVerified)}
                     </div>
                 </div>
             </div>
         `;
+    },
+
+    renderQCMStepSummary(step, stepAnswers) {
+        const container = document.getElementById('exerciseContainer');
+        let correct = 0;
+        let total = step.questions.length;
+
+        step.questions.forEach(q => {
+            if (stepAnswers[q.id] === q.correctIndex) {
+                correct++;
+            }
+        });
+
+        const score = total > 0 ? Math.round((correct / total) * 100) : 0;
+        let scoreClass = 'success';
+        if (score < 50) scoreClass = 'failure';
+        else if (score < 80) scoreClass = 'partial';
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon qcm">${this.getFormatIcon('qcm')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description}</p>
+                    </div>
+                    <span class="exercise-badge">✓ Étape complétée</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="step-summary">
+                        <div class="step-summary-header ${scoreClass}">
+                            <span class="step-summary-icon">${score >= 80 ? '🎉' : score >= 50 ? '👍' : '💪'}</span>
+                            <div>
+                                <h3>${score >= 80 ? 'Excellent !' : score >= 50 ? 'Bien joué !' : 'Continue tes efforts'}</h3>
+                                <p><strong>${correct}/${total} bonnes réponses</strong></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${this.renderQCMStepSummaryButtons()}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderQCMQuestionButtons(step, isAnswered, isQuestionVerified) {
+        let html = '';
+
+        if (this.correctionMode) {
+            // En mode correction, les réponses sont toujours vérifiées
+            if (this.currentQuestionIndex < step.questions.length - 1) {
+                html += `<button class="btn btn-primary" onclick="EleveEntrainement.nextQuestion()">Correction suivante</button>`;
+            } else {
+                html += `<button class="btn btn-primary" onclick="EleveEntrainement.backToResults()">Retour aux résultats</button>`;
+            }
+        } else {
+            // Mode entraînement normal
+            if (!isQuestionVerified && !isAnswered) {
+                html += `<p style="color: var(--gray-500); text-align: center; margin-bottom: 16px;">Veuillez sélectionner une réponse</p>`;
+            }
+
+            if (isQuestionVerified) {
+                // Après vérification, afficher bouton "Question suivante"
+                if (this.currentQuestionIndex < step.questions.length - 1) {
+                    html += `<button class="btn btn-primary" onclick="EleveEntrainement.nextQuestion()">Question suivante</button>`;
+                } else {
+                    html += `<button class="btn btn-success" onclick="EleveEntrainement.nextQuestion()">Voir le résumé</button>`;
+                }
+            } else if (isAnswered) {
+                // Si répondu mais pas vérifiée, montrer bouton "Valider"
+                html += `<button class="btn btn-success" onclick="EleveEntrainement.verifyCurrentQuestion()">Valider</button>`;
+                html += `<button class="btn btn-secondary" onclick="EleveEntrainement.resetCurrentQuestion()" style="margin-left: 8px;">Changer de réponse</button>`;
+            }
+        }
+
+        return html;
+    },
+
+    renderQCMStepSummaryButtons() {
+        const step = this.steps[this.currentStepIndex];
+        if (this.currentStepIndex < this.steps.length - 1) {
+            return `
+                <button class="btn btn-secondary" onclick="EleveEntrainement.restartCurrentStep()">Recommencer cette étape</button>
+                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante</button>
+            `;
+        } else {
+            return `
+                <button class="btn btn-secondary" onclick="EleveEntrainement.restartCurrentStep()">Recommencer cette étape</button>
+                <button class="btn btn-success" onclick="EleveEntrainement.finishTraining()">Terminer l'entraînement</button>
+            `;
+        }
     },
 
     renderQCMQuestion(question, qIndex, stepAnswers, isVerified) {
@@ -792,13 +907,66 @@ const EleveEntrainement = {
     },
 
     selectQCMOption(questionId, originalIndex) {
-        // Ne pas permettre la sélection si déjà vérifié
-        if (this.results[this.currentStepIndex]?.verified) return;
+        const questionResult = this.results[`${this.currentStepIndex}-${this.currentQuestionIndex}`];
+        // Ne pas permettre la sélection si la question est déjà vérifiée
+        if (questionResult?.verified) return;
 
         // Enregistrer la réponse (l'index original de la bonne réponse)
         this.answers[this.currentStepIndex][questionId] = originalIndex;
 
         // Re-render la question
+        this.renderCurrentStep();
+    },
+
+    verifyCurrentQuestion() {
+        const step = this.steps[this.currentStepIndex];
+        const currentQuestion = step.questions[this.currentQuestionIndex];
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+        const selectedOriginalIndex = stepAnswers[currentQuestion.id];
+
+        if (selectedOriginalIndex === undefined) return; // Ne pas vérifier si pas de réponse
+
+        const isCorrect = selectedOriginalIndex === currentQuestion.correctIndex;
+        this.results[`${this.currentStepIndex}-${this.currentQuestionIndex}`] = {
+            verified: true,
+            correct: isCorrect ? 1 : 0,
+            total: 1,
+            score: isCorrect ? 100 : 0
+        };
+
+        this.renderCurrentStep();
+    },
+
+    nextQuestion() {
+        const step = this.steps[this.currentStepIndex];
+        if (this.currentQuestionIndex < step.questions.length - 1) {
+            this.currentQuestionIndex++;
+            this.renderCurrentStep();
+            window.scrollTo(0, 0);
+        } else {
+            // Passer au résumé de l'étape
+            this.currentQuestionIndex = step.questions.length;
+            this.renderCurrentStep();
+            window.scrollTo(0, 0);
+        }
+    },
+
+    resetCurrentQuestion() {
+        const step = this.steps[this.currentStepIndex];
+        const currentQuestion = step.questions[this.currentQuestionIndex];
+        delete this.answers[this.currentStepIndex][currentQuestion.id];
+        delete this.results[`${this.currentStepIndex}-${this.currentQuestionIndex}`];
+        this.renderCurrentStep();
+    },
+
+    restartCurrentStep() {
+        this.currentQuestionIndex = 0;
+        delete this.answers[this.currentStepIndex];
+        delete this.results[this.currentStepIndex];
+        // Effacer tous les résultats des questions individuelles
+        for (let i = 0; i < this.steps[this.currentStepIndex].questions.length; i++) {
+            delete this.results[`${this.currentStepIndex}-${i}`];
+        }
         this.renderCurrentStep();
     },
 
@@ -847,6 +1015,7 @@ const EleveEntrainement = {
     goToStep(index) {
         if (index >= 0 && index < this.steps.length) {
             this.currentStepIndex = index;
+            this.currentQuestionIndex = 0;
             this.render();
         }
     },
@@ -854,8 +1023,12 @@ const EleveEntrainement = {
     nextStep() {
         if (this.currentStepIndex < this.steps.length - 1) {
             this.currentStepIndex++;
+            this.currentQuestionIndex = 0;
             this.render();
             window.scrollTo(0, 0);
+        } else {
+            // Si c'était la dernière étape, terminer l'entraînement
+            this.finishTraining();
         }
     },
 
@@ -874,20 +1047,68 @@ const EleveEntrainement = {
         }
     },
 
-    // Terminer l'entraînement : vérifier toutes les étapes et afficher les résultats
+    // Terminer l'entraînement : calculer les résultats finaux à partir des questions vérifiées
     finishTraining() {
-        // Vérifier toutes les étapes
-        this.steps.forEach((step, index) => {
-            if (!this.results[index]?.verified) {
-                const savedIndex = this.currentStepIndex;
-                this.currentStepIndex = index;
-                this.verifyCurrentStep();
-                this.currentStepIndex = savedIndex;
-            }
+        // Combiner les résultats des questions individuelles pour chaque étape
+        this.steps.forEach((step, stepIndex) => {
+            let correct = 0;
+            let total = step.questions.length;
+
+            step.questions.forEach((q, qIndex) => {
+                const questionResult = this.results[`${stepIndex}-${qIndex}`];
+
+                // Si la question a été vérifiée, compter le résultat
+                if (questionResult?.verified) {
+                    if (questionResult.correct === 1) {
+                        correct++;
+                    }
+                } else if (this.answers[stepIndex]?.[q.id] !== undefined) {
+                    // Si pas vérifiée mais répondue, faire la vérification
+                    const stepAnswers = this.answers[stepIndex] || {};
+                    const isCorrect = this.checkQuestionAnswer(q, stepAnswers, step);
+                    if (isCorrect) {
+                        correct++;
+                    }
+                    // Marquer comme vérifié pour le mode correction
+                    this.results[`${stepIndex}-${qIndex}`] = {
+                        verified: true,
+                        correct: isCorrect ? 1 : 0,
+                        total: 1,
+                        score: isCorrect ? 100 : 0
+                    };
+                }
+            });
+
+            // Créer le résultat global de l'étape
+            this.results[stepIndex] = {
+                verified: true,
+                correct,
+                total,
+                score: total > 0 ? Math.round((correct / total) * 100) : 0
+            };
         });
 
         // Afficher les résultats
         this.showResults();
+    },
+
+    // Fonction utilitaire pour vérifier une réponse selon le format
+    checkQuestionAnswer(question, stepAnswers, step) {
+        const format = step.format;
+
+        switch (format) {
+            case 'qcm':
+                return stepAnswers[question.id] === question.correctIndex;
+            case 'vrai_faux':
+                return stepAnswers[question.id] === question.correctAnswer;
+            case 'qcm_multiple':
+                const selections = stepAnswers.selections?.[question.id] || [];
+                const correctIndices = question.correctIndices || [];
+                return selections.length === correctIndices.length &&
+                    selections.every(idx => correctIndices.includes(idx));
+            default:
+                return false;
+        }
     },
 
     // ========== RÉSULTATS ==========
@@ -1019,6 +1240,7 @@ const EleveEntrainement = {
     // Afficher les corrections détaillées
     showCorrections() {
         this.currentStepIndex = 0;
+        this.currentQuestionIndex = 0;
         this.correctionMode = true;
 
         document.getElementById('resultContainer').style.display = 'none';
@@ -1039,6 +1261,7 @@ const EleveEntrainement = {
 
     restart() {
         this.currentStepIndex = 0;
+        this.currentQuestionIndex = 0;
         this.answers = {};
         this.results = {};
         this.timeExpired = false;
@@ -1073,8 +1296,28 @@ const EleveEntrainement = {
     // ========== FORMAT VRAI/FAUX ==========
     renderVraiFaux(step) {
         const container = document.getElementById('exerciseContainer');
-        const isVerified = this.results[this.currentStepIndex]?.verified;
         const stepAnswers = this.answers[this.currentStepIndex] || {};
+        const questions = step.questions || [{ id: 'q1', question: step.titre, correctAnswer: step.correctAnswer }];
+
+        // Si toutes les questions ont été répondues, afficher le résumé de l'étape
+        const allAnswered = questions.every(q => stepAnswers[q.id] !== undefined);
+        if (allAnswered && this.currentQuestionIndex >= questions.length) {
+            this.renderVraiFauxStepSummary(step, stepAnswers, questions);
+            return;
+        }
+
+        // Sinon, afficher une seule question à la fois
+        const currentQuestion = questions[this.currentQuestionIndex];
+        if (!currentQuestion) {
+            this.currentQuestionIndex = questions.length;
+            this.renderVraiFaux(step);
+            return;
+        }
+
+        const questionResult = this.results[`${this.currentStepIndex}-${this.currentQuestionIndex}`];
+        const isQuestionVerified = questionResult?.verified || false;
+        const answer = stepAnswers[currentQuestion.id];
+        const isAnswered = answer !== undefined;
 
         container.innerHTML = `
             <div class="exercise-card">
@@ -1084,56 +1327,129 @@ const EleveEntrainement = {
                         <h2>${step.titre}</h2>
                         <p>${step.description || 'Répondez Vrai ou Faux'}</p>
                     </div>
-                    <span class="exercise-badge">${step.questions?.length || 1} question(s)</span>
+                    <span class="exercise-badge">Question ${this.currentQuestionIndex + 1} / ${questions.length}</span>
                 </div>
 
                 <div class="exercise-body">
                     <div class="vrai-faux-list">
-                        ${(step.questions || [{ id: 'q1', question: step.titre, correctAnswer: step.correctAnswer }]).map((q, qIndex) => {
-                            const answer = stepAnswers[q.id];
-                            const isCorrect = isVerified && answer === q.correctAnswer;
-                            const isIncorrect = isVerified && answer !== undefined && answer !== q.correctAnswer;
-                            const notAnswered = isVerified && answer === undefined;
-
-                            return `
-                                <div class="vrai-faux-item ${isVerified ? (isCorrect ? 'correct' : 'incorrect') : ''}">
-                                    <div class="vrai-faux-question">
-                                        <span class="vrai-faux-number">${qIndex + 1}</span>
-                                        <span class="vrai-faux-text">${this.escapeHtml(q.question)}</span>
-                                    </div>
-                                    <div class="vrai-faux-buttons">
-                                        <button class="vrai-faux-btn vrai ${answer === true ? 'selected' : ''} ${isVerified && q.correctAnswer === true ? 'correct-answer' : ''} ${isVerified ? 'disabled' : ''}"
-                                                onclick="EleveEntrainement.selectVraiFaux('${q.id}', true)"
-                                                ${isVerified ? 'disabled' : ''}>
-                                            Vrai
-                                        </button>
-                                        <button class="vrai-faux-btn faux ${answer === false ? 'selected' : ''} ${isVerified && q.correctAnswer === false ? 'correct-answer' : ''} ${isVerified ? 'disabled' : ''}"
-                                                onclick="EleveEntrainement.selectVraiFaux('${q.id}', false)"
-                                                ${isVerified ? 'disabled' : ''}>
-                                            Faux
-                                        </button>
-                                    </div>
-                                    ${isVerified ? `
-                                        <div class="vrai-faux-feedback ${isCorrect ? 'correct' : 'incorrect'}">
-                                            ${isCorrect ? '✓ Correct' : (notAnswered ? '⚠️ Non répondu' : '✗ Incorrect')}
-                                            ${q.explanation ? `<p>${this.escapeHtml(q.explanation)}</p>` : ''}
-                                        </div>
-                                    ` : ''}
+                        <div class="vrai-faux-item ${isQuestionVerified ? (answer === currentQuestion.correctAnswer ? 'correct' : 'incorrect') : ''}">
+                            <div class="vrai-faux-question">
+                                <span class="vrai-faux-number">${this.currentQuestionIndex + 1}</span>
+                                <span class="vrai-faux-text">${this.escapeHtml(currentQuestion.question)}</span>
+                            </div>
+                            <div class="vrai-faux-buttons">
+                                <button class="vrai-faux-btn vrai ${answer === true ? 'selected' : ''} ${isQuestionVerified && currentQuestion.correctAnswer === true ? 'correct-answer' : ''} ${isQuestionVerified ? 'disabled' : ''}"
+                                        onclick="EleveEntrainement.selectVraiFaux('${currentQuestion.id}', true)"
+                                        ${isQuestionVerified ? 'disabled' : ''}>
+                                    Vrai
+                                </button>
+                                <button class="vrai-faux-btn faux ${answer === false ? 'selected' : ''} ${isQuestionVerified && currentQuestion.correctAnswer === false ? 'correct-answer' : ''} ${isQuestionVerified ? 'disabled' : ''}"
+                                        onclick="EleveEntrainement.selectVraiFaux('${currentQuestion.id}', false)"
+                                        ${isQuestionVerified ? 'disabled' : ''}>
+                                    Faux
+                                </button>
+                            </div>
+                            ${isQuestionVerified ? `
+                                <div class="vrai-faux-feedback ${answer === currentQuestion.correctAnswer ? 'correct' : 'incorrect'}">
+                                    ${answer === currentQuestion.correctAnswer ? '✓ Correct' : (answer !== undefined ? '✗ Incorrect' : '⚠️ Non répondu')}
+                                    ${currentQuestion.explanation ? `<p>${this.escapeHtml(currentQuestion.explanation)}</p>` : ''}
                                 </div>
-                            `;
-                        }).join('')}
+                            ` : ''}
+                        </div>
                     </div>
 
                     <div class="exercise-actions">
-                        ${this.renderNavigationButtons()}
+                        ${this.renderVraiFauxQuestionButtons(questions, isAnswered, isQuestionVerified)}
                     </div>
                 </div>
             </div>
         `;
     },
 
+    renderVraiFauxStepSummary(step, stepAnswers, questions) {
+        const container = document.getElementById('exerciseContainer');
+        let correct = 0;
+
+        questions.forEach(q => {
+            if (stepAnswers[q.id] === q.correctAnswer) {
+                correct++;
+            }
+        });
+
+        const score = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0;
+        let scoreClass = 'success';
+        if (score < 50) scoreClass = 'failure';
+        else if (score < 80) scoreClass = 'partial';
+
+        container.innerHTML = `
+            <div class="exercise-card">
+                <div class="exercise-header">
+                    <div class="exercise-icon vrai-faux">${this.getFormatIcon('vrai_faux')}</div>
+                    <div class="exercise-info">
+                        <h2>${step.titre}</h2>
+                        <p>${step.description || 'Répondez Vrai ou Faux'}</p>
+                    </div>
+                    <span class="exercise-badge">✓ Étape complétée</span>
+                </div>
+
+                <div class="exercise-body">
+                    <div class="step-summary">
+                        <div class="step-summary-header ${scoreClass}">
+                            <span class="step-summary-icon">${score >= 80 ? '🎉' : score >= 50 ? '👍' : '💪'}</span>
+                            <div>
+                                <h3>${score >= 80 ? 'Excellent !' : score >= 50 ? 'Bien joué !' : 'Continue tes efforts'}</h3>
+                                <p><strong>${correct}/${questions.length} bonnes réponses</strong></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="exercise-actions">
+                        ${this.renderVraiFauxStepSummaryButtons()}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderVraiFauxQuestionButtons(questions, isAnswered, isQuestionVerified) {
+        let html = '';
+
+        if (!isQuestionVerified && !isAnswered) {
+            html += `<p style="color: var(--gray-500); text-align: center; margin-bottom: 16px;">Veuillez sélectionner une réponse</p>`;
+        }
+
+        if (isQuestionVerified) {
+            if (this.currentQuestionIndex < questions.length - 1) {
+                html += `<button class="btn btn-primary" onclick="EleveEntrainement.nextQuestion()">Question suivante</button>`;
+            } else {
+                html += `<button class="btn btn-success" onclick="EleveEntrainement.nextQuestion()">Voir le résumé</button>`;
+            }
+        } else if (isAnswered) {
+            html += `<button class="btn btn-success" onclick="EleveEntrainement.verifyCurrentQuestion()">Valider</button>`;
+            html += `<button class="btn btn-secondary" onclick="EleveEntrainement.resetCurrentQuestion()" style="margin-left: 8px;">Changer de réponse</button>`;
+        }
+
+        return html;
+    },
+
+    renderVraiFauxStepSummaryButtons() {
+        const step = this.steps[this.currentStepIndex];
+        if (this.currentStepIndex < this.steps.length - 1) {
+            return `
+                <button class="btn btn-secondary" onclick="EleveEntrainement.restartCurrentStep()">Recommencer cette étape</button>
+                <button class="btn btn-primary" onclick="EleveEntrainement.nextStep()">Étape suivante</button>
+            `;
+        } else {
+            return `
+                <button class="btn btn-secondary" onclick="EleveEntrainement.restartCurrentStep()">Recommencer cette étape</button>
+                <button class="btn btn-success" onclick="EleveEntrainement.finishTraining()">Terminer l'entraînement</button>
+            `;
+        }
+    },
+
     selectVraiFaux(questionId, value) {
-        if (this.results[this.currentStepIndex]?.verified) return;
+        const questionResult = this.results[`${this.currentStepIndex}-${this.currentQuestionIndex}`];
+        if (questionResult?.verified) return;
 
         if (!this.answers[this.currentStepIndex]) {
             this.answers[this.currentStepIndex] = {};
@@ -1144,24 +1460,11 @@ const EleveEntrainement = {
 
     verifyVraiFaux() {
         const step = this.steps[this.currentStepIndex];
-        const stepAnswers = this.answers[this.currentStepIndex] || {};
         const questions = step.questions || [{ id: 'q1', correctAnswer: step.correctAnswer }];
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
 
-        let correct = 0;
-        questions.forEach(q => {
-            if (stepAnswers[q.id] === q.correctAnswer) {
-                correct++;
-            }
-        });
-
-        this.results[this.currentStepIndex] = {
-            verified: true,
-            correct,
-            total: questions.length,
-            score: Math.round((correct / questions.length) * 100)
-        };
-
-        this.renderCurrentStep();
+        // Cette fonction n'est plus utilisée pour la vérification question par question
+        // Elle pourrait être utilisée dans le mode correction si nécessaire
     },
 
     // ========== FORMAT QCM MULTIPLE ==========
