@@ -2377,14 +2377,22 @@ const EleveConnaissances = {
         }
         feedbackEl.className = `${feedbackClass} ${isCorrect ? 'correct' : 'incorrect'}`;
 
-        // Format: [✓/✗ + feedback pédagogique] + [score]
+        // Format: HTML structuré (Option B - Deux lignes épuré avec gradient)
         const icon = isCorrect ? '✓' : '✗';
         const scoreDisplay = `${score}/${maxScore} point${maxScore > 1 ? 's' : ''}`;
+        const messageText = feedbackText || (isCorrect ? 'Correct!' : 'Incorrect');
 
-        let content = `${icon} ${feedbackText || (isCorrect ? 'Correct' : 'Incorrect')}`;
-        content += ` — ${scoreDisplay}`;
-
-        feedbackEl.textContent = content;
+        // HTML structuré (plus professionnel que du texte brut)
+        feedbackEl.innerHTML = `
+            <div class="feedback-header">
+                <span class="feedback-icon">${icon}</span>
+                <span class="feedback-message">${this.escapeHtml(messageText)}</span>
+            </div>
+            <div class="feedback-score-line">
+                <span class="score-label">Score:</span>
+                <span class="score-value">${scoreDisplay}</span>
+            </div>
+        `;
     },
 
     /**
@@ -2978,13 +2986,9 @@ const EleveConnaissances = {
         if (actionBar) {
             const btnAction = isLastEtape ? 'finishEntrainement' : 'nextEtape';
             const btnLabel = isLastEtape ? 'Terminer ✓' : 'Suivant →';
-            actionBar.style.display = 'flex';
-            actionBar.style.justifyContent = 'center';
-            actionBar.style.gap = '1rem';
-            actionBar.style.marginTop = '2rem';
-            actionBar.style.paddingTop = '1.5rem';
-            actionBar.style.borderTop = '1px solid #e5e7eb';
-            actionBar.innerHTML = `<button class="btn-etape-action next-btn" style="padding: 0.75rem 2rem; font-size: 1rem; font-weight: 600;" onclick="EleveConnaissances.${btnAction}()">${btnLabel}</button>`;
+            const btnClass = isLastEtape ? 'finish-btn' : 'next-btn';
+            actionBar.className = 'etape-action-bar';
+            actionBar.innerHTML = `<button class="btn-etape-action ${btnClass}" onclick="EleveConnaissances.${btnAction}()">${btnLabel}</button>`;
         }
     },
 
@@ -4212,25 +4216,28 @@ const EleveConnaissances = {
 
         const isCorrect = correctIndices.includes(parseInt(userAnswer));
 
-        // Afficher le feedback
-        const qcmFeedback = document.getElementById(`feedback_qcm_${qIdx}`);
-        if (qcmFeedback) {
-            qcmFeedback.style.display = 'block';
-            qcmFeedback.className = `qcm-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-            // Feedback admin prioritaire : par option, puis correct/incorrect
-            const feedbacksOptions = q.feedbacks_options || [];
-            const chosenIdx = parseInt(userAnswer);
-            const qcmSymbol = isCorrect ? '✓' : '✗';
-            if (feedbacksOptions[chosenIdx]) {
-                qcmFeedback.textContent = `${qcmSymbol} ${feedbacksOptions[chosenIdx]}`;
-            } else if (isCorrect && q.feedback_correct) {
-                qcmFeedback.textContent = `✓ ${q.feedback_correct}`;
-            } else if (!isCorrect && q.feedback_incorrect) {
-                qcmFeedback.textContent = `✗ ${q.feedback_incorrect}`;
-            } else {
-                qcmFeedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
-            }
+        // Construire le texte du feedback
+        let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
+        const feedbacksOptions = q.feedbacks_options || [];
+        const chosenIdx = parseInt(userAnswer);
+
+        if (feedbacksOptions[chosenIdx]) {
+            feedbackText = feedbacksOptions[chosenIdx];
+        } else if (isCorrect && q.feedback_correct) {
+            feedbackText = q.feedback_correct;
+        } else if (!isCorrect && q.feedback_incorrect) {
+            feedbackText = q.feedback_incorrect;
         }
+
+        // Utiliser la fonction unifiée de feedback (avec score!)
+        this.displayUnifiedFeedback(
+            `feedback_qcm_${qIdx}`,
+            isCorrect,
+            feedbackText,
+            isCorrect ? 1 : 0,
+            1,
+            'qcm'
+        );
 
         // Verrouiller les choix de cette question
         const block = document.querySelector(`.qcm-question-block[data-question="${qIdx}"]`);

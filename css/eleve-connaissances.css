@@ -4498,3 +4498,196 @@
         width: 100%;
     }
 }
+
+/* ============================================
+   UPDATED FEEDBACK DESIGN (Option B)
+   Deux lignes épurées avec gradient
+   ============================================ */
+
+.question-feedback,
+.vf-feedback,
+.qcm-feedback {
+    margin-top: 1rem;
+    padding: 1.25rem;
+    border-radius: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.question-feedback.correct,
+.vf-feedback.correct,
+.qcm-feedback.correct {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    color: #065f46;
+    border: 1px solid #86efac;
+}
+
+.question-feedback.incorrect,
+.vf-feedback.incorrect,
+.qcm-feedback.incorrect {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    color: #7f1d1d;
+    border: 1px solid #fecaca;
+}
+
+/* Structure du feedback avec header et score sur deux lignes */
+.question-feedback .feedback-header,
+.vf-feedback .feedback-header,
+.qcm-feedback .feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.question-feedback .feedback-icon,
+.vf-feedback .feedback-icon,
+.qcm-feedback .feedback-icon {
+    font-size: 1.2rem;
+    min-width: 1.5rem;
+    text-align: center;
+    display: inline-block;
+}
+
+.question-feedback .feedback-message,
+.vf-feedback .feedback-message,
+.qcm-feedback .feedback-message {
+    flex: 1;
+}
+
+/* Ligne du score avec séparation visuelle */
+.question-feedback .feedback-score-line,
+.vf-feedback .feedback-score-line,
+.qcm-feedback .feedback-score-line {
+    font-size: 0.95rem;
+    border-top: 1px solid;
+    padding-top: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.question-feedback.correct .feedback-score-line,
+.vf-feedback.correct .feedback-score-line,
+.qcm-feedback.correct .feedback-score-line {
+    border-top-color: #86efac;
+}
+
+.question-feedback.incorrect .feedback-score-line,
+.vf-feedback.incorrect .feedback-score-line,
+.qcm-feedback.incorrect .feedback-score-line {
+    border-top-color: #fecaca;
+}
+
+.question-feedback .score-label,
+.vf-feedback .score-label,
+.qcm-feedback .score-label {
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.question-feedback .score-value,
+.vf-feedback .score-value,
+.qcm-feedback .score-value {
+    font-weight: 700;
+    font-size: 1.1rem;
+    font-family: 'Monaco', 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}
+
+.question-feedback.correct .score-value,
+.vf-feedback.correct .score-value,
+.qcm-feedback.correct .score-value {
+    color: #059669;
+}
+
+.question-feedback.incorrect .score-value,
+.vf-feedback.incorrect .score-value,
+.qcm-feedback.incorrect .score-value {
+    color: #dc2626;
+}
+
+/* ============================================
+   BOUTONS D'ACTION - Alignement à droite
+   ============================================ */
+
+.etape-action-bar {
+    margin-top: 2rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-etape-action {
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    min-width: 140px;
+    text-align: center;
+    font-family: inherit;
+}
+
+.btn-etape-action.next-btn {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+}
+
+.btn-etape-action.next-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.btn-etape-action.next-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.btn-etape-action.finish-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.btn-etape-action.finish-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.btn-etape-action.finish-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-etape-action:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+}
+
+.btn-etape-action:disabled:hover {
+    transform: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive: bouton sur mobile */
+@media (max-width: 480px) {
+    .btn-etape-action {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.95rem;
+        min-width: 120px;
+    }
+}
