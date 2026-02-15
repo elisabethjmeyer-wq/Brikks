@@ -2972,14 +2972,19 @@ const EleveConnaissances = {
 
         // ✅ Feedback global d'étape supprimé
         // Le feedback détaillé + points s'affiche après chaque question
-        // Affichage du bouton "Suivant" dans la zone d'action habituelle
+        // Affichage du bouton "Suivant" dans la zone d'action habituelle avec meilleur styling
         const isLastEtape = this.currentEtapeIndex >= this.currentEtapes.length - 1;
         const actionBar = document.getElementById('etapeActionBar');
         if (actionBar) {
             const btnAction = isLastEtape ? 'finishEntrainement' : 'nextEtape';
             const btnLabel = isLastEtape ? 'Terminer ✓' : 'Suivant →';
-            actionBar.style.display = 'block';
-            actionBar.innerHTML = `<button class="btn-etape-action next-btn" onclick="EleveConnaissances.${btnAction}()">${btnLabel}</button>`;
+            actionBar.style.display = 'flex';
+            actionBar.style.justifyContent = 'center';
+            actionBar.style.gap = '1rem';
+            actionBar.style.marginTop = '2rem';
+            actionBar.style.paddingTop = '1.5rem';
+            actionBar.style.borderTop = '1px solid #e5e7eb';
+            actionBar.innerHTML = `<button class="btn-etape-action next-btn" style="padding: 0.75rem 2rem; font-size: 1rem; font-weight: 600;" onclick="EleveConnaissances.${btnAction}()">${btnLabel}</button>`;
         }
     },
 
@@ -3726,7 +3731,7 @@ const EleveConnaissances = {
         const result = this.runFormatValidation(state.format, qData);
         state.results[idx] = result;
 
-        // Afficher le feedback
+        // Afficher le feedback avec points
         const container = document.getElementById('multiFormatContent');
         let feedbackEl = container.querySelector('.multi-format-feedback');
         if (!feedbackEl) {
@@ -3735,24 +3740,30 @@ const EleveConnaissances = {
             container.appendChild(feedbackEl);
         }
         feedbackEl.style.display = 'block';
-        if (result.correct === result.total) {
-            feedbackEl.className = 'multi-format-feedback vf-feedback correct';
-            feedbackEl.textContent = '✓ Correct';
-        } else {
-            feedbackEl.className = 'multi-format-feedback vf-feedback incorrect';
-            feedbackEl.textContent = `✗ ${result.correct}/${result.total} correct${result.correct > 1 ? 's' : ''}`;
-        }
 
-        // Mettre à jour le bouton d'action
+        // Format unifié avec points : [✓/✗ Feedback] — [X/Y points]
+        const isCorrect = result.correct === result.total;
+        const icon = isCorrect ? '✓' : '✗';
+        const scoreDisplay = `${result.correct}/${result.total} point${result.total > 1 ? 's' : ''}`;
+        let feedbackText = isCorrect ? 'Correct' : 'Réponse incorrecte';
+
+        feedbackEl.className = `multi-format-feedback question-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+        feedbackEl.textContent = `${icon} ${feedbackText} — ${scoreDisplay}`;
+
+        // Mettre à jour le bouton d'action dans un conteneur propre
         const actionDiv = document.getElementById('multiFormatAction');
         const allValidated = Object.keys(state.results).length >= state.totalQuestions;
 
         if (allValidated) {
-            if (actionDiv) actionDiv.innerHTML = '';
+            if (actionDiv) {
+                actionDiv.innerHTML = '';
+                actionDiv.style.marginTop = '1.5rem';
+            }
             this.validateCurrentEtape();
         } else {
             if (actionDiv) {
-                actionDiv.innerHTML = `<button class="btn-qcm-next" onclick="EleveConnaissances.multiFormatNext()">Suivant →</button>`;
+                actionDiv.style.marginTop = '1.5rem';
+                actionDiv.innerHTML = `<button class="btn-qcm-next" style="padding: 0.75rem 1.5rem; font-size: 1rem;" onclick="EleveConnaissances.multiFormatNext()">Suivant →</button>`;
             }
         }
     },
