@@ -1281,6 +1281,181 @@
     font-weight: 500;
 }
 
+/* ============================================
+   CORRECTION VISUELLE ASSOCIATION
+   Affichage comparatif : "Ta réponse" vs "Réponse correcte"
+   ============================================ */
+
+.correction-assoc-hint {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.correction-assoc-hint--student {
+    color: #6b7280;
+}
+
+.correction-assoc-hint--correct {
+    color: #6b7280;
+    margin-top: 2rem;
+}
+
+.correction-assoc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.correction-assoc-pair {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Paire correcte */
+.correction-assoc-pair.card-correct .correction-assoc-card {
+    border: 2px solid #10b981;
+    background: #d1fae5;
+    animation: feedback-correct 0.5s ease;
+}
+
+.correction-assoc-pair.card-correct .correction-assoc-card:before {
+    background: #10b981;
+}
+
+/* Paire incorrecte */
+.correction-assoc-pair.card-incorrect .correction-assoc-card {
+    border: 2px solid #ef4444;
+    background: #fee2e2;
+    animation: feedback-shake 0.4s ease;
+}
+
+.correction-assoc-pair.card-incorrect .correction-assoc-card:before {
+    background: #ef4444;
+}
+
+.correction-assoc-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    border-radius: 8px;
+    min-height: 120px;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    transition: all 0.3s ease;
+}
+
+.correction-assoc-card.has-image {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 150px;
+}
+
+.correction-assoc-card.has-image .correction-assoc-label {
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 0.5rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-top: auto;
+    max-width: 100%;
+    text-align: center;
+    word-wrap: break-word;
+}
+
+.correction-assoc-card.text-only {
+    min-height: auto;
+    padding: 0.8rem;
+}
+
+.correction-assoc-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #374151;
+    word-wrap: break-word;
+    text-align: center;
+}
+
+.correction-assoc-label {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-top: 0.5rem;
+    font-weight: 500;
+    word-wrap: break-word;
+    text-align: center;
+}
+
+.correction-assoc-card.text-only .correction-assoc-label {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.correction-assoc-card.unpaired .correction-assoc-label {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+/* Statut de la paire (✓ ou ✗) */
+.assoc-pair-status {
+    font-size: 1.5rem;
+    font-weight: bold;
+    min-width: 40px;
+    text-align: center;
+}
+
+.correction-assoc-pair.card-correct .assoc-pair-status {
+    color: #10b981;
+}
+
+.correction-assoc-pair.card-incorrect .assoc-pair-status {
+    color: #ef4444;
+}
+
+/* Responsive correction association */
+@media (max-width: 768px) {
+    .correction-assoc-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.8rem;
+    }
+
+    .correction-assoc-card {
+        min-height: 100px;
+        padding: 0.8rem;
+    }
+
+    .correction-assoc-card.has-image {
+        min-height: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .correction-assoc-grid {
+        grid-template-columns: 1fr;
+        gap: 0.6rem;
+    }
+
+    .correction-assoc-pair {
+        flex-wrap: wrap;
+    }
+
+    .correction-assoc-card {
+        min-height: 80px;
+        padding: 0.6rem;
+        font-size: 0.9rem;
+    }
+}
+
 /* Responsive labels correction */
 @media (max-width: 600px) {
     .assoc-answer-wrong,
