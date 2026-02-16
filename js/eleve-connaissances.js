@@ -477,7 +477,7 @@ const EleveConnaissances = {
      */
     renderEntrainementsList(entrainements) {
         if (entrainements.length === 0) {
-            return '<div class="empty-state" style="padding: 2rem;"><p>Aucun entraînement dans cette banque</p></div>';
+            return '<div class="empty-state"><p>Aucun entraînement dans cette banque</p></div>';
         }
 
         // Trier les entraînements par priorité
@@ -1532,7 +1532,9 @@ const EleveConnaissances = {
         `;
         cardsContainer.insertAdjacentHTML('beforebegin', toggleHtml);
 
-        const toggleContainer = cardsContainer.parentElement.querySelector('.timeline-toggle');
+        const toggleContainer = cardsContainer.parentElement?.querySelector('.timeline-toggle');
+        if (!toggleContainer) return; // Safety: Ensure toggle container exists before proceeding
+
         const btnStudent = toggleContainer.querySelector('[data-view="student"]');
         const btnCorrection = toggleContainer.querySelector('[data-view="correction"]');
 
