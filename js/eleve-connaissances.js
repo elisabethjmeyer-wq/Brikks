@@ -3594,27 +3594,61 @@ const EleveConnaissances = {
             }
 
             if (hasPaires) {
-                // Association
-                const failedPairIndices = qDetails.map((d, di) => !d.correct ? di : -1).filter(di => di >= 0);
-                const failedPaires = failedPairIndices.map(fi => qData.paires[fi]).filter(Boolean);
-                const pairesToShow = failedPaires.length > 0 ? failedPaires : qData.paires;
-                return `
+                // Association : Ta réponse + Réponse correcte (comme chronologie)
+                // Construire les paires que l'élève a faites (depuis qDetails)
+                const studentPairs = qDetails.map(d => ({
+                    element1: d.reponse,
+                    element2: d.attendu,
+                    correct: d.correct
+                }));
+
+                // Section "Ta réponse :"
+                const studentHtml = studentPairs.length > 0 ? `
+                    <p class="correction-timeline-hint correction-timeline-hint--student">Ta réponse :</p>
                     <div class="correction-assoc-grid">
-                        ${pairesToShow.map(p => {
-                            const el1 = p.element1;
-                            const el2 = p.element2;
+                        ${studentPairs.map((sp, pi) => {
+                            const el1 = sp.element1;
+                            const el2 = sp.element2;
+                            const statusClass = sp.correct ? 'card-correct' : 'card-incorrect';
                             const img = isImageUrl(el1) ? el1 : (isImageUrl(el2) ? el2 : null);
                             const text = isImageUrl(el1) ? el2 : el1;
+
                             if (img) {
                                 return `
-                                    <div class="correction-assoc-card">
-                                        <img src="${this.escapeHtml(this.normalizeImageUrl(img))}" alt="" />
+                                    <div class="correction-assoc-card ${statusClass} has-image" style="background-image: url('${this.escapeHtml(this.normalizeImageUrl(img))}');">
                                         <span class="correction-assoc-label">${this.escapeHtml(text)}</span>
                                     </div>
                                 `;
                             }
                             return `
-                                <div class="correction-assoc-card text-only">
+                                <div class="correction-assoc-card ${statusClass} text-only">
+                                    <span class="correction-assoc-text">${this.escapeHtml(el1)}</span>
+                                    <span class="correction-assoc-label">${this.escapeHtml(el2)}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : '';
+
+                // Section "Réponse correcte :"
+                const correctHtml = `
+                    <p class="correction-timeline-hint correction-timeline-hint--correct">Réponse correcte :</p>
+                    <div class="correction-assoc-grid">
+                        ${qData.paires.map(p => {
+                            const el1 = p.element1;
+                            const el2 = p.element2;
+                            const img = isImageUrl(el1) ? el1 : (isImageUrl(el2) ? el2 : null);
+                            const text = isImageUrl(el1) ? el2 : el1;
+
+                            if (img) {
+                                return `
+                                    <div class="correction-assoc-card card-correct has-image" style="background-image: url('${this.escapeHtml(this.normalizeImageUrl(img))}');">
+                                        <span class="correction-assoc-label">${this.escapeHtml(text)}</span>
+                                    </div>
+                                `;
+                            }
+                            return `
+                                <div class="correction-assoc-card card-correct text-only">
                                     <span class="correction-assoc-text">${this.escapeHtml(el1)}</span>
                                     <span class="correction-assoc-label">${this.escapeHtml(el2)}</span>
                                 </div>
@@ -3622,6 +3656,8 @@ const EleveConnaissances = {
                         }).join('')}
                     </div>
                 `;
+
+                return studentHtml + correctHtml;
             }
 
             if (hasMarqueurs && qData.image_url) {
