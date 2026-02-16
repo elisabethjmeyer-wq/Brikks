@@ -1355,10 +1355,11 @@
 }
 
 .correction-assoc-card.has-image {
-    background-size: cover;
+    background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    min-height: 120px;
+    min-height: 160px;
+    padding: 0.5rem;
 }
 
 .correction-assoc-card.has-image .correction-assoc-label {
@@ -1435,7 +1436,8 @@
     }
 
     .correction-assoc-card.has-image {
-        min-height: 100px;
+        min-height: 130px;
+        padding: 0.5rem;
     }
 }
 
@@ -1453,6 +1455,11 @@
         min-height: 60px;
         padding: 0.6rem;
         font-size: 0.9rem;
+    }
+
+    .correction-assoc-card.has-image {
+        min-height: 120px;
+        padding: 0.4rem;
     }
 }
 
