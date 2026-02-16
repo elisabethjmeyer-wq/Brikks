@@ -2481,6 +2481,162 @@ const EleveConnaissances = {
     },
 
     /**
+     * Affiche visuellement la correction de l'association avec deux sections :
+     * "Ta réponse :" (les paires élève avec statut vert/rouge)
+     * "Réponse correcte :" (les bonnes paires)
+     */
+    displayAssociationCorrectionVisual(donnees, userPairs, details, assocPaires) {
+        const feedbackContainer = document.getElementById('association_feedback');
+        if (!feedbackContainer) return;
+
+        // Construire les éléments des deux côtés (ordre ORIGINAL, pas mélangés)
+        const elementsGauche = assocPaires.map((p, i) => ({
+            texte: p.element1,
+            type: p.element1_type || 'text',
+            id: i
+        }));
+        const elementsDroite = assocPaires.map((p, i) => ({
+            texte: p.element2,
+            type: p.element2_type || 'text',
+            id: i
+        }));
+
+        const gaucheHasImages = elementsGauche.some(el => el.type === 'image');
+        const droiteHasImages = elementsDroite.some(el => el.type === 'image');
+
+        // Déterminer le layout pour l'affichage visuel (images vs texte)
+        let displayElements, labelElements, hasImages;
+        if (droiteHasImages && !gaucheHasImages) {
+            displayElements = elementsDroite;
+            labelElements = elementsGauche;
+            hasImages = true;
+        } else if (gaucheHasImages && !droiteHasImages) {
+            displayElements = elementsGauche;
+            labelElements = elementsDroite;
+            hasImages = true;
+        } else {
+            displayElements = elementsGauche;
+            labelElements = elementsDroite;
+            hasImages = gaucheHasImages || droiteHasImages;
+        }
+
+        // ===== SECTION 1: TA RÉPONSE =====
+        let studentHtml = '<p class="correction-assoc-hint correction-assoc-hint--student">Ta réponse :</p>';
+        studentHtml += '<div class="correction-assoc-grid">';
+
+        // Afficher les réponses de l'élève
+        userPairs.forEach((pair) => {
+            const pIdx = parseInt(pair.gauche);
+            const isCorrect = String(pair.gauche) === String(pair.droite);
+            const statusClass = isCorrect ? 'card-correct' : 'card-incorrect';
+
+            const displayEl = displayElements[pIdx];
+            const labelEl = labelElements[pIdx];
+
+            if (displayEl && labelEl) {
+                if (hasImages && displayEl.type === 'image') {
+                    const imageUrl = this.normalizeImageUrl(displayEl.texte);
+                    const imgStyle = imageUrl ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
+                    studentHtml += `
+                        <div class="correction-assoc-pair ${statusClass}">
+                            <div class="correction-assoc-card has-image" ${imgStyle}>
+                                <span class="correction-assoc-label">${this.escapeHtml(labelEl.texte)}</span>
+                            </div>
+                            <span class="assoc-pair-status">${isCorrect ? '✓' : '✗'}</span>
+                        </div>
+                    `;
+                } else {
+                    studentHtml += `
+                        <div class="correction-assoc-pair ${statusClass}">
+                            <div class="correction-assoc-card text-only">
+                                <span class="correction-assoc-text">${this.escapeHtml(displayEl.texte)}</span>
+                                <span class="correction-assoc-label">${this.escapeHtml(labelEl.texte)}</span>
+                            </div>
+                            <span class="assoc-pair-status">${isCorrect ? '✓' : '✗'}</span>
+                        </div>
+                    `;
+                }
+            }
+        });
+
+        // Afficher les éléments non appariés comme erreurs
+        for (let i = 0; i < assocPaires.length; i++) {
+            const isPaired = userPairs.some(pair => String(pair.gauche) === String(i));
+
+            if (!isPaired) {
+                const displayEl = displayElements[i];
+                const labelEl = labelElements[i];
+
+                if (displayEl && labelEl) {
+                    if (hasImages && displayEl.type === 'image') {
+                        const imageUrl = this.normalizeImageUrl(displayEl.texte);
+                        const imgStyle = imageUrl ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
+                        studentHtml += `
+                            <div class="correction-assoc-pair card-incorrect">
+                                <div class="correction-assoc-card has-image unpaired" ${imgStyle}>
+                                    <span class="correction-assoc-label">Non appairé</span>
+                                </div>
+                                <span class="assoc-pair-status">✗</span>
+                            </div>
+                        `;
+                    } else {
+                        studentHtml += `
+                            <div class="correction-assoc-pair card-incorrect">
+                                <div class="correction-assoc-card text-only unpaired">
+                                    <span class="correction-assoc-text">${this.escapeHtml(displayEl.texte)}</span>
+                                    <span class="correction-assoc-label">Non appairé</span>
+                                </div>
+                                <span class="assoc-pair-status">✗</span>
+                            </div>
+                        `;
+                    }
+                }
+            }
+        }
+
+        studentHtml += '</div>';
+
+        // ===== SECTION 2: RÉPONSE CORRECTE =====
+        let correctHtml = '<p class="correction-assoc-hint correction-assoc-hint--correct">Réponse correcte :</p>';
+        correctHtml += '<div class="correction-assoc-grid">';
+
+        // Afficher toutes les bonnes paires
+        assocPaires.forEach((paire, pIdx) => {
+            const displayEl = displayElements[pIdx];
+            const labelEl = labelElements[pIdx];
+
+            if (displayEl && labelEl) {
+                if (hasImages && displayEl.type === 'image') {
+                    const imageUrl = this.normalizeImageUrl(displayEl.texte);
+                    const imgStyle = imageUrl ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
+                    correctHtml += `
+                        <div class="correction-assoc-pair card-correct">
+                            <div class="correction-assoc-card has-image" ${imgStyle}>
+                                <span class="correction-assoc-label">${this.escapeHtml(labelEl.texte)}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    correctHtml += `
+                        <div class="correction-assoc-pair card-correct">
+                            <div class="correction-assoc-card text-only">
+                                <span class="correction-assoc-text">${this.escapeHtml(displayEl.texte)}</span>
+                                <span class="correction-assoc-label">${this.escapeHtml(labelEl.texte)}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        });
+
+        correctHtml += '</div>';
+
+        // Afficher le tout
+        feedbackContainer.innerHTML = studentHtml + correctHtml;
+        feedbackContainer.style.display = 'block';
+    },
+
+    /**
      * Validate current etape — feedback immédiat style Projet Voltaire
      * Récupère les données via la jointure etapeQuestions → questionsConnaissances
      * Affiche le feedback inline, désactive les inputs, puis affiche le bouton Suivant
@@ -2954,6 +3110,11 @@ const EleveConnaissances = {
                 if (chipsZone) chipsZone.style.display = 'none';
                 const zoneLabel = document.querySelector('.association-zone-label');
                 if (zoneLabel) zoneLabel.style.display = 'none';
+
+                // Afficher la correction visuelle comparant réponses élève vs correctes
+                setTimeout(() => {
+                    this.displayAssociationCorrectionVisual(donnees, userPairs, details, assocPaires);
+                }, 100);
                 break;
 
             case 'flashcard':
