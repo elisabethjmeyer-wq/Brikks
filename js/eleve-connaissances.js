@@ -1782,8 +1782,8 @@ const EleveConnaissances = {
 
         // Si les deux zones ont une sélection → créer la paire
         if (this.associationSelection.grid !== null && this.associationSelection.chip !== null) {
-            this.associationPairCounter++;
-            const pairNum = this.associationPairCounter;
+            // Utiliser le nombre de paires actuelles + 1 (pas un compteur global)
+            const pairNum = this.associationPairs.length + 1;
 
             // Mapper vers gauche/droite pour la validation
             const gridId = this.associationSelection.grid;
