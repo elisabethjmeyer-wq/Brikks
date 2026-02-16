@@ -56,7 +56,7 @@ const EleveConnaissances = {
                 await this.loadData();
                 this.renderAccordionView();
             } catch (error) {
-                console.error('Erreur lors du chargement:', error);
+                Logger.error('EleveConnaissances', 'Erreur lors du chargement', error);
                 this.showError('Erreur lors du chargement des entraînements');
             }
         }
@@ -77,7 +77,7 @@ const EleveConnaissances = {
             if (localSession) return JSON.parse(localSession);
             return null;
         } catch (e) {
-            console.error('[EleveConnaissances] Erreur getCurrentUser:', e);
+            Logger.error('EleveConnaissances', 'Erreur getCurrentUser', e);
             return null;
         }
     },
@@ -92,7 +92,10 @@ const EleveConnaissances = {
                 return data;
             }
             return null;
-        } catch (e) { return null; }
+        } catch (e) {
+            Logger.warn('EleveConnaissances', 'Cache getFromCache failed', e);
+            return null;
+        }
     },
 
     saveToCache(data) {
@@ -128,7 +131,7 @@ const EleveConnaissances = {
         this.entrainements.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         // Debug log
-        console.log('[EleveConnaissances] Données chargées (après filtrage orphelins):', {
+        Logger.debug('EleveConnaissances', 'Données chargées (après filtrage orphelins)', {
             banques: this.banques.length,
             entrainements: this.entrainements.length,
             etapes: this.etapes.length,
@@ -159,7 +162,7 @@ const EleveConnaissances = {
         ];
         apiResults.forEach(({ name, result }) => {
             if (!result.success) {
-                console.warn(`[EleveConnaissances] API ${name} échouée:`, result.error || 'Erreur inconnue');
+                Logger.warn('EleveConnaissances', `API ${name} échouée`, result.error || 'Erreur inconnue');
             }
         });
 
@@ -195,10 +198,10 @@ const EleveConnaissances = {
                 result.data.forEach(p => {
                     this.progressions[p.entrainement_id] = p;
                 });
-                console.log('[EleveConnaissances] Progressions chargées:', this.progressions);
+                Logger.debug('EleveConnaissances', 'Progressions chargées', this.progressions);
             }
         } catch (error) {
-            console.error('[EleveConnaissances] Erreur chargement progressions:', error);
+            Logger.error('EleveConnaissances', 'Erreur chargement progressions', error);
             this.progressions = {};
         }
     },
@@ -210,7 +213,7 @@ const EleveConnaissances = {
         try {
             await this.loadData();
         } catch (error) {
-            console.warn('[EleveConnaissances] Erreur lors du rafraîchissement en arrière-plan:', error);
+            Logger.warn('EleveConnaissances', 'Erreur lors du rafraîchissement en arrière-plan', error);
         }
     },
 
@@ -672,8 +675,8 @@ const EleveConnaissances = {
         this.showLoader('Chargement de l\'entraînement...');
 
         try {
-            console.log('[EleveConnaissances] startEntrainement:', entrainementId);
-            console.log('[EleveConnaissances] Toutes les étapes:', this.etapes);
+            Logger.debug('EleveConnaissances', 'startEntrainement', { entrainementId });
+            Logger.debug('EleveConnaissances', 'Toutes les étapes', this.etapes);
 
             const entrainement = this.entrainements.find(e => e.id === entrainementId);
             if (!entrainement) {
@@ -681,7 +684,7 @@ const EleveConnaissances = {
                 return;
             }
 
-            console.log('[EleveConnaissances] Entrainement trouvé:', entrainement);
+            Logger.debug('EleveConnaissances', 'Entrainement trouvé', entrainement);
 
             this.currentEntrainement = entrainement;
             this.currentBanque = this.banques.find(b => b.id === entrainement.banque_exercice_id);
@@ -694,6 +697,16 @@ const EleveConnaissances = {
             this.associationSelection = { grid: null, chip: null };
             this.associationPairs = [];
             this.associationPairCounter = 0;
+            // Réinitialiser les états multi-format
+            this._multiFormatState = null;
+            this._qcmResults = {};
+            this._qoResults = {};
+            this._vfResults = {};
+            this._vfNavIndex = 0;
+            this._qcmNavIndex = 0;
+            this._qoNavIndex = 0;
+            this.carteActiveIndex = 0;
+            this.timelineDraggedCard = null;
             // Réinitialiser les données stockées par étape
             this.selectedQuestionsPerEtape = {};
 
@@ -709,11 +722,11 @@ const EleveConnaissances = {
                     return String(a.id).localeCompare(String(b.id));
                 });
 
-            console.log('[EleveConnaissances] Étapes trouvées pour cet entrainement:', entrainementEtapes);
+            Logger.debug('EleveConnaissances', 'Étapes trouvées pour cet entrainement', { count: entrainementEtapes.length });
 
             if (entrainementEtapes.length === 0) {
                 // Pas d'étapes - afficher un message mais quand même permettre de voir l'entraînement
-                console.warn('[EleveConnaissances] Aucune étape trouvée, vérifier la structure des données');
+                Logger.warn('EleveConnaissances', 'Aucune étape trouvée, vérifier la structure des données');
                 this.showError('Cet entraînement n\'a pas encore d\'étapes configurées');
                 return;
             }
@@ -722,7 +735,7 @@ const EleveConnaissances = {
             this.renderEntrainementView();
 
         } catch (error) {
-            console.error('Erreur:', error);
+            Logger.error('EleveConnaissances', 'Erreur lors de startEntrainement', error);
             this.showError('Erreur lors du chargement de l\'entraînement');
         }
     },
@@ -846,16 +859,14 @@ const EleveConnaissances = {
     renderEtapeContent(etape, questions) {
         const format = etape.format_code;
 
-        console.log('[EleveConnaissances] renderEtapeContent - etape:', etape);
-        console.log('[EleveConnaissances] renderEtapeContent - format:', format);
-        console.log('[EleveConnaissances] renderEtapeContent - mode_selection:', etape.mode_selection);
+        Logger.debug('EleveConnaissances', 'renderEtapeContent', { etape: etape.id, format, mode: etape.mode_selection });
 
         let allQuestionContents = [];
 
         // Vérifier si on a déjà sélectionné les questions pour cette étape
         // (important pour le mode aléatoire et pour la validation)
         if (this.selectedQuestionsPerEtape[etape.id]) {
-            console.log('[EleveConnaissances] Réutilisation des questions déjà sélectionnées');
+            Logger.debug('EleveConnaissances', 'Réutilisation des questions déjà sélectionnées');
             allQuestionContents = this.selectedQuestionsPerEtape[etape.id].questions;
         } else {
             // Vérifier le mode de sélection
@@ -864,7 +875,7 @@ const EleveConnaissances = {
                 const nbQuestions = parseInt(etape.nb_questions) || 5;
                 const banqueSourceId = etape.banque_source_id;
 
-                console.log('[EleveConnaissances] Mode aléatoire - nb_questions:', nbQuestions, 'banque_source_id:', banqueSourceId);
+                Logger.debug('EleveConnaissances', 'Mode aléatoire', { nbQuestions, banqueSourceId });
 
                 // Filtrer les questions par format et éventuellement par banque
                 let availableQuestions = this.questionsConnaissances.filter(q => q.type === format);
@@ -873,13 +884,13 @@ const EleveConnaissances = {
                     availableQuestions = availableQuestions.filter(q => String(q.banque_id) === String(banqueSourceId));
                 }
 
-                console.log('[EleveConnaissances] Questions disponibles pour tirage:', availableQuestions.length);
+                Logger.debug('EleveConnaissances', 'Questions disponibles pour tirage', { count: availableQuestions.length });
 
                 // Mélanger et prendre le nombre demandé
                 const shuffled = this.shuffleArray([...availableQuestions]);
                 const selected = shuffled.slice(0, nbQuestions);
 
-                console.log('[EleveConnaissances] Questions tirées au sort:', selected.length);
+                Logger.debug('EleveConnaissances', 'Questions tirées au sort', { count: selected.length });
 
                 // Convertir en format attendu
                 for (const q of selected) {
@@ -909,7 +920,7 @@ const EleveConnaissances = {
                     seenQuestionIds.add(qId);
                     return true;
                 });
-                console.log('[EleveConnaissances] Mode manuel - Questions liées (refs, dédupliquées):', linkedQuestionRefs.length, '/', rawLinkedRefs.length);
+                Logger.debug('EleveConnaissances', 'Mode manuel - Questions liées', { dedup: linkedQuestionRefs.length, total: rawLinkedRefs.length });
 
                 for (const questionRef of linkedQuestionRefs) {
                     const questionContent = this.questionsConnaissances.find(q =>
@@ -917,7 +928,7 @@ const EleveConnaissances = {
                     );
 
                     if (!questionContent) {
-                        console.warn(`[EleveConnaissances] Question ID ${questionRef.question_id} non trouvée, ignorée`);
+                        Logger.warn('EleveConnaissances', `Question ID ${questionRef.question_id} non trouvée`);
                         continue;
                     }
 
@@ -930,7 +941,7 @@ const EleveConnaissances = {
                                 donnees = JSON.parse(donnees);
                             }
                         } catch (e) {
-                            console.error('[EleveConnaissances] Erreur parsing donnees:', e);
+                            Logger.error('EleveConnaissances', 'Erreur parsing donnees', e);
                             donnees = {};
                         }
                     }
@@ -942,7 +953,7 @@ const EleveConnaissances = {
             }
         }
 
-        console.log('[EleveConnaissances] Toutes les questions trouvées:', allQuestionContents.length);
+        Logger.debug('EleveConnaissances', 'Toutes les questions trouvées', { count: allQuestionContents.length });
 
         // Combiner les données selon le format
         let donnees = {};
@@ -975,7 +986,7 @@ const EleveConnaissances = {
             format: format
         };
 
-        console.log('[EleveConnaissances] renderEtapeContent - donnees finales:', donnees);
+        Logger.debug('EleveConnaissances', 'renderEtapeContent - donnees finales', donnees);
 
         switch (format) {
             case 'vrai_faux':
@@ -1014,7 +1025,7 @@ const EleveConnaissances = {
      * pour l'affichage dans une étape
      */
     combineQuestionsData(format, questionContents) {
-        console.log('[EleveConnaissances] combineQuestionsData - format:', format, 'questions:', questionContents.length);
+        Logger.debug('EleveConnaissances', 'combineQuestionsData', { format, questionCount: questionContents.length });
 
         switch (format) {
             case 'vrai_faux':
@@ -3028,7 +3039,12 @@ const EleveConnaissances = {
             if (questionContent && questionContent.donnees) {
                 donnees = questionContent.donnees;
                 if (typeof donnees === 'string') {
-                    try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+                    try {
+                        donnees = JSON.parse(donnees);
+                    } catch (e) {
+                        Logger.warn('EleveConnaissances', 'getEtapeDonnees JSON parse failed', e);
+                        donnees = {};
+                    }
                 }
             }
         }
@@ -3036,7 +3052,12 @@ const EleveConnaissances = {
         if (Object.keys(donnees).length === 0 && etape.donnees) {
             donnees = etape.donnees;
             if (typeof donnees === 'string') {
-                try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
+                try {
+                    donnees = JSON.parse(donnees);
+                } catch (e) {
+                    Logger.warn('EleveConnaissances', 'getEtapeDonnees JSON parse failed for etape donnees', e);
+                    donnees = {};
+                }
             }
         }
         return donnees;
@@ -3055,6 +3076,9 @@ const EleveConnaissances = {
     nextEtape() {
         if (!this.currentEtapeValidated) return;
         if (this.currentEtapeIndex < this.currentEtapes.length - 1) {
+            // Cleanup event listeners from previous etape
+            this.cleanupEventListeners();
+
             this.currentEtapeIndex++;
             this.currentEtapeValidated = false;
             // Réinitialiser les réponses et états pour la nouvelle étape
@@ -3065,6 +3089,12 @@ const EleveConnaissances = {
             this._multiFormatState = null;
             this._qcmResults = {};
             this._qoResults = {};
+            this._vfResults = {};
+            this._vfNavIndex = 0;
+            this._qcmNavIndex = 0;
+            this._qoNavIndex = 0;
+            this.carteActiveIndex = 0;
+            this.timelineDraggedCard = null;
             this.renderEntrainementView();
         }
     },
@@ -3073,6 +3103,9 @@ const EleveConnaissances = {
      * Finish the entrainement - Utilise les résultats déjà calculés par validateCurrentEtape
      */
     async finishEntrainement() {
+        // Cleanup event listeners
+        this.cleanupEventListeners();
+
         this.stopTimer();
 
         // Si l'étape courante n'a pas encore été validée (ex: timer expiré), la valider
@@ -3170,7 +3203,7 @@ const EleveConnaissances = {
     async saveProgression(results) {
         // Ne pas sauvegarder en mode entraînement libre (exercice déjà mémorisé)
         if (this.isTrainingMode) {
-            console.log('[EleveConnaissances] Mode entraînement libre - progression non sauvegardée');
+            Logger.debug('EleveConnaissances', 'Mode entraînement libre - progression non sauvegardée');
             this.lastProgressionResult = { statut: 'memorise', message: 'Entraînement libre' };
             return;
         }
@@ -3178,7 +3211,7 @@ const EleveConnaissances = {
         try {
             // Utiliser this.currentUser qui est initialisé au chargement
             if (!this.currentUser?.id) {
-                console.warn('[EleveConnaissances] Pas d\'utilisateur connecté, progression non sauvegardée');
+                Logger.warn('EleveConnaissances', 'Pas d\'utilisateur connecté, progression non sauvegardée');
                 return;
             }
 
@@ -3199,10 +3232,10 @@ const EleveConnaissances = {
                     statut: response.statut,
                     prochaine_revision: response.prochaine_revision
                 };
-                console.log('[EleveConnaissances] Progression sauvegardée:', response);
+                Logger.debug('EleveConnaissances', 'Progression sauvegardée', response);
             }
         } catch (error) {
-            console.error('[EleveConnaissances] Erreur sauvegarde progression:', error);
+            Logger.error('EleveConnaissances', 'Erreur sauvegarde progression', error);
         }
     },
 
@@ -4591,6 +4624,37 @@ const EleveConnaissances = {
         this._qcmResults = {};
         this._qoResults = {};
         this.renderEntrainementView();
+    },
+
+    /**
+     * Nettoie tous les event listeners pour éviter les fuites mémoire
+     */
+    cleanupEventListeners() {
+        // Timeline drag-drop listeners
+        const timelineCards = document.querySelectorAll('.timeline-card');
+        timelineCards.forEach(card => {
+            const newCard = card.cloneNode(true);
+            if (card.parentNode) {
+                card.parentNode.replaceChild(newCard, card);
+            }
+        });
+
+        // Timeline toggle buttons
+        const toggleBtns = document.querySelectorAll('.timeline-toggle button');
+        toggleBtns.forEach(btn => {
+            const newBtn = btn.cloneNode(true);
+            if (btn.parentNode) {
+                btn.parentNode.replaceChild(newBtn, btn);
+            }
+        });
+
+        // Fullscreen escape handler
+        if (this.fullscreenEscapeListener) {
+            document.removeEventListener('keydown', this.fullscreenEscapeListener);
+            this.fullscreenEscapeListener = null;
+        }
+
+        Logger.debug('EleveConnaissances', 'Event listeners cleaned up');
     },
 
     /**
