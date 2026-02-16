@@ -3277,6 +3277,30 @@
     font-size: 0.8rem;
 }
 
+.correction-assoc-card.card-incorrect {
+    background-color: #fecaca;
+    border-color: #ef4444;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.correction-assoc-card.card-incorrect .correction-assoc-label {
+    color: #991b1b;
+    background: #fee2e2;
+    border-top: 1px solid #fecaca;
+}
+
+.correction-assoc-card.card-correct {
+    background-color: #dcfce7;
+    border-color: #22c55e;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+}
+
+.correction-assoc-card.card-correct .correction-assoc-label {
+    color: #15803d;
+    background: #f0fdf4;
+    border-top: 1px solid #bbf7d0;
+}
+
 .correction-mini-img {
     width: 40px;
     height: 40px;
