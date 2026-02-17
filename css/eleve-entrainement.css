@@ -1192,7 +1192,7 @@
 }
 
 .image-cliquable-container.verified .image-cliquable-zone {
-    cursor: default;
+    cursor: pointer;
 }
 
 .image-cliquable-results {
@@ -2023,7 +2023,8 @@
     font-weight: bold;
 }
 
-.image-cliquable-zone.correct .zone-icon {
+.image-cliquable-zone.correct .zone-icon,
+.image-cliquable-zone.show-correct .zone-icon {
     background: var(--accent-green, #10b981);
     color: white;
 }

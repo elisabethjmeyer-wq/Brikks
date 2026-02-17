@@ -2492,9 +2492,12 @@ const EleveEntrainement = {
             </div>
         `;
 
-        // Setup click handlers if not all questions answered and not in correction mode
+        // Setup click handlers
         if (!allQuestionsAnswered && !this.correctionMode) {
             this.setupImageClickHandlers(step, currentQuestionIndex);
+        } else if (isVerified && this.correctionMode) {
+            // In correction mode, setup popup handlers
+            setTimeout(() => this.setupImageClickHandlers(step, currentQuestionIndex), 0);
         }
     },
 
@@ -2533,9 +2536,7 @@ const EleveEntrainement = {
                 const userAnswer = stepAnswers[`q_${qIndex}`];
                 if (q.correctZoneId === zone.id) {
                     zoneStatus = userAnswer === zone.id ? 'correct' : 'show-correct';
-                    if (userAnswer === zone.id) {
-                        zoneIcon = '✓';
-                    }
+                    zoneIcon = '✓';
                 } else if (userAnswer === zone.id) {
                     zoneStatus = 'incorrect';
                     zoneIcon = '✗';
