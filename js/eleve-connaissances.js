@@ -2459,6 +2459,8 @@ const EleveConnaissances = {
             feedbackClass = 'qcm-feedback';
         } else if (format === 'vf' || feedbackElementId.includes('vf')) {
             feedbackClass = 'vf-feedback';
+        } else if (format === 'association' || feedbackElementId.includes('association')) {
+            feedbackClass = 'association-feedback';
         }
         feedbackEl.className = `${feedbackClass} ${isCorrect ? 'correct' : 'incorrect'}`;
 
@@ -3079,10 +3081,10 @@ const EleveConnaissances = {
                 const zoneLabel = document.querySelector('.association-zone-label');
                 if (zoneLabel) zoneLabel.style.display = 'none';
 
-                // Afficher la correction visuelle comparant réponses élève vs correctes
-                setTimeout(() => {
-                    this.displayAssociationCorrectionVisual(donnees, userPairs, details, assocPaires);
-                }, 100);
+                // Afficher le feedback minimaliste avec score
+                const isAssocCorrect = correct === total;
+                const feedbackText = isAssocCorrect ? 'Correct' : 'Mauvaise réponse';
+                this.displayUnifiedFeedback('association_feedback', isAssocCorrect, feedbackText, correct, total, 'association');
                 break;
 
             case 'flashcard':

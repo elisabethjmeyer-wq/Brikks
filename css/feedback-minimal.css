@@ -46,6 +46,7 @@
 .question-feedback,
 .vf-feedback,
 .qcm-feedback,
+.association-feedback,
 .multi-format-feedback {
     animation: feedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     transition: all 0.3s ease;
@@ -57,7 +58,8 @@
 
 .question-feedback,
 .vf-feedback,
-.qcm-feedback {
+.qcm-feedback,
+.association-feedback {
     padding: 0.75rem 1rem;
     margin-top: 0.75rem;
 }
@@ -65,6 +67,7 @@
 .question-feedback .feedback-header,
 .vf-feedback .feedback-header,
 .qcm-feedback .feedback-header,
+.association-feedback .feedback-header,
 .multi-format-feedback .feedback-header {
     display: flex;
     align-items: center;
@@ -75,6 +78,7 @@
 .question-feedback .feedback-icon,
 .vf-feedback .feedback-icon,
 .qcm-feedback .feedback-icon,
+.association-feedback .feedback-icon,
 .multi-format-feedback .feedback-icon {
     flex-shrink: 0;
     width: 28px;
@@ -91,6 +95,7 @@
 .question-feedback.correct .feedback-icon,
 .vf-feedback.correct .feedback-icon,
 .qcm-feedback.correct .feedback-icon,
+.association-feedback.correct .feedback-icon,
 .multi-format-feedback.correct .feedback-icon {
     background: #d1fae5;
     color: #10b981;
@@ -100,6 +105,7 @@
 .question-feedback.incorrect .feedback-icon,
 .vf-feedback.incorrect .feedback-icon,
 .qcm-feedback.incorrect .feedback-icon,
+.association-feedback.incorrect .feedback-icon,
 .multi-format-feedback.incorrect .feedback-icon {
     background: #fee2e2;
     color: #ef4444;
@@ -108,6 +114,7 @@
 .question-feedback .feedback-message,
 .vf-feedback .feedback-message,
 .qcm-feedback .feedback-message,
+.association-feedback .feedback-message,
 .multi-format-feedback .feedback-message {
     flex: 1;
     font-size: 0.95rem;
@@ -121,6 +128,7 @@
 .question-feedback .feedback-score-line,
 .vf-feedback .feedback-score-line,
 .qcm-feedback .feedback-score-line,
+.association-feedback .feedback-score-line,
 .multi-format-feedback .feedback-score-line {
     display: flex;
     align-items: center;
@@ -134,6 +142,7 @@
 .question-feedback .score-label,
 .vf-feedback .score-label,
 .qcm-feedback .score-label,
+.association-feedback .score-label,
 .multi-format-feedback .score-label {
     opacity: 0.75;
     font-weight: 500;
@@ -142,6 +151,7 @@
 .question-feedback .score-value,
 .vf-feedback .score-value,
 .qcm-feedback .score-value,
+.association-feedback .score-value,
 .multi-format-feedback .score-value {
     font-weight: 700;
     font-size: 0.9rem;
@@ -154,6 +164,7 @@
 .question-feedback.correct,
 .vf-feedback.correct,
 .qcm-feedback.correct,
+.association-feedback.correct,
 .multi-format-feedback.correct {
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
     border: 1px solid #d1fae5;
@@ -164,6 +175,7 @@
 .question-feedback.correct .feedback-message,
 .vf-feedback.correct .feedback-message,
 .qcm-feedback.correct .feedback-message,
+.association-feedback.correct .feedback-message,
 .multi-format-feedback.correct .feedback-message {
     color: #10b981;
 }
@@ -171,6 +183,7 @@
 .question-feedback.correct .score-value,
 .vf-feedback.correct .score-value,
 .qcm-feedback.correct .score-value,
+.association-feedback.correct .score-value,
 .multi-format-feedback.correct .score-value {
     color: #10b981;
 }
@@ -180,6 +193,7 @@
 .question-feedback.incorrect,
 .vf-feedback.incorrect,
 .qcm-feedback.incorrect,
+.association-feedback.incorrect,
 .multi-format-feedback.incorrect {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
     border: 1px solid #fee2e2;
@@ -190,6 +204,7 @@
 .question-feedback.incorrect .feedback-message,
 .vf-feedback.incorrect .feedback-message,
 .qcm-feedback.incorrect .feedback-message,
+.association-feedback.incorrect .feedback-message,
 .multi-format-feedback.incorrect .feedback-message {
     color: #ef4444;
 }
@@ -197,6 +212,7 @@
 .question-feedback.incorrect .score-value,
 .vf-feedback.incorrect .score-value,
 .qcm-feedback.incorrect .score-value,
+.association-feedback.incorrect .score-value,
 .multi-format-feedback.incorrect .score-value {
     color: #ef4444;
 }
@@ -206,7 +222,8 @@
 @media (max-width: 640px) {
     .question-feedback,
     .vf-feedback,
-    .qcm-feedback {
+    .qcm-feedback,
+    .association-feedback {
         padding: 0.7rem 0.9rem;
     }
 
