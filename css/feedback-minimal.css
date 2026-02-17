@@ -204,7 +204,7 @@
 .association-feedback.correct .score-value,
 .chronologie-feedback.correct .score-value,
 .multi-format-feedback.correct .score-value {
-    color: #047857;
+    color: #10b981;
 }
 
 /* ==================== ERROR STATE ==================== */
@@ -236,7 +236,7 @@
 .association-feedback.incorrect .score-value,
 .chronologie-feedback.incorrect .score-value,
 .multi-format-feedback.incorrect .score-value {
-    color: #991b1b;
+    color: #ef4444;
 }
 
 /* ==================== RESPONSIVE ==================== */
