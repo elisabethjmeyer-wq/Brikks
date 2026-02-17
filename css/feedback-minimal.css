@@ -128,6 +128,7 @@
     font-weight: 500;
     min-width: 0;
     word-break: break-word;
+    text-align: left;
 }
 
 /* ==================== SCORE LINE (COMPACTE) ==================== */
@@ -145,6 +146,11 @@
     font-size: 0.8rem;
     font-weight: 600;
     padding-left: 2.75rem; /* Align avec l'icon + gap */
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid;
+    border-top-color: currentColor;
+    opacity: 0.6;
 }
 
 .question-feedback .score-label,
