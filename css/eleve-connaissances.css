@@ -386,6 +386,54 @@
     border: 1px solid #fecaca;
 }
 
+/* ============================================
+   CHRONOLOGIE / TIMELINE FORMAT
+   ============================================ */
+
+.chronologie-feedback {
+    margin-top: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.chronologie-feedback.correct {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    color: #065f46;
+    border: 1px solid #86efac;
+}
+
+.chronologie-feedback.incorrect {
+    background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
+    color: #7f1d1d;
+    border: 1px solid #fecaca;
+}
+
+/* ============================================
+   ASSOCIATION FORMAT
+   ============================================ */
+
+.association-feedback {
+    margin-top: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.association-feedback.correct {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    color: #065f46;
+    border: 1px solid #86efac;
+}
+
+.association-feedback.incorrect {
+    background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
+    color: #7f1d1d;
+    border: 1px solid #fecaca;
+}
+
 /* Multi-questions QCM (plusieurs questions dans une étape) */
 .qcm-multi-container {
     display: flex;
