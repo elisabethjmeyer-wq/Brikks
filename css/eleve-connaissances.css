@@ -306,14 +306,14 @@
 }
 
 .vf-feedback.correct {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+    background: rgba(16, 185, 129, 0.05);
     border: 1px solid #d1fae5;
     border-left: 4px solid #10b981;
     color: #047857;
 }
 
 .vf-feedback.incorrect {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+    background: rgba(239, 68, 68, 0.05);
     border: 1px solid #fee2e2;
     border-left: 4px solid #ef4444;
     color: #991b1b;
@@ -378,14 +378,14 @@
 }
 
 .qcm-feedback.correct {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+    background: rgba(16, 185, 129, 0.05);
     border: 1px solid #d1fae5;
     border-left: 4px solid #10b981;
     color: #047857;
 }
 
 .qcm-feedback.incorrect {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+    background: rgba(239, 68, 68, 0.05);
     border: 1px solid #fee2e2;
     border-left: 4px solid #ef4444;
     color: #991b1b;
@@ -405,14 +405,14 @@
 }
 
 .chronologie-feedback.correct {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+    background: rgba(16, 185, 129, 0.05);
     border: 1px solid #d1fae5;
     border-left: 4px solid #10b981;
     color: #047857;
 }
 
 .chronologie-feedback.incorrect {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+    background: rgba(239, 68, 68, 0.05);
     border: 1px solid #fee2e2;
     border-left: 4px solid #ef4444;
     color: #991b1b;
@@ -432,14 +432,14 @@
 }
 
 .association-feedback.correct {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+    background: rgba(16, 185, 129, 0.05);
     border: 1px solid #d1fae5;
     border-left: 4px solid #10b981;
     color: #047857;
 }
 
 .association-feedback.incorrect {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+    background: rgba(239, 68, 68, 0.05);
     border: 1px solid #fee2e2;
     border-left: 4px solid #ef4444;
     color: #991b1b;
@@ -2325,14 +2325,14 @@
 }
 
 .question-ouverte-feedback.correct {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+    background: rgba(16, 185, 129, 0.05);
     border: 1px solid #d1fae5;
     border-left: 4px solid #10b981;
     color: #047857;
 }
 
 .question-ouverte-feedback.incorrect {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+    background: rgba(239, 68, 68, 0.05);
     border: 1px solid #fee2e2;
     border-left: 4px solid #ef4444;
     color: #991b1b;
