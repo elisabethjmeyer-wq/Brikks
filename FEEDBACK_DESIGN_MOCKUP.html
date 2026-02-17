@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brikks - Design Feedback Minimaliste</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ==================== RESET & BASE ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --accent-green: #10b981;
+            --accent-green-light: #d1fae5;
+            --accent-red: #ef4444;
+            --accent-red-light: #fee2e2;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-700: #374151;
+            --gray-900: #111827;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --radius: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--gray-100);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--gray-900);
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        /* ==================== SECTION LAYOUT ==================== */
+        .section {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title::before {
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .example-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .example-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--gray-200);
+        }
+
+        .example-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        /* ==================== FEEDBACK CARD MINIMAL (COMPOSANT RÉUTILISABLE) ==================== */
+
+        .feedback-card {
+            background: white;
+            border-radius: var(--radius);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid var(--gray-200);
+            box-shadow: var(--shadow);
+            animation: slideUp 0.4s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .feedback-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* État SUCCESS */
+        .feedback-card.success {
+            border-left: 4px solid var(--accent-green);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.03) 0%, transparent 100%);
+        }
+
+        /* État ERROR */
+        .feedback-card.error {
+            border-left: 4px solid var(--accent-red);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.03) 0%, transparent 100%);
+        }
+
+        /* Icon container */
+        .feedback-icon {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .feedback-card.success .feedback-icon {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+        }
+
+        .feedback-card.error .feedback-icon {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+        }
+
+        /* Content */
+        .feedback-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            min-width: 0;
+        }
+
+        .feedback-message {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .feedback-score {
+            flex-shrink: 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: var(--gray-50);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        /* ==================== VARIANTES : FEEDBACK AVEC CONTEXTE VISUEL ==================== */
+
+        /* QCM - Affiche les options */
+        .feedback-with-options {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .feedback-with-options .feedback-card {
+            margin-bottom: 0.5rem;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .option-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .option-item.selected {
+            background: var(--accent-red-light);
+            border-color: var(--accent-red);
+        }
+
+        .option-item.correct {
+            background: var(--accent-green-light);
+            border-color: var(--accent-green);
+        }
+
+        .option-badge {
+            flex-shrink: 0;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: white;
+            background: var(--accent-red);
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+        }
+
+        .option-item.correct .option-badge {
+            background: var(--accent-green);
+        }
+
+        .option-text {
+            flex: 1;
+            color: var(--text-primary);
+        }
+
+        /* Chronologie - Points visuels */
+        .timeline-feedback {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .timeline-item {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+
+        .timeline-item.error {
+            background: var(--accent-red-light);
+            color: var(--accent-red);
+            border: 2px solid var(--accent-red);
+        }
+
+        .timeline-item.success {
+            background: var(--accent-green-light);
+            color: var(--accent-green);
+            border: 2px solid var(--accent-green);
+        }
+
+        /* Image - Points colorés */
+        .image-feedback-visual {
+            width: 100%;
+            height: 200px;
+            background: var(--gray-100);
+            border-radius: var(--radius);
+            position: relative;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .image-error-point {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            background: var(--accent-red-light);
+            border: 2px solid var(--accent-red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--accent-red);
+            animation: pulse 2s infinite;
+        }
+
+        .image-success-point {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            background: var(--accent-green-light);
+            border: 2px solid var(--accent-green);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Association - Grille mini */
+        .association-summary {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Question ouverte - Input preview */
+        .open-question-feedback {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .student-answer-box {
+            background: var(--accent-red-light);
+            border: 1px solid var(--accent-red);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            font-style: italic;
+        }
+
+        /* ==================== ANIMATIONS PREMIUM ==================== */
+
+        @keyframes checkmark {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .feedback-card.success .feedback-icon {
+            animation: checkmark 0.5s ease-out;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .feedback-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .feedback-score {
+                align-self: flex-start;
+            }
+
+            .example-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Design Feedback Minimaliste & Modern</h1>
+        <p class="subtitle">Composants réutilisables pour tous les formats d'exercices</p>
+
+        <!-- ==================== QCM ==================== -->
+        <div class="section">
+            <h2 class="section-title">QCM - Question à Choix Multiple</h2>
+            <div class="example-grid">
+                <!-- SUCCESS QCM -->
+                <div class="example-card">
+                    <div class="example-label">✓ Réponse Correcte</div>
+                    <div class="feedback-with-options">
+                        <div class="feedback-card success">
+                            <div class="feedback-icon">✓</div>
+                            <div class="feedback-content">
+                                <span class="feedback-message">Correct !</span>
+                                <span class="feedback-score">1/1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ERROR QCM -->
+                <div class="example-card">
+                    <div class="example-label">✗ Réponse Incorrecte</div>
+                    <div class="feedback-with-options">
+                        <div class="feedback-card error">
+                            <div class="feedback-icon">✗</div>
+                            <div class="feedback-content">
+                                <span class="feedback-message">Incorrect</span>
+                                <span class="feedback-score">0/1</span>
+                            </div>
+                        </div>
+                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--gray-200);">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Tu as choisi :</div>
+                            <div class="option-item selected">
+                                <span class="option-badge">❌</span>
+                                <span class="option-text">La Révolution Française</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin: 0.5rem 0;">Bonne réponse en correction</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== VRAI/FAUX ==================== -->
+        <div class="section">
+            <h2 class="section-title">Vrai/Faux</h2>
+            <div class="example-grid">
+                <!-- SUCCESS V/F -->
+                <div class="example-card">
+                    <div class="example-label">✓ Réponse Correcte</div>
+                    <div class="feedback-card success">
+                        <div class="feedback-icon">✓</div>
+                        <div class="feedback-content">
+                            <span class="feedback-message">Correct !</span>
+                            <span class="feedback-score">1/1</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ERROR V/F -->
+                <div class="example-card">
+                    <div class="example-label">✗ Réponse Incorrecte</div>
+                    <div class="feedback-card error">
+                        <div class="feedback-icon">✗</div>
+                        <div class="feedback-content">
+                            <span class="feedback-message">Incorrect</span>
+                            <span class="feedback-score">0/1</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== CHRONOLOGIE ==================== -->
+        <div class="section">
+            <h2 class="section-title">Chronologie - Classement Timeline</h2>
+            <div class="example-grid">
+                <!-- Chronologie ERROR -->
+                <div class="example-card">
+                    <div class="example-label">✗ Avec Erreurs</div>
+                    <div class="feedback-card error">
+                        <div class="feedback-icon">✗</div>
+                        <div class="feedback-content">
+                            <span class="feedback-message">2 erreurs détectées</span>
+                            <span class="feedback-score">2/4</span>
+                        </div>
+                    </div>
+                    <div class="timeline-feedback">
+                        <div class="timeline-item success">1</div>
+                        <div class="timeline-item error">2</div>
+                        <div class="timeline-item success">3</div>
+                        <div class="timeline-item error">4</div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.75rem;">Points en rouge = à corriger</div>
+                </div>
+
+                <!-- Chronologie SUCCESS -->
+                <div class="example-card">
+                    <div class="example-label">✓ Toutes Correctes</div>
+                    <div class="feedback-card success">
+                        <div class="feedback-icon">✓</div>
+                        <div class="feedback-content">
+                            <span class="feedback-message">Ordre parfait !</span>
+                            <span class="feedback-score">4/4</span>
+                        </div>
+                    </div>
+                    <div class="timeline-feedback">
+                        <div class="timeline-item success">1</div>
+                        <div class="timeline-item success">2</div>
+                        <div class="timeline-item success">3</div>
+                        <div class="timeline-item success">4</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== IMAGE CLIQUABLE ==================== -->
+        <div class="section">
+            <h2 class="section-title">Image Cliquable - Zones d'Erreur</h2>
+            <div class="example-grid">
+                <!-- Image ERROR -->
+                <div class="example-card">
+                    <div class="example-label">✗ Avec Erreurs Détectées</div>
+                    <div class="feedback-card error">
+                        <div class="feedback-icon">✗</div>
+                        <div class="feedback-content">
+                            <span class="feedback-message">3 zones incorrectes</span>
+                            <span class="feedback-score">1/4</span>
+                        </div>
+                    </div>
+                    <div class="image-feedback-visual" style="background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);">
+                        <div class="image-error-point" style="top: 20%; left: 15%;">1</div>
+                        <div class="image-error-point" style="top: 60%; left: 40%; animation-delay: 0.3s;">2</div>
+                        <div class="image-success-point" style="top: 45%; right: 20%;">✓</div>
+                        <div class="image-error-point" style="top: 75%; right: 15%; animation-delay: 0.6s;">3</div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.75rem;">🔴 Zones en erreur | 🟢 Zones correctes</div>
+                </div>
+
+                <!-- Image SUCCESS -->
+                <div class="example-card">
+                    <div class="example-label">✓ Toutes Correctes</div>
+                    <div class="feedback-card success">
+                        <div class="feedback-icon">✓</div>
+                        <div class="feedback-content">
+                            <span class="feedback-message">Parfait !</span>
+                            <span class="feedback-score">4/4</span>
+                        </div>
+                    </div>
+                    <div class="image-feedback-visual" style="background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);">
+                        <div class="image-success-point" style="top: 20%; left: 15%;">✓</div>
+                        <div class="image-success-point" style="top: 60%; left: 40%;">✓</div>
+                        <div class="image-success-point" style="top: 45%; right: 20%;">✓</div>
+                        <div class="image-success-point" style="top: 75%; right: 15%;">✓</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== ASSOCIATION ==================== -->
+        <div class="section">
+            <h2 class="section-title">Association - Paires Correspondantes</h2>
+            <div class="example-grid">
+                <!-- Association ERROR -->
+                <div class="example-card">
+                    <div class="example-label">✗ Avec Erreurs</div>
+                    <div class="feedback-card error">
+                        <div class="feedback-icon">✗</div>
+                        <div class="feedback-content">
+                            <span class="feedback-message">3/4 associations</span>
+                            <span class="feedback-score">3/4</span>
+                        </div>
+                    </div>
+                    <div class="association-summary">
+                        Une association incorrecte à revoir.<br>
+                        <strong>Voir la correction</strong> pour le détail.
+                    </div>
+                </div>
+
+                <!-- Association SUCCESS -->
+                <div class="example-card">
+                    <div class="example-label">✓ Toutes Correctes</div>
+                    <div class="feedback-card success">
+                        <div class="feedback-icon">✓</div>
+                        <div class="feedback-content">
+                            <span class="feedback-message">Toutes les associations</span>
+                            <span class="feedback-score">4/4</span>
+                        </div>
+                    </div>
+                    <div class="association-summary">
+                        Excellentes associations !
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== QUESTION OUVERTE ==================== -->
+        <div class="section">
+            <h2 class="section-title">Question Ouverte</h2>
+            <div class="example-grid">
+                <!-- Open Question ERROR -->
+                <div class="example-card">
+                    <div class="example-label">✗ Réponse Insuffisante</div>
+                    <div class="feedback-card error">
+                        <div class="feedback-icon">✗</div>
+                        <div class="feedback-content">
+                            <span class="feedback-message">Incomplet</span>
+                            <span class="feedback-score">0/2</span>
+                        </div>
+                    </div>
+                    <div class="student-answer-box">
+                        "Le Moyen Âge"
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.75rem;">
+                        Explications et exemple en <strong>correction</strong>
+                    </div>
+                </div>
+
+                <!-- Open Question SUCCESS -->
+                <div class="example-card">
+                    <div class="example-label">✓ Réponse Complète</div>
+                    <div class="feedback-card success">
+                        <div class="feedback-icon">✓</div>
+                        <div class="feedback-content">
+                            <span class="feedback-message">Excellent</span>
+                            <span class="feedback-score">2/2</span>
+                        </div>
+                    </div>
+                    <div style="background: var(--accent-green-light); border: 1px solid var(--accent-green); border-radius: 8px; padding: 0.75rem 1rem; font-size: 0.9rem; color: var(--text-primary);">
+                        "Les humanistes ont nommé cette époque 'Moyen Âge' car..."
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== PRINCIPES DE DESIGN ==================== -->
+        <div class="section">
+            <h2 class="section-title">Principes de Design</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--gray-200);">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--gray-900);">⚡ Minimalisme Intelligent</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Juste l'essentiel : résultat ✓/✗, score, et contexte visuel. Pas de texte explicatif redondant.</p>
+                </div>
+                <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--gray-200);">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--gray-900);">🎨 Cohérence Visuelle</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Même design pour tous les formats. Variations seulement sur le contexte (options, points, etc.).</p>
+                </div>
+                <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--gray-200);">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--gray-900);">✨ Engagement Premium</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Animations fluides (slideUp, pulse), micro-interactions, gradients subtils = ressent premium.</p>
+                </div>
+                <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--gray-200);">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--gray-900);">🧠 Didactique</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Feedback visuel (où erreurs) ≠ feedback textuel (pourquoi). Cognitive load réduite.</p>
+                </div>
+                <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--gray-200);">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--gray-900);">📱 Responsive</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Hauteur fixe, pas de scroll. Pas de surcharge même sur mobile. Stack verticale si besoin.</p>
+                </div>
+                <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); border: 1px solid var(--gray-200);">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.75rem; color: var(--gray-900);">♻️ Réutilisable</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Composants modulaires (.feedback-card, .timeline-item). Facile à adapter et maintenir.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
