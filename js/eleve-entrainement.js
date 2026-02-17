@@ -2379,10 +2379,11 @@ const EleveEntrainement = {
                             <div class="question-ouverte-keywords">
                                 <div class="question-ouverte-keywords-title">Mots-clés attendus :</div>
                                 <div class="question-ouverte-keywords-list">
-                                    ${question.keywords.map(kw => {
+                                    ${(() => {
+                                        const kw = question.keywords[0];
                                         const found = keywordsFound.includes(kw.toLowerCase());
                                         return `<span class="keyword-tag ${found ? 'found' : 'missing'}">${found ? '✓' : '✗'} ${this.escapeHtml(kw)}</span>`;
-                                    }).join('')}
+                                    })()}
                                 </div>
                             </div>
                         ` : ''}
@@ -2491,9 +2492,12 @@ const EleveEntrainement = {
             </div>
         `;
 
-        // Setup click handlers if not all questions answered and not in correction mode
+        // Setup click handlers
         if (!allQuestionsAnswered && !this.correctionMode) {
             this.setupImageClickHandlers(step, currentQuestionIndex);
+        } else if (isVerified && this.correctionMode) {
+            // In correction mode, setup popup handlers
+            setTimeout(() => this.setupImageClickHandlers(step, currentQuestionIndex), 0);
         }
     },
 
@@ -2525,13 +2529,17 @@ const EleveEntrainement = {
     renderImageZone(zone, index, stepAnswers, isVerified, questions) {
         // Trouver si cette zone était la bonne réponse pour une question
         let zoneStatus = '';
+        let zoneIcon = '';
+
         if (isVerified) {
             questions.forEach((q, qIndex) => {
                 const userAnswer = stepAnswers[`q_${qIndex}`];
                 if (q.correctZoneId === zone.id) {
                     zoneStatus = userAnswer === zone.id ? 'correct' : 'show-correct';
+                    zoneIcon = '✓';
                 } else if (userAnswer === zone.id) {
                     zoneStatus = 'incorrect';
+                    zoneIcon = '✗';
                 }
             });
         }
@@ -2541,7 +2549,7 @@ const EleveEntrainement = {
                  data-zone-id="${zone.id}"
                  style="left: ${zone.x}%; top: ${zone.y}%; width: ${zone.width}%; height: ${zone.height}%;"
                  title="${this.escapeHtml(zone.label)}">
-                ${isVerified ? `<span class="zone-label">${this.escapeHtml(zone.label)}</span>` : ''}
+                ${isVerified && zoneIcon ? `<span class="zone-icon">${zoneIcon}</span>` : ''}
             </div>
         `;
     },
@@ -2554,11 +2562,20 @@ const EleveEntrainement = {
     setupImageClickHandlers(step, currentQuestionIndex) {
         const zones = document.querySelectorAll('.image-cliquable-zone');
         const currentQuestion = step.questions[currentQuestionIndex];
+        const stepAnswers = this.answers[this.currentStepIndex] || {};
+        const isVerified = this.results[this.currentStepIndex]?.verified || this.correctionMode;
 
         zones.forEach(zone => {
             zone.addEventListener('click', () => {
                 const zoneId = zone.dataset.zoneId;
-                this.handleZoneClick(zoneId, currentQuestionIndex, step);
+
+                if (isVerified && this.correctionMode) {
+                    // Mode correction: afficher le popup
+                    this.showImageZonePopup(zoneId, step, stepAnswers);
+                } else {
+                    // Mode normal: gérer le clic
+                    this.handleZoneClick(zoneId, currentQuestionIndex, step);
+                }
             });
         });
     },
@@ -2582,6 +2599,68 @@ const EleveEntrainement = {
             this.answers[this.currentStepIndex].currentQuestion = questionIndex + 1;
             this.renderCurrentStep();
         }, 600);
+    },
+
+    showImageZonePopup(zoneId, step, stepAnswers) {
+        // Trouver la zone
+        const zone = step.zones.find(z => z.id === zoneId);
+        if (!zone) return;
+
+        // Trouver quelle question cette zone concerne
+        let questionInfo = null;
+        let userAnswer = null;
+        let isCorrect = false;
+
+        for (let i = 0; i < step.questions.length; i++) {
+            const q = step.questions[i];
+            const answer = stepAnswers[`q_${i}`];
+
+            if (q.correctZoneId === zoneId || answer === zoneId) {
+                questionInfo = q;
+                userAnswer = answer;
+                isCorrect = answer === q.correctZoneId;
+                break;
+            }
+        }
+
+        if (!questionInfo) return;
+
+        // Créer le popup
+        const popupContent = `
+            <div class="image-zone-popup">
+                <div class="popup-close" onclick="this.parentElement.parentElement.style.display='none'">✕</div>
+                <div class="popup-question">${this.escapeHtml(questionInfo.question)}</div>
+
+                <div class="popup-section ${isCorrect ? 'correct' : 'incorrect'}">
+                    <div class="popup-label">Ta réponse :</div>
+                    <div class="popup-zone-name">${isCorrect ? '✓' : '✗'} ${this.escapeHtml(zone.label)}</div>
+                </div>
+
+                ${!isCorrect ? `
+                    <div class="popup-section correct">
+                        <div class="popup-label">Réponse correcte :</div>
+                        <div class="popup-zone-name">✓ ${this.escapeHtml(this.getZoneName(step.zones, questionInfo.correctZoneId))}</div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        // Créer l'overlay du popup
+        let popupOverlay = document.getElementById('imageZonePopupOverlay');
+        if (!popupOverlay) {
+            popupOverlay = document.createElement('div');
+            popupOverlay.id = 'imageZonePopupOverlay';
+            popupOverlay.className = 'image-zone-popup-overlay';
+            popupOverlay.onclick = (e) => {
+                if (e.target === popupOverlay) {
+                    popupOverlay.style.display = 'none';
+                }
+            };
+            document.body.appendChild(popupOverlay);
+        }
+
+        popupOverlay.innerHTML = popupContent;
+        popupOverlay.style.display = 'flex';
     },
 
     verifyImageCliquable() {
