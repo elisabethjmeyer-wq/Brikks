@@ -1721,7 +1721,7 @@ const EleveEntrainement = {
                                 const isActive = stepAnswers.activeLeft === index;
 
                                 return `
-                                    <div class="association-item ${isActive ? 'active' : ''} ${isConnected ? 'connected' : ''} ${isVerified ? (isCorrect ? 'correct' : 'incorrect') : ''}"
+                                    <div class="association-item ${isActive ? 'active' : ''} ${isConnected ? 'connected' : ''} ${isVerified && isConnected ? (isCorrect ? 'correct' : 'incorrect') : ''}"
                                          data-index="${index}"
                                          onclick="EleveEntrainement.selectAssociationLeft(${index})">
                                         ${this.escapeHtml(p.gauche)}
