@@ -47,6 +47,7 @@
 .vf-feedback,
 .qcm-feedback,
 .association-feedback,
+.chronologie-feedback,
 .multi-format-feedback {
     animation: feedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     transition: all 0.3s ease;
@@ -59,7 +60,8 @@
 .question-feedback,
 .vf-feedback,
 .qcm-feedback,
-.association-feedback {
+.association-feedback,
+.chronologie-feedback {
     padding: 0.75rem 1rem;
     margin-top: 0.75rem;
 }
@@ -68,6 +70,7 @@
 .vf-feedback .feedback-header,
 .qcm-feedback .feedback-header,
 .association-feedback .feedback-header,
+.chronologie-feedback .feedback-header,
 .multi-format-feedback .feedback-header {
     display: flex;
     align-items: center;
@@ -79,6 +82,7 @@
 .vf-feedback .feedback-icon,
 .qcm-feedback .feedback-icon,
 .association-feedback .feedback-icon,
+.chronologie-feedback .feedback-icon,
 .multi-format-feedback .feedback-icon {
     flex-shrink: 0;
     width: 28px;
@@ -96,6 +100,7 @@
 .vf-feedback.correct .feedback-icon,
 .qcm-feedback.correct .feedback-icon,
 .association-feedback.correct .feedback-icon,
+.chronologie-feedback.correct .feedback-icon,
 .multi-format-feedback.correct .feedback-icon {
     background: #d1fae5;
     color: #10b981;
@@ -106,6 +111,7 @@
 .vf-feedback.incorrect .feedback-icon,
 .qcm-feedback.incorrect .feedback-icon,
 .association-feedback.incorrect .feedback-icon,
+.chronologie-feedback.incorrect .feedback-icon,
 .multi-format-feedback.incorrect .feedback-icon {
     background: #fee2e2;
     color: #ef4444;
@@ -115,6 +121,7 @@
 .vf-feedback .feedback-message,
 .qcm-feedback .feedback-message,
 .association-feedback .feedback-message,
+.chronologie-feedback .feedback-message,
 .multi-format-feedback .feedback-message {
     flex: 1;
     font-size: 0.95rem;
@@ -129,6 +136,7 @@
 .vf-feedback .feedback-score-line,
 .qcm-feedback .feedback-score-line,
 .association-feedback .feedback-score-line,
+.chronologie-feedback .feedback-score-line,
 .multi-format-feedback .feedback-score-line {
     display: flex;
     align-items: center;
@@ -143,6 +151,7 @@
 .vf-feedback .score-label,
 .qcm-feedback .score-label,
 .association-feedback .score-label,
+.chronologie-feedback .score-label,
 .multi-format-feedback .score-label {
     opacity: 0.75;
     font-weight: 500;
@@ -152,6 +161,7 @@
 .vf-feedback .score-value,
 .qcm-feedback .score-value,
 .association-feedback .score-value,
+.chronologie-feedback .score-value,
 .multi-format-feedback .score-value {
     font-weight: 700;
     font-size: 0.9rem;
@@ -165,6 +175,7 @@
 .vf-feedback.correct,
 .qcm-feedback.correct,
 .association-feedback.correct,
+.chronologie-feedback.correct,
 .multi-format-feedback.correct {
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
     border: 1px solid #d1fae5;
@@ -176,6 +187,7 @@
 .vf-feedback.correct .feedback-message,
 .qcm-feedback.correct .feedback-message,
 .association-feedback.correct .feedback-message,
+.chronologie-feedback.correct .feedback-message,
 .multi-format-feedback.correct .feedback-message {
     color: #10b981;
 }
@@ -184,6 +196,7 @@
 .vf-feedback.correct .score-value,
 .qcm-feedback.correct .score-value,
 .association-feedback.correct .score-value,
+.chronologie-feedback.correct .score-value,
 .multi-format-feedback.correct .score-value {
     color: #10b981;
 }
@@ -194,6 +207,7 @@
 .vf-feedback.incorrect,
 .qcm-feedback.incorrect,
 .association-feedback.incorrect,
+.chronologie-feedback.incorrect,
 .multi-format-feedback.incorrect {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
     border: 1px solid #fee2e2;
@@ -205,6 +219,7 @@
 .vf-feedback.incorrect .feedback-message,
 .qcm-feedback.incorrect .feedback-message,
 .association-feedback.incorrect .feedback-message,
+.chronologie-feedback.incorrect .feedback-message,
 .multi-format-feedback.incorrect .feedback-message {
     color: #ef4444;
 }
@@ -213,6 +228,7 @@
 .vf-feedback.incorrect .score-value,
 .qcm-feedback.incorrect .score-value,
 .association-feedback.incorrect .score-value,
+.chronologie-feedback.incorrect .score-value,
 .multi-format-feedback.incorrect .score-value {
     color: #ef4444;
 }

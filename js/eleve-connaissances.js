@@ -2461,6 +2461,8 @@ const EleveConnaissances = {
             feedbackClass = 'vf-feedback';
         } else if (format === 'association' || feedbackElementId.includes('association')) {
             feedbackClass = 'association-feedback';
+        } else if (format === 'chronologie' || format === 'timeline' || feedbackElementId.includes('timeline')) {
+            feedbackClass = 'chronologie-feedback';
         }
         feedbackEl.className = `${feedbackClass} ${isCorrect ? 'correct' : 'incorrect'}`;
 
@@ -2885,11 +2887,6 @@ const EleveConnaissances = {
 
                             details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
                         });
-
-                        // Ajouter le toggle Ma réponse / Correction si pas tout correct
-                        if (correct < total) {
-                            this.addTimelineToggle(cardsContainer, cartes, studentOrder);
-                        }
                     }
                 }
                 break;
@@ -3968,13 +3965,18 @@ const EleveConnaissances = {
 
         // Utiliser la fonction unifiée de feedback
         feedbackEl.id = 'multiFormatFeedback'; // S'assurer que l'ID existe
+        // Passer le format spécifique (chronologie, timeline, etc.) pour appliquer le CSS approprié
+        let feedbackFormat = state.format;
+        if (!['qcm', 'vf', 'association', 'chronologie', 'timeline'].includes(feedbackFormat)) {
+            feedbackFormat = 'question-feedback';
+        }
         this.displayUnifiedFeedback(
             'multiFormatFeedback',
             isCorrect,
             feedbackText,
             result.correct,
             result.total,
-            'question-feedback'
+            feedbackFormat
         );
 
         // Mettre à jour le bouton d'action dans un conteneur propre
@@ -4170,8 +4172,6 @@ const EleveConnaissances = {
         const cardsContainer = container.querySelector('.timeline-cards');
         if (cardsContainer) {
             const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-card'));
-            // Sauvegarder l'ordre de l'élève avant validation
-            const studentOrder = placedCards.map(c => parseInt(c.dataset.originalIndex));
 
             placedCards.forEach((card, positionActuelle) => {
                 const originalIndex = parseInt(card.dataset.originalIndex);
@@ -4186,11 +4186,6 @@ const EleveConnaissances = {
                 }
                 details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
             });
-
-            // Ajouter le toggle Ma réponse / Correction si pas tout correct
-            if (correct < total) {
-                this.addTimelineToggle(cardsContainer, cartes, studentOrder);
-            }
         }
 
         return { correct, total, details };
