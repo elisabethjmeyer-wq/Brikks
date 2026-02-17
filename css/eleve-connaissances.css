@@ -298,23 +298,25 @@
 
 .vf-feedback {
     margin-top: 0.75rem;
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-radius: 12px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    line-height: 1.5;
+    animation: feedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .vf-feedback.correct {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    color: #065f46;
-    border: 1px solid #86efac;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+    border: 1px solid #d1fae5;
+    border-left: 4px solid #10b981;
+    color: #047857;
 }
 
 .vf-feedback.incorrect {
-    background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
-    color: #7f1d1d;
-    border: 1px solid #fecaca;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+    border: 1px solid #fee2e2;
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
 }
 
 
@@ -368,22 +370,25 @@
 
 .qcm-feedback {
     margin-top: 1rem;
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-radius: 12px;
-    font-weight: 500;
-    line-height: 1.5;
+    animation: feedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .qcm-feedback.correct {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    color: #065f46;
-    border: 1px solid #86efac;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+    border: 1px solid #d1fae5;
+    border-left: 4px solid #10b981;
+    color: #047857;
 }
 
 .qcm-feedback.incorrect {
-    background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
-    color: #7f1d1d;
-    border: 1px solid #fecaca;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+    border: 1px solid #fee2e2;
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
 }
 
 /* ============================================
@@ -391,23 +396,26 @@
    ============================================ */
 
 .chronologie-feedback {
-    margin-top: 0.75rem;
-    padding: 1rem 1.25rem;
+    margin-top: 2rem;
+    padding: 0.75rem 1rem;
     border-radius: 12px;
-    font-weight: 500;
-    line-height: 1.5;
+    animation: feedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .chronologie-feedback.correct {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    color: #065f46;
-    border: 1px solid #86efac;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+    border: 1px solid #d1fae5;
+    border-left: 4px solid #10b981;
+    color: #047857;
 }
 
 .chronologie-feedback.incorrect {
-    background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
-    color: #7f1d1d;
-    border: 1px solid #fecaca;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+    border: 1px solid #fee2e2;
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
 }
 
 /* ============================================
@@ -416,22 +424,25 @@
 
 .association-feedback {
     margin-top: 0.75rem;
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-radius: 12px;
-    font-weight: 500;
-    line-height: 1.5;
+    animation: feedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .association-feedback.correct {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    color: #065f46;
-    border: 1px solid #86efac;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+    border: 1px solid #d1fae5;
+    border-left: 4px solid #10b981;
+    color: #047857;
 }
 
 .association-feedback.incorrect {
-    background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
-    color: #7f1d1d;
-    border: 1px solid #fecaca;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+    border: 1px solid #fee2e2;
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
 }
 
 /* Multi-questions QCM (plusieurs questions dans une étape) */
@@ -2306,25 +2317,25 @@
 
 .question-ouverte-feedback {
     margin-top: 1rem;
-    padding: 1rem 1.25rem;
+    padding: 0.75rem 1rem;
     border-radius: 12px;
-    font-weight: 500;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    line-height: 1.5;
+    animation: feedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .question-ouverte-feedback.correct {
-    background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
-    color: #065f46;
-    border: 1px solid #86efac;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, transparent 100%);
+    border: 1px solid #d1fae5;
+    border-left: 4px solid #10b981;
+    color: #047857;
 }
 
 .question-ouverte-feedback.incorrect {
-    background: linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%);
-    color: #7f1d1d;
-    border: 1px solid #fecaca;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, transparent 100%);
+    border: 1px solid #fee2e2;
+    border-left: 4px solid #ef4444;
+    color: #991b1b;
 }
 
 /* ============================================
