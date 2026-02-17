@@ -2078,7 +2078,7 @@ const EleveConnaissances = {
         const isCorrect = marker.getAttribute('data-is-correct') === 'true';
         const hasAnswer = userAnswer.trim() !== '';
 
-        // Construire le contenu du popup selon le résultat
+        // Construire le contenu du popup selon le résultat (feedback minimaliste)
         let bodyHTML = '';
         if (isCorrect) {
             bodyHTML = `
@@ -2092,9 +2092,6 @@ const EleveConnaissances = {
                 <div class="carte-correction-box incorrect">
                     <span class="carte-correction-text">${hasAnswer ? this.escapeHtml(userAnswer) : 'Non répondu'}</span>
                     <span class="carte-correction-icon">✗</span>
-                </div>
-                <div class="carte-correction-box expected">
-                    <span class="carte-correction-text">Réponse correcte : ${this.escapeHtml(correctAnswer)}</span>
                 </div>
             `;
         }
