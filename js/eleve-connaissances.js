@@ -2662,12 +2662,8 @@ const EleveConnaissances = {
                     const isCorrect = answer === expected;
                     if (isCorrect) correct++;
 
-                    // Construire le texte du feedback
+                    // Construire le texte du feedback (minimaliste - sans explication)
                     let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
-                    const vfChosenFb = this.userAnswers['vf_0'] === 'vrai' ? donnees.feedback_vrai : donnees.feedback_faux;
-                    if (vfChosenFb) {
-                        feedbackText = vfChosenFb;
-                    }
 
                     // Utiliser la fonction unifiée de feedback
                     this.displayUnifiedFeedback('feedback_vf_0', isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
@@ -2695,11 +2691,8 @@ const EleveConnaissances = {
                             const isCorrect = answer === expected;
                             if (isCorrect) correct++;
 
-                            // Construire le texte du feedback
+                            // Construire le texte du feedback (minimaliste - sans explication)
                             let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
-                            if (prop.feedback) {
-                                feedbackText = prop.feedback;
-                            }
 
                             // Utiliser la fonction unifiée de feedback
                             this.displayUnifiedFeedback(`feedback_vf_${idx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
@@ -2757,18 +2750,8 @@ const EleveConnaissances = {
                             const isCorrect = correctIndices.includes(parseInt(userAnswer));
                             if (isCorrect) correct++;
 
-                            // Construire le texte du feedback
+                            // Construire le texte du feedback (minimaliste - sans explication)
                             let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
-                            const feedbacksOptions = q.feedbacks_options || [];
-                            const chosenIdx = parseInt(userAnswer);
-
-                            if (feedbacksOptions[chosenIdx]) {
-                                feedbackText = feedbacksOptions[chosenIdx];
-                            } else if (isCorrect && q.feedback_correct) {
-                                feedbackText = q.feedback_correct;
-                            } else if (!isCorrect && q.feedback_incorrect) {
-                                feedbackText = q.feedback_incorrect;
-                            }
 
                             // Utiliser la fonction unifiée de feedback
                             this.displayUnifiedFeedback(`feedback_qcm_${qIdx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1, 'qcm');
@@ -2797,18 +2780,8 @@ const EleveConnaissances = {
 
                     if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
 
-                    // Construire le texte du feedback
+                    // Construire le texte du feedback (minimaliste - sans explication)
                     let feedbackText = correct === 1 ? 'Correct' : 'Mauvaise réponse';
-                    const feedbacksOptions = donnees.feedbacks_options || [];
-                    const chosenIdx = parseInt(userAnswer);
-
-                    if (feedbacksOptions[chosenIdx]) {
-                        feedbackText = feedbacksOptions[chosenIdx];
-                    } else if (correct === 1 && donnees.feedback_correct) {
-                        feedbackText = donnees.feedback_correct;
-                    } else if (correct === 0 && donnees.feedback_incorrect) {
-                        feedbackText = donnees.feedback_incorrect;
-                    }
 
                     // Utiliser la fonction unifiée de feedback
                     this.displayUnifiedFeedback('feedback_qcm', correct === 1, feedbackText, correct, 1, 'qcm');
@@ -3042,13 +3015,8 @@ const EleveConnaissances = {
                     }
 
                     if (qoFeedbackEl) {
-                        // Construire le texte du feedback
-                        let feedbackText = qoCorrect ? 'Correct !' : `La bonne réponse était: ${qoReponsesAcceptees[0] || ''}`;
-                        if (qoCorrect && donnees.feedback_correct) {
-                            feedbackText = donnees.feedback_correct;
-                        } else if (!qoCorrect && donnees.feedback_incorrect) {
-                            feedbackText += ` ${donnees.feedback_incorrect}`;
-                        }
+                        // Construire le texte du feedback (minimaliste - sans explication)
+                        let feedbackText = qoCorrect ? 'Correct' : 'Mauvaise réponse';
 
                         // Utiliser la fonction unifiée de feedback
                         this.displayUnifiedFeedback('feedback_question_ouverte', qoCorrect, feedbackText, qoCorrect ? 1 : 0, 1);
@@ -4368,19 +4336,13 @@ const EleveConnaissances = {
         const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
         const isCorrect = answer === expected;
 
-        // Afficher le feedback
+        // Afficher le feedback (minimaliste - sans explication)
         const feedback = document.getElementById(`feedback_vf_${idx}`);
         if (feedback) {
             feedback.style.display = 'block';
             feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-            // Feedback basé sur le CHOIX de l'élève (pas correct/incorrect)
-            const chosenFeedback = answer === 'vrai' ? prop.feedback_vrai : prop.feedback_faux;
             const vfSymbol = isCorrect ? '✓' : '✗';
-            if (chosenFeedback) {
-                feedback.textContent = `${vfSymbol} ${chosenFeedback}`;
-            } else {
-                feedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
-            }
+            feedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
         }
 
         // Verrouiller les choix
@@ -4469,18 +4431,8 @@ const EleveConnaissances = {
 
         const isCorrect = correctIndices.includes(parseInt(userAnswer));
 
-        // Construire le texte du feedback
+        // Construire le texte du feedback (minimaliste - sans explication)
         let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
-        const feedbacksOptions = q.feedbacks_options || [];
-        const chosenIdx = parseInt(userAnswer);
-
-        if (feedbacksOptions[chosenIdx]) {
-            feedbackText = feedbacksOptions[chosenIdx];
-        } else if (isCorrect && q.feedback_correct) {
-            feedbackText = q.feedback_correct;
-        } else if (!isCorrect && q.feedback_incorrect) {
-            feedbackText = q.feedback_incorrect;
-        }
 
         // Utiliser la fonction unifiée de feedback (avec score!)
         this.displayUnifiedFeedback(
