@@ -1647,6 +1647,7 @@ const EleveConnaissances = {
                 <div class="texte-avec-trous">
                     ${processedTexte}
                 </div>
+                <div class="chronologie-feedback" id="feedback_texte_trous" style="display: none;"></div>
             </div>
         `;
     },
@@ -2932,6 +2933,11 @@ const EleveConnaissances = {
 
                     details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: input.dataset.answer, correct: isOk });
                 });
+
+                // Afficher le feedback minimaliste avec score pour texte à trous
+                const isTexteTrousCorrect = correct === total;
+                const texteTrousTexte = isTexteTrousCorrect ? 'Correct' : 'Mauvaise réponse';
+                this.displayUnifiedFeedback('feedback_texte_trous', isTexteTrousCorrect, texteTrousTexte, correct, total, 'chronologie');
                 break;
 
             case 'carte':
