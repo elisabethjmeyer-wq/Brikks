@@ -1465,6 +1465,7 @@ const EleveConnaissances = {
                         </div>
                     `}).join('')}
                 </div>
+                <div class="chronologie-feedback" id="feedback_timeline" style="display: none;"></div>
             </div>
         `;
     },
@@ -1949,6 +1950,7 @@ const EleveConnaissances = {
                 </div>
 
                 <p class="carte-help">Cliquez sur un numéro pour répondre. <span class="carte-help-hint">Utilisez ⛶ pour agrandir.</span></p>
+                <div class="chronologie-feedback" id="feedback_carte" style="display: none;"></div>
             </div>
         `;
     },
@@ -2889,6 +2891,13 @@ const EleveConnaissances = {
                         });
                     }
                 }
+
+                // Afficher le feedback minimaliste avec score pour timeline
+                if (!donnees.paires || !donnees.mode) {
+                    const isTimelineCorrect = correct === total;
+                    const feedbackText = isTimelineCorrect ? 'Correct' : 'Mauvaise réponse';
+                    this.displayUnifiedFeedback('feedback_timeline', isTimelineCorrect, feedbackText, correct, total, 'chronologie');
+                }
                 break;
 
             case 'texte_trou':
@@ -2978,6 +2987,11 @@ const EleveConnaissances = {
                         details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
                     }
                 });
+
+                // Afficher le feedback minimaliste avec score pour carte
+                const isCarteCorrect = correct === total;
+                const carteTexte = isCarteCorrect ? 'Correct' : 'Mauvaise réponse';
+                this.displayUnifiedFeedback('feedback_carte', isCarteCorrect, carteTexte, correct, total, 'chronologie');
                 break;
 
             case 'question_ouverte':
