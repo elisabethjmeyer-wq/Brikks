@@ -1721,7 +1721,7 @@ const EleveEntrainement = {
                                 const isActive = stepAnswers.activeLeft === index;
 
                                 return `
-                                    <div class="association-item ${isActive ? 'active' : ''} ${isConnected ? 'connected' : ''} ${isVerified ? (isCorrect ? 'correct' : 'incorrect') : ''}"
+                                    <div class="association-item ${isActive ? 'active' : ''} ${isConnected ? 'connected' : ''} ${isVerified && isConnected ? (isCorrect ? 'correct' : 'incorrect') : ''}"
                                          data-index="${index}"
                                          onclick="EleveEntrainement.selectAssociationLeft(${index})">
                                         ${this.escapeHtml(p.gauche)}
@@ -2476,8 +2476,14 @@ const EleveEntrainement = {
                     ` : ''}
 
                     <div class="image-cliquable-container ${isVerified ? 'verified' : ''}">
-                        <img src="${step.imageUrl}" alt="${step.titre}" class="image-cliquable-img" id="clickableImage"
-                             onerror="this.onerror=null; this.src='https://placehold.co/1200x600/f0f0f0/666666?text=Image+non+disponible';">
+                        ${step.imageUrl ? `
+                            <img src="${step.imageUrl}" alt="${step.titre}" class="image-cliquable-img" id="clickableImage"
+                                 onerror="this.onerror=null; this.src='https://placehold.co/1200x600/f0f0f0/666666?text=Image+non+disponible';">
+                        ` : `
+                            <div style="display: flex; align-items: center; justify-content: center; height: 300px; background: var(--gray-100); color: var(--gray-400);">
+                                <span>Aucune image disponible</span>
+                            </div>
+                        `}
                         <div class="image-cliquable-zones" id="clickableZones">
                             ${step.zones.map((zone, zIndex) => this.renderImageZone(zone, zIndex, stepAnswers, isVerified, step.questions)).join('')}
                         </div>
