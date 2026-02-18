@@ -1696,6 +1696,32 @@ const EleveEntrainement = {
         const stepAnswers = this.answers[this.currentStepIndex];
         const paires = step.paires || [];
 
+        // Si vérifié, afficher le rendu de correction avec paires
+        if (isVerified) {
+            container.innerHTML = `
+                <div class="exercise-card">
+                    <div class="exercise-header">
+                        <div class="exercise-icon association">${this.getFormatIcon('association')}</div>
+                        <div class="exercise-info">
+                            <h2>${step.titre}</h2>
+                            <p>${step.description || 'Reliez les éléments correspondants'}</p>
+                        </div>
+                        <span class="exercise-badge">${paires.length} paires</span>
+                    </div>
+
+                    <div class="exercise-body">
+                        ${this.renderAssociationCorrection(step, stepAnswers, paires)}
+
+                        <div class="exercise-actions">
+                            ${this.renderNavigationButtons()}
+                        </div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        // Rendu normal en mode test
         container.innerHTML = `
             <div class="exercise-card">
                 <div class="exercise-header">
@@ -1717,11 +1743,11 @@ const EleveEntrainement = {
                         <div class="association-column association-left">
                             ${paires.map((p, index) => {
                                 const isConnected = stepAnswers.connections[index] !== undefined;
-                                const isCorrect = isVerified && stepAnswers.connections[index] === index;
+                                const isCorrect = stepAnswers.connections[index] === index;
                                 const isActive = stepAnswers.activeLeft === index;
 
                                 return `
-                                    <div class="association-item ${isActive ? 'active' : ''} ${isConnected ? 'connected' : ''} ${isVerified && isConnected ? (isCorrect ? 'correct' : 'incorrect') : ''}"
+                                    <div class="association-item ${isActive ? 'active' : ''} ${isConnected ? 'connected' : ''}"
                                          data-index="${index}"
                                          onclick="EleveEntrainement.selectAssociationLeft(${index})">
                                         ${this.escapeHtml(p.gauche)}
@@ -1733,11 +1759,9 @@ const EleveEntrainement = {
                         <div class="association-column association-right">
                             ${stepAnswers.shuffledRight.map((item, displayIndex) => {
                                 const isConnected = Object.values(stepAnswers.connections).includes(item.originalIndex);
-                                const connectedLeft = Object.keys(stepAnswers.connections).find(k => stepAnswers.connections[k] === item.originalIndex);
-                                const isCorrect = isVerified && connectedLeft !== undefined && parseInt(connectedLeft) === item.originalIndex;
 
                                 return `
-                                    <div class="association-item ${isConnected ? 'connected' : ''} ${isVerified ? (isCorrect ? 'correct' : (isConnected ? 'incorrect' : '')) : ''}"
+                                    <div class="association-item ${isConnected ? 'connected' : ''}"
                                          data-original="${item.originalIndex}"
                                          onclick="EleveEntrainement.selectAssociationRight(${item.originalIndex})">
                                         ${this.escapeHtml(item.text)}
@@ -1748,8 +1772,53 @@ const EleveEntrainement = {
                     </div>
 
                     <div class="exercise-actions">
-                        ${!isVerified ? `<button class="btn btn-secondary" onclick="EleveEntrainement.resetAssociations()">Réinitialiser</button>` : ''}
+                        <button class="btn btn-secondary" onclick="EleveEntrainement.resetAssociations()">Réinitialiser</button>
                         ${this.renderNavigationButtons()}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    renderAssociationCorrection(step, stepAnswers, paires) {
+        // Afficher les réponses élèves et les bonnes réponses en paires
+        const userAnswersHtml = paires.map((p, index) => {
+            const connectedIndex = stepAnswers.connections[index];
+            const isCorrect = connectedIndex === index;
+            const connectedText = connectedIndex !== undefined ? paires[connectedIndex].droite : '(non répondu)';
+
+            return `
+                <div class="association-pair ${isCorrect ? 'correct' : 'incorrect'}">
+                    <div class="association-pair-left">${this.escapeHtml(p.gauche)}</div>
+                    <div class="association-pair-arrow">→</div>
+                    <div class="association-pair-right">${this.escapeHtml(connectedText)}</div>
+                </div>
+            `;
+        }).join('');
+
+        const correctAnswersHtml = paires.map((p, index) => {
+            return `
+                <div class="association-pair correct">
+                    <div class="association-pair-left">${this.escapeHtml(p.gauche)}</div>
+                    <div class="association-pair-arrow">→</div>
+                    <div class="association-pair-right">${this.escapeHtml(p.droite)}</div>
+                </div>
+            `;
+        }).join('');
+
+        return `
+            <div class="association-correction-container">
+                <div class="association-correction-section">
+                    <h3 class="association-correction-title user-answer">Ta réponse :</h3>
+                    <div class="association-pairs-list">
+                        ${userAnswersHtml}
+                    </div>
+                </div>
+
+                <div class="association-correction-section">
+                    <h3 class="association-correction-title correct-answer">Réponse correcte :</h3>
+                    <div class="association-pairs-list">
+                        ${correctAnswersHtml}
                     </div>
                 </div>
             </div>
