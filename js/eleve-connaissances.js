@@ -2530,31 +2530,65 @@ const EleveConnaissances = {
 
         // Afficher les réponses de l'élève
         userPairs.forEach((pair) => {
-            const pIdx = parseInt(pair.gauche);
+            const leftIdx = parseInt(pair.gauche);
+            const rightIdx = parseInt(pair.droite);
             const isCorrect = String(pair.gauche) === String(pair.droite);
             const statusClass = isCorrect ? 'card-correct' : 'card-incorrect';
 
-            const displayEl = displayElements[pIdx];
-            const labelEl = labelElements[pIdx];
+            const leftEl = elementsGauche[leftIdx];
+            const rightEl = elementsDroite[rightIdx];
 
-            if (displayEl && labelEl) {
-                if (hasImages && displayEl.type === 'image') {
-                    const imageUrl = this.normalizeImageUrl(displayEl.texte);
-                    const imgStyle = imageUrl ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
+            if (leftEl && rightEl) {
+                // Afficher la paire complète : gauche → droite (ce que l'élève a choisi)
+                const leftHasImage = leftEl.type === 'image';
+                const rightHasImage = rightEl.type === 'image';
+                const leftUrl = leftHasImage ? this.normalizeImageUrl(leftEl.texte) : null;
+                const rightUrl = rightHasImage ? this.normalizeImageUrl(rightEl.texte) : null;
+
+                if (leftHasImage && rightHasImage) {
+                    // Deux images
                     studentHtml += `
-                        <div class="correction-assoc-pair ${statusClass}">
-                            <div class="correction-assoc-card has-image" ${imgStyle}>
-                                <span class="correction-assoc-label">${this.escapeHtml(labelEl.texte)}</span>
+                        <div class="correction-assoc-pair-flex ${statusClass}">
+                            <div class="correction-assoc-card has-image" style="background-image: url('${this.escapeHtml(leftUrl)}');"></div>
+                            <span class="assoc-pair-arrow">→</span>
+                            <div class="correction-assoc-card has-image" style="background-image: url('${this.escapeHtml(rightUrl)}');"></div>
+                            <span class="assoc-pair-status">${isCorrect ? '✓' : '✗'}</span>
+                        </div>
+                    `;
+                } else if (leftHasImage) {
+                    // Image à gauche, texte à droite
+                    studentHtml += `
+                        <div class="correction-assoc-pair-flex ${statusClass}">
+                            <div class="correction-assoc-card has-image" style="background-image: url('${this.escapeHtml(leftUrl)}');"></div>
+                            <span class="assoc-pair-arrow">→</span>
+                            <div class="correction-assoc-card text-only">
+                                <span class="correction-assoc-text">${this.escapeHtml(rightEl.texte)}</span>
                             </div>
                             <span class="assoc-pair-status">${isCorrect ? '✓' : '✗'}</span>
                         </div>
                     `;
-                } else {
+                } else if (rightHasImage) {
+                    // Texte à gauche, image à droite
                     studentHtml += `
-                        <div class="correction-assoc-pair ${statusClass}">
+                        <div class="correction-assoc-pair-flex ${statusClass}">
                             <div class="correction-assoc-card text-only">
-                                <span class="correction-assoc-text">${this.escapeHtml(displayEl.texte)}</span>
-                                <span class="correction-assoc-label">${this.escapeHtml(labelEl.texte)}</span>
+                                <span class="correction-assoc-text">${this.escapeHtml(leftEl.texte)}</span>
+                            </div>
+                            <span class="assoc-pair-arrow">→</span>
+                            <div class="correction-assoc-card has-image" style="background-image: url('${this.escapeHtml(rightUrl)}');"></div>
+                            <span class="assoc-pair-status">${isCorrect ? '✓' : '✗'}</span>
+                        </div>
+                    `;
+                } else {
+                    // Deux textes
+                    studentHtml += `
+                        <div class="correction-assoc-pair-flex ${statusClass}">
+                            <div class="correction-assoc-card text-only">
+                                <span class="correction-assoc-text">${this.escapeHtml(leftEl.texte)}</span>
+                            </div>
+                            <span class="assoc-pair-arrow">→</span>
+                            <div class="correction-assoc-card text-only">
+                                <span class="correction-assoc-text">${this.escapeHtml(rightEl.texte)}</span>
                             </div>
                             <span class="assoc-pair-status">${isCorrect ? '✓' : '✗'}</span>
                         </div>
