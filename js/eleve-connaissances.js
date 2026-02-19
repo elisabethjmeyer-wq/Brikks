@@ -3133,9 +3133,6 @@ const EleveConnaissances = {
                 const isAssocCorrect = correct === total;
                 const feedbackText = isAssocCorrect ? 'Correct' : 'Mauvaise réponse';
                 this.displayUnifiedFeedback('association_feedback', isAssocCorrect, feedbackText, correct, total, 'association');
-
-                // Afficher la correction visuelle détaillée avec paires complètes
-                this.displayAssociationCorrectionVisual(donnees, userPairs, details, assocPaires);
                 break;
 
             case 'flashcard':
