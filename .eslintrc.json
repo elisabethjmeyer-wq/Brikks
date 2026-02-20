@@ -1,0 +1,46 @@
+{
+    "env": {
+        "browser": true,
+        "es2021": true
+    },
+    "parserOptions": {
+        "ecmaVersion": "latest"
+    },
+    "rules": {
+        "no-undef": "warn",
+        "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+        "no-console": "off",
+        "eqeqeq": "warn",
+        "no-empty": "warn",
+        "no-unreachable": "error",
+        "no-constant-condition": "warn",
+        "no-dupe-keys": "error",
+        "no-duplicate-case": "error",
+        "no-redeclare": "error",
+        "no-self-assign": "error",
+        "no-self-compare": "error"
+    },
+    "globals": {
+        "CONFIG": "readonly",
+        "Auth": "readonly",
+        "Logger": "readonly",
+        "confetti": "readonly",
+        "EleveConnaissances": "readonly",
+        "EleveEntrainement": "writable",
+        "EleveExercices": "writable",
+        "EleveEvaluation": "writable",
+        "EleveLayout": "writable",
+        "AdminLayout": "writable",
+        "EleveAccueil": "writable",
+        "EleveChapitre": "writable",
+        "EleveClasseur": "writable",
+        "EleveEmploiDuTemps": "writable",
+        "EleveEvaluations": "writable",
+        "EleveFaq": "writable",
+        "EleveLecons": "writable",
+        "EleveMethodologie": "writable",
+        "EleveMethodologieParcours": "writable",
+        "EleveRecommandations": "writable",
+        "EleveVideos": "writable"
+    }
+}
