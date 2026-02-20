@@ -31,6 +31,7 @@
         "EleveEvaluation": "writable",
         "EleveLayout": "writable",
         "AdminLayout": "writable",
+        "AdminBanquesExercices": "readonly",
         "EleveAccueil": "writable",
         "EleveChapitre": "writable",
         "EleveClasseur": "writable",
