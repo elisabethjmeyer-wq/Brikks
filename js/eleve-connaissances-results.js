@@ -828,12 +828,10 @@ Object.assign(EleveConnaissances, {
         });
 
         // Fullscreen escape handler
-        if (this.fullscreenEscapeListener) {
-            document.removeEventListener('keydown', this.fullscreenEscapeListener);
-            this.fullscreenEscapeListener = null;
+        if (this._fullscreenEscapeHandler) {
+            document.removeEventListener('keydown', this._fullscreenEscapeHandler);
+            this._fullscreenEscapeHandler = null;
         }
-
-        Logger.debug('EleveConnaissances', 'Event listeners cleaned up');
     },
 
     /**

@@ -985,14 +985,22 @@ Object.assign(EleveConnaissances, {
 
         // Fermer avec Escape
         if (container.classList.contains('fullscreen')) {
-            const handleEsc = (e) => {
+            // Supprimer l'ancien listener s'il existe
+            if (this._fullscreenEscapeHandler) {
+                document.removeEventListener('keydown', this._fullscreenEscapeHandler);
+            }
+            this._fullscreenEscapeHandler = (e) => {
                 if (e.key === 'Escape') {
                     container.classList.remove('fullscreen');
-                    btn.textContent = '⛶';
-                    document.removeEventListener('keydown', handleEsc);
+                    if (btn) btn.textContent = '⛶';
+                    document.removeEventListener('keydown', this._fullscreenEscapeHandler);
+                    this._fullscreenEscapeHandler = null;
                 }
             };
-            document.addEventListener('keydown', handleEsc);
+            document.addEventListener('keydown', this._fullscreenEscapeHandler);
+        } else if (this._fullscreenEscapeHandler) {
+            document.removeEventListener('keydown', this._fullscreenEscapeHandler);
+            this._fullscreenEscapeHandler = null;
         }
     },
 
