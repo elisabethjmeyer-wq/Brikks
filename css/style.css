@@ -53,6 +53,15 @@
     padding: 0;
 }
 
+/* Accessibilité : désactive les animations pour les utilisateurs qui le souhaitent */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 html {
     font-size: 16px;
     -webkit-font-smoothing: antialiased;

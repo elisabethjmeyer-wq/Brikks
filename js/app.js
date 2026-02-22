@@ -10,6 +10,7 @@ const App = {
     init() {
         console.log('Brikks initialisé');
         this.checkAPIKey();
+        this.initModalEscapeHandler();
     },
 
     /**
@@ -104,6 +105,23 @@ const App = {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    },
+
+    /**
+     * Ferme la modal active avec Escape (convention globale).
+     * Détecte les overlays .modal-overlay.active/.show et les ferme.
+     */
+    initModalEscapeHandler() {
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+
+            // Chercher une modal active (conventions du projet)
+            const active = document.querySelector('.modal-overlay.active, .modal-overlay.show');
+            if (active) {
+                active.classList.remove('active', 'show');
+                e.stopPropagation();
+            }
+        });
     }
 };
 

@@ -193,6 +193,21 @@
     display: none;
 }
 
+/* Barre de progression intra-étape (multi-questions) */
+.multi-progress-bar {
+    height: 4px;
+    background: var(--gray-200);
+    overflow: hidden;
+}
+
+.multi-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-light));
+    border-radius: 0 2px 2px 0;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 4px;
+}
+
 .etape-format-badge {
     padding: 0.375rem 0.875rem;
     background: linear-gradient(135deg, #dbeafe, #bfdbfe);
@@ -1606,6 +1621,38 @@
 }
 
 .timeline-card.incorrect {
+    animation: feedback-shake 0.4s ease;
+}
+
+/* Animations feedback pour QCM et V/F */
+.qcm-choice.is-correct {
+    animation: feedback-correct 0.5s ease;
+    border-color: var(--accent-green);
+    background: var(--accent-green-light);
+}
+
+.qcm-choice.is-incorrect {
+    animation: feedback-shake 0.4s ease;
+    border-color: var(--accent-red);
+    background: var(--accent-red-light);
+}
+
+.vf-btn.validated-correct {
+    animation: feedback-correct 0.5s ease;
+}
+
+.vf-btn.validated-incorrect {
+    animation: feedback-shake 0.4s ease;
+}
+
+/* Animation pour les cartes d'association validées */
+.association-grid-card.correct,
+.association-chip.correct {
+    animation: feedback-correct 0.5s ease;
+}
+
+.association-grid-card.incorrect,
+.association-chip.incorrect {
     animation: feedback-shake 0.4s ease;
 }
 
@@ -4929,6 +4976,28 @@
 .btn-etape-action.validate-btn:active {
     transform: translateY(0);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Loading state pour boutons de validation */
+.btn-etape-action.is-loading,
+.btn-qcm-validate.is-loading {
+    pointer-events: none;
+    opacity: 0.7;
+    position: relative;
+}
+
+.btn-etape-action.is-loading::after,
+.btn-qcm-validate.is-loading::after {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-left: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
 }
 
 /* ============================================

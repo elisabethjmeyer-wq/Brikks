@@ -329,6 +329,15 @@ Object.assign(EleveConnaissances, {
             defaultInstruction = 'Complétez les événements manquants sur la frise chronologique';
         }
 
+        // Stocker les réponses correctes hors DOM
+        sortedEvents.forEach((evt, idx) => {
+            if (mode === 'evenement') {
+                this.storeAnswer(`chrono_evt_${idx}`, evt.evenement, evt.reponses_acceptees || []);
+            } else {
+                this.storeAnswer(`chrono_date_${idx}`, String(evt.date), evt.reponses_acceptees || []);
+            }
+        });
+
         return `
             <div class="chronologie-container">
                 <p class="chrono-instruction">${this.escapeHtml(consigne || defaultInstruction)}</p>
@@ -351,8 +360,6 @@ Object.assign(EleveConnaissances, {
                                                    class="chrono-input chrono-input-evenement"
                                                    id="chrono_evt_${idx}"
                                                    data-index="${idx}"
-                                                   data-correct="${this.escapeHtml(evt.evenement)}"
-                                                   data-acceptees="${this.escapeHtml(JSON.stringify(evt.reponses_acceptees || []))}"
                                                    placeholder="Événement..."
                                                    autocomplete="off"
                                                    oninput="EleveConnaissances.saveChronoAnswer(${idx}, 'evenement', this.value)">
@@ -364,8 +371,6 @@ Object.assign(EleveConnaissances, {
                                                    class="chrono-input chrono-input-date"
                                                    id="chrono_date_${idx}"
                                                    data-index="${idx}"
-                                                   data-correct="${this.escapeHtml(String(evt.date))}"
-                                                   data-acceptees="${this.escapeHtml(JSON.stringify(evt.reponses_acceptees || []))}"
                                                    placeholder="Date..."
                                                    autocomplete="off"
                                                    oninput="EleveConnaissances.saveChronoAnswer(${idx}, 'date', this.value)">
@@ -613,7 +618,8 @@ Object.assign(EleveConnaissances, {
         let inputIndex = 0;
         const processedTexte = texte.replace(/\{([^}]+)\}/g, (match, word) => {
             const idx = inputIndex++;
-            return `<input type="text" class="trou-input" id="trou_${idx}" data-answer="${this.escapeHtml(word)}" placeholder="..." autocomplete="off">`;
+            this.storeAnswer(`trou_${idx}`, word, []);
+            return `<input type="text" class="trou-input" id="trou_${idx}" placeholder="..." autocomplete="off">`;
         });
 
         return `
@@ -881,6 +887,11 @@ Object.assign(EleveConnaissances, {
         // Stocker les données des marqueurs pour la validation
         this.carteMarqueurs = marqueurs;
 
+        // Stocker les réponses correctes hors DOM
+        marqueurs.forEach((m, idx) => {
+            this.storeAnswer(`carte_marker_${idx}`, m.reponse, m.reponses_acceptees || []);
+        });
+
         return `
             <div class="carte-container" id="carteContainer">
                 <div class="carte-header">
@@ -899,8 +910,6 @@ Object.assign(EleveConnaissances, {
                         ${marqueurs.map((m, idx) => `
                             <div class="carte-marker-v2"
                                  data-index="${idx}"
-                                 data-reponse="${this.escapeHtml(m.reponse)}"
-                                 data-acceptees="${this.escapeHtml(JSON.stringify(m.reponses_acceptees || []))}"
                                  style="left: ${m.x}%; top: ${m.y}%;"
                                  onclick="EleveConnaissances.openCartePopup(${idx}, event)">
                                 <span class="carte-marker-num-v2">${idx + 1}</span>
@@ -964,10 +973,14 @@ Object.assign(EleveConnaissances, {
         document.querySelectorAll('.carte-marker-v2.active').forEach(el => el.classList.remove('active'));
         const marker = document.querySelector(`.carte-marker-v2[data-index="${index}"]`);
         if (marker) marker.classList.add('active');
+
+        // Focus trap + Escape
+        this._setupPopupFocusTrap(popup);
     },
 
     closeCartePopup() {
         const popup = document.getElementById('cartePopup');
+        this._removePopupFocusTrap();
         popup.style.display = 'none';
         this.carteActiveIndex = null;
         document.querySelectorAll('.carte-marker-v2.active').forEach(el => el.classList.remove('active'));

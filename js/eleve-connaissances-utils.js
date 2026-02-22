@@ -17,6 +17,72 @@ Object.assign(EleveConnaissances, {
         return div.innerHTML;
     },
 
+    /**
+     * Store interne pour les réponses correctes (non exposées dans le DOM).
+     * Clé = identifiant unique (ex: "chrono_date_0"), Valeur = { correct, acceptees }
+     */
+    _answerStore: {},
+
+    /** Stocke une réponse correcte hors DOM */
+    storeAnswer(key, correct, acceptees) {
+        this._answerStore[key] = { correct, acceptees: acceptees || [] };
+    },
+
+    /** Récupère une réponse correcte depuis le store */
+    getStoredAnswer(key) {
+        return this._answerStore[key] || null;
+    },
+
+    /** Réinitialise le store (appelé au début d'une nouvelle étape) */
+    clearAnswerStore() {
+        this._answerStore = {};
+    },
+
+    /**
+     * Focus trap : piège le focus dans un popup/modal et ferme avec Escape.
+     * @param {HTMLElement} container - L'élément contenant le popup
+     */
+    _setupPopupFocusTrap(container) {
+        this._removePopupFocusTrap();
+
+        this._popupEscapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                this.closeCartePopup();
+            }
+        };
+
+        this._popupTabHandler = (e) => {
+            if (e.key !== 'Tab') return;
+            const focusable = container.querySelectorAll('input, button, [tabindex]:not([tabindex="-1"])');
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+
+        document.addEventListener('keydown', this._popupEscapeHandler);
+        container.addEventListener('keydown', this._popupTabHandler);
+    },
+
+    /** Retire les handlers de focus trap */
+    _removePopupFocusTrap() {
+        if (this._popupEscapeHandler) {
+            document.removeEventListener('keydown', this._popupEscapeHandler);
+            this._popupEscapeHandler = null;
+        }
+        if (this._popupTabHandler) {
+            const popup = document.getElementById('cartePopup');
+            if (popup) popup.removeEventListener('keydown', this._popupTabHandler);
+            this._popupTabHandler = null;
+        }
+    },
+
     // ========== PIPELINE COMPARAISON SOUPLE ==========
 
     /** Mots-outils français à ignorer en mode souple */
@@ -219,6 +285,19 @@ Object.assign(EleveConnaissances, {
             [array[i], array[j]] = [array[j], array[i]];
         }
         return array;
+    },
+
+    /**
+     * Met à jour la barre de progression intra-étape (multi-questions)
+     * @param {number} current - numéro de la question courante (1-indexed)
+     * @param {number} total - nombre total de questions
+     */
+    updateMultiProgressBar(current, total) {
+        const bar = document.getElementById('multiProgressBar');
+        const fill = document.getElementById('multiProgressFill');
+        if (!bar || !fill) return;
+        bar.style.display = '';
+        fill.style.width = `${(current / total) * 100}%`;
     },
 
     // ============================================
