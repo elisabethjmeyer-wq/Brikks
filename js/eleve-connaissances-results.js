@@ -307,52 +307,51 @@ Object.assign(EleveConnaissances, {
 
             if (hasPaires && hasMode) {
                 // Chronologie texte (frise avec dates/événements à compléter) : erreurs uniquement
-                return qErrors.map(err => `
+                return qErrors.map(err => {
+                    const isUnanswered = !err.reponse;
+                    const givenClass = isUnanswered ? 'correction-given correction-given--empty' : 'correction-given';
+                    return `
                     <div class="correction-error-row">
                         <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
                         <div class="correction-error-answers">
-                            <span class="correction-given">${this.escapeHtml(String(err.reponse || 'Non répondu'))}</span>
+                            <span class="${givenClass}">${this.escapeHtml(String(err.reponse || 'Non répondu'))}</span>
                             ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             }
 
             if (hasPaires) {
-                // Association : Ta réponse + Réponse correcte
-                // qDetails contient : question (element1/image), reponse (ce que l'élève a associé), attendu (bonne réponse), correct
+                // Association : rendu grille de cartes (même style que la frise chronologique)
                 const studentPairs = qDetails.map(d => ({
-                    element1: d.question,  // L'élément de gauche (image ou texte)
-                    userAnswer: d.reponse, // Ce que l'élève a associé
-                    expected: d.attendu,   // La bonne réponse
+                    element1: d.question,
+                    userAnswer: d.reponse,
+                    expected: d.attendu,
                     correct: d.correct
                 }));
 
-                // Helper pour rendre un élément (image ou texte)
-                const renderAssocElement = (val, extraClass = '') => {
-                    if (!val || val === 'Non répondu') {
-                        return `<div class="correction-assoc-card text-only ${extraClass}"><span class="correction-assoc-text">Non répondu</span></div>`;
-                    }
-                    if (isImageUrl(val)) {
-                        return `<div class="correction-assoc-card has-image ${extraClass}" style="background-image: url('${this.escapeHtml(this.normalizeImageUrl(val))}');"></div>`;
-                    }
-                    return `<div class="correction-assoc-card text-only ${extraClass}"><span class="correction-assoc-text">${this.escapeHtml(val)}</span></div>`;
+                // Helper : rend une carte d'association (élément principal + label associé)
+                const renderAssocCard = (mainVal, labelVal, statusClass, isUnanswered) => {
+                    const hasImage = mainVal && isImageUrl(mainVal);
+                    const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(this.normalizeImageUrl(mainVal))}');"` : '';
+                    const displayLabel = isUnanswered ? 'Non répondu' : (labelVal || '');
+                    const labelClass = isUnanswered ? 'correction-assoc-card-label correction-assoc-card-label--empty' : 'correction-assoc-card-label';
+                    return `
+                        <div class="correction-timeline-card correction-assoc-card-v2 ${hasImage ? 'has-image' : ''} ${statusClass}" ${imgStyle}>
+                            ${!hasImage ? `<span class="correction-timeline-titre">${this.escapeHtml(mainVal || '')}</span>` : ''}
+                            <span class="${labelClass}">${this.escapeHtml(displayLabel)}</span>
+                        </div>
+                    `;
                 };
 
                 // Section "Ta réponse :"
                 const studentHtml = studentPairs.length > 0 ? `
                     <p class="correction-timeline-hint correction-timeline-hint--student">Ta réponse :</p>
-                    <div class="correction-assoc-pairs-list">
-                        ${studentPairs.map((sp) => {
+                    <div class="correction-timeline-cards">
+                        ${studentPairs.map(sp => {
                             const statusClass = sp.correct ? 'card-correct' : 'card-incorrect';
-                            return `
-                                <div class="correction-assoc-pair-flex ${statusClass}">
-                                    ${renderAssocElement(sp.element1)}
-                                    <span class="assoc-pair-arrow">→</span>
-                                    ${renderAssocElement(sp.userAnswer)}
-                                    <span class="assoc-pair-status">${sp.correct ? '✓' : '✗'}</span>
-                                </div>
-                            `;
+                            const isUnanswered = !sp.userAnswer || sp.userAnswer === 'Non répondu';
+                            return renderAssocCard(sp.element1, sp.userAnswer, statusClass, isUnanswered);
                         }).join('')}
                     </div>
                 ` : '';
@@ -360,15 +359,12 @@ Object.assign(EleveConnaissances, {
                 // Section "Réponse correcte :"
                 const correctHtml = `
                     <p class="correction-timeline-hint correction-timeline-hint--correct">Réponse correcte :</p>
-                    <div class="correction-assoc-pairs-list">
+                    <div class="correction-timeline-cards">
                         ${qData.paires.map(p => {
-                            return `
-                                <div class="correction-assoc-pair-flex card-correct">
-                                    ${renderAssocElement(p.element1)}
-                                    <span class="assoc-pair-arrow">→</span>
-                                    ${renderAssocElement(p.element2)}
-                                </div>
-                            `;
+                            const hasImage = p.element1 && isImageUrl(p.element1);
+                            const mainVal = hasImage ? p.element1 : p.element1;
+                            const labelVal = p.element2;
+                            return renderAssocCard(mainVal, labelVal, '', false);
                         }).join('')}
                     </div>
                 `;
@@ -377,7 +373,7 @@ Object.assign(EleveConnaissances, {
             }
 
             if (hasMarqueurs && qData.image_url) {
-                // Carte / image cliquable : reproduction visuelle avec marqueurs sur l'image
+                // Image cliquable : marqueurs sur l'image avec popover au clic
                 const marqueurs = qData.marqueurs || [];
                 const imageUrl = this.normalizeImageUrl(qData.image_url);
 
@@ -387,38 +383,35 @@ Object.assign(EleveConnaissances, {
                     const statusClass = isCorrect ? 'marker-correct' : 'marker-incorrect';
                     const correctAnswer = (m.reponse || '').split('|')[0].trim();
                     const userAnswer = detail ? (detail.reponse || 'Non répondu') : 'Non répondu';
+                    const isUnanswered = !detail || !detail.reponse || detail.reponse === 'Non répondu';
+
+                    // Déterminer le côté du popover selon la position du marqueur
+                    const popoverSide = m.x > 55 ? 'popover-left' : 'popover-right';
+                    const popoverVert = m.y > 70 ? 'popover-above' : '';
+
+                    let popoverContent;
+                    if (isCorrect) {
+                        popoverContent = `<span class="popover-answer popover-answer--correct">✓ ${this.escapeHtml(userAnswer)}</span>`;
+                    } else if (isUnanswered) {
+                        popoverContent = `
+                            <span class="popover-answer popover-answer--empty">Non répondu</span>
+                            <span class="popover-answer popover-answer--expected">→ ${this.escapeHtml(correctAnswer)}</span>
+                        `;
+                    } else {
+                        popoverContent = `
+                            <span class="popover-answer popover-answer--wrong">${this.escapeHtml(userAnswer)}</span>
+                            <span class="popover-answer popover-answer--expected">→ ${this.escapeHtml(correctAnswer)}</span>
+                        `;
+                    }
 
                     return `
                         <div class="correction-carte-marker ${statusClass}"
                              style="left: ${m.x}%; top: ${m.y}%;"
-                             title="${isCorrect ? this.escapeHtml(userAnswer) : this.escapeHtml(userAnswer) + ' → ' + this.escapeHtml(correctAnswer)}">
+                             onclick="event.stopPropagation(); this.parentElement.querySelectorAll('.popover-open').forEach(m => { if(m!==this) m.classList.remove('popover-open') }); this.classList.toggle('popover-open')" role="button" tabindex="0">
                             <span class="correction-carte-marker-num">${idx + 1}</span>
-                        </div>
-                    `;
-                }).join('');
-
-                const legendHtml = marqueurs.map((m, idx) => {
-                    const detail = qDetails[idx];
-                    const isCorrect = detail ? detail.correct : false;
-                    const correctAnswer = (m.reponse || '').split('|')[0].trim();
-                    const userAnswer = detail ? (detail.reponse || 'Non répondu') : 'Non répondu';
-
-                    if (isCorrect) {
-                        return `
-                            <div class="correction-carte-legend-item correct">
-                                <span class="correction-carte-legend-num">${idx + 1}</span>
-                                <div class="correction-carte-legend-detail">
-                                    <span class="correction-carte-legend-answer correct-answer">✓ ${this.escapeHtml(userAnswer)}</span>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    return `
-                        <div class="correction-carte-legend-item incorrect">
-                            <span class="correction-carte-legend-num">${idx + 1}</span>
-                            <div class="correction-carte-legend-detail">
-                                <span class="correction-carte-legend-answer student-answer">Ta réponse : ${this.escapeHtml(userAnswer)}</span>
-                                <span class="correction-carte-legend-answer expected-answer">Bonne réponse : ${this.escapeHtml(correctAnswer)}</span>
+                            <div class="correction-carte-popover ${popoverSide} ${popoverVert}">
+                                <span class="popover-marker-num">${idx + 1}</span>
+                                ${popoverContent}
                             </div>
                         </div>
                     `;
@@ -426,30 +419,31 @@ Object.assign(EleveConnaissances, {
 
                 return `
                     <div class="correction-carte-visual">
-                        <div class="correction-carte-image-wrapper">
+                        <div class="correction-carte-image-wrapper correction-carte-image-wrapper--popover">
                             <img src="${this.escapeHtml(imageUrl)}" alt="Carte" class="correction-carte-image">
                             <div class="correction-carte-markers-layer">
                                 ${markersHtml}
                             </div>
                         </div>
-                        <div class="correction-carte-legend">
-                            ${legendHtml}
-                        </div>
+                        <p class="correction-carte-tap-hint">Clique sur un marqueur pour voir le détail</p>
                     </div>
                 `;
             }
 
             // Fallback : erreurs texte (QCM, V/F, Texte à trous, Question ouverte)
-            return qErrors.map(err => `
+            return qErrors.map(err => {
+                const isUnanswered = !err.reponse;
+                const givenClass = isUnanswered ? 'correction-given correction-given--empty' : 'correction-given';
+                return `
                 <div class="correction-error-row">
                     <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
                     <div class="correction-error-answers">
-                        <span class="correction-given">${this.escapeHtml(String(err.reponse || 'Non répondu'))}</span>
+                        <span class="${givenClass}">${this.escapeHtml(String(err.reponse || 'Non répondu'))}</span>
                         ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
                     </div>
                     ${err.feedbackOption ? `<div class="correction-feedback-option">${this.escapeHtml(err.feedbackOption)}</div>` : ''}
                 </div>
-            `).join('');
+            `}).join('');
         };
 
         // Helper : détermine le label du sous-format d'une question
@@ -535,6 +529,15 @@ Object.assign(EleveConnaissances, {
             const dotClass = i === 0 ? 'carousel-dot overview-dot active' : 'carousel-dot dot-error';
             return `<button class="${dotClass}" onclick="EleveConnaissances.carouselGoTo(${i})" aria-label="Slide ${i}"></button>`;
         }).join('');
+
+        // Fermer les popovers ouverts quand on clique en dehors d'un marqueur
+        setTimeout(() => {
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.correction-carte-marker')) {
+                    document.querySelectorAll('.correction-carte-marker.popover-open').forEach(m => m.classList.remove('popover-open'));
+                }
+            });
+        }, 100);
 
         return `
             <div class="correction-header-conn">
