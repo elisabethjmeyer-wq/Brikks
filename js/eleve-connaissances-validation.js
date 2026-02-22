@@ -115,13 +115,17 @@ Object.assign(EleveConnaissances, {
                             // Construire le texte du feedback (minimaliste - sans explication)
                             let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
 
+                            // Récupérer le feedback spécifique à l'option choisie
+                            const feedbackOption = (q.feedbacks_options && userAnswer != null) ? (q.feedbacks_options[parseInt(userAnswer)] || '') : '';
+
                             // Utiliser la fonction unifiée de feedback
                             this.displayUnifiedFeedback(`feedback_qcm_${qIdx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1, 'qcm');
                             details.push({
                                 question: q.question,
                                 reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
                                 attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
-                                correct: isCorrect
+                                correct: isCorrect,
+                                feedbackOption: feedbackOption
                             });
                         });
                     }
@@ -145,13 +149,17 @@ Object.assign(EleveConnaissances, {
                     // Construire le texte du feedback (minimaliste - sans explication)
                     let feedbackText = correct === 1 ? 'Correct' : 'Mauvaise réponse';
 
+                    // Récupérer le feedback spécifique à l'option choisie
+                    const feedbackOption = (donnees.feedbacks_options && userAnswer != null) ? (donnees.feedbacks_options[parseInt(userAnswer)] || '') : '';
+
                     // Utiliser la fonction unifiée de feedback
                     this.displayUnifiedFeedback('feedback_qcm', correct === 1, feedbackText, correct, 1, 'qcm');
                     details.push({
                         question: donnees.question,
                         reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
                         attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
-                        correct: correct === 1
+                        correct: correct === 1,
+                        feedbackOption: feedbackOption
                     });
                 }
                 break;
@@ -440,7 +448,7 @@ Object.assign(EleveConnaissances, {
                     if (!isMatched) {
                         details.push({
                             question: assocPaires[i].element1,
-                            reponse: '—',
+                            reponse: 'Non répondu',
                             attendu: assocPaires[i].element2,
                             correct: false
                         });
@@ -990,7 +998,7 @@ Object.assign(EleveConnaissances, {
                 return upGridId === gridId;
             });
             if (!isMatched) {
-                details.push({ question: assocPaires[i].element1, reponse: '—', attendu: assocPaires[i].element2, correct: false });
+                details.push({ question: assocPaires[i].element1, reponse: 'Non répondu', attendu: assocPaires[i].element2, correct: false });
             }
         }
 
@@ -1032,7 +1040,7 @@ Object.assign(EleveConnaissances, {
                 }
             } else {
                 label.className = 'assoc-paired-label assoc-label-error';
-                label.innerHTML = `<span class="assoc-answer-wrong">✗ —</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+                label.innerHTML = `<span class="assoc-answer-wrong">✗ Non répondu</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
             }
         });
 
@@ -1207,12 +1215,16 @@ Object.assign(EleveConnaissances, {
             });
         }
 
+        // Récupérer le feedback spécifique à l'option choisie
+        const feedbackOption = (q.feedbacks_options && userAnswer != null) ? (q.feedbacks_options[parseInt(userAnswer)] || '') : '';
+
         // Stocker le résultat
         this._qcmResults[qIdx] = {
             question: q.question,
             reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
             attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
-            correct: isCorrect
+            correct: isCorrect,
+            feedbackOption: feedbackOption
         };
 
         // Remplacer le bouton : "Valider" → "Suivant →" ou déclencher la validation globale

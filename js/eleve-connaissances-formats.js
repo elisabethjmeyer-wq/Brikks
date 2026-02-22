@@ -1058,10 +1058,16 @@ Object.assign(EleveConnaissances, {
         marker.setAttribute('data-is-correct', isCorrect ? 'true' : 'false');
         marker.setAttribute('data-correction-mode', 'true');
 
-        // Masquer le badge texte pour éviter les chevauchements — le détail est dans le popup
+        // Garder le label visible avec le feedback coloré
         const label = marker.querySelector('.carte-marker-answer-label');
         if (label) {
-            label.classList.add('hidden');
+            label.classList.remove('hidden');
+            if (studentAnswer) {
+                label.textContent = studentAnswer;
+            } else {
+                label.textContent = 'Non répondu';
+            }
+            label.classList.add(isCorrect ? 'label-correct' : 'label-incorrect');
         }
 
         // Remplacer le onclick par le popup de correction
@@ -1600,7 +1606,7 @@ Object.assign(EleveConnaissances, {
                         studentHtml += `
                             <div class="correction-assoc-pair card-incorrect">
                                 <div class="correction-assoc-card has-image unpaired" ${imgStyle}>
-                                    <span class="correction-assoc-label">Non appairé</span>
+                                    <span class="correction-assoc-label">Non répondu</span>
                                 </div>
                                 <span class="assoc-pair-status">✗</span>
                             </div>
@@ -1610,7 +1616,7 @@ Object.assign(EleveConnaissances, {
                             <div class="correction-assoc-pair card-incorrect">
                                 <div class="correction-assoc-card text-only unpaired">
                                     <span class="correction-assoc-text">${this.escapeHtml(displayEl.texte)}</span>
-                                    <span class="correction-assoc-label">Non appairé</span>
+                                    <span class="correction-assoc-label">Non répondu</span>
                                 </div>
                                 <span class="assoc-pair-status">✗</span>
                             </div>

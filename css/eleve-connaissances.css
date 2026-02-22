@@ -2050,7 +2050,8 @@
 .carte-image-v2 {
     display: block;
     width: 100%;
-    height: auto;
+    max-height: 60vh;
+    object-fit: contain;
 }
 
 .carte-markers-layer-v2 {
@@ -3138,6 +3139,17 @@
     border-bottom: none;
 }
 
+.correction-feedback-option {
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-style: italic;
+    padding: 4px 8px;
+    background: #f9fafb;
+    border-left: 3px solid #d1d5db;
+    border-radius: 0 4px 4px 0;
+}
+
 .correction-error-q {
     font-size: 0.9rem;
     color: #374151;
@@ -3237,39 +3249,45 @@
 /* Légende sous l'image */
 .correction-carte-legend {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 6px;
+    margin-top: 12px;
 }
 
 .correction-carte-legend-item {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 6px;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
     font-size: 0.8rem;
+    border: 1px solid transparent;
 }
 
 .correction-carte-legend-item.correct {
-    background: #d1fae5;
+    background: #ecfdf5;
     color: #047857;
+    border-color: #a7f3d0;
 }
 
 .correction-carte-legend-item.incorrect {
-    background: #fee2e2;
+    background: #fef2f2;
     color: #b91c1c;
+    border-color: #fecaca;
 }
 
 .correction-carte-legend-num {
     font-weight: 700;
-    min-width: 18px;
-    height: 18px;
+    min-width: 22px;
+    height: 22px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 0.7rem;
     color: white;
+    flex-shrink: 0;
+    margin-top: 1px;
 }
 
 .correction-carte-legend-item.correct .correction-carte-legend-num {
@@ -3278,6 +3296,34 @@
 
 .correction-carte-legend-item.incorrect .correction-carte-legend-num {
     background: #ef4444;
+}
+
+.correction-carte-legend-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.correction-carte-legend-answer {
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.correction-carte-legend-answer.correct-answer {
+    color: #047857;
+    font-weight: 600;
+}
+
+.correction-carte-legend-answer.student-answer {
+    color: #991b1b;
+    font-weight: 500;
+}
+
+.correction-carte-legend-answer.expected-answer {
+    color: #047857;
+    font-weight: 600;
+    font-size: 0.75rem;
 }
 
 .correction-carte-legend-text {
@@ -4073,6 +4119,23 @@
     display: none;
 }
 
+/* Labels de correction après validation */
+.carte-marker-answer-label.label-correct {
+    display: block;
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #6ee7b7;
+    font-weight: 600;
+}
+
+.carte-marker-answer-label.label-incorrect {
+    display: block;
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+    font-weight: 600;
+}
+
 /* Badge correction : affiché à côté du marqueur avec la bonne réponse */
 .carte-marker-answer-label.correction-badge {
     background: #10b981;
@@ -4321,8 +4384,6 @@
 /* === CARTE - HAUTEUR LIMITÉE ET FULLSCREEN === */
 .carte-container {
     padding: 1rem;
-    max-height: 55vh;
-    overflow: auto;
     transition: all 0.3s ease;
 }
 
@@ -5226,6 +5287,13 @@
 }
 
 /* ===== CORRECTION ASSOCIATION PAIRES COMPLÈTES ===== */
+.correction-assoc-pairs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
 .correction-assoc-pair-flex {
     display: flex;
     align-items: center;
