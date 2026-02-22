@@ -366,7 +366,7 @@ Object.assign(EleveConnaissances, {
                             if (r.correct) correct++;
                             details.push(r);
                         } else {
-                            details.push({ question: q.question, reponse: null, attendu: (q.reponses_acceptees || []).join(' / '), correct: false });
+                            details.push({ question: q.question, reponse: null, attendu: (q.reponses_acceptees || [])[0] || '', correct: false });
                         }
                     });
                 } else {
@@ -396,7 +396,7 @@ Object.assign(EleveConnaissances, {
                         // Utiliser la fonction unifiée de feedback
                         this.displayUnifiedFeedback('feedback_question_ouverte', qoCorrect, feedbackText, qoCorrect ? 1 : 0, 1);
                     }
-                    details.push({ question: donnees.question, reponse: qoAnswer, attendu: qoReponsesAcceptees.join(' / '), correct: qoCorrect });
+                    details.push({ question: donnees.question, reponse: qoAnswer, attendu: qoReponsesAcceptees[0] || '', correct: qoCorrect });
                 }
                 break;
 
@@ -419,13 +419,14 @@ Object.assign(EleveConnaissances, {
                     const isCorrect = String(up.gauche) === String(up.droite);
                     if (isCorrect) {
                         correct++;
-                        [gridEl, chipEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('correct'); } });
+                        [gridEl, chipEl].forEach(el => { if (el) { el.classList.add('correct'); } });
                     } else {
-                        [gridEl, chipEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('incorrect'); } });
+                        [gridEl, chipEl].forEach(el => { if (el) { el.classList.add('incorrect'); } });
                     }
                     details.push({
                         question: assocPaires[parseInt(up.gauche)]?.element1 || up.gauche,
                         reponse: assocPaires[parseInt(up.droite)]?.element2 || up.droite,
+                        attendu: assocPaires[parseInt(up.gauche)]?.element2 || '',
                         correct: isCorrect
                     });
                 });
@@ -448,9 +449,9 @@ Object.assign(EleveConnaissances, {
                 // Marquer les éléments non appariés comme incorrects
                 document.querySelectorAll('#associationGrid .association-grid-card:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
 
-                // Cacher les chips et le label d'instruction
+                // Désactiver l'interaction sur les chips et masquer le label d'instruction
                 const chipsZone = document.querySelector('#associationChips');
-                if (chipsZone) chipsZone.classList.add('hidden');
+                if (chipsZone) chipsZone.classList.add('disabled');
                 const zoneLabel = document.querySelector('.association-zone-label');
                 if (zoneLabel) zoneLabel.classList.add('hidden');
 
@@ -608,7 +609,7 @@ Object.assign(EleveConnaissances, {
         this._qoResults[qIdx] = {
             question: q.question,
             reponse: userAnswer,
-            attendu: reponsesAcceptees.join(' / '),
+            attendu: reponsesAcceptees[0] || '',
             correct: isCorrect
         };
 
@@ -1193,12 +1194,12 @@ Object.assign(EleveConnaissances, {
         const block = document.querySelector(`.qcm-question-block[data-question="${qIdx}"]`);
         if (block) {
             block.querySelectorAll('input').forEach(el => el.disabled = true);
-            // Marquer visuellement le choix sélectionné et la bonne réponse
+            // Marquer visuellement le choix sélectionné (sans révéler les bonnes réponses)
             block.querySelectorAll('.qcm-choice').forEach(label => {
                 const input = label.querySelector('input');
                 if (!input) return;
                 const val = parseInt(input.value);
-                if (correctIndices.includes(val)) {
+                if (input.checked && correctIndices.includes(val)) {
                     label.classList.add('is-correct');
                 } else if (input.checked) {
                     label.classList.add('is-incorrect');
