@@ -455,17 +455,29 @@ Object.assign(EleveConnaissances, {
             }
 
             // Fallback : erreurs texte (QCM, V/F, Texte à trous, Question ouverte)
+            // Layout panélisé : question → bloc erreur (réponse + feedback) → bloc bonne réponse
             return qErrors.map(err => {
                 const isUnanswered = !err.reponse;
-                const givenClass = isUnanswered ? 'correction-given correction-given--empty' : 'correction-given';
                 return `
-                <div class="correction-error-row">
-                    <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
-                    <div class="correction-error-answers">
-                        <span class="${givenClass}">${this.escapeHtml(String(err.reponse || 'Non répondu'))}</span>
-                        ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
+                <div class="correction-error-block">
+                    <div class="correction-error-question">${renderElement(err.question, 'correction-q-text')}</div>
+                    <div class="correction-error-panel correction-panel-wrong">
+                        <div class="correction-panel-header">
+                            <span class="correction-panel-icon">✗</span>
+                            <span class="correction-panel-label">${isUnanswered ? 'Non répondu' : 'Ta réponse'}</span>
+                        </div>
+                        ${!isUnanswered ? `<div class="correction-panel-value correction-panel-value--wrong">${this.escapeHtml(String(err.reponse))}</div>` : ''}
+                        ${err.feedbackOption ? `<div class="correction-panel-feedback">${this.escapeHtml(err.feedbackOption)}</div>` : ''}
                     </div>
-                    ${err.feedbackOption ? `<div class="correction-feedback-option">${this.escapeHtml(err.feedbackOption)}</div>` : ''}
+                    ${err.attendu ? `
+                    <div class="correction-error-panel correction-panel-correct">
+                        <div class="correction-panel-header">
+                            <span class="correction-panel-icon">✓</span>
+                            <span class="correction-panel-label">Bonne réponse</span>
+                        </div>
+                        <div class="correction-panel-value correction-panel-value--correct">${renderElement(err.attendu, 'correction-expected-val')}</div>
+                    </div>
+                    ` : ''}
                 </div>
             `}).join('');
         };
@@ -511,17 +523,29 @@ Object.assign(EleveConnaissances, {
                 const allDetails = ed.etape.details || [];
                 content = renderSingleCorrection(donnees, allDetails, ed.errors);
             } else if (fmt === 'flashcard' && donnees.cartes?.length > 0) {
-                // Flashcards : recto/verso des cartes ratées
+                // Flashcards : cartes retournables comme à l'entraînement
                 const allDetails = ed.etape.details || [];
                 const failedIndices = allDetails.map((d, di) => !d.correct ? di : -1).filter(di => di >= 0);
                 const failedCartes = failedIndices.map(fi => donnees.cartes[fi]).filter(Boolean);
-                content = failedCartes.map(carte => `
-                    <div class="correction-flashcard-row">
-                        <div class="correction-flashcard-recto">${this.escapeHtml(carte.recto)}</div>
-                        <span class="correction-flashcard-arrow">→</span>
-                        <div class="correction-flashcard-verso">${this.escapeHtml(carte.verso)}</div>
+                content = `
+                    <div class="correction-flashcards-grid">
+                        ${failedCartes.map((carte, ci) => `
+                            <div class="correction-fc-scene" onclick="this.querySelector('.correction-fc-card').classList.toggle('flipped')">
+                                <div class="correction-fc-card">
+                                    <div class="correction-fc-face correction-fc-front">
+                                        <div class="correction-fc-face-label">Recto</div>
+                                        <div class="correction-fc-face-content">${this.escapeHtml(carte.recto)}</div>
+                                        <div class="correction-fc-hint">Cliquer pour retourner</div>
+                                    </div>
+                                    <div class="correction-fc-face correction-fc-back">
+                                        <div class="correction-fc-face-label">Verso</div>
+                                        <div class="correction-fc-face-content">${this.escapeHtml(carte.verso)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
-                `).join('');
+                `;
             } else if (fmt === 'carte' && donnees.marqueurs?.length > 0 && donnees.image_url) {
                 // Image cliquable simple
                 content = renderSingleCorrection(donnees, ed.etape.details || [], ed.errors);
