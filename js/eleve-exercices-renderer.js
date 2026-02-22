@@ -1157,7 +1157,7 @@ Object.assign(EleveExercices, {
                 const statusClass = isOpenQuestion ? 'open' : (isCorrect ? 'correct' : 'incorrect');
                 const statusIcon = isOpenQuestion ? '📝' : (isCorrect ? '✅' : '❌');
                 const userAnswer = detail.reponseUtilisateur || '';
-                const displayUserAnswer = userAnswer.trim() === '' ? '<span class="empty-answer">Non rempli</span>' : this.escapeHtml(userAnswer);
+                const displayUserAnswer = userAnswer.trim() === '' ? '<span class="empty-answer">Non répondu</span>' : this.escapeHtml(userAnswer);
 
                 html += `
                     <tr class="correction-row ${statusClass}">

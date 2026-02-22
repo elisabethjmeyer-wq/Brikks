@@ -20,7 +20,7 @@ Object.assign(EleveConnaissances, {
                 const expectedTotal = this.getExpectedQuestionCount(etape);
                 const details = [];
                 for (let i = 0; i < expectedTotal; i++) {
-                    details.push({ question: `Question ${i + 1}`, reponse: null, attendu: '—', correct: false });
+                    details.push({ question: `Question ${i + 1}`, reponse: null, attendu: 'Non répondu', correct: false });
                 }
                 this.etapesResults[idx] = {
                     etapeIndex: idx,
@@ -212,7 +212,7 @@ Object.assign(EleveConnaissances, {
         };
 
         const renderElement = (val, className) => {
-            if (!val || val === '—') return `<span class="${className}">—</span>`;
+            if (!val || val === '—' || val === 'Non répondu') return `<span class="${className}">Non répondu</span>`;
             const str = String(val);
             if (isImageUrl(str)) {
                 return `<img class="correction-mini-img ${className}" src="${this.escapeHtml(this.normalizeImageUrl(str))}" alt="" />`;
@@ -280,7 +280,7 @@ Object.assign(EleveConnaissances, {
                             return `
                                 <div class="correction-timeline-card ${hasImage ? 'has-image' : ''} ${statusClass}" ${imgStyle}>
                                     <span class="correction-timeline-pos">${ci + 1}</span>
-                                    <span class="correction-timeline-titre">${this.escapeHtml(sc.titre || '—')}</span>
+                                    <span class="correction-timeline-titre">${this.escapeHtml(sc.titre || 'Non répondu')}</span>
                                 </div>
                             `;
                         }).join('')}
@@ -311,7 +311,7 @@ Object.assign(EleveConnaissances, {
                     <div class="correction-error-row">
                         <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
                         <div class="correction-error-answers">
-                            <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
+                            <span class="correction-given">${this.escapeHtml(String(err.reponse || 'Non répondu'))}</span>
                             ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
                         </div>
                     </div>
@@ -328,26 +328,29 @@ Object.assign(EleveConnaissances, {
                     correct: d.correct
                 }));
 
+                // Helper pour rendre un élément (image ou texte)
+                const renderAssocElement = (val, extraClass = '') => {
+                    if (!val || val === 'Non répondu') {
+                        return `<div class="correction-assoc-card text-only ${extraClass}"><span class="correction-assoc-text">Non répondu</span></div>`;
+                    }
+                    if (isImageUrl(val)) {
+                        return `<div class="correction-assoc-card has-image ${extraClass}" style="background-image: url('${this.escapeHtml(this.normalizeImageUrl(val))}');"></div>`;
+                    }
+                    return `<div class="correction-assoc-card text-only ${extraClass}"><span class="correction-assoc-text">${this.escapeHtml(val)}</span></div>`;
+                };
+
                 // Section "Ta réponse :"
                 const studentHtml = studentPairs.length > 0 ? `
                     <p class="correction-timeline-hint correction-timeline-hint--student">Ta réponse :</p>
-                    <div class="correction-assoc-grid">
+                    <div class="correction-assoc-pairs-list">
                         ${studentPairs.map((sp) => {
                             const statusClass = sp.correct ? 'card-correct' : 'card-incorrect';
-                            const img = isImageUrl(sp.element1) ? sp.element1 : null;
-                            const label = sp.userAnswer || '—';
-
-                            if (img) {
-                                return `
-                                    <div class="correction-assoc-card ${statusClass} has-image" style="background-image: url('${this.escapeHtml(this.normalizeImageUrl(img))}');">
-                                        <span class="correction-assoc-label">${this.escapeHtml(label)}</span>
-                                    </div>
-                                `;
-                            }
                             return `
-                                <div class="correction-assoc-card ${statusClass} text-only">
-                                    <span class="correction-assoc-text">${this.escapeHtml(sp.element1 || '—')}</span>
-                                    <span class="correction-assoc-label">${this.escapeHtml(label)}</span>
+                                <div class="correction-assoc-pair-flex ${statusClass}">
+                                    ${renderAssocElement(sp.element1)}
+                                    <span class="assoc-pair-arrow">→</span>
+                                    ${renderAssocElement(sp.userAnswer)}
+                                    <span class="assoc-pair-status">${sp.correct ? '✓' : '✗'}</span>
                                 </div>
                             `;
                         }).join('')}
@@ -357,24 +360,13 @@ Object.assign(EleveConnaissances, {
                 // Section "Réponse correcte :"
                 const correctHtml = `
                     <p class="correction-timeline-hint correction-timeline-hint--correct">Réponse correcte :</p>
-                    <div class="correction-assoc-grid">
+                    <div class="correction-assoc-pairs-list">
                         ${qData.paires.map(p => {
-                            const el1 = p.element1;
-                            const el2 = p.element2;
-                            const img = isImageUrl(el1) ? el1 : (isImageUrl(el2) ? el2 : null);
-                            const text = isImageUrl(el1) ? el2 : el1;
-
-                            if (img) {
-                                return `
-                                    <div class="correction-assoc-card card-correct has-image" style="background-image: url('${this.escapeHtml(this.normalizeImageUrl(img))}');">
-                                        <span class="correction-assoc-label">${this.escapeHtml(text)}</span>
-                                    </div>
-                                `;
-                            }
                             return `
-                                <div class="correction-assoc-card card-correct text-only">
-                                    <span class="correction-assoc-text">${this.escapeHtml(el1)}</span>
-                                    <span class="correction-assoc-label">${this.escapeHtml(el2)}</span>
+                                <div class="correction-assoc-pair-flex card-correct">
+                                    ${renderAssocElement(p.element1)}
+                                    <span class="assoc-pair-arrow">→</span>
+                                    ${renderAssocElement(p.element2)}
                                 </div>
                             `;
                         }).join('')}
@@ -394,7 +386,7 @@ Object.assign(EleveConnaissances, {
                     const isCorrect = detail ? detail.correct : false;
                     const statusClass = isCorrect ? 'marker-correct' : 'marker-incorrect';
                     const correctAnswer = (m.reponse || '').split('|')[0].trim();
-                    const userAnswer = detail ? (detail.reponse || '—') : '—';
+                    const userAnswer = detail ? (detail.reponse || 'Non répondu') : 'Non répondu';
 
                     return `
                         <div class="correction-carte-marker ${statusClass}"
@@ -409,15 +401,25 @@ Object.assign(EleveConnaissances, {
                     const detail = qDetails[idx];
                     const isCorrect = detail ? detail.correct : false;
                     const correctAnswer = (m.reponse || '').split('|')[0].trim();
-                    const userAnswer = detail ? (detail.reponse || '—') : '—';
+                    const userAnswer = detail ? (detail.reponse || 'Non répondu') : 'Non répondu';
 
+                    if (isCorrect) {
+                        return `
+                            <div class="correction-carte-legend-item correct">
+                                <span class="correction-carte-legend-num">${idx + 1}</span>
+                                <div class="correction-carte-legend-detail">
+                                    <span class="correction-carte-legend-answer correct-answer">✓ ${this.escapeHtml(userAnswer)}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
                     return `
-                        <div class="correction-carte-legend-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <div class="correction-carte-legend-item incorrect">
                             <span class="correction-carte-legend-num">${idx + 1}</span>
-                            ${isCorrect
-                                ? `<span class="correction-carte-legend-text">${this.escapeHtml(userAnswer)} ✓</span>`
-                                : `<span class="correction-carte-legend-text"><s>${this.escapeHtml(userAnswer)}</s> → ${this.escapeHtml(correctAnswer)}</span>`
-                            }
+                            <div class="correction-carte-legend-detail">
+                                <span class="correction-carte-legend-answer student-answer">Ta réponse : ${this.escapeHtml(userAnswer)}</span>
+                                <span class="correction-carte-legend-answer expected-answer">Bonne réponse : ${this.escapeHtml(correctAnswer)}</span>
+                            </div>
                         </div>
                     `;
                 }).join('');
@@ -442,9 +444,10 @@ Object.assign(EleveConnaissances, {
                 <div class="correction-error-row">
                     <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
                     <div class="correction-error-answers">
-                        <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
+                        <span class="correction-given">${this.escapeHtml(String(err.reponse || 'Non répondu'))}</span>
                         ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
                     </div>
+                    ${err.feedbackOption ? `<div class="correction-feedback-option">${this.escapeHtml(err.feedbackOption)}</div>` : ''}
                 </div>
             `).join('');
         };
