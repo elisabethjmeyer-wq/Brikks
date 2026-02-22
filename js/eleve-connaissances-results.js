@@ -319,11 +319,12 @@ Object.assign(EleveConnaissances, {
             }
 
             if (hasPaires) {
-                // Association : Ta réponse + Réponse correcte (comme chronologie)
-                // Construire les paires que l'élève a faites (depuis qDetails)
+                // Association : Ta réponse + Réponse correcte
+                // qDetails contient : question (element1/image), reponse (ce que l'élève a associé), attendu (bonne réponse), correct
                 const studentPairs = qDetails.map(d => ({
-                    element1: d.reponse,
-                    element2: d.attendu,
+                    element1: d.question,  // L'élément de gauche (image ou texte)
+                    userAnswer: d.reponse, // Ce que l'élève a associé
+                    expected: d.attendu,   // La bonne réponse
                     correct: d.correct
                 }));
 
@@ -331,24 +332,22 @@ Object.assign(EleveConnaissances, {
                 const studentHtml = studentPairs.length > 0 ? `
                     <p class="correction-timeline-hint correction-timeline-hint--student">Ta réponse :</p>
                     <div class="correction-assoc-grid">
-                        ${studentPairs.map((sp, pi) => {
-                            const el1 = sp.element1;
-                            const el2 = sp.element2;
+                        ${studentPairs.map((sp) => {
                             const statusClass = sp.correct ? 'card-correct' : 'card-incorrect';
-                            const img = isImageUrl(el1) ? el1 : (isImageUrl(el2) ? el2 : null);
-                            const text = isImageUrl(el1) ? el2 : el1;
+                            const img = isImageUrl(sp.element1) ? sp.element1 : null;
+                            const label = sp.userAnswer || '—';
 
                             if (img) {
                                 return `
                                     <div class="correction-assoc-card ${statusClass} has-image" style="background-image: url('${this.escapeHtml(this.normalizeImageUrl(img))}');">
-                                        <span class="correction-assoc-label">${this.escapeHtml(text)}</span>
+                                        <span class="correction-assoc-label">${this.escapeHtml(label)}</span>
                                     </div>
                                 `;
                             }
                             return `
                                 <div class="correction-assoc-card ${statusClass} text-only">
-                                    <span class="correction-assoc-text">${this.escapeHtml(el1)}</span>
-                                    <span class="correction-assoc-label">${this.escapeHtml(el2)}</span>
+                                    <span class="correction-assoc-text">${this.escapeHtml(sp.element1 || '—')}</span>
+                                    <span class="correction-assoc-label">${this.escapeHtml(label)}</span>
                                 </div>
                             `;
                         }).join('')}
@@ -386,17 +385,56 @@ Object.assign(EleveConnaissances, {
             }
 
             if (hasMarqueurs && qData.image_url) {
-                // Carte / image cliquable
-                const failedDetails = qDetails.filter(d => !d.correct);
-                return failedDetails.map(err => `
-                    <div class="correction-error-row">
-                        <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
-                        <div class="correction-error-answers">
-                            <span class="correction-given">${this.escapeHtml(String(err.reponse || '—'))}</span>
-                            ${err.attendu ? `<span class="correction-expected">→ ${renderElement((err.attendu || '').split('|')[0], 'correction-expected-val')}</span>` : ''}
+                // Carte / image cliquable : reproduction visuelle avec marqueurs sur l'image
+                const marqueurs = qData.marqueurs || [];
+                const imageUrl = this.normalizeImageUrl(qData.image_url);
+
+                const markersHtml = marqueurs.map((m, idx) => {
+                    const detail = qDetails[idx];
+                    const isCorrect = detail ? detail.correct : false;
+                    const statusClass = isCorrect ? 'marker-correct' : 'marker-incorrect';
+                    const correctAnswer = (m.reponse || '').split('|')[0].trim();
+                    const userAnswer = detail ? (detail.reponse || '—') : '—';
+
+                    return `
+                        <div class="correction-carte-marker ${statusClass}"
+                             style="left: ${m.x}%; top: ${m.y}%;"
+                             title="${isCorrect ? this.escapeHtml(userAnswer) : this.escapeHtml(userAnswer) + ' → ' + this.escapeHtml(correctAnswer)}">
+                            <span class="correction-carte-marker-num">${idx + 1}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                const legendHtml = marqueurs.map((m, idx) => {
+                    const detail = qDetails[idx];
+                    const isCorrect = detail ? detail.correct : false;
+                    const correctAnswer = (m.reponse || '').split('|')[0].trim();
+                    const userAnswer = detail ? (detail.reponse || '—') : '—';
+
+                    return `
+                        <div class="correction-carte-legend-item ${isCorrect ? 'correct' : 'incorrect'}">
+                            <span class="correction-carte-legend-num">${idx + 1}</span>
+                            ${isCorrect
+                                ? `<span class="correction-carte-legend-text">${this.escapeHtml(userAnswer)} ✓</span>`
+                                : `<span class="correction-carte-legend-text"><s>${this.escapeHtml(userAnswer)}</s> → ${this.escapeHtml(correctAnswer)}</span>`
+                            }
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="correction-carte-visual">
+                        <div class="correction-carte-image-wrapper">
+                            <img src="${this.escapeHtml(imageUrl)}" alt="Carte" class="correction-carte-image">
+                            <div class="correction-carte-markers-layer">
+                                ${markersHtml}
+                            </div>
+                        </div>
+                        <div class="correction-carte-legend">
+                            ${legendHtml}
                         </div>
                     </div>
-                `).join('');
+                `;
             }
 
             // Fallback : erreurs texte (QCM, V/F, Texte à trous, Question ouverte)

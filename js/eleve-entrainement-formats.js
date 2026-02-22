@@ -216,8 +216,8 @@ Object.assign(EleveEntrainement, {
 
                                             if (isVerified) {
                                                 optionClass += ' disabled';
-                                                if (isCorrectOption) optionClass += ' correct';
-                                                else if (isSelected) optionClass += ' incorrect';
+                                                if (isSelected && isCorrectOption) optionClass += ' correct';
+                                                else if (isSelected && !isCorrectOption) optionClass += ' incorrect';
                                             }
 
                                             return `
@@ -231,11 +231,7 @@ Object.assign(EleveEntrainement, {
                                             `;
                                         }).join('')}
                                     </div>
-                                    ${isVerified && q.explanation ? `
-                                        <div class="qcm-item-feedback show">
-                                            <div class="qcm-item-feedback-text">${this.escapeHtml(q.explanation)}</div>
-                                        </div>
-                                    ` : ''}
+                                    ${''}<!-- Explanation réservée à la page de correction finale -->
                                 </div>
                             `;
                         }).join('')}
@@ -1283,24 +1279,24 @@ Object.assign(EleveEntrainement, {
     },
 
     renderImageCliquableResults(step, stepAnswers) {
+        const correct = step.questions.filter((q, qIndex) => stepAnswers[`q_${qIndex}`] === q.correctZoneId).length;
+        const total = step.questions.length;
+
         const resultsHtml = step.questions.map((q, qIndex) => {
             const userAnswer = stepAnswers[`q_${qIndex}`];
             const isCorrect = userAnswer === q.correctZoneId;
-            const answerText = !isCorrect ? `<span class="image-cliquable-result-answer">Reponse : ${this.getZoneName(step.zones, q.correctZoneId)}</span>` : '';
 
             return `
-                <div class="image-cliquable-result-item ${isCorrect ? 'correct' : 'incorrect'}">
-                    <span class="image-cliquable-result-icon">${isCorrect ? 'V' : 'X'}</span>
-                    <span class="image-cliquable-result-text">${this.escapeHtml(q.question)}</span>
-                    ${answerText}
-                </div>
+                <span class="image-cliquable-result-badge ${isCorrect ? 'correct' : 'incorrect'}" title="${this.escapeHtml(q.question)}">
+                    Q${qIndex + 1} ${isCorrect ? '✓' : '✗'}
+                </span>
             `;
         }).join('');
 
         return `
-            <div class="image-cliquable-results">
-                <h3>Resultats</h3>
-                <div class="image-cliquable-results-list">
+            <div class="image-cliquable-results-compact">
+                <span class="image-cliquable-results-score">${correct}/${total}</span>
+                <div class="image-cliquable-results-badges">
                     ${resultsHtml}
                 </div>
             </div>
@@ -1311,6 +1307,7 @@ Object.assign(EleveEntrainement, {
         // Trouver si cette zone était la bonne réponse pour une question
         let zoneStatus = '';
         let zoneIcon = '';
+        let zoneLabel = '';
 
         if (isVerified) {
             questions.forEach((q, qIndex) => {
@@ -1318,9 +1315,11 @@ Object.assign(EleveEntrainement, {
                 if (q.correctZoneId === zone.id) {
                     zoneStatus = userAnswer === zone.id ? 'correct' : 'show-correct';
                     zoneIcon = '✓';
+                    zoneLabel = `Q${qIndex + 1}`;
                 } else if (userAnswer === zone.id) {
                     zoneStatus = 'incorrect';
                     zoneIcon = '✗';
+                    zoneLabel = `Q${qIndex + 1}`;
                 }
             });
         }
@@ -1331,6 +1330,7 @@ Object.assign(EleveEntrainement, {
                  style="left: ${zone.x}%; top: ${zone.y}%; width: ${zone.width}%; height: ${zone.height}%;"
                  title="${this.escapeHtml(zone.label)}">
                 ${isVerified && zoneIcon ? `<span class="zone-icon">${zoneIcon}</span>` : ''}
+                ${isVerified && zoneLabel ? `<span class="zone-label">${zoneLabel}</span>` : ''}
             </div>
         `;
     },
