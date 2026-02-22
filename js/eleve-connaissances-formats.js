@@ -1460,8 +1460,9 @@ Object.assign(EleveConnaissances, {
         }
         feedbackEl.className = `${feedbackClass} ${isCorrect ? 'correct' : 'incorrect'}`;
 
-        // Format: HTML structuré (Option B - Deux lignes épuré avec gradient)
-        const icon = isCorrect ? '✓' : '✗';
+        // Format: HTML structuré (deux lignes épuré avec gradient)
+        const isUnanswered = feedbackText === 'Non répondu';
+        const icon = isCorrect ? '✓' : (isUnanswered ? '⚠' : '✗');
         const scoreDisplay = `${score}/${maxScore} point${maxScore > 1 ? 's' : ''}`;
         const messageText = feedbackText || (isCorrect ? 'Correct!' : 'Incorrect');
 

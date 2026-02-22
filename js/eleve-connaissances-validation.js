@@ -24,8 +24,8 @@ Object.assign(EleveConnaissances, {
                     const isCorrect = answer === expected;
                     if (isCorrect) correct++;
 
-                    // Construire le texte du feedback (minimaliste - sans explication)
-                    let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
+                    // Construire le texte du feedback
+                    let feedbackText = isCorrect ? 'Correct' : (!answer ? 'Non répondu' : 'Mauvaise réponse');
 
                     // Utiliser la fonction unifiée de feedback
                     this.displayUnifiedFeedback('feedback_vf_0', isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
@@ -53,8 +53,8 @@ Object.assign(EleveConnaissances, {
                             const isCorrect = answer === expected;
                             if (isCorrect) correct++;
 
-                            // Construire le texte du feedback (minimaliste - sans explication)
-                            let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
+                            // Construire le texte du feedback
+                            let feedbackText = isCorrect ? 'Correct' : (!answer ? 'Non répondu' : 'Mauvaise réponse');
 
                             // Utiliser la fonction unifiée de feedback
                             this.displayUnifiedFeedback(`feedback_vf_${idx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
@@ -112,8 +112,8 @@ Object.assign(EleveConnaissances, {
                             const isCorrect = correctIndices.includes(parseInt(userAnswer));
                             if (isCorrect) correct++;
 
-                            // Construire le texte du feedback (minimaliste - sans explication)
-                            let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
+                            // Construire le texte du feedback
+                            let feedbackText = isCorrect ? 'Correct' : (userAnswer == null ? 'Non répondu' : 'Mauvaise réponse');
 
                             // Récupérer le feedback spécifique à l'option choisie
                             const feedbackOption = (q.feedbacks_options && userAnswer != null) ? (q.feedbacks_options[parseInt(userAnswer)] || '') : '';
@@ -146,8 +146,8 @@ Object.assign(EleveConnaissances, {
 
                     if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
 
-                    // Construire le texte du feedback (minimaliste - sans explication)
-                    let feedbackText = correct === 1 ? 'Correct' : 'Mauvaise réponse';
+                    // Construire le texte du feedback
+                    let feedbackText = correct === 1 ? 'Correct' : (userAnswer == null ? 'Non répondu' : 'Mauvaise réponse');
 
                     // Récupérer le feedback spécifique à l'option choisie
                     const feedbackOption = (donnees.feedbacks_options && userAnswer != null) ? (donnees.feedbacks_options[parseInt(userAnswer)] || '') : '';
@@ -298,9 +298,10 @@ Object.assign(EleveConnaissances, {
                     details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: stored ? stored.correct : '', correct: isOk });
                 });
 
-                // Afficher le feedback minimaliste avec score pour texte à trous
+                // Afficher le feedback avec score pour texte à trous
                 const isTexteTrousCorrect = correct === total;
-                const texteTrousTexte = isTexteTrousCorrect ? 'Correct' : 'Mauvaise réponse';
+                const allTrousEmpty = details.every(d => !d.reponse || d.reponse.trim() === '');
+                const texteTrousTexte = isTexteTrousCorrect ? 'Correct' : (allTrousEmpty ? 'Non répondu' : 'Mauvaise réponse');
                 this.displayUnifiedFeedback('feedback_texte_trous', isTexteTrousCorrect, texteTrousTexte, correct, total, 'chronologie');
                 break;
 
@@ -358,9 +359,10 @@ Object.assign(EleveConnaissances, {
                     }
                 });
 
-                // Afficher le feedback minimaliste avec score pour carte
+                // Afficher le feedback avec score pour carte
                 const isCarteCorrect = correct === total;
-                const carteTexte = isCarteCorrect ? 'Correct' : 'Mauvaise réponse';
+                const allMarkersEmpty = details.every(d => !d.reponse);
+                const carteTexte = isCarteCorrect ? 'Correct' : (allMarkersEmpty ? 'Non répondu' : 'Mauvaise réponse');
                 this.displayUnifiedFeedback('feedback_carte', isCarteCorrect, carteTexte, correct, total, 'chronologie');
                 break;
 
@@ -398,8 +400,8 @@ Object.assign(EleveConnaissances, {
                     }
 
                     if (qoFeedbackEl) {
-                        // Construire le texte du feedback (minimaliste - sans explication)
-                        let feedbackText = qoCorrect ? 'Correct' : 'Mauvaise réponse';
+                        // Construire le texte du feedback
+                        let feedbackText = qoCorrect ? 'Correct' : (!qoAnswer || qoAnswer.trim() === '' ? 'Non répondu' : 'Mauvaise réponse');
 
                         // Utiliser la fonction unifiée de feedback
                         this.displayUnifiedFeedback('feedback_question_ouverte', qoCorrect, feedbackText, qoCorrect ? 1 : 0, 1);
@@ -463,10 +465,11 @@ Object.assign(EleveConnaissances, {
                 const zoneLabel = document.querySelector('.association-zone-label');
                 if (zoneLabel) zoneLabel.classList.add('hidden');
 
-                // Afficher le feedback minimaliste avec score
+                // Afficher le feedback avec score
                 const isAssocCorrect = correct === total;
-                const feedbackText = isAssocCorrect ? 'Correct' : 'Mauvaise réponse';
-                this.displayUnifiedFeedback('association_feedback', isAssocCorrect, feedbackText, correct, total, 'association');
+                const allUnpaired = userPairs.length === 0;
+                const assocFeedbackText = isAssocCorrect ? 'Correct' : (allUnpaired ? 'Non répondu' : 'Mauvaise réponse');
+                this.displayUnifiedFeedback('association_feedback', isAssocCorrect, assocFeedbackText, correct, total, 'association');
                 break;
 
             case 'flashcard':
@@ -729,7 +732,8 @@ Object.assign(EleveConnaissances, {
 
         // Afficher le feedback unifié (format 2 lignes: message + score)
         const isCorrect = result.correct === result.total;
-        const feedbackText = isCorrect ? 'Correct' : 'Réponse incorrecte';
+        const allUnanswered = (result.details || []).every(d => !d.reponse || (typeof d.reponse === 'string' && d.reponse.trim() === ''));
+        const feedbackText = isCorrect ? 'Correct' : (allUnanswered ? 'Non répondu' : 'Réponse incorrecte');
 
         // Utiliser la fonction unifiée de feedback
         feedbackEl.id = 'multiFormatFeedback'; // S'assurer que l'ID existe
@@ -1103,13 +1107,12 @@ Object.assign(EleveConnaissances, {
         const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
         const isCorrect = answer === expected;
 
-        // Afficher le feedback (minimaliste - sans explication)
+        // Afficher le feedback
         const feedback = document.getElementById(`feedback_vf_${idx}`);
         if (feedback) {
             feedback.classList.remove('hidden');
             feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-            const vfSymbol = isCorrect ? '✓' : '✗';
-            feedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
+            feedback.textContent = isCorrect ? '✓ Correct' : (!answer ? '⚠ Non répondu' : '✗ Mauvaise réponse');
         }
 
         // Verrouiller les choix
@@ -1185,8 +1188,8 @@ Object.assign(EleveConnaissances, {
 
         const isCorrect = correctIndices.includes(parseInt(userAnswer));
 
-        // Construire le texte du feedback (minimaliste - sans explication)
-        let feedbackText = isCorrect ? 'Correct' : 'Mauvaise réponse';
+        // Construire le texte du feedback
+        let feedbackText = isCorrect ? 'Correct' : (userAnswer == null ? 'Non répondu' : 'Mauvaise réponse');
 
         // Utiliser la fonction unifiée de feedback (avec score!)
         this.displayUnifiedFeedback(
