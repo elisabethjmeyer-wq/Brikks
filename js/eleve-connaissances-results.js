@@ -415,17 +415,31 @@ Object.assign(EleveConnaissances, {
 
                     let popoverContent;
                     if (isCorrect) {
-                        popoverContent = `<span class="popover-answer popover-answer--correct">✓ ${this.escapeHtml(userAnswer)}</span>`;
+                        popoverContent = `
+                            <div class="popover-panel popover-panel--correct">
+                                <span class="popover-panel-icon">✓</span>
+                                <span class="popover-panel-value">${this.escapeHtml(userAnswer)}</span>
+                            </div>`;
                     } else if (isUnanswered) {
                         popoverContent = `
-                            <span class="popover-answer popover-answer--empty">Non répondu</span>
-                            <span class="popover-answer popover-answer--expected">→ ${this.escapeHtml(correctAnswer)}</span>
-                        `;
+                            <div class="popover-panel popover-panel--wrong">
+                                <span class="popover-panel-icon">✗</span>
+                                <span class="popover-panel-label">Non répondu</span>
+                            </div>
+                            <div class="popover-panel popover-panel--correct">
+                                <span class="popover-panel-icon">✓</span>
+                                <span class="popover-panel-value">${this.escapeHtml(correctAnswer)}</span>
+                            </div>`;
                     } else {
                         popoverContent = `
-                            <span class="popover-answer popover-answer--wrong">${this.escapeHtml(userAnswer)}</span>
-                            <span class="popover-answer popover-answer--expected">→ ${this.escapeHtml(correctAnswer)}</span>
-                        `;
+                            <div class="popover-panel popover-panel--wrong">
+                                <span class="popover-panel-icon">✗</span>
+                                <span class="popover-panel-value">${this.escapeHtml(userAnswer)}</span>
+                            </div>
+                            <div class="popover-panel popover-panel--correct">
+                                <span class="popover-panel-icon">✓</span>
+                                <span class="popover-panel-value">${this.escapeHtml(correctAnswer)}</span>
+                            </div>`;
                     }
 
                     return `
