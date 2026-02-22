@@ -396,71 +396,15 @@ Object.assign(EleveConnaissances, {
                 return studentHtml + correctHtml;
             }
 
-            if (hasMarqueurs && qData.image_url) {
-                // Image cliquable : marqueurs sur l'image avec popover au clic
-                const marqueurs = qData.marqueurs || [];
-                const imageUrl = this.normalizeImageUrl(qData.image_url);
-
-                const markersHtml = marqueurs.map((m, idx) => {
-                    const detail = qDetails[idx];
-                    const isCorrect = detail ? detail.correct : false;
-                    const statusClass = isCorrect ? 'marker-correct' : 'marker-incorrect';
-                    const correctAnswer = (m.reponse || '').split('|')[0].trim();
-                    const userAnswer = detail ? (detail.reponse || 'Non répondu') : 'Non répondu';
-                    const isUnanswered = !detail || !detail.reponse || detail.reponse === 'Non répondu';
-
-                    // Déterminer le côté du popover selon la position du marqueur
-                    const popoverSide = m.x > 55 ? 'popover-left' : 'popover-right';
-                    const popoverVert = m.y > 70 ? 'popover-above' : '';
-
-                    let popoverContent;
-                    if (isCorrect) {
-                        popoverContent = `<span class="popover-answer popover-answer--correct">✓ ${this.escapeHtml(userAnswer)}</span>`;
-                    } else if (isUnanswered) {
-                        popoverContent = `
-                            <span class="popover-answer popover-answer--empty">Non répondu</span>
-                            <span class="popover-answer popover-answer--expected">→ ${this.escapeHtml(correctAnswer)}</span>
-                        `;
-                    } else {
-                        popoverContent = `
-                            <span class="popover-answer popover-answer--wrong">${this.escapeHtml(userAnswer)}</span>
-                            <span class="popover-answer popover-answer--expected">→ ${this.escapeHtml(correctAnswer)}</span>
-                        `;
-                    }
-
-                    return `
-                        <div class="correction-carte-marker ${statusClass}"
-                             style="left: ${m.x}%; top: ${m.y}%;"
-                             onclick="event.stopPropagation(); this.parentElement.querySelectorAll('.popover-open').forEach(m => { if(m!==this) m.classList.remove('popover-open') }); this.classList.toggle('popover-open')" role="button" tabindex="0">
-                            <span class="correction-carte-marker-num">${idx + 1}</span>
-                            <div class="correction-carte-popover ${popoverSide} ${popoverVert}">
-                                <span class="popover-marker-num">${idx + 1}</span>
-                                ${popoverContent}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-                return `
-                    <div class="correction-carte-visual">
-                        <div class="correction-carte-image-wrapper correction-carte-image-wrapper--popover">
-                            <img src="${this.escapeHtml(imageUrl)}" alt="Carte" class="correction-carte-image">
-                            <div class="correction-carte-markers-layer">
-                                ${markersHtml}
-                            </div>
-                        </div>
-                        <p class="correction-carte-tap-hint">Clique sur un marqueur pour voir le détail</p>
-                    </div>
-                `;
-            }
-
-            // Fallback : erreurs texte (QCM, V/F, Texte à trous, Question ouverte)
+            // Erreurs texte (QCM, V/F, Texte à trous, Question ouverte, Image cliquable)
             // Layout panélisé : question → bloc erreur (réponse + feedback) → bloc bonne réponse
             // Si un feedback spécifique existe, il contient déjà l'explication + la bonne réponse
             // → on n'affiche pas le panneau vert séparé pour éviter le doublon
             return qErrors.map(err => {
                 const isUnanswered = !err.reponse;
                 const hasFeedback = !!err.feedbackOption;
+                // Nettoyer attendu : si alternatives séparées par |, afficher seulement la première
+                const cleanAttendu = err.attendu ? String(err.attendu).split('|')[0].trim() : err.attendu;
                 return `
                 <div class="correction-error-block">
                     <div class="correction-error-question">${renderElement(err.question, 'correction-q-text')}</div>
@@ -472,13 +416,13 @@ Object.assign(EleveConnaissances, {
                         ${!isUnanswered ? `<div class="correction-panel-value correction-panel-value--wrong">${this.escapeHtml(String(err.reponse))}</div>` : ''}
                         ${hasFeedback ? `<div class="correction-panel-feedback">${this.escapeHtml(err.feedbackOption)}</div>` : ''}
                     </div>
-                    ${err.attendu && !hasFeedback ? `
+                    ${cleanAttendu && !hasFeedback ? `
                     <div class="correction-error-panel correction-panel-correct">
                         <div class="correction-panel-header">
                             <span class="correction-panel-icon">✓</span>
                             <span class="correction-panel-label">Bonne réponse</span>
                         </div>
-                        <div class="correction-panel-value correction-panel-value--correct">${renderElement(err.attendu, 'correction-expected-val')}</div>
+                        <div class="correction-panel-value correction-panel-value--correct">${renderElement(cleanAttendu, 'correction-expected-val')}</div>
                     </div>
                     ` : ''}
                 </div>
