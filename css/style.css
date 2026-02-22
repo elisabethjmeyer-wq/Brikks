@@ -46,6 +46,11 @@
     --header-height: 64px;
 }
 
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
 /* Reset et base */
 *, *::before, *::after {
     box-sizing: border-box;

@@ -450,9 +450,9 @@ Object.assign(EleveConnaissances, {
 
                 // Cacher les chips et le label d'instruction
                 const chipsZone = document.querySelector('#associationChips');
-                if (chipsZone) chipsZone.style.display = 'none';
+                if (chipsZone) chipsZone.classList.add('hidden');
                 const zoneLabel = document.querySelector('.association-zone-label');
-                if (zoneLabel) zoneLabel.style.display = 'none';
+                if (zoneLabel) zoneLabel.classList.add('hidden');
 
                 // Afficher le feedback minimaliste avec score
                 const isAssocCorrect = correct === total;
@@ -629,26 +629,13 @@ Object.assign(EleveConnaissances, {
 
     /** Navigation Question Ouverte : aller à une question */
     qoNavGoTo(index) {
-        const container = document.querySelector('.qo-multi-container');
-        if (!container) return;
-        const items = container.querySelectorAll('.question-ouverte-container');
-        const total = items.length;
-        if (index < 0 || index >= total) return;
-
-        this._qoNavIndex = index;
-
-        items.forEach((item, i) => {
-            item.style.display = i === index ? '' : 'none';
-        });
-
-        container.querySelectorAll('.qo-question-action').forEach(action => {
-            const forIdx = parseInt(action.getAttribute('data-for-qo'));
-            action.style.display = forIdx === index ? '' : 'none';
-        });
-
-        const headerCounter = document.getElementById('qcmHeaderCounter');
-        if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
-        this.updateMultiProgressBar(index + 1, total);
+        this._carouselGoTo({
+            containerSel: '.qo-multi-container',
+            itemSel: '.question-ouverte-container',
+            actionSel: '.qo-question-action',
+            actionAttr: 'data-for-qo',
+            indexProp: '_qoNavIndex'
+        }, index);
     },
 
     /** Navigation Question Ouverte : question suivante */
@@ -729,7 +716,7 @@ Object.assign(EleveConnaissances, {
             feedbackEl.className = 'multi-format-feedback';
             container.appendChild(feedbackEl);
         }
-        feedbackEl.style.display = 'block';
+        feedbackEl.classList.remove('hidden');
 
         // Afficher le feedback unifié (format 2 lignes: message + score)
         const isCorrect = result.correct === result.total;
@@ -764,7 +751,7 @@ Object.assign(EleveConnaissances, {
         } else {
             if (actionDiv) {
                 actionDiv.style.marginTop = '1.5rem';
-                actionDiv.innerHTML = `<button class="btn-qcm-next" style="padding: 0.75rem 1.5rem; font-size: 1rem;" onclick="EleveConnaissances.multiFormatNext()">Suivant →</button>`;
+                actionDiv.innerHTML = `<button class="btn-qcm-next" onclick="EleveConnaissances.multiFormatNext()">Suivant →</button>`;
             }
         }
     },
@@ -1009,9 +996,9 @@ Object.assign(EleveConnaissances, {
         // Feedback visuel
         container.querySelectorAll('.association-grid-card:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
         const chipsZone = container.querySelector('.association-chips');
-        if (chipsZone) chipsZone.style.display = 'none';
+        if (chipsZone) chipsZone.classList.add('hidden');
         const zoneLabel = container.querySelector('.association-zone-label');
-        if (zoneLabel) zoneLabel.style.display = 'none';
+        if (zoneLabel) zoneLabel.classList.add('hidden');
 
         const getChipText = (id) => {
             const p = assocPaires[parseInt(id)];
@@ -1025,7 +1012,7 @@ Object.assign(EleveConnaissances, {
             const label = card.querySelector('.assoc-paired-label');
             if (!label) return;
 
-            label.style.display = 'block';
+            label.classList.remove('hidden');
             const userPair = userPairs.find(up => {
                 const gId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
                 return String(gId) === String(cardId);
@@ -1110,7 +1097,7 @@ Object.assign(EleveConnaissances, {
         // Afficher le feedback (minimaliste - sans explication)
         const feedback = document.getElementById(`feedback_vf_${idx}`);
         if (feedback) {
-            feedback.style.display = 'block';
+            feedback.classList.remove('hidden');
             feedback.className = `vf-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
             const vfSymbol = isCorrect ? '✓' : '✗';
             feedback.textContent = isCorrect ? '✓ Correct' : '✗ Mauvaise réponse';
@@ -1147,27 +1134,13 @@ Object.assign(EleveConnaissances, {
 
     /** Navigation Vrai/Faux : aller à une proposition */
     vfNavGoTo(index) {
-        const container = document.querySelector('.vrai-faux-container');
-        if (!container) return;
-        const items = container.querySelectorAll('.vrai-faux-item');
-        const total = items.length;
-        if (index < 0 || index >= total) return;
-
-        this._vfNavIndex = index;
-
-        items.forEach((item, i) => {
-            item.style.display = i === index ? '' : 'none';
-        });
-
-        // Afficher/masquer les boutons d'action correspondants
-        container.querySelectorAll('.vf-question-action').forEach(action => {
-            const forIdx = parseInt(action.getAttribute('data-for-vf'));
-            action.style.display = forIdx === index ? '' : 'none';
-        });
-
-        const headerCounter = document.getElementById('qcmHeaderCounter');
-        if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
-        this.updateMultiProgressBar(index + 1, total);
+        this._carouselGoTo({
+            containerSel: '.vrai-faux-container',
+            itemSel: '.vrai-faux-item',
+            actionSel: '.vf-question-action',
+            actionAttr: 'data-for-vf',
+            indexProp: '_vfNavIndex'
+        }, index);
     },
 
     /** Navigation Vrai/Faux : proposition suivante */
@@ -1277,28 +1250,13 @@ Object.assign(EleveConnaissances, {
 
     /** Navigation QCM multi-questions : aller à une question */
     qcmNavGoTo(index) {
-        const container = document.querySelector('.qcm-multi-container');
-        if (!container) return;
-        const blocks = container.querySelectorAll('.qcm-question-block');
-        const total = blocks.length;
-        if (index < 0 || index >= total) return;
-
-        this._qcmNavIndex = index;
-
-        blocks.forEach((block, i) => {
-            block.style.display = i === index ? '' : 'none';
-        });
-
-        // Afficher/masquer les boutons d'action correspondants
-        container.querySelectorAll('.qcm-question-action').forEach(action => {
-            const forIdx = parseInt(action.getAttribute('data-for-qcm'));
-            action.style.display = forIdx === index ? '' : 'none';
-        });
-
-        // Mettre à jour le compteur dans le header de l'étape
-        const headerCounter = document.getElementById('qcmHeaderCounter');
-        if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
-        this.updateMultiProgressBar(index + 1, total);
+        this._carouselGoTo({
+            containerSel: '.qcm-multi-container',
+            itemSel: '.qcm-question-block',
+            actionSel: '.qcm-question-action',
+            actionAttr: 'data-for-qcm',
+            indexProp: '_qcmNavIndex'
+        }, index);
     },
 
     /** Navigation QCM : question suivante */

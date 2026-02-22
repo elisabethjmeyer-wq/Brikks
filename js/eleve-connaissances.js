@@ -631,13 +631,13 @@ const EleveConnaissances = {
                 const exoTitle = exo.querySelector('.exercice-titre')?.textContent.toLowerCase() || '';
                 if (exoTitle.includes(term)) {
                     hasMatch = true;
-                    exo.style.display = '';
+                    exo.classList.remove('hidden');
                 } else {
-                    exo.style.display = term ? 'none' : '';
+                    exo.classList.toggle('hidden', !!term);
                 }
             });
 
-            item.style.display = hasMatch || !term ? '' : 'none';
+            item.classList.toggle('hidden', !hasMatch && !!term);
 
             if (hasMatch && term) {
                 this.expandedBanques.add(item.dataset.banqueId);
@@ -803,7 +803,7 @@ const EleveConnaissances = {
                         <span class="etape-format-badge">${this.getFormatLabel(currentEtape.format_code)}</span>
                     </div>
                     <!-- Barre de progression intra-étape (multi-questions) -->
-                    <div class="multi-progress-bar" id="multiProgressBar" style="display:none;">
+                    <div class="multi-progress-bar hidden" id="multiProgressBar">
                         <div class="multi-progress-fill" id="multiProgressFill"></div>
                     </div>
 
@@ -813,7 +813,7 @@ const EleveConnaissances = {
                     </div>
 
                     <!-- Zone de feedback (visible après validation) -->
-                    <div class="etape-feedback" id="etapeFeedback" style="display: none;"></div>
+                    <div class="etape-feedback hidden" id="etapeFeedback"></div>
 
                     <!-- Bouton d'action (à droite, unifié pour tous les formats) -->
                     <div class="etape-action-bar" id="etapeActionBar">
@@ -840,7 +840,7 @@ const EleveConnaissances = {
                          : 0;
         if (multiTotal > 1) {
             const validateBtn = document.querySelector('#etapeActionBar .validate-btn');
-            if (validateBtn) validateBtn.style.display = 'none';
+            if (validateBtn) validateBtn.classList.add('hidden');
             const headerCounter = document.getElementById('qcmHeaderCounter');
             if (headerCounter) headerCounter.textContent = `Question 1 / ${multiTotal}`;
             this.updateMultiProgressBar(1, multiTotal);
