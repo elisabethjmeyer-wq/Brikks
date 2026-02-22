@@ -802,6 +802,10 @@ const EleveConnaissances = {
                         <span class="qcm-header-counter" id="qcmHeaderCounter"></span>
                         <span class="etape-format-badge">${this.getFormatLabel(currentEtape.format_code)}</span>
                     </div>
+                    <!-- Barre de progression intra-étape (multi-questions) -->
+                    <div class="multi-progress-bar" id="multiProgressBar" style="display:none;">
+                        <div class="multi-progress-fill" id="multiProgressFill"></div>
+                    </div>
 
                     <!-- Contenu de l'étape (questions) -->
                     <div class="exercise-content ${isValidated ? 'validated' : ''}" id="exerciseContent">
@@ -839,11 +843,13 @@ const EleveConnaissances = {
             if (validateBtn) validateBtn.style.display = 'none';
             const headerCounter = document.getElementById('qcmHeaderCounter');
             if (headerCounter) headerCounter.textContent = `Question 1 / ${multiTotal}`;
+            this.updateMultiProgressBar(1, multiTotal);
         }
         // Flashcard : afficher le compteur "Carte X / Y" dans le header
         if (flashcardContainer && this.flashcardState) {
             const headerCounter = document.getElementById('qcmHeaderCounter');
             if (headerCounter) headerCounter.textContent = `Carte 1 / ${this.flashcardState.total}`;
+            this.updateMultiProgressBar(1, this.flashcardState.total);
         }
 
         if (ent.duree && !this.timer) {
@@ -858,6 +864,9 @@ const EleveConnaissances = {
      */
     renderEtapeContent(etape, questions) {
         const format = etape.format_code;
+
+        // Réinitialiser le store des réponses correctes pour la nouvelle étape
+        this.clearAnswerStore();
 
         Logger.debug('EleveConnaissances', 'renderEtapeContent', { etape: etape.id, format, mode: etape.mode_selection });
 

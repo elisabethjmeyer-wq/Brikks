@@ -2,6 +2,10 @@ Object.assign(EleveConnaissances, {
     validateCurrentEtape() {
         if (this.currentEtapeValidated) return;
 
+        // Loading state sur le bouton
+        const actionBtn = document.querySelector('#etapeActionBar .validate-btn');
+        if (actionBtn) actionBtn.classList.add('is-loading');
+
         const currentEtape = this.currentEtapes[this.currentEtapeIndex];
         // Utiliser les données combinées stockées lors du rendu (inclut multiQuestions)
         const storedData = this.selectedQuestionsPerEtape[currentEtape.id];
@@ -264,7 +268,8 @@ Object.assign(EleveConnaissances, {
                 trouInputs.forEach((input, idx) => {
                     total++;
                     const userValue = input.value.trim().toLowerCase();
-                    const correctValue = input.dataset.answer ? input.dataset.answer.toLowerCase() : '';
+                    const stored = this.getStoredAnswer(`trou_${idx}`);
+                    const correctValue = stored ? stored.correct.toLowerCase() : '';
 
                     let alternatives = [];
                     if (trous[idx] && trous[idx].alternatives) {
@@ -282,7 +287,7 @@ Object.assign(EleveConnaissances, {
 
                     // Score affiché globalement en haut, pas inline
 
-                    details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: input.dataset.answer, correct: isOk });
+                    details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: stored ? stored.correct : '', correct: isOk });
                 });
 
                 // Afficher le feedback minimaliste avec score pour texte à trous
@@ -643,6 +648,7 @@ Object.assign(EleveConnaissances, {
 
         const headerCounter = document.getElementById('qcmHeaderCounter');
         if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
+        this.updateMultiProgressBar(index + 1, total);
     },
 
     /** Navigation Question Ouverte : question suivante */
@@ -787,6 +793,7 @@ Object.assign(EleveConnaissances, {
         // Mettre à jour le compteur dans le header
         const headerCounter = document.getElementById('qcmHeaderCounter');
         if (headerCounter) headerCounter.textContent = `Question ${idx + 1} / ${state.totalQuestions}`;
+        this.updateMultiProgressBar(idx + 1, state.totalQuestions);
 
         // Re-setup spécifique au format (drag & drop, etc.)
         this.setupFormatAfterRender(state.format);
@@ -857,7 +864,8 @@ Object.assign(EleveConnaissances, {
         trouInputs.forEach((input, idx) => {
             total++;
             const userValue = input.value.trim().toLowerCase();
-            const correctValue = input.dataset.answer ? input.dataset.answer.toLowerCase() : '';
+            const stored = this.getStoredAnswer(`trou_${idx}`);
+            const correctValue = stored ? stored.correct.toLowerCase() : '';
             let alternatives = [];
             if (qData.trous && qData.trous[idx] && qData.trous[idx].alternatives) {
                 alternatives = qData.trous[idx].alternatives.map(a => a.toLowerCase());
@@ -870,7 +878,7 @@ Object.assign(EleveConnaissances, {
             } else {
                 input.classList.add('incorrect');
             }
-            details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: input.dataset.answer, correct: isOk });
+            details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: stored ? stored.correct : '', correct: isOk });
         });
 
         return { correct, total, details };
@@ -1159,6 +1167,7 @@ Object.assign(EleveConnaissances, {
 
         const headerCounter = document.getElementById('qcmHeaderCounter');
         if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
+        this.updateMultiProgressBar(index + 1, total);
     },
 
     /** Navigation Vrai/Faux : proposition suivante */
@@ -1207,10 +1216,21 @@ Object.assign(EleveConnaissances, {
             'qcm'
         );
 
-        // Verrouiller les choix de cette question
+        // Verrouiller les choix + feedback visuel animé
         const block = document.querySelector(`.qcm-question-block[data-question="${qIdx}"]`);
         if (block) {
             block.querySelectorAll('input').forEach(el => el.disabled = true);
+            // Marquer visuellement le choix sélectionné et la bonne réponse
+            block.querySelectorAll('.qcm-choice').forEach(label => {
+                const input = label.querySelector('input');
+                if (!input) return;
+                const val = parseInt(input.value);
+                if (correctIndices.includes(val)) {
+                    label.classList.add('is-correct');
+                } else if (input.checked) {
+                    label.classList.add('is-incorrect');
+                }
+            });
         }
 
         // Stocker le résultat
@@ -1278,6 +1298,7 @@ Object.assign(EleveConnaissances, {
         // Mettre à jour le compteur dans le header de l'étape
         const headerCounter = document.getElementById('qcmHeaderCounter');
         if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
+        this.updateMultiProgressBar(index + 1, total);
     },
 
     /** Navigation QCM : question suivante */
