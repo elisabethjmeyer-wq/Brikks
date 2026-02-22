@@ -5171,3 +5171,290 @@
 .correction-assoc-pair-flex.card-incorrect .assoc-pair-status {
     color: #ef4444;
 }
+
+/* ============================================
+   SPRINT 3 — TRANSITIONS & MICRO-INTERACTIONS
+   ============================================ */
+
+/* --- Feedback elements: slide-in on appear --- */
+.vf-feedback:not(.hidden),
+.qcm-feedback:not(.hidden),
+.question-ouverte-feedback:not(.hidden),
+.chronologie-feedback:not(.hidden),
+.association-feedback:not(.hidden),
+.multi-format-feedback:not(.hidden),
+.etape-feedback:not(.hidden) {
+    animation: feedbackAppear 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes feedbackAppear {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Carte popup: fade + scale entrance --- */
+.carte-popup:not(.hidden) {
+    animation: popupFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.carte-popup:not(.hidden) .carte-popup-content {
+    animation: popupScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popupFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes popupScaleIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* --- Locked modal: backdrop-blur + scale entrance --- */
+.locked-modal-overlay {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: popupFadeIn 0.2s ease;
+}
+
+.locked-modal {
+    animation: popupScaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* --- Carousel slides: crossfade --- */
+.carousel-slide:not(.hidden) {
+    animation: carouselFadeIn 0.3s ease;
+}
+
+@keyframes carouselFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* --- Multi-question blocks: slide in on navigate --- */
+.qcm-question-block:not(.hidden),
+.vrai-faux-item:not(.hidden),
+.question-ouverte-container:not(.hidden) {
+    animation: questionSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes questionSlideIn {
+    from { opacity: 0; transform: translateX(12px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* --- Staggered entrance for exercise items in accordion --- */
+.banque-accordion-item.expanded .exercice-item.connaissances {
+    animation: itemReveal 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.banque-accordion-item.expanded .exercice-item.connaissances:nth-child(1) { animation-delay: 0ms; }
+.banque-accordion-item.expanded .exercice-item.connaissances:nth-child(2) { animation-delay: 40ms; }
+.banque-accordion-item.expanded .exercice-item.connaissances:nth-child(3) { animation-delay: 80ms; }
+.banque-accordion-item.expanded .exercice-item.connaissances:nth-child(4) { animation-delay: 120ms; }
+.banque-accordion-item.expanded .exercice-item.connaissances:nth-child(5) { animation-delay: 160ms; }
+.banque-accordion-item.expanded .exercice-item.connaissances:nth-child(n+6) { animation-delay: 200ms; }
+
+@keyframes itemReveal {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- QCM/VF choice hover: subtle lift --- */
+.qcm-choice {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qcm-choice:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.vf-btn {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.vf-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* --- Carte marker hover: pulse ring --- */
+.carte-marker-v2 {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.carte-marker-v2:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+}
+
+/* --- Flashcard hover: gentle tilt --- */
+.flashcard-card {
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+.flashcard-card:not(.flipped):hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* --- Flashcard evaluation buttons: scale on hover --- */
+.flashcard-btn-success,
+.flashcard-btn-fail {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+}
+
+.flashcard-btn-success:hover {
+    transform: scale(1.04);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.flashcard-btn-fail:hover {
+    transform: scale(1.04);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* --- Association grid cards: lift on hover --- */
+.association-grid-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.association-grid-card:not(.correct):not(.incorrect):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.association-chip {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.association-chip:not(.correct):not(.incorrect):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Timeline card hover: lift --- */
+.timeline-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.timeline-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.timeline-card:active {
+    transform: scale(0.98);
+}
+
+/* --- Validate / action buttons: better press effect --- */
+.btn-qcm-validate {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+}
+
+.btn-qcm-validate:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-qcm-validate:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: none;
+}
+
+.btn-qcm-next {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+}
+
+.btn-qcm-next:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-qcm-next:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.btn-etape-action:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Etape dots: hover hint --- */
+.etape-dot:not(.current):not(.completed):hover {
+    background: #d1d5db;
+    color: #6b7280;
+}
+
+/* --- Banque accordion header: smoother expand --- */
+.banque-accordion-header {
+    transition: background 0.2s ease;
+}
+
+.banque-chevron {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, color 0.3s ease;
+}
+
+/* --- Banque progress bar: smooth color transition --- */
+.banque-progress-fill {
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Result screen: entrance animation --- */
+.result-view.conn {
+    animation: resultSlideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes resultSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Score circle: count-up animation --- */
+.score-circle {
+    animation: scoreReveal 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.2s both;
+}
+
+@keyframes scoreReveal {
+    from { opacity: 0; transform: scale(0.8); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* --- Rep dots: staggered entrance --- */
+.rep-dot {
+    animation: dotPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.rep-dot:nth-child(1) { animation-delay: 0.3s; }
+.rep-dot:nth-child(2) { animation-delay: 0.4s; }
+.rep-dot:nth-child(3) { animation-delay: 0.5s; }
+.rep-dot:nth-child(4) { animation-delay: 0.6s; }
+.rep-dot:nth-child(5) { animation-delay: 0.7s; }
+.rep-dot:nth-child(6) { animation-delay: 0.8s; }
+
+@keyframes dotPop {
+    from { opacity: 0; transform: scale(0); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* --- Felicitation panel: bounce entrance --- */
+.felicitation-panel {
+    animation: felicitationEntrance 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
+}
+
+@keyframes felicitationEntrance {
+    from { opacity: 0; transform: scale(0.85) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* --- Exercise view: smooth entrance --- */
+.exercise-view {
+    animation: exerciseEnter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes exerciseEnter {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
