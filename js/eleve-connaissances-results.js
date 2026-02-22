@@ -456,8 +456,11 @@ Object.assign(EleveConnaissances, {
 
             // Fallback : erreurs texte (QCM, V/F, Texte à trous, Question ouverte)
             // Layout panélisé : question → bloc erreur (réponse + feedback) → bloc bonne réponse
+            // Si un feedback spécifique existe, il contient déjà l'explication + la bonne réponse
+            // → on n'affiche pas le panneau vert séparé pour éviter le doublon
             return qErrors.map(err => {
                 const isUnanswered = !err.reponse;
+                const hasFeedback = !!err.feedbackOption;
                 return `
                 <div class="correction-error-block">
                     <div class="correction-error-question">${renderElement(err.question, 'correction-q-text')}</div>
@@ -467,9 +470,9 @@ Object.assign(EleveConnaissances, {
                             <span class="correction-panel-label">${isUnanswered ? 'Non répondu' : 'Ta réponse'}</span>
                         </div>
                         ${!isUnanswered ? `<div class="correction-panel-value correction-panel-value--wrong">${this.escapeHtml(String(err.reponse))}</div>` : ''}
-                        ${err.feedbackOption ? `<div class="correction-panel-feedback">${this.escapeHtml(err.feedbackOption)}</div>` : ''}
+                        ${hasFeedback ? `<div class="correction-panel-feedback">${this.escapeHtml(err.feedbackOption)}</div>` : ''}
                     </div>
-                    ${err.attendu ? `
+                    ${err.attendu && !hasFeedback ? `
                     <div class="correction-error-panel correction-panel-correct">
                         <div class="correction-panel-header">
                             <span class="correction-panel-icon">✓</span>
