@@ -641,22 +641,6 @@ Object.assign(AdminBanquesExercices, {
                             </span>
                         </label>
                     </div>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="questionOuverteShowFeedback" ${data.feedback_correct || data.feedback_incorrect ? 'checked' : ''} onchange="document.getElementById('questionOuverteFeedbackSection').style.display = this.checked ? 'block' : 'none'">
-                            Ajouter des feedbacks (optionnel)
-                        </label>
-                    </div>
-                    <div id="questionOuverteFeedbackSection" style="display: ${data.feedback_correct || data.feedback_incorrect ? 'block' : 'none'};">
-                        <div class="form-group">
-                            <label>Feedback si bonne réponse</label>
-                            <textarea id="questionOuverteFeedbackCorrect" class="form-textarea" rows="2" placeholder="Bravo !">${this.escapeHtml(data.feedback_correct || '')}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Feedback si mauvaise réponse</label>
-                            <textarea id="questionOuverteFeedbackIncorrect" class="form-textarea" rows="2" placeholder="La bonne réponse était...">${this.escapeHtml(data.feedback_incorrect || '')}</textarea>
-                        </div>
-                    </div>
                 `;
                 break;
 
@@ -1508,13 +1492,6 @@ Object.assign(AdminBanquesExercices, {
                     reponses_acceptees: reponsesAcceptees,
                     comparaison_stricte: document.querySelector('input[name="questionOuverteMode"][value="stricte"]')?.checked || false
                 };
-                // Ajouter feedbacks si activés
-                if (document.getElementById('questionOuverteShowFeedback')?.checked) {
-                    const feedbackCorrect = document.getElementById('questionOuverteFeedbackCorrect')?.value?.trim();
-                    const feedbackIncorrect = document.getElementById('questionOuverteFeedbackIncorrect')?.value?.trim();
-                    if (feedbackCorrect) donnees.feedback_correct = feedbackCorrect;
-                    if (feedbackIncorrect) donnees.feedback_incorrect = feedbackIncorrect;
-                }
                 break;
 
             case 'flashcard':
