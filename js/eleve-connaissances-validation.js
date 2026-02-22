@@ -29,7 +29,8 @@ Object.assign(EleveConnaissances, {
 
                     // Utiliser la fonction unifiée de feedback
                     this.displayUnifiedFeedback('feedback_vf_0', isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
-                    details.push({ question: donnees.question, reponse: answer, attendu: expected, correct: isCorrect });
+                    const feedbackVF = answer === 'vrai' ? (donnees.feedback_vrai || '') : (donnees.feedback_faux || '');
+                    details.push({ question: donnees.question, reponse: answer, attendu: expected, correct: isCorrect, feedbackOption: feedbackVF });
                 } else {
                     const propositions = donnees.propositions || [];
                     // Si validation question par question (carrousel), récupérer les résultats déjà stockés
@@ -58,7 +59,8 @@ Object.assign(EleveConnaissances, {
 
                             // Utiliser la fonction unifiée de feedback
                             this.displayUnifiedFeedback(`feedback_vf_${idx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
-                            details.push({ question: prop.texte, reponse: answer, attendu: expected, correct: isCorrect });
+                            const feedbackVFMulti = answer === 'vrai' ? (prop.feedback_vrai || '') : (prop.feedback_faux || '');
+                            details.push({ question: prop.texte, reponse: answer, attendu: expected, correct: isCorrect, feedbackOption: feedbackVFMulti });
                         });
                     }
                 }
@@ -1122,11 +1124,13 @@ Object.assign(EleveConnaissances, {
         }
 
         // Stocker le résultat
+        const feedbackVFCarousel = answer === 'vrai' ? (prop.feedback_vrai || '') : (prop.feedback_faux || '');
         this._vfResults[idx] = {
             question: prop.texte,
             reponse: answer,
             attendu: expected,
-            correct: isCorrect
+            correct: isCorrect,
+            feedbackOption: feedbackVFCarousel
         };
 
         // Remplacer le bouton
