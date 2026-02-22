@@ -323,6 +323,7 @@ Object.assign(EleveConnaissances, {
 
             if (hasPaires) {
                 // Association : rendu grille de cartes (même style que la frise chronologique)
+                // d.question = element1 de la paire, d.reponse = element2 associé par l'élève
                 const studentPairs = qDetails.map(d => ({
                     element1: d.question,
                     userAnswer: d.reponse,
@@ -330,16 +331,44 @@ Object.assign(EleveConnaissances, {
                     correct: d.correct
                 }));
 
-                // Helper : rend une carte d'association (élément principal + label associé)
-                const renderAssocCard = (mainVal, labelVal, statusClass, isUnanswered) => {
-                    const hasImage = mainVal && isImageUrl(mainVal);
-                    const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(this.normalizeImageUrl(mainVal))}');"` : '';
-                    const displayLabel = isUnanswered ? 'Non répondu' : (labelVal || '');
+                // Helper : rend une carte d'association
+                // Détecte automatiquement si val1 ou val2 est une image
+                // L'image va en background, le texte en label
+                const renderAssocCard = (val1, val2, statusClass, isUnanswered) => {
+                    const v1IsImg = val1 && isImageUrl(val1);
+                    const v2IsImg = val2 && isImageUrl(val2);
+
+                    let imageUrl = '';
+                    let textVal = '';
+                    let labelVal = '';
+
+                    if (v1IsImg && !v2IsImg) {
+                        // element1 = image, element2 = texte label
+                        imageUrl = this.normalizeImageUrl(val1);
+                        labelVal = isUnanswered ? 'Non répondu' : (val2 || '');
+                    } else if (!v1IsImg && v2IsImg) {
+                        // element1 = texte, element2 = image → afficher texte + image miniature en label
+                        textVal = val1 || '';
+                        labelVal = isUnanswered ? 'Non répondu' : (val2 || '');
+                    } else {
+                        // Texte ↔ texte (ou image ↔ image fallback)
+                        textVal = val1 || '';
+                        labelVal = isUnanswered ? 'Non répondu' : (val2 || '');
+                    }
+
+                    const hasImage = !!imageUrl;
+                    const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
                     const labelClass = isUnanswered ? 'correction-assoc-card-label correction-assoc-card-label--empty' : 'correction-assoc-card-label';
+                    // Si le label est une image URL, afficher une miniature
+                    const labelIsImg = labelVal && isImageUrl(labelVal);
+                    const labelHtml = labelIsImg
+                        ? `<img class="correction-assoc-card-label-img" src="${this.escapeHtml(this.normalizeImageUrl(labelVal))}" alt="">`
+                        : `<span class="${labelClass}">${this.escapeHtml(labelVal)}</span>`;
+
                     return `
                         <div class="correction-timeline-card correction-assoc-card-v2 ${hasImage ? 'has-image' : ''} ${statusClass}" ${imgStyle}>
-                            ${!hasImage ? `<span class="correction-timeline-titre">${this.escapeHtml(mainVal || '')}</span>` : ''}
-                            <span class="${labelClass}">${this.escapeHtml(displayLabel)}</span>
+                            ${!hasImage && textVal ? `<span class="correction-timeline-titre">${this.escapeHtml(textVal)}</span>` : ''}
+                            ${labelHtml}
                         </div>
                     `;
                 };
@@ -360,12 +389,7 @@ Object.assign(EleveConnaissances, {
                 const correctHtml = `
                     <p class="correction-timeline-hint correction-timeline-hint--correct">Réponse correcte :</p>
                     <div class="correction-timeline-cards">
-                        ${qData.paires.map(p => {
-                            const hasImage = p.element1 && isImageUrl(p.element1);
-                            const mainVal = hasImage ? p.element1 : p.element1;
-                            const labelVal = p.element2;
-                            return renderAssocCard(mainVal, labelVal, '', false);
-                        }).join('')}
+                        ${qData.paires.map(p => renderAssocCard(p.element1, p.element2, '', false)).join('')}
                     </div>
                 `;
 
