@@ -475,7 +475,7 @@ Object.assign(EleveConnaissances, {
             }
 
             return `
-                <div class="carousel-slide" data-slide="${i + 1}" style="display:none;">
+                <div class="carousel-slide hidden" data-slide="${i + 1}">
                     <div class="carousel-slide-header">
                         <span class="carousel-slide-title">${this.escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))} — ${this.getFormatLabel(ed.etape.format)}</span>
                         <span class="carousel-slide-score ${ed.hasErr ? 'has-errors' : 'all-correct'}">${ed.hasErr ? '❌' : '✅'} ${ed.correct}/${ed.total}</span>
@@ -525,7 +525,7 @@ Object.assign(EleveConnaissances, {
 
         // Afficher/masquer les slides
         slides.forEach((slide, i) => {
-            slide.style.display = i === index ? '' : 'none';
+            slide.classList.toggle('hidden', i !== index);
         });
 
         // Mettre à jour les dots
@@ -753,8 +753,8 @@ Object.assign(EleveConnaissances, {
     toggleEtapeDetails(idx) {
         const details = document.getElementById(`etapeDetails_${idx}`);
         if (details) {
-            const isHidden = details.style.display === 'none';
-            details.style.display = isHidden ? 'block' : 'none';
+            const isHidden = details.classList.contains('hidden');
+            details.classList.toggle('hidden');
             const toggle = details.previousElementSibling.querySelector('.etape-recap-toggle');
             if (toggle) toggle.textContent = isHidden ? '▲' : '▼';
         }

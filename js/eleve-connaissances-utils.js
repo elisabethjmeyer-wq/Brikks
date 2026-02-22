@@ -296,8 +296,42 @@ Object.assign(EleveConnaissances, {
         const bar = document.getElementById('multiProgressBar');
         const fill = document.getElementById('multiProgressFill');
         if (!bar || !fill) return;
-        bar.style.display = '';
+        bar.classList.remove('hidden');
         fill.style.width = `${(current / total) * 100}%`;
+    },
+
+    /**
+     * Navigation carousel unifiée pour les formats multi-questions (QCM, V/F, QO).
+     * Évite la duplication de logique entre qcmNavGoTo, vfNavGoTo et qoNavGoTo.
+     * @param {Object} cfg - Configuration du carousel
+     * @param {string} cfg.containerSel - Sélecteur CSS du conteneur principal
+     * @param {string} cfg.itemSel - Sélecteur CSS des éléments de question
+     * @param {string} cfg.actionSel - Sélecteur CSS des boutons d'action
+     * @param {string} cfg.actionAttr - Attribut data pour l'index de l'action
+     * @param {string} cfg.indexProp - Propriété de stockage de l'index courant
+     * @param {number} index - Index de la question cible
+     */
+    _carouselGoTo(cfg, index) {
+        const container = document.querySelector(cfg.containerSel);
+        if (!container) return;
+        const items = container.querySelectorAll(cfg.itemSel);
+        const total = items.length;
+        if (index < 0 || index >= total) return;
+
+        this[cfg.indexProp] = index;
+
+        items.forEach((item, i) => {
+            item.classList.toggle('hidden', i !== index);
+        });
+
+        container.querySelectorAll(cfg.actionSel).forEach(action => {
+            const forIdx = parseInt(action.getAttribute(cfg.actionAttr));
+            action.classList.toggle('hidden', forIdx !== index);
+        });
+
+        const headerCounter = document.getElementById('qcmHeaderCounter');
+        if (headerCounter) headerCounter.textContent = `Question ${index + 1} / ${total}`;
+        this.updateMultiProgressBar(index + 1, total);
     },
 
     // ============================================

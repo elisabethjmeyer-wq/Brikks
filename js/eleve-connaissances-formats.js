@@ -138,7 +138,7 @@ Object.assign(EleveConnaissances, {
                                     <span class="vf-btn faux">Faux</span>
                                 </label>
                             </div>
-                            <div class="vf-feedback" id="feedback_vf_0" style="display: none;"></div>
+                            <div class="vf-feedback hidden" id="feedback_vf_0"></div>
                         </div>
                     </div>
                 </div>
@@ -169,7 +169,7 @@ Object.assign(EleveConnaissances, {
                 ${questionText ? `<div class="question-enonce">${this.escapeHtml(questionText)}</div>` : ''}
                 <div class="vrai-faux-items">
                     ${items.map((item, idx) => `
-                        <div class="vrai-faux-item" data-index="${idx}" ${totalVf > 1 && idx > 0 ? 'style="display:none;"' : ''}>
+                        <div class="vrai-faux-item${totalVf > 1 && idx > 0 ? ' hidden' : ''}" data-index="${idx}">
                             <div class="vf-proposition">${this.escapeHtml(item.texte || item)}</div>
                             <div class="vf-choices">
                                 <label class="vf-choice">
@@ -181,10 +181,10 @@ Object.assign(EleveConnaissances, {
                                     <span class="vf-btn faux">Faux</span>
                                 </label>
                             </div>
-                            <div class="vf-feedback" id="feedback_vf_${idx}" style="display: none;"></div>
+                            <div class="vf-feedback hidden" id="feedback_vf_${idx}"></div>
                         </div>
                         ${totalVf > 1 ? `
-                            <div class="vf-question-action" id="vf_action_${idx}" data-for-vf="${idx}" ${idx > 0 ? 'style="display:none;"' : ''}>
+                            <div class="vf-question-action${idx > 0 ? ' hidden' : ''}" id="vf_action_${idx}" data-for-vf="${idx}">
                                 <button class="btn-qcm-validate" onclick="EleveConnaissances.validateVfQuestion(${idx})">Valider</button>
                             </div>
                         ` : ''}
@@ -213,7 +213,7 @@ Object.assign(EleveConnaissances, {
                         const multiple = q.multiple || false;
 
                         if (choices.length === 0) {
-                            return `<div class="qcm-question-block" data-question="${qIdx}" ${qIdx > 0 ? 'style="display:none;"' : ''}>
+                            return `<div class="qcm-question-block${qIdx > 0 ? ' hidden' : ''}" data-question="${qIdx}">
                                 <div class="format-no-data">Question ${qIdx + 1}: Pas de choix configurés</div>
                             </div>`;
                         }
@@ -223,7 +223,7 @@ Object.assign(EleveConnaissances, {
                         const shuffledChoices = this.shuffleArray([...indexedChoices]);
 
                         return `
-                            <div class="qcm-question-block" data-question="${qIdx}" ${qIdx > 0 ? 'style="display:none;"' : ''}>
+                            <div class="qcm-question-block${qIdx > 0 ? ' hidden' : ''}" data-question="${qIdx}">
                                 <div class="question-enonce">${this.escapeHtml(q.question || `Question ${qIdx + 1}`)}</div>
                                 <div class="qcm-choices">
                                     ${shuffledChoices.map(({ choice, originalIdx }) => `
@@ -236,10 +236,10 @@ Object.assign(EleveConnaissances, {
                                         </label>
                                     `).join('')}
                                 </div>
-                                <div class="qcm-feedback" id="feedback_qcm_${qIdx}" style="display: none;"></div>
+                                <div class="qcm-feedback hidden" id="feedback_qcm_${qIdx}"></div>
                             </div>
                             ${totalQ > 1 ? `
-                                <div class="qcm-question-action" id="qcm_action_${qIdx}" data-for-qcm="${qIdx}" ${qIdx > 0 ? 'style="display:none;"' : ''}>
+                                <div class="qcm-question-action${qIdx > 0 ? ' hidden' : ''}" id="qcm_action_${qIdx}" data-for-qcm="${qIdx}">
                                     <button class="btn-qcm-validate" onclick="EleveConnaissances.validateQcmQuestion(${qIdx})">Valider</button>
                                 </div>
                             ` : ''}
@@ -283,7 +283,7 @@ Object.assign(EleveConnaissances, {
                         </label>
                     `).join('')}
                 </div>
-                <div class="qcm-feedback" id="feedback_qcm" style="display: none;"></div>
+                <div class="qcm-feedback hidden" id="feedback_qcm"></div>
             </div>
         `;
     },
@@ -452,7 +452,7 @@ Object.assign(EleveConnaissances, {
                         </div>
                     `}).join('')}
                 </div>
-                <div class="chronologie-feedback" id="feedback_timeline" style="display: none;"></div>
+                <div class="chronologie-feedback hidden" id="feedback_timeline"></div>
             </div>
         `;
     },
@@ -635,7 +635,7 @@ Object.assign(EleveConnaissances, {
                 <div class="texte-avec-trous">
                     ${processedTexte}
                 </div>
-                <div class="chronologie-feedback" id="feedback_texte_trous" style="display: none;"></div>
+                <div class="chronologie-feedback hidden" id="feedback_texte_trous"></div>
             </div>
         `;
     },
@@ -733,7 +733,7 @@ Object.assign(EleveConnaissances, {
                     `).join('')}
                 </div>
 
-                <div class="association-feedback" id="association_feedback" style="display: none;"></div>
+                <div class="association-feedback hidden" id="association_feedback"></div>
             </div>
         `;
     },
@@ -918,7 +918,7 @@ Object.assign(EleveConnaissances, {
                         `).join('')}
                     </div>
                     <!-- Popup pour répondre -->
-                    <div class="carte-popup" id="cartePopup" style="display: none;">
+                    <div class="carte-popup hidden" id="cartePopup">
                         <div class="carte-popup-content">
                             <div class="carte-popup-header">
                                 <span class="carte-popup-title">Point n°<span id="cartePopupNum"></span></span>
@@ -942,7 +942,7 @@ Object.assign(EleveConnaissances, {
                 </div>
 
                 <p class="carte-help">Cliquez sur un numéro pour répondre. <span class="carte-help-hint">Utilisez ⛶ pour agrandir.</span></p>
-                <div class="chronologie-feedback" id="feedback_carte" style="display: none;"></div>
+                <div class="chronologie-feedback hidden" id="feedback_carte"></div>
             </div>
         `;
     },
@@ -966,7 +966,7 @@ Object.assign(EleveConnaissances, {
         const existingAnswer = this.userAnswers['carte_' + index];
         input.value = existingAnswer || '';
 
-        popup.style.display = 'flex';
+        popup.classList.remove('hidden');
         input.focus();
 
         // Marquer le marqueur comme actif
@@ -981,7 +981,7 @@ Object.assign(EleveConnaissances, {
     closeCartePopup() {
         const popup = document.getElementById('cartePopup');
         this._removePopupFocusTrap();
-        popup.style.display = 'none';
+        popup.classList.add('hidden');
         this.carteActiveIndex = null;
         document.querySelectorAll('.carte-marker-v2.active').forEach(el => el.classList.remove('active'));
     },
@@ -1061,7 +1061,7 @@ Object.assign(EleveConnaissances, {
         // Masquer le badge texte pour éviter les chevauchements — le détail est dans le popup
         const label = marker.querySelector('.carte-marker-answer-label');
         if (label) {
-            label.style.display = 'none';
+            label.classList.add('hidden');
         }
 
         // Remplacer le onclick par le popup de correction
@@ -1110,9 +1110,9 @@ Object.assign(EleveConnaissances, {
         if (body) body.innerHTML = bodyHTML;
 
         const footer = popup.querySelector('.carte-popup-footer');
-        if (footer) footer.style.display = 'none';
+        if (footer) footer.classList.add('hidden');
 
-        popup.style.display = 'flex';
+        popup.classList.remove('hidden');
     },
 
     /**
@@ -1165,7 +1165,7 @@ Object.assign(EleveConnaissances, {
                         </div>
                     </div>
                 </div>
-                <div class="flashcard-actions" id="flashcardActions" style="display: none;">
+                <div class="flashcard-actions hidden" id="flashcardActions">
                     <button class="btn flashcard-btn-fail" onclick="EleveConnaissances.evaluateFlashcard(false)">
                         ✗ Je ne savais pas
                     </button>
@@ -1173,7 +1173,7 @@ Object.assign(EleveConnaissances, {
                         ✓ Je savais
                     </button>
                 </div>
-                <div class="flashcard-summary" id="flashcardSummary" style="display: none;"></div>
+                <div class="flashcard-summary hidden" id="flashcardSummary"></div>
             </div>
         `;
     },
@@ -1193,11 +1193,11 @@ Object.assign(EleveConnaissances, {
 
         if (this.flashcardState.flipped) {
             // Montrer les boutons d'auto-évaluation
-            if (actions) actions.style.display = 'flex';
-            if (hint) hint.style.display = 'none';
+            if (actions) actions.classList.remove('hidden');
+            if (hint) hint.classList.add('hidden');
         } else {
-            if (actions) actions.style.display = 'none';
-            if (hint) hint.style.display = '';
+            if (actions) actions.classList.add('hidden');
+            if (hint) hint.classList.remove('hidden');
         }
     },
 
@@ -1253,8 +1253,8 @@ Object.assign(EleveConnaissances, {
         }
         if (front) front.textContent = carte.recto;
         if (back) back.textContent = carte.verso;
-        if (actions) actions.style.display = 'none';
-        if (hint) hint.style.display = '';
+        if (actions) actions.classList.add('hidden');
+        if (hint) hint.classList.remove('hidden');
         if (counter) counter.textContent = `Carte ${state.currentIndex + 1} / ${state.total}`;
         if (progressFill) progressFill.style.width = `${((state.currentIndex + 1) / state.total) * 100}%`;
         // Mettre à jour le compteur dans le header
@@ -1273,8 +1273,8 @@ Object.assign(EleveConnaissances, {
         const counter = document.getElementById('flashcardCounter');
         const progressFill = document.getElementById('flashcardProgressFill');
 
-        if (scene) scene.style.display = 'none';
-        if (actions) actions.style.display = 'none';
+        if (scene) scene.classList.add('hidden');
+        if (actions) actions.classList.add('hidden');
 
         const nbSavait = state.results.filter(r => r.savait).length;
         if (counter) counter.textContent = `Terminé : ${nbSavait} / ${state.total} cartes réussies`;
@@ -1282,7 +1282,7 @@ Object.assign(EleveConnaissances, {
 
         // Masquer le résumé détaillé (doublon avec le bilan final)
         const summary = document.getElementById('flashcardSummary');
-        if (summary) summary.style.display = 'none';
+        if (summary) summary.classList.add('hidden');
 
         // Valider directement l'étape → affiche le bandeau vert
         this.validateCurrentEtape();
@@ -1303,7 +1303,7 @@ Object.assign(EleveConnaissances, {
             return `
                 <div class="qo-multi-container" ${totalQo > 1 ? `data-total-qo="${totalQo}"` : ''}>
                     ${donnees.multiQuestions.map((q, qIdx) => `
-                        <div class="question-ouverte-container" data-qo-index="${qIdx}" ${totalQo > 1 && qIdx > 0 ? 'style="display:none;"' : ''}>
+                        <div class="question-ouverte-container${totalQo > 1 && qIdx > 0 ? ' hidden' : ''}" data-qo-index="${qIdx}">
                             <div class="question-ouverte-enonce">${this.escapeHtml(q.question)}</div>
                             <div class="question-ouverte-input-wrapper">
                                 <input type="text"
@@ -1313,10 +1313,10 @@ Object.assign(EleveConnaissances, {
                                        autocomplete="off"
                                        oninput="EleveConnaissances.saveAnswer('question_ouverte_${qIdx}', this.value)">
                             </div>
-                            <div class="question-ouverte-feedback" id="feedback_question_ouverte_${qIdx}" style="display: none;"></div>
+                            <div class="question-ouverte-feedback hidden" id="feedback_question_ouverte_${qIdx}"></div>
                         </div>
                         ${totalQo > 1 ? `
-                            <div class="qo-question-action" id="qo_action_${qIdx}" data-for-qo="${qIdx}" ${qIdx > 0 ? 'style="display:none;"' : ''}>
+                            <div class="qo-question-action${qIdx > 0 ? ' hidden' : ''}" id="qo_action_${qIdx}" data-for-qo="${qIdx}">
                                 <button class="btn-qcm-validate" onclick="EleveConnaissances.validateQoQuestion(${qIdx})">Valider</button>
                             </div>
                         ` : ''}
@@ -1358,7 +1358,7 @@ Object.assign(EleveConnaissances, {
                            autocomplete="off"
                            oninput="EleveConnaissances.saveAnswer('question_ouverte', this.value)">
                 </div>
-                <div class="question-ouverte-feedback" id="feedback_question_ouverte" style="display: none;"></div>
+                <div class="question-ouverte-feedback hidden" id="feedback_question_ouverte"></div>
             </div>
         `;
     },
@@ -1388,7 +1388,7 @@ Object.assign(EleveConnaissances, {
         const feedbackText = isCorrect ? 'Correct !' : 'Réponse incorrecte';
 
         globalFeedback.id = 'etapeGlobalFeedback';
-        globalFeedback.style.display = 'block';
+        globalFeedback.classList.remove('hidden');
 
         this.displayUnifiedFeedback(
             'etapeGlobalFeedback',
@@ -1439,7 +1439,7 @@ Object.assign(EleveConnaissances, {
         const feedbackEl = document.getElementById(feedbackElementId);
         if (!feedbackEl) return;
 
-        feedbackEl.style.display = 'block';
+        feedbackEl.classList.remove('hidden');
 
         // Adapter la classe CSS selon le format
         let feedbackClass = 'question-feedback';
@@ -1659,7 +1659,7 @@ Object.assign(EleveConnaissances, {
 
         // Afficher le tout
         feedbackContainer.innerHTML = studentHtml + correctHtml;
-        feedbackContainer.style.display = 'block';
+        feedbackContainer.classList.remove('hidden');
     },
 
 });
