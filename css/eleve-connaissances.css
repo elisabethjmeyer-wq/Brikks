@@ -3748,7 +3748,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     padding: 1.25rem;
     box-sizing: border-box;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -3784,9 +3783,6 @@
     word-break: break-word;
     line-height: 1.4;
     flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow-y: auto;
 }
 
@@ -5069,9 +5065,6 @@
     line-height: 1.5;
     flex: 1; /* Prend l'espace disponible */
     overflow-y: auto; /* Scroll si contenu trop long */
-    display: flex;
-    align-items: center;
-    justify-content: center;
     width: 100%;
     padding: 0.5rem;
 }
