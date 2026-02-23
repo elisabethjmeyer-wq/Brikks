@@ -85,7 +85,7 @@ Brikks/
 └── index.html                   # Point d'entrée (login)
 ```
 
-### Module connaissances élève (le plus récemment travaillé)
+### Module connaissances élève (audité)
 ```
 js/eleve-connaissances.js           # Principal : chargement, rendu accordéon, navigation étapes
 js/eleve-connaissances-formats.js   # Rendus des formats (QCM, V/F, chrono, association, etc.)
@@ -93,6 +93,35 @@ js/eleve-connaissances-validation.js # Validation des réponses par format
 js/eleve-connaissances-results.js   # Écran de résultats, progression, mémorisation
 js/eleve-connaissances-utils.js     # Helpers partagés (normalizeFormat, resetEtapeState, etc.)
 ```
+
+### Module admin connaissances — création d'entraînements (audité et nettoyé)
+```
+js/admin-banques-exercices.js                  # Module parent (1 439 lignes) : init, cache, API JSONP, tabs, rendu savoir-faire
+js/admin-banques-exercices-connaissances.js    # Extension (1 776 lignes) : wizard 4 étapes + CRUD banques/entraînements
+js/admin-banques-exercices-questions.js        # Extension (1 794 lignes) : CRUD banques de questions
+js/admin-banques-exercices-builders.js         # Extension (1 851 lignes) : builders (tableau, carte, mixte)
+css/admin-banques-exercices.css                # Styles (4 324 lignes, dont ~800 pour le wizard)
+css/admin-banques-questions.css                # Styles banques de questions (812 lignes)
+```
+
+**Ce que fait le module :**
+- La prof gère deux sections via un toggle : « Banques d'exercices » (entraînements) et « Banques de questions »
+- Création/modification d'un entraînement via un wizard en 4 étapes :
+  1. Paramètres (titre, durée, seuil, statut brouillon/publié)
+  2. Étapes (formats d'exercices) — ajout par format, drag & drop pour réordonner
+  3. Questions — mode manuel (sélection checkboxes) ou aléatoire (nb + banque source)
+  4. Validation — résumé avant sauvegarde
+- CRUD complet pour les banques d'exercices, entraînements, étapes, et questions
+
+**Patterns techniques :**
+- Cache localStorage (TTL 3 min) + refresh arrière-plan
+- Mises à jour optimistes avec rollback en cas d'erreur API
+- Protection double-clic via flags `_navigating`, `_addingEtape`, `_finalizing`, etc.
+- Notifications non-bloquantes (`showNotification`) pour les erreurs et validations
+- `getQuestionsForFormat(formatCode, etapeId?)` : fonction unifiée de filtrage des questions
+
+**Appels API** (chargement, 12 en parallèle) :
+`getBanquesExercices`, `getFormatsExercices`, `getExercices`, `getTachesComplexes`, `getCompetencesReferentiel`, `getBanquesQuestions`, `getQuestionsConnaissances`, `getFormatsQuestions`, `getBanquesExercicesConn`, `getEntrainementsConn`, `getEtapesConn`, `getEtapeQuestionsConn`
 
 ## Conventions importantes
 
@@ -146,6 +175,6 @@ Pour afficher le nombre de niveaux **validés** : `Math.max(0, prog.etape - 1)`.
 
 - **Sécurité** : mots de passe en clair dans Google Sheets, pas d'auth côté serveur, clé API exposée côté client. Acceptable pour ~50 élèves en environnement scolaire, mais à documenter.
 - **Module savoir-faire** : seuil de 5 étapes — vérifier l'alignement frontend/backend. Les fichiers sont très gros (~54k + ~64k lignes).
-- **Code admin** : pas encore audité/nettoyé
+- **Code admin connaissances** : audité et nettoyé. Reste : CSS du wizard avec ~7 sélecteurs `.etape-*` dupliqués (fonctionnel mais fragile), `getQuestionPreview()` dupliqué dans 3 fichiers différents (à extraire dans un helper partagé un jour)
 - **Module exercices élève** : pas encore audité
 - **Tests** : aucun test automatisé (pas de framework de test configuré)

@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-02-23 (session 3) — Audit et nettoyage module admin connaissances
+
+### Contexte
+Audit complet du module de création d'entraînements de connaissances côté admin (wizard 4 étapes).
+
+### Bug corrigé
+- **Boutons Suivant/Valider bloqués** : après la création d'un entraînement (étape 1), `renderWizardStep()` ne réinitialisait pas `disabled` sur les boutons de navigation. Le bouton restait grisé sur toutes les étapes suivantes.
+
+### Gestion d'erreurs améliorée
+- **`finalizeEntrainement()`** : ajout d'un `catch` avec notification visible. Avant, si la sauvegarde échouait, la prof ne voyait aucun message d'erreur.
+- **Sauvegarde arrière-plan étape 1** : en mode édition, l'appel API silencieux affiche maintenant une notification en cas d'échec réseau.
+
+### UX notifications
+- Tous les `alert()` (14) remplacés par `showNotification()` (bandeaux non-bloquants en bas de page)
+- Ajout du style CSS `notification-warning` (orange) pour les validations de formulaire
+
+### Refactoring
+- **`getQuestionsForFormat()` et `getQuestionsForFormatAndBanque()`** fusionnés en une seule fonction avec paramètre `etapeId` optionnel — supprime la duplication de logique de filtrage
+- **23 `console.log`/`warn` de debug** supprimés — ne restent que les `console.error` (erreurs réelles)
+
+### Documentation
+- `CLAUDE.md` : ajout de la vue fonctionnelle du module admin connaissances (fichiers, patterns techniques, appels API)
+- Mise à jour des points connus non traités (admin marqué comme audité)
+
+### Fichiers modifiés
+- `js/admin-banques-exercices-connaissances.js`
+- `css/admin-banques-exercices.css`
+- `CLAUDE.md`
+- `CHANGELOG.md`
+
+### Décisions prises
+- Les `onclick` inline restent en l'état — c'est la convention de tout le projet, changer ici serait incohérent
+- Les `confirm()` (suppressions) restent des popups bloquantes — c'est voulu pour les actions destructives
+- Les sélecteurs CSS `.etape-*` dupliqués ne sont pas refactorisés — fonctionnel mais à nettoyer avec tests visuels
+- `getQuestionPreview()` dupliqué dans 3 fichiers — à extraire plus tard dans un helper partagé
+
+---
+
 ## 2026-02-23 (session 2) — Auto-audit et corrections ciblées
 
 ### Contexte
