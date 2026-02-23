@@ -5,6 +5,9 @@
  */
 
 const EleveConnaissances = {
+    // Nombre d'étapes de mémorisation (doit correspondre à ETAPE_MAX côté backend)
+    SEUIL_ETAPES: 7,
+
     // Données
     banques: [],
     entrainements: [],
@@ -431,10 +434,12 @@ const EleveConnaissances = {
         entrainements.forEach(ent => {
             const prog = this.progressions[ent.id];
             const status = this.getEntrainementStatus(prog);
+            // etape = prochain niveau à tenter (backend incrémente après succès)
+            // niveauxValides = nombre de niveaux effectivement réussis
             const etape = prog?.etape || 0;
+            const niveauxValides = Math.max(0, etape - 1);
 
-            // Calcul de la somme des étapes pour la moyenne
-            sommeEtapes += etape;
+            sommeEtapes += niveauxValides;
 
             // Vérifier si prêt pour évaluation (tous à étape ≥ 5)
             if (etape < 5) {
@@ -454,8 +459,8 @@ const EleveConnaissances = {
             }
         });
 
-        // Progression moyenne = moyenne des (étape / 7) * 100
-        const progressionMoyenne = total > 0 ? Math.round((sommeEtapes / total / 7) * 100) : 0;
+        // Progression moyenne = moyenne des (étape / SEUIL_ETAPES) * 100
+        const progressionMoyenne = total > 0 ? Math.round((sommeEtapes / total / this.SEUIL_ETAPES) * 100) : 0;
 
         return {
             total,
@@ -509,15 +514,15 @@ const EleveConnaissances = {
                     break;
                 case 'a-reviser':
                     statusBadge = '<span class="entrainement-badge urgent">⚡ À réviser</span>';
-                    actionHint = `${reussites}/6 réussies`;
+                    actionHint = `${reussites}/${this.SEUIL_ETAPES} réussies`;
                     break;
                 case 'verrouille':
                     statusBadge = `<span class="entrainement-badge locked">⏳ Dans ${statusInfo.joursRestants}j</span>`;
-                    actionHint = `${reussites}/6 réussies`;
+                    actionHint = `${reussites}/${this.SEUIL_ETAPES} réussies`;
                     break;
                 case 'memorise':
                     statusBadge = '<span class="entrainement-badge done">✅ Mémorisé</span>';
-                    actionHint = '6/6 réussies';
+                    actionHint = `${this.SEUIL_ETAPES}/${this.SEUIL_ETAPES} réussies`;
                     break;
             }
 

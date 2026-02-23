@@ -148,7 +148,7 @@ Object.assign(EleveConnaissances, {
                     reviens <strong>${dateStr}</strong> pour la prochaine révision.
                 </p>
                 <div class="locked-modal-info">
-                    <div class="locked-modal-etape">Niveau ${Math.max((prog.etape || 1) - 1, 0)}/6 validé</div>
+                    <div class="locked-modal-etape">Niveau ${Math.max((prog.etape || 1) - 1, 0)}/${this.SEUIL_ETAPES} validé</div>
                     <div class="locked-modal-jours">${status.joursRestants} jour${status.joursRestants > 1 ? 's' : ''} restant${status.joursRestants > 1 ? 's' : ''}</div>
                 </div>
                 <div class="locked-modal-actions">
@@ -672,8 +672,8 @@ Object.assign(EleveConnaissances, {
         const tempsOK = timeSpent <= tempsPrevu;
 
         // prog.etape = prochain niveau à tenter (déjà incrémenté côté serveur)
-        const SEUIL_ETAPES = 7;
         const niveauValide = Math.max((prog.etape || 1) - 1, 0);
+        const SEUIL_ETAPES = this.SEUIL_ETAPES;
         const isSuccess = !this.isTrainingMode && prog.reussi === true;
 
         // Le score atteint-il le seuil de réussite ? (indépendant du mode)
