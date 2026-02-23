@@ -398,9 +398,10 @@ Object.assign(AdminBanquesExercices, {
                     };
                     Object.assign(this.wizardData.entrainement, formData);
                     // Sauvegarde en arrière-plan
-                    this.callAPI('updateEntrainementConn', formData).catch(err =>
-                        console.error('Erreur sauvegarde étape 1:', err)
-                    );
+                    this.callAPI('updateEntrainementConn', formData).catch(err => {
+                        console.error('Erreur sauvegarde étape 1:', err);
+                        this.showNotification('Les paramètres n\'ont pas pu être sauvegardés. Vérifiez votre connexion.', 'error');
+                    });
                 } else {
                     // Mode création : on a besoin de l'ID du serveur → indicateur de chargement
                     if (nextBtn) {
@@ -436,33 +437,33 @@ Object.assign(AdminBanquesExercices, {
             case 1:
                 const titre = document.getElementById('wizardTitre')?.value.trim();
                 if (!titre) {
-                    alert('Le titre est requis');
+                    this.showNotification('Le titre est requis', 'warning');
                     return false;
                 }
 
                 // Validations pour durée et seuil
                 const duree = parseInt(document.getElementById('wizardDuree')?.value) || 15;
                 if (duree <= 0 || duree > 999) {
-                    alert('La durée doit être entre 1 et 999 minutes');
+                    this.showNotification('La durée doit être entre 1 et 999 minutes', 'warning');
                     return false;
                 }
 
                 const seuil = parseInt(document.getElementById('wizardSeuil')?.value) || 80;
                 if (seuil < 0 || seuil > 100) {
-                    alert('Le seuil doit être entre 0 et 100%');
+                    this.showNotification('Le seuil doit être entre 0 et 100%', 'warning');
                     return false;
                 }
 
                 const statut = document.getElementById('wizardStatut')?.value;
                 if (!['brouillon', 'publie'].includes(statut)) {
-                    alert('Statut invalide. Doit être "brouillon" ou "publie"');
+                    this.showNotification('Statut invalide', 'warning');
                     return false;
                 }
 
                 return true;
             case 2:
                 if (this.wizardData.etapes.length === 0) {
-                    alert('Ajoutez au moins une étape');
+                    this.showNotification('Ajoutez au moins une étape', 'warning');
                     return false;
                 }
                 return true;
@@ -489,7 +490,7 @@ Object.assign(AdminBanquesExercices, {
                     }
                 }
                 if (etapesProblemes.length > 0) {
-                    alert('Configuration incomplète:\n\n• ' + etapesProblemes.join('\n• '));
+                    this.showNotification('Configuration incomplète : ' + etapesProblemes.join(' | '), 'warning');
                     return false;
                 }
                 return true;
@@ -772,7 +773,7 @@ Object.assign(AdminBanquesExercices, {
             // Réorganiser wizardData.etapes selon le nouvel ordre
             this.wizardData.etapes.sort((a, b) => a.ordre - b.ordre);
 
-            console.log('Ordre des étapes sauvegardé');
+            // Ordre sauvegardé
         } catch (error) {
             console.error('Erreur sauvegarde ordre:', error);
         }
@@ -809,7 +810,6 @@ Object.assign(AdminBanquesExercices, {
             });
         }
 
-        console.log('Formats normalisés:', this.formatsQuestions.map(f => f.code));
     },
 
     // Infère le type de question depuis la structure de ses données
@@ -841,17 +841,20 @@ Object.assign(AdminBanquesExercices, {
     },
 
     // Filtre les questions disponibles pour un format donné
-    getQuestionsForFormatAndBanque(formatCode, etapeId) {
+    // etapeId est optionnel : s'il est fourni, on utilise la banque source de l'étape
+    getQuestionsForFormat(formatCode, etapeId) {
         const questions = this.questionsConnaissances || [];
-        const etape = this.wizardData.etapes.find(e => e.id === etapeId);
 
         // Déterminer la banque source
         let banqueFilter = null;
-        if (etape && etape.banque_source_id) {
-            // Utiliser la banque source définie dans l'étape
-            banqueFilter = etape.banque_source_id;
-        } else if (this.wizardData && this.wizardData.banqueId && !this.wizardData.entrainement) {
-            // Sinon, utiliser la banque du wizard (si création depuis une banque)
+        if (etapeId) {
+            const etape = this.wizardData.etapes.find(e => e.id === etapeId);
+            if (etape && etape.banque_source_id) {
+                banqueFilter = etape.banque_source_id;
+            }
+        }
+        // Fallback : utiliser la banque du wizard si création depuis une banque
+        if (!banqueFilter && this.wizardData && this.wizardData.banqueId && !this.wizardData.entrainement) {
             banqueFilter = this.wizardData.banqueId;
         }
 
@@ -859,22 +862,6 @@ Object.assign(AdminBanquesExercices, {
         let filtered = questions;
         if (banqueFilter) {
             filtered = questions.filter(q => q.banque_id === banqueFilter);
-        }
-
-        // Timeline unifié : inclure aussi les anciennes questions chronologie
-        if (formatCode === 'timeline') {
-            return filtered.filter(q => q.type === 'timeline' || q.type === 'chronologie');
-        }
-        return filtered.filter(q => q.type === formatCode);
-    },
-
-    getQuestionsForFormat(formatCode) {
-        const questions = this.questionsConnaissances || [];
-
-        // Si on crée un nouvel entraînement depuis une banque spécifique, filtrer par banque
-        let filtered = questions;
-        if (this.wizardData && this.wizardData.banqueId && !this.wizardData.entrainement) {
-            filtered = questions.filter(q => q.banque_id === this.wizardData.banqueId);
         }
 
         // Timeline unifié : inclure aussi les anciennes questions chronologie
@@ -930,7 +917,7 @@ Object.assign(AdminBanquesExercices, {
                 this.wizardData.etapes.push(newEtape);
                 this.renderWizardStep(2);
             } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                this.showNotification('Erreur : ' + (result.error || 'Erreur inconnue'), 'error');
             }
         } catch (error) {
             console.error('Erreur ajout étape:', error);
@@ -1043,7 +1030,7 @@ Object.assign(AdminBanquesExercices, {
     renderWizardEtapeQuestions(etape, index) {
         const format = this.formatsQuestions.find(f => f.code === etape.format_code) || {};
         const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
-        const availableQuestions = this.getQuestionsForFormatAndBanque(etape.format_code, etape.id);
+        const availableQuestions = this.getQuestionsForFormat(etape.format_code, etape.id);
 
         // Récupérer les banques qui contiennent des questions de ce format
         const banquesAvecQuestions = [...new Set(availableQuestions.map(q => q.banque_id))];
@@ -1272,7 +1259,7 @@ Object.assign(AdminBanquesExercices, {
         if (!etape) return;
 
         // Calculer le nombre de questions disponibles avec la nouvelle banque source
-        const availableQuestions = this.getQuestionsForFormatAndBanque(etape.format_code, etapeId);
+        const availableQuestions = this.getQuestionsForFormat(etape.format_code, etapeId);
 
         // Trouver l'index de l'étape pour localiser le bon panneau
         const etapeIndex = this.wizardData.etapes.findIndex(e => e.id === etapeId);
@@ -1291,8 +1278,6 @@ Object.assign(AdminBanquesExercices, {
     },
 
     toggleEtapeQuestion(etapeId, questionId, isChecked) {
-        console.log(`[Admin] toggleEtapeQuestion: etape=${etapeId}, question=${questionId}, checked=${isChecked}`);
-
         // Stocker localement dans wizardData (sauvegarde à la fin)
         if (!this.wizardData.selectedQuestions) {
             this.wizardData.selectedQuestions = {};
@@ -1313,8 +1298,6 @@ Object.assign(AdminBanquesExercices, {
                 currentSelection.splice(index, 1);
             }
         }
-
-        console.log(`[Admin] Questions sélectionnées pour étape ${etapeId}:`, [...currentSelection]);
 
         // Mettre à jour le compteur et la classe selected
         const etapeEl = document.querySelector(`.wizard-etape-questions[data-etape-id="${etapeId}"]`);
@@ -1470,42 +1453,26 @@ Object.assign(AdminBanquesExercices, {
         }
 
         try {
-            console.log('[Admin] ===== FINALISATION ENTRAINEMENT =====');
-            console.log('[Admin] wizardData.etapes:', this.wizardData.etapes);
-            console.log('[Admin] wizardData.selectedQuestions:', this.wizardData.selectedQuestions);
-
-            // Sauvegarder les questions sélectionnées pour chaque étape MANUELLEMENT
-            // IMPORTANT: Sauvegarde séquentielle pour éviter les race conditions sur le sheet
+            // Sauvegarder les questions sélectionnées pour chaque étape en mode manuel
+            // Sauvegarde séquentielle pour éviter les race conditions sur le sheet
             if (this.wizardData.etapes) {
                 for (const etape of this.wizardData.etapes) {
-                    // Ne sauvegarder que les étapes en mode manuel
                     // Les étapes en mode aléatoire n'utilisent pas ETAPE_QUESTIONS_CONN
-                    if (etape.mode_selection === 'aleatoire') {
-                        console.log(`[Admin] Étape ${etape.id} (${etape.format_code}): mode aléatoire, pas de sauvegarde de questions`);
-                        continue;
-                    }
+                    if (etape.mode_selection === 'aleatoire') continue;
 
-                    // Utiliser getSelectedQuestionsForEtape qui gère le fallback vers les données serveur
                     const selectedIds = this.getSelectedQuestionsForEtape(etape.id);
-                    // Convertir les IDs en format attendu par le backend: [{question_id: 'xxx'}, ...]
                     const questionsFormatted = selectedIds.map(id => ({ question_id: id }));
 
-                    console.log(`[Admin] Sauvegarde étape ${etape.id} (${etape.format_code}): ${selectedIds.length} questions`, questionsFormatted);
-
                     try {
-                        // IMPORTANT: JSON.stringify pour que le tableau passe correctement via URL
-                        const result = await this.callAPI('setEtapeQuestionsConn', {
+                        await this.callAPI('setEtapeQuestionsConn', {
                             etape_id: etape.id,
                             questions: JSON.stringify(questionsFormatted)
                         });
-                        console.log(`[Admin] Résultat sauvegarde étape ${etape.id}:`, result);
                     } catch (error) {
                         console.error(`Erreur sauvegarde questions étape ${etape.id}:`, error);
                         throw error;
                     }
                 }
-            } else {
-                console.warn('[Admin] Pas d\'étapes à sauvegarder');
             }
 
             // Mise à jour locale des etapeQuestionsConn au lieu de loadDataFromAPI()
@@ -1538,6 +1505,9 @@ Object.assign(AdminBanquesExercices, {
 
             // Afficher un message de succès
             this.showNotification('Entraînement sauvegardé avec succès !', 'success');
+        } catch (error) {
+            console.error('Erreur finalisation entraînement:', error);
+            this.showNotification('Erreur lors de la sauvegarde. Vérifiez votre connexion et réessayez.', 'error');
         } finally {
             this._finalizing = false;
             if (nextBtn) {
@@ -1659,7 +1629,7 @@ Object.assign(AdminBanquesExercices, {
         const statut = document.getElementById('banqueExConnStatut').value;
 
         if (!titre) {
-            alert('Le titre est requis');
+            this.showNotification('Le titre est requis', 'warning');
             this._savingBanque = false;
             return;
         }
@@ -1687,11 +1657,11 @@ Object.assign(AdminBanquesExercices, {
                 this.saveToCache();
                 this.renderBanques();
             } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                this.showNotification('Erreur : ' + (result.error || 'Erreur inconnue'), 'error');
             }
         } catch (error) {
             console.error('Erreur sauvegarde banque:', error);
-            alert('Erreur lors de la sauvegarde');
+            this.showNotification('Erreur lors de la sauvegarde. Vérifiez votre connexion.', 'error');
         } finally {
             this._savingBanque = false;
         }
@@ -1728,7 +1698,7 @@ Object.assign(AdminBanquesExercices, {
                 this.etapeQuestionsConn = oldEtapeQuestions;
                 this.saveToCache();
                 this.renderBanques();
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                this.showNotification('Erreur : ' + (result.error || 'Erreur inconnue'), 'error');
             }
         } catch (error) {
             console.error('Erreur suppression:', error);
@@ -1739,7 +1709,7 @@ Object.assign(AdminBanquesExercices, {
             this.etapeQuestionsConn = oldEtapeQuestions;
             this.saveToCache();
             this.renderBanques();
-            alert('Erreur lors de la suppression');
+            this.showNotification('Erreur lors de la suppression. Vérifiez votre connexion.', 'error');
         }
     },
 
@@ -1770,7 +1740,7 @@ Object.assign(AdminBanquesExercices, {
                 this.etapeQuestionsConn = oldEtapeQuestions;
                 this.saveToCache();
                 this.renderBanques();
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                this.showNotification('Erreur : ' + (result.error || 'Erreur inconnue'), 'error');
             }
         } catch (error) {
             console.error('Erreur suppression:', error);
@@ -1780,7 +1750,7 @@ Object.assign(AdminBanquesExercices, {
             this.etapeQuestionsConn = oldEtapeQuestions;
             this.saveToCache();
             this.renderBanques();
-            alert('Erreur lors de la suppression');
+            this.showNotification('Erreur lors de la suppression. Vérifiez votre connexion.', 'error');
         }
     },
 });
