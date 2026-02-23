@@ -434,10 +434,12 @@ const EleveConnaissances = {
         entrainements.forEach(ent => {
             const prog = this.progressions[ent.id];
             const status = this.getEntrainementStatus(prog);
+            // etape = prochain niveau à tenter (backend incrémente après succès)
+            // niveauxValides = nombre de niveaux effectivement réussis
             const etape = prog?.etape || 0;
+            const niveauxValides = Math.max(0, etape - 1);
 
-            // Calcul de la somme des étapes pour la moyenne
-            sommeEtapes += etape;
+            sommeEtapes += niveauxValides;
 
             // Vérifier si prêt pour évaluation (tous à étape ≥ 5)
             if (etape < 5) {
