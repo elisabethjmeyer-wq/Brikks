@@ -12,6 +12,7 @@ L'utilisatrice principale est la professeure qui n'est pas développeuse : expli
 - **Expliquer l'impact métier** : pas "on refactorise le singleton", mais "les élèves ne verront plus les brouillons"
 - **Pas d'usine à gaz** : solutions simples, minimales, maintenables
 - **Pas de sur-ingénierie** : ne pas ajouter ce qui n'est pas demandé
+- **Signaler la perte de contexte** : quand tu sens que tu perds en performance (relecture de fichiers déjà lus, oublis, réponses moins précises, compression du contexte), **dis-le immédiatement** à l'utilisatrice et propose de changer de conversation. Fournis-lui un résumé à copier-coller pour la prochaine session contenant : ce qui a été fait, ce qui reste à faire, les fichiers modifiés, et les décisions prises
 
 ## Architecture technique
 
