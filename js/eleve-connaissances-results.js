@@ -56,18 +56,16 @@ Object.assign(EleveConnaissances, {
     getExpectedQuestionCount(etape) {
         const storedData = this.selectedQuestionsPerEtape[etape.id];
         const donnees = storedData?.donnees || this.getEtapeDonnees(etape);
-        const format = etape.format_code;
+        const format = this.normalizeFormat(etape.format_code);
 
         switch (format) {
             case 'qcm':
                 return donnees.multiQuestions?.length || 1;
             case 'vrai_faux':
                 return donnees.propositions?.length || 1;
-            case 'chronologie':
             case 'timeline':
                 return donnees.cartes?.length || donnees.paires?.length || 1;
             case 'texte_trou':
-            case 'texte_trous':
                 if (donnees.multiQuestions?.length > 1) return donnees.multiQuestions.length;
                 return (donnees.texte || '').match(/\{[^}]+\}/g)?.length || 1;
             case 'association':
@@ -867,17 +865,8 @@ Object.assign(EleveConnaissances, {
      */
     restartEntrainement() {
         this.currentEtapeIndex = 0;
-        this.userAnswers = {};
-        this.currentEtapeValidated = false;
         this.etapesResults = [];
-        // Réinitialiser les états d'association
-        this.associationSelection = { grid: null, chip: null };
-        this.associationPairs = [];
-        this.associationPairCounter = 0;
-        // Réinitialiser les états multi-format
-        this._multiFormatState = null;
-        this._qcmResults = {};
-        this._qoResults = {};
+        this.resetEtapeState();
         this.renderEntrainementView();
     },
 

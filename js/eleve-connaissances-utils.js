@@ -10,6 +10,60 @@
 
 Object.assign(EleveConnaissances, {
 
+    /**
+     * Normalise les alias de format en nom canonique.
+     * texte_trous → texte_trou, chronologie → timeline
+     */
+    normalizeFormat(format) {
+        if (format === 'texte_trous') return 'texte_trou';
+        if (format === 'chronologie') return 'timeline';
+        return format;
+    },
+
+    /**
+     * Extrait les indices des réponses correctes d'une question QCM.
+     * Supporte reponses_correctes[], reponse, reponse_correcte et choix[].correct.
+     */
+    getQcmCorrectIndices(q) {
+        if (q.reponses_correctes && Array.isArray(q.reponses_correctes)) return q.reponses_correctes;
+        if (q.reponse !== undefined) return [q.reponse];
+        if (q.reponse_correcte !== undefined) return [q.reponse_correcte];
+        const choices = q.choix || q.options || [];
+        return choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
+    },
+
+    /**
+     * Trie des événements chronologiques par date numérique.
+     */
+    sortEventsByDate(events) {
+        return [...events].sort((a, b) => {
+            const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
+            const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
+            return dateA - dateB;
+        });
+    },
+
+    /**
+     * Réinitialise l'état d'une étape (réponses, sélections, format states).
+     * Appelé par startEntrainement, nextEtape et restartEntrainement.
+     */
+    resetEtapeState() {
+        this.userAnswers = {};
+        this.currentEtapeValidated = false;
+        this.associationSelection = { grid: null, chip: null };
+        this.associationPairs = [];
+        this.associationPairCounter = 0;
+        this._multiFormatState = null;
+        this._qcmResults = {};
+        this._qoResults = {};
+        this._vfResults = {};
+        this._vfNavIndex = 0;
+        this._qcmNavIndex = 0;
+        this._qoNavIndex = 0;
+        this.carteActiveIndex = 0;
+        this.timelineDraggedCard = null;
+    },
+
     escapeHtml(text) {
         if (!text) return '';
         const div = document.createElement('div');
@@ -264,19 +318,18 @@ Object.assign(EleveConnaissances, {
     },
 
     getFormatLabel(formatCode) {
+        const normalized = this.normalizeFormat(formatCode);
         const labels = {
             'vrai_faux': 'Vrai/Faux',
             'qcm': 'QCM',
-            'chronologie': 'Frise chronologique',
             'timeline': 'Frise chronologique',
             'texte_trou': 'Texte à trous',
-            'texte_trous': 'Texte à trous',
             'association': 'Association',
             'carte': 'Image cliquable',
             'question_ouverte': 'Question ouverte',
             'flashcard': 'Flashcards'
         };
-        return labels[formatCode] || formatCode;
+        return labels[normalized] || formatCode;
     },
 
     shuffleArray(array) {
