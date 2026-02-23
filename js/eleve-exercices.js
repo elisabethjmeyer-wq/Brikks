@@ -4,6 +4,72 @@
  * Design accordéon avec vue unifiée
  */
 
+/**
+ * Parse un champ JSON (donnees ou structure) de manière sûre.
+ * Gère les chaînes simples, le double-encodage, et les valeurs déjà parsées.
+ * @param {*} raw - Valeur brute (string JSON, objet, null, etc.)
+ * @param {*} fallback - Valeur par défaut si le parsing échoue (défaut: {})
+ * @returns {Object|Array}
+ */
+function parseJSONField(raw, fallback = {}) {
+    if (!raw) return fallback;
+    if (typeof raw === 'object') return raw;
+    try {
+        let parsed = JSON.parse(raw);
+        // Gérer le double-encodage (string qui contient une string JSON)
+        if (typeof parsed === 'string') {
+            parsed = JSON.parse(parsed);
+        }
+        return parsed;
+    } catch (e) {
+        return fallback;
+    }
+}
+
+/**
+ * Registre des formats d'exercice.
+ * Pour ajouter un nouveau format, il suffit d'ajouter une entrée ici
+ * et d'implémenter les méthodes correspondantes dans le module.
+ *
+ * Chaque format définit :
+ *   render(donnees, structure) → HTML string
+ *   validate()                → { correct, total }
+ *   showCorrection()          → void (modifie le DOM)
+ *   reset()                   → void (réinitialise le DOM)
+ */
+const FORMAT_HANDLERS = {
+    tableau_saisie: {
+        render(donnees, structure)  { return this.renderTableauSaisie(donnees, structure); },
+        validate()                 { return this.validateTableauSaisie(); },
+        showCorrection()           { this.showTableauCorrige(); },
+        reset()                    { this.resetTableauSaisie(); }
+    },
+    carte_cliquable: {
+        render(donnees, structure)  { return this.renderCarteCliquable(donnees, structure); },
+        validate()                 { return this.validateCarteCliquable(); },
+        showCorrection()           { this.showCarteCorrige(); },
+        reset()                    { this.resetCarteCliquable(); }
+    },
+    document_tableau: {
+        render(donnees, structure)  { return this.renderDocumentTableau(donnees, structure); },
+        validate()                 { return this.validateTableauSaisie(); },
+        showCorrection()           { this.showTableauCorrige(); },
+        reset()                    { this.resetTableauSaisie(); }
+    },
+    question_ouverte: {
+        render(donnees, structure)  { return this.renderQuestionOuverte(donnees, structure); },
+        validate()                 { return this.validateQuestionOuverte(); },
+        showCorrection()           { this.showQuestionOuverteCorrige(); },
+        reset()                    { this.resetQuestionOuverte(); }
+    },
+    document_mixte: {
+        render(donnees, structure)  { return this.renderDocumentMixte(donnees, structure); },
+        validate()                 { return this.validateDocumentMixte(); },
+        showCorrection()           { this.showDocumentMixteCorrige(); },
+        reset()                    { this.resetDocumentMixte(); }
+    }
+};
+
 const EleveExercices = {
     // Type courant (savoir-faire, connaissances, competences)
     currentType: 'savoir-faire',
@@ -14,8 +80,8 @@ const EleveExercices = {
     formats: [],
     resultats: [],
     // Historique des pratiques SF (pour calcul automatisation)
-    statsSF: {},  // Stats par exercice_id (legacy, pour compatibilité)
-    statsSFBanque: {},  // Stats par banque_id (nouveau système Option B)
+    statsSF: {},  // Stats brutes par exercice (source backend, utilisé pour le fallback de calcul par banque)
+    statsSFBanque: {},  // Stats agrégées par banque (source de vérité pour le rendu)
 
     // État
     currentBanque: null,
@@ -81,10 +147,6 @@ const EleveExercices = {
     // Cache pour l'exercice sélectionné par banque
     exerciceParBanque: {},
 
-    // Ancien système (conservé pour compatibilité, mais non utilisé)
-    SEUIL_PRATIQUES_PARFAITES: 3,
-    SEUIL_JOURS_RAFRAICHIR: 30,
-
     /**
      * Initialise la page d'exercices
      */
@@ -108,7 +170,7 @@ const EleveExercices = {
             if (type === 'savoir-faire') {
                 const cachedHistoriqueSF = this.loadHistoriqueSFFromCache();
                 if (cachedHistoriqueSF) this.statsSF = cachedHistoriqueSF;
-                // OPTION B: Charger aussi les stats par banque
+                // Charger aussi les stats par banque
                 const cachedHistoriqueSFBanque = this.loadHistoriqueSFBanqueFromCache();
                 if (cachedHistoriqueSFBanque) this.statsSFBanque = cachedHistoriqueSFBanque;
             }
@@ -224,20 +286,12 @@ const EleveExercices = {
         if (this.currentType !== 'savoir-faire') return;
 
         try {
-            console.log('[SF] Chargement historique pour eleve_id:', this.currentUser.id);
             const result = await this.callAPI('getHistoriquePratiquesSF', { eleve_id: this.currentUser.id });
-            console.log('[SF] Réponse getHistoriquePratiquesSF:', result);
-            if (result.debug) {
-                console.log('[SF] DEBUG - Sheet exists:', result.debug.sheetExists,
-                            '| Total rows:', result.debug.totalRows,
-                            '| Filtered:', result.debug.filteredRows);
-            }
             if (result.success && result.stats) {
                 this.statsSF = result.stats;
                 this.saveHistoriqueSFToCache(this.statsSF);
-                console.log('[SF] Stats chargées:', Object.keys(this.statsSF).length, 'exercices');
 
-                // OPTION B: Charger les stats par banque depuis le backend (si disponible)
+                // Charger les stats par banque depuis le backend (si disponible)
                 if (result.statsBanque) {
                     this.statsSFBanque = result.statsBanque;
                 } else {
@@ -245,7 +299,6 @@ const EleveExercices = {
                     this.statsSFBanque = this.computeStatsBanqueFromStatsExercice(this.statsSF);
                 }
                 this.saveHistoriqueSFBanqueToCache(this.statsSFBanque);
-                console.log('[SF-OptionB] Stats banques chargées:', Object.keys(this.statsSFBanque).length, 'banques');
             }
         } catch (e) {
             console.error('[EleveExercices] Erreur chargement historique SF:', e);
@@ -262,7 +315,7 @@ const EleveExercices = {
                 this.statsSF = result.stats;
                 this.saveHistoriqueSFToCache(this.statsSF);
 
-                // OPTION B: Mettre à jour les stats par banque EN FUSIONNANT avec les stats locales
+                // Mettre à jour les stats par banque EN FUSIONNANT avec les stats locales
                 // Cela évite d'écraser les mises à jour locales non encore persistées au backend
                 let newStatsBanque;
                 if (result.statsBanque) {
@@ -329,7 +382,7 @@ const EleveExercices = {
     },
 
     /**
-     * OPTION B: Calcule les stats par banque à partir des stats par exercice
+     * Calcule les stats par banque à partir des stats par exercice
      * Utilisé comme fallback si le backend ne retourne pas encore statsBanque
      */
     computeStatsBanqueFromStatsExercice(statsExercice) {
@@ -378,237 +431,7 @@ const EleveExercices = {
     },
 
     /**
-     * Calcule le statut d'un exercice SF selon le système 4 répétitions
-     * @param {string} exerciceId - ID de l'exercice
-     * @param {Object} exercice - Données de l'exercice (pour temps_prevu)
-     * @returns {Object} Status complet avec infos de progression
-     */
-    getExerciceStatusSF(exerciceId, exercice) {
-        const now = new Date();
-        const stats = this.statsSF[String(exerciceId)];
-
-        // Pas de stats = jamais fait
-        if (!stats || stats.repetitions_validees === undefined) {
-            // Fallback pour ancien système (pas de repetitions_validees)
-            if (stats && stats.total_pratiques > 0) {
-                // Ancien système : convertir pratiques_parfaites en approximation
-                return this._getStatusFromOldSystem(stats, exercice);
-            }
-            return {
-                statut: this.STATUTS_SF.A_DECOUVRIR,
-                repetitions: 0,
-                ...this.LABELS_STATUTS_SF['a-decouvrir'],
-                statusClass: 'a-decouvrir',
-                message: 'Premier essai',
-                joursRestants: 0,
-                prochaineDispo: null,
-                peutFaire: true,
-                estEntrainementLibre: false
-            };
-        }
-
-        const reps = stats.repetitions_validees || 0;
-        const dernierePratique = stats.date_derniere_validation
-            ? new Date(stats.date_derniere_validation)
-            : null;
-
-        // Maîtrisé (5 répétitions)
-        if (reps >= this.SEUIL_REPETITIONS) {
-            // Vérifier si rappel suggéré (>21 jours)
-            if (dernierePratique) {
-                const joursDepuis = Math.floor((now - dernierePratique) / (1000 * 60 * 60 * 24));
-                if (joursDepuis >= this.SEUIL_JOURS_RAPPEL) {
-                    return {
-                        statut: this.STATUTS_SF.RAPPEL_SUGGERE,
-                        repetitions: reps,
-                        ...this.LABELS_STATUTS_SF['rappel-suggere'],
-                        statusClass: 'rappel-suggere',
-                        message: `${joursDepuis}j depuis dernière pratique`,
-                        joursRestants: 0,
-                        prochaineDispo: null,
-                        peutFaire: true,
-                        estEntrainementLibre: false,
-                        joursDepuis
-                    };
-                }
-            }
-
-            return {
-                statut: this.STATUTS_SF.MAITRISE,
-                repetitions: reps,
-                ...this.LABELS_STATUTS_SF['maitrise'],
-                statusClass: 'maitrise',
-                message: 'Exercice maîtrisé !',
-                joursRestants: 0,
-                prochaineDispo: null,
-                peutFaire: true,
-                estEntrainementLibre: false
-            };
-        }
-
-        // En cours (1-3 répétitions) - vérifier espacement
-        if (reps > 0 && dernierePratique) {
-            const espacementRequis = this.ESPACEMENTS_REPETITIONS[reps] || 7;
-            const prochaineDispo = new Date(dernierePratique);
-            prochaineDispo.setDate(prochaineDispo.getDate() + espacementRequis);
-
-            const joursRestants = Math.max(0, Math.ceil((prochaineDispo - now) / (1000 * 60 * 60 * 24)));
-
-            if (now < prochaineDispo) {
-                // Bloqué - en pause
-                return {
-                    statut: this.STATUTS_SF.EN_PAUSE,
-                    repetitions: reps,
-                    ...this.LABELS_STATUTS_SF['en-pause'],
-                    statusClass: 'en-pause',
-                    message: `Dispo dans ${joursRestants}j`,
-                    joursRestants: joursRestants,
-                    prochaineDispo: prochaineDispo.toISOString(),
-                    peutFaire: false,
-                    estEntrainementLibre: true // Peut s'entraîner librement
-                };
-            } else {
-                // Disponible - à réviser
-                return {
-                    statut: this.STATUTS_SF.A_REVISER,
-                    repetitions: reps,
-                    ...this.LABELS_STATUTS_SF['a-reviser'],
-                    statusClass: 'a-reviser',
-                    message: `Répétition ${reps + 1}/${this.SEUIL_REPETITIONS} disponible`,
-                    joursRestants: 0,
-                    prochaineDispo: null,
-                    peutFaire: true,
-                    estEntrainementLibre: false
-                };
-            }
-        }
-
-        // En cours sans date (cas rare) ou 0 répétition avec des pratiques
-        if (reps > 0) {
-            return {
-                statut: this.STATUTS_SF.EN_COURS,
-                repetitions: reps,
-                ...this.LABELS_STATUTS_SF['en-cours'],
-                statusClass: 'en-cours',
-                message: `Répétition ${reps + 1}/${this.SEUIL_REPETITIONS}`,
-                joursRestants: 0,
-                prochaineDispo: null,
-                peutFaire: true,
-                estEntrainementLibre: false
-            };
-        }
-
-        // Par défaut : à découvrir
-        return {
-            statut: this.STATUTS_SF.A_DECOUVRIR,
-            repetitions: 0,
-            ...this.LABELS_STATUTS_SF['a-decouvrir'],
-            statusClass: 'a-decouvrir',
-            message: 'Premier essai',
-            joursRestants: 0,
-            prochaineDispo: null,
-            peutFaire: true,
-            estEntrainementLibre: false
-        };
-    },
-
-    /**
-     * Fallback pour les données de l'ancien système (sans repetitions_validees)
-     */
-    _getStatusFromOldSystem(stats, exercice) {
-        const pratiquesParfaites = stats.pratiques_parfaites || 0;
-
-        if (pratiquesParfaites === 0) {
-            return {
-                statut: this.STATUTS_SF.A_DECOUVRIR,
-                repetitions: 0,
-                ...this.LABELS_STATUTS_SF['a-decouvrir'],
-                statusClass: 'a-decouvrir',
-                message: 'Premier essai',
-                joursRestants: 0,
-                prochaineDispo: null,
-                peutFaire: true,
-                estEntrainementLibre: false
-            };
-        }
-
-        // Approximation : 1 pratique parfaite ≈ 1 répétition, max 3 (ancien système)
-        const repsApprox = Math.min(pratiquesParfaites, 3);
-
-        return {
-            statut: this.STATUTS_SF.EN_COURS,
-            repetitions: repsApprox,
-            ...this.LABELS_STATUTS_SF['en-cours'],
-            statusClass: 'en-cours',
-            message: `~${repsApprox}/${this.SEUIL_REPETITIONS} (migration)`,
-            joursRestants: 0,
-            prochaineDispo: null,
-            peutFaire: true,
-            estEntrainementLibre: false
-        };
-    },
-
-    /**
-     * Calcule le numéro de semaine de l'année
-     */
-    _getWeekNumber(date) {
-        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-        const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
-        return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-    },
-
-    /**
-     * Génère un hash simple à partir d'une chaîne
-     */
-    _hashCode(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = ((hash << 5) - hash) + str.charCodeAt(i);
-            hash |= 0;
-        }
-        return hash;
-    },
-
-    /**
-     * Sélectionne l'exercice à proposer pour une banque
-     * - Différent du dernier exercice fait
-     * - Rotation hebdomadaire (seed basé sur semaine)
-     */
-    getExerciceDisponible(banqueId, exercices) {
-        if (!exercices || exercices.length === 0) return null;
-        if (exercices.length === 1) return exercices[0];
-
-        // Récupérer le dernier exercice fait dans cette banque (hors entraînement libre)
-        let dernierExerciceId = null;
-        const banqueStats = Object.values(this.statsSF).filter(s =>
-            String(s.banque_id) === String(banqueId) &&
-            s.derniere_pratique
-        );
-
-        if (banqueStats.length > 0) {
-            // Trouver le plus récent
-            banqueStats.sort((a, b) => new Date(b.derniere_pratique) - new Date(a.derniere_pratique));
-            dernierExerciceId = banqueStats[0].exercice_id;
-        }
-
-        // Filtrer : exclure le dernier exercice fait
-        let exercicesDisponibles = exercices.filter(e => String(e.id) !== String(dernierExerciceId));
-
-        // Si un seul exercice dans la banque (ou après filtrage), on le garde
-        if (exercicesDisponibles.length === 0) {
-            exercicesDisponibles = exercices;
-        }
-
-        // Sélection pseudo-aléatoire basée sur la semaine (pour stabilité)
-        const weekNumber = this._getWeekNumber(new Date());
-        const seed = this._hashCode(banqueId + '_' + weekNumber + '_' + this.currentUser?.id);
-        const index = Math.abs(seed) % exercicesDisponibles.length;
-
-        return exercicesDisponibles[index];
-    },
-
-    /**
-     * OPTION B: Détermine le statut d'une banque SF (progression par banque, pas par exercice)
+     * Détermine le statut d'une banque SF (progression par banque)
      * @returns {Object} { status, repetitions, exercice?, prochaineDispo?, message, peutFaire, estEntrainementLibre }
      */
     getBanqueStatusSF(banqueId, exercices) {
@@ -758,7 +581,7 @@ const EleveExercices = {
     },
 
     /**
-     * OPTION B: Sélectionne un exercice aléatoire parmi ceux non encore réussis pour cette banque
+     * Sélectionne un exercice aléatoire parmi ceux non encore réussis pour cette banque
      * @param {string} banqueId - ID de la banque
      * @param {Array} exercices - Liste des exercices de la banque
      * @param {Array} exercicesReussis - Liste des IDs d'exercices déjà réussis
@@ -861,7 +684,7 @@ const EleveExercices = {
     },
 
     /**
-     * OPTION B: Valide une tentative d'exercice SF au niveau de la BANQUE
+     * Valide une tentative d'exercice SF au niveau de la BANQUE
      * @param {Object} exercice - Données de l'exercice
      * @param {number} score - Score obtenu (0-100)
      * @param {number} tempsPasse - Temps passé en secondes
@@ -897,7 +720,7 @@ const EleveExercices = {
                 message: `Continue tes efforts ! (${score}%)`,
                 conseil: '',  // Plus de message culpabilisant
                 estMaitrise: false,
-                proposeNouvelExercice: true  // OPTION B: proposer un autre exercice
+                proposeNouvelExercice: true
             };
         }
 
@@ -910,7 +733,7 @@ const EleveExercices = {
                 message: `Presque ! Essaie d'aller plus vite`,
                 conseil: '',  // Plus de message culpabilisant
                 estMaitrise: false,
-                proposeNouvelExercice: true  // OPTION B: proposer un autre exercice
+                proposeNouvelExercice: true
             };
         }
 
@@ -1404,55 +1227,7 @@ const EleveExercices = {
     },
 
     /**
-     * Calcule les stats globales pour SF (nouveau système 6 statuts)
-     */
-    calculateGlobalStatsSF(exercicesByBanque) {
-        let total = 0;
-        let maitrise = 0;      // Anciennement "automatise"
-        let rappelSuggere = 0; // Nouveau statut
-        let aReviser = 0;      // Anciennement "a-rafraichir"
-        let enCours = 0;       // Anciennement "en-acquisition"
-        let enPause = 0;       // Anciennement "acquis-lent"
-        let aDecouvrir = 0;    // Anciennement "new"
-
-        this.banques.forEach(banque => {
-            const exercices = exercicesByBanque[banque.id] || [];
-            exercices.forEach(exo => {
-                total++;
-                const status = this.getExerciceStatusSF(exo.id, exo);
-
-                switch (status.statusClass) {
-                    case 'maitrise': maitrise++; break;
-                    case 'rappel-suggere': rappelSuggere++; break;
-                    case 'a-reviser': aReviser++; break;
-                    case 'en-cours': enCours++; break;
-                    case 'en-pause': enPause++; break;
-                    case 'a-decouvrir': aDecouvrir++; break;
-                }
-            });
-        });
-
-        // "À faire" = à réviser + en cours + à découvrir + rappel suggéré
-        const aFaire = aReviser + enCours + aDecouvrir + rappelSuggere;
-
-        // Pour compatibilité avec l'ancien code qui utilise "automatise"
-        const automatise = maitrise;
-
-        return {
-            total,
-            automatise,       // Pour compatibilité
-            maitrise,
-            rappelSuggere,
-            aReviser,
-            enCours,
-            enPause,
-            aDecouvrir,
-            aFaire
-        };
-    },
-
-    /**
-     * OPTION B: Calcule les stats d'une banque SF basées sur les répétitions de la BANQUE
+     * Calcule les stats d'une banque SF basées sur les répétitions de la BANQUE
      * Progression = répétitions validées / 5 * 100
      */
     calculateBanqueStatsSF(exercices, banqueId) {
@@ -1493,84 +1268,8 @@ const EleveExercices = {
             return '<div class="empty-state" style="padding: 2rem;"><p>Aucun exercice dans cette banque</p></div>';
         }
 
-        // Trier les exercices par priorité pour SF (à faire en premier)
-        // Ordre: À réviser → En cours → À découvrir → Rappel suggéré → En pause → Maîtrisé
-        let sorted = [...exercices];
-        if (this.currentType === 'savoir-faire') {
-            const priorityOrder = {
-                'a-reviser': 0,      // Disponible pour répétition - priorité max
-                'en-cours': 1,       // En progression
-                'a-decouvrir': 2,    // Nouveau
-                'rappel-suggere': 3, // Maîtrisé mais à rafraîchir
-                'en-pause': 4,       // Bloqué temporairement
-                'maitrise': 5        // Terminé
-            };
-            sorted.sort((a, b) => {
-                const statusA = this.getExerciceStatusSF(a.id, a);
-                const statusB = this.getExerciceStatusSF(b.id, b);
-                return (priorityOrder[statusA.statusClass] ?? 6) - (priorityOrder[statusB.statusClass] ?? 6);
-            });
-        }
-
-        return sorted.map((exo, index) => {
+        return exercices.map((exo) => {
             const format = this.formats.find(f => f.id === exo.format_id);
-
-            // Pour les savoir-faire, utiliser le nouveau système de statut
-            if (this.currentType === 'savoir-faire') {
-                const statusSF = this.getExerciceStatusSF(exo.id, exo);
-                const isMaitrise = statusSF.statusClass === 'maitrise';
-
-                // Badge et indication sous le badge
-                let statusBadge = `<span class="entrainement-badge ${statusSF.statusClass}">${statusSF.icon} ${statusSF.label}</span>`;
-                let actionHint = '';
-
-                switch (statusSF.statusClass) {
-                    case 'a-decouvrir':
-                        actionHint = 'Clique pour découvrir →';
-                        break;
-                    case 'en-cours':
-                        actionHint = `Niveau ${statusSF.repetitions}/${this.SEUIL_REPETITIONS}`;
-                        break;
-                    case 'a-reviser':
-                        actionHint = `Niveau ${statusSF.repetitions + 1}/${this.SEUIL_REPETITIONS} dispo →`;
-                        break;
-                    case 'en-pause':
-                        actionHint = statusSF.message; // "Dispo dans Xj"
-                        break;
-                    case 'maitrise':
-                        actionHint = `Niveau ${this.SEUIL_REPETITIONS}/${this.SEUIL_REPETITIONS}`;
-                        break;
-                    case 'rappel-suggere':
-                        actionHint = statusSF.joursDepuis ? `${statusSF.joursDepuis}j sans pratiquer` : 'Rappel suggéré';
-                        break;
-                }
-
-                // Métadonnées - juste la durée en minutes
-                let metaText = '';
-                if (exo.duree) {
-                    // Si durée > 60, c'est probablement en secondes → convertir en minutes
-                    const dureeMinutes = exo.duree > 60 ? Math.floor(exo.duree / 60) : exo.duree;
-                    metaText = `${dureeMinutes} min`;
-                }
-
-                return `
-                    <div class="exercice-item ${this.currentType} ${statusSF.statusClass}${isMaitrise ? ' completed' : ''}"
-                         onclick="EleveExercices.startExercise('${exo.id}')"
-                         data-exercice-id="${exo.id}">
-                        <div class="exercice-numero">${index + 1}</div>
-                        <div class="exercice-info">
-                            <div class="exercice-titre">${this.escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</div>
-                            <div class="exercice-meta">${metaText}</div>
-                        </div>
-                        <div class="exercice-status-area">
-                            ${statusBadge}
-                            <span class="exercice-hint">${actionHint}</span>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Pour les autres types, garder l'ancien système
             const result = this.getExerciseResult(exo.id);
             const statusInfo = this.getStatusInfo(result);
             const isCompleted = result && result.score === 100;
@@ -1708,29 +1407,14 @@ const EleveExercices = {
         const banque = this.currentBanque;
         const format = this.formats.find(f => f.id === exo.format_id);
 
-        let donnees = exo.donnees;
-        if (typeof donnees === 'string') {
-            try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
-        }
-
-        let structure = format ? format.structure : null;
-        if (typeof structure === 'string') {
-            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
-        }
-
-        const typeUI = structure ? structure.type_ui : 'unknown';
+        const donnees = parseJSONField(exo.donnees);
+        const structure = parseJSONField(format?.structure);
+        const typeUI = structure.type_ui || 'unknown';
         let contentHTML = '';
 
-        if (typeUI === 'tableau_saisie') {
-            contentHTML = this.renderTableauSaisie(donnees, structure);
-        } else if (typeUI === 'carte_cliquable') {
-            contentHTML = this.renderCarteCliquable(donnees, structure);
-        } else if (typeUI === 'document_tableau') {
-            contentHTML = this.renderDocumentTableau(donnees, structure);
-        } else if (typeUI === 'question_ouverte') {
-            contentHTML = this.renderQuestionOuverte(donnees, structure);
-        } else if (typeUI === 'document_mixte') {
-            contentHTML = this.renderDocumentMixte(donnees, structure);
+        const handler = this.getFormatHandler(typeUI);
+        if (handler && handler.render) {
+            contentHTML = handler.render.call(this, donnees, structure);
         } else {
             contentHTML = `
                 <div style="text-align: center; color: #6b7280; padding: 2rem;">
@@ -1916,6 +1600,15 @@ const EleveExercices = {
                 <p>${message}</p>
             </div>
         `;
+    },
+
+    /**
+     * Retourne le handler de format pour un type_ui donné.
+     * @param {string} typeUI - Le type d'interface (tableau_saisie, carte_cliquable, etc.)
+     * @returns {Object|null} Le handler avec render/validate/showCorrection/reset, ou null
+     */
+    getFormatHandler(typeUI) {
+        return FORMAT_HANDLERS[typeUI] || null;
     },
 
     escapeHtml(str) {

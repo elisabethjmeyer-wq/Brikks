@@ -484,20 +484,14 @@ Object.assign(EleveExercices, {
         this.stopTimer();
 
         const format = this.formats.find(f => f.id === this.currentExercise.format_id);
-        let structure = format ? format.structure : null;
-        if (typeof structure === 'string') {
-            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
-        }
+        const structure = parseJSONField(format?.structure);
 
-        const typeUI = structure ? structure.type_ui : 'unknown';
+        const typeUI = structure.type_ui || 'unknown';
         let result;
 
-        if (typeUI === 'carte_cliquable') {
-            result = this.validateCarteCliquable();
-        } else if (typeUI === 'question_ouverte') {
-            result = this.validateQuestionOuverte();
-        } else if (typeUI === 'document_mixte') {
-            result = this.validateDocumentMixte();
+        const handler = this.getFormatHandler(typeUI);
+        if (handler && handler.validate) {
+            result = handler.validate.call(this);
         } else {
             result = this.validateTableauSaisie();
         }
@@ -564,10 +558,7 @@ Object.assign(EleveExercices, {
     },
 
     validateTableauSaisie() {
-        let donnees = this.currentExercise.donnees;
-        if (typeof donnees === 'string') {
-            try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
-        }
+        const donnees = parseJSONField(this.currentExercise.donnees);
 
         const colonnes = donnees.colonnes || [];
         const lignes = donnees.lignes || [];
@@ -712,17 +703,14 @@ Object.assign(EleveExercices, {
     },
 
     async saveResult(correct, total, percent) {
-        console.log('[SF] saveResult appelé - currentUser:', this.currentUser, 'currentExercise:', this.currentExercise?.id);
-
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
         const tempsPrevu = this.currentExercise?.duree || 300; // duree est déjà en secondes
 
-        // IMPORTANT: Capturer isEntrainementLibre AU DÉBUT avant tout appel async
+        // Capturer isEntrainementLibre AU DÉBUT avant tout appel async
         // Car la valeur peut changer pendant les awaits
         const isEntrainementLibreSnapshot = this.isEntrainementLibre;
-        console.log('[SF] isEntrainementLibre capturé au début:', isEntrainementLibreSnapshot);
 
-        // OPTION B: Pour les savoir-faire, calculer la validation au niveau BANQUE
+        // Pour les savoir-faire, calculer la validation au niveau banque
         let validationResult = null;
         if (this.currentType === 'savoir-faire' && this.currentExercise) {
             const banqueId = String(this.currentExercise.banque_id);
@@ -749,7 +737,6 @@ Object.assign(EleveExercices, {
 
         // Ne pas sauvegarder au backend si pas d'utilisateur
         if (!this.currentUser || !this.currentUser.id || !this.currentExercise) {
-            console.log('[SF] Pas de sauvegarde backend (preview mode ou user manquant)');
             return;
         }
 
@@ -773,16 +760,6 @@ Object.assign(EleveExercices, {
 
             // Pour les savoir-faire, sauvegarder dans l'historique des pratiques avec nouvelles infos
             if (this.currentType === 'savoir-faire') {
-                // DEBUG: Afficher les détails de validation
-                console.log('[SF DEBUG] Validation details:', {
-                    score: percent,
-                    isEntrainementLibreSnapshot: isEntrainementLibreSnapshot,
-                    isEntrainementLibreActuel: this.isEntrainementLibre,
-                    validationResult: validationResult,
-                    repetitionValidee: validationResult?.repetitionValidee,
-                    nouvelleRepetition: validationResult?.nouvelleRepetition
-                });
-
                 const pratiqueData = {
                     eleve_id: this.currentUser.id,
                     exercice_id: this.currentExercise.id,
@@ -794,15 +771,9 @@ Object.assign(EleveExercices, {
                     repetition_numero: validationResult?.repetitionValidee ? validationResult.nouvelleRepetition : 0,
                     est_entrainement_libre: isEntrainementLibreSnapshot  // Utiliser la valeur capturée au début
                 };
-                console.log('[SF] Envoi sauvegarde pratique au backend:', pratiqueData);
                 try {
                     const sfResult = await this.callAPI('savePratiqueSF', pratiqueData);
-                    console.log('[SF] Réponse backend savePratiqueSF:', sfResult);
-                    if (sfResult.success) {
-                        console.log('[SF] DEBUG - Sheet:', sfResult.debug?.sheetName,
-                                    '| Created:', sfResult.debug?.sheetCreated,
-                                    '| Rows:', sfResult.debug?.rowCount);
-                    } else {
+                    if (!sfResult.success) {
                         console.error('[SF] Erreur backend:', sfResult.error);
                     }
                 } catch (e) {
@@ -815,14 +786,12 @@ Object.assign(EleveExercices, {
     },
 
     /**
-     * OPTION B: Met à jour les stats locales au niveau BANQUE (plus par exercice)
+     * Met à jour les stats locales au niveau banque
      */
     updateLocalStatsSF(pratiqueData) {
         const exoId = String(pratiqueData.exercice_id);
         const banqueId = String(pratiqueData.banque_id);
-        console.log('[SF-OptionB] Mise à jour stats pour banque:', banqueId, 'exercice:', exoId, 'Score:', pratiqueData.score);
-
-        // ========== Mise à jour des stats par BANQUE (nouveau système Option B) ==========
+        // Mise à jour des stats par banque
         if (!this.statsSFBanque[banqueId]) {
             this.statsSFBanque[banqueId] = {
                 banque_id: banqueId,
@@ -845,41 +814,10 @@ Object.assign(EleveExercices, {
             if (!statsBanque.exercices_reussis.includes(exoId)) {
                 statsBanque.exercices_reussis.push(exoId);
             }
-            console.log('[SF-OptionB] Répétition banque validée!', statsBanque);
         }
 
         // Sauvegarder stats banque dans le cache
         this.saveHistoriqueSFBanqueToCache(this.statsSFBanque);
-
-        // ========== Mise à jour des stats par exercice (legacy, pour compatibilité) ==========
-        if (!this.statsSF[exoId]) {
-            this.statsSF[exoId] = {
-                exercice_id: exoId,
-                banque_id: banqueId,
-                total_pratiques: 0,
-                pratiques_parfaites: 0,
-                repetitions_validees: 0,
-                derniere_pratique: null,
-                date_derniere_validation: null,
-                temps_moyen: 0,
-                temps_prevu: pratiqueData.temps_prevu || 0
-            };
-        }
-
-        const statsExo = this.statsSF[exoId];
-        statsExo.total_pratiques++;
-
-        if (pratiqueData.score === 100) {
-            statsExo.pratiques_parfaites++;
-        }
-
-        // Mettre à jour temps moyen
-        const oldTotal = (statsExo.total_pratiques - 1) * statsExo.temps_moyen;
-        statsExo.temps_moyen = Math.round((oldTotal + pratiqueData.temps_passe) / statsExo.total_pratiques);
-        statsExo.derniere_pratique = new Date().toISOString();
-
-        this.saveHistoriqueSFToCache(this.statsSF);
-        console.log('[SF-OptionB] Stats banque:', this.statsSFBanque[banqueId]);
     },
 
     /**
@@ -960,11 +898,8 @@ Object.assign(EleveExercices, {
     collectExerciseDetails() {
         const details = [];
         const format = this.formats.find(f => f.id === this.currentExercise.format_id);
-        let structure = format ? format.structure : null;
-        if (typeof structure === 'string') {
-            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
-        }
-        const typeUI = structure ? structure.type_ui : 'tableau_saisie';
+        const structure = parseJSONField(format?.structure);
+        const typeUI = structure.type_ui || 'tableau_saisie';
 
         if (typeUI === 'carte_cliquable') {
             const marqueurs = this.carteMarqueurs || [];
@@ -1037,10 +972,7 @@ Object.assign(EleveExercices, {
             });
         } else {
             // Tableau saisie
-            let donnees = this.currentExercise.donnees;
-            if (typeof donnees === 'string') {
-                try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
-            }
+            const donnees = parseJSONField(this.currentExercise.donnees);
             const colonnes = donnees.colonnes || [];
             const lignes = donnees.lignes || [];
             lignes.forEach((ligne, rowIndex) => {
@@ -1459,14 +1391,9 @@ Object.assign(EleveExercices, {
      * @param {string} typeUI - Type d'interface de l'exercice
      */
     applyCorrections(typeUI) {
-        if (typeUI === 'carte_cliquable') {
-            this.showCarteCorrige();
-        } else if (typeUI === 'document_mixte') {
-            this.showDocumentMixteCorrige();
-        } else if (typeUI === 'question_ouverte') {
-            this.showQuestionOuverteCorrige();
-        } else if (typeUI === 'tableau_saisie' || typeUI === 'document_tableau') {
-            this.showTableauCorrige();
+        const handler = this.getFormatHandler(typeUI);
+        if (handler && handler.showCorrection) {
+            handler.showCorrection.call(this);
         }
     },
 
@@ -1507,11 +1434,8 @@ Object.assign(EleveExercices, {
         this.stopTimer(); // Stop timer when showing correction
 
         const format = this.formats.find(f => f.id === this.currentExercise.format_id);
-        let structure = format ? format.structure : null;
-        if (typeof structure === 'string') {
-            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
-        }
-        const typeUI = structure ? structure.type_ui : 'tableau_saisie';
+        const structure = parseJSONField(format?.structure);
+        const typeUI = structure.type_ui || 'tableau_saisie';
 
         this.applyCorrections(typeUI);
 
@@ -1747,10 +1671,7 @@ Object.assign(EleveExercices, {
     },
 
     showTableauCorrige() {
-        let donnees = this.currentExercise.donnees;
-        if (typeof donnees === 'string') {
-            try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
-        }
+        const donnees = parseJSONField(this.currentExercise.donnees);
 
         const colonnes = donnees.colonnes || [];
         const lignes = donnees.lignes || [];
@@ -1806,19 +1727,12 @@ Object.assign(EleveExercices, {
         if (!this.currentExercise) return;
 
         const format = this.formats.find(f => f.id === this.currentExercise.format_id);
-        let structure = format ? format.structure : null;
-        if (typeof structure === 'string') {
-            try { structure = JSON.parse(structure); } catch (e) { structure = {}; }
-        }
+        const structure = parseJSONField(format?.structure);
+        const typeUI = structure.type_ui || 'unknown';
 
-        const typeUI = structure ? structure.type_ui : 'unknown';
-
-        if (typeUI === 'carte_cliquable') {
-            this.resetCarteCliquable();
-        } else if (typeUI === 'question_ouverte') {
-            this.resetQuestionOuverte();
-        } else if (typeUI === 'document_mixte') {
-            this.resetDocumentMixte();
+        const handler = this.getFormatHandler(typeUI);
+        if (handler && handler.reset) {
+            handler.reset.call(this);
         } else {
             this.resetTableauSaisie();
         }
@@ -1877,10 +1791,7 @@ Object.assign(EleveExercices, {
     },
 
     resetTableauSaisie() {
-        let donnees = this.currentExercise.donnees;
-        if (typeof donnees === 'string') {
-            try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
-        }
+        const donnees = parseJSONField(this.currentExercise.donnees);
 
         const colonnes = donnees.colonnes || [];
         const lignes = donnees.lignes || [];

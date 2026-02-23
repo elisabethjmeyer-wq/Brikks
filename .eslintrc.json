@@ -28,6 +28,8 @@
         "confetti": "readonly",
         "EleveConnaissances": "readonly",
         "EleveEntrainement": "readonly",
+        "parseJSONField": "readonly",
+        "FORMAT_HANDLERS": "readonly",
         "EleveExercices": "readonly",
         "EleveEvaluation": "readonly",
         "EleveLayout": "readonly",

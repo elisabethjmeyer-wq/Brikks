@@ -630,8 +630,6 @@ Object.assign(AdminBanquesExercices, {
         const typeUI = structure ? structure.type_ui : 'tableau_saisie';
         this.currentFormatUI = typeUI;
 
-        console.log('Format change:', { formatId, format, structure, typeUI });
-
         // Hide all builders
         document.querySelectorAll('.format-builder').forEach(el => el.style.display = 'none');
 

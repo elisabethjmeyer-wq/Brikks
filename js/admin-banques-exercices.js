@@ -122,7 +122,6 @@ const AdminBanquesExercices = {
             if (!cached) return null;
             const data = JSON.parse(cached);
             if (data.timestamp && (Date.now() - data.timestamp) < this.CACHE_TTL) {
-                console.log('[Cache] Loaded from cache');
                 return data;
             }
             return null;
@@ -177,27 +176,20 @@ const AdminBanquesExercices = {
             if (!q.type && q.donnees && typeof q.donnees === 'object') {
                 q.type = this.inferQuestionType(q.donnees);
                 if (q.type) {
-                    console.log(`[NormalizeTypes] Question ${q.id}: type inféré = '${q.type}' (était vide)`);
                     fixed++;
                 }
             }
             if (originalType && q.type !== String(originalType).trim().toLowerCase().replace(/[\s-]+/g, '_')) {
-                console.log(`[NormalizeTypes] Question ${q.id}: type normalisé '${originalType}' → '${q.type}'`);
                 fixed++;
             }
         });
-        if (fixed > 0) {
-            console.log(`[NormalizeTypes] ${fixed} question(s) corrigée(s)`);
-        }
     },
 
     async refreshDataInBackground() {
         try {
-            console.log('[Background] Refreshing data...');
             await this.loadDataFromAPI();
             this.updateCounts();
             this.renderBanques();
-            console.log('[Background] Data refreshed');
         } catch (e) {
             console.warn('[Background] Refresh failed:', e);
         }
@@ -252,18 +244,6 @@ const AdminBanquesExercices = {
             if (questionsConnResult.success) {
                 this.questionsConnaissances = questionsConnResult.data || [];
                 this.normalizeQuestionsTypes();
-                // Diagnostic: afficher les types de questions pour déboguer le comptage
-                const typeCounts = {};
-                this.questionsConnaissances.forEach(q => {
-                    const t = q.type || '(vide)';
-                    typeCounts[t] = (typeCounts[t] || 0) + 1;
-                });
-                console.log('[Diagnostic] Questions par type:', typeCounts);
-                console.log('[Diagnostic] Total questions:', this.questionsConnaissances.length);
-                if (typeCounts['(vide)']) {
-                    console.warn('[Diagnostic] Questions sans type détecté:',
-                        this.questionsConnaissances.filter(q => !q.type).map(q => ({id: q.id, donnees_keys: Object.keys(q.donnees || {})})));
-                }
             }
 
             // Nouveau système Connaissances
