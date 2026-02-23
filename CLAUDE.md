@@ -183,6 +183,17 @@ Pour afficher le nombre de niveaux **validés** : `Math.max(0, prog.etape - 1)`.
 - `sortEventsByDate(events)` — tri chronologique par date numérique
 - `resetEtapeState()` — réinitialise l'état d'une étape (réponses, sélections, format states)
 - `getFormatLabel(formatCode)` — label humain d'un format (normalise automatiquement)
+- `normalizeIntermediaire(text)` — normalisation légère (casse, accents, ponctuation, chiffres romains/lettres) sans stop words ni stemming — pour texte_trou, timeline, carte
+- `compareAnswers(user, expected, stricte, light?)` — compare réponse élève/attendue. `stricte=true` → exact, `stricte=false` → normalisation souple. `light=true` → utilise `normalizeIntermediaire` au lieu de `normalizeSouple`
+
+### Niveaux de comparaison des réponses
+| Niveau | Fonction | Tolérance | Formats |
+|--------|----------|-----------|---------|
+| **Strict** | `compareAnswers(…, true)` | trim seulement | Tous (si `comparaison_stricte = true`) |
+| **Intermédiaire** | `compareAnswers(…, false, true)` | casse, accents, ponctuation, chiffres romains/arabes/lettres | texte_trou, timeline, carte |
+| **Complet** | `compareAnswers(…, false)` | intermédiaire + stop words + stemming + ordre libre | question_ouverte |
+
+Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction par question. Présent dans les formats : question_ouverte, texte_trou, timeline (mode texte), carte. Défaut : `false` (souple).
 
 ### Pattern de données
 - Les entraînements ont un `statut` : `'publie'` ou `'brouillon'` — filtrer côté frontend
