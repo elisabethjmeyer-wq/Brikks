@@ -204,12 +204,12 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 
 ### Bugs / dette technique du module connaissances (à traiter)
 
-- **Erreur silencieuse de sauvegarde** : si `saveProgressionMemorisation` échoue (réseau, etc.), l'élève voit "Bravo" mais sa progression n'est pas enregistrée. Il faudrait afficher un message d'avertissement. Fichier : `eleve-connaissances-results.js`, lignes ~121-123.
-- **Validation dupliquée** : la logique de validation dans `validateCurrentEtape()` (~300 lignes) duplique les méthodes `run*Validation()` (timeline, texte_trou, carte, association). Bug fixé dans l'un = à fixer aussi dans l'autre. Fichier : `eleve-connaissances-validation.js`. C'est le plus gros chantier de refactoring restant.
-- **Parsing JSON `donnees` dupliqué 4x** : seule 1 copie sur 4 gère le double-encodage. À consolider dans un helper. Fichier : `eleve-connaissances.js` (3 endroits) + `eleve-connaissances-validation.js` (1 endroit).
+- ~~**Erreur silencieuse de sauvegarde**~~ : **CORRIGÉ (session 6)** — bandeau rouge affiché si la sauvegarde échoue.
+- ~~**Validation dupliquée**~~ : **CORRIGÉ (session 6)** — `validateCurrentEtape()` délègue maintenant aux `run*Validation()` pour 5 formats (texte_trou, timeline, chrono, carte, association). Les 3 formats restants (vrai_faux, qcm, question_ouverte) n'avaient pas de duplication.
+- ~~**Parsing JSON `donnees` dupliqué 4x**~~ : **CORRIGÉ (session 6)** — `parseJSONField()` utilisé partout.
 - **CSS chaotique (5 667 lignes)** : ~250 lignes de classes mortes (ancien système badges/progress), 13+ conflits de sélecteurs dupliqués (`.correction-section`, `.unsupported-format`, `.correction-assoc-grid`, etc.), 4 blocs `@media 768px` séparés, 3 systèmes de carrousel CSS qui coexistent. Nettoyage nécessaire mais **requiert des tests visuels** après chaque modification. Fichier : `css/eleve-connaissances.css`.
 - **`SEUIL_ETAPES` hardcodé côté frontend** : le backend renvoie `etape_max` dans ses réponses mais le frontend l'ignore et utilise sa propre constante `SEUIL_ETAPES: 7`. Si le backend change, il faut modifier les deux côtés manuellement.
-- **Listener leak** : `generateErrorDetails()` dans `eleve-connaissances-results.js` (lignes ~595-601) ajoute un click listener sur `document` à chaque affichage de résultats, sans jamais le supprimer. Fuite mémoire légère.
+- ~~**Listener leak**~~ : **CORRIGÉ (session 6)** — listener stocké dans `_popoverClickHandler` et nettoyé dans `cleanupEventListeners()`.
 
 ### Points structurels
 

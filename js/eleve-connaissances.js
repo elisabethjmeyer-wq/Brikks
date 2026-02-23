@@ -4,6 +4,22 @@
  * Utilise le système ENTRAINEMENTS_CONN
  */
 
+// Défini aussi dans eleve-exercices.js — déclaré ici pour les pages qui ne le chargent pas
+if (typeof parseJSONField === 'undefined') {
+    // eslint-disable-next-line no-unused-vars
+    function parseJSONField(raw, fallback = {}) {
+        if (!raw) return fallback;
+        if (typeof raw === 'object') return raw;
+        try {
+            let parsed = JSON.parse(raw);
+            if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+            return parsed;
+        } catch (e) {
+            return fallback;
+        }
+    }
+}
+
 const EleveConnaissances = {
     // Nombre d'étapes de mémorisation (doit correspondre à ETAPE_MAX côté backend)
     SEUIL_ETAPES: 7,
@@ -852,17 +868,9 @@ const EleveConnaissances = {
 
                 // Convertir en format attendu
                 for (const q of selected) {
-                    let donnees = q.donnees || {};
-                    if (typeof donnees === 'string') {
-                        try {
-                            donnees = JSON.parse(donnees);
-                        } catch (e) {
-                            donnees = {};
-                        }
-                    }
                     allQuestionContents.push({
                         id: q.id,
-                        donnees: donnees
+                        donnees: parseJSONField(q.donnees)
                     });
                 }
             } else {
@@ -890,22 +898,9 @@ const EleveConnaissances = {
                         continue;
                     }
 
-                    let donnees = questionContent.donnees || {};
-                    if (typeof donnees === 'string') {
-                        try {
-                            donnees = JSON.parse(donnees);
-                            // Double-encodage possible : si le résultat est encore une string, re-parser
-                            if (typeof donnees === 'string') {
-                                donnees = JSON.parse(donnees);
-                            }
-                        } catch (e) {
-                            Logger.error('EleveConnaissances', 'Erreur parsing donnees', e);
-                            donnees = {};
-                        }
-                    }
                     allQuestionContents.push({
                         id: questionContent.id,
-                        donnees: donnees
+                        donnees: parseJSONField(questionContent.donnees)
                     });
                 }
             }
@@ -919,15 +914,7 @@ const EleveConnaissances = {
         if (allQuestionContents.length === 0) {
             // Fallback: essayer depuis l'étape directement
             if (etape.donnees) {
-                let etapeDonnees = etape.donnees;
-                if (typeof etapeDonnees === 'string') {
-                    try {
-                        etapeDonnees = JSON.parse(etapeDonnees);
-                    } catch (e) {
-                        etapeDonnees = {};
-                    }
-                }
-                donnees = etapeDonnees;
+                donnees = parseJSONField(etape.donnees);
             }
         } else if (allQuestionContents.length === 1) {
             // Une seule question: utiliser directement ses données

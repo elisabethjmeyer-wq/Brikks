@@ -2483,6 +2483,8 @@
 }
 
 .result-bilan-conn .bilan-conseil.warning { background: #fef3c7; }
+.result-bilan-conn .bilan-conseil.save-error { background: #fee2e2; }
+.result-bilan-conn .bilan-conseil.save-error p { color: #991b1b; }
 .result-bilan-conn .bilan-maitrise { background: #d1fae5; }
 
 .result-bilan-conn .conseil-icon,

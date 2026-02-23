@@ -4,6 +4,54 @@
 
 ---
 
+## 2026-02-23 (session 6) — Correction de 5 bugs / dette technique
+
+### Contexte
+Traitement des 5 premiers points de dette technique documentés dans CLAUDE.md : ESLint, erreur silencieuse, listener leak, parsing JSON dupliqué, validation dupliquée.
+
+### Corrections
+
+**1. ESLint verrouillé sur v8.57.1**
+- Le caret `^8.57.1` dans package.json permettait une montée involontaire à v10 dans certains environnements
+- Version verrouillée à `8.57.1` (sans `^`) pour éviter ce problème
+
+**2. Erreur silencieuse de sauvegarde corrigée**
+- Quand `saveProgressionMemorisation` échoue, l'élève voyait "Bravo" mais sa progression était perdue
+- Maintenant : un bandeau rouge "Ta progression n'a pas pu être enregistrée" s'affiche
+- `lastProgressionResult` reçoit `{ saveError: true }` en cas d'erreur, détecté par `renderResultScreen`
+
+**3. Listener leak corrigé**
+- `generateErrorDetails()` ajoutait un click listener sur `document` à chaque affichage de résultats, sans jamais le retirer
+- Le listener est maintenant stocké dans `_popoverClickHandler`, retiré avant chaque ajout, et nettoyé dans `cleanupEventListeners()`
+
+**4. Parsing JSON consolidé avec parseJSONField()**
+- 4 endroits de parsing manuel remplacés par `parseJSONField()` (gère double-encodage, null, objet)
+- `parseJSONField` déclaré conditionnellement dans `eleve-connaissances.js` pour les pages qui ne chargent pas `eleve-exercices.js`
+- Fichiers touchés : `eleve-connaissances.js` (3 endroits), `eleve-connaissances-validation.js` (1 endroit)
+
+**5. Validation dupliquée refactorisée**
+- `validateCurrentEtape()` contenait ~200 lignes de logique dupliquée avec les méthodes `run*Validation()`
+- 5 blocs remplacés par des appels à `run*Validation(donnees, document)` : texte_trou, timeline (drag), chrono (texte), carte, association
+- Les `run*Validation()` acceptent maintenant un paramètre `container` optionnel
+- Bug corrigé au passage : `runAssociationValidation` ne renvoyait pas `attendu` dans les détails
+- Les 3 formats restants (vrai_faux, qcm, question_ouverte) conservent leur logique propre (carrousels avec validation individuelle)
+
+### Fichiers modifiés
+- `package.json` — version ESLint verrouillée
+- `js/eleve-connaissances.js` — ajout `parseJSONField`, remplacement de 3 blocs de parsing
+- `js/eleve-connaissances-results.js` — erreur sauvegarde visible, listener leak corrigé
+- `js/eleve-connaissances-validation.js` — parsing consolidé, validation refactorisée, container param
+- `css/eleve-connaissances.css` — style `.save-error` pour le bandeau d'erreur
+- `CLAUDE.md` — bugs marqués comme corrigés
+- `CHANGELOG.md`
+
+### Décisions prises
+- `parseJSONField` déclaré conditionnellement (`if typeof === 'undefined'`) plutôt qu'extrait dans un fichier partagé — suit le pattern d'autonomie par module
+- Les formats vrai_faux, qcm, question_ouverte ne sont pas refactorisés — leur logique de carrousel est fondamentalement différente des `run*Validation()`
+- L'association en mode single gagne les labels de correction visuels (amélioration héritée de `runAssociationValidation`)
+
+---
+
 ## 2026-02-23 (session 5) — Toggle comparaison souple/stricte pour tous les formats texte
 
 ### Contexte
