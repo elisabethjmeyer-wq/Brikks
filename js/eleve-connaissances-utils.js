@@ -250,6 +250,26 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
+     * Normalise un texte pour comparaison intermédiaire (texte à trous, frise, carte) :
+     * - minuscules + suppression accents
+     * - conversion romains → arabes, lettres → arabes
+     * - suppression ponctuation
+     * PAS de suppression mots-outils, PAS de stemming
+     */
+    normalizeIntermediaire(text) {
+        if (!text) return '';
+        let t = this.convertRomainToArabe(text.trim());
+        t = t.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/['']/g, ' ')
+            .replace(/[^a-z0-9\s\-]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        t = this.convertNombresLettres(t);
+        return t;
+    },
+
+    /**
      * Sépare un texte brut en éléments (split sur "," et " et " et " ou ").
      * À appeler AVANT normalisation pour conserver les délimiteurs.
      */
@@ -265,8 +285,9 @@ Object.assign(EleveConnaissances, {
      * @param {string} userAnswer - réponse de l'élève
      * @param {string} expectedAnswer - réponse attendue
      * @param {boolean} stricte - si true, comparaison exacte ; si false, pipeline souple
+     * @param {boolean} light - si true, normalisation intermédiaire (pas de stop words ni stemming)
      */
-    compareAnswers(userAnswer, expectedAnswer, stricte) {
+    compareAnswers(userAnswer, expectedAnswer, stricte, light) {
         if (!userAnswer || !expectedAnswer) return false;
 
         // Mode strict : comparaison exacte (trim seulement)
@@ -274,14 +295,19 @@ Object.assign(EleveConnaissances, {
             return userAnswer.trim() === expectedAnswer.trim();
         }
 
+        // Choisir le niveau de normalisation
+        const normalize = light
+            ? (t) => this.normalizeIntermediaire(t)
+            : (t) => this.normalizeSouple(t);
+
         // Mode souple : comparaison directe après normalisation
-        const normUser = this.normalizeSouple(userAnswer);
-        const normExpected = this.normalizeSouple(expectedAnswer);
+        const normUser = normalize(userAnswer);
+        const normExpected = normalize(expectedAnswer);
         if (normUser === normExpected) return true;
 
         // Comparaison par éléments : splitter le texte BRUT, puis normaliser chaque partie
-        const userParts = this.splitElements(userAnswer).map(p => this.normalizeSouple(p)).sort();
-        const expectedParts = this.splitElements(expectedAnswer).map(p => this.normalizeSouple(p)).sort();
+        const userParts = this.splitElements(userAnswer).map(p => normalize(p)).sort();
+        const expectedParts = this.splitElements(expectedAnswer).map(p => normalize(p)).sort();
 
         if (userParts.length === expectedParts.length && userParts.length > 0 &&
             userParts.every((part, i) => part === expectedParts[i])) {
