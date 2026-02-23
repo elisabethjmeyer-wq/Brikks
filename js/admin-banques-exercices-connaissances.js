@@ -559,8 +559,10 @@ Object.assign(AdminBanquesExercices, {
             el.classList.toggle('completed', i + 1 < step);
         });
 
-        // Mettre à jour les boutons de navigation
+        // Mettre à jour les boutons de navigation (toujours réactiver, au cas où un step précédent les avait désactivés)
         prevBtn.style.display = step > 1 ? 'inline-flex' : 'none';
+        prevBtn.disabled = false;
+        nextBtn.disabled = false;
         nextBtn.textContent = step === 4 ? '✓ Valider et fermer' : 'Suivant →';
 
         switch(step) {
