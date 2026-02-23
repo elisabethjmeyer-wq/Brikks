@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-02-23 (session 5) — Toggle comparaison souple/stricte pour tous les formats texte
+
+### Contexte
+Ajout du choix entre comparaison souple et réponse exacte pour tous les formats à saisie texte, pas seulement question ouverte.
+
+### Modifications
+
+**Admin (formulaire de création/édition de questions) :**
+- Toggle « Mode de correction » ajouté pour **texte à trous**, **frise chronologique (mode texte)** et **carte**
+- Le champ `comparaison_stricte` est sauvegardé dans `donnees` pour ces 3 formats
+- Même design que le toggle existant pour question ouverte (radio souple/stricte)
+
+**Validation élève :**
+- Nouvelle fonction `normalizeIntermediaire()` : comme `normalizeSouple()` mais sans suppression des mots-outils ni stemming — adaptée aux réponses courtes (trous, dates, noms de lieux)
+- `compareAnswers()` accepte un 4e paramètre `light` pour utiliser la normalisation intermédiaire
+- Les 6 blocs de validation (texte_trou, timeline, carte × principal + carrousel) utilisent maintenant `compareAnswers()` au lieu de `trim().toLowerCase()`
+
+### Fichiers modifiés
+- `js/admin-banques-exercices-questions.js` — toggle UI + sauvegarde donnees
+- `js/eleve-connaissances-utils.js` — `normalizeIntermediaire()`, `compareAnswers()` avec param `light`
+- `js/eleve-connaissances-validation.js` — 6 blocs de validation harmonisés
+- `CLAUDE.md` — documentation des niveaux de comparaison
+- `CHANGELOG.md`
+
+### Décisions prises
+- 3 niveaux de normalisation : strict (trim), intermédiaire (casse+accents+chiffres), complet (+ stop words + stemming)
+- Par défaut souple — les questions existantes (sans le champ) héritent du mode souple, améliorant la tolérance
+- La normalisation intermédiaire ne retire PAS les mots-outils → un trou contenant « la » ou « le » reste validable
+
+---
+
 ## 2026-02-23 (session 4) — Audit et restructuration module exercices SF (élève + admin)
 
 ### Contexte
