@@ -89,6 +89,11 @@ const AdminBanquesExercices = {
                 this.competencesReferentiel = cached.competencesReferentiel || [];
                 this.banquesQuestions = cached.banquesQuestions || [];
                 this.questionsConnaissances = cached.questionsConnaissances || [];
+                // Données connaissances (nouveau système)
+                this.banquesExercicesConn = cached.banquesExercicesConn || [];
+                this.entrainementsConn = cached.entrainementsConn || [];
+                this.etapesConn = cached.etapesConn || [];
+                this.etapeQuestionsConn = cached.etapeQuestionsConn || [];
                 this.normalizeQuestionsTypes();
                 this.setupEventListeners();
                 this.updateCounts();
@@ -136,6 +141,11 @@ const AdminBanquesExercices = {
                 competencesReferentiel: this.competencesReferentiel,
                 banquesQuestions: this.banquesQuestions,
                 questionsConnaissances: this.questionsConnaissances,
+                // Données connaissances (nouveau système)
+                banquesExercicesConn: this.banquesExercicesConn,
+                entrainementsConn: this.entrainementsConn,
+                etapesConn: this.etapesConn,
+                etapeQuestionsConn: this.etapeQuestionsConn,
                 timestamp: Date.now()
             }));
         } catch (e) {
