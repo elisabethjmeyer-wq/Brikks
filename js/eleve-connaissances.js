@@ -5,6 +5,9 @@
  */
 
 const EleveConnaissances = {
+    // Nombre d'étapes de mémorisation (doit correspondre à ETAPE_MAX côté backend)
+    SEUIL_ETAPES: 7,
+
     // Données
     banques: [],
     entrainements: [],
@@ -454,8 +457,8 @@ const EleveConnaissances = {
             }
         });
 
-        // Progression moyenne = moyenne des (étape / 7) * 100
-        const progressionMoyenne = total > 0 ? Math.round((sommeEtapes / total / 7) * 100) : 0;
+        // Progression moyenne = moyenne des (étape / SEUIL_ETAPES) * 100
+        const progressionMoyenne = total > 0 ? Math.round((sommeEtapes / total / this.SEUIL_ETAPES) * 100) : 0;
 
         return {
             total,
@@ -509,15 +512,15 @@ const EleveConnaissances = {
                     break;
                 case 'a-reviser':
                     statusBadge = '<span class="entrainement-badge urgent">⚡ À réviser</span>';
-                    actionHint = `${reussites}/6 réussies`;
+                    actionHint = `${reussites}/${this.SEUIL_ETAPES} réussies`;
                     break;
                 case 'verrouille':
                     statusBadge = `<span class="entrainement-badge locked">⏳ Dans ${statusInfo.joursRestants}j</span>`;
-                    actionHint = `${reussites}/6 réussies`;
+                    actionHint = `${reussites}/${this.SEUIL_ETAPES} réussies`;
                     break;
                 case 'memorise':
                     statusBadge = '<span class="entrainement-badge done">✅ Mémorisé</span>';
-                    actionHint = '6/6 réussies';
+                    actionHint = `${this.SEUIL_ETAPES}/${this.SEUIL_ETAPES} réussies`;
                     break;
             }
 
