@@ -1797,6 +1797,13 @@ textarea.answered {
     font-style: italic;
 }
 
+.exercice-item.savoir-faire .exercice-hint-sub {
+    display: block;
+    font-size: 0.7rem;
+    color: #9ca3af;
+    margin-top: 0.15rem;
+}
+
 /* Animation pulse pour badges urgents */
 @keyframes pulse-badge {
     0%, 100% { opacity: 1; }
