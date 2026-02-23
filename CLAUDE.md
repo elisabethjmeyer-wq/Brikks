@@ -13,6 +13,30 @@ L'utilisatrice principale est la professeure qui n'est pas développeuse : expli
 - **Pas d'usine à gaz** : solutions simples, minimales, maintenables
 - **Pas de sur-ingénierie** : ne pas ajouter ce qui n'est pas demandé
 - **Signaler la perte de contexte** : quand tu sens que tu perds en performance (relecture de fichiers déjà lus, oublis, réponses moins précises, compression du contexte), **dis-le immédiatement** à l'utilisatrice et propose de changer de conversation. Fournis-lui un résumé à copier-coller pour la prochaine session contenant : ce qui a été fait, ce qui reste à faire, les fichiers modifiés, et les décisions prises
+- **Maintenir la documentation** : après chaque session de travail, mettre à jour la vue fonctionnelle ci-dessous (état des modules) et ajouter une entrée dans `CHANGELOG.md`. Ne documenter que les modules sur lesquels tu as effectivement travaillé — ne pas deviner l'état des modules inconnus.
+
+## Vue fonctionnelle
+
+> Cette section décrit l'état réel de chaque module, tel que constaté par les Claude successifs.
+> **Règle** : ne documenter ici que ce qu'on a vérifié en travaillant dessus. Les modules non listés sont inconnus — le prochain Claude devra les explorer lui-même.
+
+### Entraînements de connaissances (élève) — AUDITÉ ET NETTOYÉ
+
+**Page** : `eleve/entrainements-conn.html`
+**Fichiers** : `eleve-connaissances.js`, `-formats.js`, `-validation.js`, `-results.js`, `-utils.js`
+**Backend** : `Entrainements.gs` (mémorisation), `Connaissances.gs` (banques de questions)
+
+**Ce que fait le module :**
+- L'élève voit une liste de banques d'exercices, chacune contenant des entraînements
+- Chaque entraînement comporte 1 à N étapes, chaque étape ayant un format de question
+- Formats supportés : QCM, vrai/faux, texte à trous, association, frise chronologique, image cliquable (carte), question ouverte, flashcard
+- Après validation, l'élève voit un écran de correction détaillé avec feedback par question
+- Système de **répétition espacée** : 7 niveaux à valider avec des délais croissants entre chaque révision
+- Les entraînements verrouillés affichent la date de prochaine révision
+- Mode libre : l'élève peut s'entraîner même quand un entraînement est verrouillé (sans impact sur la progression)
+- Barre de progression par banque : pourcentage moyen des niveaux validés
+
+**État** : fonctionnel, audité, code nettoyé et factorisé. UX de correction retravaillée.
 
 ## Architecture technique
 
@@ -91,24 +115,6 @@ Pour afficher le nombre de niveaux **validés** : `Math.max(0, prog.etape - 1)`.
 - Les entraînements ont un `statut` : `'publie'` ou `'brouillon'` — filtrer côté frontend
 - Les `format_code` viennent du backend, peuvent être des alias → toujours normaliser
 - Les progressions (`this.progressions[entrainement_id]`) contiennent : `etape`, `statut`, `prochaine_revision`, `seuil`
-
-## Ce qui a été fait (audit + corrections)
-
-### Nettoyage
-- ~880 lignes de code mort supprimées (JS, GAS, CSS)
-- Documentation obsolète supprimée, `.gitignore` ajouté
-- ESLint configuré, fichiers volumineux découpés en modules
-
-### Bugs corrigés
-- Filtre `statut === 'publie'` restauré (brouillons visibles par les élèves)
-- SEUIL_ETAPES aligné à 7 partout (était 6 dans le menu, 7 côté serveur)
-- Barre de progression corrigée (affichait le prochain niveau au lieu du validé)
-- Feedback de correction amélioré (panels vert/rouge, "Non répondu", flashcards)
-
-### Refactoring
-- Code dupliqué factorisé (QCM x4, chrono sort x3, reset state x3)
-- Noms de formats unifiés via `normalizeFormat()`
-- Constante `SEUIL_ETAPES` partagée (1 seul endroit à modifier)
 
 ## Points connus non traités
 
