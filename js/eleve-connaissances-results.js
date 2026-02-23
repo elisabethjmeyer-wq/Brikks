@@ -120,6 +120,7 @@ Object.assign(EleveConnaissances, {
             }
         } catch (error) {
             Logger.error('EleveConnaissances', 'Erreur sauvegarde progression', error);
+            this.lastProgressionResult = { saveError: true };
         }
     },
 
@@ -591,12 +592,17 @@ Object.assign(EleveConnaissances, {
         }).join('');
 
         // Fermer les popovers ouverts quand on clique en dehors d'un marqueur
+        // Retirer l'ancien listener avant d'en ajouter un nouveau (évite les fuites mémoire)
+        if (this._popoverClickHandler) {
+            document.removeEventListener('click', this._popoverClickHandler);
+        }
+        this._popoverClickHandler = (e) => {
+            if (!e.target.closest('.correction-carte-marker')) {
+                document.querySelectorAll('.correction-carte-marker.popover-open').forEach(m => m.classList.remove('popover-open'));
+            }
+        };
         setTimeout(() => {
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.correction-carte-marker')) {
-                    document.querySelectorAll('.correction-carte-marker.popover-open').forEach(m => m.classList.remove('popover-open'));
-                }
-            });
+            document.addEventListener('click', this._popoverClickHandler);
         }, 100);
 
         return `
@@ -791,6 +797,13 @@ Object.assign(EleveConnaissances, {
                                 </div>
                             ` : ''}
 
+                            ${prog.saveError ? `
+                                <div class="bilan-conseil save-error">
+                                    <span class="conseil-icon">⚠️</span>
+                                    <p>Ta progression n'a pas pu être enregistrée (problème de connexion). Réessaie plus tard.</p>
+                                </div>
+                            ` : ''}
+
                             ${!isSuccess && !this.isTrainingMode && prog.reussi === false ? `
                                 <div class="bilan-conseil warning">
                                     <span class="conseil-icon">💡</span>
@@ -897,6 +910,12 @@ Object.assign(EleveConnaissances, {
         if (this._fullscreenEscapeHandler) {
             document.removeEventListener('keydown', this._fullscreenEscapeHandler);
             this._fullscreenEscapeHandler = null;
+        }
+
+        // Popover click handler (correction carte)
+        if (this._popoverClickHandler) {
+            document.removeEventListener('click', this._popoverClickHandler);
+            this._popoverClickHandler = null;
         }
     },
 

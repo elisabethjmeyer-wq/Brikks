@@ -151,91 +151,20 @@ Object.assign(EleveConnaissances, {
                     Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
                     break;
                 }
-                if (donnees.paires && donnees.mode) {
-                    // Mode texte (chronologie)
-                    const chronoAnswers = this.userAnswers['chrono'] || {};
-                    const paires = donnees.paires || donnees.evenements || [];
-                    const mode = donnees.mode || 'date';
-                    const chronoStricte = donnees.comparaison_stricte || false;
+                {
+                    const timelineResult = (donnees.paires && donnees.mode)
+                        ? this.runChronoValidation(donnees, document)
+                        : this.runTimelineValidation(donnees, document);
+                    correct = timelineResult.correct;
+                    total = timelineResult.total;
+                    details = timelineResult.details;
 
-                    const sortedEvents = this.sortEventsByDate(paires);
-
-                    sortedEvents.forEach((evt, idx) => {
-                        total++;
-                        const answer = chronoAnswers[idx];
-                        const inputEl = document.querySelector(`.chrono-input[data-index="${idx}"]`);
-                        if (!inputEl) return;
-
-                        let isCorrect = false;
-                        let correctValue = mode === 'evenement' ? evt.evenement : String(evt.date);
-                        let reponsesAcceptees = evt.reponses_acceptees || [];
-
-                        if (answer && answer.value) {
-                            const allAccepted = [correctValue, ...reponsesAcceptees];
-                            isCorrect = allAccepted.some(rep => this.compareAnswers(answer.value, rep, chronoStricte, true));
-                        }
-
-                        inputEl.classList.remove('correct', 'incorrect');
-                        if (isCorrect) {
-                            correct++;
-                            inputEl.classList.add('correct');
-                        } else {
-                            inputEl.classList.add('incorrect');
-                            const container = inputEl.closest('.chrono-input-zone');
-                            if (container && !container.querySelector('.chrono-correction')) {
-                                const correction = document.createElement('span');
-                                correction.className = 'chrono-correction';
-                                correction.textContent = correctValue;
-                                container.appendChild(correction);
-                            }
-                        }
-
-                        // Ajouter l'affichage du score
-                        const container = inputEl.closest('.chrono-input-zone');
-                        if (container && !container.querySelector('.chrono-score')) {
-                            const scoreSpan = document.createElement('span');
-                            scoreSpan.className = 'chrono-score';
-                            scoreSpan.textContent = isCorrect ? ' — 1/1 point' : ' — 0/1 point';
-                            container.appendChild(scoreSpan);
-                        }
-                        details.push({ question: mode === 'evenement' ? evt.date : evt.evenement, reponse: answer?.value, attendu: correctValue, correct: isCorrect });
-                    });
-                } else {
-                    // Mode drag (timeline cartes)
-                    const cartes = donnees.cartes || [];
-                    const cardsContainer = document.getElementById('timelineCards');
-                    if (cardsContainer) {
-                        const placedCards = Array.from(cardsContainer.querySelectorAll('.timeline-card'));
-                        total = cartes.length;
-
-                        // Sauvegarder l'ordre de l'élève avant validation
-                        const studentOrder = placedCards.map(c => parseInt(c.dataset.originalIndex));
-
-                        placedCards.forEach((card, positionActuelle) => {
-                            const originalIndex = parseInt(card.dataset.originalIndex);
-                            card.classList.remove('correct', 'incorrect');
-                            card.setAttribute('draggable', 'false');
-
-                            const isCorrect = originalIndex === positionActuelle;
-                            if (isCorrect) {
-                                correct++;
-                                card.classList.add('correct');
-                            } else {
-                                card.classList.add('incorrect');
-                            }
-
-                            // Score affiché globalement en haut, pas inline
-
-                            details.push({ question: `Position ${positionActuelle + 1}`, reponse: cartes[originalIndex]?.titre, attendu: cartes[positionActuelle]?.titre, correct: originalIndex === positionActuelle });
-                        });
+                    // Afficher le feedback minimaliste avec score pour timeline (mode drag uniquement)
+                    if (!donnees.paires || !donnees.mode) {
+                        const isTimelineCorrect = correct === total;
+                        const feedbackText = isTimelineCorrect ? 'Correct' : 'Mauvaise réponse';
+                        this.displayUnifiedFeedback('feedback_timeline', isTimelineCorrect, feedbackText, correct, total, 'chronologie');
                     }
-                }
-
-                // Afficher le feedback minimaliste avec score pour timeline
-                if (!donnees.paires || !donnees.mode) {
-                    const isTimelineCorrect = correct === total;
-                    const feedbackText = isTimelineCorrect ? 'Correct' : 'Mauvaise réponse';
-                    this.displayUnifiedFeedback('feedback_timeline', isTimelineCorrect, feedbackText, correct, total, 'chronologie');
                 }
                 break;
 
@@ -244,39 +173,18 @@ Object.assign(EleveConnaissances, {
                     Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
                     break;
                 }
-                const trouInputs = document.querySelectorAll('.trou-input');
-                const trous = donnees.trous || [];
-                const trouStricte = donnees.comparaison_stricte || false;
+                {
+                    const texteResult = this.runTexteValidation(donnees, document);
+                    correct = texteResult.correct;
+                    total = texteResult.total;
+                    details = texteResult.details;
 
-                trouInputs.forEach((input, idx) => {
-                    total++;
-                    const stored = this.getStoredAnswer(`trou_${idx}`);
-                    const correctValue = stored ? stored.correct : '';
-
-                    let allAccepted = [correctValue];
-                    if (trous[idx] && trous[idx].alternatives) {
-                        allAccepted = allAccepted.concat(trous[idx].alternatives);
-                    }
-
-                    input.classList.remove('correct', 'incorrect');
-                    const isOk = allAccepted.some(rep => this.compareAnswers(input.value, rep, trouStricte, true));
-                    if (isOk) {
-                        correct++;
-                        input.classList.add('correct');
-                    } else {
-                        input.classList.add('incorrect');
-                    }
-
-                    // Score affiché globalement en haut, pas inline
-
-                    details.push({ question: `Trou ${idx + 1}`, reponse: input.value, attendu: stored ? stored.correct : '', correct: isOk });
-                });
-
-                // Afficher le feedback avec score pour texte à trous
-                const isTexteTrousCorrect = correct === total;
-                const allTrousEmpty = details.every(d => !d.reponse || d.reponse.trim() === '');
-                const texteTrousTexte = isTexteTrousCorrect ? 'Correct' : (allTrousEmpty ? 'Non répondu' : 'Mauvaise réponse');
-                this.displayUnifiedFeedback('feedback_texte_trous', isTexteTrousCorrect, texteTrousTexte, correct, total, 'chronologie');
+                    // Afficher le feedback avec score pour texte à trous
+                    const isTexteTrousCorrect = correct === total;
+                    const allTrousEmpty = details.every(d => !d.reponse || d.reponse.trim() === '');
+                    const texteTrousTexte = isTexteTrousCorrect ? 'Correct' : (allTrousEmpty ? 'Non répondu' : 'Mauvaise réponse');
+                    this.displayUnifiedFeedback('feedback_texte_trous', isTexteTrousCorrect, texteTrousTexte, correct, total, 'chronologie');
+                }
                 break;
 
             case 'carte':
@@ -284,58 +192,26 @@ Object.assign(EleveConnaissances, {
                     Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
                     break;
                 }
-                const marqueurs = donnees.marqueurs || [];
-                const carteStricte = donnees.comparaison_stricte || false;
-                marqueurs.forEach((m, idx) => {
-                    total++;
-                    const answer = this.userAnswers['carte_' + idx];
-                    const marker = document.querySelector(`.carte-marker-v2[data-index="${idx}"]`);
-                    const answerItem = document.querySelector(`.carte-answer-item[data-index="${idx}"]`);
-                    const correctAnswer = (m.reponse || '').split('|')[0].trim();
+                {
+                    const carteResult = this.runCarteValidation(donnees, document);
+                    correct = carteResult.correct;
+                    total = carteResult.total;
+                    details = carteResult.details;
 
-                    if (answer) {
-                        const allAccepted = [m.reponse || '', ...(m.reponses_acceptees || [])];
-                        const isCorrect = allAccepted.some(rep => this.compareAnswers(answer, rep, carteStricte, true));
+                    // Feedback visuel sur les answerItems (liste de réponses, propre au mode single)
+                    (donnees.marqueurs || []).forEach((m, idx) => {
+                        const answerItem = document.querySelector(`.carte-answer-item[data-index="${idx}"]`);
+                        if (!answerItem) return;
+                        const d = details[idx];
+                        answerItem.classList.add(d && d.correct ? 'correct' : 'incorrect');
+                    });
 
-                        if (isCorrect) {
-                            correct++;
-                            if (marker) marker.classList.add('correct');
-                            if (answerItem) answerItem.classList.add('correct');
-                        } else {
-                            if (marker) marker.classList.add('incorrect');
-                            if (answerItem) answerItem.classList.add('incorrect');
-                        }
-
-                        // Apply correction mode visualization
-                        this.applyCarteCorrectionMode(marker, idx, isCorrect, answer, correctAnswer);
-
-                        // Score affiché globalement en haut, pas inline
-
-                        details.push({ question: `Point ${idx + 1}`, reponse: answer, attendu: m.reponse, correct: isCorrect });
-                    } else {
-                        if (marker) marker.classList.add('incorrect');
-                        if (answerItem) answerItem.classList.add('incorrect');
-
-                        // Apply correction mode visualization
-                        this.applyCarteCorrectionMode(marker, idx, false, null, correctAnswer);
-
-                        // Ajouter l'affichage du score
-                        if (answerItem && !answerItem.querySelector('.carte-answer-score')) {
-                            const scoreSpan = document.createElement('span');
-                            scoreSpan.className = 'carte-answer-score';
-                            scoreSpan.textContent = ' — 0/1 point';
-                            answerItem.appendChild(scoreSpan);
-                        }
-
-                        details.push({ question: `Point ${idx + 1}`, reponse: null, attendu: m.reponse, correct: false });
-                    }
-                });
-
-                // Afficher le feedback avec score pour carte
-                const isCarteCorrect = correct === total;
-                const allMarkersEmpty = details.every(d => !d.reponse);
-                const carteTexte = isCarteCorrect ? 'Correct' : (allMarkersEmpty ? 'Non répondu' : 'Mauvaise réponse');
-                this.displayUnifiedFeedback('feedback_carte', isCarteCorrect, carteTexte, correct, total, 'chronologie');
+                    // Afficher le feedback avec score pour carte
+                    const isCarteCorrect = correct === total;
+                    const allMarkersEmpty = details.every(d => !d.reponse);
+                    const carteTexte = isCarteCorrect ? 'Correct' : (allMarkersEmpty ? 'Non répondu' : 'Mauvaise réponse');
+                    this.displayUnifiedFeedback('feedback_carte', isCarteCorrect, carteTexte, correct, total, 'chronologie');
+                }
                 break;
 
             case 'question_ouverte':
@@ -387,61 +263,23 @@ Object.assign(EleveConnaissances, {
                     Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
                     break;
                 }
-                const assocPaires = donnees.paires || [];
-                total = assocPaires.length;
-                const userPairs = this.userAnswers['association'] || [];
+                {
+                    const assocResult = this.runAssociationValidation(donnees, document);
+                    correct = assocResult.correct;
+                    total = assocResult.total;
+                    details = assocResult.details;
 
-                userPairs.forEach(up => {
-                    // Retrouver les éléments visuels (grille + chip)
-                    const gridId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
-                    const chipId = this._assocChipSide === 'gauche' ? up.gauche : up.droite;
-                    const gridEl = document.querySelector(`#associationGrid .association-grid-card[data-id="${gridId}"]`);
-                    const chipEl = document.querySelector(`#associationChips .association-chip[data-id="${chipId}"]`);
+                    // Désactiver l'interaction sur les chips
+                    const chipsZone = document.querySelector('#associationChips');
+                    if (chipsZone) chipsZone.classList.add('disabled');
 
-                    const isCorrect = String(up.gauche) === String(up.droite);
-                    if (isCorrect) {
-                        correct++;
-                        [gridEl, chipEl].forEach(el => { if (el) { el.classList.add('correct'); } });
-                    } else {
-                        [gridEl, chipEl].forEach(el => { if (el) { el.classList.add('incorrect'); } });
-                    }
-                    details.push({
-                        question: assocPaires[parseInt(up.gauche)]?.element1 || up.gauche,
-                        reponse: assocPaires[parseInt(up.droite)]?.element2 || up.droite,
-                        attendu: assocPaires[parseInt(up.gauche)]?.element2 || '',
-                        correct: isCorrect
-                    });
-                });
-                // Ajouter les éléments non associés comme erreurs
-                for (let i = 0; i < assocPaires.length; i++) {
-                    const gridId = String(i);
-                    const isMatched = userPairs.some(up => {
-                        const upGridId = this._assocGridSide === 'gauche' ? String(up.gauche) : String(up.droite);
-                        return upGridId === gridId;
-                    });
-                    if (!isMatched) {
-                        details.push({
-                            question: assocPaires[i].element1,
-                            reponse: 'Non répondu',
-                            attendu: assocPaires[i].element2,
-                            correct: false
-                        });
-                    }
+                    // Afficher le feedback avec score
+                    const userPairs = this.userAnswers['association'] || [];
+                    const isAssocCorrect = correct === total;
+                    const allUnpaired = userPairs.length === 0;
+                    const assocFeedbackText = isAssocCorrect ? 'Correct' : (allUnpaired ? 'Non répondu' : 'Mauvaise réponse');
+                    this.displayUnifiedFeedback('association_feedback', isAssocCorrect, assocFeedbackText, correct, total, 'association');
                 }
-                // Marquer les éléments non appariés comme incorrects
-                document.querySelectorAll('#associationGrid .association-grid-card:not(.correct):not(.incorrect)').forEach(el => el.classList.add('incorrect'));
-
-                // Désactiver l'interaction sur les chips et masquer le label d'instruction
-                const chipsZone = document.querySelector('#associationChips');
-                if (chipsZone) chipsZone.classList.add('disabled');
-                const zoneLabel = document.querySelector('.association-zone-label');
-                if (zoneLabel) zoneLabel.classList.add('hidden');
-
-                // Afficher le feedback avec score
-                const isAssocCorrect = correct === total;
-                const allUnpaired = userPairs.length === 0;
-                const assocFeedbackText = isAssocCorrect ? 'Correct' : (allUnpaired ? 'Non répondu' : 'Mauvaise réponse');
-                this.displayUnifiedFeedback('association_feedback', isAssocCorrect, assocFeedbackText, correct, total, 'association');
                 break;
 
             case 'flashcard':
@@ -525,28 +363,12 @@ Object.assign(EleveConnaissances, {
                 String(q.id) === String(questionRef.question_id)
             );
             if (questionContent && questionContent.donnees) {
-                donnees = questionContent.donnees;
-                if (typeof donnees === 'string') {
-                    try {
-                        donnees = JSON.parse(donnees);
-                    } catch (e) {
-                        Logger.warn('EleveConnaissances', 'getEtapeDonnees JSON parse failed', e);
-                        donnees = {};
-                    }
-                }
+                donnees = parseJSONField(questionContent.donnees);
             }
         }
 
         if (Object.keys(donnees).length === 0 && etape.donnees) {
-            donnees = etape.donnees;
-            if (typeof donnees === 'string') {
-                try {
-                    donnees = JSON.parse(donnees);
-                } catch (e) {
-                    Logger.warn('EleveConnaissances', 'getEtapeDonnees JSON parse failed for etape donnees', e);
-                    donnees = {};
-                }
-            }
+            donnees = parseJSONField(etape.donnees);
         }
         return donnees;
     },
@@ -802,25 +624,25 @@ Object.assign(EleveConnaissances, {
     },
 
     /** Exécute la validation spécifique au format et retourne { correct, total, details } */
-    runFormatValidation(format, qData) {
+    runFormatValidation(format, qData, container) {
         switch (format) {
             case 'texte_trou':
-                return this.runTexteValidation(qData);
+                return this.runTexteValidation(qData, container);
             case 'association':
-                return this.runAssociationValidation(qData);
+                return this.runAssociationValidation(qData, container);
             case 'timeline':
-                if (qData.paires && qData.mode) return this.runChronoValidation(qData);
-                return this.runTimelineValidation(qData);
+                if (qData.paires && qData.mode) return this.runChronoValidation(qData, container);
+                return this.runTimelineValidation(qData, container);
             case 'carte':
-                return this.runCarteValidation(qData);
+                return this.runCarteValidation(qData, container);
             default:
                 return { correct: 0, total: 0, details: [] };
         }
     },
 
     /** Validation texte à trous */
-    runTexteValidation(qData) {
-        const container = document.getElementById('multiFormatContent');
+    runTexteValidation(qData, container) {
+        container = container || document.getElementById('multiFormatContent');
         const trouInputs = container.querySelectorAll('.trou-input');
         let correct = 0, total = 0;
         const details = [];
@@ -849,8 +671,8 @@ Object.assign(EleveConnaissances, {
     },
 
     /** Validation chronologie (mode texte) */
-    runChronoValidation(qData) {
-        const container = document.getElementById('multiFormatContent');
+    runChronoValidation(qData, container) {
+        container = container || document.getElementById('multiFormatContent');
         const events = qData.paires || qData.evenements || [];
         const mode = qData.mode || 'date';
         const stricte = qData.comparaison_stricte || false;
@@ -895,8 +717,8 @@ Object.assign(EleveConnaissances, {
     },
 
     /** Validation timeline (mode drag & drop) */
-    runTimelineValidation(qData) {
-        const container = document.getElementById('multiFormatContent');
+    runTimelineValidation(qData, container) {
+        container = container || document.getElementById('multiFormatContent');
         const cartes = qData.cartes || [];
         let correct = 0;
         const total = cartes.length;
@@ -925,8 +747,8 @@ Object.assign(EleveConnaissances, {
     },
 
     /** Validation association */
-    runAssociationValidation(qData) {
-        const container = document.getElementById('multiFormatContent');
+    runAssociationValidation(qData, container) {
+        container = container || document.getElementById('multiFormatContent');
         const assocPaires = qData.paires || [];
         let correct = 0;
         const total = assocPaires.length;
@@ -949,6 +771,7 @@ Object.assign(EleveConnaissances, {
             details.push({
                 question: assocPaires[parseInt(up.gauche)]?.element1 || up.gauche,
                 reponse: assocPaires[parseInt(up.droite)]?.element2 || up.droite,
+                attendu: assocPaires[parseInt(up.gauche)]?.element2 || '',
                 correct: isCorrect
             });
         });
@@ -1011,8 +834,8 @@ Object.assign(EleveConnaissances, {
     },
 
     /** Validation carte/image cliquable */
-    runCarteValidation(qData) {
-        const container = document.getElementById('multiFormatContent');
+    runCarteValidation(qData, container) {
+        container = container || document.getElementById('multiFormatContent');
         const marqueurs = qData.marqueurs || [];
         const stricte = qData.comparaison_stricte || false;
         let correct = 0, total = 0;
