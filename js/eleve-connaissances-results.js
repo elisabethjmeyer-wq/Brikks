@@ -846,37 +846,6 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
-     * Redémarre l'entraînement en mode libre (pour continuer à s'entraîner après réussite)
-     */
-    restartAsTraining() {
-        this.isTrainingMode = true;
-        // Passer true pour skipAvailabilityCheck afin de ne pas écraser isTrainingMode
-        this.startEntrainement(this.currentEntrainement.id, true);
-    },
-
-    /**
-     * Toggle l'affichage des détails d'une étape
-     */
-    toggleEtapeDetails(idx) {
-        const details = document.getElementById(`etapeDetails_${idx}`);
-        if (details) {
-            const isHidden = details.classList.contains('hidden');
-            details.classList.toggle('hidden');
-            const toggle = details.previousElementSibling.querySelector('.etape-recap-toggle');
-            if (toggle) toggle.textContent = isHidden ? '▲' : '▼';
-        }
-    },
-
-    /**
-     * Calcule le nombre de jours jusqu'à une date
-     */
-    calculateDaysUntil(dateStr) {
-        const target = new Date(dateStr);
-        const now = new Date();
-        return Math.max(0, Math.ceil((target - now) / (1000 * 60 * 60 * 24)));
-    },
-
-    /**
      * Trouve l'entraînement suivant dans la même banque
      */
     findNextEntrainement() {

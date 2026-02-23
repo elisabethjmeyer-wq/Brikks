@@ -369,26 +369,12 @@ function handleRequest(e) {
         result = deleteQuestion(request);
         break;
 
-      // PROGRESSION ENTRAINEMENTS
-      case 'saveProgressionEntrainement':
-        result = saveProgressionEntrainement(request);
-        break;
-      case 'getProgressionEntrainements':
-        result = getProgressionEntrainements(request);
-        break;
-
       // SYSTÈME DE MÉMORISATION
       case 'getProgressionMemorisation':
         result = getProgressionMemorisation(request);
         break;
       case 'saveProgressionMemorisation':
         result = saveProgressionMemorisation(request);
-        break;
-      case 'checkEntrainementDisponible':
-        result = checkEntrainementDisponible(request);
-        break;
-      case 'getProgressionBanque':
-        result = getProgressionBanque(request);
         break;
 
       // EVALUATIONS

@@ -12,8 +12,6 @@ const EleveConnaissances = {
     etapeQuestions: [],
     formatsQuestions: [],
     questionsConnaissances: [],  // Contenu des questions avec donnees
-    resultats: [],
-
     // État
     currentUser: null,
     currentBanque: null,
@@ -108,15 +106,15 @@ const EleveConnaissances = {
     },
 
     applyData(data) {
-        // TODO: Remettre le filtre statut === 'publie' en production
-        // Pour l'instant, on affiche tout pour le test
         this.banques = data.banques || [];
         this.formatsQuestions = data.formatsQuestions || [];
         this.questionsConnaissances = data.questionsConnaissances || [];
 
-        // Filtrer les données orphelines pour éviter les erreurs d'affichage
+        // Filtrer les entraînements non publiés + les données orphelines
         const banqueIds = new Set(this.banques.map(b => String(b.id)));
-        this.entrainements = (data.entrainements || []).filter(e => banqueIds.has(String(e.banque_exercice_id)));
+        this.entrainements = (data.entrainements || []).filter(e =>
+            String(e.statut).toLowerCase() === 'publie' && banqueIds.has(String(e.banque_exercice_id))
+        );
 
         const entrainementIds = new Set(this.entrainements.map(e => String(e.id)));
         this.etapes = (data.etapes || []).filter(et => entrainementIds.has(String(et.entrainement_id)));
@@ -131,12 +129,9 @@ const EleveConnaissances = {
         this.entrainements.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         // Debug log
-        Logger.debug('EleveConnaissances', 'Données chargées (après filtrage orphelins)', {
+        Logger.debug('EleveConnaissances', 'Données chargées', {
             banques: this.banques.length,
-            entrainements: this.entrainements.length,
-            etapes: this.etapes.length,
-            etapeQuestions: this.etapeQuestions.length,
-            questionsConnaissances: this.questionsConnaissances.length
+            entrainements: this.entrainements.length
         });
     },
 
@@ -198,7 +193,7 @@ const EleveConnaissances = {
                 result.data.forEach(p => {
                     this.progressions[p.entrainement_id] = p;
                 });
-                Logger.debug('EleveConnaissances', 'Progressions chargées', this.progressions);
+                Logger.debug('EleveConnaissances', 'Progressions chargées', Object.keys(this.progressions).length);
             }
         } catch (error) {
             Logger.error('EleveConnaissances', 'Erreur chargement progressions', error);
@@ -616,37 +611,6 @@ const EleveConnaissances = {
     },
 
     /**
-     * Filter banques by search term
-     */
-    filterBanques(searchTerm) {
-        const term = searchTerm.toLowerCase().trim();
-        const items = document.querySelectorAll('.banque-accordion-item');
-
-        items.forEach(item => {
-            const title = item.querySelector('.banque-title')?.textContent.toLowerCase() || '';
-            const exercices = item.querySelectorAll('.exercice-item');
-            let hasMatch = title.includes(term);
-
-            exercices.forEach(exo => {
-                const exoTitle = exo.querySelector('.exercice-titre')?.textContent.toLowerCase() || '';
-                if (exoTitle.includes(term)) {
-                    hasMatch = true;
-                    exo.classList.remove('hidden');
-                } else {
-                    exo.classList.toggle('hidden', !!term);
-                }
-            });
-
-            item.classList.toggle('hidden', !hasMatch && !!term);
-
-            if (hasMatch && term) {
-                this.expandedBanques.add(item.dataset.banqueId);
-                item.classList.add('expanded');
-            }
-        });
-    },
-
-    /**
      * Start an entrainement
      * @param {string} entrainementId - ID de l'entraînement
      * @param {boolean} skipAvailabilityCheck - Si true, ignore le verrouillage (mode libre)
@@ -676,15 +640,12 @@ const EleveConnaissances = {
 
         try {
             Logger.debug('EleveConnaissances', 'startEntrainement', { entrainementId });
-            Logger.debug('EleveConnaissances', 'Toutes les étapes', this.etapes);
 
             const entrainement = this.entrainements.find(e => e.id === entrainementId);
             if (!entrainement) {
                 this.showError('Entraînement non trouvé');
                 return;
             }
-
-            Logger.debug('EleveConnaissances', 'Entrainement trouvé', entrainement);
 
             this.currentEntrainement = entrainement;
             this.currentBanque = this.banques.find(b => b.id === entrainement.banque_exercice_id);
@@ -995,8 +956,6 @@ const EleveConnaissances = {
             format: format
         };
 
-        Logger.debug('EleveConnaissances', 'renderEtapeContent - donnees finales', donnees);
-
         switch (format) {
             case 'vrai_faux':
                 return this.renderVraiFaux(donnees, questions);
@@ -1030,13 +989,6 @@ const EleveConnaissances = {
     },
 
     // ===== NAVIGATION =====
-
-    /**
-     * Navigate to previous etape (désactivé dans le nouveau flux)
-     */
-    previousEtape() {
-        // Plus de retour en arrière dans le nouveau flux
-    },
 
     /**
      * Navigate to next etape — uniquement après validation
