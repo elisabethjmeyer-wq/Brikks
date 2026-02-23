@@ -156,6 +156,7 @@ Object.assign(EleveConnaissances, {
                     const chronoAnswers = this.userAnswers['chrono'] || {};
                     const paires = donnees.paires || donnees.evenements || [];
                     const mode = donnees.mode || 'date';
+                    const chronoStricte = donnees.comparaison_stricte || false;
 
                     const sortedEvents = this.sortEventsByDate(paires);
 
@@ -170,11 +171,8 @@ Object.assign(EleveConnaissances, {
                         let reponsesAcceptees = evt.reponses_acceptees || [];
 
                         if (answer && answer.value) {
-                            const userValue = answer.value.trim().toLowerCase();
-                            if (userValue === correctValue.trim().toLowerCase()) isCorrect = true;
-                            if (!isCorrect && reponsesAcceptees.length > 0) {
-                                isCorrect = reponsesAcceptees.some(alt => alt.trim().toLowerCase() === userValue);
-                            }
+                            const allAccepted = [correctValue, ...reponsesAcceptees];
+                            isCorrect = allAccepted.some(rep => this.compareAnswers(answer.value, rep, chronoStricte, true));
                         }
 
                         inputEl.classList.remove('correct', 'incorrect');
@@ -248,20 +246,20 @@ Object.assign(EleveConnaissances, {
                 }
                 const trouInputs = document.querySelectorAll('.trou-input');
                 const trous = donnees.trous || [];
+                const trouStricte = donnees.comparaison_stricte || false;
 
                 trouInputs.forEach((input, idx) => {
                     total++;
-                    const userValue = input.value.trim().toLowerCase();
                     const stored = this.getStoredAnswer(`trou_${idx}`);
-                    const correctValue = stored ? stored.correct.toLowerCase() : '';
+                    const correctValue = stored ? stored.correct : '';
 
-                    let alternatives = [];
+                    let allAccepted = [correctValue];
                     if (trous[idx] && trous[idx].alternatives) {
-                        alternatives = trous[idx].alternatives.map(a => a.toLowerCase());
+                        allAccepted = allAccepted.concat(trous[idx].alternatives);
                     }
 
                     input.classList.remove('correct', 'incorrect');
-                    const isOk = userValue === correctValue || alternatives.includes(userValue);
+                    const isOk = allAccepted.some(rep => this.compareAnswers(input.value, rep, trouStricte, true));
                     if (isOk) {
                         correct++;
                         input.classList.add('correct');
@@ -287,6 +285,7 @@ Object.assign(EleveConnaissances, {
                     break;
                 }
                 const marqueurs = donnees.marqueurs || [];
+                const carteStricte = donnees.comparaison_stricte || false;
                 marqueurs.forEach((m, idx) => {
                     total++;
                     const answer = this.userAnswers['carte_' + idx];
@@ -295,11 +294,8 @@ Object.assign(EleveConnaissances, {
                     const correctAnswer = (m.reponse || '').split('|')[0].trim();
 
                     if (answer) {
-                        const userValue = answer.trim().toLowerCase();
-                        const expectedValue = (m.reponse || '').trim().toLowerCase();
-                        const reponsesAcceptees = m.reponses_acceptees || [];
-                        const allAccepted = [expectedValue, ...reponsesAcceptees.map(r => r.trim().toLowerCase())];
-                        const isCorrect = allAccepted.some(rep => userValue === rep);
+                        const allAccepted = [m.reponse || '', ...(m.reponses_acceptees || [])];
+                        const isCorrect = allAccepted.some(rep => this.compareAnswers(answer, rep, carteStricte, true));
 
                         if (isCorrect) {
                             correct++;
@@ -828,18 +824,18 @@ Object.assign(EleveConnaissances, {
         const trouInputs = container.querySelectorAll('.trou-input');
         let correct = 0, total = 0;
         const details = [];
+        const stricte = qData.comparaison_stricte || false;
 
         trouInputs.forEach((input, idx) => {
             total++;
-            const userValue = input.value.trim().toLowerCase();
             const stored = this.getStoredAnswer(`trou_${idx}`);
-            const correctValue = stored ? stored.correct.toLowerCase() : '';
-            let alternatives = [];
+            const correctValue = stored ? stored.correct : '';
+            let allAccepted = [correctValue];
             if (qData.trous && qData.trous[idx] && qData.trous[idx].alternatives) {
-                alternatives = qData.trous[idx].alternatives.map(a => a.toLowerCase());
+                allAccepted = allAccepted.concat(qData.trous[idx].alternatives);
             }
             input.classList.remove('correct', 'incorrect');
-            const isOk = userValue === correctValue || alternatives.includes(userValue);
+            const isOk = allAccepted.some(rep => this.compareAnswers(input.value, rep, stricte, true));
             if (isOk) {
                 correct++;
                 input.classList.add('correct');
@@ -857,6 +853,7 @@ Object.assign(EleveConnaissances, {
         const container = document.getElementById('multiFormatContent');
         const events = qData.paires || qData.evenements || [];
         const mode = qData.mode || 'date';
+        const stricte = qData.comparaison_stricte || false;
         let correct = 0, total = 0;
         const details = [];
 
@@ -870,13 +867,11 @@ Object.assign(EleveConnaissances, {
             let isCorrect = false;
             const correctValue = mode === 'evenement' ? evt.evenement : String(evt.date);
             const reponsesAcceptees = evt.reponses_acceptees || [];
-            const userValue = inputEl.value.trim().toLowerCase();
+            const userValue = inputEl.value.trim();
 
             if (userValue) {
-                if (userValue === correctValue.trim().toLowerCase()) isCorrect = true;
-                if (!isCorrect && reponsesAcceptees.length > 0) {
-                    isCorrect = reponsesAcceptees.some(alt => alt.trim().toLowerCase() === userValue);
-                }
+                const allAccepted = [correctValue, ...reponsesAcceptees];
+                isCorrect = allAccepted.some(rep => this.compareAnswers(userValue, rep, stricte, true));
             }
 
             inputEl.classList.remove('correct', 'incorrect');
@@ -1019,6 +1014,7 @@ Object.assign(EleveConnaissances, {
     runCarteValidation(qData) {
         const container = document.getElementById('multiFormatContent');
         const marqueurs = qData.marqueurs || [];
+        const stricte = qData.comparaison_stricte || false;
         let correct = 0, total = 0;
         const details = [];
 
@@ -1029,11 +1025,8 @@ Object.assign(EleveConnaissances, {
             const correctAnswer = (m.reponse || '').split('|')[0].trim();
 
             if (answer) {
-                const userValue = answer.trim().toLowerCase();
-                const expectedValue = (m.reponse || '').trim().toLowerCase();
-                const reponsesAcceptees = m.reponses_acceptees || [];
-                const allAccepted = [expectedValue, ...reponsesAcceptees.map(r => r.trim().toLowerCase())];
-                const isCorrect = allAccepted.some(rep => userValue === rep);
+                const allAccepted = [m.reponse || '', ...(m.reponses_acceptees || [])];
+                const isCorrect = allAccepted.some(rep => this.compareAnswers(answer, rep, stricte, true));
 
                 if (isCorrect) {
                     correct++;

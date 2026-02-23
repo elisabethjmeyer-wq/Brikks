@@ -441,6 +441,23 @@ Object.assign(AdminBanquesExercices, {
                             </div>
                             <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addChronoPair()">+ Ajouter un événement</button>
                         </div>
+                        <div class="form-group">
+                            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Mode de correction</label>
+                            <label style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 0.5rem; cursor: pointer;">
+                                <input type="radio" name="timelineCompMode" value="souple" ${!data.comparaison_stricte ? 'checked' : ''} style="margin-top: 3px;">
+                                <span>
+                                    <strong>Comparaison souple</strong> <span style="color: #6b7280; font-size: 0.85em;">(recommandé)</span><br>
+                                    <span style="color: #6b7280; font-size: 0.85em;">Tolère les différences de casse, accents et ponctuation. Chiffres romains, arabes et en lettres équivalents.</span>
+                                </span>
+                            </label>
+                            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="timelineCompMode" value="stricte" ${data.comparaison_stricte ? 'checked' : ''} style="margin-top: 3px;">
+                                <span>
+                                    <strong>Réponse exacte</strong><br>
+                                    <span style="color: #6b7280; font-size: 0.85em;">L'élève doit écrire exactement la réponse attendue (majuscules, accents, ponctuation...).</span>
+                                </span>
+                            </label>
+                        </div>
                     </div>
 
                     <!-- ===== Contenu Mode Cartes ===== -->
@@ -529,6 +546,23 @@ Object.assign(AdminBanquesExercices, {
                         <p class="form-help">Pour chaque trou, vous pouvez ajouter des réponses alternatives acceptées.</p>
                         <div id="texteATrousGapsList"></div>
                     </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Mode de correction</label>
+                        <label style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="texteATrousMode" value="souple" ${!data.comparaison_stricte ? 'checked' : ''} style="margin-top: 3px;">
+                            <span>
+                                <strong>Comparaison souple</strong> <span style="color: #6b7280; font-size: 0.85em;">(recommandé)</span><br>
+                                <span style="color: #6b7280; font-size: 0.85em;">Tolère les différences de casse, accents et ponctuation. Chiffres romains, arabes et en lettres équivalents.</span>
+                            </span>
+                        </label>
+                        <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="texteATrousMode" value="stricte" ${data.comparaison_stricte ? 'checked' : ''} style="margin-top: 3px;">
+                            <span>
+                                <strong>Réponse exacte</strong><br>
+                                <span style="color: #6b7280; font-size: 0.85em;">L'élève doit écrire exactement la réponse attendue (majuscules, accents, ponctuation...).</span>
+                            </span>
+                        </label>
+                    </div>
                 `;
                 // Initialiser avec les données existantes
                 setTimeout(() => {
@@ -591,6 +625,23 @@ Object.assign(AdminBanquesExercices, {
                             ${marqueurs.length === 0 ? '<p style="color: var(--gray-400); text-align: center; padding: 1rem;">Aucun marqueur. Cliquez sur l\'image ou ajoutez manuellement.</p>' : ''}
                         </div>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addCarteMarqueurConn()">+ Ajouter un marqueur</button>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Mode de correction</label>
+                        <label style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="carteCompMode" value="souple" ${!data.comparaison_stricte ? 'checked' : ''} style="margin-top: 3px;">
+                            <span>
+                                <strong>Comparaison souple</strong> <span style="color: #6b7280; font-size: 0.85em;">(recommandé)</span><br>
+                                <span style="color: #6b7280; font-size: 0.85em;">Tolère les différences de casse, accents et ponctuation. Chiffres romains, arabes et en lettres équivalents.</span>
+                            </span>
+                        </label>
+                        <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="carteCompMode" value="stricte" ${data.comparaison_stricte ? 'checked' : ''} style="margin-top: 3px;">
+                            <span>
+                                <strong>Réponse exacte</strong><br>
+                                <span style="color: #6b7280; font-size: 0.85em;">L'élève doit écrire exactement la réponse attendue (majuscules, accents, ponctuation...).</span>
+                            </span>
+                        </label>
                     </div>
                 `;
                 // Initialiser le builder après le rendu
@@ -1431,6 +1482,7 @@ Object.assign(AdminBanquesExercices, {
                     donnees = {
                         consigne: document.getElementById('chronoConsigne').value,
                         mode: this.chronoMode || 'date',
+                        comparaison_stricte: document.querySelector('input[name="timelineCompMode"][value="stricte"]')?.checked || false,
                         paires: Array.from(document.querySelectorAll('#chronoPaires .chrono-event-block')).map(block => {
                             const altInputs = block.querySelectorAll('.chrono-alt-input');
                             const reponses_acceptees = Array.from(altInputs)
@@ -1474,10 +1526,12 @@ Object.assign(AdminBanquesExercices, {
 
             case 'texte_trou':
                 donnees = this.buildTexteATrousData();
+                donnees.comparaison_stricte = document.querySelector('input[name="texteATrousMode"][value="stricte"]')?.checked || false;
                 break;
 
             case 'carte':
                 donnees = this.buildCarteDataConn();
+                donnees.comparaison_stricte = document.querySelector('input[name="carteCompMode"][value="stricte"]')?.checked || false;
                 break;
 
             case 'question_ouverte':
