@@ -62,6 +62,7 @@ Object.assign(EleveConnaissances, {
         this._qoNavIndex = 0;
         this.carteActiveIndex = 0;
         this.timelineDraggedCard = null;
+        this.flashcardState = null;
     },
 
     escapeHtml(text) {
@@ -388,7 +389,7 @@ Object.assign(EleveConnaissances, {
     },
 
     // ============================================
-    // CÉLÉBRATIONS - Animations paillettes progressives (6 niveaux)
+    // CÉLÉBRATIONS - Animations paillettes progressives (7 niveaux)
     // ============================================
 
     /**
@@ -404,17 +405,18 @@ Object.assign(EleveConnaissances, {
         container.className = `celebration-container level-${level}`;
         document.body.appendChild(container);
 
-        // Configuration progressive pour 6 niveaux
+        // Configuration progressive pour 7 niveaux
         const config = {
             1: { sparkles: 20, confetti: 0, stars: 0, colors: ['#fcd34d', '#fbbf24', '#f59e0b'] },
             2: { sparkles: 30, confetti: 0, stars: 0, colors: ['#fcd34d', '#fbbf24', '#f59e0b', '#34d399'] },
             3: { sparkles: 40, confetti: 15, stars: 0, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6'] },
             4: { sparkles: 45, confetti: 30, stars: 0, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6', '#a78bfa'] },
             5: { sparkles: 50, confetti: 45, stars: 8, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6', '#a78bfa'] },
-            6: { sparkles: 60, confetti: 60, stars: 15, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fbbf24'] }
+            6: { sparkles: 60, confetti: 60, stars: 15, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fbbf24'] },
+            7: { sparkles: 80, confetti: 80, stars: 25, colors: ['#fcd34d', '#34d399', '#60a5fa', '#f472b6', '#a78bfa', '#fbbf24', '#f97316'] }
         };
 
-        const cfg = config[Math.min(level, 6)] || config[1];
+        const cfg = config[Math.min(level, 7)] || config[1];
 
         // Paillettes
         for (let i = 0; i < cfg.sparkles; i++) {

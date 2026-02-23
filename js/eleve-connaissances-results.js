@@ -175,7 +175,6 @@ Object.assign(EleveConnaissances, {
 
         // Marquer comme mode entraînement libre
         this.isTrainingMode = true;
-        this.isFreeTraining = true;
 
         // Démarrer l'entraînement normalement
         this.startEntrainement(entrainementId, true); // true = skip availability check
@@ -701,7 +700,7 @@ Object.assign(EleveConnaissances, {
             messageTitle = 'Continue !';
         }
 
-        // Dots de progression (6 niveaux)
+        // Dots de progression (7 niveaux)
         const generateProgDots = () => {
             let html = '<div class="rep-dots">';
             for (let i = 1; i <= SEUIL_ETAPES; i++) {
@@ -866,7 +865,9 @@ Object.assign(EleveConnaissances, {
     restartEntrainement() {
         this.currentEtapeIndex = 0;
         this.etapesResults = [];
+        this.exerciseStartTime = Date.now();
         this.resetEtapeState();
+        this.selectedQuestionsPerEtape = {};
         this.renderEntrainementView();
     },
 

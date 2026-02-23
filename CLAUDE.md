@@ -36,6 +36,10 @@ L'utilisatrice principale est la professeure qui n'est pas développeuse : expli
 - Mode libre : l'élève peut s'entraîner même quand un entraînement est verrouillé (sans impact sur la progression)
 - Barre de progression par banque : pourcentage moyen des niveaux validés
 
+**Appels API** (chargement initial, 6 en parallèle) :
+`getBanquesExercicesConn`, `getEntrainementsConn`, `getEtapesConn`, `getEtapeQuestionsConn`, `getFormatsQuestions`, `getQuestionsConnaissances`
+**Appels API** (progression) : `getProgressionMemorisation`, `saveProgressionMemorisation`
+
 **État** : fonctionnel, audité, code nettoyé et factorisé. UX de correction retravaillée.
 
 ## Architecture technique
@@ -43,13 +47,24 @@ L'utilisatrice principale est la professeure qui n'est pas développeuse : expli
 ### Stack
 - **Frontend** : JavaScript vanilla + HTML + CSS (pas de framework)
 - **Backend** : Google Apps Script (GAS) + Google Sheets comme base de données
-- **Communication** : JSONP via `callAPI(action, params)` (script tags dynamiques)
+- **Communication** : JSONP via `callAPI(action, params)` (script tags dynamiques). **Attention** : `callAPI` n'est pas une fonction partagée — chaque module (objet JS) a sa propre copie de la méthode.
 - **Lecture directe** : certaines pages lisent Google Sheets API v4 via `sheets.js` (cache localStorage)
+- **Déploiement** : GitHub Pages, avec préfixe `/Brikks/` dans les routes (voir `config.js`)
+- **Linting** : ESLint configuré — lancer `npm run lint` avant de pousser des changements
+- **Pattern modules** : chaque module est un objet singleton `const ModuleName = { ... }` (pas de classes). Les gros modules sont découpés via `Object.assign(ModuleName, { ... })` dans des fichiers séparés (-formats, -validation, etc.)
+
+### Fichiers clés à connaître
+- **`js/config.js`** : configuration centrale — liste de toutes les tables Google Sheets (`CONFIG.SHEETS`), URL de l'API, routes. C'est le schéma de la "base de données".
+- **`google-apps-script/Code.gs`** : routeur backend — toutes les actions API y sont routées via un switch/case
+- **`components/admin-layout.js`** et **`components/eleve-layout.js`** : sidebar, header, navigation
+- **`README.md`** : ⚠️ **OBSOLÈTE** — contient des informations dépassées, ne pas s'y fier
+- **`.eslintrc.json`** : config ESLint, contient la liste de tous les globals (noms des modules)
 
 ### Structure du repo
 ```
 Brikks/
 ├── js/                          # 44 fichiers JS (~38k lignes)
+│   └── config.js                # ⭐ Configuration centrale (sheets, API, routes)
 ├── css/                         # 29 fichiers CSS (~38k lignes)
 ├── google-apps-script/          # 12 fichiers .gs (~7.8k lignes)
 │   ├── Code.gs                  # Routeur principal (switch/case sur 'action')
@@ -118,8 +133,19 @@ Pour afficher le nombre de niveaux **validés** : `Math.max(0, prog.etape - 1)`.
 
 ## Points connus non traités
 
+### Bugs / dette technique du module connaissances (à traiter)
+
+- **Erreur silencieuse de sauvegarde** : si `saveProgressionMemorisation` échoue (réseau, etc.), l'élève voit "Bravo" mais sa progression n'est pas enregistrée. Il faudrait afficher un message d'avertissement. Fichier : `eleve-connaissances-results.js`, lignes ~121-123.
+- **Validation dupliquée** : la logique de validation dans `validateCurrentEtape()` (~300 lignes) duplique les méthodes `run*Validation()` (timeline, texte_trou, carte, association). Bug fixé dans l'un = à fixer aussi dans l'autre. Fichier : `eleve-connaissances-validation.js`. C'est le plus gros chantier de refactoring restant.
+- **Parsing JSON `donnees` dupliqué 4x** : seule 1 copie sur 4 gère le double-encodage. À consolider dans un helper. Fichier : `eleve-connaissances.js` (3 endroits) + `eleve-connaissances-validation.js` (1 endroit).
+- **CSS chaotique (5 667 lignes)** : ~250 lignes de classes mortes (ancien système badges/progress), 13+ conflits de sélecteurs dupliqués (`.correction-section`, `.unsupported-format`, `.correction-assoc-grid`, etc.), 4 blocs `@media 768px` séparés, 3 systèmes de carrousel CSS qui coexistent. Nettoyage nécessaire mais **requiert des tests visuels** après chaque modification. Fichier : `css/eleve-connaissances.css`.
+- **`SEUIL_ETAPES` hardcodé côté frontend** : le backend renvoie `etape_max` dans ses réponses mais le frontend l'ignore et utilise sa propre constante `SEUIL_ETAPES: 7`. Si le backend change, il faut modifier les deux côtés manuellement.
+- **Listener leak** : `generateErrorDetails()` dans `eleve-connaissances-results.js` (lignes ~595-601) ajoute un click listener sur `document` à chaque affichage de résultats, sans jamais le supprimer. Fuite mémoire légère.
+
+### Points structurels
+
 - **Sécurité** : mots de passe en clair dans Google Sheets, pas d'auth côté serveur, clé API exposée côté client. Acceptable pour ~50 élèves en environnement scolaire, mais à documenter.
-- **Module savoir-faire** : seuil de 5 étapes — vérifier l'alignement frontend/backend
+- **Module savoir-faire** : seuil de 5 étapes — vérifier l'alignement frontend/backend. Les fichiers sont très gros (~54k + ~64k lignes).
 - **Code admin** : pas encore audité/nettoyé
 - **Module exercices élève** : pas encore audité
 - **Tests** : aucun test automatisé (pas de framework de test configuré)
