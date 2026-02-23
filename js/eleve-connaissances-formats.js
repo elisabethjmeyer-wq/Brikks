@@ -40,9 +40,7 @@ Object.assign(EleveConnaissances, {
                     }))
                 };
 
-            case 'chronologie':
             case 'timeline':
-                // Chaque question chrono/timeline séparément
                 return {
                     multiQuestions: questionContents.map(qc => ({
                         id: qc.id,
@@ -61,8 +59,6 @@ Object.assign(EleveConnaissances, {
                 };
 
             case 'texte_trou':
-            case 'texte_trous':
-                // Chaque texte à trous séparément
                 return {
                     multiQuestions: questionContents.map(qc => ({
                         id: qc.id,
@@ -297,7 +293,7 @@ Object.assign(EleveConnaissances, {
     renderChronologie(donnees, questions) {
         // Multi-question : carousel render-on-demand
         if (donnees.multiQuestions && donnees.multiQuestions.length > 1) {
-            return this.renderMultiFormat('chronologie', donnees, questions);
+            return this.renderMultiFormat('timeline', donnees, questions);
         }
         // Accepter 'paires' ou 'evenements' comme nom de champ
         const events = donnees.paires || donnees.evenements || [];
@@ -315,11 +311,7 @@ Object.assign(EleveConnaissances, {
         }
 
         // Trier les événements par date pour la frise
-        const sortedEvents = [...events].sort((a, b) => {
-            const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
-            const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
-            return dateA - dateB;
-        });
+        const sortedEvents = this.sortEventsByDate(events);
 
         // Instruction par défaut selon le mode
         let defaultInstruction = '';

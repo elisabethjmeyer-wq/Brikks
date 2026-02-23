@@ -650,25 +650,9 @@ const EleveConnaissances = {
             this.currentEntrainement = entrainement;
             this.currentBanque = this.banques.find(b => b.id === entrainement.banque_exercice_id);
             this.currentEtapeIndex = 0;
-            this.userAnswers = {};
             this.etapesResults = [];
-            this.currentEtapeValidated = false;
             this.exerciseStartTime = Date.now();
-            // Réinitialiser les états d'association
-            this.associationSelection = { grid: null, chip: null };
-            this.associationPairs = [];
-            this.associationPairCounter = 0;
-            // Réinitialiser les états multi-format
-            this._multiFormatState = null;
-            this._qcmResults = {};
-            this._qoResults = {};
-            this._vfResults = {};
-            this._vfNavIndex = 0;
-            this._qcmNavIndex = 0;
-            this._qoNavIndex = 0;
-            this.carteActiveIndex = 0;
-            this.timelineDraggedCard = null;
-            // Réinitialiser les données stockées par étape
+            this.resetEtapeState();
             this.selectedQuestionsPerEtape = {};
 
             // Get etapes for this entrainement
@@ -824,7 +808,7 @@ const EleveConnaissances = {
      * Supporte les modes: 'manuel' (questions liées) et 'aleatoire' (tirage au sort)
      */
     renderEtapeContent(etape, questions) {
-        const format = etape.format_code;
+        const format = this.normalizeFormat(etape.format_code);
 
         // Réinitialiser le store des réponses correctes pour la nouvelle étape
         this.clearAnswerStore();
@@ -961,19 +945,12 @@ const EleveConnaissances = {
                 return this.renderVraiFaux(donnees, questions);
             case 'qcm':
                 return this.renderQCM(donnees, questions);
-            case 'chronologie':
             case 'timeline':
-                // Multi-questions : déléguer au render qui détecte multiQuestions
-                if (donnees.multiQuestions) {
-                    return this.renderChronologie(donnees, questions);
-                }
-                // Mode texte (paires date/événement) ou mode cartes (drag & drop)
-                if (donnees.paires && donnees.mode) {
+                if (donnees.multiQuestions || (donnees.paires && donnees.mode)) {
                     return this.renderChronologie(donnees, questions);
                 }
                 return this.renderTimeline(donnees, questions);
             case 'texte_trou':
-            case 'texte_trous':
                 return this.renderTexteTrous(donnees, questions);
             case 'association':
                 return this.renderAssociation(donnees, questions);
@@ -1000,21 +977,7 @@ const EleveConnaissances = {
             this.cleanupEventListeners();
 
             this.currentEtapeIndex++;
-            this.currentEtapeValidated = false;
-            // Réinitialiser les réponses et états pour la nouvelle étape
-            this.userAnswers = {};
-            this.associationSelection = { grid: null, chip: null };
-            this.associationPairs = [];
-            this.associationPairCounter = 0;
-            this._multiFormatState = null;
-            this._qcmResults = {};
-            this._qoResults = {};
-            this._vfResults = {};
-            this._vfNavIndex = 0;
-            this._qcmNavIndex = 0;
-            this._qoNavIndex = 0;
-            this.carteActiveIndex = 0;
-            this.timelineDraggedCard = null;
+            this.resetEtapeState();
             this.renderEntrainementView();
         }
     },

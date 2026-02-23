@@ -15,7 +15,9 @@ Object.assign(EleveConnaissances, {
         let total = 0;
         let details = [];
 
-        switch (currentEtape.format_code) {
+        const format = this.normalizeFormat(currentEtape.format_code);
+
+        switch (format) {
             case 'vrai_faux':
                 if (donnees.reponse !== undefined && !donnees.propositions) {
                     total = 1;
@@ -80,11 +82,7 @@ Object.assign(EleveConnaissances, {
                             } else {
                                 // Question non validée = incorrecte
                                 const choices = q.choix || q.options || [];
-                                let correctIndices = [];
-                                if (q.reponses_correctes && Array.isArray(q.reponses_correctes)) correctIndices = q.reponses_correctes;
-                                else if (q.reponse !== undefined) correctIndices = [q.reponse];
-                                else if (q.reponse_correcte !== undefined) correctIndices = [q.reponse_correcte];
-                                else correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
+                                const correctIndices = this.getQcmCorrectIndices(q);
                                 details.push({
                                     question: q.question,
                                     reponse: null,
@@ -100,17 +98,7 @@ Object.assign(EleveConnaissances, {
                             const choices = q.choix || q.options || [];
                             const userAnswer = this.userAnswers[`qcm_${qIdx}`];
 
-                            let correctIndices = [];
-                            if (q.reponses_correctes && Array.isArray(q.reponses_correctes)) {
-                                correctIndices = q.reponses_correctes;
-                            } else if (q.reponse !== undefined) {
-                                correctIndices = [q.reponse];
-                            } else if (q.reponse_correcte !== undefined) {
-                                correctIndices = [q.reponse_correcte];
-                            } else {
-                                correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
-                            }
-
+                            const correctIndices = this.getQcmCorrectIndices(q);
                             const isCorrect = correctIndices.includes(parseInt(userAnswer));
                             if (isCorrect) correct++;
 
@@ -137,15 +125,7 @@ Object.assign(EleveConnaissances, {
                     const choices = donnees.choix || donnees.options || [];
                     const userAnswer = this.userAnswers['qcm'];
 
-                    let correctIndices = [];
-                    if (donnees.reponses_correctes && Array.isArray(donnees.reponses_correctes)) {
-                        correctIndices = donnees.reponses_correctes;
-                    } else if (donnees.reponse_correcte !== undefined) {
-                        correctIndices = [donnees.reponse_correcte];
-                    } else {
-                        correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
-                    }
-
+                    const correctIndices = this.getQcmCorrectIndices(donnees);
                     if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
 
                     // Construire le texte du feedback
@@ -166,7 +146,6 @@ Object.assign(EleveConnaissances, {
                 }
                 break;
 
-            case 'chronologie':
             case 'timeline':
                 if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
                     Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
@@ -178,11 +157,7 @@ Object.assign(EleveConnaissances, {
                     const paires = donnees.paires || donnees.evenements || [];
                     const mode = donnees.mode || 'date';
 
-                    const sortedEvents = [...paires].sort((a, b) => {
-                        const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
-                        const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
-                        return dateA - dateB;
-                    });
+                    const sortedEvents = this.sortEventsByDate(paires);
 
                     sortedEvents.forEach((evt, idx) => {
                         total++;
@@ -267,7 +242,6 @@ Object.assign(EleveConnaissances, {
                 break;
 
             case 'texte_trou':
-            case 'texte_trous':
                 if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
                     Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
                     break;
@@ -693,13 +667,9 @@ Object.assign(EleveConnaissances, {
     renderSingleFormatQuestion(format, qData) {
         switch (format) {
             case 'texte_trou':
-            case 'texte_trous':
                 return this.renderTexteTrous(qData, []);
             case 'association':
                 return this.renderAssociation(qData, []);
-            case 'chronologie':
-                if (qData.paires && qData.mode) return this.renderChronologie(qData, []);
-                return this.renderTimeline(qData, []);
             case 'timeline':
                 if (qData.paires && qData.mode) return this.renderChronologie(qData, []);
                 return this.renderTimeline(qData, []);
@@ -810,7 +780,6 @@ Object.assign(EleveConnaissances, {
                 this.associationSelection = { grid: null, chip: null };
                 this.associationPairCounter = 0;
                 break;
-            case 'chronologie':
             case 'timeline':
                 this.userAnswers['chrono'] = {};
                 break;
@@ -825,7 +794,6 @@ Object.assign(EleveConnaissances, {
     /** Re-setup après render-on-demand (drag & drop, etc.) */
     setupFormatAfterRender(format) {
         switch (format) {
-            case 'chronologie':
             case 'timeline':
                 setTimeout(() => {
                     if (document.querySelector('.timeline-cards')) {
@@ -841,11 +809,9 @@ Object.assign(EleveConnaissances, {
     runFormatValidation(format, qData) {
         switch (format) {
             case 'texte_trou':
-            case 'texte_trous':
                 return this.runTexteValidation(qData);
             case 'association':
                 return this.runAssociationValidation(qData);
-            case 'chronologie':
             case 'timeline':
                 if (qData.paires && qData.mode) return this.runChronoValidation(qData);
                 return this.runTimelineValidation(qData);
@@ -894,11 +860,7 @@ Object.assign(EleveConnaissances, {
         let correct = 0, total = 0;
         const details = [];
 
-        const sortedEvents = [...events].sort((a, b) => {
-            const dateA = parseInt(String(a.date).replace(/\D/g, '')) || 0;
-            const dateB = parseInt(String(b.date).replace(/\D/g, '')) || 0;
-            return dateA - dateB;
-        });
+        const sortedEvents = this.sortEventsByDate(events);
 
         sortedEvents.forEach((evt, idx) => {
             total++;
@@ -1179,17 +1141,7 @@ Object.assign(EleveConnaissances, {
         const choices = q.choix || q.options || [];
         const userAnswer = this.userAnswers[`qcm_${qIdx}`];
 
-        let correctIndices = [];
-        if (q.reponses_correctes && Array.isArray(q.reponses_correctes)) {
-            correctIndices = q.reponses_correctes;
-        } else if (q.reponse !== undefined) {
-            correctIndices = [q.reponse];
-        } else if (q.reponse_correcte !== undefined) {
-            correctIndices = [q.reponse_correcte];
-        } else {
-            correctIndices = choices.map((c, i) => c.correct ? i : -1).filter(i => i >= 0);
-        }
-
+        const correctIndices = this.getQcmCorrectIndices(q);
         const isCorrect = correctIndices.includes(parseInt(userAnswer));
 
         // Construire le texte du feedback
