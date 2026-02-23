@@ -674,7 +674,7 @@ Object.assign(EleveConnaissances, {
         const tempsOK = timeSpent <= tempsPrevu;
 
         // prog.etape = prochain niveau à tenter (déjà incrémenté côté serveur)
-        const SEUIL_ETAPES = 6;
+        const SEUIL_ETAPES = 7;
         const niveauValide = Math.max((prog.etape || 1) - 1, 0);
         const isSuccess = !this.isTrainingMode && prog.reussi === true;
 
