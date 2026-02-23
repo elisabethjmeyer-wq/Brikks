@@ -4,6 +4,58 @@
 
 ---
 
+## 2026-02-23 (session 4) — Audit et restructuration module exercices SF (élève + admin)
+
+### Contexte
+Audit complet du module entraînements savoir-faire côté élève et admin, suivi du nettoyage et de la restructuration en fichiers par responsabilité.
+
+### Harmonisation menu SF élève
+- **Bandeau par banque** avec statut, progression (dots 1-5), et CTA adapté au contexte
+- **Tri des banques** : à réviser → en cours → à découvrir → en pause → maîtrisées
+- **CTA dynamique** selon le statut de la banque (commencer, continuer, réviser, s'entraîner)
+
+### Nettoyage code mort (~430 lignes supprimées)
+- `getExerciceStatusSF`, `_getStatusFromOldSystem`, `_getWeekNumber`, `_hashCode`, `getExerciceDisponible`, `calculateGlobalStatsSF`
+- Bloc SF mort dans `renderExercisesList` (chemin inaccessible)
+- Constantes legacy `SEUIL_PRATIQUES_PARFAITES`, `SEUIL_JOURS_RAFRAICHIR`
+- ~20 `console.log` de debug (élève + admin)
+
+### Résolution dualité SF
+- Suppression du système legacy par exercice (`statsSF`) au profit du système par banque (`statsSFBanque`) comme source de vérité
+- `statsSF` conservé en lecture seule pour le fallback de calcul
+
+### Helpers factorisés
+- **`parseJSONField(raw, fallback)`** : remplace 11 blocs de parsing JSON dupliqués (gère string, double-encodage, objet, null)
+- **`FORMAT_HANDLERS`** : registre central `{render, validate, showCorrection, reset}` par format — remplace 4 chaînes if/else dispersées
+
+### Restructuration en fichiers (renderer 1852 lignes → 4 fichiers)
+| Fichier | Lignes | Responsabilité |
+|---------|--------|----------------|
+| `eleve-exercices-sf.js` | 435 | Logique métier SF (répétition espacée, statuts, blocage) |
+| `eleve-exercices-formats.js` | 863 | Rendus HTML + affichage corrections + resets |
+| `eleve-exercices-validation.js` | 288 | Validation des réponses + comparaison normalisée |
+| `eleve-exercices-results.js` | 635 | Sauvegarde résultats, stats locales, écran SF, célébration |
+
+Fichier supprimé : `eleve-exercices-renderer.js`
+Fichier principal : 1632 → 1198 lignes
+
+### Fichiers modifiés
+- `js/eleve-exercices.js` — nettoyé et allégé
+- `js/eleve-exercices-renderer.js` — supprimé (remplacé par 3 fichiers)
+- `js/admin-banques-exercices.js` — console.log supprimés
+- `js/admin-banques-exercices-builders.js` — console.log supprimé
+- `eleve/entrainements-sf.html` — scripts mis à jour
+- `eleve/entrainements-comp.html` — scripts mis à jour
+- `css/eleve-exercices.css` — style `.exercice-hint-sub`
+- `.eslintrc.json` — globals `parseJSONField`, `FORMAT_HANDLERS`
+
+### Décisions prises
+- **Pattern Object.assign maintenu** : cohérent avec le module connaissances
+- **Catch vides sur localStorage** : intentionnels (cache non critique), pas modifiés
+- **`structure` param non utilisé dans certains rendus** : conservé pour la cohérence de signature avec `FORMAT_HANDLERS`
+
+---
+
 ## 2026-02-23 (session 3) — Audit et nettoyage module admin connaissances
 
 ### Contexte

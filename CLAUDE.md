@@ -94,6 +94,35 @@ js/eleve-connaissances-results.js   # Écran de résultats, progression, mémori
 js/eleve-connaissances-utils.js     # Helpers partagés (normalizeFormat, resetEtapeState, etc.)
 ```
 
+### Module exercices SF élève (audité et restructuré)
+```
+js/eleve-exercices.js               # Principal (1 198 lignes) : init, cache, accordéon, navigation, timer
+js/eleve-exercices-sf.js            # Logique métier SF (435 lignes) : répétition espacée, statuts, blocage
+js/eleve-exercices-formats.js       # Rendus HTML + corrections + resets (863 lignes)
+js/eleve-exercices-validation.js    # Validation des réponses + comparaison normalisée (288 lignes)
+js/eleve-exercices-results.js       # Résultats, stats locales, écran SF, célébration (635 lignes)
+js/eleve-exercices-competences.js   # Compétences / tâches complexes (785 lignes, non audité)
+css/eleve-exercices.css             # Styles exercices élève
+```
+
+**Ce que fait le module :**
+- L'élève voit une liste de banques d'exercices en accordéon, chacune avec un bandeau de statut SF
+- Chaque banque a un exercice aléatoire assigné, formats supportés : `tableau_saisie`, `carte_cliquable`, `document_tableau`, `question_ouverte`, `document_mixte`
+- Système de **répétition espacée SF** : 5 niveaux avec espacements croissants (0, 1, 3, 7, 14 jours)
+- Dès la répétition 2, le temps de réponse conditionne la validation (automatisation)
+- Mode libre : l'élève peut s'entraîner pendant les pauses d'espacement (sans impact sur la progression)
+- Écran de résultat SF dédié avec bilan, correction détaillée, et animation de célébration
+
+**Patterns techniques :**
+- `parseJSONField(raw, fallback)` : helper global pour parser les champs JSON (gère double-encodage)
+- `FORMAT_HANDLERS` : registre central des formats `{render, validate, showCorrection, reset}`
+- Cache localStorage (TTL 5 min) + refresh arrière-plan avec merge des stats locales
+- Stats par banque (`statsSFBanque`) comme source de vérité, `statsSF` en fallback lecture seule
+
+**Appels API** (chargement, 3 en parallèle) :
+`getBanquesExercices`, `getExercices`, `getFormatsExercices`
+**Appels API** (stats SF) : `getHistoriquePratiquesSF`, `getResultatsEleve`, `saveResultatExercice`, `savePratiqueSF`
+
 ### Module admin connaissances — création d'entraînements (audité et nettoyé)
 ```
 js/admin-banques-exercices.js                  # Module parent (1 439 lignes) : init, cache, API JSONP, tabs, rendu savoir-faire
@@ -143,7 +172,7 @@ Toujours utiliser les noms canoniques. La fonction `normalizeFormat()` dans util
 | Module | Étapes | Constante backend | Constante frontend |
 |--------|--------|-------------------|-------------------|
 | **Connaissances** | 7 | `ETAPE_MAX = 7` (Entrainements.gs) | `SEUIL_ETAPES: 7` (EleveConnaissances) |
-| **Savoir-faire** | 5 | À vérifier | À vérifier |
+| **Savoir-faire** | 5 | Système par banque (Exercices.gs) | `SEUIL_REPETITIONS: 5` (EleveExercices) |
 
 Le backend incrémente `prog.etape` après succès → c'est le **prochain** niveau à tenter.
 Pour afficher le nombre de niveaux **validés** : `Math.max(0, prog.etape - 1)`.
@@ -176,5 +205,5 @@ Pour afficher le nombre de niveaux **validés** : `Math.max(0, prog.etape - 1)`.
 - **Sécurité** : mots de passe en clair dans Google Sheets, pas d'auth côté serveur, clé API exposée côté client. Acceptable pour ~50 élèves en environnement scolaire, mais à documenter.
 - **Module savoir-faire** : seuil de 5 étapes — vérifier l'alignement frontend/backend. Les fichiers sont très gros (~54k + ~64k lignes).
 - **Code admin connaissances** : audité et nettoyé. Reste : CSS du wizard avec ~7 sélecteurs `.etape-*` dupliqués (fonctionnel mais fragile), `getQuestionPreview()` dupliqué dans 3 fichiers différents (à extraire dans un helper partagé un jour)
-- **Module exercices élève** : pas encore audité
+- **Module exercices élève SF** : audité et restructuré (session 4). Le sous-module compétences (`eleve-exercices-competences.js`, 785 lignes) n'est pas encore audité.
 - **Tests** : aucun test automatisé (pas de framework de test configuré)
