@@ -376,19 +376,46 @@ Object.assign(AdminBanquesExercices, {
         if (this._navigating) return;
         this._navigating = true;
 
+        const nextBtn = document.getElementById('wizardNextBtn');
+
         try {
             if (!this.validateWizardStep(this.wizardData.currentStep)) {
                 this._navigating = false;
                 return;
             }
 
-            // Seule l'étape 1 nécessite une sauvegarde bloquante (création/mise à jour)
-            // Les étapes 2 et 3 sauvegardent au fur et à mesure
             if (this.wizardData.currentStep === 1) {
-                const saved = await this.saveWizardStepData(1);
-                if (!saved) {
-                    this._navigating = false;
-                    return;
+                if (this.wizardData.entrainement) {
+                    // Mode édition : sauvegarde optimiste, on navigue immédiatement
+                    const formData = {
+                        id: this.wizardData.entrainement.id,
+                        titre: document.getElementById('wizardTitre').value.trim(),
+                        description: document.getElementById('wizardDescription').value.trim(),
+                        duree: parseInt(document.getElementById('wizardDuree').value) || 15,
+                        seuil: parseInt(document.getElementById('wizardSeuil').value) || 80,
+                        statut: document.getElementById('wizardStatut').value,
+                        banque_exercice_id: this.wizardData.banqueId
+                    };
+                    Object.assign(this.wizardData.entrainement, formData);
+                    // Sauvegarde en arrière-plan
+                    this.callAPI('updateEntrainementConn', formData).catch(err =>
+                        console.error('Erreur sauvegarde étape 1:', err)
+                    );
+                } else {
+                    // Mode création : on a besoin de l'ID du serveur → indicateur de chargement
+                    if (nextBtn) {
+                        nextBtn.disabled = true;
+                        nextBtn.textContent = 'Création...';
+                    }
+                    const saved = await this.saveWizardStepData(1);
+                    if (!saved) {
+                        this._navigating = false;
+                        if (nextBtn) {
+                            nextBtn.disabled = false;
+                            nextBtn.textContent = 'Suivant →';
+                        }
+                        return;
+                    }
                 }
             }
 
@@ -1671,26 +1698,45 @@ Object.assign(AdminBanquesExercices, {
     async deleteBanqueExercicesConn(id) {
         if (!confirm('Supprimer cette banque et tous ses entraînements ?')) return;
 
+        // Mise à jour optimiste : UI d'abord, API en arrière-plan
+        const oldBanques = this.banquesExercicesConn;
+        const oldEntrainements = this.entrainementsConn;
+        const oldEtapes = this.etapesConn;
+        const oldEtapeQuestions = this.etapeQuestionsConn;
+
+        const entrIds = this.entrainementsConn.filter(e => e.banque_exercice_id === id).map(e => e.id);
+        this.banquesExercicesConn = this.banquesExercicesConn.filter(b => b.id !== id);
+        this.entrainementsConn = this.entrainementsConn.filter(e => e.banque_exercice_id !== id);
+        this.etapesConn = this.etapesConn.filter(e => !entrIds.includes(e.entrainement_id));
+        this.etapeQuestionsConn = (this.etapeQuestionsConn || []).filter(eq => {
+            const etape = this.etapesConn.find(e => e.id === eq.etape_id);
+            return etape !== undefined;
+        });
+        this.saveToCache();
+        this.renderBanques();
+
+        // API en arrière-plan
         try {
             const result = await this.callAPI('deleteBanqueExercicesConn', { id });
-            if (result.success) {
-                // Mise à jour locale au lieu de loadDataFromAPI()
-                this.banquesExercicesConn = this.banquesExercicesConn.filter(b => b.id !== id);
-                // Supprimer aussi les entraînements et étapes associés
-                const entrIds = this.entrainementsConn.filter(e => e.banque_exercice_id === id).map(e => e.id);
-                this.entrainementsConn = this.entrainementsConn.filter(e => e.banque_exercice_id !== id);
-                this.etapesConn = this.etapesConn.filter(e => !entrIds.includes(e.entrainement_id));
-                this.etapeQuestionsConn = (this.etapeQuestionsConn || []).filter(eq => {
-                    const etape = this.etapesConn.find(e => e.id === eq.etape_id);
-                    return etape !== undefined;
-                });
+            if (!result.success) {
+                // Rollback
+                this.banquesExercicesConn = oldBanques;
+                this.entrainementsConn = oldEntrainements;
+                this.etapesConn = oldEtapes;
+                this.etapeQuestionsConn = oldEtapeQuestions;
                 this.saveToCache();
                 this.renderBanques();
-            } else {
                 alert('Erreur: ' + (result.error || 'Erreur inconnue'));
             }
         } catch (error) {
             console.error('Erreur suppression:', error);
+            // Rollback
+            this.banquesExercicesConn = oldBanques;
+            this.entrainementsConn = oldEntrainements;
+            this.etapesConn = oldEtapes;
+            this.etapeQuestionsConn = oldEtapeQuestions;
+            this.saveToCache();
+            this.renderBanques();
             alert('Erreur lors de la suppression');
         }
     },
@@ -1700,21 +1746,38 @@ Object.assign(AdminBanquesExercices, {
     async deleteEntrainementConn(id) {
         if (!confirm('Supprimer cet entraînement et toutes ses étapes ?')) return;
 
+        // Mise à jour optimiste : UI d'abord, API en arrière-plan
+        const oldEntrainements = this.entrainementsConn;
+        const oldEtapes = this.etapesConn;
+        const oldEtapeQuestions = this.etapeQuestionsConn;
+
+        const etapeIds = this.etapesConn.filter(e => e.entrainement_id === id).map(e => e.id);
+        this.entrainementsConn = this.entrainementsConn.filter(e => e.id !== id);
+        this.etapesConn = this.etapesConn.filter(e => e.entrainement_id !== id);
+        this.etapeQuestionsConn = (this.etapeQuestionsConn || []).filter(eq => !etapeIds.includes(eq.etape_id));
+        this.saveToCache();
+        this.renderBanques();
+
+        // API en arrière-plan
         try {
             const result = await this.callAPI('deleteEntrainementConn', { id });
-            if (result.success) {
-                // Mise à jour locale au lieu de loadDataFromAPI()
-                this.entrainementsConn = this.entrainementsConn.filter(e => e.id !== id);
-                const etapeIds = this.etapesConn.filter(e => e.entrainement_id === id).map(e => e.id);
-                this.etapesConn = this.etapesConn.filter(e => e.entrainement_id !== id);
-                this.etapeQuestionsConn = (this.etapeQuestionsConn || []).filter(eq => !etapeIds.includes(eq.etape_id));
+            if (!result.success) {
+                // Rollback
+                this.entrainementsConn = oldEntrainements;
+                this.etapesConn = oldEtapes;
+                this.etapeQuestionsConn = oldEtapeQuestions;
                 this.saveToCache();
                 this.renderBanques();
-            } else {
                 alert('Erreur: ' + (result.error || 'Erreur inconnue'));
             }
         } catch (error) {
             console.error('Erreur suppression:', error);
+            // Rollback
+            this.entrainementsConn = oldEntrainements;
+            this.etapesConn = oldEtapes;
+            this.etapeQuestionsConn = oldEtapeQuestions;
+            this.saveToCache();
+            this.renderBanques();
             alert('Erreur lors de la suppression');
         }
     },
