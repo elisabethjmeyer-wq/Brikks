@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-02-23 (session 2) — Auto-audit et corrections ciblées
+
+### Contexte
+Auto-audit critique du travail de la session précédente. Identification de bugs, code mort restant, et lacunes dans la documentation.
+
+### Bugs corrigés
+- `restartEntrainement()` ne remettait pas le chrono à zéro (`exerciseStartTime`) ni ne vidait la sélection de questions (`selectedQuestionsPerEtape`) — le temps affiché était cumulatif et les mêmes questions réapparaissaient
+- `resetEtapeState()` oubliait de nettoyer `flashcardState` — données résiduelles possibles entre étapes
+- Animation de célébration : ajout du niveau 7 (manquait, le niveau final réutilisait l'animation du 6)
+
+### Nettoyage code mort
+- Suppression `CACHE_RESULTATS_KEY` (constante définie mais jamais utilisée) dans `eleve-connaissances.js`
+- Suppression `isFreeTraining` (propriété écrite mais jamais lue, le code utilise `isTrainingMode`) dans `eleve-connaissances-results.js`
+
+### Documentation améliorée (CLAUDE.md)
+- Ajout `config.js` comme fichier clé (schéma de la base de données)
+- Ajout info ESLint (`npm run lint`)
+- Clarification que `callAPI` est par-module (pas partagé)
+- Ajout du pattern `Object.assign` pour les modules
+- Ajout déploiement GitHub Pages
+- Ajout des appels API du module connaissances
+- Ajout fichiers clés à connaître (`.eslintrc.json`, `config.js`, layouts)
+- Signal `README.md` obsolète
+- **Nouvelle section** : bugs et dette technique détaillés pour le prochain Claude (validation dupliquée, CSS chaotique, erreur silencieuse sauvegarde, parsing JSON dupliqué, listener leak)
+
+### Commentaires corrigés
+- "6 niveaux" → "7 niveaux" dans utils.js et results.js
+
+### Fichiers modifiés
+- `js/eleve-connaissances.js`
+- `js/eleve-connaissances-results.js`
+- `js/eleve-connaissances-utils.js`
+- `CLAUDE.md`
+- `CHANGELOG.md`
+
+---
+
 ## 2026-02-23 — Audit et nettoyage module connaissances élève
 
 ### Bugs corrigés

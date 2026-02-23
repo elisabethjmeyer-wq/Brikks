@@ -33,7 +33,6 @@ const EleveConnaissances = {
 
     // Cache config (5 minutes TTL)
     CACHE_KEY: 'brikks_conn_eleve_cache',
-    CACHE_RESULTATS_KEY: 'brikks_conn_resultats_cache',
     CACHE_TTL: 5 * 60 * 1000,
 
     /**
