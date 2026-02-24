@@ -124,28 +124,31 @@ const EleveLayout = {
     /**
      * Charge la configuration du menu depuis CONFIG_MENU
      */
+    /**
+     * Parse une valeur booléenne provenant de Google Sheets (TRUE/true/1/oui/yes)
+     */
+    parseBool(val) {
+        const v = String(val || '').toLowerCase().trim();
+        return v === 'true' || v === '1' || v === 'oui' || v === 'yes';
+    },
+
     async loadMenuConfig() {
         try {
             const menuConfig = await SheetsAPI.fetchAndParse('CONFIG_MENU');
             console.log('[EleveLayout] CONFIG_MENU loaded:', menuConfig);
+            const isPreview = this.isPreviewMode();
 
             if (menuConfig && menuConfig.length > 0) {
                 // Grouper par catégorie
                 const grouped = {};
 
                 menuConfig.forEach(item => {
-                    // Vérifier si visible (gérer TRUE/true/1/false/FALSE/0)
-                    const visibleValue = String(item.visible || '').toLowerCase().trim();
-                    const isVisible = visibleValue === 'true' || visibleValue === '1' || visibleValue === 'oui' || visibleValue === 'yes';
+                    const isVisible = this.parseBool(item.visible);
+                    const isBloque = this.parseBool(item.bloque);
 
-                    // Vérifier si bloqué
-                    const bloqueValue = String(item.bloque || '').toLowerCase().trim();
-                    const isBloque = bloqueValue === 'true' || bloqueValue === '1' || bloqueValue === 'oui' || bloqueValue === 'yes';
-
-                    // Déterminer si l'élément est désactivé (non visible OU bloqué)
-                    const isDisabled = !isVisible || isBloque;
-
-                    console.log('[EleveLayout] Item:', item.element_code, 'visible:', isVisible, 'bloque:', isBloque, 'disabled:', isDisabled);
+                    // 3 états : visible, bloque (dans le menu mais cadenas), masque (absent du menu)
+                    // masque = visible:false → on l'exclut complètement SAUF en mode preview
+                    if (!isVisible && !isPreview) return;
 
                     const cat = item.categorie || 'Autres';
                     if (!grouped[cat]) {
@@ -156,10 +159,7 @@ const EleveLayout = {
                         };
                     }
 
-                    // Construire l'URL de la page
                     const elementCode = item.element_code || item.id;
-
-                    // Mapping des codes vers les noms de fichiers réels
                     const pageMapping = {
                         'accueil': '',
                         'index': '',
@@ -167,26 +167,26 @@ const EleveLayout = {
                         'connaissances': 'entrainements-conn',
                         'competences': 'entrainements-comp'
                     };
-
-                    // Utiliser le mapping si disponible, sinon le code tel quel
                     const pageName = pageMapping[elementCode] !== undefined
                         ? pageMapping[elementCode]
                         : elementCode;
-
                     const href = pageName === ''
                         ? '/Brikks/eleve/'
                         : `/Brikks/eleve/${pageName}.html`;
 
+                    // En mode preview : tout est cliquable, on stocke l'état réel pour les badges
+                    // En mode normal : bloqué = disabled, masqué = déjà filtré au-dessus
                     grouped[cat].items.push({
                         icon: item.icon || '📄',
                         label: item.nom_affiche || item.nom,
                         href: href,
                         id: elementCode,
-                        disabled: isDisabled
+                        disabled: isPreview ? false : isBloque,
+                        state: !isVisible ? 'masque' : (isBloque ? 'bloque' : 'visible')
                     });
                 });
 
-                // Convertir en array et filtrer les sections vides
+                // Filtrer les sections vides (catégories dont tous les items sont masqués)
                 const sections = Object.values(grouped).filter(s => s.items.length > 0);
 
                 if (sections.length > 0) {
@@ -196,7 +196,6 @@ const EleveLayout = {
                 }
             }
 
-            // Fallback sur le menu par défaut
             this.menuItems = this.defaultMenuItems;
         } catch (error) {
             console.log('[EleveLayout] Using default menu, error:', error);
@@ -235,7 +234,7 @@ const EleveLayout = {
 
         return `
             <div class="preview-banner" id="preview-banner">
-                <span>👁️ Mode prévisualisation</span>
+                <span>👁️ Mode test — Vous voyez toutes les pages (les élèves non)</span>
                 <button class="preview-banner-btn" onclick="EleveLayout.exitPreview()">
                     ← Retour admin
                 </button>
@@ -295,14 +294,20 @@ const EleveLayout = {
      */
     getSidebarHTML() {
         let menuHTML = '';
+        const isPreview = this.isPreviewMode();
 
         this.menuItems.forEach(section => {
             menuHTML += `
                 <div class="sidebar-section">
                     <div class="sidebar-section-title">${section.section}</div>
                     ${section.items.map(item => {
-                        if (item.disabled) {
-                            // Élément désactivé : pas de lien, grisé
+                        // Badge de preview (état réel de la page pour les élèves)
+                        const previewBadge = isPreview && item.state && item.state !== 'visible'
+                            ? `<span class="sidebar-preview-badge ${item.state}">${item.state === 'masque' ? 'masqué' : 'bloqué'}</span>`
+                            : '';
+
+                        if (item.disabled && !isPreview) {
+                            // Élément bloqué pour les élèves : dans le menu mais grisé
                             return `
                                 <div class="sidebar-item disabled" data-page="${item.id}" title="Non disponible">
                                     <span class="sidebar-item-icon">${item.icon}</span>
@@ -311,11 +316,12 @@ const EleveLayout = {
                                 </div>
                             `;
                         } else {
-                            // Élément actif : lien cliquable
+                            // Élément cliquable (normal ou preview)
                             return `
-                                <a href="${item.href}" class="sidebar-item" data-page="${item.id}">
+                                <a href="${item.href}" class="sidebar-item${isPreview && item.state !== 'visible' ? ' preview-alt' : ''}" data-page="${item.id}">
                                     <span class="sidebar-item-icon">${item.icon}</span>
                                     <span class="sidebar-item-text">${item.label}</span>
+                                    ${previewBadge}
                                 </a>
                             `;
                         }

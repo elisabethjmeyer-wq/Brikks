@@ -385,25 +385,40 @@ const AdminParametres = {
     menuEmojis: ['📆', '📅', '📂', '📁', '📖', '📚', '🧠', '💡', '🟢', '🟠', '🟣', '🔵', '📝', '✏️', '📋', '📊', '🎬', '📺', '🎵', '🎮', '❓', '✉️', '💬', '🏠', '⭐', '🔔', '📌', '🎯', '🏆', '🎓'],
 
     /**
+     * Détermine l'état d'un item : 'visible', 'bloque' ou 'masque'
+     */
+    getItemState(item) {
+        if (!item.visible) return 'masque';
+        if (item.bloque) return 'bloque';
+        return 'visible';
+    },
+
+    /**
+     * Label et classe CSS pour un état donné
+     */
+    stateDisplay: {
+        visible: { text: 'Visible', cssClass: 'visible' },
+        bloque:  { text: 'Bloqué', cssClass: 'locked' },
+        masque:  { text: 'Masqué', cssClass: 'hidden' }
+    },
+
+    /**
      * Génère le HTML d'un élément de menu
      */
     renderMenuItem(item) {
-        const statusClass = item.bloque ? 'locked' : (item.visible ? 'visible' : 'hidden');
-        const statusText = item.bloque ? '🔒 Bloqué' : (item.visible ? 'Visible' : 'Masqué');
-        const toggleClass = item.visible ? 'active' : '';
-        const toggleLocked = item.bloque ? ' locked' : '';
-        const itemClass = item.visible ? '' : ' disabled';
+        const state = this.getItemState(item);
+        const display = this.stateDisplay[state];
+        const itemClass = state === 'masque' ? ' disabled' : '';
 
         return `
-            <div class="menu-item${itemClass}" data-id="${item.id}" data-icon="${item.icon}" draggable="true">
+            <div class="menu-item${itemClass}" data-id="${item.id}" data-icon="${item.icon}" data-state="${state}" draggable="true">
                 <span class="menu-item-drag">⋮⋮</span>
                 <div class="menu-item-icon" onclick="AdminParametres.openIconPicker(this, '${item.id}')" title="Cliquer pour changer l'icône">${item.icon}</div>
                 <span class="menu-item-name">${item.nom}</span>
-                <span class="menu-item-status ${statusClass}">${statusText}</span>
+                <button class="menu-state-btn ${display.cssClass}" onclick="AdminParametres.cycleItemState(this)" title="Cliquer pour changer l'état">
+                    ${display.text}
+                </button>
                 <div class="menu-item-actions">
-                    <div class="toggle-mini ${toggleClass}${toggleLocked}" onclick="AdminParametres.toggleItemVisibility(this, '${item.id}')">
-                        <div class="toggle-mini-knob"></div>
-                    </div>
                     <button class="menu-item-btn" onclick="AdminParametres.editItem('${item.id}')">✏️</button>
                 </div>
             </div>
@@ -471,22 +486,21 @@ const AdminParametres = {
     },
 
     /**
-     * Toggle la visibilité d'un élément
+     * Cycle l'état d'un élément : visible → bloqué → masqué → visible
      */
-    toggleItemVisibility(toggleEl, itemId) {
-        toggleEl.classList.toggle('active');
-        const menuItem = toggleEl.closest('.menu-item');
-        const statusEl = menuItem.querySelector('.menu-item-status');
+    cycleItemState(btnEl) {
+        const menuItem = btnEl.closest('.menu-item');
+        const currentState = menuItem.dataset.state || 'visible';
 
-        if (toggleEl.classList.contains('active')) {
-            menuItem.classList.remove('disabled');
-            statusEl.className = 'menu-item-status visible';
-            statusEl.textContent = 'Visible';
-        } else {
-            menuItem.classList.add('disabled');
-            statusEl.className = 'menu-item-status hidden';
-            statusEl.textContent = 'Masqué';
-        }
+        // Cycle : visible → bloque → masque → visible
+        const nextMap = { visible: 'bloque', bloque: 'masque', masque: 'visible' };
+        const newState = nextMap[currentState];
+        const display = this.stateDisplay[newState];
+
+        menuItem.dataset.state = newState;
+        menuItem.classList.toggle('disabled', newState === 'masque');
+        btnEl.className = `menu-state-btn ${display.cssClass}`;
+        btnEl.textContent = display.text;
 
         this.markAsChanged();
     },
@@ -558,15 +572,14 @@ const AdminParametres = {
         const menuElements = document.querySelectorAll('.menu-item');
 
         menuElements.forEach((el, index) => {
-            const itemId = el.dataset.id;
-            const toggle = el.querySelector('.toggle-mini');
-            const isVisible = toggle?.classList.contains('active') || false;
+            const state = el.dataset.state || 'visible';
             const name = el.querySelector('.menu-item-name')?.textContent || '';
             const icon = el.dataset.icon || el.querySelector('.menu-item-icon')?.textContent || '📄';
 
             menuItems.push({
-                element_code: itemId,
-                visible: isVisible,
+                element_code: el.dataset.id,
+                visible: state !== 'masque',
+                bloque: state === 'bloque',
                 nom_affiche: name,
                 icon: icon,
                 ordre: index + 1
