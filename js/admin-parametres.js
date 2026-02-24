@@ -399,7 +399,7 @@ const AdminParametres = {
     stateDisplay: {
         visible: { text: 'Visible', cssClass: 'visible' },
         bloque:  { text: 'Bloqué', cssClass: 'locked' },
-        masque:  { text: 'Masqué', cssClass: 'hidden' }
+        masque:  { text: 'Masqué', cssClass: 'masque' }
     },
 
     /**
