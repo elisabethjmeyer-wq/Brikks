@@ -4,6 +4,41 @@
 
 ---
 
+## 2026-02-24 (session 7) — Mode prévisualisation prof + 3 états de visibilité
+
+### Contexte
+La prof devait activer les pages pour les élèves avant de pouvoir les tester elle-même. Risque que les élèves voient des pages pas prêtes.
+
+### Modifications
+
+**3 états de visibilité par page (admin > paramètres) :**
+- **Visible** (vert) : page dans le menu, cliquable pour les élèves
+- **Bloqué** (orange) : page dans le menu mais verrouillée (cadenas)
+- **Masqué** (gris) : page complètement absente du menu élève
+
+Le toggle on/off a été remplacé par un bouton qui cycle entre les 3 états (clic = état suivant).
+
+**Mode prévisualisation amélioré :**
+- Le bouton oeil dans l'admin redirige vers le côté élève (inchangé)
+- Maintenant la prof voit **toutes les pages** y compris les masquées
+- Chaque page masquée ou bloquée a un badge indiquant son état réel
+- Les pages masquées/bloquées sont cliquables en preview (bordure pointillée)
+- Le bandeau jaune dit "Mode test — Vous voyez toutes les pages (les élèves non)"
+
+### Fichiers modifiés
+- `js/admin-parametres.js` — sélecteur 3 états, collectMenuState avec bloque
+- `components/eleve-layout.js` — loadMenuConfig 3 états, getSidebarHTML badges, preview
+- `google-apps-script/Parametres.gs` — sauvegarde du champ bloque
+- `css/admin-parametres.css` — bouton 3 états (remplace toggle)
+- `css/style.css` — badges preview sidebar
+
+### Décisions prises
+- Pas de changement backend lourd : la colonne `bloque` existait déjà dans CONFIG_MENU, elle n'était juste pas sauvegardée
+- Le mode preview utilise toujours `sessionStorage.brikks_preview` (pas de nouveau paramètre)
+- En mode preview, tout est cliquable (même les pages masquées) pour permettre les tests
+
+---
+
 ## 2026-02-23 (session 6) — Correction de 5 bugs / dette technique
 
 ### Contexte

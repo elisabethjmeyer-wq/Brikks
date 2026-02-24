@@ -107,6 +107,7 @@ function updateMenuConfig(data) {
   // Trouver les colonnes
   const elementCodeCol = headers.indexOf('element_code');
   const visibleCol = headers.indexOf('visible');
+  const bloqueCol = headers.indexOf('bloque');
   const nomAfficheCol = headers.indexOf('nom_affiche');
   const iconCol = headers.indexOf('icon');
   const ordreCol = headers.indexOf('ordre');
@@ -134,6 +135,10 @@ function updateMenuConfig(data) {
       if (visibleCol >= 0 && item.visible !== undefined) {
         const visibleValue = item.visible === true || item.visible === 'true' || item.visible === 1 ? 'TRUE' : 'FALSE';
         sheet.getRange(rowIndex, visibleCol + 1).setValue(visibleValue);
+      }
+      if (bloqueCol >= 0 && item.bloque !== undefined) {
+        const bloqueValue = item.bloque === true || item.bloque === 'true' || item.bloque === 1 ? 'TRUE' : 'FALSE';
+        sheet.getRange(rowIndex, bloqueCol + 1).setValue(bloqueValue);
       }
       if (nomAfficheCol >= 0 && item.nom_affiche !== undefined) {
         sheet.getRange(rowIndex, nomAfficheCol + 1).setValue(item.nom_affiche);

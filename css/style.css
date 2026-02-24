@@ -989,6 +989,33 @@ h3 { font-size: 1.25rem; }
     margin-top: calc(var(--header-height) + 40px);
 }
 
+/* ===== PREVIEW MODE BADGES ===== */
+.sidebar-preview-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+    margin-left: auto;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.sidebar-preview-badge.masque {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.sidebar-preview-badge.bloque {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.sidebar-item.preview-alt {
+    border: 1px dashed var(--gray-300);
+    opacity: 0.85;
+}
+
 /* Cards */
 .card {
     background: white;
