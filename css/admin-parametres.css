@@ -480,12 +480,12 @@
     background: #fde68a;
 }
 
-.menu-state-btn.hidden {
+.menu-state-btn.masque {
     background: var(--gray-200);
     color: var(--gray-500);
 }
 
-.menu-state-btn.hidden:hover {
+.menu-state-btn.masque:hover {
     background: var(--gray-300);
 }
 
