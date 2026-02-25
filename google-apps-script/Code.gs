@@ -79,6 +79,7 @@ const SHEETS = {
   EleveConnexions: 'EleveConnexions',
   CompetencesReferentiel: 'CompetencesReferentiel',
   CriteresReussite: 'CriteresReussite',
+  BanquesCompetences: 'BanquesCompetences',
   TachesComplexes: 'TachesComplexes',
   EleveTachesComplexes: 'EleveTachesComplexes'
 };
@@ -496,6 +497,20 @@ function handleRequest(e) {
         break;
       case 'deleteCritereReussite':
         result = deleteCritereReussite(request);
+        break;
+
+      // BANQUES COMPETENCES
+      case 'getBanquesCompetences':
+        result = getBanquesCompetences(request);
+        break;
+      case 'createBanqueCompetence':
+        result = createBanqueCompetence(request);
+        break;
+      case 'updateBanqueCompetence':
+        result = updateBanqueCompetence(request);
+        break;
+      case 'deleteBanqueCompetence':
+        result = deleteBanqueCompetence(request);
         break;
 
       // ENTRAINEMENTS COMPETENCES (nouvelles routes)
