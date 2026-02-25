@@ -10,6 +10,7 @@ const AdminBanquesExercices = {
     exercices: [],
     tachesComplexes: [],
     competencesReferentiel: [],
+    criteresReussite: [],
 
     // Data pour connaissances (ancien système - conservé pour compatibilité)
     banquesQuestions: [],
@@ -87,6 +88,7 @@ const AdminBanquesExercices = {
                 this.exercices = cached.exercices || [];
                 this.tachesComplexes = cached.tachesComplexes || [];
                 this.competencesReferentiel = cached.competencesReferentiel || [];
+                this.criteresReussite = cached.criteresReussite || [];
                 this.banquesQuestions = cached.banquesQuestions || [];
                 this.questionsConnaissances = cached.questionsConnaissances || [];
                 // Données connaissances (nouveau système)
@@ -138,6 +140,7 @@ const AdminBanquesExercices = {
                 exercices: this.exercices,
                 tachesComplexes: this.tachesComplexes,
                 competencesReferentiel: this.competencesReferentiel,
+                criteresReussite: this.criteresReussite,
                 banquesQuestions: this.banquesQuestions,
                 questionsConnaissances: this.questionsConnaissances,
                 // Données connaissances (nouveau système)
@@ -204,6 +207,7 @@ const AdminBanquesExercices = {
             // PARALLEL API calls - much faster!
             const [
                 banquesResult, formatsResult, exercicesResult, tachesResult, compRefResult,
+                criteresResult,
                 banquesQResult, questionsConnResult,
                 // Nouveau système Connaissances
                 formatsQResult, banquesExConnResult, entrConnResult, etapesConnResult, etapeQuestionsResult
@@ -213,6 +217,7 @@ const AdminBanquesExercices = {
                 this.callAPI('getExercices', {}),
                 this.callAPI('getTachesComplexes', {}),
                 this.callAPI('getCompetencesReferentiel', {}),
+                this.callAPI('getCriteresReussite', {}),
                 this.callAPI('getBanquesQuestions', {}),
                 this.callAPI('getQuestionsConnaissances', {}),
                 // Nouveau système Connaissances
@@ -237,6 +242,9 @@ const AdminBanquesExercices = {
             }
             if (compRefResult.success) {
                 this.competencesReferentiel = compRefResult.data || [];
+            }
+            if (criteresResult.success) {
+                this.criteresReussite = criteresResult.data || [];
             }
             if (banquesQResult.success) {
                 this.banquesQuestions = banquesQResult.data || [];
@@ -278,6 +286,7 @@ const AdminBanquesExercices = {
             if (!this.exercices) this.exercices = [];
             if (!this.tachesComplexes) this.tachesComplexes = [];
             if (!this.competencesReferentiel) this.competencesReferentiel = [];
+            if (!this.criteresReussite) this.criteresReussite = [];
             if (!this.banquesQuestions) this.banquesQuestions = [];
             if (!this.questionsConnaissances) this.questionsConnaissances = [];
             // formatsQuestions n'est pas réinitialisée - elle garde son initialisation par défaut
