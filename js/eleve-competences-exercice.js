@@ -8,6 +8,43 @@
 Object.assign(EleveCompetences, {
 
     // ==========================================
+    // PERSISTANCE TIMER (évaluation uniquement)
+    // ==========================================
+
+    _timerStorageKey(entrainementId) {
+        return 'brikks_comp_timer_' + entrainementId;
+    },
+
+    _saveEvalTimer(entrainementId, timeRemaining) {
+        try {
+            localStorage.setItem(this._timerStorageKey(entrainementId), JSON.stringify({
+                timeRemaining: timeRemaining,
+                savedAt: Date.now()
+            }));
+        } catch (e) { /* silencieux */ }
+    },
+
+    /**
+     * Restaure le timer persistant. Calcule le temps écoulé depuis la sauvegarde.
+     * Retourne le temps restant ajusté, ou null si pas de sauvegarde.
+     */
+    _loadEvalTimer(entrainementId) {
+        try {
+            const raw = localStorage.getItem(this._timerStorageKey(entrainementId));
+            if (!raw) return null;
+            const data = JSON.parse(raw);
+            const elapsed = Math.floor((Date.now() - data.savedAt) / 1000);
+            return data.timeRemaining - elapsed;
+        } catch (e) { return null; }
+    },
+
+    _clearEvalTimer(entrainementId) {
+        try {
+            localStorage.removeItem(this._timerStorageKey(entrainementId));
+        } catch (e) { /* silencieux */ }
+    },
+
+    // ==========================================
     // NIVEAU 3 — VUE EXERCICE
     // ==========================================
 
@@ -19,7 +56,25 @@ Object.assign(EleveCompetences, {
 
         const container = document.getElementById('competences-content');
         const duree = entrainement.duree || 1800;
-        this.timeRemaining = duree;
+
+        // Mode évaluation : restaurer le timer persistant
+        if (mode === 'evalue') {
+            const restored = this._loadEvalTimer(entrainement.id);
+            if (restored !== null) {
+                if (restored <= 0) {
+                    // Timer expiré pendant l'absence → auto-soumission
+                    this.timeRemaining = 0;
+                    this._autoSubmitExpired(entrainement);
+                    return;
+                }
+                this.timeRemaining = restored;
+            } else {
+                this.timeRemaining = duree;
+            }
+        } else {
+            // Mode entraînement : toujours repartir de zéro
+            this.timeRemaining = duree;
+        }
 
         // Compétence associée
         const comp = this.competences.find(c =>
@@ -56,9 +111,25 @@ Object.assign(EleveCompetences, {
         const consigneText = (comp && comp.consigne) ? comp.consigne : (entrainement.description || '');
 
         const modeBadgeLabel = mode === 'entrainement' ? 'Entraînement libre' : 'Évaluation';
-        const finishLabel = mode === 'entrainement'
-            ? 'J\'ai terminé — voir le corrigé commenté'
-            : 'Soumettre ma production';
+
+        // Boutons selon le mode
+        let actionButtonsHTML;
+        if (mode === 'evalue') {
+            actionButtonsHTML = `
+                <button class="comp-btn comp-btn-finish" id="compFinishBtn" onclick="EleveCompetences.finishEntrainement()">
+                    Soumettre ma production
+                </button>
+                <button class="comp-btn comp-btn-cancel" onclick="EleveCompetences.cancelEvaluation()">
+                    Ne pas rendre
+                </button>
+            `;
+        } else {
+            actionButtonsHTML = `
+                <button class="comp-btn comp-btn-finish" id="compFinishBtn" onclick="EleveCompetences.finishEntrainement()">
+                    J'ai terminé — voir le corrigé commenté
+                </button>
+            `;
+        }
 
         container.innerHTML = `
             <div class="comp-exercise-view">
@@ -113,10 +184,8 @@ Object.assign(EleveCompetences, {
                     <div class="comp-sidebar-section">
                         ${criteresHTML}
 
-                        <div class="comp-sidebar-actions">
-                            <button class="comp-btn comp-btn-finish" id="compFinishBtn" onclick="EleveCompetences.finishEntrainement()">
-                                ${finishLabel}
-                            </button>
+                        <div class="comp-sidebar-actions" id="compSidebarActions">
+                            ${actionButtonsHTML}
                         </div>
                     </div>
                 </div>
@@ -135,9 +204,80 @@ Object.assign(EleveCompetences, {
     },
 
     confirmLeaveExercise() {
-        if (confirm('Voulez-vous vraiment quitter ? Votre progression sera conservée.')) {
+        if (this.currentMode === 'evalue') {
+            // Mode évaluation : prévenir que le chrono continue
+            if (confirm('Le chrono continue même si tu quittes. Tu pourras revenir pour soumettre. Quitter ?')) {
+                this._saveEvalTimer(this.currentEntrainement.id, this.timeRemaining);
+                this.stopTimer();
+                this.backToDetail();
+            }
+        } else {
+            // Mode entraînement : quitter librement
+            this.stopTimer();
             this.backToDetail();
         }
+    },
+
+    /**
+     * Bouton "Ne pas rendre" — l'élève quitte sans soumettre.
+     * Le chrono est sauvegardé, il pourra revenir.
+     */
+    cancelEvaluation() {
+        if (confirm('Tu pourras revenir plus tard, mais le chrono continue. Quitter sans rendre ?')) {
+            this._saveEvalTimer(this.currentEntrainement.id, this.timeRemaining);
+            this.stopTimer();
+            this.backToDetail();
+        }
+    },
+
+    /**
+     * Auto-soumission quand le timer a expiré pendant l'absence de l'élève.
+     */
+    async _autoSubmitExpired(entrainement) {
+        this._clearEvalTimer(entrainement.id);
+
+        if (this.currentUser) {
+            try {
+                const duree = entrainement.duree || 1800;
+                await this.callAPI('finishEleveEntrainementCompetence', {
+                    eleve_id: this.currentUser.id,
+                    entrainement_id: entrainement.id,
+                    temps_passe: duree
+                });
+
+                const prog = this.progressions.find(p =>
+                    String(p.entrainement_id) === String(entrainement.id)
+                );
+                if (prog) {
+                    prog.statut = 'soumis';
+                    prog.temps_passe = duree;
+                    prog.date_soumission = new Date().toISOString();
+                }
+                this.saveToCache();
+            } catch (error) {
+                console.error('Erreur auto-soumission:', error);
+            }
+        }
+
+        // Afficher un message
+        const container = document.getElementById('competences-content');
+        container.innerHTML = `
+            <div class="comp-result-view">
+                <div class="comp-result-header evaluation">
+                    <div class="comp-result-icon">⏱</div>
+                    <h2>Temps écoulé</h2>
+                    <p class="comp-result-subtitle">${this.escapeHtml(entrainement.titre)}</p>
+                </div>
+                <div class="comp-result-message">
+                    <p class="comp-result-note">Le temps imparti est écoulé. Votre production a été automatiquement soumise au professeur.</p>
+                </div>
+                <div class="comp-result-actions">
+                    <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
+                        Retour aux compétences
+                    </button>
+                </div>
+            </div>
+        `;
     },
 
     // ==========================================
@@ -146,6 +286,8 @@ Object.assign(EleveCompetences, {
 
     startTimer() {
         this.stopTimer();
+        this._timerSaveCounter = 0;
+
         this.timer = setInterval(() => {
             this.timeRemaining--;
 
@@ -168,7 +310,44 @@ Object.assign(EleveCompetences, {
                     timerEl.classList.remove('warning', 'danger');
                 }
             }
+
+            // Mode évaluation : sauvegarder le timer toutes les 10s + auto-soumission à 0
+            if (this.currentMode === 'evalue' && this.currentEntrainement) {
+                this._timerSaveCounter++;
+                if (this._timerSaveCounter % 10 === 0) {
+                    this._saveEvalTimer(this.currentEntrainement.id, this.timeRemaining);
+                }
+
+                if (this.timeRemaining <= 0) {
+                    this.stopTimer();
+                    this._clearEvalTimer(this.currentEntrainement.id);
+                    this.finishEntrainement();
+                    return;
+                }
+            }
+
+            // Mode entraînement : message indicatif quand le temps est écoulé
+            if (this.currentMode === 'entrainement' && this.timeRemaining === 0) {
+                this._showTimeUpBanner();
+            }
         }, 1000);
+    },
+
+    /**
+     * Bandeau "Tu devrais avoir terminé" (mode entraînement uniquement)
+     */
+    _showTimeUpBanner() {
+        const existing = document.getElementById('compTimeUpBanner');
+        if (existing) return;
+
+        const topbar = document.querySelector('.comp-exercise-topbar');
+        if (topbar) {
+            topbar.insertAdjacentHTML('afterend', `
+                <div class="comp-timeup-banner" id="compTimeUpBanner">
+                    Tu devrais avoir terminé ! Prends le temps qu'il te faut.
+                </div>
+            `);
+        }
     },
 
     // ==========================================
@@ -183,6 +362,7 @@ Object.assign(EleveCompetences, {
         const tempsPasse = Math.round((Date.now() - this.exerciseStartTime) / 1000);
 
         this.stopTimer();
+        this._clearEvalTimer(entr.id);
 
         // Sauvegarder au backend
         if (this.currentUser) {
@@ -388,7 +568,7 @@ Object.assign(EleveCompetences, {
         let sidebarContent = '';
 
         if (mode === 'entrainement') {
-            // Mode entraînement → correction commentée
+            // Mode entraînement → correction commentée + bouton ré-entraîner
             const correctionData = this._parseCorrectionData(entrainement.correction_commentee);
             const correctionUrl = correctionData.url;
             const propositionText = correctionData.proposition;
@@ -416,12 +596,21 @@ Object.assign(EleveCompetences, {
                 `;
             }
             if (!correctionUrl && !propositionText) {
-                sidebarContent = `
+                sidebarContent += `
                     <div class="comp-review-section comp-review-empty">
                         <p>Le corrigé commenté n'est pas encore disponible.</p>
                     </div>
                 `;
             }
+
+            // Bouton pour se ré-entraîner
+            sidebarContent += `
+                <div class="comp-review-section">
+                    <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
+                        Se ré-entraîner
+                    </button>
+                </div>
+            `;
         } else {
             // Mode évaluation → message selon statut
             if (statut === 'soumis') {

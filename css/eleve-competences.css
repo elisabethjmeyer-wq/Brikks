@@ -1859,3 +1859,64 @@ body.comp-fullscreen-active {
     background: #f9fafb;
     border-radius: 8px;
 }
+
+/* ============================================
+   BOUTON NE PAS RENDRE (mode évaluation)
+   ============================================ */
+
+.comp-btn-cancel {
+    display: block;
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    color: #6b7280;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.comp-btn-cancel:hover {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+
+/* ============================================
+   BOUTON SE RÉ-ENTRAÎNER
+   ============================================ */
+
+.comp-btn-retrain {
+    display: block;
+    width: 100%;
+    padding: 0.625rem 1rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    color: #2563eb;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.comp-btn-retrain:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+}
+
+/* ============================================
+   BANDEAU TEMPS ÉCOULÉ (mode entraînement)
+   ============================================ */
+
+.comp-timeup-banner {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.625rem 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-bottom: 1px solid #fcd34d;
+}

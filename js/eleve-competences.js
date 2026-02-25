@@ -477,10 +477,21 @@ const EleveCompetences = {
             this.openChoiceModal(entrainementId);
         } else if (prog.statut === 'en_cours') {
             // En cours → reprendre directement avec le mode déjà choisi
+            // Mode évaluation : vérifier si le timer a expiré pendant l'absence
+            if (prog.mode === 'evalue') {
+                const restored = this._loadEvalTimer(entrainementId);
+                if (restored !== null && restored <= 0) {
+                    // Timer expiré → auto-soumission
+                    this.currentEntrainement = entr;
+                    this.currentMode = 'evalue';
+                    this._autoSubmitExpired(entr);
+                    return;
+                }
+            }
             this.currentEntrainement = entr;
             this.showExercise(entr, prog.mode);
         } else if (prog.statut === 'entraine') {
-            // Entraîné → relecture : sujet + correction
+            // Entraîné → relecture avec option de se ré-entraîner
             this.showExerciseReview(entr, prog);
         } else if (prog.statut === 'soumis') {
             // Soumis → relecture : sujet + message soumis
@@ -607,6 +618,49 @@ const EleveCompetences = {
             this.showExercise(entr, mode);
         } catch (error) {
             console.error('Erreur démarrage entraînement:', error);
+            alert('Erreur lors du démarrage');
+        }
+    },
+
+    /**
+     * Ré-entraînement : relance un exercice déjà terminé en mode entraînement.
+     */
+    async restartTraining(entrainementId) {
+        const entr = this.entrainements.find(e => String(e.id) === String(entrainementId));
+        if (!entr) return;
+
+        if (!this.currentUser) {
+            // Mode prévisualisation
+            this.showExercise(entr, 'entrainement');
+            return;
+        }
+
+        try {
+            const result = await this.callAPI('startEleveEntrainementCompetence', {
+                eleve_id: this.currentUser.id,
+                entrainement_id: entr.id,
+                mode: 'entrainement'
+            });
+
+            if (!result.success) {
+                alert(result.error || 'Erreur inconnue');
+                return;
+            }
+
+            // Mettre à jour la progression locale
+            const prog = this.progressions.find(p =>
+                String(p.entrainement_id) === String(entr.id)
+            );
+            if (prog) {
+                prog.statut = 'en_cours';
+                prog.date_debut = new Date().toISOString();
+            }
+            this.saveToCache();
+
+            this.currentEntrainement = entr;
+            this.showExercise(entr, 'entrainement');
+        } catch (error) {
+            console.error('Erreur ré-entraînement:', error);
             alert('Erreur lors du démarrage');
         }
     },
