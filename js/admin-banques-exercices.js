@@ -664,8 +664,16 @@ const AdminBanquesExercices = {
         filtered.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         if (filtered.length === 0) {
-            container.innerHTML = '';
-            emptyState.style.display = 'block';
+            emptyState.style.display = 'none';
+            const hasSearch = this.filters.search || this.filters.statut;
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">${hasSearch ? '&#128269;' : '&#128310;'}</div>
+                    <h3>${hasSearch ? 'Aucun resultat' : 'Aucune banque de savoir-faire'}</h3>
+                    <p>${hasSearch ? 'Essayez avec d\'autres criteres de recherche.' : 'Creez votre premiere banque pour commencer.'}</p>
+                    ${hasSearch ? '' : '<button class="btn btn-primary" id="addBanqueBtnEmpty">+ Nouvelle banque</button>'}
+                </div>
+            `;
             return;
         }
 
