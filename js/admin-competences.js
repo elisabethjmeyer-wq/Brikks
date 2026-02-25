@@ -319,6 +319,8 @@ const AdminCompetences = {
 
     // ========== SAVE ==========
     async saveCompetence() {
+        if (this._saving) return;
+
         var id = document.getElementById('editCompetenceId').value;
         var nom = document.getElementById('competenceNom').value.trim();
         var description = document.getElementById('competenceDescription').value.trim();
@@ -337,6 +339,11 @@ const AdminCompetences = {
             data.ordre = this.competences.length + 1;
             data.visible = true;
         }
+
+        this._saving = true;
+        var saveBtn = document.getElementById('modalSaveBtn');
+        var saveBtnText = saveBtn ? saveBtn.textContent : '';
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
 
         try {
             var competenceId = id;
@@ -395,6 +402,9 @@ const AdminCompetences = {
         } catch (error) {
             console.error('Erreur sauvegarde:', error);
             alert('Erreur lors de la sauvegarde');
+        } finally {
+            this._saving = false;
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtnText; }
         }
     },
 
