@@ -682,15 +682,6 @@ Object.assign(EleveCompetences, {
 
                     <div class="comp-sidebar-section">
                         ${sidebarContent}
-
-                        <div class="comp-sidebar-actions">
-                            <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.backToDetail()">
-                                Retour à la compétence
-                            </button>
-                            <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
-                                Retour aux compétences
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
