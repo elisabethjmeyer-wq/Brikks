@@ -1769,3 +1769,93 @@ body.comp-fullscreen-active {
         width: 100%;
     }
 }
+
+/* ============================================
+   TAGS MODE SUR LES CARTES EXERCICES
+   ============================================ */
+
+.comp-exercise-mode-tag {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.comp-exercise-mode-tag.mode-entrainement {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.comp-exercise-mode-tag.mode-evalue {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* ============================================
+   VUE RELECTURE (après complétion)
+   ============================================ */
+
+.comp-review-badge {
+    display: inline-block;
+    padding: 0.2rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #6b7280;
+    letter-spacing: 0.3px;
+}
+
+.comp-review-section {
+    margin-bottom: 1rem;
+}
+
+.comp-review-section h4 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+}
+
+.comp-review-corrige-text {
+    font-size: 0.85rem;
+    color: #374151;
+    line-height: 1.6;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.comp-review-done {
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.comp-review-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.comp-review-done h4 {
+    text-align: center;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.comp-review-done p {
+    font-size: 0.85rem;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.comp-review-empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    background: #f9fafb;
+    border-radius: 8px;
+}
