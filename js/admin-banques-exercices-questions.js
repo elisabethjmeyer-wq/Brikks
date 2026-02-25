@@ -1820,6 +1820,35 @@ Object.assign(AdminBanquesExercices, {
                 if (group) group.style.display = isBanque ? 'none' : '';
             }
         });
+
+        // Masquer/afficher la section « Corrigé commenté » entière (titre h3 + contenu)
+        const corrSection = document.getElementById('correctionSection');
+        if (corrSection) corrSection.style.display = isBanque ? 'none' : '';
+
+        // Adapter le label et placeholder du champ titre
+        const titreInput = document.getElementById('tacheTitre');
+        if (titreInput) {
+            const label = titreInput.closest('.form-group').querySelector('label');
+            const help = titreInput.closest('.form-group').querySelector('.form-help');
+            if (isBanque) {
+                if (label) label.innerHTML = 'Titre <span class="optional">(optionnel)</span>';
+                titreInput.placeholder = 'Ex: Analyse de documents - Chapitre 3';
+                if (help) help.textContent = 'Si vide, le nom de la competence sera utilise';
+            } else {
+                if (label) label.innerHTML = 'Titre de l\'exercice <span class="req">*</span>';
+                titreInput.placeholder = 'Ex: Journal de Catherine Pozzi';
+                if (help) help.textContent = 'Titre court identifiant le document utilise';
+            }
+        }
+
+        // Adapter le label du dropdown compétence/banque
+        const compSelect = document.getElementById('tacheCompetenceId');
+        if (compSelect) {
+            const label = compSelect.closest('.form-group').querySelector('label');
+            if (label) label.innerHTML = isBanque
+                ? 'Competence <span class="req">*</span>'
+                : 'Banque <span class="req">*</span>';
+        }
     },
 
     // ========== MODAL ENTRAINEMENT COMPETENCE ==========
