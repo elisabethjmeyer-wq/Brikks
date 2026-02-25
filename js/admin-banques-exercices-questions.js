@@ -1591,9 +1591,8 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
-    // ========== TACHES COMPLEXES (Competences) ==========
+    // ========== ENTRAINEMENTS COMPETENCES ==========
     renderTachesComplexes(container, emptyState) {
-        // Filter tâches complexes
         let filtered = this.tachesComplexes;
 
         if (this.filters.search) {
@@ -1619,12 +1618,24 @@ Object.assign(AdminBanquesExercices, {
         emptyState.style.display = 'none';
 
         container.innerHTML = filtered.map(tache => {
-            // Parse competences_ids (stored as comma-separated string)
-            const compIds = (tache.competences_ids || '').split(',').filter(id => id.trim());
-            const competences = compIds.map(id => {
-                const comp = this.competencesReferentiel.find(c => c.id === id.trim());
-                return comp ? comp.nom : null;
-            }).filter(Boolean);
+            // Trouver la compétence liée
+            const comp = this.competencesReferentiel.find(c =>
+                c.id === tache.competence_id || c.id === String(tache.competence_id)
+            );
+            const compNom = comp ? comp.nom : null;
+
+            // Fallback : ancien format competences_ids (rétro-compat)
+            let compLabel = '';
+            if (compNom) {
+                compLabel = this.escapeHtml(compNom);
+            } else if (tache.competences_ids) {
+                const ids = String(tache.competences_ids).split(',').filter(id => id.trim());
+                const noms = ids.map(id => {
+                    const c = this.competencesReferentiel.find(r => r.id === id.trim());
+                    return c ? c.nom : null;
+                }).filter(Boolean);
+                compLabel = noms.length > 0 ? noms.map(n => this.escapeHtml(n)).join(', ') : '';
+            }
 
             return `
                 <div class="banque-card tache-complexe-card" data-id="${tache.id}">
@@ -1636,13 +1647,14 @@ Object.assign(AdminBanquesExercices, {
                                 <span class="status-badge ${tache.statut}">${tache.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
                             </div>
                             <div class="banque-card-meta">
-                                ${tache.description ? this.escapeHtml(tache.description) : 'Aucune description'}
+                                ${compLabel ? compLabel : 'Aucune competence'}
+                                ${tache.document_legende ? ' · ' + this.escapeHtml(tache.document_legende) : ''}
                             </div>
                         </div>
                         <div class="banque-card-stats">
                             <div class="banque-stat">
-                                <div class="banque-stat-value">${competences.length}</div>
-                                <div class="banque-stat-label">competences</div>
+                                <div class="banque-stat-value">${Math.round((tache.duree || 1800) / 60)}</div>
+                                <div class="banque-stat-label">min</div>
                             </div>
                         </div>
                         <div class="banque-card-actions">
@@ -1661,19 +1673,27 @@ Object.assign(AdminBanquesExercices, {
                                     </a>
                                 </div>
                             ` : ''}
-                            <div class="tache-competences">
-                                <strong>Competences evaluees :</strong>
-                                ${competences.length > 0 ? `
-                                    <ul class="competences-list-preview">
-                                        ${competences.map(c => `<li>&#10003; ${this.escapeHtml(c)}</li>`).join('')}
-                                    </ul>
-                                ` : '<em>Aucune competence selectionnee</em>'}
-                            </div>
+                            ${tache.description ? `
+                                <div class="tache-description"><strong>Description :</strong> ${this.escapeHtml(tache.description)}</div>
+                            ` : ''}
+                            ${this._hasCorrectionCommentee(tache) ? `
+                                <div class="tache-correction-badge">&#9989; Corrige commente renseigne</div>
+                            ` : `
+                                <div class="tache-correction-badge missing">&#9888; Corrige commente manquant</div>
+                            `}
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
+    },
+
+    _hasCorrectionCommentee(tache) {
+        if (!tache.correction_commentee) return false;
+        const corr = typeof tache.correction_commentee === 'string'
+            ? (() => { try { return JSON.parse(tache.correction_commentee); } catch (e) { return null; } })()
+            : tache.correction_commentee;
+        return corr && corr.proposition && corr.proposition.trim().length > 0;
     },
 
     toggleTache(id) {
@@ -1683,7 +1703,7 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
-    // ========== TACHE COMPLEXE MODAL ==========
+    // ========== MODAL ENTRAINEMENT COMPETENCE ==========
     openTacheComplexeModal(tache = null) {
         const modal = document.getElementById('tacheComplexeModal');
         if (!modal) {
@@ -1693,40 +1713,47 @@ Object.assign(AdminBanquesExercices, {
 
         const title = document.getElementById('tacheModalTitle');
 
-        // Populate competences checkboxes
-        this.renderCompetencesCheckboxes();
+        // Remplir le dropdown des compétences
+        this._renderCompetenceSelect();
 
         if (tache) {
-            title.textContent = 'Modifier la tache complexe';
+            title.textContent = 'Modifier l\'entrainement';
             document.getElementById('editTacheId').value = tache.id;
             document.getElementById('tacheTitre').value = tache.titre || '';
             document.getElementById('tacheDescription').value = tache.description || '';
             document.getElementById('tacheDocumentUrl').value = tache.document_url || '';
-            document.getElementById('tacheCorrectionUrl').value = tache.correction_url || '';
-            document.getElementById('tacheDuree').value = Math.round((tache.duree || 2700) / 60);
+            document.getElementById('tacheDocumentLegende').value = tache.document_legende || '';
+            document.getElementById('tacheDuree').value = Math.round((tache.duree || 1800) / 60);
             document.getElementById('tacheOrdre').value = tache.ordre || 1;
             document.getElementById('tacheStatut').value = tache.statut || 'brouillon';
 
-            // Check selected competences
-            const compIds = (tache.competences_ids || '').split(',').map(id => id.trim());
-            document.querySelectorAll('#competencesCheckboxes input[type="checkbox"]').forEach(cb => {
-                cb.checked = compIds.includes(cb.value);
-            });
+            // Sélectionner la compétence
+            const compSelect = document.getElementById('tacheCompetenceId');
+            compSelect.value = tache.competence_id || '';
+
+            // Charger la correction commentée
+            let corr = tache.correction_commentee;
+            if (typeof corr === 'string' && corr) {
+                try { corr = JSON.parse(corr); } catch (e) { corr = {}; }
+            }
+            corr = corr || {};
+            document.getElementById('tacheCorrectionProposition').value = corr.proposition || '';
+
+            // Afficher les vérifications par critère
+            this.onCompetenceChange(corr.verifications || []);
         } else {
-            title.textContent = 'Nouvelle tache complexe';
+            title.textContent = 'Nouvel entrainement de competence';
             document.getElementById('editTacheId').value = '';
             document.getElementById('tacheTitre').value = '';
             document.getElementById('tacheDescription').value = '';
             document.getElementById('tacheDocumentUrl').value = '';
-            document.getElementById('tacheCorrectionUrl').value = '';
-            document.getElementById('tacheDuree').value = 45;
+            document.getElementById('tacheDocumentLegende').value = '';
+            document.getElementById('tacheDuree').value = 30;
             document.getElementById('tacheOrdre').value = this.tachesComplexes.length + 1;
             document.getElementById('tacheStatut').value = 'brouillon';
-
-            // Uncheck all competences
-            document.querySelectorAll('#competencesCheckboxes input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
-            });
+            document.getElementById('tacheCompetenceId').value = '';
+            document.getElementById('tacheCorrectionProposition').value = '';
+            this.onCompetenceChange([]);
         }
 
         modal.classList.remove('hidden');
@@ -1739,32 +1766,61 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
-    renderCompetencesCheckboxes() {
-        const container = document.getElementById('competencesCheckboxes');
+    _renderCompetenceSelect() {
+        const select = document.getElementById('tacheCompetenceId');
+        if (!select) return;
+
+        const visibleComps = this.competencesReferentiel
+            .filter(c => String(c.visible) === 'true' || c.visible === true || c.statut === 'actif')
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        select.innerHTML = '<option value="">-- Choisir une competence --</option>' +
+            visibleComps.map(comp =>
+                `<option value="${comp.id}">${this.escapeHtml(comp.nom)}</option>`
+            ).join('');
+    },
+
+    onCompetenceChange(existingVerifications) {
+        const container = document.getElementById('correctionVerifications');
         if (!container) return;
 
-        const activeCompetences = this.competencesReferentiel.filter(c => c.statut === 'actif');
-        activeCompetences.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
-
-        if (activeCompetences.length === 0) {
-            container.innerHTML = `
-                <div class="empty-competences">
-                    <p>Aucune competence active dans le referentiel.</p>
-                    <a href="competences.html" class="btn btn-secondary btn-sm">Gerer les competences</a>
-                </div>
-            `;
+        const compId = document.getElementById('tacheCompetenceId').value;
+        if (!compId) {
+            container.innerHTML = '<p class="form-hint-muted">Selectionnez une competence pour voir les criteres a verifier.</p>';
             return;
         }
 
-        container.innerHTML = activeCompetences.map(comp => `
-            <label class="competence-checkbox">
-                <input type="checkbox" name="tacheCompetences" value="${comp.id}">
-                <span class="competence-checkbox-label">
-                    <span class="competence-checkbox-icon">&#10003;</span>
-                    ${this.escapeHtml(comp.nom)}
-                </span>
-            </label>
-        `).join('');
+        // Trouver les critères de la compétence sélectionnée
+        const criteres = (this.criteresReussite || [])
+            .filter(c => c.competence_id === compId)
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        // Si pas de critères chargés, essayer depuis les données locales
+        if (criteres.length === 0) {
+            container.innerHTML = '<p class="form-hint-muted">Aucun critere defini pour cette competence. <a href="competences.html">Ajouter des criteres</a></p>';
+            return;
+        }
+
+        const verifs = Array.isArray(existingVerifications) ? existingVerifications : [];
+
+        container.innerHTML =
+            '<label class="form-label-small">Verification critere par critere</label>' +
+            '<div class="form-help" style="margin-bottom: 0.5rem;">Pour chaque critere, expliquez comment le corrige le remplit.</div>' +
+            criteres.map((crit, i) => {
+                const existing = verifs.find(v => v.critere_id === crit.id || v.critere_numero === (i + 1));
+                return `
+                    <div class="correction-critere-field">
+                        <div class="correction-critere-header">
+                            <span class="correction-critere-num">${i + 1}</span>
+                            <span class="correction-critere-text">${this.escapeHtml(crit.libelle)}</span>
+                        </div>
+                        <input type="text" class="form-input correction-critere-input"
+                            data-critere-id="${crit.id}" data-critere-num="${i + 1}"
+                            value="${this.escapeHtml((existing && existing.explication) || '')}"
+                            placeholder="Comment le corrige remplit ce critere...">
+                    </div>
+                `;
+            }).join('');
     },
 
     addTacheComplexe() {
@@ -1780,32 +1836,52 @@ Object.assign(AdminBanquesExercices, {
 
     async saveTacheComplexe() {
         const id = document.getElementById('editTacheId').value;
+        const competenceId = document.getElementById('tacheCompetenceId').value;
         const titre = document.getElementById('tacheTitre').value.trim();
         const description = document.getElementById('tacheDescription').value.trim();
         const documentUrl = document.getElementById('tacheDocumentUrl').value.trim();
-        const correctionUrl = document.getElementById('tacheCorrectionUrl').value.trim();
-        const dureeMinutes = parseInt(document.getElementById('tacheDuree').value) || 45;
-        const duree = dureeMinutes * 60; // Convert to seconds
+        const documentLegende = document.getElementById('tacheDocumentLegende').value.trim();
+        const dureeMinutes = parseInt(document.getElementById('tacheDuree').value) || 30;
+        const duree = dureeMinutes * 60;
         const ordre = parseInt(document.getElementById('tacheOrdre').value) || 1;
         const statut = document.getElementById('tacheStatut').value;
-
-        // Get selected competences
-        const selectedComps = Array.from(document.querySelectorAll('#competencesCheckboxes input[type="checkbox"]:checked'))
-            .map(cb => cb.value);
-        const competencesIds = selectedComps.join(',');
+        const proposition = document.getElementById('tacheCorrectionProposition').value.trim();
 
         if (!titre) {
             alert('Le titre est requis');
             return;
         }
+        if (!competenceId) {
+            alert('Veuillez selectionner une competence');
+            return;
+        }
+
+        // Construire la correction commentée
+        const verifications = [];
+        document.querySelectorAll('.correction-critere-input').forEach(input => {
+            const explication = input.value.trim();
+            if (explication) {
+                verifications.push({
+                    critere_id: input.dataset.critereId,
+                    critere_numero: parseInt(input.dataset.critereNum) || 0,
+                    valide: true,
+                    explication: explication
+                });
+            }
+        });
+
+        const correctionCommentee = (proposition || verifications.length > 0)
+            ? JSON.stringify({ proposition: proposition, verifications: verifications })
+            : '';
 
         const data = {
             titre,
+            competence_id: competenceId,
             description,
             document_url: documentUrl,
-            correction_url: correctionUrl,
+            document_legende: documentLegende,
+            correction_commentee: correctionCommentee,
             duree,
-            competences_ids: competencesIds,
             ordre,
             statut
         };
@@ -1820,7 +1896,6 @@ Object.assign(AdminBanquesExercices, {
             }
 
             if (result.success) {
-                // Reload data and re-render
                 await this.loadDataFromAPI();
                 this.updateCounts();
                 this.renderBanques();
@@ -1829,7 +1904,7 @@ Object.assign(AdminBanquesExercices, {
                 alert('Erreur: ' + (result.error || 'Erreur inconnue'));
             }
         } catch (error) {
-            console.error('Erreur sauvegarde tache:', error);
+            console.error('Erreur sauvegarde entrainement:', error);
             alert('Erreur lors de la sauvegarde');
         }
     },
@@ -1838,11 +1913,10 @@ Object.assign(AdminBanquesExercices, {
         const tache = this.tachesComplexes.find(t => t.id === id);
         if (!tache) return;
 
-        // Reuse the existing delete modal
         document.getElementById('deleteType').value = 'tacheComplexe';
         document.getElementById('deleteId').value = id;
         document.getElementById('deleteMessage').textContent =
-            `Etes-vous sur de vouloir supprimer la tache "${tache.titre}" ?`;
+            `Etes-vous sur de vouloir supprimer l'entrainement "${tache.titre}" ?`;
         document.getElementById('deleteModal').classList.remove('hidden');
     },
 });

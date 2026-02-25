@@ -606,50 +606,66 @@
     </div>
 </div>
 
-<!-- Modal: Creer/Modifier tache complexe (Competences) -->
+<!-- Modal: Creer/Modifier entrainement de competence -->
 <div class="modal-overlay hidden" id="tacheComplexeModal">
     <div class="modal modal-medium">
         <div class="modal-header">
-            <h2 id="tacheModalTitle">Nouvelle tache complexe</h2>
+            <h2 id="tacheModalTitle">Nouvel entrainement de competence</h2>
             <button class="modal-close" onclick="AdminBanquesExercices.closeTacheComplexeModal()">&times;</button>
         </div>
         <div class="modal-body">
             <input type="hidden" id="editTacheId">
 
             <div class="form-group">
-                <label>Titre <span class="req">*</span></label>
-                <input type="text" class="form-input" id="tacheTitre" placeholder="Ex: Analyse d'un texte historique">
+                <label>Competence <span class="req">*</span></label>
+                <select class="form-select" id="tacheCompetenceId" onchange="AdminBanquesExercices.onCompetenceChange()">
+                    <option value="">-- Choisir une competence --</option>
+                    <!-- Options generees dynamiquement -->
+                </select>
             </div>
 
             <div class="form-group">
-                <label>Description / Consignes</label>
-                <textarea class="form-textarea" id="tacheDescription" rows="3" placeholder="Consignes pour l'eleve..."></textarea>
+                <label>Titre de l'exercice <span class="req">*</span></label>
+                <input type="text" class="form-input" id="tacheTitre" placeholder="Ex: Journal de Catherine Pozzi">
+                <div class="form-help">Titre court identifiant le document utilise</div>
             </div>
 
             <div class="form-group">
-                <label>URL du document (sujet)</label>
+                <label>Description <span class="optional">(optionnel)</span></label>
+                <textarea class="form-textarea" id="tacheDescription" rows="2" placeholder="Informations complementaires..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>URL du document</label>
                 <input type="text" class="form-input" id="tacheDocumentUrl" placeholder="Lien Google Drive, PDF, image...">
-                <div class="form-help">Collez un lien vers le document (Google Drive, PDF, image)</div>
+                <div class="form-help">Lien vers le document (Google Drive, PDF, image)</div>
             </div>
 
             <div class="form-group">
-                <label>URL de la correction <span class="optional">(optionnel)</span></label>
-                <input type="text" class="form-input" id="tacheCorrectionUrl" placeholder="Lien vers la correction...">
-                <div class="form-help">Visible uniquement pour les eleves en mode entrainement</div>
+                <label>Legende du document <span class="optional">(optionnel)</span></label>
+                <input type="text" class="form-input" id="tacheDocumentLegende" placeholder="Ex: Extrait du journal de Catherine Pozzi, 1920">
             </div>
 
-            <div class="form-group">
-                <label>Competences evaluees</label>
-                <div class="competences-checkboxes" id="competencesCheckboxes">
-                    <!-- Generated dynamically -->
+            <!-- Section Corrige commente -->
+            <div class="form-section" id="correctionSection">
+                <h3 class="form-section-title">Corrige commente <span class="optional">(mode entrainement)</span></h3>
+                <div class="form-help" style="margin-bottom: 0.75rem;">Visible uniquement en mode entrainement. Aide l'eleve a s'auto-evaluer.</div>
+
+                <div class="form-group">
+                    <label>Proposition de redaction</label>
+                    <textarea class="form-textarea" id="tacheCorrectionProposition" rows="5" placeholder="Redigez une reponse possible a la consigne..."></textarea>
+                </div>
+
+                <div id="correctionVerifications">
+                    <!-- Genere dynamiquement quand une competence est selectionnee -->
+                    <p class="form-hint-muted">Selectionnez une competence pour voir les criteres a verifier.</p>
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Duree (minutes)</label>
-                    <input type="number" class="form-input" id="tacheDuree" value="45" min="5" max="180">
-                    <div class="form-help">45 min par defaut</div>
+                    <label>Duree indicative (min)</label>
+                    <input type="number" class="form-input" id="tacheDuree" value="30" min="5" max="180">
                 </div>
                 <div class="form-group">
                     <label>Ordre d'affichage</label>

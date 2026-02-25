@@ -64,8 +64,8 @@ const CONFIG = {
         EleveConnexions: 'EleveConnexions',
         CompetencesReferentiel: 'CompetencesReferentiel',
         CriteresReussite: 'CriteresReussite',
-        TachesComplexes: 'TachesComplexes',
-        EleveTachesComplexes: 'EleveTachesComplexes'
+        EntrainementsCompetences: 'EntrainementsCompetences',
+        EleveEntrainementsCompetences: 'EleveEntrainementsCompetences'
     },
 
     // URLs de redirection (avec préfixe GitHub Pages)

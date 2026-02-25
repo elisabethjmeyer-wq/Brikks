@@ -1,32 +1,33 @@
 // ========================================
 // REFERENTIEL COMPETENCES
+// Colonnes : id, nom, description, consigne, ordre, visible
 // ========================================
 
 /**
  * Récupère toutes les compétences du référentiel
  */
 function getCompetencesReferentiel(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('CompetencesReferentiel');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('CompetencesReferentiel');
 
   if (!sheet) {
     return { success: true, data: [] };
   }
 
-  const allData = sheet.getDataRange().getValues();
+  var allData = sheet.getDataRange().getValues();
   if (allData.length <= 1) {
     return { success: true, data: [] };
   }
 
-  const headers = allData[0];
-  const competences = [];
+  var headers = allData[0];
+  var competences = [];
 
-  for (let i = 1; i < allData.length; i++) {
-    const row = allData[i];
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
     if (!row[0]) continue;
 
-    const competence = {};
-    headers.forEach((header, index) => {
+    var competence = {};
+    headers.forEach(function(header, index) {
       competence[header] = row[index];
     });
     competences.push(competence);
@@ -39,23 +40,23 @@ function getCompetencesReferentiel(data) {
  * Crée une nouvelle compétence dans le référentiel
  */
 function createCompetenceReferentiel(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName('CompetencesReferentiel');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('CompetencesReferentiel');
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
     sheet = ss.insertSheet('CompetencesReferentiel');
-    sheet.appendRow(['id', 'nom', 'description', 'categorie', 'ordre', 'statut']);
+    sheet.appendRow(['id', 'nom', 'description', 'consigne', 'ordre', 'visible']);
   }
 
-  const id = 'comp_' + new Date().getTime();
-  const rowData = [
+  var id = 'comp_' + new Date().getTime();
+  var rowData = [
     id,
     data.nom || '',
     data.description || '',
-    data.categorie || '',
+    data.consigne || '',
     data.ordre || 1,
-    data.statut || 'actif'
+    data.visible !== undefined ? data.visible : true
   ];
 
   sheet.appendRow(rowData);
@@ -66,30 +67,27 @@ function createCompetenceReferentiel(data) {
  * Met à jour une compétence du référentiel
  */
 function updateCompetenceReferentiel(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('CompetencesReferentiel');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('CompetencesReferentiel');
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const idCol = headers.indexOf('id');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
 
-  for (let i = 1; i < allData.length; i++) {
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(data.id)) {
-      const rowData = [
-        data.id,
-        data.nom || allData[i][headers.indexOf('nom')],
-        data.description || allData[i][headers.indexOf('description')],
-        data.categorie || allData[i][headers.indexOf('categorie')],
-        data.ordre !== undefined ? data.ordre : allData[i][headers.indexOf('ordre')],
-        data.statut || allData[i][headers.indexOf('statut')]
-      ];
+      var updatedRow = headers.map(function(header, index) {
+        if (header === 'id') return data.id;
+        if (data[header] !== undefined) return data[header];
+        return allData[i][index];
+      });
 
-      const range = sheet.getRange(i + 1, 1, 1, rowData.length);
-      range.setValues([rowData]);
+      var range = sheet.getRange(i + 1, 1, 1, updatedRow.length);
+      range.setValues([updatedRow]);
       return { success: true };
     }
   }
@@ -101,18 +99,18 @@ function updateCompetenceReferentiel(data) {
  * Supprime une compétence du référentiel
  */
 function deleteCompetenceReferentiel(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('CompetencesReferentiel');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('CompetencesReferentiel');
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const idCol = headers.indexOf('id');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
 
-  for (let i = 1; i < allData.length; i++) {
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(data.id)) {
       sheet.deleteRow(i + 1);
       return { success: true };
@@ -124,31 +122,33 @@ function deleteCompetenceReferentiel(data) {
 
 // ========================================
 // CRITERES DE REUSSITE
+// Colonnes : id, competence_id, libelle, ordre
+// (inchangé)
 // ========================================
 
 /**
  * Récupère tous les critères de réussite
  */
 function getCriteresReussite(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('CriteresReussite');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('CriteresReussite');
 
   if (!sheet) {
     return { success: true, data: [] };
   }
 
-  const allData = sheet.getDataRange().getValues();
+  var allData = sheet.getDataRange().getValues();
   if (allData.length <= 1) {
     return { success: true, data: [] };
   }
 
-  const headers = allData[0];
-  const result = [];
+  var headers = allData[0];
+  var result = [];
 
-  for (let i = 1; i < allData.length; i++) {
-    const row = allData[i];
-    const item = {};
-    headers.forEach((header, index) => {
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
+    var item = {};
+    headers.forEach(function(header, index) {
       item[header] = row[index];
     });
     result.push(item);
@@ -161,27 +161,27 @@ function getCriteresReussite(data) {
  * Récupère les critères pour une compétence spécifique
  */
 function getCriteresForCompetence(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('CriteresReussite');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('CriteresReussite');
 
   if (!sheet || !data.competence_id) {
     return { success: true, data: [] };
   }
 
-  const allData = sheet.getDataRange().getValues();
+  var allData = sheet.getDataRange().getValues();
   if (allData.length <= 1) {
     return { success: true, data: [] };
   }
 
-  const headers = allData[0];
-  const compIdCol = headers.indexOf('competence_id');
-  const result = [];
+  var headers = allData[0];
+  var compIdCol = headers.indexOf('competence_id');
+  var result = [];
 
-  for (let i = 1; i < allData.length; i++) {
-    const row = allData[i];
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
     if (String(row[compIdCol]) === String(data.competence_id)) {
-      const item = {};
-      headers.forEach((header, index) => {
+      var item = {};
+      headers.forEach(function(header, index) {
         item[header] = row[index];
       });
       result.push(item);
@@ -189,7 +189,7 @@ function getCriteresForCompetence(data) {
   }
 
   // Trier par ordre
-  result.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+  result.sort(function(a, b) { return (a.ordre || 0) - (b.ordre || 0); });
 
   return { success: true, data: result };
 }
@@ -198,8 +198,8 @@ function getCriteresForCompetence(data) {
  * Crée un nouveau critère de réussite
  */
 function createCritereReussite(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName('CriteresReussite');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('CriteresReussite');
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
@@ -207,8 +207,8 @@ function createCritereReussite(data) {
     sheet.appendRow(['id', 'competence_id', 'libelle', 'ordre']);
   }
 
-  const id = 'crit_' + new Date().getTime();
-  const rowData = [
+  var id = 'crit_' + new Date().getTime();
+  var rowData = [
     id,
     data.competence_id || '',
     data.libelle || '',
@@ -223,28 +223,27 @@ function createCritereReussite(data) {
  * Met à jour un critère de réussite
  */
 function updateCritereReussite(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('CriteresReussite');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('CriteresReussite');
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const idCol = headers.indexOf('id');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
 
-  for (let i = 1; i < allData.length; i++) {
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(data.id)) {
-      const rowData = [
-        data.id,
-        data.competence_id || allData[i][headers.indexOf('competence_id')],
-        data.libelle || allData[i][headers.indexOf('libelle')],
-        data.ordre !== undefined ? data.ordre : allData[i][headers.indexOf('ordre')]
-      ];
+      var updatedRow = headers.map(function(header, index) {
+        if (header === 'id') return data.id;
+        if (data[header] !== undefined) return data[header];
+        return allData[i][index];
+      });
 
-      const range = sheet.getRange(i + 1, 1, 1, rowData.length);
-      range.setValues([rowData]);
+      var range = sheet.getRange(i + 1, 1, 1, updatedRow.length);
+      range.setValues([updatedRow]);
       return { success: true };
     }
   }
@@ -256,18 +255,18 @@ function updateCritereReussite(data) {
  * Supprime un critère de réussite
  */
 function deleteCritereReussite(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('CriteresReussite');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('CriteresReussite');
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const idCol = headers.indexOf('id');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
 
-  for (let i = 1; i < allData.length; i++) {
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(data.id)) {
       sheet.deleteRow(i + 1);
       return { success: true };
@@ -278,109 +277,134 @@ function deleteCritereReussite(data) {
 }
 
 // ========================================
-// TACHES COMPLEXES (Exercices Compétences)
+// ENTRAINEMENTS COMPETENCES
+// (anciennement « Tâches Complexes »)
+// Colonnes : id, titre, competence_id, description, document_url,
+//            document_legende, correction_commentee, duree, ordre,
+//            statut, date_creation
 // ========================================
 
 /**
- * Récupère toutes les tâches complexes
+ * Récupère tous les entraînements de compétences
+ * @param {Object} data - {competence_id?} filtre optionnel
  */
-function getTachesComplexes(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('TachesComplexes');
+function getEntrainementsCompetences(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EntrainementsCompetences');
 
   if (!sheet) {
     return { success: true, data: [] };
   }
 
-  const allData = sheet.getDataRange().getValues();
+  var allData = sheet.getDataRange().getValues();
   if (allData.length <= 1) {
     return { success: true, data: [] };
   }
 
-  const headers = allData[0];
-  const taches = [];
+  var headers = allData[0];
+  var entrainements = [];
 
-  for (let i = 1; i < allData.length; i++) {
-    const row = allData[i];
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
     if (!row[0]) continue;
 
-    const tache = {};
-    headers.forEach((header, index) => {
-      tache[header] = row[index];
+    var entry = {};
+    headers.forEach(function(header, index) {
+      // Parser correction_commentee en JSON si présent
+      if (header === 'correction_commentee' && row[index]) {
+        try {
+          entry[header] = JSON.parse(row[index]);
+        } catch (e) {
+          entry[header] = row[index];
+        }
+      } else {
+        entry[header] = row[index];
+      }
     });
-    taches.push(tache);
+    entrainements.push(entry);
   }
 
-  // Filter by chapitre_id if provided
-  if (data && data.chapitre_id) {
-    return {
-      success: true,
-      data: taches.filter(t => t.chapitre_id === data.chapitre_id)
-    };
+  // Filtrer par competence_id si fourni
+  if (data && data.competence_id) {
+    entrainements = entrainements.filter(function(e) {
+      return String(e.competence_id) === String(data.competence_id);
+    });
   }
 
-  return { success: true, data: taches };
+  return { success: true, data: entrainements };
 }
 
 /**
- * Récupère une tâche complexe par son ID
+ * Récupère un entraînement de compétence par son ID
+ * @param {Object} data - {id}
  */
-function getTacheComplexe(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('TachesComplexes');
+function getEntrainementCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EntrainementsCompetences');
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const idCol = headers.indexOf('id');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
 
-  for (let i = 1; i < allData.length; i++) {
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(data.id)) {
-      const tache = {};
-      headers.forEach((header, index) => {
-        if (header === 'competences_ids' && allData[i][index]) {
+      var entry = {};
+      headers.forEach(function(header, index) {
+        if (header === 'correction_commentee' && allData[i][index]) {
           try {
-            tache[header] = JSON.parse(allData[i][index]);
+            entry[header] = JSON.parse(allData[i][index]);
           } catch (e) {
-            tache[header] = [];
+            entry[header] = allData[i][index];
           }
         } else {
-          tache[header] = allData[i][index];
+          entry[header] = allData[i][index];
         }
       });
-      return { success: true, data: tache };
+      return { success: true, data: entry };
     }
   }
 
-  return { success: false, error: 'Tâche non trouvée' };
+  return { success: false, error: 'Entraînement non trouvé' };
 }
 
 /**
- * Crée une nouvelle tâche complexe
+ * Crée un nouvel entraînement de compétence
  */
-function createTacheComplexe(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName('TachesComplexes');
+function createEntrainementCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EntrainementsCompetences');
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
-    sheet = ss.insertSheet('TachesComplexes');
-    sheet.appendRow(['id', 'titre', 'chapitre_id', 'description', 'document_url', 'correction_url', 'duree', 'competences_ids', 'ordre', 'statut', 'date_creation']);
+    sheet = ss.insertSheet('EntrainementsCompetences');
+    sheet.appendRow([
+      'id', 'titre', 'competence_id', 'description', 'document_url',
+      'document_legende', 'correction_commentee', 'duree', 'ordre',
+      'statut', 'date_creation'
+    ]);
   }
 
-  const id = 'tc_' + new Date().getTime();
-  const rowData = [
+  var id = 'ec_' + new Date().getTime();
+
+  // Sérialiser correction_commentee si c'est un objet
+  var correction = data.correction_commentee || '';
+  if (typeof correction === 'object') {
+    correction = JSON.stringify(correction);
+  }
+
+  var rowData = [
     id,
     data.titre || '',
-    data.chapitre_id || '',
+    data.competence_id || '',
     data.description || '',
     data.document_url || '',
-    data.correction_url || '',
-    data.duree || 2700,
-    data.competences_ids || '',
+    data.document_legende || '',
+    correction,
+    data.duree || 1800,
     data.ordre || 1,
     data.statut || 'brouillon',
     new Date().toISOString()
@@ -391,98 +415,105 @@ function createTacheComplexe(data) {
 }
 
 /**
- * Met à jour une tâche complexe
+ * Met à jour un entraînement de compétence
  */
-function updateTacheComplexe(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('TachesComplexes');
+function updateEntrainementCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EntrainementsCompetences');
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const idCol = headers.indexOf('id');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
 
-  for (let i = 1; i < allData.length; i++) {
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(data.id)) {
-      const rowData = [
-        data.id,
-        data.titre !== undefined ? data.titre : allData[i][headers.indexOf('titre')],
-        data.chapitre_id !== undefined ? data.chapitre_id : allData[i][headers.indexOf('chapitre_id')],
-        data.description !== undefined ? data.description : allData[i][headers.indexOf('description')],
-        data.document_url !== undefined ? data.document_url : allData[i][headers.indexOf('document_url')],
-        data.correction_url !== undefined ? data.correction_url : allData[i][headers.indexOf('correction_url')],
-        data.duree !== undefined ? data.duree : allData[i][headers.indexOf('duree')],
-        data.competences_ids !== undefined ? data.competences_ids : allData[i][headers.indexOf('competences_ids')],
-        data.ordre !== undefined ? data.ordre : allData[i][headers.indexOf('ordre')],
-        data.statut !== undefined ? data.statut : allData[i][headers.indexOf('statut')],
-        allData[i][headers.indexOf('date_creation')]
-      ];
+      var updatedRow = headers.map(function(header, index) {
+        if (header === 'id') return data.id;
+        if (header === 'date_creation') return allData[i][index]; // Immutable
+        if (data[header] !== undefined) {
+          // Sérialiser correction_commentee si c'est un objet
+          if (header === 'correction_commentee' && typeof data[header] === 'object') {
+            return JSON.stringify(data[header]);
+          }
+          return data[header];
+        }
+        return allData[i][index];
+      });
 
-      const range = sheet.getRange(i + 1, 1, 1, rowData.length);
-      range.setValues([rowData]);
+      var range = sheet.getRange(i + 1, 1, 1, updatedRow.length);
+      range.setValues([updatedRow]);
       return { success: true };
     }
   }
 
-  return { success: false, error: 'Tâche non trouvée' };
+  return { success: false, error: 'Entraînement non trouvé' };
 }
 
 /**
- * Supprime une tâche complexe
+ * Supprime un entraînement de compétence
  */
-function deleteTacheComplexe(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('TachesComplexes');
+function deleteEntrainementCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EntrainementsCompetences');
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const idCol = headers.indexOf('id');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
 
-  for (let i = 1; i < allData.length; i++) {
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(data.id)) {
       sheet.deleteRow(i + 1);
       return { success: true };
     }
   }
 
-  return { success: false, error: 'Tâche non trouvée' };
+  return { success: false, error: 'Entraînement non trouvé' };
 }
 
-// ========== ELEVE TACHES COMPLEXES ==========
+// ========================================
+// ELEVE — ENTRAINEMENTS COMPETENCES
+// (anciennement « Élève Tâches Complexes »)
+// Colonnes : id, eleve_id, entrainement_id, mode, statut,
+//            date_debut, date_fin, date_soumission, temps_passe,
+//            date_correction
+// Modes : entrainement | evalue
+// Statuts : en_cours | entraine | soumis | valide
+// ========================================
 
 /**
- * Récupère le statut d'une tâche complexe pour un élève
- * @param {Object} data - {eleve_id, tache_id}
+ * Récupère le statut d'un entraînement pour un élève
+ * @param {Object} data - {eleve_id, entrainement_id}
  */
-function getEleveTacheComplexe(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('EleveTachesComplexes');
+function getEleveEntrainementCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
 
   if (!sheet) {
     return { success: true, data: null };
   }
 
-  const allData = sheet.getDataRange().getValues();
+  var allData = sheet.getDataRange().getValues();
   if (allData.length <= 1) {
     return { success: true, data: null };
   }
 
-  const headers = allData[0];
-  const eleveIdCol = headers.indexOf('eleve_id');
-  const tacheIdCol = headers.indexOf('tache_id');
+  var headers = allData[0];
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var entrainementIdCol = headers.indexOf('entrainement_id');
 
-  for (let i = 1; i < allData.length; i++) {
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][eleveIdCol]) === String(data.eleve_id) &&
-        String(allData[i][tacheIdCol]) === String(data.tache_id)) {
-      const record = {};
-      headers.forEach((header, index) => {
+        String(allData[i][entrainementIdCol]) === String(data.entrainement_id)) {
+      var record = {};
+      headers.forEach(function(header, index) {
         record[header] = allData[i][index];
       });
       return { success: true, data: record };
@@ -493,35 +524,34 @@ function getEleveTacheComplexe(data) {
 }
 
 /**
- * Récupère toutes les tâches complexes d'un élève (ou toutes si admin)
+ * Récupère tous les entraînements de compétences d'un élève (ou tous si admin)
  * @param {Object} data - {eleve_id} ou {} pour admin
  */
-function getEleveTachesComplexes(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('EleveTachesComplexes');
+function getEleveEntrainementsCompetences(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
 
   if (!sheet) {
     return { success: true, data: [] };
   }
 
-  const allData = sheet.getDataRange().getValues();
+  var allData = sheet.getDataRange().getValues();
   if (allData.length <= 1) {
     return { success: true, data: [] };
   }
 
-  const headers = allData[0];
-  const records = [];
+  var headers = allData[0];
+  var records = [];
 
-  for (let i = 1; i < allData.length; i++) {
-    const row = allData[i];
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
     if (!row[0]) continue;
 
-    const record = {};
-    headers.forEach((header, index) => {
+    var record = {};
+    headers.forEach(function(header, index) {
       record[header] = row[index];
     });
 
-    // Filter by eleve_id if provided
     if (data && data.eleve_id) {
       if (String(record.eleve_id) === String(data.eleve_id)) {
         records.push(record);
@@ -535,50 +565,94 @@ function getEleveTachesComplexes(data) {
 }
 
 /**
- * Démarre une tâche complexe pour un élève (enregistre son choix)
- * @param {Object} data - {eleve_id, tache_id, mode: 'entrainement'|'points_bonus'}
+ * Démarre un entraînement de compétence pour un élève
+ * - Si pas d'enregistrement : crée un nouveau
+ * - Si déjà entraîné et nouveau mode = évalué : met à jour
+ * - Si soumis ou validé : refuse
+ * @param {Object} data - {eleve_id, entrainement_id, mode: 'entrainement'|'evalue'}
  */
-function startEleveTacheComplexe(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName('EleveTachesComplexes');
+function startEleveEntrainementCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
-    sheet = ss.insertSheet('EleveTachesComplexes');
-    sheet.appendRow(['id', 'eleve_id', 'tache_id', 'mode', 'statut', 'date_debut', 'date_fin']);
+    sheet = ss.insertSheet('EleveEntrainementsCompetences');
+    sheet.appendRow([
+      'id', 'eleve_id', 'entrainement_id', 'mode', 'statut',
+      'date_debut', 'date_fin', 'date_soumission', 'temps_passe',
+      'date_correction'
+    ]);
   }
 
-  // Vérifier si l'élève a déjà fait un choix pour cette tâche
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const eleveIdCol = headers.indexOf('eleve_id');
-  const tacheIdCol = headers.indexOf('tache_id');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var entrainementIdCol = headers.indexOf('entrainement_id');
 
-  for (let i = 1; i < allData.length; i++) {
+  // Chercher un enregistrement existant
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][eleveIdCol]) === String(data.eleve_id) &&
-        String(allData[i][tacheIdCol]) === String(data.tache_id)) {
-      // Déjà enregistré
-      const existingRecord = {};
-      headers.forEach((header, index) => {
+        String(allData[i][entrainementIdCol]) === String(data.entrainement_id)) {
+
+      var existingRecord = {};
+      headers.forEach(function(header, index) {
         existingRecord[header] = allData[i][index];
       });
-      return {
-        success: false,
-        error: 'Choix deja effectue',
-        existing: existingRecord
-      };
+
+      var existingStatut = String(existingRecord.statut);
+
+      // En cours : reprendre
+      if (existingStatut === 'en_cours') {
+        return { success: true, id: existingRecord.id, resumed: true };
+      }
+
+      // Déjà entraîné et on veut passer en mode évalué : autoriser
+      if (existingStatut === 'entraine' && data.mode === 'evalue') {
+        var modeCol = headers.indexOf('mode');
+        var statutCol = headers.indexOf('statut');
+        var dateDebutCol = headers.indexOf('date_debut');
+        sheet.getRange(i + 1, modeCol + 1).setValue('evalue');
+        sheet.getRange(i + 1, statutCol + 1).setValue('en_cours');
+        sheet.getRange(i + 1, dateDebutCol + 1).setValue(new Date().toISOString());
+        return { success: true, id: existingRecord.id, upgraded: true };
+      }
+
+      // Déjà soumis ou validé : refuser
+      if (existingStatut === 'soumis' || existingStatut === 'valide') {
+        return {
+          success: false,
+          error: existingStatut === 'soumis'
+            ? 'Production déjà soumise, en attente de correction'
+            : 'Compétence déjà validée sur cet exercice',
+          existing: existingRecord
+        };
+      }
+
+      // Entraîné et on veut s'entraîner à nouveau : autoriser
+      if (existingStatut === 'entraine' && data.mode === 'entrainement') {
+        var statutCol2 = headers.indexOf('statut');
+        var dateDebutCol2 = headers.indexOf('date_debut');
+        sheet.getRange(i + 1, statutCol2 + 1).setValue('en_cours');
+        sheet.getRange(i + 1, dateDebutCol2 + 1).setValue(new Date().toISOString());
+        return { success: true, id: existingRecord.id, resumed: true };
+      }
     }
   }
 
-  const id = 'etc_' + new Date().getTime();
-  const rowData = [
+  // Pas d'enregistrement existant : créer
+  var id = 'eec_' + new Date().getTime();
+  var rowData = [
     id,
     data.eleve_id,
-    data.tache_id,
+    data.entrainement_id,
     data.mode || 'entrainement',
     'en_cours',
     new Date().toISOString(),
-    ''
+    '', // date_fin
+    '', // date_soumission
+    '', // temps_passe
+    ''  // date_correction
   ];
 
   sheet.appendRow(rowData);
@@ -586,77 +660,51 @@ function startEleveTacheComplexe(data) {
 }
 
 /**
- * Termine une tâche complexe pour un élève
- * @param {Object} data - {eleve_id, tache_id}
+ * Termine un entraînement de compétence pour un élève
+ * - Mode entrainement → statut = entraine
+ * - Mode évalué → statut = soumis
+ * @param {Object} data - {eleve_id, entrainement_id, temps_passe?}
  */
-function finishEleveTacheComplexe(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('EleveTachesComplexes');
+function finishEleveEntrainementCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const eleveIdCol = headers.indexOf('eleve_id');
-  const tacheIdCol = headers.indexOf('tache_id');
-  const statutCol = headers.indexOf('statut');
-  const dateFinCol = headers.indexOf('date_fin');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var entrainementIdCol = headers.indexOf('entrainement_id');
+  var modeCol = headers.indexOf('mode');
+  var statutCol = headers.indexOf('statut');
+  var dateFinCol = headers.indexOf('date_fin');
+  var dateSoumissionCol = headers.indexOf('date_soumission');
+  var tempsPasseCol = headers.indexOf('temps_passe');
 
-  for (let i = 1; i < allData.length; i++) {
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][eleveIdCol]) === String(data.eleve_id) &&
-        String(allData[i][tacheIdCol]) === String(data.tache_id)) {
-      // Mettre à jour le statut et la date de fin
-      sheet.getRange(i + 1, statutCol + 1).setValue('termine');
-      sheet.getRange(i + 1, dateFinCol + 1).setValue(new Date().toISOString());
-      return { success: true };
-    }
-  }
+        String(allData[i][entrainementIdCol]) === String(data.entrainement_id)) {
 
-  return { success: false, error: 'Enregistrement non trouvé' };
-}
+      var mode = String(allData[i][modeCol]);
+      var now = new Date().toISOString();
 
-/**
- * Soumet une tâche complexe pour correction (mode points_bonus)
- * @param {Object} data - {eleve_id, tache_id, temps_passe}
- */
-function submitEleveTacheComplexe(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('EleveTachesComplexes');
+      if (mode === 'evalue') {
+        // Mode évalué : marquer comme soumis
+        sheet.getRange(i + 1, statutCol + 1).setValue('soumis');
+        sheet.getRange(i + 1, dateSoumissionCol + 1).setValue(now);
+      } else {
+        // Mode entraînement : marquer comme entraîné
+        sheet.getRange(i + 1, statutCol + 1).setValue('entraine');
+        sheet.getRange(i + 1, dateFinCol + 1).setValue(now);
+      }
 
-  if (!sheet) {
-    return { success: false, error: 'Feuille non trouvée' };
-  }
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const eleveIdCol = headers.indexOf('eleve_id');
-  const tacheIdCol = headers.indexOf('tache_id');
-  const statutCol = headers.indexOf('statut');
-
-  // Ajouter colonnes si nécessaire
-  let dateSoumissionCol = headers.indexOf('date_soumission');
-  let tempsPasseCol = headers.indexOf('temps_passe');
-
-  if (dateSoumissionCol === -1) {
-    dateSoumissionCol = headers.length;
-    sheet.getRange(1, dateSoumissionCol + 1).setValue('date_soumission');
-  }
-  if (tempsPasseCol === -1) {
-    tempsPasseCol = headers.length + (dateSoumissionCol === headers.length ? 1 : 0);
-    sheet.getRange(1, tempsPasseCol + 1).setValue('temps_passe');
-  }
-
-  for (let i = 1; i < allData.length; i++) {
-    if (String(allData[i][eleveIdCol]) === String(data.eleve_id) &&
-        String(allData[i][tacheIdCol]) === String(data.tache_id)) {
-      // Mettre à jour le statut à 'soumis' (en attente de correction)
-      sheet.getRange(i + 1, statutCol + 1).setValue('soumis');
-      sheet.getRange(i + 1, dateSoumissionCol + 1).setValue(new Date().toISOString());
-      if (data.temps_passe) {
+      // Temps passé (optionnel)
+      if (data.temps_passe && tempsPasseCol !== -1) {
         sheet.getRange(i + 1, tempsPasseCol + 1).setValue(data.temps_passe);
       }
+
       return { success: true };
     }
   }
@@ -665,39 +713,43 @@ function submitEleveTacheComplexe(data) {
 }
 
 /**
- * Met à jour une tâche complexe élève (admin)
- * @param {Object} data - {id, statut, date_correction, ...}
+ * Valide un entraînement de compétence (action enseignante)
+ * @param {Object} data - {id} ou {eleve_id, entrainement_id}
  */
-function updateEleveTacheComplexe(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('EleveTachesComplexes');
+function validateEleveEntrainementCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const idCol = headers.indexOf('id');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var entrainementIdCol = headers.indexOf('entrainement_id');
+  var statutCol = headers.indexOf('statut');
+  var dateCorrectionCol = headers.indexOf('date_correction');
 
-  // Ajouter date_correction si nécessaire
-  let dateCorrectionCol = headers.indexOf('date_correction');
-  if (dateCorrectionCol === -1 && data.date_correction) {
-    dateCorrectionCol = headers.length;
-    sheet.getRange(1, dateCorrectionCol + 1).setValue('date_correction');
-  }
+  for (var i = 1; i < allData.length; i++) {
+    var match = false;
 
-  for (let i = 1; i < allData.length; i++) {
-    if (String(allData[i][idCol]) === String(data.id)) {
-      // Mettre à jour les champs fournis
-      if (data.statut !== undefined) {
-        const statutCol = headers.indexOf('statut');
-        if (statutCol !== -1) {
-          sheet.getRange(i + 1, statutCol + 1).setValue(data.statut);
-        }
-      }
-      if (data.date_correction !== undefined && dateCorrectionCol !== -1) {
-        sheet.getRange(i + 1, dateCorrectionCol + 1).setValue(data.date_correction);
+    // Recherche par id
+    if (data.id) {
+      match = String(allData[i][idCol]) === String(data.id);
+    }
+    // Recherche par eleve_id + entrainement_id
+    else if (data.eleve_id && data.entrainement_id) {
+      match = String(allData[i][eleveIdCol]) === String(data.eleve_id) &&
+              String(allData[i][entrainementIdCol]) === String(data.entrainement_id);
+    }
+
+    if (match) {
+      var newStatut = data.statut || 'valide';
+      sheet.getRange(i + 1, statutCol + 1).setValue(newStatut);
+      if (dateCorrectionCol !== -1) {
+        sheet.getRange(i + 1, dateCorrectionCol + 1).setValue(new Date().toISOString());
       }
       return { success: true };
     }
@@ -705,14 +757,36 @@ function updateEleveTacheComplexe(data) {
 
   return { success: false, error: 'Enregistrement non trouvé' };
 }
+
+// ========================================
+// ALIASES — Rétro-compatibilité
+// Les anciens noms d'actions continuent de fonctionner
+// pendant la transition vers la nouvelle terminologie.
+// ========================================
+
+function getTachesComplexes(data)          { return getEntrainementsCompetences(data); }
+function getTacheComplexe(data)            { return getEntrainementCompetence(data); }
+function createTacheComplexe(data)         { return createEntrainementCompetence(data); }
+function updateTacheComplexe(data)         { return updateEntrainementCompetence(data); }
+function deleteTacheComplexe(data)         { return deleteEntrainementCompetence(data); }
+function getEleveTacheComplexe(data)       { return getEleveEntrainementCompetence(data); }
+function getEleveTachesComplexes(data)     { return getEleveEntrainementsCompetences(data); }
+function startEleveTacheComplexe(data)     { return startEleveEntrainementCompetence(data); }
+function finishEleveTacheComplexe(data)    { return finishEleveEntrainementCompetence(data); }
+function submitEleveTacheComplexe(data)    { return finishEleveEntrainementCompetence(data); }
+function updateEleveTacheComplexe(data)    { return validateEleveEntrainementCompetence(data); }
+
+// ========================================
+// TRACKING (inchangé)
+// ========================================
 
 /**
  * Enregistre une connexion/visite d'élève
  * @param {Object} data - {eleve_id, page, action}
  */
 function trackEleveConnexion(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName('EleveConnexions');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EleveConnexions');
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
@@ -720,7 +794,7 @@ function trackEleveConnexion(data) {
     sheet.appendRow(['id', 'eleve_id', 'page', 'action', 'timestamp', 'user_agent']);
   }
 
-  const id = 'conn_' + new Date().getTime();
+  var id = 'conn_' + new Date().getTime();
   sheet.appendRow([
     id,
     data.eleve_id,
@@ -740,21 +814,21 @@ function trackEleveConnexion(data) {
  * Met à jour la dernière connexion d'un utilisateur
  */
 function updateUserLastConnexion(userId) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('Utilisateurs');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Utilisateurs');
   if (!sheet) return;
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
-  const idCol = headers.indexOf('id');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
 
-  let lastConnexionCol = headers.indexOf('derniere_connexion');
+  var lastConnexionCol = headers.indexOf('derniere_connexion');
   if (lastConnexionCol === -1) {
     lastConnexionCol = headers.length;
     sheet.getRange(1, lastConnexionCol + 1).setValue('derniere_connexion');
   }
 
-  for (let i = 1; i < allData.length; i++) {
+  for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(userId)) {
       sheet.getRange(i + 1, lastConnexionCol + 1).setValue(new Date().toISOString());
       break;
@@ -767,27 +841,27 @@ function updateUserLastConnexion(userId) {
  * @param {Object} data - {eleve_id} ou {} pour toutes
  */
 function getEleveConnexions(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName('EleveConnexions');
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EleveConnexions');
 
   if (!sheet) {
     return { success: true, data: [] };
   }
 
-  const allData = sheet.getDataRange().getValues();
+  var allData = sheet.getDataRange().getValues();
   if (allData.length <= 1) {
     return { success: true, data: [] };
   }
 
-  const headers = allData[0];
-  const records = [];
+  var headers = allData[0];
+  var records = [];
 
-  for (let i = 1; i < allData.length; i++) {
-    const row = allData[i];
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
     if (!row[0]) continue;
 
-    const record = {};
-    headers.forEach((header, index) => {
+    var record = {};
+    headers.forEach(function(header, index) {
       record[header] = row[index];
     });
 
@@ -808,28 +882,28 @@ function getEleveConnexions(data) {
  * @param {Object} data - {eleve_id}
  */
 function getEleveStats(data) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // Stats de connexions
-  const connexionsSheet = ss.getSheetByName('EleveConnexions');
-  let totalConnexions = 0;
-  let pagesVisitees = {};
-  let derniereConnexion = null;
+  var connexionsSheet = ss.getSheetByName('EleveConnexions');
+  var totalConnexions = 0;
+  var pagesVisitees = {};
+  var derniereConnexion = null;
 
   if (connexionsSheet) {
-    const connData = connexionsSheet.getDataRange().getValues();
-    const connHeaders = connData[0];
-    const eleveIdCol = connHeaders.indexOf('eleve_id');
-    const pageCol = connHeaders.indexOf('page');
-    const timestampCol = connHeaders.indexOf('timestamp');
+    var connData = connexionsSheet.getDataRange().getValues();
+    var connHeaders = connData[0];
+    var eleveIdCol = connHeaders.indexOf('eleve_id');
+    var pageCol = connHeaders.indexOf('page');
+    var timestampCol = connHeaders.indexOf('timestamp');
 
-    for (let i = 1; i < connData.length; i++) {
+    for (var i = 1; i < connData.length; i++) {
       if (String(connData[i][eleveIdCol]) === String(data.eleve_id)) {
         totalConnexions++;
-        const page = connData[i][pageCol];
+        var page = connData[i][pageCol];
         pagesVisitees[page] = (pagesVisitees[page] || 0) + 1;
 
-        const timestamp = connData[i][timestampCol];
+        var timestamp = connData[i][timestampCol];
         if (!derniereConnexion || new Date(timestamp) > new Date(derniereConnexion)) {
           derniereConnexion = timestamp;
         }
@@ -837,22 +911,22 @@ function getEleveStats(data) {
     }
   }
 
-  // Stats de tâches complexes
-  const tachesSheet = ss.getSheetByName('EleveTachesComplexes');
-  let tachesStats = { total: 0, en_cours: 0, termine: 0, soumis: 0 };
+  // Stats des entraînements de compétences
+  var entrSheet = ss.getSheetByName('EleveEntrainementsCompetences');
+  var entrStats = { total: 0, en_cours: 0, entraine: 0, soumis: 0, valide: 0 };
 
-  if (tachesSheet) {
-    const tachesData = tachesSheet.getDataRange().getValues();
-    const tachesHeaders = tachesData[0];
-    const eleveIdCol = tachesHeaders.indexOf('eleve_id');
-    const statutCol = tachesHeaders.indexOf('statut');
+  if (entrSheet) {
+    var entrData = entrSheet.getDataRange().getValues();
+    var entrHeaders = entrData[0];
+    var entrEleveIdCol = entrHeaders.indexOf('eleve_id');
+    var entrStatutCol = entrHeaders.indexOf('statut');
 
-    for (let i = 1; i < tachesData.length; i++) {
-      if (String(tachesData[i][eleveIdCol]) === String(data.eleve_id)) {
-        tachesStats.total++;
-        const statut = tachesData[i][statutCol];
-        if (tachesStats[statut] !== undefined) {
-          tachesStats[statut]++;
+    for (var j = 1; j < entrData.length; j++) {
+      if (String(entrData[j][entrEleveIdCol]) === String(data.eleve_id)) {
+        entrStats.total++;
+        var statut = entrData[j][entrStatutCol];
+        if (entrStats[statut] !== undefined) {
+          entrStats[statut]++;
         }
       }
     }
@@ -866,8 +940,7 @@ function getEleveStats(data) {
         derniere: derniereConnexion,
         pages: pagesVisitees
       },
-      taches: tachesStats
+      entrainements_competences: entrStats
     }
   };
 }
-

@@ -23,7 +23,6 @@
     <header class="page-header">
         <div class="page-header-left">
             <h1><span class="header-icon">🎯</span> Référentiel des compétences</h1>
-            <p class="page-subtitle">Gérez les compétences évaluées dans les tâches complexes</p>
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" id="addCompetenceBtn">
@@ -36,6 +35,16 @@
         </div>
     </header>
 
+    <!-- Bandeau informatif -->
+    <div class="info-banner">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <p>Pour qu'une compétence soit acquise, l'élève doit valider <strong>tous les critères de réussite</strong> sur une production évaluée.</p>
+    </div>
+
     <!-- Loader -->
     <div class="loader-container" id="loader">
         <div class="loader"></div>
@@ -44,43 +53,15 @@
 
     <!-- Contenu principal -->
     <div id="competences-content" style="display: none;">
-
-        <!-- Stats -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon-wrapper purple">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
-                </div>
-                <div class="stat-value" id="totalCompetences">0</div>
-                <div class="stat-label">Compétences</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon-wrapper green">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                        <line x1="9" y1="9" x2="9.01" y2="9"/>
-                        <line x1="15" y1="9" x2="15.01" y2="9"/>
-                    </svg>
-                </div>
-                <div class="stat-value" id="totalActives">0</div>
-                <div class="stat-label">Actives</div>
-            </div>
+        <!-- Bandeau progression -->
+        <div class="progress-banner" id="progressBanner">
+            <!-- Rempli par JS -->
         </div>
 
         <!-- Liste des compétences -->
-        <div class="competences-list-section">
-            <div class="section-header">
-                <h2>Liste des compétences</h2>
-            </div>
-            <div class="competences-list" id="competencesList">
-                <!-- Généré dynamiquement -->
-            </div>
+        <div class="competences-list" id="competencesList">
+            <!-- Généré dynamiquement -->
         </div>
-
     </div>
 </div>
 
@@ -96,18 +77,24 @@
 
             <div class="form-group">
                 <label for="competenceNom">Nom de la compétence *</label>
-                <input type="text" id="competenceNom" placeholder="Ex: Rendre une copie lisible et soignée">
+                <input type="text" id="competenceNom" placeholder="Ex: Présenter un document">
             </div>
 
             <div class="form-group">
-                <label for="competenceDescription">Description générale (optionnel)</label>
-                <textarea id="competenceDescription" rows="2" placeholder="Description courte de la compétence..."></textarea>
+                <label for="competenceDescription">Description (optionnel)</label>
+                <textarea id="competenceDescription" rows="2" placeholder="Rédiger une présentation complète d'un document à destination d'un lecteur non-spécialiste."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="competenceConsigne">Consigne ouverte (optionnel)</label>
+                <textarea id="competenceConsigne" rows="2" placeholder="Ex: Présente ce document à quelqu'un qui ne le connaît pas."></textarea>
+                <p class="form-hint">La consigne affichée aux élèves dans chaque exercice de cette compétence.</p>
             </div>
 
             <!-- Section Critères de réussite -->
             <div class="form-group criteres-section">
                 <label>Critères de réussite</label>
-                <p class="form-hint">Ajoutez les critères qui permettront d'évaluer cette compétence</p>
+                <p class="form-hint">Critères binaires (oui/non), objectivement observables. Tous devront être validés pour que la compétence soit acquise.</p>
                 <div class="criteres-list" id="criteresList">
                     <!-- Généré dynamiquement -->
                 </div>
@@ -119,36 +106,10 @@
                     Ajouter un critère
                 </button>
             </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="competenceCategorie">Catégorie</label>
-                    <select id="competenceCategorie">
-                        <option value="">-- Aucune --</option>
-                        <option value="methodologie">Méthodologie</option>
-                        <option value="connaissances">Connaissances</option>
-                        <option value="analyse">Analyse</option>
-                        <option value="redaction">Rédaction</option>
-                        <option value="oral">Oral</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="competenceOrdre">Ordre</label>
-                    <input type="number" id="competenceOrdre" value="1" min="1">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="competenceStatut">Statut</label>
-                <select id="competenceStatut">
-                    <option value="actif">Actif</option>
-                    <option value="inactif">Inactif</option>
-                </select>
-            </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="AdminCompetences.closeModal()">Annuler</button>
-            <button class="btn btn-primary" onclick="AdminCompetences.saveCompetence()">Enregistrer</button>
+            <button class="btn btn-primary" id="modalSaveBtn" onclick="AdminCompetences.saveCompetence()">Créer la compétence</button>
         </div>
     </div>
 </div>

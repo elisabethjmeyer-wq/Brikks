@@ -1,0 +1,1517 @@
+/**
+ * Styles — Module Élève Compétences
+ * Thème : rouge (#ef4444 / #dc2626) cohérent avec le reste de la plateforme
+ */
+
+/* ============================================
+   LOADER & EMPTY STATE
+   ============================================ */
+
+.comp-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    gap: 1rem;
+    color: #6b7280;
+}
+
+.comp-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #ef4444;
+    border-radius: 50%;
+    animation: comp-spin 0.8s linear infinite;
+}
+
+@keyframes comp-spin {
+    to { transform: rotate(360deg); }
+}
+
+.comp-empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6b7280;
+}
+
+.comp-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.comp-empty-state h3 {
+    font-size: 1.25rem;
+    color: #374151;
+    margin: 0 0 0.5rem 0;
+}
+
+.comp-empty-state p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* ============================================
+   HEADER BANNER
+   ============================================ */
+
+.comp-header-banner {
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    color: white;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.comp-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.comp-header-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.comp-header-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+}
+
+.comp-header-stats {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.comp-stat {
+    text-align: center;
+}
+
+.comp-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+}
+
+.comp-stat-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.85);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ============================================
+   PROGRESSION BAR
+   ============================================ */
+
+.comp-progress-container {
+    margin-bottom: 1.5rem;
+}
+
+.comp-progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.comp-progress-label > span:first-child {
+    color: #6b7280;
+}
+
+.comp-progress-value {
+    font-weight: 600;
+    color: #374151;
+}
+
+.comp-progress-bar {
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.comp-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+/* ============================================
+   NIVEAU 1 — CARTES COMPÉTENCES
+   ============================================ */
+
+.comp-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.comp-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.comp-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border-color: #fca5a5;
+    transform: translateX(4px);
+}
+
+.comp-card-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.comp-card-status-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.comp-card-status-icon.not-started {
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+.comp-card-status-icon.in-progress {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.comp-card-status-icon.validated {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.comp-card-info {
+    min-width: 0;
+}
+
+.comp-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 0.125rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.comp-card-meta {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    display: flex;
+    gap: 0.375rem;
+}
+
+.comp-meta-sep {
+    color: #d1d5db;
+}
+
+.comp-card-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.comp-card-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.comp-card-badge.not-started {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.comp-card-badge.in-progress {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.comp-card-badge.validated {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.comp-card-chevron {
+    font-size: 1.5rem;
+    color: #d1d5db;
+    font-weight: 300;
+    line-height: 1;
+}
+
+/* ============================================
+   BOUTON RETOUR
+   ============================================ */
+
+.comp-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+    font-family: inherit;
+    transition: color 0.2s;
+}
+
+.comp-back-btn:hover {
+    color: #1f2937;
+}
+
+/* ============================================
+   NIVEAU 2 — DÉTAIL COMPÉTENCE
+   ============================================ */
+
+.comp-detail-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.5rem;
+}
+
+.comp-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.comp-detail-status {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.comp-detail-status.not-started {
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+.comp-detail-status.in-progress {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.comp-detail-status.validated {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.comp-detail-title-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.comp-detail-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.comp-detail-badge {
+    display: inline-block;
+    width: fit-content;
+    padding: 0.2rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.comp-detail-badge.not-started {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.comp-detail-badge.in-progress {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.comp-detail-badge.validated {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.comp-detail-description {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+.comp-detail-description p {
+    margin: 0;
+}
+
+.comp-detail-criteres {
+    background: #fef2f2;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.comp-detail-criteres h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #dc2626;
+    margin: 0 0 0.25rem 0;
+}
+
+.comp-detail-hint {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin: 0 0 0.75rem 0;
+}
+
+.comp-criteres-list {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.comp-criteres-list li {
+    font-size: 0.9rem;
+    color: #374151;
+    line-height: 1.4;
+}
+
+.comp-detail-consigne {
+    background: #fffbeb;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border-left: 3px solid #f59e0b;
+}
+
+.comp-detail-consigne h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #d97706;
+    margin: 0 0 0.5rem 0;
+}
+
+.comp-detail-consigne p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+/* Exercices list */
+.comp-detail-exercises {
+    margin-top: 1.5rem;
+}
+
+.comp-detail-exercises h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+}
+
+.comp-no-exercises {
+    color: #9ca3af;
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.comp-exercises-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.comp-exercise-item {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.875rem 1rem;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.comp-exercise-item:hover {
+    border-color: #fca5a5;
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.comp-exercise-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.comp-exercise-icon.not-started {
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+.comp-exercise-icon.in-progress {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.comp-exercise-icon.trained {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.comp-exercise-icon.submitted {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.comp-exercise-icon.validated {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.comp-exercise-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.comp-exercise-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1f2937;
+    margin-bottom: 0.125rem;
+}
+
+.comp-exercise-meta {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.comp-exercise-action {
+    flex-shrink: 0;
+}
+
+.comp-exercise-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.comp-exercise-badge.not-started {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.comp-exercise-badge.in-progress {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.comp-exercise-badge.trained {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.comp-exercise-badge.submitted {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.comp-exercise-badge.validated {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+/* ============================================
+   MODAL DE CHOIX
+   ============================================ */
+
+.comp-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 1rem;
+}
+
+.comp-modal {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow: auto;
+}
+
+.comp-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.comp-modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.comp-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0;
+    line-height: 1;
+}
+
+.comp-modal-close:hover {
+    color: #1f2937;
+}
+
+.comp-modal-body {
+    padding: 1.5rem;
+}
+
+.comp-choice-info {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.comp-choice-info h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.125rem;
+    color: #1f2937;
+}
+
+.comp-choice-info p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.comp-choice-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.comp-choice-option {
+    display: flex;
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.comp-choice-option:hover {
+    border-color: #ef4444;
+    background: #fef2f2;
+}
+
+.comp-choice-icon {
+    font-size: 2rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.comp-choice-content h4 {
+    margin: 0 0 0.375rem 0;
+    font-size: 1rem;
+    color: #1f2937;
+}
+
+.comp-choice-content p {
+    margin: 0 0 0.25rem 0;
+    color: #6b7280;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.comp-choice-note {
+    font-style: italic;
+    color: #9ca3af !important;
+    font-size: 0.8rem !important;
+}
+
+.comp-choice-note.important {
+    color: #16a34a !important;
+    font-style: normal;
+    font-weight: 500;
+}
+
+/* ============================================
+   BOUTONS
+   ============================================ */
+
+.comp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.comp-btn-primary {
+    background: #ef4444;
+    color: white;
+}
+
+.comp-btn-primary:hover {
+    background: #dc2626;
+}
+
+.comp-btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.comp-btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.comp-btn-finish {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: #ef4444;
+    color: white;
+    font-size: 0.95rem;
+}
+
+.comp-btn-finish:hover {
+    background: #dc2626;
+}
+
+/* ============================================
+   NIVEAU 3 — VUE EXERCICE
+   ============================================ */
+
+.comp-exercise-view {
+    display: flex;
+    flex-direction: column;
+}
+
+.comp-exercise-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: white;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.comp-exercise-topbar-info h1 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.25rem 0;
+}
+
+.comp-exercise-topbar-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.comp-mode-badge {
+    display: inline-block;
+    padding: 0.2rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.comp-mode-badge.entrainement {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.comp-mode-badge.evalue {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.comp-competence-tag {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+/* Timer */
+.comp-exercise-timer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #f3f4f6;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #374151;
+    flex-shrink: 0;
+    transition: all 0.3s;
+}
+
+.comp-timer-icon {
+    font-size: 1rem;
+}
+
+.comp-exercise-timer.warning {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.comp-exercise-timer.danger {
+    background: #fef2f2;
+    color: #dc2626;
+    animation: comp-timer-pulse 1s infinite;
+}
+
+.comp-exercise-timer.overtime {
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+@keyframes comp-timer-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Consigne */
+.comp-consigne-box {
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    border-radius: 0 12px 12px 0;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.comp-consigne-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #d97706;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.375rem;
+}
+
+.comp-consigne-text {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+/* Layout deux colonnes */
+.comp-exercise-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1rem;
+    min-height: 500px;
+}
+
+/* Document section */
+.comp-document-section {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+.comp-document-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+}
+
+.comp-document-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.comp-document-legende {
+    font-size: 0.8rem;
+    color: #6b7280;
+    font-style: italic;
+    flex: 1;
+}
+
+.comp-document-actions {
+    display: flex;
+    gap: 0.375rem;
+    margin-left: auto;
+}
+
+.comp-doc-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: none;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.comp-doc-btn:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.comp-document-frame-wrapper {
+    flex: 1;
+    min-height: 400px;
+    position: relative;
+}
+
+.comp-document-frame-wrapper.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9998;
+    background: white;
+    min-height: 100vh;
+    border-radius: 0;
+}
+
+.comp-document-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.comp-no-document {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 300px;
+    color: #9ca3af;
+    font-size: 0.9rem;
+}
+
+body.comp-fullscreen-active {
+    overflow: hidden;
+}
+
+/* Sidebar */
+.comp-sidebar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+}
+
+.comp-sidebar-criteres {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #fecaca;
+}
+
+.comp-sidebar-criteres h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #dc2626;
+    margin: 0 0 0.75rem 0;
+}
+
+.comp-sidebar-criteres-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.comp-sidebar-criteres-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    font-size: 0.85rem;
+    color: #374151;
+    line-height: 1.4;
+}
+
+.comp-critere-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fef2f2;
+    color: #dc2626;
+    font-size: 0.7rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+}
+
+.comp-critere-text {
+    flex: 1;
+}
+
+.comp-sidebar-actions {
+    padding-top: 0.5rem;
+}
+
+/* ============================================
+   MESSAGE VIEWS (soumis, validé)
+   ============================================ */
+
+.comp-message-view {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.comp-message-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.comp-message-icon.submitted {
+    color: #7c3aed;
+}
+
+.comp-message-icon.validated {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #dcfce7;
+    color: #16a34a;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.comp-message-view h2 {
+    font-size: 1.5rem;
+    color: #1f2937;
+    margin: 0 0 0.75rem 0;
+}
+
+.comp-message-text {
+    color: #6b7280;
+    font-size: 0.95rem;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.5;
+}
+
+.comp-message-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+/* ============================================
+   RÉSULTATS
+   ============================================ */
+
+.comp-result-view {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.comp-result-header {
+    text-align: center;
+    padding: 2rem 1.5rem;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+}
+
+.comp-result-header.training {
+    background: linear-gradient(135deg, #dbeafe, #eff6ff);
+}
+
+.comp-result-header.evaluation {
+    background: linear-gradient(135deg, #f3e8ff, #faf5ff);
+}
+
+.comp-result-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.comp-result-header h2 {
+    font-size: 1.5rem;
+    color: #1f2937;
+    margin: 0 0 0.375rem 0;
+}
+
+.comp-result-subtitle {
+    color: #6b7280;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.comp-result-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+}
+
+.comp-result-message {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.comp-result-info-box {
+    margin-bottom: 1.5rem;
+}
+
+.comp-result-info-box h3 {
+    font-size: 1.1rem;
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+}
+
+.comp-submit-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.comp-submit-option {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 10px;
+    align-items: flex-start;
+}
+
+.comp-submit-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.comp-submit-option strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: #1f2937;
+    font-size: 0.9rem;
+}
+
+.comp-submit-option p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.85rem;
+}
+
+.comp-result-note {
+    color: #16a34a;
+    font-size: 0.9rem;
+    margin: 0;
+    padding: 0.75rem;
+    background: #f0fdf4;
+    border-radius: 8px;
+    text-align: center;
+}
+
+/* ============================================
+   CORRIGÉ COMMENTÉ
+   ============================================ */
+
+.comp-corrige-section {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.5rem;
+}
+
+.comp-corrige-section h3 {
+    font-size: 1.15rem;
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+}
+
+.comp-corrige-empty {
+    text-align: center;
+    color: #9ca3af;
+}
+
+.comp-corrige-empty p {
+    margin: 0;
+}
+
+.comp-corrige-view {
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.comp-corrige-header {
+    margin-bottom: 1.5rem;
+}
+
+.comp-corrige-header h2 {
+    font-size: 1.5rem;
+    color: #1f2937;
+    margin: 0 0 0.25rem 0;
+}
+
+.comp-corrige-subtitle {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.comp-corrige-proposition {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.comp-corrige-proposition h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 0.75rem 0;
+}
+
+.comp-corrige-text {
+    font-size: 0.9rem;
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.comp-corrige-verifications {
+    margin-bottom: 1.25rem;
+}
+
+.comp-corrige-verifications h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 0.75rem 0;
+}
+
+.comp-verif-item {
+    padding: 0.875rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+}
+
+.comp-verif-item.valid {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.comp-verif-item.invalid {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+.comp-verif-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.comp-verif-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.comp-verif-item.valid .comp-verif-icon {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.comp-verif-item.invalid .comp-verif-icon {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.comp-verif-critere {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.comp-verif-explication {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-left: calc(24px + 0.5rem);
+    line-height: 1.4;
+}
+
+/* ============================================
+   AUTO-ÉVALUATION
+   ============================================ */
+
+.comp-autoeval-section {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    margin-bottom: 1.5rem;
+}
+
+.comp-autoeval-section h3 {
+    font-size: 1.15rem;
+    color: #1f2937;
+    margin: 0 0 0.375rem 0;
+}
+
+.comp-autoeval-hint {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin: 0 0 1rem 0;
+}
+
+.comp-autoeval-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.comp-autoeval-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.comp-autoeval-item:hover {
+    background: #fafafa;
+    border-color: #d1d5db;
+}
+
+.comp-autoeval-item:has(.comp-autoeval-checkbox:checked) {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.comp-autoeval-checkbox {
+    display: none;
+}
+
+.comp-autoeval-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid #d1d5db;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    margin-top: 0.05rem;
+}
+
+.comp-autoeval-checkbox:checked + .comp-autoeval-check {
+    background: #16a34a;
+    border-color: #16a34a;
+}
+
+.comp-autoeval-checkbox:checked + .comp-autoeval-check::after {
+    content: '✓';
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.comp-autoeval-text {
+    font-size: 0.875rem;
+    color: #374151;
+    line-height: 1.4;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .comp-header-banner {
+        padding: 1rem;
+    }
+
+    .comp-header-title {
+        font-size: 1.1rem;
+    }
+
+    .comp-exercise-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .comp-sidebar-section {
+        position: static;
+    }
+
+    .comp-exercise-topbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .comp-exercise-timer {
+        align-self: flex-end;
+    }
+
+    .comp-document-frame-wrapper {
+        min-height: 300px;
+    }
+
+    .comp-detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .comp-card-title {
+        white-space: normal;
+    }
+
+    .comp-result-actions {
+        flex-direction: column;
+    }
+
+    .comp-result-actions .comp-btn {
+        width: 100%;
+    }
+
+    .comp-message-actions {
+        flex-direction: column;
+    }
+
+    .comp-message-actions .comp-btn {
+        width: 100%;
+    }
+}

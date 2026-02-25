@@ -1,20 +1,23 @@
 /**
- * Admin Competences - Gestion du référentiel des compétences
+ * Admin Competences - Référentiel des compétences
+ * Gère les compétences et leurs critères de réussite.
+ * Les entraînements (exercices) sont gérés dans Banques d'exercices > Compétences.
  */
 
 const AdminCompetences = {
     // Data
     competences: [],
-    criteresAll: [], // All criteria from all competences
-    criteresTemp: [], // Temporary criteria for current editing
-    critereCounter: 0, // Counter for unique IDs
+    criteresAll: [],
+    criteresTemp: [],
+    critereCounter: 0,
+    expandedCards: new Set(),
 
     // ========== INITIALIZATION ==========
     async init() {
         try {
             await this.loadData();
             this.setupEventListeners();
-            this.updateStats();
+            this.renderProgressBanner();
             this.renderList();
             this.showContent();
         } catch (error) {
@@ -25,29 +28,31 @@ const AdminCompetences = {
 
     // ========== DATA LOADING ==========
     async loadData() {
-        // Load competences
-        const compResult = await this.callAPI('getCompetencesReferentiel', {});
+        const [compResult, critResult] = await Promise.all([
+            this.callAPI('getCompetencesReferentiel', {}),
+            this.callAPI('getCriteresReussite', {})
+        ]);
+
         if (compResult.success) {
             this.competences = compResult.data || [];
-            this.competences.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+            this.competences.sort(function(a, b) { return (a.ordre || 0) - (b.ordre || 0); });
         }
 
-        // Load all criteria
-        const critResult = await this.callAPI('getCriteresReussite', {});
         if (critResult.success) {
             this.criteresAll = critResult.data || [];
         }
     },
 
     getCriteresForCompetence(competenceId) {
-        return this.criteresAll.filter(c => c.competence_id === competenceId)
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        return this.criteresAll
+            .filter(function(c) { return c.competence_id === competenceId; })
+            .sort(function(a, b) { return (a.ordre || 0) - (b.ordre || 0); });
     },
 
     callAPI(action, params) {
-        return new Promise((resolve, reject) => {
-            const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            const script = document.createElement('script');
+        return new Promise(function(resolve, reject) {
+            var callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            var script = document.createElement('script');
 
             window[callbackName] = function(response) {
                 delete window[callbackName];
@@ -55,14 +60,9 @@ const AdminCompetences = {
                 resolve(response);
             };
 
-            const queryParams = new URLSearchParams({
-                action: action,
-                callback: callbackName,
-                ...params
-            });
-
-            script.src = `${CONFIG.WEBAPP_URL}?${queryParams.toString()}`;
-            script.onerror = () => {
+            var queryParams = new URLSearchParams(Object.assign({ action: action, callback: callbackName }, params));
+            script.src = CONFIG.WEBAPP_URL + '?' + queryParams.toString();
+            script.onerror = function() {
                 delete window[callbackName];
                 if (script.parentNode) script.parentNode.removeChild(script);
                 reject(new Error('API call failed'));
@@ -74,8 +74,8 @@ const AdminCompetences = {
 
     // ========== EVENT LISTENERS ==========
     setupEventListeners() {
-        document.getElementById('addCompetenceBtn').addEventListener('click', () => {
-            this.openModal();
+        document.getElementById('addCompetenceBtn').addEventListener('click', function() {
+            AdminCompetences.openModal();
         });
     },
 
@@ -86,104 +86,184 @@ const AdminCompetences = {
     },
 
     showError(message) {
-        document.getElementById('loader').innerHTML = `
-            <div style="text-align: center; color: #ef4444;">
-                <p>${message}</p>
-                <button class="btn btn-primary" onclick="location.reload()">Réessayer</button>
-            </div>
-        `;
+        document.getElementById('loader').innerHTML =
+            '<div style="text-align: center; color: #ef4444;">' +
+                '<p>' + this.escapeHtml(message) + '</p>' +
+                '<button class="btn btn-primary" onclick="location.reload()">Réessayer</button>' +
+            '</div>';
     },
 
-    updateStats() {
-        const total = this.competences.length;
-        const actives = this.competences.filter(c => c.statut === 'actif').length;
+    renderProgressBanner() {
+        var total = this.competences.length;
+        var visibles = this.competences.filter(function(c) {
+            return String(c.visible) === 'true' || c.visible === true;
+        }).length;
 
-        document.getElementById('totalCompetences').textContent = total;
-        document.getElementById('totalActives').textContent = actives;
+        var container = document.getElementById('progressBanner');
+        container.innerHTML =
+            '<span class="progress-text">' + total + ' compétence' + (total > 1 ? 's' : '') + ' au référentiel</span>' +
+            '<span class="progress-sep">·</span>' +
+            '<span class="progress-visible">' + visibles + ' visible' + (visibles > 1 ? 's' : '') + ' côté élève</span>';
     },
 
     // ========== RENDER LIST ==========
     renderList() {
-        const container = document.getElementById('competencesList');
+        var container = document.getElementById('competencesList');
+        var self = this;
 
         if (this.competences.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🎯</div>
-                    <p>Aucune compétence définie</p>
-                    <p style="margin-top: 0.5rem; font-size: 0.875rem;">Commencez par ajouter une compétence au référentiel</p>
-                </div>
-            `;
+            container.innerHTML =
+                '<div class="empty-state">' +
+                    '<div class="empty-state-icon">🎯</div>' +
+                    '<p>Aucune compétence définie</p>' +
+                    '<p class="empty-state-sub">Commencez par ajouter une compétence au référentiel</p>' +
+                '</div>';
             return;
         }
 
-        container.innerHTML = this.competences.map(comp => {
-            const criteres = this.getCriteresForCompetence(comp.id);
-            const criteresCount = criteres.length;
+        container.innerHTML = this.competences.map(function(comp) {
+            var criteres = self.getCriteresForCompetence(comp.id);
+            var criteresCount = criteres.length;
+            var isVisible = String(comp.visible) === 'true' || comp.visible === true;
+            var isExpanded = self.expandedCards.has(comp.id);
 
-            return `
-                <div class="competence-item" data-id="${comp.id}">
-                    <div class="competence-icon">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                    </div>
-                    <div class="competence-info">
-                        <div class="competence-nom">${this.escapeHtml(comp.nom)}</div>
-                        <div class="competence-meta">
-                            ${comp.categorie ? `<span class="competence-categorie">${this.escapeHtml(comp.categorie)}</span>` : ''}
-                            <span class="competence-statut ${comp.statut}">${comp.statut === 'actif' ? 'Actif' : 'Inactif'}</span>
-                            ${criteresCount > 0 ? `<span class="criteres-badge">${criteresCount} critère${criteresCount > 1 ? 's' : ''}</span>` : ''}
-                        </div>
-                        ${criteresCount > 0 ? `
-                            <div class="competence-criteres-preview">
-                                ${criteres.slice(0, 3).map(c => `<span class="critere-preview">• ${this.escapeHtml(c.libelle)}</span>`).join('')}
-                                ${criteresCount > 3 ? `<span class="critere-more">+${criteresCount - 3} autres</span>` : ''}
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div class="competence-actions">
-                        <button class="btn-edit" onclick="AdminCompetences.editCompetence('${comp.id}')" title="Modifier">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                            </svg>
-                        </button>
-                        <button class="btn-delete" onclick="AdminCompetences.deleteCompetence('${comp.id}')" title="Supprimer">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            `;
+            var cardHtml =
+                '<div class="comp-card' + (isExpanded ? ' expanded' : '') + (!isVisible ? ' masked' : '') + '" data-id="' + comp.id + '">' +
+                    // Header (clickable pour déplier)
+                    '<div class="comp-card-header" onclick="AdminCompetences.toggleExpand(\'' + comp.id + '\')">' +
+                        '<div class="comp-card-icon">' +
+                            '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>' +
+                                '<polyline points="22 4 12 14.01 9 11.01"/>' +
+                            '</svg>' +
+                        '</div>' +
+                        '<div class="comp-card-content">' +
+                            '<div class="comp-card-top">' +
+                                '<span class="comp-card-nom">' + self.escapeHtml(comp.nom) + '</span>' +
+                                (!isVisible ? '<span class="comp-badge badge-masque">Masqué</span>' : '') +
+                                (criteresCount > 0 ? '<span class="comp-badge badge-criteres">' + criteresCount + ' critère' + (criteresCount > 1 ? 's' : '') + '</span>' : '') +
+                            '</div>' +
+                            (comp.description ? '<p class="comp-card-desc">' + self.escapeHtml(comp.description) + '</p>' : '') +
+                        '</div>' +
+                        '<div class="comp-card-actions" onclick="event.stopPropagation()">' +
+                            // Toggle visible
+                            '<label class="toggle-switch" title="' + (isVisible ? 'Visible côté élève' : 'Masqué côté élève') + '">' +
+                                '<input type="checkbox" ' + (isVisible ? 'checked' : '') + ' onchange="AdminCompetences.toggleVisibility(\'' + comp.id + '\', this.checked)">' +
+                                '<span class="toggle-slider"></span>' +
+                            '</label>' +
+                            '<span class="toggle-label">' + (isVisible ? 'Visible' : 'Masqué') + '</span>' +
+                            // Edit
+                            '<button class="btn-icon btn-edit" onclick="AdminCompetences.editCompetence(\'' + comp.id + '\')" title="Modifier">' +
+                                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                    '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
+                                    '<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>' +
+                                '</svg>' +
+                            '</button>' +
+                            // Delete
+                            '<button class="btn-icon btn-delete" onclick="AdminCompetences.deleteCompetence(\'' + comp.id + '\')" title="Supprimer">' +
+                                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                    '<polyline points="3 6 5 6 21 6"/>' +
+                                    '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>' +
+                                '</svg>' +
+                            '</button>' +
+                        '</div>' +
+                        // Chevron
+                        '<div class="comp-card-chevron">' +
+                            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                                '<polyline points="6 9 12 15 18 9"/>' +
+                            '</svg>' +
+                        '</div>' +
+                    '</div>';
+
+            // Body (critères, visible seulement si déplié)
+            if (criteresCount > 0) {
+                cardHtml +=
+                    '<div class="comp-card-body" style="' + (isExpanded ? '' : 'display:none') + '">' +
+                        '<div class="comp-criteres-header">' +
+                            '<h4>Critères de réussite</h4>' +
+                            '<span class="comp-criteres-rule">Tous doivent être validés</span>' +
+                        '</div>' +
+                        '<ol class="comp-criteres-list">' +
+                            criteres.map(function(c) {
+                                return '<li>' + self.escapeHtml(c.libelle) + '</li>';
+                            }).join('') +
+                        '</ol>' +
+                    '</div>';
+            } else {
+                cardHtml +=
+                    '<div class="comp-card-body" style="' + (isExpanded ? '' : 'display:none') + '">' +
+                        '<p class="comp-no-criteres">Aucun critère défini — ajoutez-en via le bouton modifier.</p>' +
+                    '</div>';
+            }
+
+            cardHtml += '</div>';
+            return cardHtml;
         }).join('');
     },
 
-    // ========== MODAL ==========
-    openModal(competence = null) {
-        const modal = document.getElementById('competenceModal');
-        const title = document.getElementById('modalTitle');
+    // ========== CARD INTERACTIONS ==========
+    toggleExpand(id) {
+        if (this.expandedCards.has(id)) {
+            this.expandedCards.delete(id);
+        } else {
+            this.expandedCards.add(id);
+        }
 
-        // Reset criteria
+        var card = document.querySelector('.comp-card[data-id="' + id + '"]');
+        if (!card) return;
+
+        var body = card.querySelector('.comp-card-body');
+        var isExpanded = this.expandedCards.has(id);
+
+        card.classList.toggle('expanded', isExpanded);
+        if (body) body.style.display = isExpanded ? '' : 'none';
+    },
+
+    async toggleVisibility(id, visible) {
+        try {
+            var result = await this.callAPI('updateCompetenceReferentiel', {
+                id: id,
+                visible: visible
+            });
+
+            if (result.success) {
+                // Mettre à jour localement
+                var comp = this.competences.find(function(c) { return c.id === id; });
+                if (comp) comp.visible = visible;
+                this.renderProgressBanner();
+                this.renderList();
+            } else {
+                alert('Erreur : ' + (result.error || 'Erreur inconnue'));
+                this.renderList(); // Re-render pour annuler visuellement
+            }
+        } catch (error) {
+            console.error('Erreur toggle visibilité:', error);
+            this.renderList();
+        }
+    },
+
+    // ========== MODAL ==========
+    openModal(competence) {
+        var modal = document.getElementById('competenceModal');
+        var title = document.getElementById('modalTitle');
+        var saveBtn = document.getElementById('modalSaveBtn');
+
         this.criteresTemp = [];
         this.critereCounter = 0;
 
         if (competence) {
             title.textContent = 'Modifier la compétence';
+            saveBtn.textContent = 'Enregistrer';
             document.getElementById('editCompetenceId').value = competence.id;
             document.getElementById('competenceNom').value = competence.nom || '';
             document.getElementById('competenceDescription').value = competence.description || '';
-            document.getElementById('competenceCategorie').value = competence.categorie || '';
-            document.getElementById('competenceOrdre').value = competence.ordre || 1;
-            document.getElementById('competenceStatut').value = competence.statut || 'actif';
+            document.getElementById('competenceConsigne').value = competence.consigne || '';
 
-            // Load existing criteria
-            const existingCriteres = this.getCriteresForCompetence(competence.id);
-            existingCriteres.forEach(c => {
-                this.criteresTemp.push({
+            // Charger les critères existants
+            var existingCriteres = this.getCriteresForCompetence(competence.id);
+            var self = this;
+            existingCriteres.forEach(function(c) {
+                self.criteresTemp.push({
                     id: c.id,
                     libelle: c.libelle,
                     ordre: c.ordre,
@@ -192,12 +272,11 @@ const AdminCompetences = {
             });
         } else {
             title.textContent = 'Ajouter une compétence';
+            saveBtn.textContent = 'Créer la compétence';
             document.getElementById('editCompetenceId').value = '';
             document.getElementById('competenceNom').value = '';
             document.getElementById('competenceDescription').value = '';
-            document.getElementById('competenceCategorie').value = '';
-            document.getElementById('competenceOrdre').value = this.competences.length + 1;
-            document.getElementById('competenceStatut').value = 'actif';
+            document.getElementById('competenceConsigne').value = '';
         }
 
         this.renderCriteresList();
@@ -209,7 +288,7 @@ const AdminCompetences = {
     },
 
     editCompetence(id) {
-        const competence = this.competences.find(c => c.id === id);
+        var competence = this.competences.find(function(c) { return c.id === id; });
         if (competence) {
             this.openModal(competence);
         }
@@ -217,48 +296,45 @@ const AdminCompetences = {
 
     // ========== CRITERES MANAGEMENT ==========
     renderCriteresList() {
-        const container = document.getElementById('criteresList');
+        var container = document.getElementById('criteresList');
+        var self = this;
 
         if (this.criteresTemp.length === 0) {
-            container.innerHTML = `
-                <div class="criteres-empty">
-                    <p>Aucun critère défini</p>
-                </div>
-            `;
+            container.innerHTML =
+                '<div class="criteres-empty">' +
+                    '<p>Aucun critère défini</p>' +
+                '</div>';
             return;
         }
 
-        container.innerHTML = this.criteresTemp.map((critere, index) => `
-            <div class="critere-field" data-index="${index}">
-                <span class="critere-order">${index + 1}</span>
-                <input type="text"
-                       class="critere-input"
-                       value="${this.escapeHtml(critere.libelle)}"
-                       placeholder="Ex: La calligraphie est lisible"
-                       onchange="AdminCompetences.updateCritereText(${index}, this.value)">
-                <button type="button" class="btn-remove-critere" onclick="AdminCompetences.removeCritere(${index})" title="Supprimer">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-        `).join('');
+        container.innerHTML = this.criteresTemp.map(function(critere, index) {
+            return '<div class="critere-field" data-index="' + index + '">' +
+                '<span class="critere-order">' + (index + 1) + '</span>' +
+                '<input type="text" class="critere-input" value="' + self.escapeHtml(critere.libelle) + '"' +
+                ' placeholder="Ex: Le texte est rédigé en phrases complètes"' +
+                ' onchange="AdminCompetences.updateCritereText(' + index + ', this.value)">' +
+                '<button type="button" class="btn-remove-critere" onclick="AdminCompetences.removeCritere(' + index + ')" title="Supprimer">' +
+                    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+                        '<line x1="18" y1="6" x2="6" y2="18"/>' +
+                        '<line x1="6" y1="6" x2="18" y2="18"/>' +
+                    '</svg>' +
+                '</button>' +
+            '</div>';
+        }).join('');
     },
 
     addCritereField() {
         this.critereCounter++;
         this.criteresTemp.push({
-            id: null, // New criteria don't have an ID yet
+            id: null,
             libelle: '',
             ordre: this.criteresTemp.length + 1,
             isNew: true
         });
         this.renderCriteresList();
 
-        // Focus the new input
-        setTimeout(() => {
-            const inputs = document.querySelectorAll('.critere-input');
+        setTimeout(function() {
+            var inputs = document.querySelectorAll('.critere-input');
             if (inputs.length > 0) {
                 inputs[inputs.length - 1].focus();
             }
@@ -272,41 +348,36 @@ const AdminCompetences = {
     },
 
     removeCritere(index) {
-        const critere = this.criteresTemp[index];
-        if (critere && critere.isExisting) {
-            // Mark for deletion
-            critere.toDelete = true;
-        }
         this.criteresTemp.splice(index, 1);
-        // Update ordre
-        this.criteresTemp.forEach((c, i) => c.ordre = i + 1);
+        this.criteresTemp.forEach(function(c, i) { c.ordre = i + 1; });
         this.renderCriteresList();
     },
 
     // ========== SAVE ==========
     async saveCompetence() {
-        const id = document.getElementById('editCompetenceId').value;
-        const nom = document.getElementById('competenceNom').value.trim();
-        const description = document.getElementById('competenceDescription').value.trim();
-        const categorie = document.getElementById('competenceCategorie').value;
-        const ordre = parseInt(document.getElementById('competenceOrdre').value) || 1;
-        const statut = document.getElementById('competenceStatut').value;
+        var id = document.getElementById('editCompetenceId').value;
+        var nom = document.getElementById('competenceNom').value.trim();
+        var description = document.getElementById('competenceDescription').value.trim();
+        var consigne = document.getElementById('competenceConsigne').value.trim();
 
         if (!nom) {
             alert('Le nom de la compétence est requis');
             return;
         }
 
-        // Validate criteria
-        const validCriteres = this.criteresTemp.filter(c => c.libelle && c.libelle.trim());
+        var validCriteres = this.criteresTemp.filter(function(c) { return c.libelle && c.libelle.trim(); });
+        var data = { nom: nom, description: description, consigne: consigne };
 
-        const data = { nom, description, categorie, ordre, statut };
+        // Pour une nouvelle compétence, visible par défaut
+        if (!id) {
+            data.ordre = this.competences.length + 1;
+            data.visible = true;
+        }
 
         try {
-            let competenceId = id;
-            let result;
+            var competenceId = id;
+            var result;
 
-            // Save competence first
             if (id) {
                 data.id = id;
                 result = await this.callAPI('updateCompetenceReferentiel', data);
@@ -318,47 +389,45 @@ const AdminCompetences = {
             }
 
             if (!result.success) {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                alert('Erreur : ' + (result.error || 'Erreur inconnue'));
                 return;
             }
 
-            // Now handle criteria
-            // 1. Delete removed criteria (those with isExisting but not in current list)
+            // Gérer les critères
+            // 1. Supprimer ceux retirés de la liste
             if (id) {
-                const existingCriteres = this.getCriteresForCompetence(id);
-                for (const existing of existingCriteres) {
-                    const stillExists = this.criteresTemp.find(c => c.id === existing.id);
+                var existingCriteres = this.getCriteresForCompetence(id);
+                var self = this;
+                for (var j = 0; j < existingCriteres.length; j++) {
+                    var existing = existingCriteres[j];
+                    var stillExists = self.criteresTemp.find(function(c) { return c.id === existing.id; });
                     if (!stillExists) {
-                        await this.callAPI('deleteCritereReussite', { id: existing.id });
+                        await self.callAPI('deleteCritereReussite', { id: existing.id });
                     }
                 }
             }
 
-            // 2. Update or create criteria
-            for (let i = 0; i < validCriteres.length; i++) {
-                const critere = validCriteres[i];
-                const critereData = {
+            // 2. Créer ou mettre à jour les critères
+            for (var i = 0; i < validCriteres.length; i++) {
+                var critere = validCriteres[i];
+                var critereData = {
                     competence_id: competenceId,
                     libelle: critere.libelle.trim(),
                     ordre: i + 1
                 };
 
                 if (critere.id && critere.isExisting) {
-                    // Update existing
                     critereData.id = critere.id;
                     await this.callAPI('updateCritereReussite', critereData);
                 } else {
-                    // Create new
                     await this.callAPI('createCritereReussite', critereData);
                 }
             }
 
-            // Reload data and update UI
             await this.loadData();
-            this.updateStats();
+            this.renderProgressBanner();
             this.renderList();
             this.closeModal();
-
         } catch (error) {
             console.error('Erreur sauvegarde:', error);
             alert('Erreur lors de la sauvegarde');
@@ -367,12 +436,12 @@ const AdminCompetences = {
 
     // ========== DELETE ==========
     deleteCompetence(id) {
-        const competence = this.competences.find(c => c.id === id);
+        var competence = this.competences.find(function(c) { return c.id === id; });
         if (!competence) return;
 
         document.getElementById('deleteId').value = id;
         document.getElementById('deleteMessage').textContent =
-            `Êtes-vous sûr de vouloir supprimer la compétence "${competence.nom}" et tous ses critères ?`;
+            'Êtes-vous sûr de vouloir supprimer la compétence « ' + competence.nom + ' » et tous ses critères ?';
         document.getElementById('deleteModal').classList.remove('hidden');
     },
 
@@ -381,25 +450,25 @@ const AdminCompetences = {
     },
 
     async confirmDelete() {
-        const id = document.getElementById('deleteId').value;
+        var id = document.getElementById('deleteId').value;
 
         try {
-            // First delete all criteria for this competence
-            const criteres = this.getCriteresForCompetence(id);
-            for (const critere of criteres) {
-                await this.callAPI('deleteCritereReussite', { id: critere.id });
+            // Supprimer les critères d'abord
+            var criteres = this.getCriteresForCompetence(id);
+            for (var i = 0; i < criteres.length; i++) {
+                await this.callAPI('deleteCritereReussite', { id: criteres[i].id });
             }
 
-            // Then delete the competence
-            const result = await this.callAPI('deleteCompetenceReferentiel', { id });
+            var result = await this.callAPI('deleteCompetenceReferentiel', { id: id });
 
             if (result.success) {
+                this.expandedCards.delete(id);
                 await this.loadData();
-                this.updateStats();
+                this.renderProgressBanner();
                 this.renderList();
                 this.closeDeleteModal();
             } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                alert('Erreur : ' + (result.error || 'Erreur inconnue'));
             }
         } catch (error) {
             console.error('Erreur suppression:', error);
@@ -410,11 +479,10 @@ const AdminCompetences = {
     // ========== UTILITIES ==========
     escapeHtml(text) {
         if (!text) return '';
-        const div = document.createElement('div');
+        var div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 };
 
-// Make it globally accessible
 window.AdminCompetences = AdminCompetences;

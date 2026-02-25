@@ -24,8 +24,8 @@ const AdminSuivi = {
             const [utilisateurs, connexions, eleveTaches, tachesComplexes] = await Promise.all([
                 SheetsAPI.fetchAndParse(CONFIG.SHEETS.UTILISATEURS),
                 this.fetchSheetSafe('EleveConnexions'),
-                this.fetchSheetSafe('EleveTachesComplexes'),
-                this.fetchSheetSafe('TachesComplexes')
+                this.fetchSheetSafe('EleveEntrainementsCompetences'),
+                this.fetchSheetSafe('EntrainementsCompetences')
             ]);
 
             // Filtrer les élèves
