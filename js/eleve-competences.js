@@ -256,12 +256,11 @@ const EleveCompetences = {
         const cardsHTML = sorted.map(banque => {
             const comp = this.competences.find(c => String(c.id) === String(banque.competence_id));
             const compNom = comp ? comp.nom : (banque.titre || 'Sans titre');
-            const compId = banque.competence_id;
             const status = this.getBanqueStatus(banque.id);
-            const nbExo = this.getEntrainementsForBanque(banque.id).length;
-            const nbCrit = this.criteres.filter(cr =>
-                String(cr.competence_id) === String(compId)
-            ).length;
+            const banqueEntr = this.getEntrainementsForBanque(banque.id);
+
+            // Calcul de la progression par banque
+            const metaParts = this._getBanqueMetaParts(banqueEntr);
 
             return `
                 <div class="comp-card ${status.cssClass}" onclick="EleveCompetences.openBanque('${banque.id}')">
@@ -272,9 +271,7 @@ const EleveCompetences = {
                         <div class="comp-card-info">
                             <h3 class="comp-card-title">${this.escapeHtml(banque.titre || compNom)}</h3>
                             <div class="comp-card-meta">
-                                <span>${nbExo} exercice${nbExo > 1 ? 's' : ''}</span>
-                                <span class="comp-meta-sep">·</span>
-                                <span>${nbCrit} critère${nbCrit > 1 ? 's' : ''}</span>
+                                ${metaParts.join('<span class="comp-meta-sep">·</span>')}
                             </div>
                         </div>
                     </div>
@@ -316,6 +313,38 @@ const EleveCompetences = {
         `;
     },
 
+    /**
+     * Résumé de progression pour le sous-titre d'une carte banque
+     */
+    _getBanqueMetaParts(banqueEntrainements) {
+        const parts = [];
+        let nbEntraines = 0, nbSoumis = 0, nbValides = 0, nbEnCours = 0;
+
+        banqueEntrainements.forEach(entr => {
+            const prog = this.progressions.find(p =>
+                String(p.entrainement_id) === String(entr.id)
+            );
+            if (!prog) return;
+            if (prog.statut === 'entraine') nbEntraines++;
+            else if (prog.statut === 'soumis') nbSoumis++;
+            else if (prog.statut === 'valide') nbValides++;
+            else if (prog.statut === 'en_cours') nbEnCours++;
+        });
+
+        const total = banqueEntrainements.length;
+
+        if (nbValides > 0) parts.push(`<span>${nbValides} validé${nbValides > 1 ? 's' : ''}</span>`);
+        if (nbSoumis > 0) parts.push(`<span>${nbSoumis} en attente</span>`);
+        if (nbEntraines > 0) parts.push(`<span>${nbEntraines} entraîné${nbEntraines > 1 ? 's' : ''}</span>`);
+        if (nbEnCours > 0) parts.push(`<span>${nbEnCours} en cours</span>`);
+
+        if (parts.length === 0) {
+            parts.push(`<span>${total} exercice${total > 1 ? 's' : ''}</span>`);
+        }
+
+        return parts;
+    },
+
     // ==========================================
     // NIVEAU 2 — DÉTAIL D'UNE COMPÉTENCE
     // ==========================================
@@ -332,12 +361,6 @@ const EleveCompetences = {
 
         const container = document.getElementById('competences-content');
         const status = this.getBanqueStatus(banque.id);
-        const compId = banque.competence_id;
-
-        // Critères (de la compétence liée)
-        const criteresComp = this.criteres
-            .filter(cr => String(cr.competence_id) === String(compId))
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         // Exercices (de la banque)
         const banqueEntrainements = this.getEntrainementsForBanque(banque.id)
@@ -345,21 +368,9 @@ const EleveCompetences = {
 
         const compNom = comp ? comp.nom : (banque.titre || 'Sans titre');
         const compDesc = comp ? comp.description : '';
-        const compConsigne = comp ? comp.consigne : '';
-
-        // HTML critères
-        const criteresHTML = criteresComp.length > 0 ? `
-            <div class="comp-detail-criteres">
-                <h4>Critères de réussite</h4>
-                <p class="comp-detail-hint">Tous les critères doivent être validés pour que la compétence soit acquise.</p>
-                <ol class="comp-criteres-list">
-                    ${criteresComp.map(cr => `<li>${this.escapeHtml(cr.libelle)}</li>`).join('')}
-                </ol>
-            </div>
-        ` : '';
 
         // HTML exercices
-        const exercicesHTML = banqueEntrainements.map(entr => {
+        const exercicesHTML = banqueEntrainements.map((entr, index) => {
             const prog = this.progressions.find(p =>
                 String(p.entrainement_id) === String(entr.id)
             );
@@ -368,14 +379,11 @@ const EleveCompetences = {
 
             return `
                 <div class="comp-exercise-item ${exStatus.cssClass}" onclick="EleveCompetences.handleExerciseClick('${entr.id}')">
-                    <div class="comp-exercise-icon ${exStatus.cssClass}">
-                        ${exStatus.icon}
-                    </div>
+                    <div class="comp-exercise-num">${index + 1}</div>
                     <div class="comp-exercise-info">
                         <div class="comp-exercise-title">${this.escapeHtml(entr.titre)}</div>
                         <div class="comp-exercise-meta">
                             <span>⏱ ${dureeMin} min</span>
-                            ${entr.description ? `<span class="comp-meta-sep">·</span><span>${this.escapeHtml(entr.description)}</span>` : ''}
                         </div>
                     </div>
                     <div class="comp-exercise-action">
@@ -386,15 +394,14 @@ const EleveCompetences = {
         }).join('');
 
         container.innerHTML = `
-            <button class="comp-back-btn" onclick="EleveCompetences.backToList()">
-                ← Retour aux compétences
-            </button>
+            <nav class="comp-breadcrumb">
+                <span class="comp-breadcrumb-link" onclick="EleveCompetences.backToList()">Compétences</span>
+                <span class="comp-breadcrumb-sep">›</span>
+                <span class="comp-breadcrumb-current">${this.escapeHtml(banque.titre || compNom)}</span>
+            </nav>
 
             <div class="comp-detail-card">
                 <div class="comp-detail-header">
-                    <div class="comp-detail-status ${status.cssClass}">
-                        ${status.status === 'validee' ? '✓' : status.status === 'en_cours' ? '⋯' : '○'}
-                    </div>
                     <div class="comp-detail-title-section">
                         <h2 class="comp-detail-title">${this.escapeHtml(banque.titre || compNom)}</h2>
                         <span class="comp-detail-badge ${status.cssClass}">${status.label}</span>
@@ -407,14 +414,22 @@ const EleveCompetences = {
                     </div>
                 ` : ''}
 
-                ${criteresHTML}
-
-                ${compConsigne ? `
-                    <div class="comp-detail-consigne">
-                        <h4>Consigne</h4>
-                        <p>${this.escapeHtml(compConsigne)}</p>
+                <div class="comp-mode-cards">
+                    <div class="comp-mode-card entrainement">
+                        <div class="comp-mode-card-icon">📝</div>
+                        <div class="comp-mode-card-content">
+                            <h4>S'entraîner</h4>
+                            <p>Travaillez à votre rythme. Vous verrez le corrigé commenté à la fin.</p>
+                        </div>
                     </div>
-                ` : ''}
+                    <div class="comp-mode-card evalue">
+                        <div class="comp-mode-card-icon">🎯</div>
+                        <div class="comp-mode-card-content">
+                            <h4>Être évalué(e)</h4>
+                            <p>Soumettez votre production pour validation par le professeur.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="comp-detail-exercises">
@@ -478,48 +493,13 @@ const EleveCompetences = {
         if (!entr) return;
 
         this.currentEntrainement = entr;
-        const dureeMin = Math.round((entr.duree || 1800) / 60);
 
-        const modal = document.createElement('div');
-        modal.id = 'compChoiceModal';
-        modal.className = 'comp-modal-overlay';
-        modal.innerHTML = `
-            <div class="comp-modal">
-                <div class="comp-modal-header">
-                    <h2>Choisissez votre mode</h2>
-                    <button class="comp-modal-close" onclick="EleveCompetences.closeModal()">×</button>
-                </div>
-                <div class="comp-modal-body">
-                    <div class="comp-choice-info">
-                        <h3>${this.escapeHtml(entr.titre)}</h3>
-                        <p>Durée indicative : <strong>${dureeMin} minutes</strong></p>
-                    </div>
-
-                    <div class="comp-choice-options">
-                        <div class="comp-choice-option" onclick="EleveCompetences.startEntrainement('entrainement')">
-                            <div class="comp-choice-icon">📝</div>
-                            <div class="comp-choice-content">
-                                <h4>S'entraîner</h4>
-                                <p>Travaillez à votre rythme. Vous verrez le corrigé commenté à la fin.</p>
-                                <p class="comp-choice-note">Pas de validation de compétence.</p>
-                            </div>
-                        </div>
-
-                        <div class="comp-choice-option" onclick="EleveCompetences.startEntrainement('evalue')">
-                            <div class="comp-choice-icon">🎯</div>
-                            <div class="comp-choice-content">
-                                <h4>Être évalué(e)</h4>
-                                <p>Soumettez votre production pour validation par le professeur.</p>
-                                <p class="comp-choice-note important">La compétence pourra être validée.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-        document.body.style.overflow = 'hidden';
+        this._showChoiceModal(entr, {
+            title: this.escapeHtml(entr.titre),
+            question: 'Comment veux-tu faire cet exercice ?',
+            option1: { label: "M'entraîner", desc: 'Travaillez à votre rythme. Vous verrez le corrigé commenté à la fin.', mode: 'entrainement' },
+            option2: { label: 'Être évalué(e)', desc: 'Soumettez votre production pour validation par le professeur.', mode: 'evalue' }
+        });
     },
 
     openRetrainModal(entrainementId) {
@@ -527,6 +507,16 @@ const EleveCompetences = {
         if (!entr) return;
 
         this.currentEntrainement = entr;
+
+        this._showChoiceModal(entr, {
+            title: this.escapeHtml(entr.titre),
+            question: 'Cet exercice a déjà été fait. Que veux-tu faire ?',
+            option1: { label: 'Se ré-entraîner', desc: 'Refaites l\'exercice pour vous perfectionner. Le corrigé sera accessible à la fin.', mode: 'entrainement' },
+            option2: { label: 'Passer en mode évalué', desc: 'Soumettez votre production pour validation par le professeur.', mode: 'evalue' }
+        });
+    },
+
+    _showChoiceModal(entr, opts) {
         const dureeMin = Math.round((entr.duree || 1800) / 60);
 
         const modal = document.createElement('div');
@@ -534,33 +524,34 @@ const EleveCompetences = {
         modal.className = 'comp-modal-overlay';
         modal.innerHTML = `
             <div class="comp-modal">
-                <div class="comp-modal-header">
-                    <h2>Cet exercice a déjà été fait</h2>
-                    <button class="comp-modal-close" onclick="EleveCompetences.closeModal()">×</button>
-                </div>
                 <div class="comp-modal-body">
                     <div class="comp-choice-info">
-                        <h3>${this.escapeHtml(entr.titre)}</h3>
+                        <h3>${opts.title}</h3>
                         <p>Durée indicative : <strong>${dureeMin} minutes</strong></p>
                     </div>
 
+                    <p class="comp-choice-question">${opts.question}</p>
+
                     <div class="comp-choice-options">
-                        <div class="comp-choice-option" onclick="EleveCompetences.startEntrainement('entrainement')">
+                        <div class="comp-choice-option entrainement" onclick="EleveCompetences.startEntrainement('${opts.option1.mode}')">
                             <div class="comp-choice-icon">📝</div>
                             <div class="comp-choice-content">
-                                <h4>Se ré-entraîner</h4>
-                                <p>Refaites l'exercice pour vous perfectionner. Le corrigé sera accessible à la fin.</p>
+                                <h4>${opts.option1.label}</h4>
+                                <p>${opts.option1.desc}</p>
                             </div>
                         </div>
 
-                        <div class="comp-choice-option" onclick="EleveCompetences.startEntrainement('evalue')">
+                        <div class="comp-choice-option evalue" onclick="EleveCompetences.startEntrainement('${opts.option2.mode}')">
                             <div class="comp-choice-icon">🎯</div>
                             <div class="comp-choice-content">
-                                <h4>Passer en mode évalué</h4>
-                                <p>Soumettez votre production pour validation par le professeur.</p>
-                                <p class="comp-choice-note important">La compétence pourra être validée.</p>
+                                <h4>${opts.option2.label}</h4>
+                                <p>${opts.option2.desc}</p>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="comp-modal-footer">
+                        <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.closeModal()">Annuler</button>
                     </div>
                 </div>
             </div>

@@ -52,18 +52,19 @@ Object.assign(EleveCompetences, {
         // Consigne : priorité compétence > exercice
         const consigneText = (comp && comp.consigne) ? comp.consigne : (entrainement.description || '');
 
+        const modeBadgeLabel = mode === 'entrainement' ? 'Entraînement libre' : 'Évaluation';
+        const finishLabel = mode === 'entrainement'
+            ? 'J\'ai terminé — voir le corrigé commenté'
+            : 'Soumettre ma production';
+
         container.innerHTML = `
             <div class="comp-exercise-view">
-                <button class="comp-back-btn" onclick="EleveCompetences.confirmLeaveExercise()">
-                    ← Retour
-                </button>
-
                 <div class="comp-exercise-topbar">
+                    <button class="comp-exercise-back" onclick="EleveCompetences.confirmLeaveExercise()">←</button>
                     <div class="comp-exercise-topbar-info">
                         <h1>${this.escapeHtml(entrainement.titre)}</h1>
                         <div class="comp-exercise-topbar-meta">
-                            <span class="comp-mode-badge ${mode}">${mode === 'entrainement' ? 'Entraînement' : 'Évaluation'}</span>
-                            ${comp ? `<span class="comp-competence-tag">${this.escapeHtml(comp.nom)}</span>` : ''}
+                            <span class="comp-mode-badge ${mode}">${modeBadgeLabel}</span>
                         </div>
                     </div>
                     <div class="comp-exercise-timer" id="compTimer">
@@ -80,7 +81,7 @@ Object.assign(EleveCompetences, {
                 ` : ''}
 
                 <div class="comp-exercise-layout">
-                    <div class="comp-document-section">
+                    <div class="comp-document-section" id="compDocSection">
                         <div class="comp-document-toolbar">
                             <span class="comp-document-title">📄 Document</span>
                             ${entrainement.document_legende ? `
@@ -110,8 +111,8 @@ Object.assign(EleveCompetences, {
                         ${criteresHTML}
 
                         <div class="comp-sidebar-actions">
-                            <button class="comp-btn comp-btn-finish" onclick="EleveCompetences.finishEntrainement()">
-                                ${mode === 'entrainement' ? 'Terminer l\'entraînement' : 'Soumettre ma production'}
+                            <button class="comp-btn comp-btn-finish" id="compFinishBtn" onclick="EleveCompetences.finishEntrainement()">
+                                ${finishLabel}
                             </button>
                         </div>
                     </div>
@@ -217,25 +218,30 @@ Object.assign(EleveCompetences, {
     },
 
     // ==========================================
-    // RÉSULTAT MODE ENTRAÎNEMENT
+    // RÉSULTAT MODE ENTRAÎNEMENT (en place)
     // ==========================================
 
     showTrainingResult(entrainement) {
-        const container = document.getElementById('competences-content');
-        const correctionUrl = this._getCorrectionUrl(entrainement.correction_commentee);
+        // Récupérer la correction
+        const correctionData = this._parseCorrectionData(entrainement.correction_commentee);
+        const correctionUrl = correctionData.url;
+        const propositionText = correctionData.proposition;
 
-        // Critères
-        const criteresComp = this.criteres
-            .filter(cr => String(cr.competence_id) === String(entrainement.competence_id))
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
-
-        // Corrigé commenté
+        // Construire le HTML de correction à insérer sous le document
         let correctionHTML = '';
+        if (propositionText) {
+            correctionHTML = `
+                <div class="comp-inplace-corrige">
+                    <h4>Proposition de corrigé</h4>
+                    <div class="comp-inplace-corrige-text">${this.escapeHtml(propositionText)}</div>
+                </div>
+            `;
+        }
         if (correctionUrl) {
             const embedUrl = this.getEmbedUrl(correctionUrl);
-            correctionHTML = `
-                <div class="comp-corrige-section">
-                    <h3>Corrigé commenté</h3>
+            correctionHTML += `
+                <div class="comp-inplace-corrige">
+                    <h4>Corrigé commenté</h4>
                     <div class="comp-corrige-doc">
                         <iframe src="${embedUrl}" class="comp-corrige-iframe" allowfullscreen></iframe>
                         <a href="${this.escapeHtml(correctionUrl)}" target="_blank" rel="noopener" class="comp-corrige-link">
@@ -244,43 +250,29 @@ Object.assign(EleveCompetences, {
                     </div>
                 </div>
             `;
-        } else {
+        }
+        if (!correctionUrl && !propositionText) {
             correctionHTML = `
-                <div class="comp-corrige-section comp-corrige-empty">
+                <div class="comp-inplace-corrige comp-corrige-empty">
                     <p>Le corrigé commenté n'est pas encore disponible pour cet exercice.</p>
                 </div>
             `;
         }
 
-        // Auto-évaluation
-        const autoEvalHTML = criteresComp.length > 0 ? `
-            <div class="comp-autoeval-section">
-                <h3>Auto-évaluation</h3>
-                <p class="comp-autoeval-hint">Comparez votre travail avec le corrigé et cochez les critères que vous pensez avoir respectés.</p>
-                <div class="comp-autoeval-list">
-                    ${criteresComp.map(cr => `
-                        <label class="comp-autoeval-item">
-                            <input type="checkbox" class="comp-autoeval-checkbox">
-                            <span class="comp-autoeval-check"></span>
-                            <span class="comp-autoeval-text">${this.escapeHtml(cr.libelle)}</span>
-                        </label>
-                    `).join('')}
-                </div>
-            </div>
-        ` : '';
+        // Insérer la correction sous le document (en place)
+        const docSection = document.getElementById('compDocSection');
+        if (docSection) {
+            // Supprimer une correction précédente s'il y en a
+            const existing = docSection.querySelector('.comp-inplace-corrige');
+            if (existing) existing.remove();
+            docSection.insertAdjacentHTML('beforeend', correctionHTML);
+        }
 
-        container.innerHTML = `
-            <div class="comp-result-view">
-                <div class="comp-result-header training">
-                    <div class="comp-result-icon">📝</div>
-                    <h2>Entraînement terminé</h2>
-                    <p class="comp-result-subtitle">${this.escapeHtml(entrainement.titre)}</p>
-                </div>
-
-                ${correctionHTML}
-                ${autoEvalHTML}
-
-                <div class="comp-result-actions">
+        // Remplacer le bouton "J'ai terminé" par les boutons de navigation
+        const finishBtn = document.getElementById('compFinishBtn');
+        if (finishBtn) {
+            finishBtn.outerHTML = `
+                <div class="comp-sidebar-result-actions">
                     <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.backToDetail()">
                         Retour à la compétence
                     </button>
@@ -288,8 +280,40 @@ Object.assign(EleveCompetences, {
                         Retour aux compétences
                     </button>
                 </div>
-            </div>
-        `;
+            `;
+        }
+
+        // Scroller vers la correction
+        if (docSection) {
+            const corrige = docSection.querySelector('.comp-inplace-corrige');
+            if (corrige) corrige.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    },
+
+    /**
+     * Parse la correction : peut être une URL string, ou un JSON {url, proposition}
+     */
+    _parseCorrectionData(correction) {
+        if (!correction) return { url: '', proposition: '' };
+        if (typeof correction === 'string') {
+            if (correction.startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(correction);
+                    return {
+                        url: parsed.url || '',
+                        proposition: parsed.proposition || ''
+                    };
+                } catch (e) { return { url: correction, proposition: '' }; }
+            }
+            return { url: correction, proposition: '' };
+        }
+        if (typeof correction === 'object') {
+            return {
+                url: correction.url || '',
+                proposition: correction.proposition || ''
+            };
+        }
+        return { url: '', proposition: '' };
     },
 
     // ==========================================

@@ -298,6 +298,39 @@
 }
 
 /* ============================================
+   BREADCRUMB
+   ============================================ */
+
+.comp-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.comp-breadcrumb-link {
+    color: #ef4444;
+    cursor: pointer;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.comp-breadcrumb-link:hover {
+    color: #dc2626;
+    text-decoration: underline;
+}
+
+.comp-breadcrumb-sep {
+    color: #d1d5db;
+}
+
+.comp-breadcrumb-current {
+    color: #6b7280;
+}
+
+/* ============================================
    NIVEAU 2 — DÉTAIL COMPÉTENCE
    ============================================ */
 
@@ -445,6 +478,67 @@
     font-size: 0.9rem;
     color: #6b7280;
     line-height: 1.5;
+}
+
+/* Mode explanation cards */
+.comp-mode-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.comp-mode-card {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    align-items: flex-start;
+}
+
+.comp-mode-card.entrainement {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+
+.comp-mode-card.evalue {
+    background: #faf5ff;
+    border: 1px solid #e9d5ff;
+}
+
+.comp-mode-card-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.comp-mode-card-content h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.comp-mode-card-content p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+/* Exercise number (replaces icon in detail view) */
+.comp-exercise-num {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    background: #f3f4f6;
+    color: #6b7280;
 }
 
 /* Exercices list */
@@ -718,6 +812,30 @@
     font-weight: 500;
 }
 
+.comp-choice-question {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 1rem 0;
+}
+
+.comp-choice-option.entrainement:hover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.comp-choice-option.evalue:hover {
+    border-color: #8b5cf6;
+    background: #faf5ff;
+}
+
+.comp-modal-footer {
+    text-align: center;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
 /* ============================================
    BOUTONS
    ============================================ */
@@ -776,10 +894,31 @@
     flex-direction: column;
 }
 
+.comp-exercise-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #f3f4f6;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #6b7280;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.comp-exercise-back:hover {
+    background: #e5e7eb;
+    color: #1f2937;
+}
+
 .comp-exercise-topbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 1rem;
     background: white;
     border-radius: 12px;
@@ -787,6 +926,11 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     margin-bottom: 1rem;
     flex-wrap: wrap;
+}
+
+.comp-exercise-topbar-info {
+    flex: 1;
+    min-width: 0;
 }
 
 .comp-exercise-topbar-info h1 {
@@ -1336,6 +1480,54 @@ body.comp-fullscreen-active {
     text-decoration: underline;
 }
 
+/* In-place correction (appears below document) */
+.comp-inplace-corrige {
+    padding: 1.25rem;
+    background: #f0fdf4;
+    border-top: 2px solid #bbf7d0;
+}
+
+.comp-inplace-corrige h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #16a34a;
+    margin: 0 0 0.75rem 0;
+}
+
+.comp-inplace-corrige-text {
+    font-size: 0.9rem;
+    color: #374151;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.comp-inplace-corrige .comp-corrige-iframe {
+    border-radius: 8px;
+}
+
+.comp-inplace-corrige.comp-corrige-empty {
+    text-align: center;
+    color: #9ca3af;
+    background: #f9fafb;
+    border-top-color: #e5e7eb;
+}
+
+.comp-inplace-corrige.comp-corrige-empty p {
+    margin: 0;
+}
+
+/* Sidebar result actions (replace finish button after correction) */
+.comp-sidebar-result-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.comp-sidebar-result-actions .comp-btn {
+    width: 100%;
+    justify-content: center;
+}
+
 .comp-verif-item {
     padding: 0.875rem 1rem;
     border-radius: 10px;
@@ -1509,6 +1701,10 @@ body.comp-fullscreen-active {
 
     .comp-exercise-timer {
         align-self: flex-end;
+    }
+
+    .comp-mode-cards {
+        grid-template-columns: 1fr;
     }
 
     .comp-document-frame-wrapper {
