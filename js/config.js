@@ -64,6 +64,7 @@ const CONFIG = {
         EleveConnexions: 'EleveConnexions',
         CompetencesReferentiel: 'CompetencesReferentiel',
         CriteresReussite: 'CriteresReussite',
+        BanquesCompetences: 'BanquesCompetences',
         EntrainementsCompetences: 'EntrainementsCompetences',
         EleveEntrainementsCompetences: 'EleveEntrainementsCompetences'
     },

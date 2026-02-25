@@ -11,6 +11,7 @@ const AdminBanquesExercices = {
     tachesComplexes: [],
     competencesReferentiel: [],
     criteresReussite: [],
+    banquesCompetences: [],
 
     // Data pour connaissances (ancien système - conservé pour compatibilité)
     banquesQuestions: [],
@@ -89,6 +90,7 @@ const AdminBanquesExercices = {
                 this.tachesComplexes = cached.tachesComplexes || [];
                 this.competencesReferentiel = cached.competencesReferentiel || [];
                 this.criteresReussite = cached.criteresReussite || [];
+                this.banquesCompetences = cached.banquesCompetences || [];
                 this.banquesQuestions = cached.banquesQuestions || [];
                 this.questionsConnaissances = cached.questionsConnaissances || [];
                 // Données connaissances (nouveau système)
@@ -143,6 +145,7 @@ const AdminBanquesExercices = {
                 tachesComplexes: this.tachesComplexes,
                 competencesReferentiel: this.competencesReferentiel,
                 criteresReussite: this.criteresReussite,
+                banquesCompetences: this.banquesCompetences,
                 banquesQuestions: this.banquesQuestions,
                 questionsConnaissances: this.questionsConnaissances,
                 // Données connaissances (nouveau système)
@@ -209,7 +212,7 @@ const AdminBanquesExercices = {
             // PARALLEL API calls - much faster!
             const [
                 banquesResult, formatsResult, exercicesResult, tachesResult, compRefResult,
-                criteresResult,
+                criteresResult, banquesCompResult,
                 banquesQResult, questionsConnResult,
                 // Nouveau système Connaissances
                 formatsQResult, banquesExConnResult, entrConnResult, etapesConnResult, etapeQuestionsResult
@@ -220,6 +223,7 @@ const AdminBanquesExercices = {
                 this.callAPI('getTachesComplexes', {}),
                 this.callAPI('getCompetencesReferentiel', {}),
                 this.callAPI('getCriteresReussite', {}),
+                this.callAPI('getBanquesCompetences', {}),
                 this.callAPI('getBanquesQuestions', {}),
                 this.callAPI('getQuestionsConnaissances', {}),
                 // Nouveau système Connaissances
@@ -247,6 +251,9 @@ const AdminBanquesExercices = {
             }
             if (criteresResult.success) {
                 this.criteresReussite = criteresResult.data || [];
+            }
+            if (banquesCompResult.success) {
+                this.banquesCompetences = banquesCompResult.data || [];
             }
             if (banquesQResult.success) {
                 this.banquesQuestions = banquesQResult.data || [];
@@ -289,6 +296,7 @@ const AdminBanquesExercices = {
             if (!this.tachesComplexes) this.tachesComplexes = [];
             if (!this.competencesReferentiel) this.competencesReferentiel = [];
             if (!this.criteresReussite) this.criteresReussite = [];
+            if (!this.banquesCompetences) this.banquesCompetences = [];
             if (!this.banquesQuestions) this.banquesQuestions = [];
             if (!this.questionsConnaissances) this.questionsConnaissances = [];
             // formatsQuestions n'est pas réinitialisée - elle garde son initialisation par défaut
@@ -378,7 +386,7 @@ const AdminBanquesExercices = {
                 case 'addBanqueBtn':
                 case 'addBanqueBtnEmpty':
                     if (this.currentType === 'competences') {
-                        this.openTacheComplexeModal();
+                        this.openBanqueCompetenceModal();
                     } else if (this.currentType === 'connaissances') {
                         // Selon la sous-vue active
                         if (this.connaissancesSubView === 'questions') {
@@ -618,14 +626,10 @@ const AdminBanquesExercices = {
         const connEl = document.getElementById('countConnaissances');
         if (connEl) connEl.textContent = this.banquesQuestions.length;
 
-        // Count competences (banques) avec des entraînements
+        // Count competences (banques de compétences)
         const compEl = document.getElementById('countCompetences');
         if (compEl) {
-            const compsAvecEntr = this.competencesReferentiel.filter(c => {
-                const visible = String(c.visible) === 'true' || c.visible === true || c.statut === 'actif';
-                return visible && this.tachesComplexes.some(t => t.competence_id === c.id);
-            });
-            compEl.textContent = compsAvecEntr.length;
+            compEl.textContent = this.banquesCompetences.length;
         }
     },
 
@@ -1347,6 +1351,7 @@ const AdminBanquesExercices = {
         const backupExercices = [...this.exercices];
         const backupFormats = [...this.formats];
         const backupTaches = [...this.tachesComplexes];
+        const backupBanquesComp = [...this.banquesCompetences];
 
         // Remove from local data immediately
         if (type === 'banque') {
@@ -1359,6 +1364,10 @@ const AdminBanquesExercices = {
             this.formats = this.formats.filter(f => f.id !== id);
         } else if (type === 'tacheComplexe') {
             this.tachesComplexes = this.tachesComplexes.filter(t => t.id !== id);
+        } else if (type === 'banqueCompetence') {
+            this.banquesCompetences = this.banquesCompetences.filter(b => b.id !== id);
+            // Also remove associated entrainements
+            this.tachesComplexes = this.tachesComplexes.filter(t => t.banque_id !== id);
         }
 
         // Update UI immediately
@@ -1380,6 +1389,8 @@ const AdminBanquesExercices = {
                 result = await this.callAPI('deleteFormatExercices', { id });
             } else if (type === 'tacheComplexe') {
                 result = await this.callAPI('deleteTacheComplexe', { id });
+            } else if (type === 'banqueCompetence') {
+                result = await this.callAPI('deleteBanqueCompetence', { id });
             }
 
             if (result && result.success) {
@@ -1391,6 +1402,7 @@ const AdminBanquesExercices = {
                 this.exercices = backupExercices;
                 this.formats = backupFormats;
                 this.tachesComplexes = backupTaches;
+                this.banquesCompetences = backupBanquesComp;
                 this.updateCounts();
                 this.renderBanques();
                 if (type === 'format') {
@@ -1404,6 +1416,7 @@ const AdminBanquesExercices = {
             this.exercices = backupExercices;
             this.formats = backupFormats;
             this.tachesComplexes = backupTaches;
+            this.banquesCompetences = backupBanquesComp;
             this.updateCounts();
             this.renderBanques();
             if (type === 'format') {

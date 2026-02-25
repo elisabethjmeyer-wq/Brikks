@@ -64,6 +64,40 @@ L'utilisatrice principale est la professeure qui n'est pas développeuse : expli
 
 **État** : fonctionnel, ajouté en session 7.
 
+### Module compétences (élève + admin) — RESTRUCTURÉ SESSION 8
+
+**Pages** : `eleve/entrainements-comp.html`, `admin/competences.html`, onglet dans `admin/banques-exercices.html`
+**Fichiers** : `eleve-competences.js`, `eleve-competences-exercice.js`, `admin-competences.js`, `admin-banques-exercices-questions.js` (section compétences)
+**Backend** : `Competences.gs` (CRUD banques + entraînements + critères + progressions élève)
+
+**Modèle de données (session 8) :**
+```
+CompetencesReferentiel (id, nom, description, consigne, ordre, visible)
+    └── CriteresReussite (id, competence_id, libelle, ordre)
+BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← NOUVEAU
+    └── EntrainementsCompetences (id, titre, competence_id, banque_id, ...)
+          └── EleveEntrainementsCompetences (id, eleve_id, entrainement_id, mode, statut, ...)
+```
+
+**Ce que fait le module :**
+- Le référentiel (admin) définit les compétences et leurs critères de réussite
+- Les banques de compétences regroupent les entraînements et contrôlent la visibilité élève (statut brouillon/publié)
+- Chaque banque est liée à une compétence du référentiel
+- L'élève voit les banques publiées sous forme de cartes (nom compétence, nb exercices, nb critères, progression)
+- Navigation 3 niveaux : liste des banques → détail (critères + exercices) → exercice (iframe + timer)
+- 2 modes : entraînement (corrigé visible) / évalué (soumission au prof)
+- Statuts élève : pas commencé → en cours → entraîné → soumis → validé
+
+**Appels API** (élève, 4-5 en parallèle) :
+`getCompetencesReferentiel`, `getCriteresReussite`, `getBanquesCompetences`, `getEntrainementsCompetences`, `getEleveEntrainementsCompetences`
+
+**Appels API** (admin, dans le batch de 14 en parallèle) :
+`getBanquesCompetences`, `getCompetencesReferentiel`, `getCriteresReussite`, `getTachesComplexes`
+
+**Rétro-compatibilité** : les anciens noms d'API (getTachesComplexes, etc.) sont des aliases dans Code.gs et Competences.gs
+
+**État** : restructuré en session 8. Le module legacy `eleve-exercices-competences.js` n'est pas encore migré.
+
 ## Architecture technique
 
 ### Stack

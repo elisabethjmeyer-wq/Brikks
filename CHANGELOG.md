@@ -4,6 +4,55 @@
 
 ---
 
+## 2026-02-25 (session 8) — Restructuration compétences : introduction des banques
+
+### Contexte
+Les entraînements de compétences étaient directement liés aux compétences du référentiel, sans couche intermédiaire. Le champ `visible` du référentiel contrôlait à la fois l'admin et la visibilité élève. On introduit une table `BanquesCompetences` pour séparer le référentiel (définition des compétences) de la gestion des entraînements (organisation, publication).
+
+### Modifications
+
+**Nouvelle table `BanquesCompetences`** :
+- Colonnes : id, competence_id, titre, description, ordre, statut, date_creation
+- Chaque banque est liée à une compétence du référentiel
+- Le `statut` (brouillon/publié) contrôle la visibilité côté élève
+- CRUD complet dans le backend
+
+**Backend (`Competences.gs`, `Code.gs`)** :
+- 4 nouvelles fonctions : getBanquesCompetences, createBanqueCompetence, updateBanqueCompetence, deleteBanqueCompetence
+- 4 nouvelles routes dans le routeur
+- EntrainementsCompetences gagne la colonne `banque_id` (migration progressive automatique)
+- `competence_id` conservé sur les entraînements pour rétro-compatibilité
+
+**Admin — Banques d'exercices > Compétences** :
+- L'onglet affiche maintenant les banques de compétences (au lieu de grouper par compétence du référentiel)
+- Chaque banque montre son statut (brouillon/publié) et ses entraînements
+- Boutons : créer une banque (+), modifier, supprimer, ajouter un entraînement
+- La modal de création de banque permet de choisir une compétence et un titre
+- La modal d'entraînement pointe vers une banque (au lieu d'une compétence directement)
+
+**Élève — Page compétences** :
+- Charge les banques publiées (au lieu des compétences visibles)
+- Chaque carte affiche le titre de la banque (ou le nom de la compétence)
+- Les critères sont toujours résolus via la compétence du référentiel
+- Les entraînements sont filtrés par `banque_id` (fallback sur `competence_id`)
+- Navigation : banque → détail → exercice (inchangé dans le principe)
+
+### Fichiers modifiés
+- `google-apps-script/Competences.gs` — CRUD BanquesCompetences + colonne banque_id
+- `google-apps-script/Code.gs` — routes + SHEETS constant
+- `js/config.js` — BanquesCompetences dans CONFIG.SHEETS
+- `js/admin-banques-exercices.js` — chargement, cache, counts, delete
+- `js/admin-banques-exercices-questions.js` — rendu banques, modals banque/entraînement
+- `js/eleve-competences.js` — chargement banques, rendu par banque, navigation
+
+### Décisions prises
+- `competence_id` reste sur EntrainementsCompetences pour rétro-compatibilité (legacy module, aliases)
+- La colonne `banque_id` est ajoutée automatiquement si absente (migration progressive)
+- Le référentiel admin garde son toggle visible pour l'instant (pas de changement)
+- Le module legacy `eleve-exercices-competences.js` n'est pas modifié (utilise encore les anciens aliases)
+
+---
+
 ## 2026-02-24 (session 7) — Mode prévisualisation prof + 3 états de visibilité
 
 ### Contexte

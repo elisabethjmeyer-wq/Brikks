@@ -8,8 +8,9 @@
 
 const EleveCompetences = {
     // Données
-    competences: [],      // CompetencesReferentiel (visibles uniquement)
+    competences: [],      // CompetencesReferentiel (toutes, pour lookup)
     criteres: [],         // CriteresReussite
+    banques: [],          // BanquesCompetences (publiées uniquement)
     entrainements: [],    // EntrainementsCompetences (publiés uniquement)
     progressions: [],     // EleveEntrainementsCompetences (pour l'élève courant)
     currentUser: null,
@@ -17,6 +18,7 @@ const EleveCompetences = {
     // Navigation
     currentView: 'list',  // 'list' | 'detail' | 'exercise'
     currentCompetence: null,
+    currentBanque: null,
     currentEntrainement: null,
     currentMode: null,     // 'entrainement' | 'evalue'
 
@@ -40,6 +42,7 @@ const EleveCompetences = {
         if (cached) {
             this.competences = cached.competences || [];
             this.criteres = cached.criteres || [];
+            this.banques = cached.banques || [];
             this.entrainements = cached.entrainements || [];
             this.progressions = cached.progressions || [];
             this.renderCompetencesList();
@@ -74,6 +77,7 @@ const EleveCompetences = {
         const promises = [
             this.callAPI('getCompetencesReferentiel', {}),
             this.callAPI('getCriteresReussite', {}),
+            this.callAPI('getBanquesCompetences', {}),
             this.callAPI('getEntrainementsCompetences', {})
         ];
 
@@ -86,18 +90,19 @@ const EleveCompetences = {
         const results = await Promise.all(promises);
 
         if (results[0].success) {
-            this.competences = (results[0].data || []).filter(c =>
-                c.visible === true || c.visible === 'true'
-            );
+            this.competences = results[0].data || [];
         }
         if (results[1].success) {
             this.criteres = results[1].data || [];
         }
         if (results[2].success) {
-            this.entrainements = (results[2].data || []).filter(e => e.statut === 'publie');
+            this.banques = (results[2].data || []).filter(b => b.statut === 'publie');
         }
-        if (results[3] && results[3].success) {
-            this.progressions = results[3].data || [];
+        if (results[3].success) {
+            this.entrainements = (results[3].data || []).filter(e => e.statut === 'publie');
+        }
+        if (results[4] && results[4].success) {
+            this.progressions = results[4].data || [];
         }
 
         this.saveToCache();
@@ -130,6 +135,7 @@ const EleveCompetences = {
             localStorage.setItem(this.CACHE_KEY, JSON.stringify({
                 competences: this.competences,
                 criteres: this.criteres,
+                banques: this.banques,
                 entrainements: this.entrainements,
                 progressions: this.progressions,
                 timestamp: Date.now()
@@ -142,40 +148,50 @@ const EleveCompetences = {
     // ==========================================
 
     /**
-     * Statut d'une compétence pour l'élève :
+     * Statut d'une banque pour l'élève :
      * - validee : au moins 1 exercice mode évalué avec statut 'valide'
      * - en_cours : au moins 1 exercice commencé
      * - pas_commencee : rien
      */
-    getCompetenceStatus(compId) {
-        const compEntrainements = this.entrainements.filter(e =>
-            String(e.competence_id) === String(compId)
-        );
+    getBanqueStatus(banqueId) {
+        const banqueEntrainements = this.getEntrainementsForBanque(banqueId);
 
-        if (compEntrainements.length === 0) {
+        if (banqueEntrainements.length === 0) {
             return { status: 'pas_commencee', label: 'Pas commencée', cssClass: 'not-started' };
         }
 
-        const compProgressions = [];
-        compEntrainements.forEach(entr => {
+        const banqueProgressions = [];
+        banqueEntrainements.forEach(entr => {
             const prog = this.progressions.find(p =>
                 String(p.entrainement_id) === String(entr.id)
             );
-            if (prog) compProgressions.push(prog);
+            if (prog) banqueProgressions.push(prog);
         });
 
-        const hasValidated = compProgressions.some(p =>
+        const hasValidated = banqueProgressions.some(p =>
             p.mode === 'evalue' && p.statut === 'valide'
         );
         if (hasValidated) {
             return { status: 'validee', label: 'Validée', cssClass: 'validated' };
         }
 
-        if (compProgressions.length > 0) {
+        if (banqueProgressions.length > 0) {
             return { status: 'en_cours', label: 'En cours', cssClass: 'in-progress' };
         }
 
         return { status: 'pas_commencee', label: 'Pas commencée', cssClass: 'not-started' };
+    },
+
+    /**
+     * Récupère les entraînements d'une banque (par banque_id, fallback sur competence_id)
+     */
+    getEntrainementsForBanque(banqueId) {
+        const banque = this.banques.find(b => String(b.id) === String(banqueId));
+        if (!banque) return [];
+        return this.entrainements.filter(e =>
+            String(e.banque_id) === String(banqueId) ||
+            (!e.banque_id && String(e.competence_id) === String(banque.competence_id))
+        );
     },
 
     /**
@@ -206,15 +222,16 @@ const EleveCompetences = {
     renderCompetencesList() {
         this.currentView = 'list';
         this.currentCompetence = null;
+        this.currentBanque = null;
         this.stopTimer();
 
         const container = document.getElementById('competences-content');
-        const sorted = [...this.competences].sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const sorted = [...this.banques].sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         // Calcul progression
         let nbValidees = 0;
-        sorted.forEach(c => {
-            if (this.getCompetenceStatus(c.id).status === 'validee') nbValidees++;
+        sorted.forEach(b => {
+            if (this.getBanqueStatus(b.id).status === 'validee') nbValidees++;
         });
         const total = sorted.length;
         const percent = total > 0 ? Math.round((nbValidees / total) * 100) : 0;
@@ -236,23 +253,24 @@ const EleveCompetences = {
             return;
         }
 
-        const cardsHTML = sorted.map(comp => {
-            const status = this.getCompetenceStatus(comp.id);
-            const nbExo = this.entrainements.filter(e =>
-                String(e.competence_id) === String(comp.id)
-            ).length;
+        const cardsHTML = sorted.map(banque => {
+            const comp = this.competences.find(c => String(c.id) === String(banque.competence_id));
+            const compNom = comp ? comp.nom : (banque.titre || 'Sans titre');
+            const compId = banque.competence_id;
+            const status = this.getBanqueStatus(banque.id);
+            const nbExo = this.getEntrainementsForBanque(banque.id).length;
             const nbCrit = this.criteres.filter(cr =>
-                String(cr.competence_id) === String(comp.id)
+                String(cr.competence_id) === String(compId)
             ).length;
 
             return `
-                <div class="comp-card ${status.cssClass}" onclick="EleveCompetences.openCompetence('${comp.id}')">
+                <div class="comp-card ${status.cssClass}" onclick="EleveCompetences.openBanque('${banque.id}')">
                     <div class="comp-card-left">
                         <div class="comp-card-status-icon ${status.cssClass}">
                             ${status.status === 'validee' ? '✓' : status.status === 'en_cours' ? '⋯' : '○'}
                         </div>
                         <div class="comp-card-info">
-                            <h3 class="comp-card-title">${this.escapeHtml(comp.nom)}</h3>
+                            <h3 class="comp-card-title">${this.escapeHtml(banque.titre || compNom)}</h3>
                             <div class="comp-card-meta">
                                 <span>${nbExo} exercice${nbExo > 1 ? 's' : ''}</span>
                                 <span class="comp-meta-sep">·</span>
@@ -302,25 +320,32 @@ const EleveCompetences = {
     // NIVEAU 2 — DÉTAIL D'UNE COMPÉTENCE
     // ==========================================
 
-    openCompetence(compId) {
-        const comp = this.competences.find(c => String(c.id) === String(compId));
-        if (!comp) return;
+    openBanque(banqueId) {
+        const banque = this.banques.find(b => String(b.id) === String(banqueId));
+        if (!banque) return;
+
+        const comp = this.competences.find(c => String(c.id) === String(banque.competence_id));
 
         this.currentView = 'detail';
-        this.currentCompetence = comp;
+        this.currentBanque = banque;
+        this.currentCompetence = comp || null;
 
         const container = document.getElementById('competences-content');
-        const status = this.getCompetenceStatus(comp.id);
+        const status = this.getBanqueStatus(banque.id);
+        const compId = banque.competence_id;
 
-        // Critères
+        // Critères (de la compétence liée)
         const criteresComp = this.criteres
-            .filter(cr => String(cr.competence_id) === String(comp.id))
+            .filter(cr => String(cr.competence_id) === String(compId))
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
-        // Exercices
-        const compEntrainements = this.entrainements
-            .filter(e => String(e.competence_id) === String(comp.id))
+        // Exercices (de la banque)
+        const banqueEntrainements = this.getEntrainementsForBanque(banque.id)
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        const compNom = comp ? comp.nom : (banque.titre || 'Sans titre');
+        const compDesc = comp ? comp.description : '';
+        const compConsigne = comp ? comp.consigne : '';
 
         // HTML critères
         const criteresHTML = criteresComp.length > 0 ? `
@@ -334,7 +359,7 @@ const EleveCompetences = {
         ` : '';
 
         // HTML exercices
-        const exercicesHTML = compEntrainements.map(entr => {
+        const exercicesHTML = banqueEntrainements.map(entr => {
             const prog = this.progressions.find(p =>
                 String(p.entrainement_id) === String(entr.id)
             );
@@ -371,30 +396,30 @@ const EleveCompetences = {
                         ${status.status === 'validee' ? '✓' : status.status === 'en_cours' ? '⋯' : '○'}
                     </div>
                     <div class="comp-detail-title-section">
-                        <h2 class="comp-detail-title">${this.escapeHtml(comp.nom)}</h2>
+                        <h2 class="comp-detail-title">${this.escapeHtml(banque.titre || compNom)}</h2>
                         <span class="comp-detail-badge ${status.cssClass}">${status.label}</span>
                     </div>
                 </div>
 
-                ${comp.description ? `
+                ${compDesc ? `
                     <div class="comp-detail-description">
-                        <p>${this.escapeHtml(comp.description)}</p>
+                        <p>${this.escapeHtml(compDesc)}</p>
                     </div>
                 ` : ''}
 
                 ${criteresHTML}
 
-                ${comp.consigne ? `
+                ${compConsigne ? `
                     <div class="comp-detail-consigne">
                         <h4>Consigne</h4>
-                        <p>${this.escapeHtml(comp.consigne)}</p>
+                        <p>${this.escapeHtml(compConsigne)}</p>
                     </div>
                 ` : ''}
             </div>
 
             <div class="comp-detail-exercises">
-                <h4>Exercices (${compEntrainements.length})</h4>
-                ${compEntrainements.length === 0 ? `
+                <h4>Exercices (${banqueEntrainements.length})</h4>
+                ${banqueEntrainements.length === 0 ? `
                     <p class="comp-no-exercises">Aucun exercice disponible pour cette compétence.</p>
                 ` : `
                     <div class="comp-exercises-list">
@@ -403,6 +428,15 @@ const EleveCompetences = {
                 `}
             </div>
         `;
+    },
+
+    // Rétro-compatibilité
+    openCompetence(compId) {
+        // Trouver la banque liée à cette compétence
+        const banque = this.banques.find(b => String(b.competence_id) === String(compId));
+        if (banque) {
+            this.openBanque(banque.id);
+        }
     },
 
     // ==========================================
@@ -600,14 +634,14 @@ const EleveCompetences = {
     showSubmittedMessage(entr) {
         const container = document.getElementById('competences-content');
         container.innerHTML = `
-            <button class="comp-back-btn" onclick="EleveCompetences.openCompetence('${entr.competence_id}')">
+            <button class="comp-back-btn" onclick="EleveCompetences.backToDetail()">
                 ← Retour
             </button>
             <div class="comp-message-view">
                 <div class="comp-message-icon submitted">📤</div>
                 <h2>${this.escapeHtml(entr.titre)}</h2>
                 <p class="comp-message-text">Votre production a été soumise et est en attente de correction par le professeur.</p>
-                <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.openCompetence('${entr.competence_id}')">
+                <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.backToDetail()">
                     Retour à la compétence
                 </button>
             </div>
@@ -619,7 +653,7 @@ const EleveCompetences = {
 
         const container = document.getElementById('competences-content');
         container.innerHTML = `
-            <button class="comp-back-btn" onclick="EleveCompetences.openCompetence('${entr.competence_id}')">
+            <button class="comp-back-btn" onclick="EleveCompetences.backToDetail()">
                 ← Retour
             </button>
             <div class="comp-message-view validated">
@@ -632,7 +666,7 @@ const EleveCompetences = {
                             Voir le corrigé commenté
                         </button>
                     ` : ''}
-                    <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.openCompetence('${entr.competence_id}')">
+                    <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.backToDetail()">
                         Retour à la compétence
                     </button>
                 </div>
@@ -653,13 +687,16 @@ const EleveCompetences = {
     backToList() {
         this.stopTimer();
         this.currentCompetence = null;
+        this.currentBanque = null;
         this.currentEntrainement = null;
         this.renderCompetencesList();
     },
 
     backToDetail() {
         this.stopTimer();
-        if (this.currentCompetence) {
+        if (this.currentBanque) {
+            this.openBanque(this.currentBanque.id);
+        } else if (this.currentCompetence) {
             this.openCompetence(this.currentCompetence.id);
         } else {
             this.backToList();
