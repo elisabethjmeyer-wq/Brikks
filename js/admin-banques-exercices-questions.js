@@ -1995,6 +1995,8 @@ Object.assign(AdminBanquesExercices, {
             return this._saveBanqueCompetence();
         }
 
+        if (this._savingEntrainement) return;
+
         // Mode entraînement : sauvegarder un entraînement
         const id = document.getElementById('editTacheId').value;
         const banqueId = document.getElementById('tacheCompetenceId').value;
@@ -2016,6 +2018,11 @@ Object.assign(AdminBanquesExercices, {
             alert('Veuillez selectionner une banque');
             return;
         }
+
+        this._savingEntrainement = true;
+        const saveBtn = document.querySelector('#tacheComplexeModal .btn-primary');
+        const saveBtnText = saveBtn ? saveBtn.textContent : '';
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
 
         // Résoudre la compétence depuis la banque
         const banque = this.banquesCompetences.find(b => b.id === banqueId);
@@ -2054,10 +2061,15 @@ Object.assign(AdminBanquesExercices, {
         } catch (error) {
             console.error('Erreur sauvegarde entrainement:', error);
             alert('Erreur lors de la sauvegarde');
+        } finally {
+            this._savingEntrainement = false;
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtnText; }
         }
     },
 
     async _saveBanqueCompetence() {
+        if (this._savingBanqueComp) return;
+
         const id = document.getElementById('editTacheId').value;
         const competenceId = document.getElementById('tacheCompetenceId').value;
         const titre = document.getElementById('tacheTitre').value.trim();
@@ -2082,6 +2094,11 @@ Object.assign(AdminBanquesExercices, {
             statut
         };
 
+        this._savingBanqueComp = true;
+        const saveBtn = document.querySelector('#tacheComplexeModal .btn-primary');
+        const saveBtnText = saveBtn ? saveBtn.textContent : '';
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
+
         try {
             let result;
             if (id) {
@@ -2102,6 +2119,9 @@ Object.assign(AdminBanquesExercices, {
         } catch (error) {
             console.error('Erreur sauvegarde banque competence:', error);
             alert('Erreur lors de la sauvegarde');
+        } finally {
+            this._savingBanqueComp = false;
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtnText; }
         }
     },
 
