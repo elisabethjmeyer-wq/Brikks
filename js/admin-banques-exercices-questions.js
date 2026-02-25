@@ -1825,16 +1825,14 @@ Object.assign(AdminBanquesExercices, {
         const corrSection = document.getElementById('correctionSection');
         if (corrSection) corrSection.style.display = isBanque ? 'none' : '';
 
-        // Adapter le label et placeholder du champ titre
+        // Masquer/afficher le champ titre (en mode banque, le titre = nom de la compétence)
         const titreInput = document.getElementById('tacheTitre');
         if (titreInput) {
-            const label = titreInput.closest('.form-group').querySelector('label');
-            const help = titreInput.closest('.form-group').querySelector('.form-help');
-            if (isBanque) {
-                if (label) label.innerHTML = 'Titre <span class="optional">(optionnel)</span>';
-                titreInput.placeholder = 'Ex: Analyse de documents - Chapitre 3';
-                if (help) help.textContent = 'Si vide, le nom de la competence sera utilise';
-            } else {
+            const titreGroup = titreInput.closest('.form-group');
+            if (titreGroup) titreGroup.style.display = isBanque ? 'none' : '';
+            if (!isBanque) {
+                const label = titreGroup.querySelector('label');
+                const help = titreGroup.querySelector('.form-help');
                 if (label) label.innerHTML = 'Titre de l\'exercice <span class="req">*</span>';
                 titreInput.placeholder = 'Ex: Journal de Catherine Pozzi';
                 if (help) help.textContent = 'Titre court identifiant le document utilise';
