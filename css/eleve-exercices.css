@@ -4441,6 +4441,79 @@ body.document-fullscreen-active {
     flex-direction: column;
 }
 
+/* Onglets Sujet / Corrigé dans l'écran de résultat */
+.result-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 1rem;
+}
+
+.result-tab {
+    padding: 0.6rem 1.25rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.result-tab:hover {
+    color: #374151;
+    background: #f3f4f6;
+}
+
+.result-tab.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+}
+
+.result-tab-content {
+    display: none;
+}
+
+.result-tab-content.active {
+    display: block;
+}
+
+.subject-content {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.subject-content .mixte-doc-iframe {
+    width: 100%;
+    height: 500px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.subject-content .doc-image,
+.subject-content .mixte-doc-image {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+.subject-content .mixte-section-header {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+}
+
+.subject-content .mixte-doc-legend {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-style: italic;
+}
+
 .correction-header {
     display: flex;
     align-items: center;

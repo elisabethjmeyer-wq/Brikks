@@ -467,14 +467,28 @@ Object.assign(EleveExercices, {
                         </div>
                     </div>
 
-                    <!-- BLOC DROITE : CORRECTION (tableau original avec corrections inline) -->
+                    <!-- BLOC DROITE : CORRECTION + SUJET (onglets si document présent) -->
                     <div class="result-correction">
+                        ${results.subjectHTML ? `
+                        <div class="result-tabs">
+                            <button class="result-tab active" data-tab="corrige" onclick="EleveExercices.switchResultTab('corrige')">📝 Corrigé</button>
+                            <button class="result-tab" data-tab="sujet" onclick="EleveExercices.switchResultTab('sujet')">📄 Sujet</button>
+                        </div>
+                        ` : `
                         <div class="correction-header">
                             <h3>📝 Correction</h3>
                         </div>
-                        <div class="correction-content correction-table">
-                            <div class="exercise-content">${results.correctedHTML || '<p class="correction-fallback">Correction non disponible.</p>'}</div>
+                        `}
+                        <div class="result-tab-content active" id="tabCorrige">
+                            <div class="correction-content correction-table">
+                                <div class="exercise-content">${results.correctedHTML || '<p class="correction-fallback">Correction non disponible.</p>'}</div>
+                            </div>
                         </div>
+                        ${results.subjectHTML ? `
+                        <div class="result-tab-content" id="tabSujet">
+                            <div class="subject-content">${results.subjectHTML}</div>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -494,6 +508,15 @@ Object.assign(EleveExercices, {
     // ===============================
     // NAVIGATION RÉSULTATS
     // ===============================
+
+    switchResultTab(tab) {
+        document.querySelectorAll('.result-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        document.getElementById('tabCorrige').classList.toggle('active', tab === 'corrige');
+        const tabSujet = document.getElementById('tabSujet');
+        if (tabSujet) tabSujet.classList.toggle('active', tab === 'sujet');
+    },
 
     toggleCorrige() {
         const wrapper = document.getElementById('correctedContentWrapper');
