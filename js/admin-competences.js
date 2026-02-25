@@ -95,15 +95,10 @@ const AdminCompetences = {
 
     renderProgressBanner() {
         var total = this.competences.length;
-        var visibles = this.competences.filter(function(c) {
-            return String(c.visible) === 'true' || c.visible === true;
-        }).length;
 
         var container = document.getElementById('progressBanner');
         container.innerHTML =
-            '<span class="progress-text">' + total + ' compétence' + (total > 1 ? 's' : '') + ' au référentiel</span>' +
-            '<span class="progress-sep">·</span>' +
-            '<span class="progress-visible">' + visibles + ' visible' + (visibles > 1 ? 's' : '') + ' côté élève</span>';
+            '<span class="progress-text">' + total + ' compétence' + (total > 1 ? 's' : '') + ' au référentiel</span>';
     },
 
     // ========== RENDER LIST ==========
@@ -124,11 +119,10 @@ const AdminCompetences = {
         container.innerHTML = this.competences.map(function(comp) {
             var criteres = self.getCriteresForCompetence(comp.id);
             var criteresCount = criteres.length;
-            var isVisible = String(comp.visible) === 'true' || comp.visible === true;
             var isExpanded = self.expandedCards.has(comp.id);
 
             var cardHtml =
-                '<div class="comp-card' + (isExpanded ? ' expanded' : '') + (!isVisible ? ' masked' : '') + '" data-id="' + comp.id + '">' +
+                '<div class="comp-card' + (isExpanded ? ' expanded' : '') + '" data-id="' + comp.id + '">' +
                     // Header (clickable pour déplier)
                     '<div class="comp-card-header" onclick="AdminCompetences.toggleExpand(\'' + comp.id + '\')">' +
                         '<div class="comp-card-icon">' +
@@ -140,18 +134,11 @@ const AdminCompetences = {
                         '<div class="comp-card-content">' +
                             '<div class="comp-card-top">' +
                                 '<span class="comp-card-nom">' + self.escapeHtml(comp.nom) + '</span>' +
-                                (!isVisible ? '<span class="comp-badge badge-masque">Masqué</span>' : '') +
                                 (criteresCount > 0 ? '<span class="comp-badge badge-criteres">' + criteresCount + ' critère' + (criteresCount > 1 ? 's' : '') + '</span>' : '') +
                             '</div>' +
                             (comp.description ? '<p class="comp-card-desc">' + self.escapeHtml(comp.description) + '</p>' : '') +
                         '</div>' +
                         '<div class="comp-card-actions" onclick="event.stopPropagation()">' +
-                            // Toggle visible
-                            '<label class="toggle-switch" title="' + (isVisible ? 'Visible côté élève' : 'Masqué côté élève') + '">' +
-                                '<input type="checkbox" ' + (isVisible ? 'checked' : '') + ' onchange="AdminCompetences.toggleVisibility(\'' + comp.id + '\', this.checked)">' +
-                                '<span class="toggle-slider"></span>' +
-                            '</label>' +
-                            '<span class="toggle-label">' + (isVisible ? 'Visible' : 'Masqué') + '</span>' +
                             // Edit
                             '<button class="btn-icon btn-edit" onclick="AdminCompetences.editCompetence(\'' + comp.id + '\')" title="Modifier">' +
                                 '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
@@ -217,29 +204,6 @@ const AdminCompetences = {
 
         card.classList.toggle('expanded', isExpanded);
         if (body) body.style.display = isExpanded ? '' : 'none';
-    },
-
-    async toggleVisibility(id, visible) {
-        try {
-            var result = await this.callAPI('updateCompetenceReferentiel', {
-                id: id,
-                visible: visible
-            });
-
-            if (result.success) {
-                // Mettre à jour localement
-                var comp = this.competences.find(function(c) { return c.id === id; });
-                if (comp) comp.visible = visible;
-                this.renderProgressBanner();
-                this.renderList();
-            } else {
-                alert('Erreur : ' + (result.error || 'Erreur inconnue'));
-                this.renderList(); // Re-render pour annuler visuellement
-            }
-        } catch (error) {
-            console.error('Erreur toggle visibilité:', error);
-            this.renderList();
-        }
     },
 
     // ========== MODAL ==========
