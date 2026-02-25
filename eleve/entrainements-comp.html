@@ -8,14 +8,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="../css/eleve-exercices.css">
+    <link rel="stylesheet" href="../css/eleve-competences.css">
 </head>
 <body>
 
-<div id="exercices-content">
-    <div class="page-loader">
-        <div class="spinner"></div>
-        <p>Chargement...</p>
+<div id="competences-content">
+    <div class="comp-loader">
+        <div class="comp-spinner"></div>
+        <p>Chargement des compétences...</p>
     </div>
 </div>
 
@@ -24,17 +24,13 @@
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/eleve-layout.js"></script>
-<script src="../js/eleve-exercices.js"></script>
-<script src="../js/eleve-exercices-sf.js"></script>
-<script src="../js/eleve-exercices-formats.js"></script>
-<script src="../js/eleve-exercices-validation.js"></script>
-<script src="../js/eleve-exercices-results.js"></script>
-<script src="../js/eleve-exercices-competences.js"></script>
+<script src="../js/eleve-competences.js"></script>
+<script src="../js/eleve-competences-exercice.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', async function() {
         await EleveLayout.init('competences', 'Compétences');
-        await EleveExercices.init('competences');
+        await EleveCompetences.init();
     });
 </script>
 
