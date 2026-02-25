@@ -1640,7 +1640,7 @@ Object.assign(AdminBanquesExercices, {
                     <div class="empty-icon">&#128995;</div>
                     <h3>Aucune competence dans le referentiel</h3>
                     <p>Ajoutez des competences dans la page <strong>Referentiel des competences</strong> pour pouvoir creer des entrainements ici.</p>
-                    <a href="competences.html" class="btn btn-primary">Aller au referentiel</a>
+                    <a href="competences.html" class="btn btn-primary" style="text-decoration: none;">Aller au referentiel</a>
                 </div>
             `;
             return;

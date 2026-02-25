@@ -542,27 +542,38 @@
 /* ===== EMPTY STATE ===== */
 .empty-state {
     text-align: center;
-    padding: 60px 20px;
-    background: white;
+    padding: 48px 32px;
+    background: var(--gray-50);
+    border: 2px dashed var(--gray-200);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
 }
 
 .empty-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
+    font-size: 40px;
+    margin-bottom: 12px;
+    opacity: 0.7;
 }
 
 .empty-state h3 {
-    font-size: 18px;
-    color: var(--gray-800);
-    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin: 0 0 6px 0;
 }
 
 .empty-state p {
+    font-size: 13px;
+    color: var(--gray-400);
+    margin: 0 0 20px 0;
+}
+
+.empty-state .btn {
+    width: auto;
+    display: inline-flex;
+    padding: 10px 20px;
     font-size: 14px;
-    color: var(--gray-500);
-    margin: 0 0 16px 0;
+    font-weight: 500;
+    border-radius: 8px;
 }
 
 /* ===== LOADER ===== */
@@ -3041,26 +3052,26 @@
 /* États vides */
 .conn-empty-state {
     text-align: center;
-    padding: 40px 20px;
-    color: var(--gray-500);
+    padding: 36px 20px;
+    color: var(--gray-400);
 }
 
 .conn-empty-state-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
+    font-size: 36px;
+    margin-bottom: 10px;
     opacity: 0.5;
 }
 
 .conn-empty-state h4 {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
-    color: var(--gray-700);
-    margin: 0 0 8px 0;
+    color: var(--gray-600);
+    margin: 0 0 4px 0;
 }
 
 .conn-empty-state p {
-    font-size: 14px;
-    margin: 0 0 16px 0;
+    font-size: 13px;
+    margin: 0;
 }
 
 /* Format badges */
