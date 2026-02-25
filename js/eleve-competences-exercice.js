@@ -222,8 +222,7 @@ Object.assign(EleveCompetences, {
 
     showTrainingResult(entrainement) {
         const container = document.getElementById('competences-content');
-        const correction = entrainement.correction_commentee;
-        const hasCorrige = correction && typeof correction === 'object' && correction.proposition;
+        const correctionUrl = this._getCorrectionUrl(entrainement.correction_commentee);
 
         // Critères
         const criteresComp = this.criteres
@@ -232,39 +231,17 @@ Object.assign(EleveCompetences, {
 
         // Corrigé commenté
         let correctionHTML = '';
-        if (hasCorrige) {
-            const propositionText = this.escapeHtml(correction.proposition).replace(/\n/g, '<br>');
-
-            const verificationsHTML = (correction.verifications || []).map(v => {
-                const critere = criteresComp.find(cr => String(cr.id) === String(v.critere_id));
-                return `
-                    <div class="comp-verif-item ${v.valide ? 'valid' : 'invalid'}">
-                        <div class="comp-verif-header">
-                            <span class="comp-verif-icon">${v.valide ? '✓' : '✗'}</span>
-                            <span class="comp-verif-critere">${critere ? this.escapeHtml(critere.libelle) : ('Critère ' + v.critere_numero)}</span>
-                        </div>
-                        ${v.explication ? `
-                            <div class="comp-verif-explication">${this.escapeHtml(v.explication)}</div>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
-
+        if (correctionUrl) {
+            const embedUrl = this.getEmbedUrl(correctionUrl);
             correctionHTML = `
                 <div class="comp-corrige-section">
                     <h3>Corrigé commenté</h3>
-
-                    <div class="comp-corrige-proposition">
-                        <h4>Proposition de rédaction</h4>
-                        <div class="comp-corrige-text">${propositionText}</div>
+                    <div class="comp-corrige-doc">
+                        <iframe src="${embedUrl}" class="comp-corrige-iframe" allowfullscreen></iframe>
+                        <a href="${this.escapeHtml(correctionUrl)}" target="_blank" rel="noopener" class="comp-corrige-link">
+                            Ouvrir dans un nouvel onglet ↗
+                        </a>
                     </div>
-
-                    ${verificationsHTML ? `
-                        <div class="comp-corrige-verifications">
-                            <h4>Vérification des critères</h4>
-                            ${verificationsHTML}
-                        </div>
-                    ` : ''}
                 </div>
             `;
         } else {
@@ -367,9 +344,9 @@ Object.assign(EleveCompetences, {
 
     showCorrigeCommente(entrainement) {
         const container = document.getElementById('competences-content');
-        const correction = entrainement.correction_commentee;
+        const correctionUrl = this._getCorrectionUrl(entrainement.correction_commentee);
 
-        if (!correction || typeof correction !== 'object' || !correction.proposition) {
+        if (!correctionUrl) {
             container.innerHTML = `
                 <button class="comp-back-btn" onclick="EleveCompetences.openCompetence('${entrainement.competence_id}')">
                     ← Retour
@@ -383,27 +360,7 @@ Object.assign(EleveCompetences, {
             return;
         }
 
-        // Critères
-        const criteresComp = this.criteres
-            .filter(cr => String(cr.competence_id) === String(entrainement.competence_id))
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
-
-        const propositionText = this.escapeHtml(correction.proposition).replace(/\n/g, '<br>');
-
-        const verificationsHTML = (correction.verifications || []).map(v => {
-            const critere = criteresComp.find(cr => String(cr.id) === String(v.critere_id));
-            return `
-                <div class="comp-verif-item ${v.valide ? 'valid' : 'invalid'}">
-                    <div class="comp-verif-header">
-                        <span class="comp-verif-icon">${v.valide ? '✓' : '✗'}</span>
-                        <span class="comp-verif-critere">${critere ? this.escapeHtml(critere.libelle) : ('Critère ' + v.critere_numero)}</span>
-                    </div>
-                    ${v.explication ? `
-                        <div class="comp-verif-explication">${this.escapeHtml(v.explication)}</div>
-                    ` : ''}
-                </div>
-            `;
-        }).join('');
+        const embedUrl = this.getEmbedUrl(correctionUrl);
 
         container.innerHTML = `
             <button class="comp-back-btn" onclick="EleveCompetences.openCompetence('${entrainement.competence_id}')">
@@ -416,17 +373,12 @@ Object.assign(EleveCompetences, {
                     <p class="comp-corrige-subtitle">${this.escapeHtml(entrainement.titre)}</p>
                 </div>
 
-                <div class="comp-corrige-proposition">
-                    <h4>Proposition de rédaction</h4>
-                    <div class="comp-corrige-text">${propositionText}</div>
+                <div class="comp-corrige-doc">
+                    <iframe src="${embedUrl}" class="comp-corrige-iframe" allowfullscreen></iframe>
+                    <a href="${this.escapeHtml(correctionUrl)}" target="_blank" rel="noopener" class="comp-corrige-link">
+                        Ouvrir dans un nouvel onglet ↗
+                    </a>
                 </div>
-
-                ${verificationsHTML ? `
-                    <div class="comp-corrige-verifications">
-                        <h4>Vérification des critères</h4>
-                        ${verificationsHTML}
-                    </div>
-                ` : ''}
             </div>
         `;
     },
@@ -434,6 +386,24 @@ Object.assign(EleveCompetences, {
     // ==========================================
     // URL EMBED HELPER
     // ==========================================
+
+    // Extraire l'URL du corrigé — rétro-compatible avec l'ancien format JSON
+    _getCorrectionUrl(correction) {
+        if (!correction) return '';
+        if (typeof correction === 'string') {
+            if (correction.startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(correction);
+                    return parsed.url || parsed.proposition || '';
+                } catch (e) { return correction; }
+            }
+            return correction;
+        }
+        if (typeof correction === 'object') {
+            return correction.url || correction.proposition || '';
+        }
+        return '';
+    },
 
     getEmbedUrl(url) {
         if (!url) return '';

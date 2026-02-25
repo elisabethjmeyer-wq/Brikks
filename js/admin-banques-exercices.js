@@ -588,7 +588,7 @@ const AdminBanquesExercices = {
         const formatsBtn = document.getElementById('manageFormatsBtn');
 
         if (type === 'competences') {
-            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle tache complexe';
+            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvel entrainement';
             if (formatsBtn) formatsBtn.style.display = 'none';
         } else if (type === 'connaissances') {
             if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
@@ -611,9 +611,15 @@ const AdminBanquesExercices = {
         const connEl = document.getElementById('countConnaissances');
         if (connEl) connEl.textContent = this.banquesQuestions.length;
 
-        // Count competences from tâches complexes
+        // Count competences (banques) avec des entraînements
         const compEl = document.getElementById('countCompetences');
-        if (compEl) compEl.textContent = this.tachesComplexes.length;
+        if (compEl) {
+            const compsAvecEntr = this.competencesReferentiel.filter(c => {
+                const visible = String(c.visible) === 'true' || c.visible === true || c.statut === 'actif';
+                return visible && this.tachesComplexes.some(t => t.competence_id === c.id);
+            });
+            compEl.textContent = compsAvecEntr.length;
+        }
     },
 
     // ========== RENDER ==========

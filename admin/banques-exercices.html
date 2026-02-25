@@ -618,7 +618,7 @@
 
             <div class="form-group">
                 <label>Competence <span class="req">*</span></label>
-                <select class="form-select" id="tacheCompetenceId" onchange="AdminBanquesExercices.onCompetenceChange()">
+                <select class="form-select" id="tacheCompetenceId">
                     <option value="">-- Choisir une competence --</option>
                     <!-- Options generees dynamiquement -->
                 </select>
@@ -649,16 +649,12 @@
             <!-- Section Corrige commente -->
             <div class="form-section" id="correctionSection">
                 <h3 class="form-section-title">Corrige commente <span class="optional">(mode entrainement)</span></h3>
-                <div class="form-help" style="margin-bottom: 0.75rem;">Visible uniquement en mode entrainement. Aide l'eleve a s'auto-evaluer.</div>
+                <div class="form-help" style="margin-bottom: 0.75rem;">Lien vers un Google Doc visible par les eleves en mode entrainement.</div>
 
                 <div class="form-group">
-                    <label>Proposition de redaction</label>
-                    <textarea class="form-textarea" id="tacheCorrectionProposition" rows="5" placeholder="Redigez une reponse possible a la consigne..."></textarea>
-                </div>
-
-                <div id="correctionVerifications">
-                    <!-- Genere dynamiquement quand une competence est selectionnee -->
-                    <p class="form-hint-muted">Selectionnez une competence pour voir les criteres a verifier.</p>
+                    <label>Lien Google Doc du corrige</label>
+                    <input type="text" class="form-input" id="tacheCorrectionUrl" placeholder="https://docs.google.com/document/d/...">
+                    <div class="form-help">Collez le lien de partage du Google Doc (doit etre accessible en lecture)</div>
                 </div>
             </div>
 
