@@ -83,6 +83,7 @@ const SHEETS = {
   EleveConnexions: 'EleveConnexions',
   CompetencesReferentiel: 'CompetencesReferentiel',
   CriteresReussite: 'CriteresReussite',
+  BanquesCompetences: 'BanquesCompetences',
   TachesComplexes: 'TachesComplexes',
   EleveTachesComplexes: 'EleveTachesComplexes'
 };
@@ -502,6 +503,20 @@ function handleRequest(e) {
         result = deleteCritereReussite(request);
         break;
 
+      // BANQUES COMPETENCES
+      case 'getBanquesCompetences':
+        result = getBanquesCompetences(request);
+        break;
+      case 'createBanqueCompetence':
+        result = createBanqueCompetence(request);
+        break;
+      case 'updateBanqueCompetence':
+        result = updateBanqueCompetence(request);
+        break;
+      case 'deleteBanqueCompetence':
+        result = deleteBanqueCompetence(request);
+        break;
+
       // ENTRAINEMENTS COMPETENCES (nouvelles routes)
       case 'getEntrainementsCompetences':
         result = getEntrainementsCompetences(request);
@@ -717,6 +732,7 @@ function createResponse(data, callback) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
+
 
 
 // ================================================================
@@ -1096,6 +1112,7 @@ function deleteChapterSupports(data) {
     deleted: rowsToDelete.length
   };
 }
+
 
 
 // ================================================================
@@ -1620,6 +1637,7 @@ function deleteGroupe(data) {
 }
 
 
+
 // ================================================================
 // FILE: Videos.gs
 // ================================================================
@@ -1949,6 +1967,7 @@ function deleteRecommandation(data) {
     message: 'Recommandation supprimée avec succès'
   };
 }
+
 
 
 // ================================================================
@@ -2319,6 +2338,7 @@ function deleteQuestionFAQ(data) {
 }
 
 
+
 // ================================================================
 // FILE: Parametres.gs
 // ================================================================
@@ -2516,6 +2536,7 @@ function testScript() {
     Logger.log('Nombre de lignes SUPPORTS_CHAPITRE: ' + supportsSheet.getLastRow());
   }
 }
+
 
 
 // ================================================================
@@ -3364,6 +3385,7 @@ function addProgressionLecons(data) {
     message: 'Progression leçon enregistrée avec succès'
   };
 }
+
 
 
 // ================================================================
@@ -4321,6 +4343,7 @@ function saveProgressionMemorisation(data) {
 
 
 
+
 // ================================================================
 // FILE: Evaluations.gs
 // ================================================================
@@ -4812,6 +4835,7 @@ function getEleveEvaluations(data) {
 
   return { success: true, data: enrichedEvaluations };
 }
+
 
 
 // ================================================================
@@ -5873,6 +5897,7 @@ function getHistoriquePratiquesSF(data) {
     }
   };
 }
+
 
 
 // ================================================================
@@ -7017,6 +7042,7 @@ function cleanupOrphanedData() {
   };
 }
 
+
 // ================================================================
 // FILE: Competences.gs
 // ================================================================
@@ -7300,9 +7326,143 @@ function deleteCritereReussite(data) {
 }
 
 // ========================================
+// BANQUES COMPETENCES
+// Couche intermédiaire entre le référentiel et les entraînements.
+// Chaque banque est liée à une compétence et contrôle la visibilité élève.
+// Colonnes : id, competence_id, titre, description, ordre, statut, date_creation
+// ========================================
+
+/**
+ * Récupère toutes les banques de compétences
+ * @param {Object} data - {competence_id?} filtre optionnel
+ */
+function getBanquesCompetences(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('BanquesCompetences');
+
+  if (!sheet) {
+    return { success: true, data: [] };
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) {
+    return { success: true, data: [] };
+  }
+
+  var headers = allData[0];
+  var banques = [];
+
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
+    if (!row[0]) continue;
+
+    var banque = {};
+    headers.forEach(function(header, index) {
+      banque[header] = row[index];
+    });
+    banques.push(banque);
+  }
+
+  // Filtrer par competence_id si fourni
+  if (data && data.competence_id) {
+    banques = banques.filter(function(b) {
+      return String(b.competence_id) === String(data.competence_id);
+    });
+  }
+
+  return { success: true, data: banques };
+}
+
+/**
+ * Crée une nouvelle banque de compétence
+ */
+function createBanqueCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('BanquesCompetences');
+
+  // Créer la feuille si elle n'existe pas
+  if (!sheet) {
+    sheet = ss.insertSheet('BanquesCompetences');
+    sheet.appendRow(['id', 'competence_id', 'titre', 'description', 'ordre', 'statut', 'date_creation']);
+  }
+
+  var id = 'bc_' + new Date().getTime();
+  var rowData = [
+    id,
+    data.competence_id || '',
+    data.titre || '',
+    data.description || '',
+    data.ordre || 1,
+    data.statut || 'brouillon',
+    new Date().toISOString()
+  ];
+
+  sheet.appendRow(rowData);
+  return { success: true, id: id };
+}
+
+/**
+ * Met à jour une banque de compétence
+ */
+function updateBanqueCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('BanquesCompetences');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
+
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(data.id)) {
+      var updatedRow = headers.map(function(header, index) {
+        if (header === 'id') return data.id;
+        if (header === 'date_creation') return allData[i][index]; // Immutable
+        if (data[header] !== undefined) return data[header];
+        return allData[i][index];
+      });
+
+      var range = sheet.getRange(i + 1, 1, 1, updatedRow.length);
+      range.setValues([updatedRow]);
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Banque non trouvée' };
+}
+
+/**
+ * Supprime une banque de compétence
+ */
+function deleteBanqueCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('BanquesCompetences');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var idCol = headers.indexOf('id');
+
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]) === String(data.id)) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Banque non trouvée' };
+}
+
+// ========================================
 // ENTRAINEMENTS COMPETENCES
 // (anciennement « Tâches Complexes »)
-// Colonnes : id, titre, competence_id, description, document_url,
+// Colonnes : id, titre, competence_id, banque_id, description, document_url,
 //            document_legende, correction_commentee, duree, ordre,
 //            statut, date_creation
 // ========================================
@@ -7347,8 +7507,14 @@ function getEntrainementsCompetences(data) {
     entrainements.push(entry);
   }
 
-  // Filtrer par competence_id si fourni
-  if (data && data.competence_id) {
+  // Filtrer par banque_id si fourni
+  if (data && data.banque_id) {
+    entrainements = entrainements.filter(function(e) {
+      return String(e.banque_id) === String(data.banque_id);
+    });
+  }
+  // Filtrer par competence_id si fourni (rétro-compatibilité)
+  else if (data && data.competence_id) {
     entrainements = entrainements.filter(function(e) {
       return String(e.competence_id) === String(data.competence_id);
     });
@@ -7405,10 +7571,17 @@ function createEntrainementCompetence(data) {
   if (!sheet) {
     sheet = ss.insertSheet('EntrainementsCompetences');
     sheet.appendRow([
-      'id', 'titre', 'competence_id', 'description', 'document_url',
+      'id', 'titre', 'competence_id', 'banque_id', 'description', 'document_url',
       'document_legende', 'correction_commentee', 'duree', 'ordre',
       'statut', 'date_creation'
     ]);
+  }
+
+  // Ajouter la colonne banque_id si absente (migration progressive)
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (headers.indexOf('banque_id') === -1) {
+    var newCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, newCol).setValue('banque_id');
   }
 
   var id = 'ec_' + new Date().getTime();
@@ -7419,19 +7592,25 @@ function createEntrainementCompetence(data) {
     correction = JSON.stringify(correction);
   }
 
-  var rowData = [
-    id,
-    data.titre || '',
-    data.competence_id || '',
-    data.description || '',
-    data.document_url || '',
-    data.document_legende || '',
-    correction,
-    data.duree || 1800,
-    data.ordre || 1,
-    data.statut || 'brouillon',
-    new Date().toISOString()
-  ];
+  // Relire les headers après éventuel ajout de colonne
+  headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var rowData = headers.map(function(h) {
+    switch (h) {
+      case 'id': return id;
+      case 'titre': return data.titre || '';
+      case 'competence_id': return data.competence_id || '';
+      case 'banque_id': return data.banque_id || '';
+      case 'description': return data.description || '';
+      case 'document_url': return data.document_url || '';
+      case 'document_legende': return data.document_legende || '';
+      case 'correction_commentee': return correction;
+      case 'duree': return data.duree || 1800;
+      case 'ordre': return data.ordre || 1;
+      case 'statut': return data.statut || 'brouillon';
+      case 'date_creation': return new Date().toISOString();
+      default: return '';
+    }
+  });
 
   sheet.appendRow(rowData);
   return { success: true, id: id };
@@ -7967,3 +8146,5 @@ function getEleveStats(data) {
     }
   };
 }
+
+
