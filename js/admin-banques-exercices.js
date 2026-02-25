@@ -99,6 +99,7 @@ const AdminBanquesExercices = {
                 this.normalizeQuestionsTypes();
                 this.setupEventListeners();
                 this.updateCounts();
+                this.applyTabState();
                 this.renderBanques();
                 this.showContent();
                 // Refresh in background
@@ -108,6 +109,7 @@ const AdminBanquesExercices = {
                 await this.loadData();
                 this.setupEventListeners();
                 this.updateCounts();
+                this.applyTabState();
                 this.renderBanques();
                 this.showContent();
             }
@@ -573,6 +575,25 @@ const AdminBanquesExercices = {
     },
 
     // ========== TABS ==========
+
+    // Synchronise boutons/filtres avec l'onglet actif (appelé à l'init ET au clic)
+    applyTabState() {
+        const type = this.currentType;
+        const addBtn = document.getElementById('addBanqueBtn');
+        const formatsBtn = document.getElementById('manageFormatsBtn');
+
+        if (type === 'competences') {
+            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvel entrainement';
+            if (formatsBtn) formatsBtn.style.display = 'none';
+        } else if (type === 'connaissances') {
+            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
+            if (formatsBtn) formatsBtn.style.display = 'none';
+        } else {
+            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
+            if (formatsBtn) formatsBtn.style.display = '';
+        }
+    },
+
     switchTab(type) {
         this.currentType = type;
 
@@ -583,21 +604,7 @@ const AdminBanquesExercices = {
             }
         });
 
-        // Update button text and visibility based on tab
-        const addBtn = document.getElementById('addBanqueBtn');
-        const formatsBtn = document.getElementById('manageFormatsBtn');
-
-        if (type === 'competences') {
-            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvel entrainement';
-            if (formatsBtn) formatsBtn.style.display = 'none';
-        } else if (type === 'connaissances') {
-            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
-            if (formatsBtn) formatsBtn.style.display = 'none'; // Pas de formats pour connaissances
-        } else {
-            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
-            if (formatsBtn) formatsBtn.style.display = '';
-        }
-
+        this.applyTabState();
         this.renderBanques();
     },
 
