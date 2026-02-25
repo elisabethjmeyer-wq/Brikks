@@ -1634,8 +1634,15 @@ Object.assign(AdminBanquesExercices, {
         });
 
         if (compsToShow.length === 0 && orphelins.length === 0) {
-            container.innerHTML = '';
-            emptyState.style.display = 'block';
+            emptyState.style.display = 'none';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">&#128995;</div>
+                    <h3>Aucune competence dans le referentiel</h3>
+                    <p>Ajoutez des competences dans la page <strong>Referentiel des competences</strong> pour pouvoir creer des entrainements ici.</p>
+                    <a href="competences.html" class="btn btn-primary">Aller au referentiel</a>
+                </div>
+            `;
             return;
         }
 
@@ -1729,7 +1736,7 @@ Object.assign(AdminBanquesExercices, {
     },
 
     // ========== MODAL ENTRAINEMENT COMPETENCE ==========
-    openTacheComplexeModal(tache = null) {
+    openTacheComplexeModal(tache = null, lockedCompetenceId = null) {
         const modal = document.getElementById('tacheComplexeModal');
         if (!modal) {
             console.error('Modal tacheComplexeModal not found');
@@ -1737,6 +1744,7 @@ Object.assign(AdminBanquesExercices, {
         }
 
         const title = document.getElementById('tacheModalTitle');
+        const compSelect = document.getElementById('tacheCompetenceId');
 
         // Remplir le dropdown des compétences
         this._renderCompetenceSelect();
@@ -1752,9 +1760,9 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('tacheOrdre').value = tache.ordre || 1;
             document.getElementById('tacheStatut').value = tache.statut || 'brouillon';
 
-            // Sélectionner la compétence
-            const compSelect = document.getElementById('tacheCompetenceId');
+            // Sélectionner et verrouiller la compétence
             compSelect.value = tache.competence_id || '';
+            compSelect.disabled = true;
 
             // Charger le lien du corrigé commenté
             const corrUrl = this._extractCorrectionUrl(tache.correction_commentee);
@@ -1767,10 +1775,21 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('tacheDocumentUrl').value = '';
             document.getElementById('tacheDocumentLegende').value = '';
             document.getElementById('tacheDuree').value = 30;
-            document.getElementById('tacheOrdre').value = this.tachesComplexes.length + 1;
             document.getElementById('tacheStatut').value = 'brouillon';
-            document.getElementById('tacheCompetenceId').value = '';
             document.getElementById('tacheCorrectionUrl').value = '';
+
+            if (lockedCompetenceId) {
+                // Ajout depuis le "+" d'une compétence → verrouiller
+                compSelect.value = lockedCompetenceId;
+                compSelect.disabled = true;
+                // Calculer l'ordre : nb d'entraînements existants dans cette compétence + 1
+                const existing = this.tachesComplexes.filter(t => t.competence_id === lockedCompetenceId);
+                document.getElementById('tacheOrdre').value = existing.length + 1;
+            } else {
+                compSelect.value = '';
+                compSelect.disabled = false;
+                document.getElementById('tacheOrdre').value = this.tachesComplexes.length + 1;
+            }
         }
 
         modal.classList.remove('hidden');
@@ -1781,6 +1800,9 @@ Object.assign(AdminBanquesExercices, {
         if (modal) {
             modal.classList.add('hidden');
         }
+        // Réactiver le select compétence (pouvait être verrouillé)
+        const compSelect = document.getElementById('tacheCompetenceId');
+        if (compSelect) compSelect.disabled = false;
     },
 
     _renderCompetenceSelect() {
@@ -1819,14 +1841,11 @@ Object.assign(AdminBanquesExercices, {
     },
 
     addTacheComplexe() {
-        this.openTacheComplexeModal(null);
+        this.openTacheComplexeModal(null, null);
     },
 
     addTacheForCompetence(competenceId) {
-        this.openTacheComplexeModal(null);
-        // Pré-sélectionner la compétence
-        const select = document.getElementById('tacheCompetenceId');
-        if (select) select.value = competenceId;
+        this.openTacheComplexeModal(null, competenceId);
     },
 
     editTacheComplexe(id) {
