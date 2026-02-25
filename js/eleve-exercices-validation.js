@@ -77,6 +77,15 @@ Object.assign(EleveExercices, {
 
         // Pour les savoir-faire: afficher l'écran de résultat dédié
         if (this.currentType === 'savoir-faire') {
+            const exerciseContent = document.querySelector('.exercise-content');
+
+            // Capturer le sujet/document AVANT les corrections (qui modifient le DOM)
+            let subjectHTML = '';
+            const docEl = exerciseContent.querySelector('.mixte-document, .document-section');
+            if (docEl) {
+                subjectHTML = docEl.outerHTML;
+            }
+
             // Appliquer les corrections sur l'exercice actuel
             this.applyCorrections(typeUI);
 
@@ -84,8 +93,24 @@ Object.assign(EleveExercices, {
             const overlay = document.querySelector('.exercise-loading-overlay');
             if (overlay) overlay.remove();
 
-            // Capturer le HTML de l'exercice corrigé avec les valeurs des inputs
-            const exerciseContent = document.querySelector('.exercise-content');
+            // Nettoyer les éléments document du HTML corrigé (on les montre dans l'onglet Sujet)
+            if (subjectHTML) {
+                // Retirer le bouton + modal créés par showDocumentMixteCorrige
+                const toggleBtn = exerciseContent.querySelector('#toggleDocumentBtn');
+                const docModal = exerciseContent.querySelector('#documentModal');
+                if (toggleBtn) toggleBtn.remove();
+                if (docModal) docModal.remove();
+
+                // Retirer la section document restante (document_tableau, question_ouverte)
+                const remainingDoc = exerciseContent.querySelector('.document-section');
+                if (remainingDoc) remainingDoc.remove();
+
+                // Retirer la colonne gauche vide (document_mixte horizontal)
+                const emptyLeftCol = exerciseContent.querySelector('.mixte-left-column');
+                if (emptyLeftCol && emptyLeftCol.children.length === 0) emptyLeftCol.remove();
+            }
+
+            // Capturer le HTML de l'exercice corrigé (sans le document)
             const correctedHTML = this.captureContentWithValues(exerciseContent);
 
             // Capturer aussi la consigne si présente
@@ -97,7 +122,8 @@ Object.assign(EleveExercices, {
                 total,
                 percent,
                 correctedHTML,
-                consigneHTML
+                consigneHTML,
+                subjectHTML
             });
             return;
         }
