@@ -90,7 +90,6 @@ Object.assign(AdminBanquesExercices, {
                         <div class="banque-card-content">
                             <div class="banque-card-title">
                                 ${this.escapeHtml(banque.titre || 'Sans titre')}
-                                ${banque.type === 'revision' ? '<span class="status-badge" style="background:#fef3c7;color:#d97706;margin-left:8px;">Révision</span>' : ''}
                             </div>
                             <div class="banque-card-meta">
                                 ${banque.description ? this.escapeHtml(banque.description) : 'Aucune description'}
@@ -1567,21 +1566,12 @@ Object.assign(AdminBanquesExercices, {
                             <label>Description</label>
                             <textarea class="form-textarea" id="banqueExConnDescription" rows="2" placeholder="Description optionnelle..."></textarea>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Type</label>
-                                <select class="form-select" id="banqueExConnType">
-                                    <option value="lecon">📝 Leçon</option>
-                                    <option value="revision">📖 Révision</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Statut</label>
-                                <select class="form-select" id="banqueExConnStatut">
-                                    <option value="brouillon">Brouillon</option>
-                                    <option value="publie">Publié</option>
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <label>Statut</label>
+                            <select class="form-select" id="banqueExConnStatut">
+                                <option value="brouillon">Brouillon</option>
+                                <option value="publie">Publié</option>
+                            </select>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -1599,14 +1589,12 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('editBanqueExConnId').value = banque.id;
             document.getElementById('banqueExConnTitre').value = banque.titre || '';
             document.getElementById('banqueExConnDescription').value = banque.description || '';
-            document.getElementById('banqueExConnType').value = banque.type || 'lecon';
             document.getElementById('banqueExConnStatut').value = banque.statut || 'brouillon';
         } else {
             title.textContent = 'Nouvelle banque d\'exercices';
             document.getElementById('editBanqueExConnId').value = '';
             document.getElementById('banqueExConnTitre').value = '';
             document.getElementById('banqueExConnDescription').value = '';
-            document.getElementById('banqueExConnType').value = 'lecon';
             document.getElementById('banqueExConnStatut').value = 'brouillon';
         }
 
@@ -1625,7 +1613,6 @@ Object.assign(AdminBanquesExercices, {
         const id = document.getElementById('editBanqueExConnId').value;
         const titre = document.getElementById('banqueExConnTitre').value.trim();
         const description = document.getElementById('banqueExConnDescription').value.trim();
-        const type = document.getElementById('banqueExConnType').value;
         const statut = document.getElementById('banqueExConnStatut').value;
 
         if (!titre) {
@@ -1634,7 +1621,7 @@ Object.assign(AdminBanquesExercices, {
             return;
         }
 
-        const data = { titre, description, type, statut };
+        const data = { titre, description, statut };
 
         try {
             let result;
