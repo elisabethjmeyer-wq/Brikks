@@ -466,12 +466,9 @@ const EleveCompetences = {
             String(p.entrainement_id) === String(entrainementId)
         );
 
-        if (!prog) {
-            // Pas commencé → modal de choix
+        if (!prog || prog.statut === 'en_cours') {
+            // Pas commencé ou en cours → modal de choix
             this.openChoiceModal(entrainementId);
-        } else if (prog.statut === 'en_cours') {
-            // En cours → reprendre
-            this.showExercise(entr, prog.mode);
         } else if (prog.statut === 'entraine') {
             // Entraîné → proposer de refaire ou d'évaluer
             this.openRetrainModal(entrainementId);
