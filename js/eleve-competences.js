@@ -377,6 +377,11 @@ const EleveCompetences = {
             const dureeMin = Math.round((entr.duree || 1800) / 60);
             const exStatus = this.getExerciseStatus(prog);
 
+            // Tag mode (Entraînement / Évaluation) si un mode a été choisi
+            const modeTag = prog && prog.mode
+                ? `<span class="comp-exercise-mode-tag ${prog.mode === 'entrainement' ? 'mode-entrainement' : 'mode-evalue'}">${prog.mode === 'entrainement' ? 'Entraînement' : 'Évaluation'}</span>`
+                : '';
+
             return `
                 <div class="comp-exercise-item ${exStatus.cssClass}" onclick="EleveCompetences.handleExerciseClick('${entr.id}')">
                     <div class="comp-exercise-num">${index + 1}</div>
@@ -384,6 +389,7 @@ const EleveCompetences = {
                         <div class="comp-exercise-title">${this.escapeHtml(entr.titre)}</div>
                         <div class="comp-exercise-meta">
                             <span>⏱ ${dureeMin} min</span>
+                            ${modeTag}
                         </div>
                     </div>
                     <div class="comp-exercise-action">
@@ -466,18 +472,22 @@ const EleveCompetences = {
             String(p.entrainement_id) === String(entrainementId)
         );
 
-        if (!prog || prog.statut === 'en_cours') {
-            // Pas commencé ou en cours → modal de choix
+        if (!prog) {
+            // Jamais commencé → modal de choix (première fois)
             this.openChoiceModal(entrainementId);
+        } else if (prog.statut === 'en_cours') {
+            // En cours → reprendre directement avec le mode déjà choisi
+            this.currentEntrainement = entr;
+            this.showExercise(entr, prog.mode);
         } else if (prog.statut === 'entraine') {
-            // Entraîné → proposer de refaire ou d'évaluer
-            this.openRetrainModal(entrainementId);
+            // Entraîné → relecture : sujet + correction
+            this.showExerciseReview(entr, prog);
         } else if (prog.statut === 'soumis') {
-            // Soumis → message d'attente
-            this.showSubmittedMessage(entr);
+            // Soumis → relecture : sujet + message soumis
+            this.showExerciseReview(entr, prog);
         } else if (prog.statut === 'valide') {
-            // Validé → voir résultat ou se ré-entraîner
-            this.showValidatedMessage(entr);
+            // Validé → relecture : sujet + message validé
+            this.showExerciseReview(entr, prog);
         }
     },
 
@@ -496,20 +506,6 @@ const EleveCompetences = {
             question: 'Comment veux-tu faire cet exercice ?',
             option1: { label: "M'entraîner", desc: 'Travaillez à votre rythme. Vous verrez le corrigé commenté à la fin.', mode: 'entrainement' },
             option2: { label: 'Être évalué(e)', desc: 'Soumettez votre production pour validation par le professeur.', mode: 'evalue' }
-        });
-    },
-
-    openRetrainModal(entrainementId) {
-        const entr = this.entrainements.find(e => String(e.id) === String(entrainementId));
-        if (!entr) return;
-
-        this.currentEntrainement = entr;
-
-        this._showChoiceModal(entr, {
-            title: this.escapeHtml(entr.titre),
-            question: 'Cet exercice a déjà été fait. Que veux-tu faire ?',
-            option1: { label: 'Se ré-entraîner', desc: 'Refaites l\'exercice pour vous perfectionner. Le corrigé sera accessible à la fin.', mode: 'entrainement' },
-            option2: { label: 'Passer en mode évalué', desc: 'Soumettez votre production pour validation par le professeur.', mode: 'evalue' }
         });
     },
 
@@ -613,53 +609,6 @@ const EleveCompetences = {
             console.error('Erreur démarrage entraînement:', error);
             alert('Erreur lors du démarrage');
         }
-    },
-
-    // ==========================================
-    // MESSAGES (soumis, validé)
-    // ==========================================
-
-    showSubmittedMessage(entr) {
-        const container = document.getElementById('competences-content');
-        container.innerHTML = `
-            <button class="comp-back-btn" onclick="EleveCompetences.backToDetail()">
-                ← Retour
-            </button>
-            <div class="comp-message-view">
-                <div class="comp-message-icon submitted">📤</div>
-                <h2>${this.escapeHtml(entr.titre)}</h2>
-                <p class="comp-message-text">Votre production a été soumise et est en attente de correction par le professeur.</p>
-                <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.backToDetail()">
-                    Retour à la compétence
-                </button>
-            </div>
-        `;
-    },
-
-    showValidatedMessage(entr) {
-        const hasCorrige = this._getCorrectionUrl && this._getCorrectionUrl(entr.correction_commentee);
-
-        const container = document.getElementById('competences-content');
-        container.innerHTML = `
-            <button class="comp-back-btn" onclick="EleveCompetences.backToDetail()">
-                ← Retour
-            </button>
-            <div class="comp-message-view validated">
-                <div class="comp-message-icon validated">✓</div>
-                <h2>${this.escapeHtml(entr.titre)}</h2>
-                <p class="comp-message-text">Compétence validée sur cet exercice !</p>
-                <div class="comp-message-actions">
-                    ${hasCorrige ? `
-                        <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.showCorrigeFromList('${entr.id}')">
-                            Voir le corrigé commenté
-                        </button>
-                    ` : ''}
-                    <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.backToDetail()">
-                        Retour à la compétence
-                    </button>
-                </div>
-            </div>
-        `;
     },
 
     showCorrigeFromList(entrainementId) {
