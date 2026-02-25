@@ -615,8 +615,7 @@ const EleveCompetences = {
     },
 
     showValidatedMessage(entr) {
-        const correction = entr.correction_commentee;
-        const hasCorrige = correction && typeof correction === 'object' && correction.proposition;
+        const hasCorrige = this._getCorrectionUrl && this._getCorrectionUrl(entr.correction_commentee);
 
         const container = document.getElementById('competences-content');
         container.innerHTML = `

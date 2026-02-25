@@ -1606,10 +1606,34 @@ Object.assign(AdminBanquesExercices, {
             filtered = filtered.filter(t => t.statut === this.filters.statut);
         }
 
-        // Sort by ordre
-        filtered.sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        // Regrouper par compétence (banque = compétence)
+        const visibleComps = this.competencesReferentiel
+            .filter(c => String(c.visible) === 'true' || c.visible === true || c.statut === 'actif')
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
-        if (filtered.length === 0) {
+        // Map compétence → entraînements
+        const entrByComp = {};
+        visibleComps.forEach(c => { entrByComp[c.id] = []; });
+        filtered.forEach(t => {
+            const compId = t.competence_id || '';
+            if (!entrByComp[compId]) entrByComp[compId] = [];
+            entrByComp[compId].push(t);
+        });
+        // Trier les entraînements dans chaque compétence
+        Object.values(entrByComp).forEach(arr => arr.sort((a, b) => (a.ordre || 0) - (b.ordre || 0)));
+
+        // Entraînements orphelins (compétence supprimée/masquée)
+        const orphelins = filtered.filter(t => {
+            const compId = t.competence_id || '';
+            return !visibleComps.find(c => c.id === compId);
+        });
+
+        // Filtrer les compétences qui ont des entraînements (ou toutes si pas de filtre)
+        const compsToShow = visibleComps.filter(c => {
+            return (entrByComp[c.id] || []).length > 0 || !this.filters.search;
+        });
+
+        if (compsToShow.length === 0 && orphelins.length === 0) {
             container.innerHTML = '';
             emptyState.style.display = 'block';
             return;
@@ -1617,89 +1641,90 @@ Object.assign(AdminBanquesExercices, {
 
         emptyState.style.display = 'none';
 
-        container.innerHTML = filtered.map(tache => {
-            // Trouver la compétence liée
-            const comp = this.competencesReferentiel.find(c =>
-                c.id === tache.competence_id || c.id === String(tache.competence_id)
-            );
-            const compNom = comp ? comp.nom : null;
-
-            // Fallback : ancien format competences_ids (rétro-compat)
-            let compLabel = '';
-            if (compNom) {
-                compLabel = this.escapeHtml(compNom);
-            } else if (tache.competences_ids) {
-                const ids = String(tache.competences_ids).split(',').filter(id => id.trim());
-                const noms = ids.map(id => {
-                    const c = this.competencesReferentiel.find(r => r.id === id.trim());
-                    return c ? c.nom : null;
-                }).filter(Boolean);
-                compLabel = noms.length > 0 ? noms.map(n => this.escapeHtml(n)).join(', ') : '';
-            }
-
+        container.innerHTML = compsToShow.map(comp => {
+            const entrainements = entrByComp[comp.id] || [];
             return `
-                <div class="banque-card tache-complexe-card" data-id="${tache.id}">
-                    <div class="banque-card-header" onclick="AdminBanquesExercices.toggleTache('${tache.id}')">
+                <div class="banque-card" data-comp-id="${comp.id}">
+                    <div class="banque-card-header" onclick="AdminBanquesExercices.toggleTache('comp_${comp.id}')">
                         <div class="banque-card-icon competences">&#128995;</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
-                                ${this.escapeHtml(tache.titre || 'Sans titre')}
-                                <span class="status-badge ${tache.statut}">${tache.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
+                                ${this.escapeHtml(comp.nom || 'Sans titre')}
                             </div>
                             <div class="banque-card-meta">
-                                ${compLabel ? compLabel : 'Aucune competence'}
-                                ${tache.document_legende ? ' · ' + this.escapeHtml(tache.document_legende) : ''}
+                                ${comp.description ? this.escapeHtml(comp.description) : ''}
                             </div>
                         </div>
                         <div class="banque-card-stats">
                             <div class="banque-stat">
-                                <div class="banque-stat-value">${Math.round((tache.duree || 1800) / 60)}</div>
-                                <div class="banque-stat-label">min</div>
+                                <div class="banque-stat-value">${entrainements.length}</div>
+                                <div class="banque-stat-label">entr.</div>
                             </div>
                         </div>
                         <div class="banque-card-actions">
-                            <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editTacheComplexe('${tache.id}')" title="Modifier">&#9998;</button>
-                            <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteTacheComplexe('${tache.id}')" title="Supprimer">&#128465;</button>
+                            <button class="btn-icon add" onclick="event.stopPropagation(); AdminBanquesExercices.addTacheForCompetence('${comp.id}')" title="Ajouter un entrainement">+</button>
                         </div>
                         <div class="banque-card-toggle">&#9660;</div>
                     </div>
-                    <div class="banque-exercices tache-details">
-                        <div class="tache-details-content">
-                            ${tache.document_url ? `
-                                <div class="tache-document">
-                                    <strong>Document :</strong>
-                                    <a href="${this.escapeHtml(tache.document_url)}" target="_blank" rel="noopener">
-                                        ${this.escapeHtml(tache.document_url)}
-                                    </a>
-                                </div>
-                            ` : ''}
-                            ${tache.description ? `
-                                <div class="tache-description"><strong>Description :</strong> ${this.escapeHtml(tache.description)}</div>
-                            ` : ''}
-                            ${this._hasCorrectionCommentee(tache) ? `
-                                <div class="tache-correction-badge">&#9989; Corrige commente renseigne</div>
-                            ` : `
-                                <div class="tache-correction-badge missing">&#9888; Corrige commente manquant</div>
-                            `}
+                    <div class="banque-exercices" id="comp_${comp.id}_list">
+                        <div class="exercices-header">
+                            <h4>Entrainements</h4>
                         </div>
+                        ${this._renderCompetenceEntrainements(entrainements)}
                     </div>
                 </div>
             `;
         }).join('');
     },
 
+    _renderCompetenceEntrainements(entrainements) {
+        if (entrainements.length === 0) {
+            return '<div class="exercices-empty">Aucun entrainement dans cette competence</div>';
+        }
+
+        return `
+            <div class="exercices-list">
+                ${entrainements.map(tache => {
+                    const dureeMin = Math.round((tache.duree || 1800) / 60);
+                    const hasCorrige = this._hasCorrectionCommentee(tache);
+
+                    return `
+                        <div class="exercice-item" data-id="${tache.id}">
+                            <div class="exercice-numero">${tache.ordre || '?'}</div>
+                            <div class="exercice-info">
+                                <div class="exercice-title">${this.escapeHtml(tache.titre || 'Sans titre')}</div>
+                                <div class="exercice-meta">
+                                    ${dureeMin} min
+                                    ${hasCorrige ? ' · &#9989; corrige' : ' · &#9888; sans corrige'}
+                                </div>
+                            </div>
+                            <span class="status-badge ${tache.statut}">${tache.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
+                            <div class="exercice-actions">
+                                <button class="btn-icon" onclick="AdminBanquesExercices.editTacheComplexe('${tache.id}')" title="Modifier">&#9998;</button>
+                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteTacheComplexe('${tache.id}')" title="Supprimer">&#128465;</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
     _hasCorrectionCommentee(tache) {
         if (!tache.correction_commentee) return false;
-        const corr = typeof tache.correction_commentee === 'string'
-            ? (() => { try { return JSON.parse(tache.correction_commentee); } catch (e) { return null; } })()
-            : tache.correction_commentee;
-        return corr && corr.proposition && corr.proposition.trim().length > 0;
+        const url = this._extractCorrectionUrl(tache.correction_commentee);
+        return url && url.trim().length > 0;
     },
 
     toggleTache(id) {
-        const card = document.querySelector(`.tache-complexe-card[data-id="${id}"]`);
-        if (card) {
-            card.classList.toggle('expanded');
+        // Accordéon compétence (comp_xxx) ou ancien format tâche
+        if (id.startsWith('comp_')) {
+            const compId = id.replace('comp_', '');
+            const card = document.querySelector(`.banque-card[data-comp-id="${compId}"]`);
+            if (card) card.classList.toggle('expanded');
+        } else {
+            const card = document.querySelector(`.tache-complexe-card[data-id="${id}"]`);
+            if (card) card.classList.toggle('expanded');
         }
     },
 
@@ -1731,16 +1756,9 @@ Object.assign(AdminBanquesExercices, {
             const compSelect = document.getElementById('tacheCompetenceId');
             compSelect.value = tache.competence_id || '';
 
-            // Charger la correction commentée
-            let corr = tache.correction_commentee;
-            if (typeof corr === 'string' && corr) {
-                try { corr = JSON.parse(corr); } catch (e) { corr = {}; }
-            }
-            corr = corr || {};
-            document.getElementById('tacheCorrectionProposition').value = corr.proposition || '';
-
-            // Afficher les vérifications par critère
-            this.onCompetenceChange(corr.verifications || []);
+            // Charger le lien du corrigé commenté
+            const corrUrl = this._extractCorrectionUrl(tache.correction_commentee);
+            document.getElementById('tacheCorrectionUrl').value = corrUrl;
         } else {
             title.textContent = 'Nouvel entrainement de competence';
             document.getElementById('editTacheId').value = '';
@@ -1752,8 +1770,7 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('tacheOrdre').value = this.tachesComplexes.length + 1;
             document.getElementById('tacheStatut').value = 'brouillon';
             document.getElementById('tacheCompetenceId').value = '';
-            document.getElementById('tacheCorrectionProposition').value = '';
-            this.onCompetenceChange([]);
+            document.getElementById('tacheCorrectionUrl').value = '';
         }
 
         modal.classList.remove('hidden');
@@ -1780,51 +1797,36 @@ Object.assign(AdminBanquesExercices, {
             ).join('');
     },
 
-    onCompetenceChange(existingVerifications) {
-        const container = document.getElementById('correctionVerifications');
-        if (!container) return;
-
-        const compId = document.getElementById('tacheCompetenceId').value;
-        if (!compId) {
-            container.innerHTML = '<p class="form-hint-muted">Selectionnez une competence pour voir les criteres a verifier.</p>';
-            return;
+    // Extraire l'URL du corrigé — rétro-compatible avec l'ancien format JSON
+    _extractCorrectionUrl(correction) {
+        if (!correction) return '';
+        // Nouveau format : c'est juste une URL string
+        if (typeof correction === 'string') {
+            // Vérifier si c'est du JSON (ancien format)
+            if (correction.startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(correction);
+                    return parsed.url || parsed.proposition || '';
+                } catch (e) { return correction; }
+            }
+            return correction;
         }
-
-        // Trouver les critères de la compétence sélectionnée
-        const criteres = (this.criteresReussite || [])
-            .filter(c => c.competence_id === compId)
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
-
-        // Si pas de critères chargés, essayer depuis les données locales
-        if (criteres.length === 0) {
-            container.innerHTML = '<p class="form-hint-muted">Aucun critere defini pour cette competence. <a href="competences.html">Ajouter des criteres</a></p>';
-            return;
+        // Ancien format objet
+        if (typeof correction === 'object') {
+            return correction.url || correction.proposition || '';
         }
-
-        const verifs = Array.isArray(existingVerifications) ? existingVerifications : [];
-
-        container.innerHTML =
-            '<label class="form-label-small">Verification critere par critere</label>' +
-            '<div class="form-help" style="margin-bottom: 0.5rem;">Pour chaque critere, expliquez comment le corrige le remplit.</div>' +
-            criteres.map((crit, i) => {
-                const existing = verifs.find(v => v.critere_id === crit.id || v.critere_numero === (i + 1));
-                return `
-                    <div class="correction-critere-field">
-                        <div class="correction-critere-header">
-                            <span class="correction-critere-num">${i + 1}</span>
-                            <span class="correction-critere-text">${this.escapeHtml(crit.libelle)}</span>
-                        </div>
-                        <input type="text" class="form-input correction-critere-input"
-                            data-critere-id="${crit.id}" data-critere-num="${i + 1}"
-                            value="${this.escapeHtml((existing && existing.explication) || '')}"
-                            placeholder="Comment le corrige remplit ce critere...">
-                    </div>
-                `;
-            }).join('');
+        return '';
     },
 
     addTacheComplexe() {
         this.openTacheComplexeModal(null);
+    },
+
+    addTacheForCompetence(competenceId) {
+        this.openTacheComplexeModal(null);
+        // Pré-sélectionner la compétence
+        const select = document.getElementById('tacheCompetenceId');
+        if (select) select.value = competenceId;
     },
 
     editTacheComplexe(id) {
@@ -1845,7 +1847,7 @@ Object.assign(AdminBanquesExercices, {
         const duree = dureeMinutes * 60;
         const ordre = parseInt(document.getElementById('tacheOrdre').value) || 1;
         const statut = document.getElementById('tacheStatut').value;
-        const proposition = document.getElementById('tacheCorrectionProposition').value.trim();
+        const correctionUrl = document.getElementById('tacheCorrectionUrl').value.trim();
 
         if (!titre) {
             alert('Le titre est requis');
@@ -1856,23 +1858,7 @@ Object.assign(AdminBanquesExercices, {
             return;
         }
 
-        // Construire la correction commentée
-        const verifications = [];
-        document.querySelectorAll('.correction-critere-input').forEach(input => {
-            const explication = input.value.trim();
-            if (explication) {
-                verifications.push({
-                    critere_id: input.dataset.critereId,
-                    critere_numero: parseInt(input.dataset.critereNum) || 0,
-                    valide: true,
-                    explication: explication
-                });
-            }
-        });
-
-        const correctionCommentee = (proposition || verifications.length > 0)
-            ? JSON.stringify({ proposition: proposition, verifications: verifications })
-            : '';
+        const correctionCommentee = correctionUrl;
 
         const data = {
             titre,
