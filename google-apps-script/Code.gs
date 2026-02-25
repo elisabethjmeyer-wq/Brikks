@@ -498,46 +498,73 @@ function handleRequest(e) {
         result = deleteCritereReussite(request);
         break;
 
-      // TACHES COMPLEXES (Compétences)
+      // ENTRAINEMENTS COMPETENCES (nouvelles routes)
+      case 'getEntrainementsCompetences':
+        result = getEntrainementsCompetences(request);
+        break;
+      case 'getEntrainementCompetence':
+        result = getEntrainementCompetence(request);
+        break;
+      case 'createEntrainementCompetence':
+        result = createEntrainementCompetence(request);
+        break;
+      case 'updateEntrainementCompetence':
+        result = updateEntrainementCompetence(request);
+        break;
+      case 'deleteEntrainementCompetence':
+        result = deleteEntrainementCompetence(request);
+        break;
+
+      // ELEVE ENTRAINEMENTS COMPETENCES
+      case 'getEleveEntrainementCompetence':
+        result = getEleveEntrainementCompetence(request);
+        break;
+      case 'getEleveEntrainementsCompetences':
+        result = getEleveEntrainementsCompetences(request);
+        break;
+      case 'startEleveEntrainementCompetence':
+        result = startEleveEntrainementCompetence(request);
+        break;
+      case 'finishEleveEntrainementCompetence':
+        result = finishEleveEntrainementCompetence(request);
+        break;
+      case 'validateEleveEntrainementCompetence':
+        result = validateEleveEntrainementCompetence(request);
+        break;
+
+      // ALIASES rétro-compatibilité (anciens noms « tâches complexes »)
       case 'getTachesComplexes':
-        result = getTachesComplexes(request);
+        result = getEntrainementsCompetences(request);
         break;
       case 'getTacheComplexe':
-        result = getTacheComplexe(request);
+        result = getEntrainementCompetence(request);
         break;
       case 'createTacheComplexe':
-        result = createTacheComplexe(request);
+        result = createEntrainementCompetence(request);
         break;
       case 'updateTacheComplexe':
-        result = updateTacheComplexe(request);
+        result = updateEntrainementCompetence(request);
         break;
       case 'deleteTacheComplexe':
-        result = deleteTacheComplexe(request);
+        result = deleteEntrainementCompetence(request);
         break;
-
-      // ELEVE TACHES COMPLEXES (progress tracking)
       case 'getEleveTacheComplexe':
-        result = getEleveTacheComplexe(request);
+        result = getEleveEntrainementCompetence(request);
         break;
-
       case 'getEleveTachesComplexes':
-        result = getEleveTachesComplexes(request);
+        result = getEleveEntrainementsCompetences(request);
         break;
-
       case 'startEleveTacheComplexe':
-        result = startEleveTacheComplexe(request);
+        result = startEleveEntrainementCompetence(request);
         break;
-
       case 'finishEleveTacheComplexe':
-        result = finishEleveTacheComplexe(request);
+        result = finishEleveEntrainementCompetence(request);
         break;
-
       case 'submitEleveTacheComplexe':
-        result = submitEleveTacheComplexe(request);
+        result = finishEleveEntrainementCompetence(request);
         break;
-
       case 'updateEleveTacheComplexe':
-        result = updateEleveTacheComplexe(request);
+        result = validateEleveEntrainementCompetence(request);
         break;
 
       case 'trackEleveConnexion':
