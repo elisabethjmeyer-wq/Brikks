@@ -591,7 +591,7 @@ const AdminBanquesExercices = {
         const formatsBtn = document.getElementById('manageFormatsBtn');
 
         if (type === 'competences') {
-            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvel entrainement';
+            if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
             if (formatsBtn) formatsBtn.style.display = 'none';
         } else if (type === 'connaissances') {
             if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
