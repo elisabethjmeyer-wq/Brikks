@@ -34,18 +34,21 @@ Object.assign(EleveCompetences, {
         // URL iframe
         const iframeUrl = this.getEmbedUrl(entrainement.document_url);
 
-        // HTML critères dans la sidebar
-        const criteresHTML = criteresComp.length > 0 ? `
+        // HTML critères dans la sidebar (cases à cocher)
+        const nbCriteres = criteresComp.length;
+        const criteresHTML = nbCriteres > 0 ? `
             <div class="comp-sidebar-criteres">
                 <h4>Critères de réussite</h4>
-                <ul class="comp-sidebar-criteres-list">
+                <p class="comp-sidebar-criteres-hint">Au moins ${nbCriteres} sur ${nbCriteres} pour valider</p>
+                <div class="comp-sidebar-criteres-list">
                     ${criteresComp.map((cr, i) => `
-                        <li>
-                            <span class="comp-critere-num">${i + 1}</span>
-                            <span class="comp-critere-text">${this.escapeHtml(cr.libelle)}</span>
-                        </li>
+                        <label class="comp-sidebar-critere-item">
+                            <input type="checkbox" class="comp-sidebar-critere-checkbox" id="critere-${i}">
+                            <span class="comp-sidebar-critere-check"></span>
+                            <span class="comp-sidebar-critere-text">${this.escapeHtml(cr.libelle)}</span>
+                        </label>
                     `).join('')}
-                </ul>
+                </div>
             </div>
         ` : '';
 
