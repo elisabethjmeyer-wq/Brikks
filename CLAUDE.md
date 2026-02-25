@@ -42,6 +42,28 @@ L'utilisatrice principale est la professeure qui n'est pas développeuse : expli
 
 **État** : fonctionnel, audité, code nettoyé et factorisé. UX de correction retravaillée.
 
+### Paramètres admin + mode prévisualisation — VÉRIFIÉ
+
+**Page** : `admin/parametres.html`
+**Fichiers** : `js/admin-parametres.js` (826 lignes), `components/eleve-layout.js` (620 lignes)
+**Backend** : `Parametres.gs` (194 lignes)
+
+**Ce que fait le module :**
+- La prof configure le titre, sous-titre, emoji et couleur du site via la feuille PARAMETRES
+- La prof gère le menu élève avec **3 états de visibilité** par page :
+  - **Visible** (vert) : page dans le menu, cliquable pour les élèves
+  - **Bloqué** (orange) : page dans le menu mais verrouillée (cadenas), non cliquable
+  - **Masqué** (gris) : page complètement absente du menu élève
+- Le toggle cycle entre les 3 états (clic = état suivant)
+- **Mode prévisualisation** (`sessionStorage.brikks_preview`) : la prof voit toutes les pages y compris les masquées, avec des badges indiquant l'état réel et un bandeau cyan « Mode test »
+- Réordonnancement par drag & drop + sélection d'icône inline
+
+**Données** : 2 colonnes dans CONFIG_MENU : `visible` (bool) + `bloque` (bool). `collectMenuState()` convertit l'état DOM → données avant sauvegarde.
+
+**Appels API** : `SheetsAPI.fetchAndParse('PARAMETRES')`, `SheetsAPI.fetchAndParse('CONFIG_MENU')`, `updateParametres`, `updateMenuConfig`
+
+**État** : fonctionnel, ajouté en session 7.
+
 ## Architecture technique
 
 ### Stack
@@ -63,7 +85,7 @@ L'utilisatrice principale est la professeure qui n'est pas développeuse : expli
 ### Structure du repo
 ```
 Brikks/
-├── js/                          # 44 fichiers JS (~38k lignes)
+├── js/                          # 47 fichiers JS (~37k lignes)
 │   └── config.js                # ⭐ Configuration centrale (sheets, API, routes)
 ├── css/                         # 29 fichiers CSS (~38k lignes)
 ├── google-apps-script/          # 12 fichiers .gs (~7.8k lignes)
@@ -125,10 +147,10 @@ css/eleve-exercices.css             # Styles exercices élève
 
 ### Module admin connaissances — création d'entraînements (audité et nettoyé)
 ```
-js/admin-banques-exercices.js                  # Module parent (1 439 lignes) : init, cache, API JSONP, tabs, rendu savoir-faire
-js/admin-banques-exercices-connaissances.js    # Extension (1 776 lignes) : wizard 4 étapes + CRUD banques/entraînements
-js/admin-banques-exercices-questions.js        # Extension (1 794 lignes) : CRUD banques de questions
-js/admin-banques-exercices-builders.js         # Extension (1 851 lignes) : builders (tableau, carte, mixte)
+js/admin-banques-exercices.js                  # Module parent (1 419 lignes) : init, cache, API JSONP, tabs, rendu savoir-faire
+js/admin-banques-exercices-connaissances.js    # Extension (1 756 lignes) : wizard 4 étapes + CRUD banques/entraînements
+js/admin-banques-exercices-questions.js        # Extension (1 848 lignes) : CRUD banques de questions
+js/admin-banques-exercices-builders.js         # Extension (1 849 lignes) : builders (tableau, carte, mixte)
 css/admin-banques-exercices.css                # Styles (4 324 lignes, dont ~800 pour le wizard)
 css/admin-banques-questions.css                # Styles banques de questions (812 lignes)
 ```
@@ -207,7 +229,7 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - ~~**Erreur silencieuse de sauvegarde**~~ : **CORRIGÉ (session 6)** — bandeau rouge affiché si la sauvegarde échoue.
 - ~~**Validation dupliquée**~~ : **CORRIGÉ (session 6)** — `validateCurrentEtape()` délègue maintenant aux `run*Validation()` pour 5 formats (texte_trou, timeline, chrono, carte, association). Les 3 formats restants (vrai_faux, qcm, question_ouverte) n'avaient pas de duplication.
 - ~~**Parsing JSON `donnees` dupliqué 4x**~~ : **CORRIGÉ (session 6)** — `parseJSONField()` utilisé partout.
-- **CSS chaotique (5 667 lignes)** : ~250 lignes de classes mortes (ancien système badges/progress), 13+ conflits de sélecteurs dupliqués (`.correction-section`, `.unsupported-format`, `.correction-assoc-grid`, etc.), 4 blocs `@media 768px` séparés, 3 systèmes de carrousel CSS qui coexistent. Nettoyage nécessaire mais **requiert des tests visuels** après chaque modification. Fichier : `css/eleve-connaissances.css`.
+- **CSS chaotique (5 669 lignes)** : ~250 lignes de classes mortes (ancien système badges/progress), 13+ conflits de sélecteurs dupliqués (`.correction-section`, `.unsupported-format`, `.correction-assoc-grid`, etc.), 4 blocs `@media 768px` séparés, 3 systèmes de carrousel CSS qui coexistent. Nettoyage nécessaire mais **requiert des tests visuels** après chaque modification. Fichier : `css/eleve-connaissances.css`.
 - **`SEUIL_ETAPES` hardcodé côté frontend** : le backend renvoie `etape_max` dans ses réponses mais le frontend l'ignore et utilise sa propre constante `SEUIL_ETAPES: 7`. Si le backend change, il faut modifier les deux côtés manuellement.
 - ~~**Listener leak**~~ : **CORRIGÉ (session 6)** — listener stocké dans `_popoverClickHandler` et nettoyé dans `cleanupEventListeners()`.
 
