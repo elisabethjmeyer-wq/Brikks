@@ -37,7 +37,44 @@ Audit complet du module compétences (élève + admin + backend + legacy) suivi 
 - `CLAUDE.md` — problèmes marqués comme corrigés
 - `CHANGELOG.md` — cette entrée
 
+### Phase 3 — Synchronisation backend
+
+**Problème identifié** : quand un élève est supprimé, seule la ligne dans UTILISATEURS était effacée. Les données de progression restaient dans 9 tables orphelines (connexions, résultats, mémorisation, évaluations, compétences, méthodologie, leçons, historique SF).
+
+**Corrections :**
+- `deleteUser()` (Users.gs) : suppression en cascade — nettoie les 9 tables liées avant de supprimer l'utilisateur
+- Nouvelle fonction utilitaire `deleteRowsByValue_(ss, sheetName, columnName, value)` pour la suppression par colonne
+- `SHEETS` constant (Code.gs + TOUT-EN-UN.gs) : `TachesComplexes` → `EntrainementsCompetences`, `EleveTachesComplexes` → `EleveEntrainementsCompetences` (alignement avec les vrais noms d'onglets Google Sheets)
+
+**Tables nettoyées en cascade lors de la suppression d'un élève :**
+PROGRESSION_MEMORISATION, RESULTATS_EXERCICES, HISTORIQUE_PRATIQUES_SF, RESULTATS_ENTRAINEMENT, EVALUATION_RESULTATS, PROGRESSION_METHODOLOGIE, PROGRESSION_LECONS, EleveConnexions, EleveEntrainementsCompetences
+
+### Fichiers modifiés (phase 3)
+- `google-apps-script/Users.gs` — cascade delete + helper deleteRowsByValue_
+- `google-apps-script/Code.gs` — SHEETS constant corrigée
+- `google-apps-script/TOUT-EN-UN.gs` — même corrections (copie groupée)
+
+### Phase 4 — Audit synchronisation des onglets compétences
+
+Audit complet des 5 onglets du module compétences : CompetencesReferentiel, CriteresReussite, BanquesCompetences, EntrainementsCompetences, EleveEntrainementsCompetences.
+
+**Cascade delete ajoutée sur `deleteEntrainementCompetence()`** :
+- Supprime les progressions élèves (`EleveEntrainementsCompetences` avec `entrainement_id` correspondant) en plus de l'entraînement lui-même
+- Messages d'erreur enrichis (feuille non trouvée, id manquant, colonne absente, id non trouvé avec valeur)
+- Réponse enrichie : retourne `deleted_id` en cas de succès
+
+**Cascade delete ajoutée sur `deleteBanqueCompetence()`** (phase 3) :
+- Supprime les entraînements associés (`EntrainementsCompetences` avec `banque_id` correspondant)
+
+**Problème non résolu : suppression individuelle d'entraînement**
+Le code backend `deleteEntrainementCompetence()` est correct (cherche par ID, appelle deleteRow). Cause la plus probable : **le backend déployé sur Google Apps Script n'est pas à jour** et n'a pas la route `deleteTacheComplexe`. Le frontend utilise l'UI optimiste qui masque temporairement l'item, mais le backend ne le supprime pas réellement. À vérifier en redéployant le code.
+
+### Fichiers modifiés (phase 4)
+- `google-apps-script/Competences.gs` — cascade delete entrainement → progressions élèves
+- `google-apps-script/TOUT-EN-UN.gs` — même correction
+
 ### Ce qui reste à faire
+- **Redéployer le backend** (Code.gs + Competences.gs) sur Google Apps Script pour activer toutes les corrections
 - Module legacy `eleve-exercices-competences.js` (785 l.) à supprimer quand confirmé non chargé
 - ESLint v10/v8 mismatch non traité (hors périmètre)
 
