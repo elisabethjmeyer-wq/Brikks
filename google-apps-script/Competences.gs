@@ -610,6 +610,17 @@ function updateEntrainementCompetence(data) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
+  // Migration progressive : ajouter les colonnes manquantes
+  var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var newCols = ['banque_id', 'document_contenu', 'correction_contenu'];
+  newCols.forEach(function(col) {
+    if (currentHeaders.indexOf(col) === -1) {
+      var nextCol = sheet.getLastColumn() + 1;
+      sheet.getRange(1, nextCol).setValue(col);
+      currentHeaders.push(col);
+    }
+  });
+
   var allData = sheet.getDataRange().getValues();
   var headers = allData[0];
   var idCol = headers.indexOf('id');
