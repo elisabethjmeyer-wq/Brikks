@@ -1992,53 +1992,144 @@ Object.assign(AdminBanquesExercices, {
         return html;
     },
 
+    // ========== ÉDITEUR RICHE — GÉNÉRATEUR ==========
+
+    /**
+     * Crée un éditeur riche complet (toolbar + zone d'édition) dans un container.
+     * @param {string} containerId - ID du div container (ex: 'documentEditorContainer')
+     * @param {string} editorId - ID à donner à la zone d'édition (ex: 'documentEditor')
+     * @param {Object} options
+     * @param {string} options.placeholder - Texte placeholder
+     * @param {boolean} options.media - Afficher les boutons image/vidéo (défaut: true)
+     * @param {boolean} options.headings - Afficher les boutons de titre H2/H3 (défaut: false)
+     */
+    createRichTextEditor(containerId, editorId, options) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const opts = Object.assign({ placeholder: '', media: true, headings: false }, options);
+        const colorId = editorId + 'Color';
+
+        // — Générer le HTML de la toolbar —
+        var toolbarHtml = '<div class="rt-toolbar">';
+
+        // Groupe : formatage texte
+        toolbarHtml += '<div class="rt-group">';
+        toolbarHtml += '<button type="button" class="rt-btn" data-cmd="bold" title="Gras"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>';
+        toolbarHtml += '<button type="button" class="rt-btn" data-cmd="italic" title="Italique"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>';
+        toolbarHtml += '<button type="button" class="rt-btn" data-cmd="underline" title="Souligné"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg></button>';
+        toolbarHtml += '</div>';
+
+        // Groupe : titres (optionnel)
+        if (opts.headings) {
+            toolbarHtml += '<div class="rt-group">';
+            toolbarHtml += '<button type="button" class="rt-btn" data-heading="h2" title="Titre">H2</button>';
+            toolbarHtml += '<button type="button" class="rt-btn" data-heading="h3" title="Sous-titre">H3</button>';
+            toolbarHtml += '<button type="button" class="rt-btn" data-heading="p" title="Paragraphe">P</button>';
+            toolbarHtml += '</div>';
+        }
+
+        // Groupe : listes
+        toolbarHtml += '<div class="rt-group">';
+        toolbarHtml += '<button type="button" class="rt-btn" data-cmd="insertUnorderedList" title="Liste à puces"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1.5" fill="currentColor"/><circle cx="4" cy="12" r="1.5" fill="currentColor"/><circle cx="4" cy="18" r="1.5" fill="currentColor"/></svg></button>';
+        toolbarHtml += '<button type="button" class="rt-btn" data-cmd="insertOrderedList" title="Liste numérotée"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="2" y="8" font-size="8" fill="currentColor" stroke="none" font-family="sans-serif">1</text><text x="2" y="14" font-size="8" fill="currentColor" stroke="none" font-family="sans-serif">2</text><text x="2" y="20" font-size="8" fill="currentColor" stroke="none" font-family="sans-serif">3</text></svg></button>';
+        toolbarHtml += '</div>';
+
+        // Groupe : couleur
+        toolbarHtml += '<div class="rt-group">';
+        toolbarHtml += '<input type="color" class="rt-color" id="' + colorId + '" value="#000000" title="Couleur du texte">';
+        toolbarHtml += '</div>';
+
+        // Groupe : médias (optionnel)
+        if (opts.media) {
+            toolbarHtml += '<div class="rt-group rt-group-media">';
+            toolbarHtml += '<button type="button" class="rt-btn rt-btn-label" data-media="image" title="Insérer une image"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> Image</button>';
+            toolbarHtml += '<button type="button" class="rt-btn rt-btn-label" data-media="video" title="Insérer une vidéo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Vidéo</button>';
+            toolbarHtml += '</div>';
+        }
+
+        toolbarHtml += '</div>';
+
+        // — Zone d'édition —
+        var editorHtml = '<div class="rt-editor" id="' + editorId + '" contenteditable="true"'
+            + (opts.placeholder ? ' data-placeholder="' + opts.placeholder + '"' : '')
+            + '></div>';
+
+        container.innerHTML = toolbarHtml + editorHtml;
+
+        // — Attacher les handlers —
+        var toolbar = container.querySelector('.rt-toolbar');
+        var editor = document.getElementById(editorId);
+
+        // Boutons execCommand (bold, italic, underline, listes)
+        toolbar.querySelectorAll('.rt-btn[data-cmd]').forEach(function(btn) {
+            btn.onmousedown = function(e) { e.preventDefault(); };
+            btn.onclick = function() {
+                editor.focus();
+                document.execCommand(btn.dataset.cmd, false, null);
+            };
+        });
+
+        // Boutons titres (h2, h3, p)
+        toolbar.querySelectorAll('.rt-btn[data-heading]').forEach(function(btn) {
+            btn.onmousedown = function(e) { e.preventDefault(); };
+            btn.onclick = function() {
+                editor.focus();
+                document.execCommand('formatBlock', false, btn.dataset.heading);
+            };
+        });
+
+        // Boutons médias (image, vidéo)
+        var self = this;
+        toolbar.querySelectorAll('.rt-btn[data-media]').forEach(function(btn) {
+            btn.onmousedown = function(e) { e.preventDefault(); };
+            btn.onclick = function() {
+                self._insertMedia(editor, btn.dataset.media);
+            };
+        });
+
+        // Couleur du texte
+        var colorInput = document.getElementById(colorId);
+        if (colorInput) {
+            colorInput.oninput = function() {
+                editor.focus();
+                document.execCommand('foreColor', false, colorInput.value);
+            };
+        }
+    },
+
     _initRichTextEditors() {
-        // Attacher les handlers de toolbar pour document et correction
-        ['document', 'correction'].forEach(section => {
-            const toolbar = document.getElementById(section + 'Toolbar');
-            const editor = document.getElementById(section + 'Editor');
-            const colorInput = document.getElementById(section + 'TextColor');
-            if (!toolbar || !editor) return;
-
-            // Boutons de formatage
-            toolbar.querySelectorAll('.rt-btn').forEach(btn => {
-                btn.onmousedown = (e) => e.preventDefault(); // Garder le focus dans l'éditeur
-                btn.onclick = () => {
-                    editor.focus();
-                    document.execCommand(btn.dataset.cmd, false, null);
-                };
-            });
-
-            // Couleur du texte
-            if (colorInput) {
-                colorInput.oninput = () => {
-                    editor.focus();
-                    document.execCommand('foreColor', false, colorInput.value);
-                };
-            }
+        this.createRichTextEditor('documentEditorContainer', 'documentEditor', {
+            placeholder: 'Saisissez le contenu du document...',
+            media: true
+        });
+        this.createRichTextEditor('correctionEditorContainer', 'correctionEditor', {
+            placeholder: 'Saisissez le contenu du corrigé...',
+            media: true
         });
     },
 
-    insertMedia(editorId, type) {
-        const editor = document.getElementById(editorId);
+    // ========== INSERTION MÉDIA ==========
+
+    _insertMedia(editor, type) {
         if (!editor) return;
 
-        const hint = type === 'image'
+        var hint = type === 'image'
             ? 'Collez le lien de l\'image :\n(Google Drive, lien direct...)'
-            : 'Collez le lien de la video :\n(YouTube, Google Drive...)';
-        const url = prompt(hint, '');
+            : 'Collez le lien de la vidéo :\n(YouTube, Google Drive...)';
+        var url = prompt(hint, '');
         if (!url || !url.trim()) return;
 
-        const src = url.trim();
-        let html = '';
+        var src = url.trim();
+        var html = '';
 
         if (type === 'image') {
-            const imgSrc = this._convertToDirectImageUrl(src);
-            html = '<div class="rt-media-wrapper"><img src="' + imgSrc + '" alt="Image" style="max-width:100%;height:auto;border-radius:8px;"></div>';
+            var imgSrc = this._convertToDirectImageUrl(src);
+            html = '<div class="rt-media-wrapper"><img src="' + imgSrc + '" alt="Image"></div>';
         } else {
-            const embedSrc = this._convertToEmbedVideoUrl(src);
+            var embedSrc = this._convertToEmbedVideoUrl(src);
             if (embedSrc) {
-                html = '<div class="rt-media-wrapper"><iframe src="' + embedSrc + '" width="100%" height="315" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe></div>';
+                html = '<div class="rt-media-wrapper"><iframe src="' + embedSrc + '" width="100%" height="315" frameborder="0" allowfullscreen></iframe></div>';
             } else {
                 html = '<div class="rt-media-wrapper"><a href="' + src + '" target="_blank">' + src + '</a></div>';
             }
@@ -2049,31 +2140,18 @@ Object.assign(AdminBanquesExercices, {
     },
 
     _convertToDirectImageUrl(url) {
-        // Google Drive : /file/d/ID/... → thumbnail direct
-        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (driveMatch) {
-            return 'https://lh3.googleusercontent.com/d/' + driveMatch[1];
-        }
-        // Google Drive : ?id=ID
-        const driveIdMatch = url.match(/drive\.google\.com.*[?&]id=([a-zA-Z0-9_-]+)/);
-        if (driveIdMatch) {
-            return 'https://lh3.googleusercontent.com/d/' + driveIdMatch[1];
-        }
-        // Sinon, URL directe (lien d'image classique)
+        var driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) return 'https://lh3.googleusercontent.com/d/' + driveMatch[1];
+        var driveIdMatch = url.match(/drive\.google\.com.*[?&]id=([a-zA-Z0-9_-]+)/);
+        if (driveIdMatch) return 'https://lh3.googleusercontent.com/d/' + driveIdMatch[1];
         return url;
     },
 
     _convertToEmbedVideoUrl(url) {
-        // YouTube : watch?v=ID ou youtu.be/ID
-        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
-        if (ytMatch) {
-            return 'https://www.youtube-nocookie.com/embed/' + ytMatch[1];
-        }
-        // Google Drive video : /file/d/ID/...
-        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (driveMatch) {
-            return 'https://drive.google.com/file/d/' + driveMatch[1] + '/preview';
-        }
+        var ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+        if (ytMatch) return 'https://www.youtube-nocookie.com/embed/' + ytMatch[1];
+        var driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) return 'https://drive.google.com/file/d/' + driveMatch[1] + '/preview';
         return null;
     },
 
