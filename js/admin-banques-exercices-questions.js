@@ -2199,13 +2199,13 @@ Object.assign(AdminBanquesExercices, {
     },
 
     addTacheForBanque(banqueId) {
-        this.openTacheComplexeModal(null, banqueId);
+        this.openCompWizard(null, banqueId);
     },
 
     editTacheComplexe(id) {
         const tache = this.tachesComplexes.find(t => t.id === id);
         if (tache) {
-            this.openTacheComplexeModal(tache);
+            this.openCompWizard(tache);
         }
     },
 
