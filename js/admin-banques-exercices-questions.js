@@ -1869,15 +1869,14 @@ Object.assign(AdminBanquesExercices, {
         // Remplir le dropdown avec les banques de compétences (pas les compétences directement)
         this._renderBanqueCompetenceSelect();
 
-        // Initialiser les éditeurs riches
-        this._initRichTextEditors();
+        // Initialiser l'éditeur riche du corrigé
+        this._initCorrectionEditor();
 
         if (tache) {
             title.textContent = 'Modifier l\'entrainement';
             document.getElementById('editTacheId').value = tache.id;
             document.getElementById('tacheTitre').value = tache.titre || '';
             document.getElementById('tacheDescription').value = tache.description || '';
-            document.getElementById('tacheDocumentLegende').value = tache.document_legende || '';
             document.getElementById('tacheDuree').value = Math.round((tache.duree || 1800) / 60);
             document.getElementById('tacheOrdre').value = tache.ordre || 1;
             document.getElementById('tacheStatut').value = tache.statut || 'brouillon';
@@ -1886,16 +1885,9 @@ Object.assign(AdminBanquesExercices, {
             compSelect.value = tache.banque_id || '';
             compSelect.disabled = true;
 
-            // Document : charger URL ou contenu riche
-            if (tache.document_contenu) {
-                this.toggleSourceMode('document', 'html');
-                document.getElementById('documentEditor').innerHTML = tache.document_contenu;
-                document.getElementById('tacheDocumentUrl').value = '';
-            } else {
-                this.toggleSourceMode('document', 'url');
-                document.getElementById('tacheDocumentUrl').value = tache.document_url || '';
-                document.getElementById('documentEditor').innerHTML = '';
-            }
+            // Document : initialiser le block editor avec les blocs existants
+            const blocks = this.convertLegacyToBlocks(tache);
+            this.initBlockEditor(blocks);
 
             // Corrigé : charger URL ou contenu riche
             if (tache.correction_contenu) {
@@ -1913,17 +1905,16 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('editTacheId').value = '';
             document.getElementById('tacheTitre').value = '';
             document.getElementById('tacheDescription').value = '';
-            document.getElementById('tacheDocumentUrl').value = '';
-            document.getElementById('tacheDocumentLegende').value = '';
             document.getElementById('tacheDuree').value = 30;
             document.getElementById('tacheStatut').value = 'brouillon';
             document.getElementById('tacheCorrectionUrl').value = '';
-            document.getElementById('documentEditor').innerHTML = '';
             document.getElementById('correctionEditor').innerHTML = '';
 
-            // Réinitialiser les toggles en mode lien
-            this.toggleSourceMode('document', 'url');
+            // Réinitialiser le toggle corrigé en mode lien
             this.toggleSourceMode('correction', 'url');
+
+            // Initialiser le block editor vide
+            this.initBlockEditor(null);
 
             if (lockedBanqueId) {
                 // Ajout depuis le "+" d'une banque → verrouiller
@@ -1951,9 +1942,11 @@ Object.assign(AdminBanquesExercices, {
         const compSelect = document.getElementById('tacheCompetenceId');
         if (compSelect) compSelect.disabled = false;
         this._banqueCompMode = false;
-        // Nettoyer les éditeurs riches
-        const docEditor = document.getElementById('documentEditor');
-        if (docEditor) docEditor.innerHTML = '';
+        // Nettoyer le block editor
+        this._blocks = [];
+        const blockContainer = document.getElementById('blockEditorContainer');
+        if (blockContainer) blockContainer.innerHTML = '';
+        // Nettoyer l'éditeur corrigé
         const corrEditor = document.getElementById('correctionEditor');
         if (corrEditor) corrEditor.innerHTML = '';
     },
@@ -2098,11 +2091,7 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
-    _initRichTextEditors() {
-        this.createRichTextEditor('documentEditorContainer', 'documentEditor', {
-            placeholder: 'Saisissez le contenu du document...',
-            media: true
-        });
+    _initCorrectionEditor() {
         this.createRichTextEditor('correctionEditorContainer', 'correctionEditor', {
             placeholder: 'Saisissez le contenu du corrigé...',
             media: true
@@ -2233,16 +2222,15 @@ Object.assign(AdminBanquesExercices, {
         const banqueId = document.getElementById('tacheCompetenceId').value;
         const titre = document.getElementById('tacheTitre').value.trim();
         const description = document.getElementById('tacheDescription').value.trim();
-        const documentLegende = document.getElementById('tacheDocumentLegende').value.trim();
         const dureeMinutes = parseInt(document.getElementById('tacheDuree').value) || 30;
         const duree = dureeMinutes * 60;
         const ordre = parseInt(document.getElementById('tacheOrdre').value) || 1;
         const statut = document.getElementById('tacheStatut').value;
 
-        // Document : URL ou contenu riche selon le mode actif
-        const docMode = this._getActiveSourceMode('document');
-        const documentUrl = docMode === 'url' ? document.getElementById('tacheDocumentUrl').value.trim() : '';
-        const documentContenu = docMode === 'html' ? this._getEditorContent('documentEditor') : '';
+        // Document : sérialiser les blocs du block editor
+        const documentContenu = this.getBlocksJSON();
+        const documentUrl = '';
+        const documentLegende = '';
 
         // Corrigé : URL ou contenu riche selon le mode actif
         const corrMode = this._getActiveSourceMode('correction');

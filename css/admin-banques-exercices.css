@@ -4634,3 +4634,262 @@
 .rt-editor .rt-media-wrapper iframe {
     pointer-events: none;
 }
+
+/* ===== BLOCK EDITOR ===== */
+
+.block-editor {
+    min-height: 40px;
+    position: relative;
+}
+
+.block-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--gray-400);
+    font-size: 13px;
+    border: 2px dashed var(--gray-200);
+    border-radius: var(--radius);
+}
+
+/* --- Bloc individuel --- */
+.block-item {
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius);
+    background: white;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+
+.block-item:hover {
+    border-color: var(--gray-300);
+}
+
+.block-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.block-drag-handle {
+    cursor: grab;
+    font-size: 16px;
+    color: var(--gray-400);
+    user-select: none;
+    line-height: 1;
+    padding: 2px 4px;
+}
+
+.block-drag-handle:hover {
+    color: var(--gray-600);
+}
+
+.block-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.block-delete-btn {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    color: var(--gray-400);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background 0.15s;
+}
+
+.block-delete-btn:hover {
+    color: var(--danger, #ef4444);
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.block-body {
+    padding: 12px;
+}
+
+.block-field {
+    margin-bottom: 10px;
+}
+
+.block-field:last-child {
+    margin-bottom: 0;
+}
+
+.block-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-bottom: 4px;
+}
+
+.block-field .form-input {
+    font-size: 13px;
+}
+
+/* Aperçu image */
+.block-image-preview {
+    margin: 8px 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--gray-100);
+    text-align: center;
+}
+
+.block-image-preview img {
+    max-width: 100%;
+    max-height: 200px;
+    height: auto;
+    object-fit: contain;
+}
+
+/* --- Barre d'ajout --- */
+.block-add-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px 0;
+}
+
+.block-add-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.block-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1.5px dashed var(--gray-300);
+    border-radius: 8px;
+    background: white;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.block-add-btn:hover {
+    border-color: var(--primary, #6366f1);
+    color: var(--primary, #6366f1);
+    background: var(--accent-blue-light, #eef2ff);
+}
+
+.block-add-btn svg {
+    flex-shrink: 0;
+}
+
+/* --- Zones de drop --- */
+.block-dropzone {
+    height: 4px;
+    margin: 2px 0;
+    border-radius: 4px;
+    transition: all 0.15s;
+}
+
+.block-editor-dragging .block-dropzone {
+    height: 8px;
+    margin: 6px 0;
+    background: var(--gray-100);
+    border: 2px dashed transparent;
+}
+
+.block-dropzone-active {
+    background: var(--accent-blue-light, #e0e7ff) !important;
+    border-color: var(--primary, #6366f1) !important;
+    height: 12px !important;
+}
+
+/* --- Indicateurs côte à côte --- */
+.block-drop-left {
+    border-left: 4px solid var(--primary, #6366f1) !important;
+    background: linear-gradient(90deg, var(--accent-blue-light, #eef2ff) 0%, transparent 40%) !important;
+}
+
+.block-drop-right {
+    border-right: 4px solid var(--primary, #6366f1) !important;
+    background: linear-gradient(270deg, var(--accent-blue-light, #eef2ff) 0%, transparent 40%) !important;
+}
+
+/* --- Bloc en cours de drag --- */
+.block-dragging {
+    opacity: 0.4;
+}
+
+/* --- Groupe côte à côte --- */
+.block-group {
+    border: 2px solid var(--primary, #6366f1);
+    border-radius: var(--radius);
+    background: var(--accent-blue-light, #fafafe);
+    overflow: hidden;
+}
+
+.block-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, var(--accent-blue-light, #eef2ff), white);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.block-group-children {
+    display: flex;
+    gap: 0;
+}
+
+.block-group-child {
+    flex: 1;
+    min-width: 0;
+}
+
+.block-group-child + .block-group-child {
+    border-left: 2px solid var(--gray-200);
+}
+
+.block-group-child .block-item {
+    border: none;
+    border-radius: 0;
+}
+
+.block-group-child .block-header {
+    border-radius: 0;
+}
+
+/* --- Éditeur riche dans un bloc (plus compact) --- */
+.block-editor-container .rt-editor {
+    min-height: 80px;
+    max-height: 250px;
+}
+
+/* --- Responsive mobile : groupes en colonne + fallback --- */
+@media (max-width: 600px) {
+    .block-group-children {
+        flex-direction: column;
+    }
+
+    .block-group-child + .block-group-child {
+        border-left: none;
+        border-top: 2px solid var(--gray-200);
+    }
+}

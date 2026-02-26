@@ -119,23 +119,34 @@ Object.assign(EleveCompetences, {
     // ==========================================
 
     /**
-     * Génère le HTML de la section document (toolbar + iframe).
-     * Utilisé dans showExercise, showTrainingResult, showExerciseReview.
+     * Génère le HTML de la section document.
+     * Supporte 3 formats :
+     * - Nouveau format blocs (JSON array dans document_contenu)
+     * - Ancien format texte riche (HTML brut dans document_contenu)
+     * - Ancien format lien (URL dans document_url)
      */
     _buildDocumentHTML(entrainement) {
-        // Mode texte riche : afficher le contenu HTML directement
+        // Tenter de parser document_contenu comme JSON (nouveau format blocs)
         if (entrainement.document_contenu) {
-            return `
-                <div class="comp-document-toolbar">
-                    <span class="comp-document-title">\u{1F4C4} Document</span>
-                    ${entrainement.document_legende ? `
-                        <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
-                    ` : ''}
-                </div>
-                <div class="comp-document-richtext" id="compDocWrapper">
-                    ${entrainement.document_contenu}
-                </div>
-            `;
+            try {
+                var blocks = JSON.parse(entrainement.document_contenu);
+                if (Array.isArray(blocks)) {
+                    return this._renderDocumentBlocks(blocks);
+                }
+            } catch (e) {
+                // C'est du HTML brut (ancien format) — afficher tel quel
+                return `
+                    <div class="comp-document-toolbar">
+                        <span class="comp-document-title">\u{1F4C4} Document</span>
+                        ${entrainement.document_legende ? `
+                            <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
+                        ` : ''}
+                    </div>
+                    <div class="comp-document-richtext" id="compDocWrapper">
+                        ${entrainement.document_contenu}
+                    </div>
+                `;
+            }
         }
 
         // Mode lien : iframe comme avant
@@ -160,6 +171,86 @@ Object.assign(EleveCompetences, {
                 `}
             </div>
         `;
+    },
+
+    /**
+     * Rendu des blocs de contenu (nouveau format).
+     * @param {Array} blocks — tableau de blocs [{type, content/url, ...}]
+     */
+    _renderDocumentBlocks(blocks) {
+        var self = this;
+        var html = '<div class="comp-blocks-container" id="compDocWrapper">';
+
+        blocks.forEach(function(block) {
+            if (block.type === 'group') {
+                html += '<div class="comp-blocks-group">';
+                (block.children || []).forEach(function(child) {
+                    html += '<div class="comp-blocks-group-child">';
+                    html += self._renderSingleBlock(child);
+                    html += '</div>';
+                });
+                html += '</div>';
+            } else {
+                html += self._renderSingleBlock(block);
+            }
+        });
+
+        html += '</div>';
+        return html;
+    },
+
+    /** Rendu d'un bloc unique côté élève. */
+    _renderSingleBlock(block) {
+        switch (block.type) {
+        case 'text':
+            return '<div class="comp-block-text">' + (block.content || '') + '</div>';
+
+        case 'document': {
+            var embedUrl = this.getEmbedUrl(block.url);
+            var titre = block.titre ? '<div class="comp-block-titre">' + this.escapeHtml(block.titre) + '</div>' : '';
+            var legende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
+            return titre +
+                '<div class="comp-block-document">' +
+                (embedUrl
+                    ? '<iframe src="' + embedUrl + '" class="comp-document-frame" allowfullscreen></iframe>'
+                    : '<p class="comp-no-document">Document non disponible.</p>') +
+                '</div>' +
+                legende +
+                (block.url ? '<div class="comp-block-doc-link"><a href="' + this.escapeHtml(block.url) + '" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet \u2197</a></div>' : '');
+        }
+
+        case 'image': {
+            var imgUrl = block.url || '';
+            // Convertir les URLs Google Drive
+            var driveMatch = imgUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+            if (driveMatch) imgUrl = 'https://lh3.googleusercontent.com/d/' + driveMatch[1];
+            var imgLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
+            return '<div class="comp-block-image">' +
+                '<img src="' + this.escapeHtml(imgUrl) + '" alt="' + this.escapeHtml(block.legende || 'Image') + '">' +
+                '</div>' + imgLegende;
+        }
+
+        case 'video': {
+            var vidUrl = block.url || '';
+            var embedVid = '';
+            var ytMatch = vidUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+            if (ytMatch) {
+                embedVid = 'https://www.youtube-nocookie.com/embed/' + ytMatch[1];
+            } else {
+                var driveVid = vidUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (driveVid) embedVid = 'https://drive.google.com/file/d/' + driveVid[1] + '/preview';
+            }
+            var vidLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
+            return '<div class="comp-block-video">' +
+                (embedVid
+                    ? '<iframe src="' + embedVid + '" allowfullscreen frameborder="0"></iframe>'
+                    : '<a href="' + this.escapeHtml(vidUrl) + '" target="_blank">Voir la vid\u00E9o</a>') +
+                '</div>' + vidLegende;
+        }
+
+        default:
+            return '';
+        }
     },
 
     /**
