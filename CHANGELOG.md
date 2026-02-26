@@ -54,10 +54,29 @@ PROGRESSION_MEMORISATION, RESULTATS_EXERCICES, HISTORIQUE_PRATIQUES_SF, RESULTAT
 - `google-apps-script/Code.gs` — SHEETS constant corrigée
 - `google-apps-script/TOUT-EN-UN.gs` — même corrections (copie groupée)
 
+### Phase 4 — Audit synchronisation des onglets compétences
+
+Audit complet des 5 onglets du module compétences : CompetencesReferentiel, CriteresReussite, BanquesCompetences, EntrainementsCompetences, EleveEntrainementsCompetences.
+
+**Cascade delete ajoutée sur `deleteEntrainementCompetence()`** :
+- Supprime les progressions élèves (`EleveEntrainementsCompetences` avec `entrainement_id` correspondant) en plus de l'entraînement lui-même
+- Messages d'erreur enrichis (feuille non trouvée, id manquant, colonne absente, id non trouvé avec valeur)
+- Réponse enrichie : retourne `deleted_id` en cas de succès
+
+**Cascade delete ajoutée sur `deleteBanqueCompetence()`** (phase 3) :
+- Supprime les entraînements associés (`EntrainementsCompetences` avec `banque_id` correspondant)
+
+**Problème non résolu : suppression individuelle d'entraînement**
+Le code backend `deleteEntrainementCompetence()` est correct (cherche par ID, appelle deleteRow). Cause la plus probable : **le backend déployé sur Google Apps Script n'est pas à jour** et n'a pas la route `deleteTacheComplexe`. Le frontend utilise l'UI optimiste qui masque temporairement l'item, mais le backend ne le supprime pas réellement. À vérifier en redéployant le code.
+
+### Fichiers modifiés (phase 4)
+- `google-apps-script/Competences.gs` — cascade delete entrainement → progressions élèves
+- `google-apps-script/TOUT-EN-UN.gs` — même correction
+
 ### Ce qui reste à faire
+- **Redéployer le backend** (Code.gs + Competences.gs) sur Google Apps Script pour activer toutes les corrections
 - Module legacy `eleve-exercices-competences.js` (785 l.) à supprimer quand confirmé non chargé
 - ESLint v10/v8 mismatch non traité (hors périmètre)
-- **Redéployer le backend** (Code.gs) sur Google Apps Script pour activer la cascade delete
 
 ---
 

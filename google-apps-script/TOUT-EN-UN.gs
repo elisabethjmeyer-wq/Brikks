@@ -7736,28 +7736,61 @@ function updateEntrainementCompetence(data) {
 }
 
 /**
- * Supprime un entraînement de compétence
+ * Supprime un entraînement de compétence et ses progressions élèves associées
  */
 function deleteEntrainementCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('EntrainementsCompetences');
 
   if (!sheet) {
-    return { success: false, error: 'Feuille non trouvée' };
+    return { success: false, error: 'Feuille EntrainementsCompetences non trouvée' };
+  }
+
+  if (!data.id) {
+    return { success: false, error: 'id manquant dans la requête' };
   }
 
   var allData = sheet.getDataRange().getValues();
   var headers = allData[0];
   var idCol = headers.indexOf('id');
 
+  if (idCol === -1) {
+    return { success: false, error: 'Colonne id non trouvée dans EntrainementsCompetences' };
+  }
+
+  var found = false;
   for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(data.id)) {
       sheet.deleteRow(i + 1);
-      return { success: true };
+      found = true;
+      break;
     }
   }
 
-  return { success: false, error: 'Entraînement non trouvé' };
+  if (!found) {
+    return { success: false, error: 'Entraînement non trouvé: ' + String(data.id) };
+  }
+
+  // Cascade : supprimer les progressions élèves pour cet entraînement
+  var eleveSheet = ss.getSheetByName('EleveEntrainementsCompetences');
+  if (eleveSheet) {
+    var eleveData = eleveSheet.getDataRange().getValues();
+    var eleveHeaders = eleveData[0];
+    var entrIdCol = eleveHeaders.indexOf('entrainement_id');
+    if (entrIdCol !== -1) {
+      var rowsToDelete = [];
+      for (var j = 1; j < eleveData.length; j++) {
+        if (String(eleveData[j][entrIdCol]) === String(data.id)) {
+          rowsToDelete.push(j + 1);
+        }
+      }
+      for (var k = rowsToDelete.length - 1; k >= 0; k--) {
+        eleveSheet.deleteRow(rowsToDelete[k]);
+      }
+    }
+  }
+
+  return { success: true, deleted_id: String(data.id) };
 }
 
 // ========================================
