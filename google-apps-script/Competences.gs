@@ -386,7 +386,7 @@ function updateBanqueCompetence(data) {
 }
 
 /**
- * Supprime une banque de compétence
+ * Supprime une banque de compétence et ses entraînements associés
  */
 function deleteBanqueCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -400,14 +400,40 @@ function deleteBanqueCompetence(data) {
   var headers = allData[0];
   var idCol = headers.indexOf('id');
 
+  var found = false;
   for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]) === String(data.id)) {
       sheet.deleteRow(i + 1);
-      return { success: true };
+      found = true;
+      break;
     }
   }
 
-  return { success: false, error: 'Banque non trouvée' };
+  if (!found) {
+    return { success: false, error: 'Banque non trouvée' };
+  }
+
+  // Cascade : supprimer les entraînements associés à cette banque
+  var entrSheet = ss.getSheetByName('EntrainementsCompetences');
+  if (entrSheet) {
+    var entrData = entrSheet.getDataRange().getValues();
+    var entrHeaders = entrData[0];
+    var banqueIdCol = entrHeaders.indexOf('banque_id');
+    if (banqueIdCol !== -1) {
+      var rowsToDelete = [];
+      for (var j = 1; j < entrData.length; j++) {
+        if (String(entrData[j][banqueIdCol]) === String(data.id)) {
+          rowsToDelete.push(j + 1);
+        }
+      }
+      // Supprimer du bas vers le haut
+      for (var k = rowsToDelete.length - 1; k >= 0; k--) {
+        entrSheet.deleteRow(rowsToDelete[k]);
+      }
+    }
+  }
+
+  return { success: true };
 }
 
 // ========================================
