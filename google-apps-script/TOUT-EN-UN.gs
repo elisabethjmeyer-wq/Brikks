@@ -7543,8 +7543,8 @@ function deleteBanqueCompetence(data) {
 // ENTRAINEMENTS COMPETENCES
 // (anciennement « Tâches Complexes »)
 // Colonnes : id, titre, competence_id, banque_id, description, document_url,
-//            document_legende, correction_commentee, duree, ordre,
-//            statut, date_creation
+//            document_contenu, document_legende, correction_commentee,
+//            correction_contenu, duree, ordre, statut, date_creation
 // ========================================
 
 /**
@@ -7652,17 +7652,21 @@ function createEntrainementCompetence(data) {
     sheet = ss.insertSheet('EntrainementsCompetences');
     sheet.appendRow([
       'id', 'titre', 'competence_id', 'banque_id', 'description', 'document_url',
-      'document_legende', 'correction_commentee', 'duree', 'ordre',
-      'statut', 'date_creation'
+      'document_contenu', 'document_legende', 'correction_commentee',
+      'correction_contenu', 'duree', 'ordre', 'statut', 'date_creation'
     ]);
   }
 
-  // Ajouter la colonne banque_id si absente (migration progressive)
+  // Migration progressive : ajouter les colonnes manquantes
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  if (headers.indexOf('banque_id') === -1) {
-    var newCol = sheet.getLastColumn() + 1;
-    sheet.getRange(1, newCol).setValue('banque_id');
-  }
+  var newCols = ['banque_id', 'document_contenu', 'correction_contenu'];
+  newCols.forEach(function(col) {
+    if (headers.indexOf(col) === -1) {
+      var nextCol = sheet.getLastColumn() + 1;
+      sheet.getRange(1, nextCol).setValue(col);
+      headers.push(col);
+    }
+  });
 
   var id = 'ec_' + new Date().getTime();
 
@@ -7682,8 +7686,10 @@ function createEntrainementCompetence(data) {
       case 'banque_id': return data.banque_id || '';
       case 'description': return data.description || '';
       case 'document_url': return data.document_url || '';
+      case 'document_contenu': return data.document_contenu || '';
       case 'document_legende': return data.document_legende || '';
       case 'correction_commentee': return correction;
+      case 'correction_contenu': return data.correction_contenu || '';
       case 'duree': return data.duree || 1800;
       case 'ordre': return data.ordre || 1;
       case 'statut': return data.statut || 'brouillon';

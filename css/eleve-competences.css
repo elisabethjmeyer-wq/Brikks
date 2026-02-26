@@ -1174,6 +1174,26 @@
     white-space: normal;
 }
 
+/* Médias insérés dans le contenu riche */
+.comp-document-richtext .rt-media-wrapper,
+.comp-richtext-content .rt-media-wrapper {
+    margin: 1em 0;
+    text-align: center;
+}
+
+.comp-document-richtext img,
+.comp-richtext-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.comp-document-richtext iframe,
+.comp-richtext-content iframe {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
 body.comp-fullscreen-active {
     overflow: hidden;
 }

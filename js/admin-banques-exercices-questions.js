@@ -2019,6 +2019,64 @@ Object.assign(AdminBanquesExercices, {
         });
     },
 
+    insertMedia(editorId, type) {
+        const editor = document.getElementById(editorId);
+        if (!editor) return;
+
+        const hint = type === 'image'
+            ? 'Collez le lien de l\'image :\n(Google Drive, lien direct...)'
+            : 'Collez le lien de la video :\n(YouTube, Google Drive...)';
+        const url = prompt(hint, '');
+        if (!url || !url.trim()) return;
+
+        const src = url.trim();
+        let html = '';
+
+        if (type === 'image') {
+            const imgSrc = this._convertToDirectImageUrl(src);
+            html = '<div class="rt-media-wrapper"><img src="' + imgSrc + '" alt="Image" style="max-width:100%;height:auto;border-radius:8px;"></div>';
+        } else {
+            const embedSrc = this._convertToEmbedVideoUrl(src);
+            if (embedSrc) {
+                html = '<div class="rt-media-wrapper"><iframe src="' + embedSrc + '" width="100%" height="315" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe></div>';
+            } else {
+                html = '<div class="rt-media-wrapper"><a href="' + src + '" target="_blank">' + src + '</a></div>';
+            }
+        }
+
+        editor.focus();
+        document.execCommand('insertHTML', false, html + '<p><br></p>');
+    },
+
+    _convertToDirectImageUrl(url) {
+        // Google Drive : /file/d/ID/... → thumbnail direct
+        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) {
+            return 'https://lh3.googleusercontent.com/d/' + driveMatch[1];
+        }
+        // Google Drive : ?id=ID
+        const driveIdMatch = url.match(/drive\.google\.com.*[?&]id=([a-zA-Z0-9_-]+)/);
+        if (driveIdMatch) {
+            return 'https://lh3.googleusercontent.com/d/' + driveIdMatch[1];
+        }
+        // Sinon, URL directe (lien d'image classique)
+        return url;
+    },
+
+    _convertToEmbedVideoUrl(url) {
+        // YouTube : watch?v=ID ou youtu.be/ID
+        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+        if (ytMatch) {
+            return 'https://www.youtube-nocookie.com/embed/' + ytMatch[1];
+        }
+        // Google Drive video : /file/d/ID/...
+        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) {
+            return 'https://drive.google.com/file/d/' + driveMatch[1] + '/preview';
+        }
+        return null;
+    },
+
     _renderCompetenceSelect() {
         const select = document.getElementById('tacheCompetenceId');
         if (!select) return;

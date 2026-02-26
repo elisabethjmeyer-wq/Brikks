@@ -4571,3 +4571,33 @@
 .richtext-editor li {
     margin-bottom: 0.25em;
 }
+
+/* Media dans l'éditeur riche */
+.rt-media-btn {
+    font-size: 13px;
+}
+
+.rt-media-wrapper {
+    margin: 0.75em 0;
+    text-align: center;
+}
+
+.rt-media-wrapper img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.rt-media-wrapper iframe {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+.richtext-editor .rt-media-wrapper {
+    position: relative;
+}
+
+.richtext-editor .rt-media-wrapper img,
+.richtext-editor .rt-media-wrapper iframe {
+    pointer-events: none;
+}
