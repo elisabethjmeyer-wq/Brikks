@@ -728,11 +728,6 @@ Object.assign(EleveCompetences, {
                             </div>
                             ${sujetHTML}
                         </div>
-                        <div class="comp-review-actions">
-                            <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
-                                Se ré-entraîner
-                            </button>
-                        </div>
                     </div>
                 </div>
             `;
