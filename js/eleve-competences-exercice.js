@@ -197,9 +197,6 @@ Object.assign(EleveCompetences, {
                                 <a href="${this.escapeHtml(entrainement.document_url || '')}" target="_blank" class="comp-doc-btn" title="Ouvrir dans un nouvel onglet">
                                     ↗️
                                 </a>
-                                <button class="comp-doc-btn" onclick="EleveCompetences.toggleDocFullscreen()" title="Plein écran">
-                                    ⛶
-                                </button>
                             </div>
                         </div>
                         <div class="comp-document-frame-wrapper" id="compDocWrapper">
@@ -225,14 +222,6 @@ Object.assign(EleveCompetences, {
         `;
 
         this.startTimer();
-    },
-
-    toggleDocFullscreen() {
-        const wrapper = document.getElementById('compDocWrapper');
-        if (wrapper) {
-            wrapper.classList.toggle('fullscreen');
-            document.body.classList.toggle('comp-fullscreen-active');
-        }
     },
 
     confirmLeaveExercise() {
@@ -497,21 +486,12 @@ Object.assign(EleveCompetences, {
                                 ` : ''}
                                 <div class="comp-document-actions">
                                     <a href="${this.escapeHtml(entrainement.document_url || '')}" target="_blank" class="comp-doc-btn" title="Ouvrir dans un nouvel onglet">↗️</a>
-                                    <button class="comp-doc-btn" onclick="EleveCompetences.toggleDocFullscreen()" title="Plein écran">⛶</button>
                                 </div>
                             </div>
                             <div class="comp-document-frame-wrapper" id="compDocWrapper">
                                 <iframe src="${iframeUrl}" class="comp-document-frame" allowfullscreen></iframe>
                             </div>
                         </div>
-                    </div>
-                    <div class="comp-review-actions">
-                        <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
-                            Se ré-entraîner
-                        </button>
-                        <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
-                            Retour aux compétences
-                        </button>
                     </div>
                 </div>
             `;
@@ -525,16 +505,7 @@ Object.assign(EleveCompetences, {
             }
             const finishBtn = document.getElementById('compFinishBtn');
             if (finishBtn) {
-                finishBtn.outerHTML = `
-                    <div class="comp-sidebar-result-actions">
-                        <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
-                            Se ré-entraîner
-                        </button>
-                        <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
-                            Retour aux compétences
-                        </button>
-                    </div>
-                `;
+                finishBtn.remove();
             }
         }
     },
@@ -698,7 +669,6 @@ Object.assign(EleveCompetences, {
                         ` : ''}
                         <div class="comp-document-actions">
                             <a href="${this.escapeHtml(entrainement.document_url || '')}" target="_blank" class="comp-doc-btn" title="Ouvrir dans un nouvel onglet">↗️</a>
-                            <button class="comp-doc-btn" onclick="EleveCompetences.toggleDocFullscreen()" title="Plein écran">⛶</button>
                         </div>
                     </div>
                     <div class="comp-document-frame-wrapper" id="compDocWrapper">
@@ -727,11 +697,6 @@ Object.assign(EleveCompetences, {
                                 ${correctionContent}
                             </div>
                             ${sujetHTML}
-                        </div>
-                        <div class="comp-review-actions">
-                            <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
-                                Se ré-entraîner
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -787,7 +752,6 @@ Object.assign(EleveCompetences, {
                                 ` : ''}
                                 <div class="comp-document-actions">
                                     <a href="${this.escapeHtml(entrainement.document_url || '')}" target="_blank" class="comp-doc-btn" title="Ouvrir dans un nouvel onglet">↗️</a>
-                                    <button class="comp-doc-btn" onclick="EleveCompetences.toggleDocFullscreen()" title="Plein écran">⛶</button>
                                 </div>
                             </div>
                             <div class="comp-document-frame-wrapper" id="compDocWrapper">
