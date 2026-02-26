@@ -221,7 +221,12 @@ Object.assign(AdminBanquesExercices, {
     _renderBlockBody(block) {
         switch (block.type) {
         case 'text':
-            return '<div class="block-editor-container" id="block-editor-ctn-' + block.id + '"></div>';
+            return '<div class="block-editor-container" id="block-editor-ctn-' + block.id + '"></div>' +
+                '<div class="block-field">' +
+                '<label>L\u00e9gende <span class="optional">(optionnel)</span></label>' +
+                '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
+                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Extrait du trait\u00e9 de Versailles, 1919">' +
+                '</div>';
 
         case 'document':
             return '<div class="block-field">' +
@@ -339,6 +344,8 @@ Object.assign(AdminBanquesExercices, {
                     var html = editor.innerHTML.trim();
                     block.content = (!html || html === '<br>' || html === '<div><br></div>') ? '' : html;
                 }
+                var txtLegendeInput = document.getElementById('block-legende-' + block.id);
+                if (txtLegendeInput) block.legende = txtLegendeInput.value.trim();
             } else if (block.type === 'group') {
                 if (block.children) block.children.forEach(saveBlock);
             } else {

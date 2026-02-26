@@ -202,8 +202,13 @@ Object.assign(EleveCompetences, {
     /** Rendu d'un bloc unique côté élève. */
     _renderSingleBlock(block) {
         switch (block.type) {
-        case 'text':
-            return '<div class="comp-block-text">' + (block.content || '') + '</div>';
+        case 'text': {
+            var txtLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
+            return '<div class="comp-block-text">' +
+                '<div class="comp-block-text-content">' + (block.content || '') + '</div>' +
+                txtLegende +
+                '</div>';
+        }
 
         case 'document': {
             var embedUrl = this.getEmbedUrl(block.url);
@@ -224,10 +229,11 @@ Object.assign(EleveCompetences, {
             // Convertir les URLs Google Drive
             var driveMatch = imgUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
             if (driveMatch) imgUrl = 'https://lh3.googleusercontent.com/d/' + driveMatch[1];
-            var imgLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
-            return '<div class="comp-block-image">' +
+            var imgLegende = block.legende ? '<figcaption class="comp-block-legende">' + this.escapeHtml(block.legende) + '</figcaption>' : '';
+            return '<figure class="comp-block-image">' +
                 '<img src="' + this.escapeHtml(imgUrl) + '" alt="' + this.escapeHtml(block.legende || 'Image') + '">' +
-                '</div>' + imgLegende;
+                imgLegende +
+                '</figure>';
         }
 
         case 'video': {
