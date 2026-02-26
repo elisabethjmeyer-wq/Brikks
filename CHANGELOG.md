@@ -37,9 +37,27 @@ Audit complet du module compétences (élève + admin + backend + legacy) suivi 
 - `CLAUDE.md` — problèmes marqués comme corrigés
 - `CHANGELOG.md` — cette entrée
 
+### Phase 3 — Synchronisation backend
+
+**Problème identifié** : quand un élève est supprimé, seule la ligne dans UTILISATEURS était effacée. Les données de progression restaient dans 9 tables orphelines (connexions, résultats, mémorisation, évaluations, compétences, méthodologie, leçons, historique SF).
+
+**Corrections :**
+- `deleteUser()` (Users.gs) : suppression en cascade — nettoie les 9 tables liées avant de supprimer l'utilisateur
+- Nouvelle fonction utilitaire `deleteRowsByValue_(ss, sheetName, columnName, value)` pour la suppression par colonne
+- `SHEETS` constant (Code.gs + TOUT-EN-UN.gs) : `TachesComplexes` → `EntrainementsCompetences`, `EleveTachesComplexes` → `EleveEntrainementsCompetences` (alignement avec les vrais noms d'onglets Google Sheets)
+
+**Tables nettoyées en cascade lors de la suppression d'un élève :**
+PROGRESSION_MEMORISATION, RESULTATS_EXERCICES, HISTORIQUE_PRATIQUES_SF, RESULTATS_ENTRAINEMENT, EVALUATION_RESULTATS, PROGRESSION_METHODOLOGIE, PROGRESSION_LECONS, EleveConnexions, EleveEntrainementsCompetences
+
+### Fichiers modifiés (phase 3)
+- `google-apps-script/Users.gs` — cascade delete + helper deleteRowsByValue_
+- `google-apps-script/Code.gs` — SHEETS constant corrigée
+- `google-apps-script/TOUT-EN-UN.gs` — même corrections (copie groupée)
+
 ### Ce qui reste à faire
 - Module legacy `eleve-exercices-competences.js` (785 l.) à supprimer quand confirmé non chargé
 - ESLint v10/v8 mismatch non traité (hors périmètre)
+- **Redéployer le backend** (Code.gs) sur Google Apps Script pour activer la cascade delete
 
 ---
 

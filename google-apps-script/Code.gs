@@ -80,8 +80,8 @@ const SHEETS = {
   CompetencesReferentiel: 'CompetencesReferentiel',
   CriteresReussite: 'CriteresReussite',
   BanquesCompetences: 'BanquesCompetences',
-  TachesComplexes: 'TachesComplexes',
-  EleveTachesComplexes: 'EleveTachesComplexes'
+  EntrainementsCompetences: 'EntrainementsCompetences',
+  EleveEntrainementsCompetences: 'EleveEntrainementsCompetences'
 };
 
 // ========================================

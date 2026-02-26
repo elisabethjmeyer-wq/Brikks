@@ -282,6 +282,8 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 ### Points structurels
 
 - **Sécurité** : mots de passe en clair dans Google Sheets, pas d'auth côté serveur, clé API exposée côté client. Acceptable pour ~50 élèves en environnement scolaire, mais à documenter.
+- ~~**Suppression d'élèves sans cascade**~~ : **CORRIGÉ (session 9)** — `deleteUser()` nettoie maintenant 9 tables liées (progressions, résultats, connexions, compétences) avant de supprimer l'utilisateur. Fonction utilitaire `deleteRowsByValue_()` ajoutée.
+- ~~**SHEETS constant obsolète**~~ : **CORRIGÉ (session 9)** — `TachesComplexes` → `EntrainementsCompetences`, `EleveTachesComplexes` → `EleveEntrainementsCompetences` dans Code.gs et TOUT-EN-UN.gs.
 - **Module savoir-faire** : seuil de 5 étapes — vérifier l'alignement frontend/backend. Les fichiers sont très gros (~54k + ~64k lignes).
 - **Code admin connaissances** : audité et nettoyé. Reste : CSS du wizard avec ~7 sélecteurs `.etape-*` dupliqués (fonctionnel mais fragile), `getQuestionPreview()` dupliqué dans 3 fichiers différents (à extraire dans un helper partagé un jour)
 - **Module exercices élève SF** : audité et restructuré (session 4). Le sous-module compétences (`eleve-exercices-competences.js`, 785 lignes) n'est pas encore audité.

@@ -84,8 +84,8 @@ const SHEETS = {
   CompetencesReferentiel: 'CompetencesReferentiel',
   CriteresReussite: 'CriteresReussite',
   BanquesCompetences: 'BanquesCompetences',
-  TachesComplexes: 'TachesComplexes',
-  EleveTachesComplexes: 'EleveTachesComplexes'
+  EntrainementsCompetences: 'EntrainementsCompetences',
+  EleveEntrainementsCompetences: 'EleveEntrainementsCompetences'
 };
 
 // ========================================
@@ -1267,11 +1267,47 @@ function updateUser(data) {
 }
 
 /**
- * Supprime un utilisateur
+ * Supprime toutes les lignes d'un onglet où une colonne a une valeur donnée
+ * @param {Spreadsheet} ss - Le spreadsheet ouvert
+ * @param {string} sheetName - Nom de l'onglet
+ * @param {string} columnName - Nom de la colonne à chercher
+ * @param {string} value - Valeur à supprimer
+ * @returns {number} Nombre de lignes supprimées
+ */
+function deleteRowsByValue_(ss, sheetName, columnName, value) {
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return 0;
+
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) return 0;
+
+  const headers = allData[0];
+  const col = headers.indexOf(columnName);
+  if (col === -1) return 0;
+
+  // Collecter les indices de lignes à supprimer (du bas vers le haut pour ne pas décaler)
+  const rowsToDelete = [];
+  for (let i = 1; i < allData.length; i++) {
+    if (String(allData[i][col]) === String(value)) {
+      rowsToDelete.push(i + 1);
+    }
+  }
+
+  // Supprimer du bas vers le haut
+  for (let i = rowsToDelete.length - 1; i >= 0; i--) {
+    sheet.deleteRow(rowsToDelete[i]);
+  }
+
+  return rowsToDelete.length;
+}
+
+/**
+ * Supprime un utilisateur et toutes ses données associées (cascade)
  * @param {Object} data - { id }
  */
 function deleteUser(data) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.UTILISATEURS);
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(SHEETS.UTILISATEURS);
 
   if (!sheet) {
     return { success: false, error: 'Onglet UTILISATEURS non trouvé' };
@@ -1306,12 +1342,30 @@ function deleteUser(data) {
     return { success: false, error: 'Utilisateur non trouvé: ' + userData.id };
   }
 
-  // Supprimer la ligne
+  // Suppression en cascade : nettoyer toutes les tables contenant des données de cet élève
+  const tablesToClean = [
+    { sheet: 'PROGRESSION_MEMORISATION', column: 'eleve_id' },
+    { sheet: 'RESULTATS_EXERCICES', column: 'eleve_id' },
+    { sheet: 'HISTORIQUE_PRATIQUES_SF', column: 'eleve_id' },
+    { sheet: 'RESULTATS_ENTRAINEMENT', column: 'eleve_id' },
+    { sheet: 'EVALUATION_RESULTATS', column: 'eleve_id' },
+    { sheet: 'PROGRESSION_METHODOLOGIE', column: 'eleve_id' },
+    { sheet: 'PROGRESSION_LECONS', column: 'eleve_id' },
+    { sheet: 'EleveConnexions', column: 'eleve_id' },
+    { sheet: 'EleveEntrainementsCompetences', column: 'eleve_id' }
+  ];
+
+  let totalCleaned = 0;
+  tablesToClean.forEach(function(table) {
+    totalCleaned += deleteRowsByValue_(ss, table.sheet, table.column, userData.id);
+  });
+
+  // Supprimer l'utilisateur lui-même
   sheet.deleteRow(rowIndex);
 
   return {
     success: true,
-    message: 'Utilisateur supprimé avec succès'
+    message: 'Utilisateur supprimé avec succès (' + totalCleaned + ' lignes associées nettoyées)'
   };
 }
 
