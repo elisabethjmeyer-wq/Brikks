@@ -4,6 +4,45 @@
 
 ---
 
+## 2026-02-26 (session 9) — Audit et nettoyage du module entraînement de compétences
+
+### Contexte
+Audit complet du module compétences (élève + admin + backend + legacy) suivi de la correction de tous les problèmes identifiés pour obtenir un code propre et maintenable.
+
+### Phase 1 — Audit
+- **Lecture complète** de tous les fichiers du module (7 000 lignes hors legacy)
+- **Identification** : 5 bugs/risques fonctionnels, 6 duplications, 3 points legacy, 1 problème ESLint
+
+### Phase 2 — Corrections
+
+**Bugs corrigés :**
+- `beforeunload` ajouté en mode évalué (`_addBeforeUnload` / `_removeBeforeUnload`) — empêche la fermeture accidentelle de l'onglet
+- `tempsPasse` : calcul corrigé — basé sur `duree - timeRemaining` au lieu de `Date.now() - exerciseStartTime`, gère correctement les reprises et l'overtime
+- `finishEntrainement` : notification d'erreur visible si la sauvegarde échoue (via `_showNotification`), la progression locale n'est plus mise à jour en cas d'échec API
+- `getBanqueStatus` : nouveau statut "soumise" (label "En attente", cssClass `submitted`, icône 📤) entre "en_cours" et "validée"
+
+**Factorisation :**
+- `_buildDocumentHTML(entrainement)` : génère toolbar + iframe — remplace 4 copies identiques
+- `_buildCorrectionHTML(correctionCommentee)` : génère le HTML du corrigé commenté — remplace 2 copies identiques
+- `_getCorrectionUrl` supprimé : `_parseCorrectionData` utilisé partout (y compris `showCorrigeCommente`)
+- `closeModal` simplifié : ne réinitialise plus `currentEntrainement`, les méthodes appelantes (`resumeTraining`, `restartTrainingFromModal`, `viewReviewFromModal`) simplifiées
+
+**CSS :**
+- Ajout des styles `.comp-card-status-icon.submitted` et `.comp-card-badge.submitted` (violet, cohérent avec la palette existante)
+
+### Fichiers modifiés
+- `js/eleve-competences.js` — getBanqueStatus, closeModal, résumé des simplifications
+- `js/eleve-competences-exercice.js` — réécriture : beforeunload, tempsPasse, notification, builders HTML, suppression _getCorrectionUrl
+- `css/eleve-competences.css` — styles submitted
+- `CLAUDE.md` — problèmes marqués comme corrigés
+- `CHANGELOG.md` — cette entrée
+
+### Ce qui reste à faire
+- Module legacy `eleve-exercices-competences.js` (785 l.) à supprimer quand confirmé non chargé
+- ESLint v10/v8 mismatch non traité (hors périmètre)
+
+---
+
 ## 2026-02-25 (session 8) — Restructuration compétences : introduction des banques
 
 ### Contexte

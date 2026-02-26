@@ -149,7 +149,8 @@ const EleveCompetences = {
 
     /**
      * Statut d'une banque pour l'élève :
-     * - validee : au moins 1 exercice mode évalué avec statut 'valide'
+     * - validee : au moins 1 exercice évalué validé par le prof
+     * - soumise : au moins 1 exercice évalué soumis, en attente de correction
      * - en_cours : au moins 1 exercice commencé
      * - pas_commencee : rien
      */
@@ -168,11 +169,12 @@ const EleveCompetences = {
             if (prog) banqueProgressions.push(prog);
         });
 
-        const hasValidated = banqueProgressions.some(p =>
-            p.mode === 'evalue' && p.statut === 'valide'
-        );
-        if (hasValidated) {
+        if (banqueProgressions.some(p => p.mode === 'evalue' && p.statut === 'valide')) {
             return { status: 'validee', label: 'Validée', cssClass: 'validated' };
+        }
+
+        if (banqueProgressions.some(p => p.mode === 'evalue' && p.statut === 'soumis')) {
+            return { status: 'soumise', label: 'En attente', cssClass: 'submitted' };
         }
 
         if (banqueProgressions.length > 0) {
@@ -266,7 +268,7 @@ const EleveCompetences = {
                 <div class="comp-card ${status.cssClass}" onclick="EleveCompetences.openBanque('${banque.id}')">
                     <div class="comp-card-left">
                         <div class="comp-card-status-icon ${status.cssClass}">
-                            ${status.status === 'validee' ? '✓' : status.status === 'en_cours' ? '⋯' : '○'}
+                            ${status.status === 'validee' ? '✓' : status.status === 'soumise' ? '📤' : status.status === 'en_cours' ? '⋯' : '○'}
                         </div>
                         <div class="comp-card-info">
                             <h3 class="comp-card-title">${this.escapeHtml(banque.titre || compNom)}</h3>
@@ -568,7 +570,6 @@ const EleveCompetences = {
     closeModal() {
         const modal = document.getElementById('compChoiceModal');
         if (modal) modal.remove();
-        this.currentEntrainement = null;
         document.body.style.overflow = '';
     },
 
@@ -674,37 +675,25 @@ const EleveCompetences = {
         document.body.style.overflow = 'hidden';
     },
 
-    /**
-     * Reprendre l'entraînement en cours (le timer reprend où il s'était arrêté)
-     */
     resumeTraining() {
         if (!this.currentEntrainement) return;
-        const entr = this.currentEntrainement;
         this.closeModal();
-        this.currentEntrainement = entr;
-        this.showExercise(entr, 'entrainement');
+        this.showExercise(this.currentEntrainement, 'entrainement');
     },
 
-    /**
-     * Recommencer / Se ré-entraîner depuis le popup
-     */
     restartTrainingFromModal() {
         if (!this.currentEntrainement) return;
-        const entr = this.currentEntrainement;
-        this._clearTrainTimer(entr.id);
+        this._clearTrainTimer(this.currentEntrainement.id);
+        const entrId = this.currentEntrainement.id;
         this.closeModal();
-        this.restartTraining(entr.id);
+        this.restartTraining(entrId);
     },
 
-    /**
-     * Consulter le sujet et la correction depuis le popup
-     */
     viewReviewFromModal() {
         if (!this.currentEntrainement) return;
-        const entr = this.currentEntrainement;
         const prog = this._pendingReviewProg;
         this.closeModal();
-        this.showExerciseReview(entr, prog);
+        this.showExerciseReview(this.currentEntrainement, prog);
     },
 
     async startEntrainement(mode) {
@@ -896,6 +885,10 @@ const EleveCompetences = {
         if (this.timer) {
             clearInterval(this.timer);
             this.timer = null;
+        }
+        // Nettoyage beforeunload (méthode ajoutée par eleve-competences-exercice.js)
+        if (this._removeBeforeUnload) {
+            this._removeBeforeUnload();
         }
     }
 };
