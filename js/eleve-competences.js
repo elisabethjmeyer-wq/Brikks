@@ -476,28 +476,28 @@ const EleveCompetences = {
             // Jamais commencé → modal de choix (première fois)
             this.openChoiceModal(entrainementId);
         } else if (prog.statut === 'en_cours') {
-            // En cours → reprendre directement avec le mode déjà choisi
-            // Mode évaluation : vérifier si le timer a expiré pendant l'absence
             if (prog.mode === 'evalue') {
+                // Mode évaluation en cours : vérifier si le timer a expiré
                 const restored = this._loadEvalTimer(entrainementId);
                 if (restored !== null && restored <= 0) {
-                    // Timer expiré → auto-soumission
                     this.currentEntrainement = entr;
                     this.currentMode = 'evalue';
                     this._autoSubmitExpired(entr);
                     return;
                 }
+                // Reprendre directement (pas de popup pour évaluation)
+                this.currentEntrainement = entr;
+                this.showExercise(entr, 'evalue');
+            } else {
+                // Mode entraînement en cours → popup Reprendre / Recommencer
+                this._showResumeOrRestartModal(entr);
             }
-            this.currentEntrainement = entr;
-            this.showExercise(entr, prog.mode);
         } else if (prog.statut === 'entraine') {
-            // Entraîné → relecture avec option de se ré-entraîner
-            this.showExerciseReview(entr, prog);
+            // Entraîné → popup Se ré-entraîner / Consulter correction
+            this._showRetrainOrReviewModal(entr, prog);
         } else if (prog.statut === 'soumis') {
-            // Soumis → relecture : sujet + message soumis
             this.showExerciseReview(entr, prog);
         } else if (prog.statut === 'valide') {
-            // Validé → relecture : sujet + message validé
             this.showExerciseReview(entr, prog);
         }
     },
@@ -570,6 +570,141 @@ const EleveCompetences = {
         if (modal) modal.remove();
         this.currentEntrainement = null;
         document.body.style.overflow = '';
+    },
+
+    /**
+     * Popup pour exercice en cours (mode entraînement) :
+     * Reprendre là où on s'est arrêté ou recommencer.
+     */
+    _showResumeOrRestartModal(entr) {
+        this.currentEntrainement = entr;
+        const dureeMin = Math.round((entr.duree || 1800) / 60);
+        const savedTime = this._loadTrainTimer(entr.id);
+        const savedTimeStr = savedTime !== null ? this.formatTime(savedTime) : '';
+
+        const modal = document.createElement('div');
+        modal.id = 'compChoiceModal';
+        modal.className = 'comp-modal-overlay';
+        modal.innerHTML = `
+            <div class="comp-modal">
+                <div class="comp-modal-body">
+                    <div class="comp-choice-info">
+                        <h3>${this.escapeHtml(entr.titre)}</h3>
+                        <p>Tu avais commencé cet entraînement${savedTimeStr ? ' (' + savedTimeStr + ' restantes)' : ''}.</p>
+                    </div>
+
+                    <p class="comp-choice-question">Que veux-tu faire ?</p>
+
+                    <div class="comp-choice-options">
+                        <div class="comp-choice-option entrainement" onclick="EleveCompetences.resumeTraining()">
+                            <div class="comp-choice-icon">▶️</div>
+                            <div class="comp-choice-content">
+                                <h4>Reprendre l'entraînement</h4>
+                                <p>Le chronomètre reprend là où tu t'es arrêté${savedTimeStr ? ' (' + savedTimeStr + ')' : ''}.</p>
+                            </div>
+                        </div>
+
+                        <div class="comp-choice-option evalue" onclick="EleveCompetences.restartTrainingFromModal()">
+                            <div class="comp-choice-icon">🔄</div>
+                            <div class="comp-choice-content">
+                                <h4>Recommencer l'entraînement</h4>
+                                <p>Le chronomètre redémarre à zéro (${dureeMin} min).</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comp-modal-footer">
+                        <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.closeModal()">Annuler</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    },
+
+    /**
+     * Popup pour exercice terminé (mode entraînement) :
+     * Se ré-entraîner ou consulter le sujet et la correction.
+     */
+    _showRetrainOrReviewModal(entr, prog) {
+        this.currentEntrainement = entr;
+        this._pendingReviewProg = prog;
+
+        const modal = document.createElement('div');
+        modal.id = 'compChoiceModal';
+        modal.className = 'comp-modal-overlay';
+        modal.innerHTML = `
+            <div class="comp-modal">
+                <div class="comp-modal-body">
+                    <div class="comp-choice-info">
+                        <h3>${this.escapeHtml(entr.titre)}</h3>
+                        <p>Tu as déjà terminé cet entraînement.</p>
+                    </div>
+
+                    <p class="comp-choice-question">Que veux-tu faire ?</p>
+
+                    <div class="comp-choice-options">
+                        <div class="comp-choice-option entrainement" onclick="EleveCompetences.restartTrainingFromModal()">
+                            <div class="comp-choice-icon">🔄</div>
+                            <div class="comp-choice-content">
+                                <h4>Se ré-entraîner</h4>
+                                <p>Recommencer l'exercice depuis le début, le chronomètre redémarre.</p>
+                            </div>
+                        </div>
+
+                        <div class="comp-choice-option evalue" onclick="EleveCompetences.viewReviewFromModal()">
+                            <div class="comp-choice-icon">📋</div>
+                            <div class="comp-choice-content">
+                                <h4>Consulter le sujet et la correction</h4>
+                                <p>Revoir le sujet et le corrigé commenté.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comp-modal-footer">
+                        <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.closeModal()">Annuler</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    },
+
+    /**
+     * Reprendre l'entraînement en cours (le timer reprend où il s'était arrêté)
+     */
+    resumeTraining() {
+        if (!this.currentEntrainement) return;
+        const entr = this.currentEntrainement;
+        this.closeModal();
+        this.currentEntrainement = entr;
+        this.showExercise(entr, 'entrainement');
+    },
+
+    /**
+     * Recommencer / Se ré-entraîner depuis le popup
+     */
+    restartTrainingFromModal() {
+        if (!this.currentEntrainement) return;
+        const entr = this.currentEntrainement;
+        this._clearTrainTimer(entr.id);
+        this.closeModal();
+        this.restartTraining(entr.id);
+    },
+
+    /**
+     * Consulter le sujet et la correction depuis le popup
+     */
+    viewReviewFromModal() {
+        if (!this.currentEntrainement) return;
+        const entr = this.currentEntrainement;
+        const prog = this._pendingReviewProg;
+        this.closeModal();
+        this.showExerciseReview(entr, prog);
     },
 
     async startEntrainement(mode) {

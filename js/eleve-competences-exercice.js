@@ -44,6 +44,32 @@ Object.assign(EleveCompetences, {
         } catch (e) { /* silencieux */ }
     },
 
+    // --- Persistance timer entraînement (le chrono se met en pause) ---
+
+    _trainTimerStorageKey(entrainementId) {
+        return 'brikks_comp_train_timer_' + entrainementId;
+    },
+
+    _saveTrainTimer(entrainementId, timeRemaining) {
+        try {
+            localStorage.setItem(this._trainTimerStorageKey(entrainementId), String(timeRemaining));
+        } catch (e) { /* silencieux */ }
+    },
+
+    _loadTrainTimer(entrainementId) {
+        try {
+            const raw = localStorage.getItem(this._trainTimerStorageKey(entrainementId));
+            if (!raw) return null;
+            return parseInt(raw, 10);
+        } catch (e) { return null; }
+    },
+
+    _clearTrainTimer(entrainementId) {
+        try {
+            localStorage.removeItem(this._trainTimerStorageKey(entrainementId));
+        } catch (e) { /* silencieux */ }
+    },
+
     // ==========================================
     // NIVEAU 3 — VUE EXERCICE
     // ==========================================
@@ -72,8 +98,14 @@ Object.assign(EleveCompetences, {
                 this.timeRemaining = duree;
             }
         } else {
-            // Mode entraînement : toujours repartir de zéro
-            this.timeRemaining = duree;
+            // Mode entraînement : restaurer le timer si reprise, sinon repartir de zéro
+            const savedTrainTime = this._loadTrainTimer(entrainement.id);
+            if (savedTrainTime !== null) {
+                this.timeRemaining = Math.max(0, savedTrainTime);
+                this._clearTrainTimer(entrainement.id);
+            } else {
+                this.timeRemaining = duree;
+            }
         }
 
         // Compétence associée
@@ -212,7 +244,8 @@ Object.assign(EleveCompetences, {
                 this.backToDetail();
             }
         } else {
-            // Mode entraînement : quitter librement
+            // Mode entraînement : sauvegarder le chrono (en pause) et quitter
+            this._saveTrainTimer(this.currentEntrainement.id, this.timeRemaining);
             this.stopTimer();
             this.backToDetail();
         }
@@ -363,6 +396,7 @@ Object.assign(EleveCompetences, {
 
         this.stopTimer();
         this._clearEvalTimer(entr.id);
+        this._clearTrainTimer(entr.id);
 
         // Sauvegarder au backend
         if (this.currentUser) {
