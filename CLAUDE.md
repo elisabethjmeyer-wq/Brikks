@@ -96,7 +96,18 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **Rétro-compatibilité** : les anciens noms d'API (getTachesComplexes, etc.) sont des aliases dans Code.gs et Competences.gs
 
-**État** : restructuré en session 8. Le module legacy `eleve-exercices-competences.js` n'est pas encore migré.
+**Legacy** : `eleve-exercices-competences.js` (785 lignes) — ancien module "tâches complexes" étendu sur `EleveExercices`. Utilise l'ancienne terminologie (`tache_id`, `points_bonus`, `correction_url`), l'ancien modèle de données (pas de banques). Non utilisé par la nouvelle page `entrainements-comp.html`. À supprimer quand confirmé non chargé ailleurs.
+
+**Problèmes connus** :
+- Pas de `beforeunload` en mode évalué (fermeture accidentelle possible)
+- `tempsPasse` calculé depuis `exerciseStartTime` uniquement — ne cumule pas les reprises
+- Échec API silencieux au `finishEntrainement` : l'élève voit le résultat même si la sauvegarde a échoué
+- `getBanqueStatus` ne distingue pas "soumis" de "en cours"
+- HTML de correction commentée dupliqué 2× (showTrainingResult + showExerciseReview)
+- HTML toolbar document dupliqué 4×
+- `_parseCorrectionData` et `_getCorrectionUrl` quasi-identiques
+
+**État** : audité (session 9). Code propre et fonctionnel. Duplication à factoriser, quelques corrections mineures à apporter.
 
 ## Architecture technique
 

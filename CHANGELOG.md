@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-02-26 (session 9) — Audit du module entraînement de compétences
+
+### Contexte
+Audit complet du module compétences (élève + admin + backend + legacy) pour dresser l'état des lieux avant de continuer le développement.
+
+### Ce qui a été fait
+- **Lecture complète** de tous les fichiers du module : `eleve-competences.js` (904 l.), `eleve-competences-exercice.js` (887 l.), `admin-competences.js` (463 l.), `Competences.gs` (~1 100 l.), les 2 CSS, les 2 HTML, et le legacy `eleve-exercices-competences.js` (785 l.)
+- **Analyse du backend** : 37 routes API dans Code.gs, 6 tables Google Sheets, 11 alias de rétro-compatibilité, machine à états complète pour la progression élève
+- **Identification des problèmes** : 5 bugs/risques fonctionnels, 6 duplications de code, 3 points legacy, 1 problème ESLint
+- **Mise à jour de CLAUDE.md** : section module compétences enrichie avec les problèmes connus et l'état vérifié
+
+### Problèmes identifiés (résumé)
+- **Fonctionnels** : pas de `beforeunload` en mode évalué, `tempsPasse` ne cumule pas les reprises, échec API silencieux au finish, `getBanqueStatus` ne distingue pas "soumis"
+- **Duplication** : correction HTML ×2, toolbar document ×4, `_parseCorrectionData` vs `_getCorrectionUrl`, `getEmbedUrl` dupliqué dans legacy
+- **Legacy** : `eleve-exercices-competences.js` (785 l.) non migré, terminologie ancienne ("tâches complexes", "points_bonus")
+- **Outillage** : ESLint v10 installé mais config `.eslintrc.json` v8 → `npm run lint` cassé
+
+### Fichiers modifiés
+- `CLAUDE.md` — section module compétences mise à jour
+- `CHANGELOG.md` — cette entrée
+
+### Décisions
+- Le module est fonctionnel et bien architecturé. Les problèmes identifiés sont des améliorations, pas des bloqueurs.
+- Le legacy peut être supprimé après vérification qu'il n'est plus chargé.
+- Les corrections prioritaires : `beforeunload`, `tempsPasse`, notification erreur API.
+
+---
+
 ## 2026-02-25 (session 8) — Restructuration compétences : introduction des banques
 
 ### Contexte
