@@ -1812,7 +1812,7 @@ Object.assign(AdminBanquesExercices, {
 
     _toggleBanqueFields(isBanque) {
         // Masquer/afficher les champs spécifiques aux entraînements
-        const fields = ['tacheDocumentUrl', 'tacheDocumentLegende', 'tacheDuree', 'tacheCorrectionUrl'];
+        const fields = ['tacheDuree'];
         fields.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -1821,7 +1821,9 @@ Object.assign(AdminBanquesExercices, {
             }
         });
 
-        // Masquer/afficher la section « Corrigé commenté » entière (titre h3 + contenu)
+        // Masquer/afficher les sections document et corrigé
+        const docSection = document.getElementById('documentSection');
+        if (docSection) docSection.style.display = isBanque ? 'none' : '';
         const corrSection = document.getElementById('correctionSection');
         if (corrSection) corrSection.style.display = isBanque ? 'none' : '';
 
@@ -1867,12 +1869,14 @@ Object.assign(AdminBanquesExercices, {
         // Remplir le dropdown avec les banques de compétences (pas les compétences directement)
         this._renderBanqueCompetenceSelect();
 
+        // Initialiser les éditeurs riches
+        this._initRichTextEditors();
+
         if (tache) {
             title.textContent = 'Modifier l\'entrainement';
             document.getElementById('editTacheId').value = tache.id;
             document.getElementById('tacheTitre').value = tache.titre || '';
             document.getElementById('tacheDescription').value = tache.description || '';
-            document.getElementById('tacheDocumentUrl').value = tache.document_url || '';
             document.getElementById('tacheDocumentLegende').value = tache.document_legende || '';
             document.getElementById('tacheDuree').value = Math.round((tache.duree || 1800) / 60);
             document.getElementById('tacheOrdre').value = tache.ordre || 1;
@@ -1882,9 +1886,28 @@ Object.assign(AdminBanquesExercices, {
             compSelect.value = tache.banque_id || '';
             compSelect.disabled = true;
 
-            // Charger le lien du corrigé commenté
-            const corrUrl = this._extractCorrectionUrl(tache.correction_commentee);
-            document.getElementById('tacheCorrectionUrl').value = corrUrl;
+            // Document : charger URL ou contenu riche
+            if (tache.document_contenu) {
+                this.toggleSourceMode('document', 'html');
+                document.getElementById('documentEditor').innerHTML = tache.document_contenu;
+                document.getElementById('tacheDocumentUrl').value = '';
+            } else {
+                this.toggleSourceMode('document', 'url');
+                document.getElementById('tacheDocumentUrl').value = tache.document_url || '';
+                document.getElementById('documentEditor').innerHTML = '';
+            }
+
+            // Corrigé : charger URL ou contenu riche
+            if (tache.correction_contenu) {
+                this.toggleSourceMode('correction', 'html');
+                document.getElementById('correctionEditor').innerHTML = tache.correction_contenu;
+                document.getElementById('tacheCorrectionUrl').value = '';
+            } else {
+                this.toggleSourceMode('correction', 'url');
+                const corrUrl = this._extractCorrectionUrl(tache.correction_commentee);
+                document.getElementById('tacheCorrectionUrl').value = corrUrl;
+                document.getElementById('correctionEditor').innerHTML = '';
+            }
         } else {
             title.textContent = 'Nouvel entrainement de competence';
             document.getElementById('editTacheId').value = '';
@@ -1895,6 +1918,12 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('tacheDuree').value = 30;
             document.getElementById('tacheStatut').value = 'brouillon';
             document.getElementById('tacheCorrectionUrl').value = '';
+            document.getElementById('documentEditor').innerHTML = '';
+            document.getElementById('correctionEditor').innerHTML = '';
+
+            // Réinitialiser les toggles en mode lien
+            this.toggleSourceMode('document', 'url');
+            this.toggleSourceMode('correction', 'url');
 
             if (lockedBanqueId) {
                 // Ajout depuis le "+" d'une banque → verrouiller
@@ -1922,6 +1951,72 @@ Object.assign(AdminBanquesExercices, {
         const compSelect = document.getElementById('tacheCompetenceId');
         if (compSelect) compSelect.disabled = false;
         this._banqueCompMode = false;
+        // Nettoyer les éditeurs riches
+        const docEditor = document.getElementById('documentEditor');
+        if (docEditor) docEditor.innerHTML = '';
+        const corrEditor = document.getElementById('correctionEditor');
+        if (corrEditor) corrEditor.innerHTML = '';
+    },
+
+    // ========== TOGGLE LIEN / TEXTE RICHE ==========
+
+    toggleSourceMode(section, mode) {
+        const toggle = document.getElementById(section + 'Toggle');
+        if (!toggle) return;
+
+        // Mettre à jour les boutons
+        toggle.querySelectorAll('.source-toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+
+        // Afficher le bon panneau
+        const urlPanel = document.getElementById(section + 'UrlPanel');
+        const htmlPanel = document.getElementById(section + 'HtmlPanel');
+        if (urlPanel) urlPanel.classList.toggle('hidden', mode !== 'url');
+        if (htmlPanel) htmlPanel.classList.toggle('hidden', mode !== 'html');
+    },
+
+    _getActiveSourceMode(section) {
+        const toggle = document.getElementById(section + 'Toggle');
+        if (!toggle) return 'url';
+        const activeBtn = toggle.querySelector('.source-toggle-btn.active');
+        return activeBtn ? activeBtn.dataset.mode : 'url';
+    },
+
+    _getEditorContent(editorId) {
+        const editor = document.getElementById(editorId);
+        if (!editor) return '';
+        const html = editor.innerHTML.trim();
+        // Retourner vide si l'éditeur est vide (juste des <br> ou espaces)
+        if (!html || html === '<br>' || html === '<div><br></div>') return '';
+        return html;
+    },
+
+    _initRichTextEditors() {
+        // Attacher les handlers de toolbar pour document et correction
+        ['document', 'correction'].forEach(section => {
+            const toolbar = document.getElementById(section + 'Toolbar');
+            const editor = document.getElementById(section + 'Editor');
+            const colorInput = document.getElementById(section + 'TextColor');
+            if (!toolbar || !editor) return;
+
+            // Boutons de formatage
+            toolbar.querySelectorAll('.rt-btn').forEach(btn => {
+                btn.onmousedown = (e) => e.preventDefault(); // Garder le focus dans l'éditeur
+                btn.onclick = () => {
+                    editor.focus();
+                    document.execCommand(btn.dataset.cmd, false, null);
+                };
+            });
+
+            // Couleur du texte
+            if (colorInput) {
+                colorInput.oninput = () => {
+                    editor.focus();
+                    document.execCommand('foreColor', false, colorInput.value);
+                };
+            }
+        });
     },
 
     _renderCompetenceSelect() {
@@ -2002,13 +2097,21 @@ Object.assign(AdminBanquesExercices, {
         const banqueId = document.getElementById('tacheCompetenceId').value;
         const titre = document.getElementById('tacheTitre').value.trim();
         const description = document.getElementById('tacheDescription').value.trim();
-        const documentUrl = document.getElementById('tacheDocumentUrl').value.trim();
         const documentLegende = document.getElementById('tacheDocumentLegende').value.trim();
         const dureeMinutes = parseInt(document.getElementById('tacheDuree').value) || 30;
         const duree = dureeMinutes * 60;
         const ordre = parseInt(document.getElementById('tacheOrdre').value) || 1;
         const statut = document.getElementById('tacheStatut').value;
-        const correctionUrl = document.getElementById('tacheCorrectionUrl').value.trim();
+
+        // Document : URL ou contenu riche selon le mode actif
+        const docMode = this._getActiveSourceMode('document');
+        const documentUrl = docMode === 'url' ? document.getElementById('tacheDocumentUrl').value.trim() : '';
+        const documentContenu = docMode === 'html' ? this._getEditorContent('documentEditor') : '';
+
+        // Corrigé : URL ou contenu riche selon le mode actif
+        const corrMode = this._getActiveSourceMode('correction');
+        const correctionUrl = corrMode === 'url' ? document.getElementById('tacheCorrectionUrl').value.trim() : '';
+        const correctionContenu = corrMode === 'html' ? this._getEditorContent('correctionEditor') : '';
 
         if (!titre) {
             alert('Le titre est requis');
@@ -2034,8 +2137,10 @@ Object.assign(AdminBanquesExercices, {
             competence_id: competenceId,
             description,
             document_url: documentUrl,
+            document_contenu: documentContenu,
             document_legende: documentLegende,
             correction_commentee: correctionUrl,
+            correction_contenu: correctionContenu,
             duree,
             ordre,
             statut

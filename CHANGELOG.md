@@ -4,6 +4,57 @@
 
 ---
 
+## 2026-02-26 — Éditeur riche pour document et corrigé (entraînements de compétences)
+
+### Contexte
+Ajout de la possibilité pour l'admin de saisir le document (sujet) et le corrigé commenté directement en texte riche dans le popup, au lieu d'être limité à un lien Google Doc.
+
+### Modifications
+
+**HTML modal admin** (`admin/banques-exercices.html`) :
+- Remplacement des champs URL simples par des sections avec toggle « Lien / Texte »
+- Ajout d'un éditeur riche léger (contenteditable + toolbar : gras, italique, souligné, listes, couleur)
+- Le toggle permet de choisir entre coller un lien Google Doc ou saisir du contenu formaté directement
+
+**JS admin** (`js/admin-banques-exercices-questions.js`) :
+- `toggleSourceMode()` : bascule entre les panneaux URL et éditeur riche
+- `_initRichTextEditors()` : initialise les toolbars de formatage
+- `_getEditorContent()` / `_getActiveSourceMode()` : récupèrent le contenu selon le mode actif
+- `saveTacheComplexe()` : envoie `document_contenu` et `correction_contenu` au backend
+- `openTacheComplexeModal()` : charge le bon mode (URL ou texte) à l'édition
+- `_toggleBanqueFields()` : masque les deux sections complètes en mode banque
+
+**CSS** (`css/admin-banques-exercices.css`, `css/eleve-competences.css`) :
+- Styles pour le toggle Lien/Texte et l'éditeur riche (toolbar + contenteditable)
+- Styles élève pour l'affichage du texte riche (`.comp-document-richtext`, `.comp-richtext-content`)
+
+**Backend** (`google-apps-script/Competences.gs`) :
+- 2 nouvelles colonnes dans `EntrainementsCompetences` : `document_contenu`, `correction_contenu`
+- Migration progressive : colonnes ajoutées automatiquement si absentes
+- Create/update gèrent les nouveaux champs
+
+**Rendu élève** (`js/eleve-competences-exercice.js`) :
+- `_buildDocumentHTML()` : affiche le texte riche si `document_contenu` existe, sinon iframe
+- `_buildCorrectionHTML()` : affiche le texte riche si `correction_contenu` existe, sinon iframe
+- `showTrainingResult()` / `showExerciseReview()` : les tabs Corrigé/Sujet fonctionnent aussi en mode texte riche
+
+### Décisions
+- Pas de bibliothèque externe : `contenteditable` + `execCommand` — léger et suffisant pour les besoins
+- 2 colonnes séparées (pas de JSON dans les colonnes existantes) — rétro-compatible, les anciens entraînements fonctionnent sans modification
+- Le contenu riche est stocké en HTML dans la feuille Google Sheets
+
+### Fichiers modifiés
+- `admin/banques-exercices.html`
+- `js/admin-banques-exercices-questions.js`
+- `css/admin-banques-exercices.css`
+- `css/eleve-competences.css`
+- `js/eleve-competences-exercice.js`
+- `google-apps-script/Competences.gs`
+- `CHANGELOG.md`
+- `CLAUDE.md` (vue fonctionnelle)
+
+---
+
 ## 2026-02-26 (session 9) — Audit et nettoyage du module entraînement de compétences
 
 ### Contexte

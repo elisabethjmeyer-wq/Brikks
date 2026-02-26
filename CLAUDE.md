@@ -75,7 +75,7 @@ L'utilisatrice principale est la professeure qui n'est pas développeuse : expli
 CompetencesReferentiel (id, nom, description, consigne, ordre, visible)
     └── CriteresReussite (id, competence_id, libelle, ordre)
 BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← NOUVEAU
-    └── EntrainementsCompetences (id, titre, competence_id, banque_id, ...)
+    └── EntrainementsCompetences (id, titre, competence_id, banque_id, ..., document_contenu, correction_contenu)
           └── EleveEntrainementsCompetences (id, eleve_id, entrainement_id, mode, statut, ...)
 ```
 
@@ -84,7 +84,8 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - Les banques de compétences regroupent les entraînements et contrôlent la visibilité élève (statut brouillon/publié)
 - Chaque banque est liée à une compétence du référentiel
 - L'élève voit les banques publiées sous forme de cartes (nom compétence, nb exercices, nb critères, progression)
-- Navigation 3 niveaux : liste des banques → détail (critères + exercices) → exercice (iframe + timer)
+- Navigation 3 niveaux : liste des banques → détail (critères + exercices) → exercice (iframe ou texte riche + timer)
+- Document et corrigé : au choix lien Google Doc (iframe) ou texte riche saisi directement par l'admin (HTML)
 - 2 modes : entraînement (corrigé visible) / évalué (soumission au prof)
 - Statuts élève : pas commencé → en cours → entraîné → soumis → validé
 

@@ -123,6 +123,22 @@ Object.assign(EleveCompetences, {
      * Utilisé dans showExercise, showTrainingResult, showExerciseReview.
      */
     _buildDocumentHTML(entrainement) {
+        // Mode texte riche : afficher le contenu HTML directement
+        if (entrainement.document_contenu) {
+            return `
+                <div class="comp-document-toolbar">
+                    <span class="comp-document-title">\u{1F4C4} Document</span>
+                    ${entrainement.document_legende ? `
+                        <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
+                    ` : ''}
+                </div>
+                <div class="comp-document-richtext" id="compDocWrapper">
+                    ${entrainement.document_contenu}
+                </div>
+            `;
+        }
+
+        // Mode lien : iframe comme avant
         const iframeUrl = this.getEmbedUrl(entrainement.document_url);
         return `
             <div class="comp-document-toolbar">
@@ -150,7 +166,18 @@ Object.assign(EleveCompetences, {
      * Génère le HTML du corrigé commenté (proposition texte + iframe document).
      * Utilisé dans showTrainingResult et showExerciseReview (mode entraînement).
      */
-    _buildCorrectionHTML(correctionCommentee) {
+    _buildCorrectionHTML(correctionCommentee, correctionContenu) {
+        // Mode texte riche : afficher le contenu HTML directement
+        if (correctionContenu) {
+            return `
+                <div class="comp-inplace-corrige">
+                    <h4>Corrig\u00E9 comment\u00E9</h4>
+                    <div class="comp-inplace-corrige-text comp-richtext-content">${correctionContenu}</div>
+                </div>
+            `;
+        }
+
+        // Mode lien (comportement existant)
         const data = this._parseCorrectionData(correctionCommentee);
         let html = '';
 
@@ -550,11 +577,12 @@ Object.assign(EleveCompetences, {
     // ==========================================
 
     showTrainingResult(entrainement) {
-        const correctionContent = this._buildCorrectionHTML(entrainement.correction_commentee);
+        const correctionContent = this._buildCorrectionHTML(entrainement.correction_commentee, entrainement.correction_contenu);
         const iframeUrl = this.getEmbedUrl(entrainement.document_url);
+        const hasDocument = iframeUrl || entrainement.document_contenu;
 
         const layout = document.querySelector('.comp-exercise-layout');
-        if (layout && iframeUrl) {
+        if (layout && hasDocument) {
             layout.outerHTML = `
                 <div class="comp-review-layout">
                     <div class="comp-document-section" id="compDocSection">
@@ -656,8 +684,8 @@ Object.assign(EleveCompetences, {
 
         if (mode === 'entrainement') {
             // === MODE ENTRAÎNEMENT : tabs Corrigé / Sujet ===
-            const correctionContent = this._buildCorrectionHTML(entrainement.correction_commentee);
-            const hasTabs = !!iframeUrl;
+            const correctionContent = this._buildCorrectionHTML(entrainement.correction_commentee, entrainement.correction_contenu);
+            const hasTabs = !!(iframeUrl || entrainement.document_contenu);
 
             const tabsHTML = hasTabs ? `
                 <div class="comp-review-tabs">

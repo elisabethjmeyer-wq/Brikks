@@ -1151,6 +1151,29 @@
     font-size: 0.9rem;
 }
 
+/* Document en texte riche (au lieu d'iframe) */
+.comp-document-richtext {
+    padding: 1.5rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #1f2937;
+    background: white;
+    overflow-y: auto;
+    min-height: 200px;
+}
+
+.comp-document-richtext ul,
+.comp-document-richtext ol,
+.comp-richtext-content ul,
+.comp-richtext-content ol {
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+}
+
+.comp-richtext-content {
+    white-space: normal;
+}
+
 body.comp-fullscreen-active {
     overflow: hidden;
 }
