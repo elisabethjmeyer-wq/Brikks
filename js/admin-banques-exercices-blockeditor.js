@@ -19,6 +19,9 @@ Object.assign(AdminBanquesExercices, {
     /** @type {string|null} ID du bloc en cours de drag */
     _dragBlockId: null,
 
+    /** @type {string} ID du container du block editor (configurable pour le wizard) */
+    _blockEditorContainerId: 'blockEditorContainer',
+
     // ========== API PUBLIQUE ==========
 
     /**
@@ -163,7 +166,7 @@ Object.assign(AdminBanquesExercices, {
     // ========== RENDU ==========
 
     _renderBlocks() {
-        var container = document.getElementById('blockEditorContainer');
+        var container = document.getElementById(this._blockEditorContainerId);
         if (!container) return;
 
         if (this._blocks.length === 0) {
@@ -368,7 +371,7 @@ Object.assign(AdminBanquesExercices, {
     // ========== DRAG & DROP ==========
 
     _initBlockDragDrop() {
-        var container = document.getElementById('blockEditorContainer');
+        var container = document.getElementById(this._blockEditorContainerId);
         if (!container) return;
 
         var self = this;
@@ -376,6 +379,9 @@ Object.assign(AdminBanquesExercices, {
         // Rendre les blocs draggable via la poignée
         container.querySelectorAll('.block-item[draggable="true"]').forEach(function(el) {
             el.addEventListener('dragstart', function(e) {
+                // Sauvegarder l'état des éditeurs AVANT le drag
+                // (le navigateur peut modifier les contenteditable pendant le drag)
+                self._saveEditorsState();
                 var blockId = el.dataset.blockId;
                 self._dragBlockId = blockId;
                 e.dataTransfer.effectAllowed = 'move';
