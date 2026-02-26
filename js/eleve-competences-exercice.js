@@ -493,11 +493,6 @@ Object.assign(EleveCompetences, {
                             </div>
                         </div>
                     </div>
-                    <div class="comp-review-actions">
-                        <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
-                            Retour aux compétences
-                        </button>
-                    </div>
                 </div>
             `;
         } else {
@@ -510,13 +505,7 @@ Object.assign(EleveCompetences, {
             }
             const finishBtn = document.getElementById('compFinishBtn');
             if (finishBtn) {
-                finishBtn.outerHTML = `
-                    <div class="comp-sidebar-result-actions">
-                        <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
-                            Retour aux compétences
-                        </button>
-                    </div>
-                `;
+                finishBtn.remove();
             }
         }
     },
