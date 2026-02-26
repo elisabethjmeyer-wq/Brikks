@@ -635,32 +635,28 @@
                 <textarea class="form-textarea" id="tacheDescription" rows="2" placeholder="Consigne pour l'eleve..."></textarea>
             </div>
 
-            <!-- Section Document (sujet) -->
+            <!-- Section Contenu de l'exercice (block editor) -->
             <div class="form-section" id="documentSection">
-                <h3 class="form-section-title">Document (sujet)</h3>
-                <div class="source-toggle" id="documentToggle">
-                    <button type="button" class="source-toggle-btn active" data-mode="url" onclick="AdminBanquesExercices.toggleSourceMode('document', 'url')">Lien</button>
-                    <button type="button" class="source-toggle-btn" data-mode="html" onclick="AdminBanquesExercices.toggleSourceMode('document', 'html')">Texte</button>
-                </div>
-
-                <div class="source-panel" id="documentUrlPanel">
-                    <div class="form-group">
-                        <label>URL du document</label>
-                        <input type="text" class="form-input" id="tacheDocumentUrl" placeholder="Lien Google Drive, PDF, image...">
-                        <div class="form-help">Lien vers le document (Google Drive, PDF, image)</div>
-                    </div>
-                </div>
-
-                <div class="source-panel hidden" id="documentHtmlPanel">
-                    <div class="form-group">
-                        <label>Contenu du document</label>
-                        <div id="documentEditorContainer"></div>
-                    </div>
-                </div>
-
-                <div class="form-group" id="documentLegendeGroup">
-                    <label>Legende du document <span class="optional">(optionnel)</span></label>
-                    <input type="text" class="form-input" id="tacheDocumentLegende" placeholder="Ex: Extrait du journal de Catherine Pozzi, 1920">
+                <h3 class="form-section-title">Contenu de l'exercice</h3>
+                <div id="blockEditorContainer" class="block-editor"></div>
+                <div class="block-add-bar" id="blockAddBar">
+                    <span class="block-add-label">Ajouter</span>
+                    <button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock('text')" title="Texte">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                        Texte
+                    </button>
+                    <button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock('document')" title="Document Google">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Document
+                    </button>
+                    <button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock('image')" title="Image">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        Image
+                    </button>
+                    <button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock('video')" title="Video">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                        Video
+                    </button>
                 </div>
             </div>
 
@@ -723,6 +719,7 @@
 <script src="../js/admin-banques-exercices-builders.js"></script>
 <script src="../js/admin-banques-exercices-connaissances.js"></script>
 <script src="../js/admin-banques-exercices-questions.js"></script>
+<script src="../js/admin-banques-exercices-blockeditor.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
