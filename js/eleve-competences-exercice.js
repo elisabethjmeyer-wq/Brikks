@@ -494,9 +494,6 @@ Object.assign(EleveCompetences, {
                         </div>
                     </div>
                     <div class="comp-review-actions">
-                        <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
-                            Se ré-entraîner
-                        </button>
                         <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
                             Retour aux compétences
                         </button>
@@ -515,9 +512,6 @@ Object.assign(EleveCompetences, {
             if (finishBtn) {
                 finishBtn.outerHTML = `
                     <div class="comp-sidebar-result-actions">
-                        <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
-                            Se ré-entraîner
-                        </button>
                         <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
                             Retour aux compétences
                         </button>
