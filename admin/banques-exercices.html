@@ -635,26 +635,76 @@
                 <textarea class="form-textarea" id="tacheDescription" rows="2" placeholder="Consigne pour l'eleve..."></textarea>
             </div>
 
-            <div class="form-group">
-                <label>URL du document</label>
-                <input type="text" class="form-input" id="tacheDocumentUrl" placeholder="Lien Google Drive, PDF, image...">
-                <div class="form-help">Lien vers le document (Google Drive, PDF, image)</div>
-            </div>
+            <!-- Section Document (sujet) -->
+            <div class="form-section" id="documentSection">
+                <h3 class="form-section-title">Document (sujet)</h3>
+                <div class="source-toggle" id="documentToggle">
+                    <button type="button" class="source-toggle-btn active" data-mode="url" onclick="AdminBanquesExercices.toggleSourceMode('document', 'url')">Lien</button>
+                    <button type="button" class="source-toggle-btn" data-mode="html" onclick="AdminBanquesExercices.toggleSourceMode('document', 'html')">Texte</button>
+                </div>
 
-            <div class="form-group">
-                <label>Legende du document <span class="optional">(optionnel)</span></label>
-                <input type="text" class="form-input" id="tacheDocumentLegende" placeholder="Ex: Extrait du journal de Catherine Pozzi, 1920">
+                <div class="source-panel" id="documentUrlPanel">
+                    <div class="form-group">
+                        <label>URL du document</label>
+                        <input type="text" class="form-input" id="tacheDocumentUrl" placeholder="Lien Google Drive, PDF, image...">
+                        <div class="form-help">Lien vers le document (Google Drive, PDF, image)</div>
+                    </div>
+                </div>
+
+                <div class="source-panel hidden" id="documentHtmlPanel">
+                    <div class="form-group">
+                        <label>Contenu du document</label>
+                        <div class="richtext-toolbar" id="documentToolbar">
+                            <button type="button" class="rt-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+                            <button type="button" class="rt-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+                            <button type="button" class="rt-btn" data-cmd="underline" title="Souligne"><u>S</u></button>
+                            <span class="rt-sep"></span>
+                            <button type="button" class="rt-btn" data-cmd="insertUnorderedList" title="Liste a puces">&#8226;</button>
+                            <button type="button" class="rt-btn" data-cmd="insertOrderedList" title="Liste numerotee">1.</button>
+                            <span class="rt-sep"></span>
+                            <input type="color" class="rt-color" id="documentTextColor" value="#000000" title="Couleur du texte">
+                        </div>
+                        <div class="richtext-editor" id="documentEditor" contenteditable="true" data-placeholder="Saisissez le contenu du document..."></div>
+                    </div>
+                </div>
+
+                <div class="form-group" id="documentLegendeGroup">
+                    <label>Legende du document <span class="optional">(optionnel)</span></label>
+                    <input type="text" class="form-input" id="tacheDocumentLegende" placeholder="Ex: Extrait du journal de Catherine Pozzi, 1920">
+                </div>
             </div>
 
             <!-- Section Corrige commente -->
             <div class="form-section" id="correctionSection">
                 <h3 class="form-section-title">Corrige commente <span class="optional">(mode entrainement)</span></h3>
-                <div class="form-help" style="margin-bottom: 0.75rem;">Lien vers un Google Doc visible par les eleves en mode entrainement.</div>
+                <div class="source-toggle" id="correctionToggle">
+                    <button type="button" class="source-toggle-btn active" data-mode="url" onclick="AdminBanquesExercices.toggleSourceMode('correction', 'url')">Lien</button>
+                    <button type="button" class="source-toggle-btn" data-mode="html" onclick="AdminBanquesExercices.toggleSourceMode('correction', 'html')">Texte</button>
+                </div>
 
-                <div class="form-group">
-                    <label>Lien Google Doc du corrige</label>
-                    <input type="text" class="form-input" id="tacheCorrectionUrl" placeholder="https://docs.google.com/document/d/...">
-                    <div class="form-help">Collez le lien de partage du Google Doc (doit etre accessible en lecture)</div>
+                <div class="source-panel" id="correctionUrlPanel">
+                    <div class="form-group">
+                        <label>Lien Google Doc du corrige</label>
+                        <input type="text" class="form-input" id="tacheCorrectionUrl" placeholder="https://docs.google.com/document/d/...">
+                        <div class="form-help">Collez le lien de partage du Google Doc (doit etre accessible en lecture)</div>
+                    </div>
+                </div>
+
+                <div class="source-panel hidden" id="correctionHtmlPanel">
+                    <div class="form-group">
+                        <label>Contenu du corrige</label>
+                        <div class="richtext-toolbar" id="correctionToolbar">
+                            <button type="button" class="rt-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+                            <button type="button" class="rt-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+                            <button type="button" class="rt-btn" data-cmd="underline" title="Souligne"><u>S</u></button>
+                            <span class="rt-sep"></span>
+                            <button type="button" class="rt-btn" data-cmd="insertUnorderedList" title="Liste a puces">&#8226;</button>
+                            <button type="button" class="rt-btn" data-cmd="insertOrderedList" title="Liste numerotee">1.</button>
+                            <span class="rt-sep"></span>
+                            <input type="color" class="rt-color" id="correctionTextColor" value="#000000" title="Couleur du texte">
+                        </div>
+                        <div class="richtext-editor" id="correctionEditor" contenteditable="true" data-placeholder="Saisissez le contenu du corrige..."></div>
+                    </div>
                 </div>
             </div>
 
