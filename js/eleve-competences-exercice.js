@@ -401,19 +401,19 @@ Object.assign(EleveCompetences, {
     },
 
     // ==========================================
-    // RÉSULTAT MODE ENTRAÎNEMENT (en place)
+    // RÉSULTAT MODE ENTRAÎNEMENT (tabs Corrigé/Sujet)
     // ==========================================
 
     showTrainingResult(entrainement) {
-        // Récupérer la correction
         const correctionData = this._parseCorrectionData(entrainement.correction_commentee);
         const correctionUrl = correctionData.url;
         const propositionText = correctionData.proposition;
+        const iframeUrl = this.getEmbedUrl(entrainement.document_url);
 
-        // Construire le HTML de correction à insérer sous le document
-        let correctionHTML = '';
+        // Build correction content
+        let correctionContent = '';
         if (propositionText) {
-            correctionHTML = `
+            correctionContent += `
                 <div class="comp-inplace-corrige">
                     <h4>Proposition de corrigé</h4>
                     <div class="comp-inplace-corrige-text">${this.escapeHtml(propositionText)}</div>
@@ -422,7 +422,7 @@ Object.assign(EleveCompetences, {
         }
         if (correctionUrl) {
             const embedUrl = this.getEmbedUrl(correctionUrl);
-            correctionHTML += `
+            correctionContent += `
                 <div class="comp-inplace-corrige">
                     <h4>Corrigé commenté</h4>
                     <div class="comp-corrige-doc">
@@ -435,41 +435,73 @@ Object.assign(EleveCompetences, {
             `;
         }
         if (!correctionUrl && !propositionText) {
-            correctionHTML = `
+            correctionContent = `
                 <div class="comp-inplace-corrige comp-corrige-empty">
                     <p>Le corrigé commenté n'est pas encore disponible pour cet exercice.</p>
                 </div>
             `;
         }
 
-        // Insérer la correction sous le document (en place)
-        const docSection = document.getElementById('compDocSection');
-        if (docSection) {
-            // Supprimer une correction précédente s'il y en a
-            const existing = docSection.querySelector('.comp-inplace-corrige');
-            if (existing) existing.remove();
-            docSection.insertAdjacentHTML('beforeend', correctionHTML);
-        }
-
-        // Remplacer le bouton "J'ai terminé" par les boutons de navigation
-        const finishBtn = document.getElementById('compFinishBtn');
-        if (finishBtn) {
-            finishBtn.outerHTML = `
-                <div class="comp-sidebar-result-actions">
-                    <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.backToDetail()">
-                        Retour à la compétence
-                    </button>
-                    <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
-                        Retour aux compétences
-                    </button>
+        // Replace the exercise layout with tabs (Corrigé / Sujet)
+        const layout = document.querySelector('.comp-exercise-layout');
+        if (layout && iframeUrl) {
+            layout.outerHTML = `
+                <div class="comp-review-layout">
+                    <div class="comp-document-section" id="compDocSection">
+                        <div class="comp-review-tabs">
+                            <button class="comp-review-tab active" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">📝 Corrigé</button>
+                            <button class="comp-review-tab" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">📄 Sujet</button>
+                        </div>
+                        <div class="comp-review-tab-content active" id="compTabCorrige">
+                            ${correctionContent}
+                        </div>
+                        <div class="comp-review-tab-content" id="compTabSujet">
+                            <div class="comp-document-toolbar">
+                                <span class="comp-document-title">📄 Document</span>
+                                ${entrainement.document_legende ? `
+                                    <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
+                                ` : ''}
+                                <div class="comp-document-actions">
+                                    <a href="${this.escapeHtml(entrainement.document_url || '')}" target="_blank" class="comp-doc-btn" title="Ouvrir dans un nouvel onglet">↗️</a>
+                                    <button class="comp-doc-btn" onclick="EleveCompetences.toggleDocFullscreen()" title="Plein écran">⛶</button>
+                                </div>
+                            </div>
+                            <div class="comp-document-frame-wrapper" id="compDocWrapper">
+                                <iframe src="${iframeUrl}" class="comp-document-frame" allowfullscreen></iframe>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="comp-review-actions">
+                        <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
+                            Se ré-entraîner
+                        </button>
+                        <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
+                            Retour aux compétences
+                        </button>
+                    </div>
                 </div>
             `;
-        }
-
-        // Scroller vers la correction
-        if (docSection) {
-            const corrige = docSection.querySelector('.comp-inplace-corrige');
-            if (corrige) corrige.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            // No document: insert correction and update buttons
+            const docSection = document.getElementById('compDocSection');
+            if (docSection) {
+                const existing = docSection.querySelector('.comp-inplace-corrige');
+                if (existing) existing.remove();
+                docSection.insertAdjacentHTML('beforeend', correctionContent);
+            }
+            const finishBtn = document.getElementById('compFinishBtn');
+            if (finishBtn) {
+                finishBtn.outerHTML = `
+                    <div class="comp-sidebar-result-actions">
+                        <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
+                            Se ré-entraîner
+                        </button>
+                        <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
+                            Retour aux compétences
+                        </button>
+                    </div>
+                `;
+            }
         }
     },
 
@@ -550,8 +582,21 @@ Object.assign(EleveCompetences, {
     // ==========================================
 
     /**
-     * Affiche une vue relecture : le sujet (iframe) + correction ou message terminé
-     * selon le mode choisi par l'élève.
+     * Switch entre les onglets Corrigé / Sujet dans les vues relecture
+     */
+    switchReviewTab(tab) {
+        document.querySelectorAll('.comp-review-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        const tabCorrige = document.getElementById('compTabCorrige');
+        const tabSujet = document.getElementById('compTabSujet');
+        if (tabCorrige) tabCorrige.classList.toggle('active', tab === 'corrige');
+        if (tabSujet) tabSujet.classList.toggle('active', tab === 'sujet');
+    },
+
+    /**
+     * Affiche une vue relecture avec tabs Corrigé/Sujet (entraînement)
+     * ou document + statut (évaluation).
      */
     showExerciseReview(entrainement, progression) {
         this.currentView = 'exercise';
@@ -564,27 +609,25 @@ Object.assign(EleveCompetences, {
 
         const modeBadgeLabel = mode === 'entrainement' ? 'Entraînement' : 'Évaluation';
 
-        // Sidebar : correction (entraînement) ou message terminé (évaluation)
-        let sidebarContent = '';
-
         if (mode === 'entrainement') {
-            // Mode entraînement → correction commentée + bouton ré-entraîner
+            // === MODE ENTRAÎNEMENT : tabs Corrigé / Sujet ===
             const correctionData = this._parseCorrectionData(entrainement.correction_commentee);
             const correctionUrl = correctionData.url;
             const propositionText = correctionData.proposition;
 
+            let correctionContent = '';
             if (propositionText) {
-                sidebarContent += `
-                    <div class="comp-review-section">
+                correctionContent += `
+                    <div class="comp-inplace-corrige">
                         <h4>Proposition de corrigé</h4>
-                        <div class="comp-review-corrige-text">${this.escapeHtml(propositionText)}</div>
+                        <div class="comp-inplace-corrige-text">${this.escapeHtml(propositionText)}</div>
                     </div>
                 `;
             }
             if (correctionUrl) {
                 const embedUrl = this.getEmbedUrl(correctionUrl);
-                sidebarContent += `
-                    <div class="comp-review-section">
+                correctionContent += `
+                    <div class="comp-inplace-corrige">
                         <h4>Corrigé commenté</h4>
                         <div class="comp-corrige-doc">
                             <iframe src="${embedUrl}" class="comp-corrige-iframe" allowfullscreen></iframe>
@@ -596,23 +639,72 @@ Object.assign(EleveCompetences, {
                 `;
             }
             if (!correctionUrl && !propositionText) {
-                sidebarContent += `
-                    <div class="comp-review-section comp-review-empty">
+                correctionContent = `
+                    <div class="comp-inplace-corrige comp-corrige-empty">
                         <p>Le corrigé commenté n'est pas encore disponible.</p>
                     </div>
                 `;
             }
 
-            // Bouton pour se ré-entraîner
-            sidebarContent += `
-                <div class="comp-review-section">
-                    <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
-                        Se ré-entraîner
-                    </button>
+            const hasTabs = !!iframeUrl;
+
+            const tabsHTML = hasTabs ? `
+                <div class="comp-review-tabs">
+                    <button class="comp-review-tab active" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">📝 Corrigé</button>
+                    <button class="comp-review-tab" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">📄 Sujet</button>
+                </div>
+            ` : '';
+
+            const sujetHTML = hasTabs ? `
+                <div class="comp-review-tab-content" id="compTabSujet">
+                    <div class="comp-document-toolbar">
+                        <span class="comp-document-title">📄 Document</span>
+                        ${entrainement.document_legende ? `
+                            <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
+                        ` : ''}
+                        <div class="comp-document-actions">
+                            <a href="${this.escapeHtml(entrainement.document_url || '')}" target="_blank" class="comp-doc-btn" title="Ouvrir dans un nouvel onglet">↗️</a>
+                            <button class="comp-doc-btn" onclick="EleveCompetences.toggleDocFullscreen()" title="Plein écran">⛶</button>
+                        </div>
+                    </div>
+                    <div class="comp-document-frame-wrapper" id="compDocWrapper">
+                        <iframe src="${iframeUrl}" class="comp-document-frame" allowfullscreen></iframe>
+                    </div>
+                </div>
+            ` : '';
+
+            container.innerHTML = `
+                <div class="comp-exercise-view">
+                    <div class="comp-exercise-topbar">
+                        <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">←</button>
+                        <div class="comp-exercise-topbar-info">
+                            <h1>${this.escapeHtml(entrainement.titre)}</h1>
+                            <div class="comp-exercise-topbar-meta">
+                                <span class="comp-mode-badge ${mode}">${modeBadgeLabel}</span>
+                                <span class="comp-review-badge">Relecture</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="comp-review-layout">
+                        <div class="comp-document-section" id="compDocSection">
+                            ${tabsHTML}
+                            <div class="comp-review-tab-content active" id="compTabCorrige">
+                                ${correctionContent}
+                            </div>
+                            ${sujetHTML}
+                        </div>
+                        <div class="comp-review-actions">
+                            <button class="comp-btn comp-btn-retrain" onclick="EleveCompetences.restartTraining('${entrainement.id}')">
+                                Se ré-entraîner
+                            </button>
+                        </div>
+                    </div>
                 </div>
             `;
         } else {
-            // Mode évaluation → message selon statut
+            // === MODE ÉVALUATION : document + sidebar statut ===
+            let sidebarContent = '';
             if (statut === 'soumis') {
                 sidebarContent = `
                     <div class="comp-review-section comp-review-done">
@@ -638,54 +730,50 @@ Object.assign(EleveCompetences, {
                     </div>
                 `;
             }
-        }
 
-        container.innerHTML = `
-            <div class="comp-exercise-view">
-                <div class="comp-exercise-topbar">
-                    <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">←</button>
-                    <div class="comp-exercise-topbar-info">
-                        <h1>${this.escapeHtml(entrainement.titre)}</h1>
-                        <div class="comp-exercise-topbar-meta">
-                            <span class="comp-mode-badge ${mode}">${modeBadgeLabel}</span>
-                            <span class="comp-review-badge">Relecture</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="comp-exercise-layout">
-                    <div class="comp-document-section" id="compDocSection">
-                        <div class="comp-document-toolbar">
-                            <span class="comp-document-title">📄 Document</span>
-                            ${entrainement.document_legende ? `
-                                <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
-                            ` : ''}
-                            <div class="comp-document-actions">
-                                <a href="${this.escapeHtml(entrainement.document_url || '')}" target="_blank" class="comp-doc-btn" title="Ouvrir dans un nouvel onglet">
-                                    ↗️
-                                </a>
-                                <button class="comp-doc-btn" onclick="EleveCompetences.toggleDocFullscreen()" title="Plein écran">
-                                    ⛶
-                                </button>
+            container.innerHTML = `
+                <div class="comp-exercise-view">
+                    <div class="comp-exercise-topbar">
+                        <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">←</button>
+                        <div class="comp-exercise-topbar-info">
+                            <h1>${this.escapeHtml(entrainement.titre)}</h1>
+                            <div class="comp-exercise-topbar-meta">
+                                <span class="comp-mode-badge ${mode}">${modeBadgeLabel}</span>
+                                <span class="comp-review-badge">Relecture</span>
                             </div>
                         </div>
-                        <div class="comp-document-frame-wrapper" id="compDocWrapper">
-                            ${iframeUrl ? `
-                                <iframe src="${iframeUrl}" class="comp-document-frame" allowfullscreen></iframe>
-                            ` : `
-                                <div class="comp-no-document">
-                                    <p>Aucun document associé à cet exercice.</p>
-                                </div>
-                            `}
-                        </div>
                     </div>
 
-                    <div class="comp-sidebar-section">
-                        ${sidebarContent}
+                    <div class="comp-exercise-layout">
+                        <div class="comp-document-section" id="compDocSection">
+                            <div class="comp-document-toolbar">
+                                <span class="comp-document-title">📄 Document</span>
+                                ${entrainement.document_legende ? `
+                                    <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
+                                ` : ''}
+                                <div class="comp-document-actions">
+                                    <a href="${this.escapeHtml(entrainement.document_url || '')}" target="_blank" class="comp-doc-btn" title="Ouvrir dans un nouvel onglet">↗️</a>
+                                    <button class="comp-doc-btn" onclick="EleveCompetences.toggleDocFullscreen()" title="Plein écran">⛶</button>
+                                </div>
+                            </div>
+                            <div class="comp-document-frame-wrapper" id="compDocWrapper">
+                                ${iframeUrl ? `
+                                    <iframe src="${iframeUrl}" class="comp-document-frame" allowfullscreen></iframe>
+                                ` : `
+                                    <div class="comp-no-document">
+                                        <p>Aucun document associé à cet exercice.</p>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+
+                        <div class="comp-sidebar-section">
+                            ${sidebarContent}
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
     },
 
     // ==========================================

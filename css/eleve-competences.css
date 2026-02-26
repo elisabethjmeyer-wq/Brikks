@@ -1861,6 +1861,68 @@ body.comp-fullscreen-active {
 }
 
 /* ============================================
+   TABS CORRIGÉ / SUJET (vue relecture)
+   ============================================ */
+
+.comp-review-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.comp-review-tab {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.comp-review-tab:hover {
+    color: #374151;
+    background: #f3f4f6;
+}
+
+.comp-review-tab.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+}
+
+.comp-review-tab-content {
+    display: none;
+}
+
+.comp-review-tab-content.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+/* Layout single-column pour la vue relecture avec tabs */
+.comp-review-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 500px;
+}
+
+.comp-review-layout .comp-document-section {
+    flex: 1;
+}
+
+.comp-review-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
+
+/* ============================================
    BOUTON NE PAS RENDRE (mode évaluation)
    ============================================ */
 
