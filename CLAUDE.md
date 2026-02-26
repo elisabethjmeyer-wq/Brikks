@@ -98,16 +98,17 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **Legacy** : `eleve-exercices-competences.js` (785 lignes) — ancien module "tâches complexes" étendu sur `EleveExercices`. Utilise l'ancienne terminologie (`tache_id`, `points_bonus`, `correction_url`), l'ancien modèle de données (pas de banques). Non utilisé par la nouvelle page `entrainements-comp.html`. À supprimer quand confirmé non chargé ailleurs.
 
-**Problèmes connus** :
-- Pas de `beforeunload` en mode évalué (fermeture accidentelle possible)
-- `tempsPasse` calculé depuis `exerciseStartTime` uniquement — ne cumule pas les reprises
-- Échec API silencieux au `finishEntrainement` : l'élève voit le résultat même si la sauvegarde a échoué
-- `getBanqueStatus` ne distingue pas "soumis" de "en cours"
-- HTML de correction commentée dupliqué 2× (showTrainingResult + showExerciseReview)
-- HTML toolbar document dupliqué 4×
-- `_parseCorrectionData` et `_getCorrectionUrl` quasi-identiques
+**Problèmes corrigés (session 9)** :
+- ~~Pas de `beforeunload` en mode évalué~~ → `_addBeforeUnload()` / `_removeBeforeUnload()` ajoutés
+- ~~`tempsPasse` ne cumulait pas les reprises~~ → calcul basé sur `duree - timeRemaining`
+- ~~Échec API silencieux au `finishEntrainement`~~ → notification d'erreur visible via `_showNotification()`
+- ~~`getBanqueStatus` ne distinguait pas "soumis"~~ → nouveau statut `soumise` (label "En attente", cssClass `submitted`)
+- ~~HTML correction dupliqué 2×~~ → factorisé dans `_buildCorrectionHTML()`
+- ~~HTML document dupliqué 4×~~ → factorisé dans `_buildDocumentHTML()`
+- ~~`_getCorrectionUrl` quasi-identique à `_parseCorrectionData`~~ → supprimé, `_parseCorrectionData` utilisé partout
+- ~~`closeModal` écrasait `currentEntrainement`~~ → nettoyage d'état retiré du close, méthodes appelantes simplifiées
 
-**État** : audité (session 9). Code propre et fonctionnel. Duplication à factoriser, quelques corrections mineures à apporter.
+**État** : audité et nettoyé (session 9). Code propre, factorisé et maintenable.
 
 ## Architecture technique
 

@@ -213,6 +213,11 @@
     color: #16a34a;
 }
 
+.comp-card-status-icon.submitted {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
 .comp-card-info {
     min-width: 0;
 }
@@ -265,6 +270,11 @@
 .comp-card-badge.validated {
     background: #dcfce7;
     color: #16a34a;
+}
+
+.comp-card-badge.submitted {
+    background: #f3e8ff;
+    color: #7c3aed;
 }
 
 .comp-card-chevron {

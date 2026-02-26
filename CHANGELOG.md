@@ -4,31 +4,42 @@
 
 ---
 
-## 2026-02-26 (session 9) — Audit du module entraînement de compétences
+## 2026-02-26 (session 9) — Audit et nettoyage du module entraînement de compétences
 
 ### Contexte
-Audit complet du module compétences (élève + admin + backend + legacy) pour dresser l'état des lieux avant de continuer le développement.
+Audit complet du module compétences (élève + admin + backend + legacy) suivi de la correction de tous les problèmes identifiés pour obtenir un code propre et maintenable.
 
-### Ce qui a été fait
-- **Lecture complète** de tous les fichiers du module : `eleve-competences.js` (904 l.), `eleve-competences-exercice.js` (887 l.), `admin-competences.js` (463 l.), `Competences.gs` (~1 100 l.), les 2 CSS, les 2 HTML, et le legacy `eleve-exercices-competences.js` (785 l.)
-- **Analyse du backend** : 37 routes API dans Code.gs, 6 tables Google Sheets, 11 alias de rétro-compatibilité, machine à états complète pour la progression élève
-- **Identification des problèmes** : 5 bugs/risques fonctionnels, 6 duplications de code, 3 points legacy, 1 problème ESLint
-- **Mise à jour de CLAUDE.md** : section module compétences enrichie avec les problèmes connus et l'état vérifié
+### Phase 1 — Audit
+- **Lecture complète** de tous les fichiers du module (7 000 lignes hors legacy)
+- **Identification** : 5 bugs/risques fonctionnels, 6 duplications, 3 points legacy, 1 problème ESLint
 
-### Problèmes identifiés (résumé)
-- **Fonctionnels** : pas de `beforeunload` en mode évalué, `tempsPasse` ne cumule pas les reprises, échec API silencieux au finish, `getBanqueStatus` ne distingue pas "soumis"
-- **Duplication** : correction HTML ×2, toolbar document ×4, `_parseCorrectionData` vs `_getCorrectionUrl`, `getEmbedUrl` dupliqué dans legacy
-- **Legacy** : `eleve-exercices-competences.js` (785 l.) non migré, terminologie ancienne ("tâches complexes", "points_bonus")
-- **Outillage** : ESLint v10 installé mais config `.eslintrc.json` v8 → `npm run lint` cassé
+### Phase 2 — Corrections
+
+**Bugs corrigés :**
+- `beforeunload` ajouté en mode évalué (`_addBeforeUnload` / `_removeBeforeUnload`) — empêche la fermeture accidentelle de l'onglet
+- `tempsPasse` : calcul corrigé — basé sur `duree - timeRemaining` au lieu de `Date.now() - exerciseStartTime`, gère correctement les reprises et l'overtime
+- `finishEntrainement` : notification d'erreur visible si la sauvegarde échoue (via `_showNotification`), la progression locale n'est plus mise à jour en cas d'échec API
+- `getBanqueStatus` : nouveau statut "soumise" (label "En attente", cssClass `submitted`, icône 📤) entre "en_cours" et "validée"
+
+**Factorisation :**
+- `_buildDocumentHTML(entrainement)` : génère toolbar + iframe — remplace 4 copies identiques
+- `_buildCorrectionHTML(correctionCommentee)` : génère le HTML du corrigé commenté — remplace 2 copies identiques
+- `_getCorrectionUrl` supprimé : `_parseCorrectionData` utilisé partout (y compris `showCorrigeCommente`)
+- `closeModal` simplifié : ne réinitialise plus `currentEntrainement`, les méthodes appelantes (`resumeTraining`, `restartTrainingFromModal`, `viewReviewFromModal`) simplifiées
+
+**CSS :**
+- Ajout des styles `.comp-card-status-icon.submitted` et `.comp-card-badge.submitted` (violet, cohérent avec la palette existante)
 
 ### Fichiers modifiés
-- `CLAUDE.md` — section module compétences mise à jour
+- `js/eleve-competences.js` — getBanqueStatus, closeModal, résumé des simplifications
+- `js/eleve-competences-exercice.js` — réécriture : beforeunload, tempsPasse, notification, builders HTML, suppression _getCorrectionUrl
+- `css/eleve-competences.css` — styles submitted
+- `CLAUDE.md` — problèmes marqués comme corrigés
 - `CHANGELOG.md` — cette entrée
 
-### Décisions
-- Le module est fonctionnel et bien architecturé. Les problèmes identifiés sont des améliorations, pas des bloqueurs.
-- Le legacy peut être supprimé après vérification qu'il n'est plus chargé.
-- Les corrections prioritaires : `beforeunload`, `tempsPasse`, notification erreur API.
+### Ce qui reste à faire
+- Module legacy `eleve-exercices-competences.js` (785 l.) à supprimer quand confirmé non chargé
+- ESLint v10/v8 mismatch non traité (hors périmètre)
 
 ---
 
