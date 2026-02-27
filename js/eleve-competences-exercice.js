@@ -285,7 +285,6 @@ Object.assign(EleveCompetences, {
             }
             return `
                 <div class="comp-inplace-corrige">
-                    <h4>Corrig\u00E9 comment\u00E9</h4>
                     <div class="comp-inplace-corrige-text comp-richtext-content">${correctionContenu}</div>
                 </div>
             `;
@@ -308,7 +307,6 @@ Object.assign(EleveCompetences, {
             html += `
                 <div class="comp-inplace-corrige">
                     <div class="comp-corrige-header">
-                        <h4>Corrig\u00E9 comment\u00E9</h4>
                         <a href="${this.escapeHtml(data.url)}" target="_blank" rel="noopener" class="comp-corrige-link" title="Ouvrir dans un nouvel onglet">\u2197\uFE0F</a>
                     </div>
                     <div class="comp-corrige-doc">
@@ -334,7 +332,6 @@ Object.assign(EleveCompetences, {
     _renderCorrectionBlocks(blocks) {
         var self = this;
         var html = '<div class="comp-inplace-corrige">' +
-            '<h4>Corrig\u00E9 comment\u00E9</h4>' +
             '<div class="comp-blocks-container">';
 
         blocks.forEach(function(block) {
@@ -434,7 +431,7 @@ Object.assign(EleveCompetences, {
         const criteresHTML = nbCriteres > 0 ? `
             <div class="comp-sidebar-criteres">
                 <h4>Crit\u00E8res de r\u00E9ussite</h4>
-                <p class="comp-sidebar-criteres-hint">Au moins ${nbCriteres} sur ${nbCriteres} pour valider</p>
+                <p class="comp-sidebar-criteres-hint">Tous les crit\u00E8res doivent \u00EAtre respect\u00E9s</p>
                 <div class="comp-sidebar-criteres-list">
                     ${criteresComp.map((cr, i) => `
                         <label class="comp-sidebar-critere-item">
