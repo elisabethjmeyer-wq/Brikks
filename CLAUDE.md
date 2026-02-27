@@ -75,8 +75,8 @@ L'utilisatrice principale est la professeure qui n'est pas développeuse : expli
 CompetencesReferentiel (id, nom, description, consigne, ordre, visible)
     └── CriteresReussite (id, competence_id, libelle, ordre)
 BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← NOUVEAU
-    └── EntrainementsCompetences (id, titre, competence_id, banque_id, ..., document_contenu, correction_contenu)
-          └── EleveEntrainementsCompetences (id, eleve_id, entrainement_id, mode, statut, ...)
+    └── EntrainementsCompetences (id, titre, competence_id, banque_id, ..., document_contenu, correction_contenu, delai_mail_minutes, delai_papier_jours)
+          └── EleveEntrainementsCompetences (id, eleve_id, entrainement_id, mode, statut, ..., mode_rendu)
 ```
 
 **Ce que fait le module :**
@@ -87,7 +87,10 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - Navigation 3 niveaux : liste des banques → détail (critères + exercices) → exercice (iframe ou texte riche + timer)
 - Document et corrigé : au choix lien Google Doc (iframe) ou texte riche saisi directement par l'admin (HTML)
 - 2 modes : entraînement (corrigé visible) / évalué (soumission au prof)
-- Statuts élève : pas commencé → en cours → entraîné → soumis → validé
+- **Popup de soumission** (mode évalué) : l'élève choisit soumettre / ne pas soumettre / continuer, puis papier / numérique, avec délais précis calculés depuis `JOURS_NON_COURS`
+- Délais configurables par entraînement : `delai_mail_minutes` (défaut 30), `delai_papier_jours` (défaut 1, jours ouvrés)
+- Statuts élève : pas commencé → en cours → entraîné → soumis → validé → non_soumis (refus)
+- `mode_rendu` stocké dans EleveEntrainementsCompetences : 'papier', 'numerique', 'non_soumis'
 
 **Appels API** (élève, 4-5 en parallèle) :
 `getCompetencesReferentiel`, `getCriteresReussite`, `getBanquesCompetences`, `getEntrainementsCompetences`, `getEleveEntrainementsCompetences`
@@ -109,7 +112,15 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - ~~`_getCorrectionUrl` quasi-identique à `_parseCorrectionData`~~ → supprimé, `_parseCorrectionData` utilisé partout
 - ~~`closeModal` écrasait `currentEntrainement`~~ → nettoyage d'état retiré du close, méthodes appelantes simplifiées
 
-**État** : audité et nettoyé (session 9). Code propre, factorisé et maintenable.
+**Ajouts session 10** :
+- Popup de soumission 2 étapes via `SubmissionUtils` (fichier partagé `js/submission-utils.js`)
+- `showEvaluationResult()` supprimé (remplacé par le popup)
+- `cancelEvaluation()` redirige vers le popup
+- Colonnes `delai_mail_minutes`, `delai_papier_jours` dans EntrainementsCompetences (migration progressive)
+- Colonne `mode_rendu` dans EleveEntrainementsCompetences (migration progressive)
+- Champs admin pour configurer les délais de rendu par entraînement
+
+**État** : audité et nettoyé (session 9, popup session 10). Code propre, factorisé et maintenable.
 
 ## Architecture technique
 
@@ -132,8 +143,9 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 ### Structure du repo
 ```
 Brikks/
-├── js/                          # 47 fichiers JS (~37k lignes)
-│   └── config.js                # ⭐ Configuration centrale (sheets, API, routes)
+├── js/                          # 48 fichiers JS (~37k lignes)
+│   ├── config.js                # ⭐ Configuration centrale (sheets, API, routes)
+│   └── submission-utils.js      # Utilitaires de soumission (popup, calcul délais, jours ouvrés)
 ├── css/                         # 29 fichiers CSS (~38k lignes)
 ├── google-apps-script/          # 12 fichiers .gs (~7.8k lignes)
 │   ├── Code.gs                  # Routeur principal (switch/case sur 'action')

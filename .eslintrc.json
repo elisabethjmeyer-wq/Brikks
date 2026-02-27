@@ -46,6 +46,7 @@
         "EleveMethodologieParcours": "readonly",
         "EleveRecommandations": "readonly",
         "EleveVideos": "readonly",
-        "EleveCompetences": "readonly"
+        "EleveCompetences": "readonly",
+        "SubmissionUtils": "readonly"
     }
 }

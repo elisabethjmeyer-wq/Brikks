@@ -60,6 +60,8 @@ const CONFIG = {
         PROGRESSION_MEMORISATION: 'PROGRESSION_MEMORISATION',
         // Historique des pratiques
         HISTORIQUE_PRATIQUES_SF: 'HISTORIQUE_PRATIQUES_SF',
+        // Calendrier scolaire
+        JOURS_NON_COURS: 'JOURS_NON_COURS',
         // Suivi et compétences
         EleveConnexions: 'EleveConnexions',
         CompetencesReferentiel: 'CompetencesReferentiel',

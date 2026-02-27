@@ -4,6 +4,76 @@
 
 ---
 
+## 2026-02-27 — Popup de soumission avec choix de format de rendu et délais configurables
+
+### Contexte
+Quand un élève terminait un entraînement de compétence en mode évaluation, un message générique s'affichait avec "envoyez votre travail dans les 30 minutes" ou "déposez dans le casier le lendemain". Problèmes : le délai de 30 min était figé, le "lendemain" ne tenait pas compte des week-ends/vacances, et l'élève n'avait pas le choix de son format de rendu.
+
+### Modifications
+
+**Nouveau fichier utilitaire** (`js/submission-utils.js`) :
+- `SubmissionUtils.loadJoursNonCours()` — charge la feuille JOURS_NON_COURS via SheetsAPI
+- `SubmissionUtils.prochainJourOuvre(nbJours, joursNonCours)` — calcule le Nème jour ouvré en sautant week-ends et jours non-cours
+- `SubmissionUtils.formatDeadlineMail(delaiMinutes)` — "avant 15h42"
+- `SubmissionUtils.formatDeadlinePapier(delaiJours, joursNonCours)` — "avant le lundi 3 mars"
+- `SubmissionUtils.showSubmissionPopup(options)` — popup 2 étapes : choix intention (soumettre / ne pas soumettre / continuer) puis choix format (papier / numérique) avec délais précis
+
+**Nouveau fichier CSS** (`css/submission-popup.css`) :
+- Styles du popup overlay, boutons de choix, écrans de confirmation et de refus
+
+**Module compétences élève** (`js/eleve-competences-exercice.js`) :
+- Ajout `showSubmissionPopup(timerExpired)` — affiche le popup quand l'élève clique "Terminer" ou quand le chrono expire
+- `finishEntrainement(modeRendu)` accepte maintenant un paramètre `modeRendu` ('papier', 'numerique', 'non_soumis')
+- Envoie `mode_rendu` au backend lors de la sauvegarde
+- Suppression de `showEvaluationResult()` (remplacé par le popup)
+- `cancelEvaluation()` redirige vers le popup
+
+**Module legacy compétences** (`js/eleve-exercices-competences.js`) :
+- `showTimeExpiredPointsBonus()` utilise le popup au lieu du message HTML figé
+- `showTimeExpired()` délègue au popup pour le mode `points_bonus`, garde l'écran simple pour l'entraînement
+
+**Backend** (`google-apps-script/Competences.gs`) :
+- `finishEleveEntrainementCompetence` gère `mode_rendu` (papier/numerique/non_soumis) et le statut `non_soumis`
+- Migration progressive de la colonne `mode_rendu` dans EleveEntrainementsCompetences
+- Migration progressive des colonnes `delai_mail_minutes` et `delai_papier_jours` dans EntrainementsCompetences
+
+**Admin** (`admin/banques-exercices.html`, `js/admin-banques-exercices-questions.js`) :
+- Ajout de 2 champs dans le formulaire : "Délai rendu par mail (min)" et "Délai rendu papier (jours de cours)"
+- Valeurs lues et sauvegardées dans les entraînements de compétences
+
+**Config** (`js/config.js`) :
+- Ajout de `JOURS_NON_COURS` dans `CONFIG.SHEETS`
+
+### Flux de soumission (mode évaluation)
+```
+[Terminer] ou [Temps écoulé]
+→ Popup étape 1 : Soumettre / Ne pas soumettre / Continuer (si temps restant)
+→ Si soumettre → étape 2 : Papier / Numérique → confirmation avec délai précis
+→ Si ne pas soumettre → confirmation de sécurité → statut non_soumis
+```
+
+### À faire côté Google Sheets (manuellement)
+1. Créer l'onglet `JOURS_NON_COURS` avec une colonne `date` (DD/MM/YYYY)
+2. Y ajouter les dates de vacances, fériés, journées pédagogiques
+3. Les colonnes `delai_mail_minutes`, `delai_papier_jours` et `mode_rendu` sont créées automatiquement par migration progressive
+
+### Fichiers créés
+- `js/submission-utils.js`
+- `css/submission-popup.css`
+
+### Fichiers modifiés
+- `js/eleve-competences-exercice.js`
+- `js/eleve-exercices-competences.js`
+- `js/admin-banques-exercices-questions.js`
+- `admin/banques-exercices.html`
+- `google-apps-script/Competences.gs`
+- `js/config.js`
+- `.eslintrc.json`
+- `eleve/entrainements-comp.html`
+- `eleve/entrainements-sf.html`
+
+---
+
 ## 2026-02-27 — Block editor pour le corrigé + wizard 4 étapes
 
 ### Contexte
