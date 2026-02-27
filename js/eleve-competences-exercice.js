@@ -179,7 +179,10 @@ Object.assign(EleveCompetences, {
      */
     _renderDocumentBlocks(blocks) {
         var self = this;
-        var html = '<div class="comp-blocks-container" id="compDocWrapper">';
+        var html = '<div class="comp-document-toolbar">' +
+            '<span class="comp-document-title">\u{1F4C4} Document</span>' +
+            '</div>' +
+            '<div class="comp-blocks-container" id="compDocWrapper">';
 
         blocks.forEach(function(block) {
             if (block.type === 'group') {
