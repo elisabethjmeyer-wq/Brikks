@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-02-27 — Block editor pour le corrigé + wizard 4 étapes
+
+### Contexte
+L'étape 3 du wizard de création d'entraînements de compétences utilisait un éditeur texte riche simple pour le corrigé. La prof n'avait pas la main sur l'organisation texte/image/vidéo comme pour le document (étape 2). Le résumé était mélangé avec le corrigé dans la même étape.
+
+### Modifications
+
+**Wizard comp 4 étapes** (`js/admin-banques-exercices-comp-wizard.js`) :
+- Ajout d'une étape 4 « Résumé » dédiée à la synthèse avant enregistrement
+- Étape 3 « Corrigé » : remplacé l'éditeur texte riche par le même block editor que l'étape 2 (blocs texte, image, vidéo, document avec drag & drop et groupement côte à côte)
+- Toggle « Lien Google Doc » / « Éditeur » conservé sur l'étape 3
+- Le block editor singleton est partagé entre étapes 2 et 3 : les blocs sont sauvegardés/restaurés à chaque changement d'étape via `_saveCompWizardStepState`
+- `correction_contenu` stocke maintenant du JSON (array de blocs) au lieu de HTML brut
+- Factorisé `_renderBlockAddBar()` pour éviter la duplication du HTML de la barre d'ajout
+
+**Rendu élève** (`js/eleve-competences-exercice.js`) :
+- `_buildCorrectionHTML()` détecte automatiquement le format : JSON (nouveau, blocs) vs HTML brut (ancien)
+- Nouvelle méthode `_renderCorrectionBlocks()` qui réutilise `_renderSingleBlock()` pour afficher les blocs du corrigé
+
+**CSS** (`css/eleve-competences.css`, `css/admin-banques-exercices.css`) :
+- Retiré `font-style: italic` de `.comp-block-legende` et `.cw-preview-frame .comp-block-legende` pour que seul le texte entre `*étoiles*` s'affiche en italique
+
+### Rétro-compatibilité
+- Les anciens corrigés en HTML brut continuent à s'afficher normalement côté élève
+- Les anciens corrigés en lien Google Doc ne sont pas impactés
+
+### Fichiers modifiés
+- `js/admin-banques-exercices-comp-wizard.js` (réécrit)
+- `js/eleve-competences-exercice.js` (2 modifications)
+- `css/eleve-competences.css` (1 suppression)
+- `css/admin-banques-exercices.css` (1 suppression)
+
+---
+
 ## 2026-02-26 — Éditeur riche pour document et corrigé (entraînements de compétences)
 
 ### Contexte
