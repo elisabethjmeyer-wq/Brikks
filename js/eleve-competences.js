@@ -681,12 +681,11 @@ const EleveCompetences = {
         this.showExercise(this.currentEntrainement, 'entrainement');
     },
 
-    restartTrainingFromModal() {
+    async restartTrainingFromModal() {
         if (!this.currentEntrainement) return;
         this._clearTrainTimer(this.currentEntrainement.id);
-        const entrId = this.currentEntrainement.id;
-        this.closeModal();
-        this.restartTraining(entrId);
+        this._setChoiceModalLoading('evalue');
+        await this.restartTraining(this.currentEntrainement.id);
     },
 
     viewReviewFromModal() {
@@ -697,11 +696,17 @@ const EleveCompetences = {
     },
 
     async startEntrainement(mode) {
+        if (this._startingEntrainement) return;
         if (!this.currentEntrainement) return;
+        this._startingEntrainement = true;
         const entr = this.currentEntrainement;
+
+        // Feedback visuel immédiat sur le modal
+        this._setChoiceModalLoading(mode);
 
         // Mode prévisualisation (admin sans session élève)
         if (!this.currentUser) {
+            this._startingEntrainement = false;
             this.closeModal();
             this.showExercise(entr, mode);
             return;
@@ -715,6 +720,7 @@ const EleveCompetences = {
             });
 
             if (!result.success) {
+                this._startingEntrainement = false;
                 alert(result.error || 'Erreur inconnue');
                 this.closeModal();
                 return;
@@ -738,11 +744,35 @@ const EleveCompetences = {
                 });
             }
 
+            this._startingEntrainement = false;
             this.closeModal();
             this.showExercise(entr, mode);
         } catch (error) {
+            this._startingEntrainement = false;
             console.error('Erreur démarrage entraînement:', error);
             alert('Erreur lors du démarrage');
+        }
+    },
+
+    /** Affiche un état de chargement sur le modal de choix de mode. */
+    _setChoiceModalLoading(mode) {
+        const modal = document.getElementById('compChoiceModal');
+        if (!modal) return;
+
+        // Désactiver tous les clics dans le modal
+        modal.querySelectorAll('.comp-choice-option').forEach(function(opt) {
+            opt.style.pointerEvents = 'none';
+            opt.style.opacity = '0.5';
+        });
+        modal.querySelector('.comp-modal-footer .comp-btn').style.pointerEvents = 'none';
+
+        // Mettre en surbrillance l'option choisie avec un spinner
+        var chosenClass = mode === 'evalue' ? '.comp-choice-option.evalue' : '.comp-choice-option.entrainement';
+        var chosen = modal.querySelector(chosenClass);
+        if (chosen) {
+            chosen.style.opacity = '1';
+            var icon = chosen.querySelector('.comp-choice-icon');
+            if (icon) icon.textContent = '\u23F3';
         }
     },
 
@@ -750,11 +780,15 @@ const EleveCompetences = {
      * Ré-entraînement : relance un exercice déjà terminé en mode entraînement.
      */
     async restartTraining(entrainementId) {
+        if (this._startingEntrainement) return;
         const entr = this.entrainements.find(e => String(e.id) === String(entrainementId));
         if (!entr) return;
+        this._startingEntrainement = true;
 
         if (!this.currentUser) {
             // Mode prévisualisation
+            this._startingEntrainement = false;
+            this.closeModal();
             this.showExercise(entr, 'entrainement');
             return;
         }
@@ -767,7 +801,9 @@ const EleveCompetences = {
             });
 
             if (!result.success) {
+                this._startingEntrainement = false;
                 alert(result.error || 'Erreur inconnue');
+                this.closeModal();
                 return;
             }
 
@@ -781,9 +817,12 @@ const EleveCompetences = {
             }
             this.saveToCache();
 
+            this._startingEntrainement = false;
+            this.closeModal();
             this.currentEntrainement = entr;
             this.showExercise(entr, 'entrainement');
         } catch (error) {
+            this._startingEntrainement = false;
             console.error('Erreur ré-entraînement:', error);
             alert('Erreur lors du démarrage');
         }
