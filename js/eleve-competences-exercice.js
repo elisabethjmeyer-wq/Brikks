@@ -137,7 +137,7 @@ Object.assign(EleveCompetences, {
                 // C'est du HTML brut (ancien format) — afficher tel quel
                 return `
                     <div class="comp-document-toolbar">
-                        <span class="comp-document-title">\u{1F4C4} Document</span>
+                        <span class="comp-document-title">\u{1F4C4} Sujet</span>
                         ${entrainement.document_legende ? `
                             <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
                         ` : ''}
@@ -153,7 +153,7 @@ Object.assign(EleveCompetences, {
         const iframeUrl = this.getEmbedUrl(entrainement.document_url);
         return `
             <div class="comp-document-toolbar">
-                <span class="comp-document-title">\u{1F4C4} Document</span>
+                <span class="comp-document-title">\u{1F4C4} Sujet</span>
                 ${entrainement.document_legende ? `
                     <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
                 ` : ''}
@@ -180,7 +180,7 @@ Object.assign(EleveCompetences, {
     _renderDocumentBlocks(blocks) {
         var self = this;
         var html = '<div class="comp-document-toolbar">' +
-            '<span class="comp-document-title">\u{1F4C4} Document</span>' +
+            '<span class="comp-document-title">\u{1F4C4} Sujet</span>' +
             '</div>' +
             '<div class="comp-blocks-container" id="compDocWrapper">';
 
@@ -202,11 +202,16 @@ Object.assign(EleveCompetences, {
         return html;
     },
 
+    /** Formate une légende : escapeHtml + *italic* → <em> */
+    _formatLegende(text) {
+        return this.escapeHtml(text).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    },
+
     /** Rendu d'un bloc unique côté élève. */
     _renderSingleBlock(block) {
         switch (block.type) {
         case 'text': {
-            var txtLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
+            var txtLegende = block.legende ? '<div class="comp-block-legende">' + this._formatLegende(block.legende) + '</div>' : '';
             return '<div class="comp-block-text">' +
                 '<div class="comp-block-text-content">' + (block.content || '') + '</div>' +
                 txtLegende +
@@ -216,7 +221,7 @@ Object.assign(EleveCompetences, {
         case 'document': {
             var embedUrl = this.getEmbedUrl(block.url);
             var titre = block.titre ? '<div class="comp-block-titre">' + this.escapeHtml(block.titre) + '</div>' : '';
-            var legende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
+            var legende = block.legende ? '<div class="comp-block-legende">' + this._formatLegende(block.legende) + '</div>' : '';
             return titre +
                 '<div class="comp-block-document">' +
                 (embedUrl
@@ -232,7 +237,7 @@ Object.assign(EleveCompetences, {
             // Convertir les URLs Google Drive
             var driveMatch = imgUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
             if (driveMatch) imgUrl = 'https://lh3.googleusercontent.com/d/' + driveMatch[1];
-            var imgLegende = block.legende ? '<figcaption class="comp-block-legende">' + this.escapeHtml(block.legende) + '</figcaption>' : '';
+            var imgLegende = block.legende ? '<figcaption class="comp-block-legende">' + this._formatLegende(block.legende) + '</figcaption>' : '';
             return '<figure class="comp-block-image">' +
                 '<img src="' + this.escapeHtml(imgUrl) + '" alt="' + this.escapeHtml(block.legende || 'Image') + '">' +
                 imgLegende +
@@ -249,7 +254,7 @@ Object.assign(EleveCompetences, {
                 var driveVid = vidUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
                 if (driveVid) embedVid = 'https://drive.google.com/file/d/' + driveVid[1] + '/preview';
             }
-            var vidLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
+            var vidLegende = block.legende ? '<div class="comp-block-legende">' + this._formatLegende(block.legende) + '</div>' : '';
             return '<div class="comp-block-video">' +
                 (embedVid
                     ? '<iframe src="' + embedVid + '" allowfullscreen frameborder="0"></iframe>'
@@ -424,7 +429,7 @@ Object.assign(EleveCompetences, {
         } else {
             actionButtonsHTML = `
                 <button class="comp-btn comp-btn-finish" id="compFinishBtn" onclick="EleveCompetences.finishEntrainement()">
-                    J'ai termin\u00E9 \u2014 voir le corrig\u00E9 comment\u00E9
+                    J'ai termin\u00E9 \u2014 voir le corrig\u00E9
                 </button>
             `;
         }
@@ -681,33 +686,32 @@ Object.assign(EleveCompetences, {
         const iframeUrl = this.getEmbedUrl(entrainement.document_url);
         const hasDocument = iframeUrl || entrainement.document_contenu;
 
-        const layout = document.querySelector('.comp-exercise-layout');
-        if (layout && hasDocument) {
-            layout.outerHTML = `
-                <div class="comp-review-layout">
-                    <div class="comp-document-section" id="compDocSection">
-                        <div class="comp-review-tabs">
-                            <button class="comp-review-tab active" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">\u{1F4DD} Corrig\u00E9</button>
-                            <button class="comp-review-tab" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">\u{1F4C4} Sujet</button>
-                        </div>
-                        <div class="comp-review-tab-content active" id="compTabCorrige">
-                            ${correctionContent}
-                        </div>
-                        <div class="comp-review-tab-content" id="compTabSujet">
-                            ${this._buildDocumentHTML(entrainement)}
-                        </div>
-                    </div>
+        // Retirer le bouton "J'ai terminé" mais garder la sidebar (critères)
+        const actionsDiv = document.getElementById('compSidebarActions');
+        if (actionsDiv) actionsDiv.remove();
+
+        const docSection = document.getElementById('compDocSection');
+        if (docSection && hasDocument) {
+            // Remplacer le contenu document par un toggle Sujet (actif) / Corrigé
+            docSection.innerHTML = `
+                <div class="comp-review-tabs">
+                    <button class="comp-review-tab active" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">\u{1F4C4} Sujet</button>
+                    <button class="comp-review-tab" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">\u{1F4DD} Corrig\u00E9</button>
+                </div>
+                <div class="comp-review-tab-content active" id="compTabSujet">
+                    ${this._buildDocumentHTML(entrainement)}
+                </div>
+                <div class="comp-review-tab-content" id="compTabCorrige">
+                    ${correctionContent}
                 </div>
             `;
         } else {
-            const docSection = document.getElementById('compDocSection');
+            // Pas de document : afficher le corrigé directement
             if (docSection) {
                 const existing = docSection.querySelector('.comp-inplace-corrige');
                 if (existing) existing.remove();
                 docSection.insertAdjacentHTML('beforeend', correctionContent);
             }
-            const finishBtn = document.getElementById('compFinishBtn');
-            if (finishBtn) finishBtn.remove();
         }
     },
 
@@ -789,13 +793,19 @@ Object.assign(EleveCompetences, {
 
             const tabsHTML = hasTabs ? `
                 <div class="comp-review-tabs">
-                    <button class="comp-review-tab active" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">\u{1F4DD} Corrig\u00E9</button>
-                    <button class="comp-review-tab" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">\u{1F4C4} Sujet</button>
+                    <button class="comp-review-tab active" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">\u{1F4C4} Sujet</button>
+                    <button class="comp-review-tab" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">\u{1F4DD} Corrig\u00E9</button>
                 </div>
             ` : '';
 
+            const corrigeHTML = `
+                <div class="comp-review-tab-content${hasTabs ? '' : ' active'}" id="compTabCorrige">
+                    ${correctionContent}
+                </div>
+            `;
+
             const sujetHTML = hasTabs ? `
-                <div class="comp-review-tab-content" id="compTabSujet">
+                <div class="comp-review-tab-content active" id="compTabSujet">
                     ${this._buildDocumentHTML(entrainement)}
                 </div>
             ` : '';
@@ -816,10 +826,8 @@ Object.assign(EleveCompetences, {
                     <div class="comp-review-layout">
                         <div class="comp-document-section" id="compDocSection">
                             ${tabsHTML}
-                            <div class="comp-review-tab-content active" id="compTabCorrige">
-                                ${correctionContent}
-                            </div>
                             ${sujetHTML}
+                            ${corrigeHTML}
                         </div>
                     </div>
                 </div>
