@@ -7659,7 +7659,7 @@ function createEntrainementCompetence(data) {
 
   // Migration progressive : ajouter les colonnes manquantes
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  var newCols = ['banque_id', 'document_contenu', 'correction_contenu'];
+  var newCols = ['banque_id', 'document_contenu', 'correction_contenu', 'delai_mail_minutes', 'delai_papier_jours'];
   newCols.forEach(function(col) {
     if (headers.indexOf(col) === -1) {
       var nextCol = sheet.getLastColumn() + 1;
@@ -7694,6 +7694,8 @@ function createEntrainementCompetence(data) {
       case 'ordre': return data.ordre || 1;
       case 'statut': return data.statut || 'brouillon';
       case 'date_creation': return new Date().toISOString();
+      case 'delai_mail_minutes': return data.delai_mail_minutes || 30;
+      case 'delai_papier_jours': return data.delai_papier_jours || 1;
       default: return '';
     }
   });
@@ -7715,7 +7717,7 @@ function updateEntrainementCompetence(data) {
 
   // Migration progressive : ajouter les colonnes manquantes
   var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  var newCols = ['banque_id', 'document_contenu', 'correction_contenu'];
+  var newCols = ['banque_id', 'document_contenu', 'correction_contenu', 'delai_mail_minutes', 'delai_papier_jours'];
   newCols.forEach(function(col) {
     if (currentHeaders.indexOf(col) === -1) {
       var nextCol = sheet.getLastColumn() + 1;
@@ -7994,8 +7996,9 @@ function startEleveEntrainementCompetence(data) {
 /**
  * Termine un entraînement de compétence pour un élève
  * - Mode entrainement → statut = entraine
- * - Mode évalué → statut = soumis
- * @param {Object} data - {eleve_id, entrainement_id, temps_passe?}
+ * - Mode évalué → statut = soumis (ou non_soumis si l'élève refuse)
+ * @param {Object} data - {eleve_id, entrainement_id, temps_passe?, mode_rendu?}
+ *   mode_rendu : 'papier' | 'numerique' | 'non_soumis' (optionnel, mode évaluation)
  */
 function finishEleveEntrainementCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -8003,6 +8006,13 @@ function finishEleveEntrainementCompetence(data) {
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  // Migration progressive : ajouter la colonne mode_rendu si absente
+  var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (currentHeaders.indexOf('mode_rendu') === -1) {
+    var nextCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, nextCol).setValue('mode_rendu');
   }
 
   var allData = sheet.getDataRange().getValues();
@@ -8014,6 +8024,7 @@ function finishEleveEntrainementCompetence(data) {
   var dateFinCol = headers.indexOf('date_fin');
   var dateSoumissionCol = headers.indexOf('date_soumission');
   var tempsPasseCol = headers.indexOf('temps_passe');
+  var modeRenduCol = headers.indexOf('mode_rendu');
 
   for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][eleveIdCol]) === String(data.eleve_id) &&
@@ -8023,8 +8034,9 @@ function finishEleveEntrainementCompetence(data) {
       var now = new Date().toISOString();
 
       if (mode === 'evalue') {
-        // Mode évalué : marquer comme soumis
-        sheet.getRange(i + 1, statutCol + 1).setValue('soumis');
+        // Déterminer le statut selon le mode de rendu
+        var statut = (data.mode_rendu === 'non_soumis') ? 'non_soumis' : 'soumis';
+        sheet.getRange(i + 1, statutCol + 1).setValue(statut);
         sheet.getRange(i + 1, dateSoumissionCol + 1).setValue(now);
       } else {
         // Mode entraînement : marquer comme entraîné
@@ -8035,6 +8047,11 @@ function finishEleveEntrainementCompetence(data) {
       // Temps passé (optionnel)
       if (data.temps_passe && tempsPasseCol !== -1) {
         sheet.getRange(i + 1, tempsPasseCol + 1).setValue(data.temps_passe);
+      }
+
+      // Mode de rendu (optionnel)
+      if (data.mode_rendu && modeRenduCol !== -1) {
+        sheet.getRange(i + 1, modeRenduCol + 1).setValue(data.mode_rendu);
       }
 
       return { success: true };
