@@ -2119,7 +2119,6 @@ body.comp-fullscreen-active {
 
 .comp-block-legende {
     font-size: 0.82rem;
-    font-style: italic;
     color: var(--gray-500, #64748b);
     margin-top: 8px;
     text-align: center;
