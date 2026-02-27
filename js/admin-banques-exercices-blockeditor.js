@@ -114,7 +114,7 @@ Object.assign(AdminBanquesExercices, {
         var id = 'blk_' + (++this._blockIdCounter);
         switch (type) {
         case 'text':
-            return { id: id, type: 'text', content: '' };
+            return { id: id, type: 'text', content: '', legende: '' };
         case 'document':
             return { id: id, type: 'document', url: '', titre: '', legende: '' };
         case 'image':
@@ -158,8 +158,8 @@ Object.assign(AdminBanquesExercices, {
         } else {
             out.url = block.url || '';
             if (block.titre) out.titre = block.titre;
-            if (block.legende) out.legende = block.legende;
         }
+        if (block.legende) out.legende = block.legende;
         return out;
     },
 
