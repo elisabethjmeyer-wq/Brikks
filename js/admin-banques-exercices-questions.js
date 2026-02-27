@@ -1820,6 +1820,9 @@ Object.assign(AdminBanquesExercices, {
                 if (group) group.style.display = isBanque ? 'none' : '';
             }
         });
+        // Masquer/afficher la ligne de délais de rendu
+        const delaisRow = document.getElementById('delaisRenduRow');
+        if (delaisRow) delaisRow.style.display = isBanque ? 'none' : '';
 
         // Masquer/afficher les sections document et corrigé
         const docSection = document.getElementById('documentSection');
@@ -1880,6 +1883,8 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('tacheDuree').value = Math.round((tache.duree || 1800) / 60);
             document.getElementById('tacheOrdre').value = tache.ordre || 1;
             document.getElementById('tacheStatut').value = tache.statut || 'brouillon';
+            document.getElementById('tacheDelaiMail').value = tache.delai_mail_minutes || 30;
+            document.getElementById('tacheDelaiPapier').value = tache.delai_papier_jours || 1;
 
             // Sélectionner et verrouiller la banque
             compSelect.value = tache.banque_id || '';
@@ -1907,6 +1912,8 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('tacheDescription').value = '';
             document.getElementById('tacheDuree').value = 30;
             document.getElementById('tacheStatut').value = 'brouillon';
+            document.getElementById('tacheDelaiMail').value = 30;
+            document.getElementById('tacheDelaiPapier').value = 1;
             document.getElementById('tacheCorrectionUrl').value = '';
             document.getElementById('correctionEditor').innerHTML = '';
 
@@ -2255,6 +2262,9 @@ Object.assign(AdminBanquesExercices, {
         const banque = this.banquesCompetences.find(b => b.id === banqueId);
         const competenceId = banque ? banque.competence_id : '';
 
+        const delaiMailMinutes = parseInt(document.getElementById('tacheDelaiMail').value) || 30;
+        const delaiPapierJours = parseInt(document.getElementById('tacheDelaiPapier').value) || 1;
+
         const data = {
             titre,
             banque_id: banqueId,
@@ -2267,7 +2277,9 @@ Object.assign(AdminBanquesExercices, {
             correction_contenu: correctionContenu,
             duree,
             ordre,
-            statut
+            statut,
+            delai_mail_minutes: delaiMailMinutes,
+            delai_papier_jours: delaiPapierJours
         };
 
         try {

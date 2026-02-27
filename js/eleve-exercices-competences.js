@@ -585,76 +585,70 @@ Object.assign(EleveExercices, {
 
     async showTimeExpiredPointsBonus() {
         const tache = this.currentTacheComplexe;
+        const self = this;
 
-        // Submit for correction in database if user is connected
-        if (tache && this.currentUser) {
-            try {
-                // Calculate time spent (total duration since timer counts down from duree)
-                const duree = tache.duree || 2700;
-                const tempsPasse = duree; // Full duration for points bonus mode
-
-                await this.callAPI('submitEleveTacheComplexe', {
-                    eleve_id: this.currentUser.id,
-                    tache_id: tache.id,
-                    temps_passe: tempsPasse
-                });
-
-                const progress = this.eleveTachesProgress.find(p => p.tache_id === tache.id);
-                if (progress) {
-                    progress.statut = 'soumis';
-                    progress.date_soumission = new Date().toISOString();
-                }
-            } catch (error) {
-                console.error('Erreur soumission tache:', error);
-            }
+        // Charger les jours non-cours
+        var joursNonCours;
+        try {
+            joursNonCours = await SubmissionUtils.loadJoursNonCours();
+        } catch (e) {
+            joursNonCours = new Set();
         }
 
-        // Show blocking screen for points bonus mode
-        const container = document.getElementById('exercices-content');
-
-        container.innerHTML = `
-            <div class="tache-timeup-view points-bonus-expired">
-                <div class="timeup-icon">⏰</div>
-                <h2>Temps écoulé !</h2>
-                <h3>${tache ? this.escapeHtml(tache.titre) : ''}</h3>
-                <div class="timeup-mode">
-                    <span class="mode-badge points_bonus">Évaluation - Points bonus</span>
-                </div>
-
-                <div class="timeup-content">
-                    <p class="important-message">L'épreuve est terminée. Vous devez maintenant rendre votre travail.</p>
-
-                    <div class="submit-instructions">
-                        <h3>📤 Comment rendre votre travail ?</h3>
-                        <div class="submit-options">
-                            <div class="submit-option">
-                                <span class="submit-icon">📧</span>
-                                <div>
-                                    <strong>Par mail (format numérique)</strong>
-                                    <p>Envoyez votre travail <strong>dans les 30 minutes</strong></p>
-                                </div>
-                            </div>
-                            <div class="submit-option">
-                                <span class="submit-icon">📄</span>
-                                <div>
-                                    <strong>En format papier</strong>
-                                    <p>Déposez votre copie <strong>dans le casier du professeur le lendemain</strong></p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <p class="info-note">✅ Votre participation a été enregistrée.</p>
-                    <p class="info-note secondary">Une fois votre copie corrigée, vous pourrez accéder au mode "Entraînement" pour cette tâche.</p>
-                </div>
-
-                <div class="timeup-actions">
-                    <button class="btn btn-primary" onclick="EleveExercices.initCompetences()">
-                        Retour aux entraînements
-                    </button>
-                </div>
-            </div>
-        `;
+        // Afficher le popup de soumission (timer expiré = pas d'option "continuer")
+        SubmissionUtils.showSubmissionPopup({
+            container: document.body,
+            timerExpired: true,
+            delaiMailMinutes: parseInt(tache && tache.delai_mail_minutes) || 30,
+            delaiPapierJours: parseInt(tache && tache.delai_papier_jours) || 1,
+            joursNonCours: joursNonCours,
+            escapeHtml: this.escapeHtml,
+            onSubmit: async function(modeRendu) {
+                // Sauvegarder au backend
+                if (tache && self.currentUser) {
+                    try {
+                        const duree = tache.duree || 2700;
+                        await self.callAPI('submitEleveTacheComplexe', {
+                            eleve_id: self.currentUser.id,
+                            tache_id: tache.id,
+                            temps_passe: duree,
+                            mode_rendu: modeRendu
+                        });
+                        const progress = self.eleveTachesProgress.find(function(p) { return p.tache_id === tache.id; });
+                        if (progress) {
+                            progress.statut = 'soumis';
+                            progress.mode_rendu = modeRendu;
+                            progress.date_soumission = new Date().toISOString();
+                        }
+                    } catch (error) {
+                        console.error('Erreur soumission tache:', error);
+                    }
+                }
+                self.initCompetences();
+            },
+            onDecline: async function() {
+                // L'élève refuse d'être évalué
+                if (tache && self.currentUser) {
+                    try {
+                        await self.callAPI('submitEleveTacheComplexe', {
+                            eleve_id: self.currentUser.id,
+                            tache_id: tache.id,
+                            mode_rendu: 'non_soumis'
+                        });
+                        const progress = self.eleveTachesProgress.find(function(p) { return p.tache_id === tache.id; });
+                        if (progress) {
+                            progress.statut = 'non_soumis';
+                            progress.mode_rendu = 'non_soumis';
+                        }
+                    } catch (error) {
+                        console.error('Erreur refus soumission:', error);
+                    }
+                }
+                SubmissionUtils.showDeclineConfirmation(document.body, function() {
+                    self.initCompetences();
+                });
+            }
+        });
     },
 
     async showTimeExpired() {
@@ -679,60 +673,30 @@ Object.assign(EleveExercices, {
             }
         }
 
-        // Show time expired screen
-        const container = document.getElementById('exercices-content');
-
-        let submitInstructions = '';
+        // Mode points_bonus : utiliser le popup de soumission
         if (mode === 'points_bonus') {
-            submitInstructions = `
-                <div class="submit-instructions">
-                    <h3>Comment rendre votre travail ?</h3>
-                    <div class="submit-options">
-                        <div class="submit-option">
-                            <span class="submit-icon">&#128233;</span>
-                            <div>
-                                <strong>Par messagerie (format numerique)</strong>
-                                <p>Envoyez votre travail dans les 30 minutes</p>
-                            </div>
-                        </div>
-                        <div class="submit-option">
-                            <span class="submit-icon">&#128196;</span>
-                            <div>
-                                <strong>En format papier</strong>
-                                <p>Remettez votre copie a la prochaine seance</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+            this.showTimeExpiredPointsBonus();
+            return;
         }
 
+        // Mode entrainement : écran simple de fin
+        const container = document.getElementById('exercices-content');
         container.innerHTML = `
             <div class="tache-timeup-view">
                 <div class="timeup-icon">&#9200;</div>
                 <h2>Temps ecoule !</h2>
                 <h3>${tache ? this.escapeHtml(tache.titre) : ''}</h3>
                 <div class="timeup-mode">
-                    Mode : <span class="mode-badge ${mode}">${mode === 'entrainement' ? 'Entrainement' : 'Evaluation - Points bonus'}</span>
+                    Mode : <span class="mode-badge ${mode}">Entrainement</span>
                 </div>
-
-                ${mode === 'entrainement' ? `
-                    <div class="timeup-content">
-                        <p>L'entrainement est termine. Vous pouvez consulter la correction.</p>
-                        ${tache && tache.correction_url ? `
-                            <a href="${this.escapeHtml(tache.correction_url)}" target="_blank" class="btn btn-primary btn-large">
-                                Voir la correction
-                            </a>
-                        ` : '<p class="no-correction">La correction n\'est pas encore disponible.</p>'}
-                    </div>
-                ` : `
-                    <div class="timeup-content">
-                        <p>L'epreuve est terminee. Vous devez maintenant rendre votre travail au professeur.</p>
-                        ${submitInstructions}
-                        <p class="info-note">Votre participation a ete enregistree.</p>
-                    </div>
-                `}
-
+                <div class="timeup-content">
+                    <p>L'entrainement est termine. Vous pouvez consulter la correction.</p>
+                    ${tache && tache.correction_url ? `
+                        <a href="${this.escapeHtml(tache.correction_url)}" target="_blank" class="btn btn-primary btn-large">
+                            Voir la correction
+                        </a>
+                    ` : '<p class="no-correction">La correction n\'est pas encore disponible.</p>'}
+                </div>
                 <div class="timeup-actions">
                     <button class="btn btn-secondary" onclick="EleveExercices.initCompetences()">
                         Retour aux entrainements

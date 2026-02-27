@@ -453,11 +453,8 @@ Object.assign(EleveCompetences, {
         let actionButtonsHTML;
         if (mode === 'evalue') {
             actionButtonsHTML = `
-                <button class="comp-btn comp-btn-finish" id="compFinishBtn" onclick="EleveCompetences.finishEntrainement()">
-                    Soumettre ma production
-                </button>
-                <button class="comp-btn comp-btn-cancel" onclick="EleveCompetences.cancelEvaluation()">
-                    Ne pas rendre
+                <button class="comp-btn comp-btn-finish" id="compFinishBtn" onclick="EleveCompetences.showSubmissionPopup(false)">
+                    Terminer
                 </button>
             `;
         } else {
@@ -525,11 +522,8 @@ Object.assign(EleveCompetences, {
     },
 
     cancelEvaluation() {
-        if (confirm('Tu pourras revenir plus tard, mais le chrono continue. Quitter sans rendre ?')) {
-            this._saveEvalTimer(this.currentEntrainement.id, this.timeRemaining);
-            this.stopTimer();
-            this.backToDetail();
-        }
+        // Legacy — remplacé par showSubmissionPopup()
+        this.showSubmissionPopup(false);
     },
 
     /**
@@ -623,7 +617,7 @@ Object.assign(EleveCompetences, {
                 if (this.timeRemaining <= 0) {
                     this.stopTimer();
                     this._clearEvalTimer(this.currentEntrainement.id);
-                    this.finishEntrainement();
+                    this.showSubmissionPopup(true);
                     return;
                 }
             }
@@ -650,10 +644,54 @@ Object.assign(EleveCompetences, {
     },
 
     // ==========================================
+    // POPUP DE SOUMISSION (mode évaluation)
+    // ==========================================
+
+    /**
+     * Affiche le popup de soumission en 2 étapes (mode évaluation uniquement).
+     * @param {boolean} timerExpired — true si le chrono est arrivé à 0
+     */
+    async showSubmissionPopup(timerExpired) {
+        if (!this.currentEntrainement) return;
+
+        // Charger les jours non-cours (cache après premier appel)
+        var joursNonCours;
+        try {
+            joursNonCours = await SubmissionUtils.loadJoursNonCours();
+        } catch (e) {
+            joursNonCours = new Set();
+        }
+
+        var self = this;
+        var entr = this.currentEntrainement;
+
+        SubmissionUtils.showSubmissionPopup({
+            container: document.body,
+            timerExpired: timerExpired,
+            delaiMailMinutes: parseInt(entr.delai_mail_minutes) || 30,
+            delaiPapierJours: parseInt(entr.delai_papier_jours) || 1,
+            joursNonCours: joursNonCours,
+            escapeHtml: this.escapeHtml,
+            onSubmit: function(modeRendu) {
+                self.finishEntrainement(modeRendu);
+            },
+            onDecline: function() {
+                self.finishEntrainement('non_soumis');
+            },
+            onContinue: function() {
+                // Ne rien faire, l'overlay est déjà retiré par SubmissionUtils
+            }
+        });
+    },
+
+    // ==========================================
     // TERMINER L'EXERCICE
     // ==========================================
 
-    async finishEntrainement() {
+    /**
+     * @param {string} [modeRendu] — 'papier', 'numerique' ou 'non_soumis' (mode évaluation)
+     */
+    async finishEntrainement(modeRendu) {
         if (!this.currentEntrainement) return;
 
         const entr = this.currentEntrainement;
@@ -666,15 +704,28 @@ Object.assign(EleveCompetences, {
         this._clearEvalTimer(entr.id);
         this._clearTrainTimer(entr.id);
 
+        // Déterminer le statut selon le mode de rendu
+        var statut;
+        if (mode === 'evalue') {
+            statut = modeRendu === 'non_soumis' ? 'non_soumis' : 'soumis';
+        } else {
+            statut = 'entraine';
+        }
+
         // Sauvegarder au backend
         let saveFailed = false;
         if (this.currentUser) {
             try {
-                const result = await this.callAPI('finishEleveEntrainementCompetence', {
+                const params = {
                     eleve_id: this.currentUser.id,
                     entrainement_id: entr.id,
                     temps_passe: tempsPasse
-                });
+                };
+                if (modeRendu) {
+                    params.mode_rendu = modeRendu;
+                }
+
+                const result = await this.callAPI('finishEleveEntrainementCompetence', params);
 
                 if (!result.success) {
                     saveFailed = true;
@@ -684,9 +735,10 @@ Object.assign(EleveCompetences, {
                         String(p.entrainement_id) === String(entr.id)
                     );
                     if (prog) {
-                        prog.statut = mode === 'evalue' ? 'soumis' : 'entraine';
+                        prog.statut = statut;
                         prog.temps_passe = tempsPasse;
-                        if (mode === 'evalue') {
+                        if (modeRendu) prog.mode_rendu = modeRendu;
+                        if (mode === 'evalue' && statut === 'soumis') {
                             prog.date_soumission = new Date().toISOString();
                         } else {
                             prog.date_fin = new Date().toISOString();
@@ -706,8 +758,14 @@ Object.assign(EleveCompetences, {
 
         if (mode === 'entrainement') {
             this.showTrainingResult(entr);
+        } else if (modeRendu === 'non_soumis') {
+            // L'élève a refusé d'être évalué — afficher confirmation et retour
+            SubmissionUtils.showDeclineConfirmation(document.body, function() {
+                EleveCompetences.backToList();
+            });
         } else {
-            this.showEvaluationResult(entr);
+            // Soumission effectuée — retour direct (le popup de confirmation a déjà été montré)
+            this.backToList();
         }
     },
 
@@ -749,51 +807,7 @@ Object.assign(EleveCompetences, {
         }
     },
 
-    // ==========================================
-    // RÉSULTAT MODE ÉVALUATION
-    // ==========================================
-
-    showEvaluationResult(entrainement) {
-        const container = document.getElementById('competences-content');
-        container.innerHTML = `
-            <div class="comp-result-view">
-                <div class="comp-result-header evaluation">
-                    <div class="comp-result-icon">\u{1F4E4}</div>
-                    <h2>Production soumise</h2>
-                    <p class="comp-result-subtitle">${this.escapeHtml(entrainement.titre)}</p>
-                </div>
-
-                <div class="comp-result-message">
-                    <div class="comp-result-info-box">
-                        <h3>\u{1F4E4} Comment rendre votre travail ?</h3>
-                        <div class="comp-submit-options">
-                            <div class="comp-submit-option">
-                                <span class="comp-submit-icon">\u{1F4E7}</span>
-                                <div>
-                                    <strong>Par mail (format num\u00E9rique)</strong>
-                                    <p>Envoyez votre travail dans les 30 minutes</p>
-                                </div>
-                            </div>
-                            <div class="comp-submit-option">
-                                <span class="comp-submit-icon">\u{1F4C4}</span>
-                                <div>
-                                    <strong>En format papier</strong>
-                                    <p>D\u00E9posez votre copie dans le casier du professeur le lendemain</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="comp-result-note">\u2705 Votre participation a \u00E9t\u00E9 enregistr\u00E9e. Le professeur validera la comp\u00E9tence apr\u00E8s correction.</p>
-                </div>
-
-                <div class="comp-result-actions">
-                    <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
-                        Retour aux comp\u00E9tences
-                    </button>
-                </div>
-            </div>
-        `;
-    },
+    // showEvaluationResult() supprimé — remplacé par le popup de soumission (SubmissionUtils)
 
     // ==========================================
     // VUE RELECTURE (après complétion)
