@@ -272,8 +272,17 @@ Object.assign(EleveCompetences, {
      * Utilisé dans showTrainingResult et showExerciseReview (mode entraînement).
      */
     _buildCorrectionHTML(correctionCommentee, correctionContenu) {
-        // Mode texte riche : afficher le contenu HTML directement
+        // Mode blocs ou texte riche
         if (correctionContenu) {
+            // Tenter de parser comme JSON (nouveau format blocs)
+            try {
+                var blocks = JSON.parse(correctionContenu);
+                if (Array.isArray(blocks)) {
+                    return this._renderCorrectionBlocks(blocks);
+                }
+            } catch (e) {
+                // Pas du JSON → HTML brut (ancien format), afficher tel quel
+            }
             return `
                 <div class="comp-inplace-corrige">
                     <h4>Corrig\u00E9 comment\u00E9</h4>
@@ -315,6 +324,34 @@ Object.assign(EleveCompetences, {
                 </div>
             `;
         }
+        return html;
+    },
+
+    /**
+     * Rendu des blocs de correction (nouveau format JSON).
+     * Réutilise _renderSingleBlock comme pour le document.
+     */
+    _renderCorrectionBlocks(blocks) {
+        var self = this;
+        var html = '<div class="comp-inplace-corrige">' +
+            '<h4>Corrig\u00E9 comment\u00E9</h4>' +
+            '<div class="comp-blocks-container">';
+
+        blocks.forEach(function(block) {
+            if (block.type === 'group') {
+                html += '<div class="comp-blocks-group">';
+                (block.children || []).forEach(function(child) {
+                    html += '<div class="comp-blocks-group-child">';
+                    html += self._renderSingleBlock(child);
+                    html += '</div>';
+                });
+                html += '</div>';
+            } else {
+                html += self._renderSingleBlock(block);
+            }
+        });
+
+        html += '</div></div>';
         return html;
     },
 

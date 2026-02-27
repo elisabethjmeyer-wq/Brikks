@@ -2,10 +2,11 @@
  * Wizard de création/modification d'entraînement de compétences.
  * Extension de AdminBanquesExercices via Object.assign.
  *
- * 3 étapes :
+ * 4 étapes :
  *   1. Paramètres (banque, titre, consigne, durée, ordre, statut)
  *   2. Document (block editor + preview live côté élève)
- *   3. Corrigé + résumé de validation
+ *   3. Corrigé (block editor + preview / lien Google Doc)
+ *   4. Résumé de validation
  */
 Object.assign(AdminBanquesExercices, {
 
@@ -20,6 +21,9 @@ Object.assign(AdminBanquesExercices, {
 
     /** @type {number|null} Timer debounce pour la preview */
     _previewDebounce: null,
+
+    /** @type {string} ID du container de preview actif (step 2 ou 3) */
+    _cwPreviewContainerId: 'cwPreviewContainer',
 
     // ========== OUVERTURE / FERMETURE ==========
 
@@ -60,6 +64,10 @@ Object.assign(AdminBanquesExercices, {
                             '<span class="step-number">3</span>' +
                             '<span class="step-label">Corrig\u00E9</span>' +
                         '</button>' +
+                        '<button class="wizard-step" data-step="4" onclick="AdminBanquesExercices.goToCompWizardStep(4)">' +
+                            '<span class="step-number">4</span>' +
+                            '<span class="step-label">R\u00E9sum\u00E9</span>' +
+                        '</button>' +
                     '</div>' +
                     '<button class="modal-close" onclick="AdminBanquesExercices.closeCompWizard()">&times;</button>' +
                 '</div>' +
@@ -87,6 +95,7 @@ Object.assign(AdminBanquesExercices, {
         this._blocks = [];
         // Restaurer le container ID et _renderBlocks par défaut
         this._blockEditorContainerId = 'blockEditorContainer';
+        this._cwPreviewContainerId = 'cwPreviewContainer';
         if (this._origRenderBlocks) {
             this._renderBlocks = this._origRenderBlocks;
             this._origRenderBlocks = null;
@@ -134,7 +143,7 @@ Object.assign(AdminBanquesExercices, {
 
             this._saveCompWizardStepState(this.compWizardData.currentStep);
 
-            if (this.compWizardData.currentStep < 3) {
+            if (this.compWizardData.currentStep < 4) {
                 this.compWizardData.currentStep++;
                 this.renderCompWizardStep(this.compWizardData.currentStep);
             } else {
@@ -178,10 +187,10 @@ Object.assign(AdminBanquesExercices, {
             return true;
         }
         case 2:
-            // Pas de validation obligatoire — le document est optionnel
             return true;
         case 3:
-            // Pas de validation obligatoire — le corrigé est optionnel
+            return true;
+        case 4:
             return true;
         default:
             return true;
@@ -217,7 +226,7 @@ Object.assign(AdminBanquesExercices, {
             break;
         }
         case 2: {
-            // Sauvegarder les blocs du block editor
+            // Sauvegarder les blocs du block editor (document)
             this._saveEditorsState();
             var json = this.getBlocksJSON();
             e.document_contenu = json;
@@ -235,11 +244,15 @@ Object.assign(AdminBanquesExercices, {
                 e.correction_contenu = '';
             } else {
                 e.correction_commentee = '';
-                e.correction_contenu = this._getEditorContent('cwCorrectionEditor');
+                this._saveEditorsState();
+                e.correction_contenu = this.getBlocksJSON();
             }
             this.compWizardData.entrainement = e;
             break;
         }
+        case 4:
+            // Résumé — rien à sauvegarder
+            break;
         }
     },
 
@@ -274,7 +287,7 @@ Object.assign(AdminBanquesExercices, {
         }
         if (nextBtn) {
             nextBtn.disabled = false;
-            nextBtn.textContent = step === 3 ? '\u2713 Enregistrer' : 'Suivant \u2192';
+            nextBtn.textContent = step === 4 ? '\u2713 Enregistrer' : 'Suivant \u2192';
         }
 
         switch (step) {
@@ -288,6 +301,9 @@ Object.assign(AdminBanquesExercices, {
         case 3:
             content.innerHTML = this._renderCompWizardStep3();
             this._initCompWizardStep3();
+            break;
+        case 4:
+            content.innerHTML = this._renderCompWizardStep4();
             break;
         }
     },
@@ -381,25 +397,7 @@ Object.assign(AdminBanquesExercices, {
                 '<div class="cw-doc-editor">' +
                     '<h4 class="cw-section-title">\u00C9diteur</h4>' +
                     '<div id="cwBlockEditorContainer" class="block-editor"></div>' +
-                    '<div class="block-add-bar" id="cwBlockAddBar">' +
-                        '<span class="block-add-label">Ajouter</span>' +
-                        '<button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock(\'text\')" title="Texte">' +
-                            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' +
-                            ' Texte' +
-                        '</button>' +
-                        '<button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock(\'document\')" title="Document Google">' +
-                            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
-                            ' Document' +
-                        '</button>' +
-                        '<button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock(\'image\')" title="Image">' +
-                            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
-                            ' Image' +
-                        '</button>' +
-                        '<button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock(\'video\')" title="Video">' +
-                            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>' +
-                            ' Vid\u00E9o' +
-                        '</button>' +
-                    '</div>' +
+                    this._renderBlockAddBar() +
                 '</div>' +
                 '<div class="cw-doc-preview">' +
                     '<h4 class="cw-section-title">\uD83D\uDC41 Aper\u00E7u \u00E9l\u00E8ve</h4>' +
@@ -411,9 +409,33 @@ Object.assign(AdminBanquesExercices, {
         '</div>';
     },
 
+    /** Barre d'ajout de blocs, partagée entre les étapes 2 et 3. */
+    _renderBlockAddBar() {
+        return '<div class="block-add-bar">' +
+            '<span class="block-add-label">Ajouter</span>' +
+            '<button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock(\'text\')" title="Texte">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' +
+                ' Texte' +
+            '</button>' +
+            '<button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock(\'document\')" title="Document Google">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+                ' Document' +
+            '</button>' +
+            '<button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock(\'image\')" title="Image">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+                ' Image' +
+            '</button>' +
+            '<button type="button" class="block-add-btn" onclick="AdminBanquesExercices.addBlock(\'video\')" title="Video">' +
+                '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>' +
+                ' Vid\u00E9o' +
+            '</button>' +
+        '</div>';
+    },
+
     _initCompWizardStep2() {
         // Rediriger le block editor vers le container du wizard
         this._blockEditorContainerId = 'cwBlockEditorContainer';
+        this._cwPreviewContainerId = 'cwPreviewContainer';
 
         // Charger les blocs existants
         var e = this.compWizardData.entrainement || {};
@@ -463,7 +485,7 @@ Object.assign(AdminBanquesExercices, {
     },
 
     _setupCompPreviewObserver() {
-        var container = document.getElementById('cwBlockEditorContainer');
+        var container = document.getElementById(this._blockEditorContainerId);
         if (!container) return;
 
         var self = this;
@@ -478,7 +500,7 @@ Object.assign(AdminBanquesExercices, {
     },
 
     _updateCompPreview() {
-        var previewContainer = document.getElementById('cwPreviewContainer');
+        var previewContainer = document.getElementById(this._cwPreviewContainerId);
         if (!previewContainer) return;
 
         // Sauvegarder l'état courant des éditeurs
@@ -617,74 +639,57 @@ Object.assign(AdminBanquesExercices, {
         return url;
     },
 
-    // ========== ÉTAPE 3 : CORRIGÉ + RÉSUMÉ ==========
+    // ========== ÉTAPE 3 : CORRIGÉ (block editor / lien) ==========
 
     _renderCompWizardStep3() {
         var e = this.compWizardData.entrainement || {};
 
         // Détecter le mode corrigé actuel
-        var hasCorrectionHtml = !!e.correction_contenu;
-        var corrUrl = this._extractCorrectionUrl(e.correction_commentee);
-        var corrMode = hasCorrectionHtml ? 'html' : 'url';
-
-        // Résumé de l'entraînement
-        var banque = this.banquesCompetences.find(function(b) { return b.id === e.banque_id; });
-        var comp = banque ? this.competencesReferentiel.find(function(c) { return c.id === banque.competence_id; }) : null;
-        var banqueLabel = banque ? (banque.titre || (comp ? comp.nom : '')) : '(non s\u00E9lectionn\u00E9e)';
-        var dureeMin = e.duree ? Math.round(e.duree / 60) : 30;
-
-        // Compter les blocs de document
-        var nbBlocks = 0;
-        if (e.document_contenu) {
+        var hasCorrectionBlocks = false;
+        if (e.correction_contenu) {
             try {
-                var parsed = JSON.parse(e.document_contenu);
-                if (Array.isArray(parsed)) nbBlocks = parsed.length;
+                var parsed = JSON.parse(e.correction_contenu);
+                if (Array.isArray(parsed)) hasCorrectionBlocks = true;
             } catch (err) {
-                nbBlocks = 1; // HTML brut
+                // HTML brut (ancien format) → sera converti en bloc texte
+                hasCorrectionBlocks = true;
             }
         }
+        var corrUrl = this._extractCorrectionUrl(e.correction_commentee);
+        var corrMode = hasCorrectionBlocks ? 'editor' : 'url';
 
         return '<div class="wizard-step-content">' +
             '<div class="step-header">' +
-                '<span class="step-icon">\u2705</span>' +
+                '<span class="step-icon">\uD83D\uDCDD</span>' +
                 '<div>' +
-                    '<h3>Corrig\u00E9 et validation</h3>' +
-                    '<p>Ajoutez le corrig\u00E9 (optionnel) et v\u00E9rifiez le r\u00E9sum\u00E9 avant d\u2019enregistrer</p>' +
+                    '<h3>Corrig\u00E9 comment\u00E9</h3>' +
+                    '<p>Construisez le corrig\u00E9 que l\u2019\u00E9l\u00E8ve verra en mode entra\u00EEnement (optionnel)</p>' +
                 '</div>' +
             '</div>' +
-
-            // Section corrigé
-            '<div class="cw-correction-section">' +
-                '<h4 class="cw-section-title">Corrig\u00E9 comment\u00E9 <span class="optional">(mode entra\u00EEnement)</span></h4>' +
-                '<div class="source-toggle" id="cwCorrectionToggle">' +
-                    '<button type="button" class="source-toggle-btn' + (corrMode === 'url' ? ' active' : '') + '" data-mode="url" onclick="AdminBanquesExercices._cwToggleCorrectionMode(\'url\')">Lien</button>' +
-                    '<button type="button" class="source-toggle-btn' + (corrMode === 'html' ? ' active' : '') + '" data-mode="html" onclick="AdminBanquesExercices._cwToggleCorrectionMode(\'html\')">Texte</button>' +
-                '</div>' +
-                '<div class="source-panel" id="cwCorrectionUrlPanel"' + (corrMode !== 'url' ? ' style="display:none;"' : '') + '>' +
-                    '<div class="form-group">' +
-                        '<label>Lien Google Doc du corrig\u00E9</label>' +
-                        '<input type="text" class="form-input" id="cwCorrectionUrl" value="' + this.escapeHtml(corrUrl) + '" placeholder="https://docs.google.com/document/d/...">' +
-                        '<div class="form-help">Collez le lien de partage du Google Doc (doit \u00EAtre accessible en lecture)</div>' +
-                    '</div>' +
-                '</div>' +
-                '<div class="source-panel" id="cwCorrectionHtmlPanel"' + (corrMode !== 'html' ? ' style="display:none;"' : '') + '>' +
-                    '<div class="form-group">' +
-                        '<label>Contenu du corrig\u00E9</label>' +
-                        '<div id="cwCorrectionEditorContainer"></div>' +
-                    '</div>' +
+            '<div class="source-toggle" id="cwCorrectionToggle">' +
+                '<button type="button" class="source-toggle-btn' + (corrMode === 'url' ? ' active' : '') + '" data-mode="url" onclick="AdminBanquesExercices._cwToggleCorrectionMode(\'url\')">Lien Google Doc</button>' +
+                '<button type="button" class="source-toggle-btn' + (corrMode === 'editor' ? ' active' : '') + '" data-mode="editor" onclick="AdminBanquesExercices._cwToggleCorrectionMode(\'editor\')">\u00C9diteur</button>' +
+            '</div>' +
+            '<div class="source-panel" id="cwCorrectionUrlPanel"' + (corrMode !== 'url' ? ' style="display:none;"' : '') + '>' +
+                '<div class="form-group">' +
+                    '<label>Lien Google Doc du corrig\u00E9</label>' +
+                    '<input type="text" class="form-input" id="cwCorrectionUrl" value="' + this.escapeHtml(corrUrl) + '" placeholder="https://docs.google.com/document/d/...">' +
+                    '<div class="form-help">Collez le lien de partage du Google Doc (doit \u00EAtre accessible en lecture)</div>' +
                 '</div>' +
             '</div>' +
-
-            // Résumé
-            '<div class="cw-summary">' +
-                '<h4 class="cw-section-title">R\u00E9sum\u00E9 de l\u2019entra\u00EEnement</h4>' +
-                '<div class="summary-card">' +
-                    '<div class="summary-row"><span class="label">Banque</span><span class="value">' + this.escapeHtml(banqueLabel) + '</span></div>' +
-                    '<div class="summary-row"><span class="label">Titre</span><span class="value">' + this.escapeHtml(e.titre || '(vide)') + '</span></div>' +
-                    (e.description ? '<div class="summary-row"><span class="label">Consigne</span><span class="value">' + this.escapeHtml(e.description) + '</span></div>' : '') +
-                    '<div class="summary-row"><span class="label">Dur\u00E9e</span><span class="value">' + dureeMin + ' min</span></div>' +
-                    '<div class="summary-row"><span class="label">Blocs de contenu</span><span class="value">' + nbBlocks + '</span></div>' +
-                    '<div class="summary-row"><span class="label">Statut</span><span class="value">' + (e.statut === 'publie' ? 'Publi\u00E9' : 'Brouillon') + '</span></div>' +
+            '<div class="source-panel" id="cwCorrectionEditorPanel"' + (corrMode !== 'editor' ? ' style="display:none;"' : '') + '>' +
+                '<div class="cw-doc-layout">' +
+                    '<div class="cw-doc-editor">' +
+                        '<h4 class="cw-section-title">\u00C9diteur</h4>' +
+                        '<div id="cwCorrBlockEditorContainer" class="block-editor"></div>' +
+                        this._renderBlockAddBar() +
+                    '</div>' +
+                    '<div class="cw-doc-preview">' +
+                        '<h4 class="cw-section-title">\uD83D\uDC41 Aper\u00E7u \u00E9l\u00E8ve</h4>' +
+                        '<div id="cwCorrPreviewContainer" class="cw-preview-frame">' +
+                            '<div class="cw-preview-empty">Ajoutez du contenu pour voir l\u2019aper\u00E7u</div>' +
+                        '</div>' +
+                    '</div>' +
                 '</div>' +
             '</div>' +
         '</div>';
@@ -693,17 +698,62 @@ Object.assign(AdminBanquesExercices, {
     _initCompWizardStep3() {
         var e = this.compWizardData.entrainement || {};
 
-        // Initialiser l'éditeur riche pour le corrigé
-        this.createRichTextEditor('cwCorrectionEditorContainer', 'cwCorrectionEditor', {
-            placeholder: 'Saisissez le contenu du corrig\u00E9...',
-            media: true
-        });
-
-        // Restaurer le contenu HTML si on est en mode HTML
+        // Détecter le mode
+        var hasCorrectionBlocks = false;
         if (e.correction_contenu) {
-            var editor = document.getElementById('cwCorrectionEditor');
-            if (editor) editor.innerHTML = e.correction_contenu;
+            try {
+                var parsed = JSON.parse(e.correction_contenu);
+                if (Array.isArray(parsed)) hasCorrectionBlocks = true;
+            } catch (err) {
+                hasCorrectionBlocks = true; // HTML brut → sera converti
+            }
         }
+        var corrMode = hasCorrectionBlocks ? 'editor' : 'url';
+
+        // Si mode éditeur, initialiser le block editor pour le corrigé
+        if (corrMode === 'editor') {
+            this._initCorrectionBlockEditor();
+        }
+    },
+
+    /** Initialise le block editor pour le corrigé (étape 3). */
+    _initCorrectionBlockEditor() {
+        var e = this.compWizardData.entrainement || {};
+
+        // Rediriger le block editor vers le container du corrigé
+        this._blockEditorContainerId = 'cwCorrBlockEditorContainer';
+        this._cwPreviewContainerId = 'cwCorrPreviewContainer';
+
+        // Charger les blocs existants
+        var blocks = null;
+        if (e.correction_contenu) {
+            try {
+                var parsed = JSON.parse(e.correction_contenu);
+                if (Array.isArray(parsed)) blocks = parsed;
+            } catch (err) {
+                // HTML brut (ancien format) → convertir en un bloc texte
+                blocks = [{ type: 'text', content: e.correction_contenu }];
+            }
+        }
+
+        // Intercepter _renderBlocks pour mettre à jour la preview
+        var self = this;
+        if (!this._origRenderBlocks) {
+            this._origRenderBlocks = this._renderBlocks.bind(this);
+        }
+        this._renderBlocks = function() {
+            self._origRenderBlocks();
+            self._schedulePreviewUpdate();
+        };
+
+        // Initialiser le block editor
+        this.initBlockEditor(blocks);
+
+        // Rafraîchir la preview
+        this._updateCompPreview();
+
+        // Observer les changements
+        this._setupCompPreviewObserver();
     },
 
     _cwToggleCorrectionMode(mode) {
@@ -715,9 +765,76 @@ Object.assign(AdminBanquesExercices, {
         });
 
         var urlPanel = document.getElementById('cwCorrectionUrlPanel');
-        var htmlPanel = document.getElementById('cwCorrectionHtmlPanel');
+        var editorPanel = document.getElementById('cwCorrectionEditorPanel');
         if (urlPanel) urlPanel.style.display = mode === 'url' ? '' : 'none';
-        if (htmlPanel) htmlPanel.style.display = mode === 'html' ? '' : 'none';
+        if (editorPanel) editorPanel.style.display = mode === 'editor' ? '' : 'none';
+
+        // Si on bascule vers l'éditeur et qu'il n'est pas encore initialisé
+        if (mode === 'editor') {
+            var container = document.getElementById('cwCorrBlockEditorContainer');
+            if (container && !container.hasChildNodes()) {
+                this._initCorrectionBlockEditor();
+            }
+        }
+    },
+
+    // ========== ÉTAPE 4 : RÉSUMÉ ==========
+
+    _renderCompWizardStep4() {
+        var e = this.compWizardData.entrainement || {};
+
+        // Résumé de l'entraînement
+        var banque = this.banquesCompetences.find(function(b) { return b.id === e.banque_id; });
+        var comp = banque ? this.competencesReferentiel.find(function(c) { return c.id === banque.competence_id; }) : null;
+        var banqueLabel = banque ? (banque.titre || (comp ? comp.nom : '')) : '(non s\u00E9lectionn\u00E9e)';
+        var dureeMin = e.duree ? Math.round(e.duree / 60) : 30;
+
+        // Compter les blocs de document
+        var nbDocBlocks = 0;
+        if (e.document_contenu) {
+            try {
+                var parsed = JSON.parse(e.document_contenu);
+                if (Array.isArray(parsed)) nbDocBlocks = parsed.length;
+            } catch (err) {
+                nbDocBlocks = 1;
+            }
+        }
+
+        // Détecter le type de corrigé
+        var corrLabel = 'Aucun';
+        if (e.correction_commentee) {
+            corrLabel = 'Lien Google Doc';
+        } else if (e.correction_contenu) {
+            var nbCorrBlocks = 0;
+            try {
+                var parsedCorr = JSON.parse(e.correction_contenu);
+                if (Array.isArray(parsedCorr)) nbCorrBlocks = parsedCorr.length;
+            } catch (err) {
+                nbCorrBlocks = 1;
+            }
+            corrLabel = nbCorrBlocks + ' bloc' + (nbCorrBlocks > 1 ? 's' : '');
+        }
+
+        return '<div class="wizard-step-content">' +
+            '<div class="step-header">' +
+                '<span class="step-icon">\u2705</span>' +
+                '<div>' +
+                    '<h3>R\u00E9sum\u00E9 de l\u2019entra\u00EEnement</h3>' +
+                    '<p>V\u00E9rifiez les informations avant d\u2019enregistrer</p>' +
+                '</div>' +
+            '</div>' +
+            '<div class="cw-summary">' +
+                '<div class="summary-card">' +
+                    '<div class="summary-row"><span class="label">Banque</span><span class="value">' + this.escapeHtml(banqueLabel) + '</span></div>' +
+                    '<div class="summary-row"><span class="label">Titre</span><span class="value">' + this.escapeHtml(e.titre || '(vide)') + '</span></div>' +
+                    (e.description ? '<div class="summary-row"><span class="label">Consigne</span><span class="value">' + this.escapeHtml(e.description) + '</span></div>' : '') +
+                    '<div class="summary-row"><span class="label">Dur\u00E9e</span><span class="value">' + dureeMin + ' min</span></div>' +
+                    '<div class="summary-row"><span class="label">Blocs de contenu</span><span class="value">' + nbDocBlocks + '</span></div>' +
+                    '<div class="summary-row"><span class="label">Corrig\u00E9</span><span class="value">' + corrLabel + '</span></div>' +
+                    '<div class="summary-row"><span class="label">Statut</span><span class="value">' + (e.statut === 'publie' ? 'Publi\u00E9' : 'Brouillon') + '</span></div>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
     },
 
     // ========== SAUVEGARDE FINALE ==========
