@@ -298,12 +298,12 @@ Object.assign(EleveCompetences, {
             const embedUrl = this.getEmbedUrl(data.url);
             html += `
                 <div class="comp-inplace-corrige">
-                    <h4>Corrig\u00E9 comment\u00E9</h4>
+                    <div class="comp-corrige-header">
+                        <h4>Corrig\u00E9 comment\u00E9</h4>
+                        <a href="${this.escapeHtml(data.url)}" target="_blank" rel="noopener" class="comp-corrige-link" title="Ouvrir dans un nouvel onglet">\u2197\uFE0F</a>
+                    </div>
                     <div class="comp-corrige-doc">
                         <iframe src="${embedUrl}" class="comp-corrige-iframe" allowfullscreen></iframe>
-                        <a href="${this.escapeHtml(data.url)}" target="_blank" rel="noopener" class="comp-corrige-link">
-                            Ouvrir dans un nouvel onglet \u2197
-                        </a>
                     </div>
                 </div>
             `;

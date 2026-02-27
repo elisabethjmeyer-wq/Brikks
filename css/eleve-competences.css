@@ -1554,16 +1554,23 @@ body.comp-fullscreen-active {
 }
 
 .comp-corrige-link {
-    display: inline-block;
-    margin-top: 0.75rem;
-    color: #dc2626;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(22, 163, 74, 0.1);
+    color: #16a34a;
+    font-size: 0.85rem;
     font-size: 0.875rem;
     font-weight: 500;
     text-decoration: none;
 }
 
 .comp-corrige-link:hover {
-    text-decoration: underline;
+    background: rgba(22, 163, 74, 0.2);
+    text-decoration: none;
 }
 
 /* In-place correction (appears below document) */
@@ -1573,11 +1580,18 @@ body.comp-fullscreen-active {
     border-top: 2px solid #bbf7d0;
 }
 
+.comp-corrige-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+}
+
 .comp-inplace-corrige h4 {
     font-size: 0.95rem;
     font-weight: 600;
     color: #16a34a;
-    margin: 0 0 0.75rem 0;
+    margin: 0;
 }
 
 .comp-inplace-corrige-text {
