@@ -526,8 +526,13 @@ Object.assign(AdminBanquesExercices, {
     /** Rendu d'un bloc pour la preview (reproduit le rendu élève). */
     _renderPreviewBlock(block) {
         switch (block.type) {
-        case 'text':
-            return '<div class="comp-block-text">' + (block.content || '') + '</div>';
+        case 'text': {
+            var txtLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
+            return '<div class="comp-block-text">' +
+                '<div class="comp-block-text-content">' + (block.content || '') + '</div>' +
+                txtLegende +
+                '</div>';
+        }
 
         case 'document': {
             var url = block.url || '';
