@@ -223,9 +223,9 @@ Object.assign(AdminBanquesExercices, {
         case 'text':
             return '<div class="block-editor-container" id="block-editor-ctn-' + block.id + '"></div>' +
                 '<div class="block-field">' +
-                '<label>L\u00e9gende <span class="optional">(optionnel)</span></label>' +
+                '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
                 '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Extrait du trait\u00e9 de Versailles, 1919">' +
+                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Extrait du *trait\u00e9 de Versailles*, 1919">' +
                 '</div>';
 
         case 'document':
@@ -241,9 +241,9 @@ Object.assign(AdminBanquesExercices, {
                 'value="' + this.escapeHtml(block.titre || '') + '" placeholder="Ex: Source 1 - Discours de Robespierre">' +
                 '</div>' +
                 '<div class="block-field">' +
-                '<label>Legende <span class="optional">(optionnel)</span></label>' +
+                '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
                 '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Archives nationales, 1793">' +
+                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: *Archives nationales*, 1793">' +
                 '</div>';
 
         case 'image':
@@ -261,9 +261,9 @@ Object.assign(AdminBanquesExercices, {
                 '</div>' +
                 '<div id="block-preview-' + block.id + '">' + preview + '</div>' +
                 '<div class="block-field">' +
-                '<label>Legende <span class="optional">(optionnel)</span></label>' +
+                '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
                 '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Carte de l\'Empire romain, IIe siecle">' +
+                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Carte de l\'*Empire romain*, IIe si\u00e8cle">' +
                 '</div>';
 
         case 'video':
@@ -274,9 +274,9 @@ Object.assign(AdminBanquesExercices, {
                 'placeholder="Lien YouTube ou Google Drive...">' +
                 '</div>' +
                 '<div class="block-field">' +
-                '<label>Legende <span class="optional">(optionnel)</span></label>' +
+                '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
                 '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Contexte historique de la Revolution">' +
+                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Contexte historique de la *R\u00e9volution*">' +
                 '</div>';
 
         default:

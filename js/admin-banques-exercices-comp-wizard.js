@@ -533,7 +533,7 @@ Object.assign(AdminBanquesExercices, {
             var url = block.url || '';
             var embedUrl = this._getPreviewEmbedUrl(url);
             var titre = block.titre ? '<div class="comp-block-titre">' + this.escapeHtml(block.titre) + '</div>' : '';
-            var legende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
+            var legende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
             return titre +
                 '<div class="comp-block-document">' +
                 (embedUrl
@@ -547,7 +547,7 @@ Object.assign(AdminBanquesExercices, {
             var imgUrl = block.url || '';
             var driveMatch = imgUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
             if (driveMatch) imgUrl = 'https://lh3.googleusercontent.com/d/' + driveMatch[1];
-            var imgLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
+            var imgLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
             if (!block.url) {
                 return '<div class="comp-block-image"><div class="cw-preview-placeholder">Saisissez l\u2019URL de l\u2019image</div></div>' + imgLegende;
             }
@@ -566,7 +566,7 @@ Object.assign(AdminBanquesExercices, {
                 var driveVid = vidUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
                 if (driveVid) embedVid = 'https://drive.google.com/file/d/' + driveVid[1] + '/preview';
             }
-            var vidLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende) + '</div>' : '';
+            var vidLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
             if (!block.url) {
                 return '<div class="comp-block-video"><div class="cw-preview-placeholder">Saisissez l\u2019URL de la vid\u00E9o</div></div>' + vidLegende;
             }
