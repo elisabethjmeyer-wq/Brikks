@@ -1150,94 +1150,100 @@ Object.assign(EleveCompetences, {
         const competenceNom = comp ? comp.nom : '';
 
         // Temps passé formaté
+        const duree = entrainement.duree || 0;
         const tempsPasse = progression.temps_passe
             ? this._formatDuree(progression.temps_passe)
             : '';
+        const tempsTotal = duree ? this._formatDuree(duree) : '';
 
-        // --- Bandeau bilan (pleine largeur) ---
+        // --- Colonne gauche : bilan ---
+        const stepperMiniHTML = this._buildSoumisStepperMini(hasEnvoye);
+
         const bilanHTML = `
-            <div class="comp-bilan-banner">
-                <div class="comp-bilan-check">✓</div>
-                <div class="comp-bilan-content">
-                    <h2 class="comp-bilan-title">Exercice terminé !</h2>
-                    <div class="comp-bilan-details">
-                        ${competenceNom ? `<div class="comp-bilan-detail"><span class="comp-bilan-detail-label">Compétence</span><span class="comp-bilan-detail-value">${this.escapeHtml(competenceNom)}</span></div>` : ''}
-                        ${tempsPasse ? `<div class="comp-bilan-detail"><span class="comp-bilan-detail-label">Temps passé</span><span class="comp-bilan-detail-value">${tempsPasse}</span></div>` : ''}
-                    </div>
+            <div class="comp-result-bilan">
+                <div class="comp-result-header">
+                    <div class="comp-result-check">\u2714</div>
+                    <span class="comp-result-message">Exercice termin\u00E9 !</span>
+                </div>
+
+                ${competenceNom ? `
+                <div class="comp-result-section">
+                    <div class="comp-result-section-label">Comp\u00E9tence \u00E9valu\u00E9e</div>
+                    <div class="comp-result-section-value">${this.escapeHtml(competenceNom)}</div>
+                </div>
+                ` : ''}
+
+                ${tempsPasse ? `
+                <div class="comp-result-temps">
+                    <span class="comp-result-temps-icon">\u23F1</span>
+                    <span class="comp-result-temps-value">${tempsPasse}</span>
+                    ${tempsTotal ? `<span class="comp-result-temps-total">/ ${tempsTotal}</span>` : ''}
+                </div>
+                ` : ''}
+
+                ${dateSoumission ? `
+                <div class="comp-result-date">Soumis le ${dateSoumission}</div>
+                ` : ''}
+
+                <div class="comp-result-stepper-mini">
+                    ${stepperMiniHTML}
                 </div>
             </div>
         `;
 
-        // Construire la carte d'action principale
-        let actionCardHTML = '';
+        // --- Colonne droite : action ---
+        let actionHTML = '';
 
         if (!hasEnvoye && delivery) {
             const deadlinePassed = this._isDeadlinePassed(delivery.deadlineText);
             if (deadlinePassed) {
-                actionCardHTML = `
-                    <div class="comp-suivi-card comp-suivi-card--expired">
-                        <div class="comp-suivi-card__header">
-                            <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--expired">
-                                <span class="comp-suivi-card__icon">\u26A0\uFE0F</span>
-                            </div>
-                            <h2 class="comp-suivi-card__title">D\u00E9lai d\u00E9pass\u00E9</h2>
-                        </div>
-                        <p class="comp-suivi-card__text">Le d\u00E9lai pour envoyer ton travail est pass\u00E9.<br>Contacte ton professeur pour savoir quoi faire.</p>
+                actionHTML = `
+                    <div class="comp-result-action comp-result-action--expired">
+                        <div class="comp-result-action-icon">\u26A0\uFE0F</div>
+                        <h2 class="comp-result-action-title">D\u00E9lai d\u00E9pass\u00E9</h2>
+                        <p class="comp-result-action-text">Le d\u00E9lai pour envoyer ton travail est pass\u00E9.<br>Contacte ton professeur pour savoir quoi faire.</p>
                     </div>
                 `;
             } else if (modeRendu === 'numerique') {
-                actionCardHTML = `
-                    <div class="comp-suivi-card comp-suivi-card--delivery">
-                        <div class="comp-suivi-card__header">
-                            <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--delivery">
-                                <span class="comp-suivi-card__icon">\u{1F4E7}</span>
-                            </div>
-                            <h2 class="comp-suivi-card__title">Envoie ton travail</h2>
+                actionHTML = `
+                    <div class="comp-result-action comp-result-action--delivery">
+                        <div class="comp-result-action-icon">\u{1F4E7}</div>
+                        <h2 class="comp-result-action-title">Envoie ton travail</h2>
+                        <p class="comp-result-action-text">Envoie ton travail par message sur MBN \u00E0 ton professeur.</p>
+                        <div class="comp-result-deadline">
+                            <span class="comp-result-deadline-icon">\u{1F551}</span>
+                            <span>${delivery.deadlineText} dernier d\u00E9lai</span>
                         </div>
-                        <p class="comp-suivi-card__text">Envoie ton travail par message sur MBN \u00E0 ton professeur <strong>${delivery.deadlineText}</strong> dernier d\u00E9lai.</p>
-                        <button class="comp-suivi-card__btn" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
+                        <button class="comp-result-action-btn" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
                             J\u2019ai envoy\u00E9 mon travail
                         </button>
                     </div>
                 `;
             } else {
-                actionCardHTML = `
-                    <div class="comp-suivi-card comp-suivi-card--delivery">
-                        <div class="comp-suivi-card__header">
-                            <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--delivery">
-                                <span class="comp-suivi-card__icon">\u{1F4C4}</span>
-                            </div>
-                            <h2 class="comp-suivi-card__title">D\u00E9pose ton travail</h2>
+                actionHTML = `
+                    <div class="comp-result-action comp-result-action--delivery">
+                        <div class="comp-result-action-icon">\u{1F4C4}</div>
+                        <h2 class="comp-result-action-title">D\u00E9pose ton travail</h2>
+                        <p class="comp-result-action-text">D\u00E9pose ta copie dans le casier de ton professeur.</p>
+                        <div class="comp-result-deadline">
+                            <span class="comp-result-deadline-icon">\u{1F551}</span>
+                            <span>${delivery.deadlineText} dernier d\u00E9lai</span>
                         </div>
-                        <p class="comp-suivi-card__text">D\u00E9pose ta copie dans le casier de ton professeur <strong>${delivery.deadlineText}</strong> dernier d\u00E9lai.</p>
-                        <button class="comp-suivi-card__btn" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
+                        <button class="comp-result-action-btn" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
                             J\u2019ai d\u00E9pos\u00E9 mon travail
                         </button>
                     </div>
                 `;
             }
         } else if (hasEnvoye) {
-            actionCardHTML = `
-                <div class="comp-suivi-card comp-suivi-card--waiting">
-                    <div class="comp-suivi-card__header">
-                        <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--waiting">
-                            <span class="comp-suivi-card__icon">\u23F3</span>
-                        </div>
-                        <h2 class="comp-suivi-card__title">En attente de correction</h2>
-                    </div>
-                    <p class="comp-suivi-card__text">Ton travail a bien \u00E9t\u00E9 envoy\u00E9.<br>Tu recevras ta correction prochainement.</p>
+            actionHTML = `
+                <div class="comp-result-action comp-result-action--waiting">
+                    <div class="comp-result-action-icon">\u23F3</div>
+                    <h2 class="comp-result-action-title">En attente de correction</h2>
+                    <p class="comp-result-action-text">Ton travail a bien \u00E9t\u00E9 envoy\u00E9.<br>Tu recevras ta correction prochainement.</p>
                 </div>
             `;
         }
-
-        const stepperHTML = this._buildStepperHTML({
-            step1: 'done',
-            step2: hasEnvoye ? 'done' : 'active',
-            step3: 'pending',
-            date1: dateSoumission,
-            date2: hasEnvoye ? this._formatDateHeure(dateEnvoi) : '',
-            date3: ''
-        });
 
         container.innerHTML = `
             <div class="comp-exercise-view">
@@ -1251,11 +1257,38 @@ Object.assign(EleveCompetences, {
                     </div>
                 </div>
 
-                ${bilanHTML}
+                <div class="comp-result-view">
+                    <div class="comp-result-card">
+                        ${bilanHTML}
+                        ${actionHTML}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
 
-                <div class="comp-stepper-container">
-                    ${stepperHTML}
-                    ${actionCardHTML}
+    /**
+     * Mini-stepper horizontal pour la vue soumission (3 pastilles)
+     */
+    _buildSoumisStepperMini(hasEnvoye) {
+        const s1 = 'done';
+        const s2 = hasEnvoye ? 'done' : 'active';
+        const s3 = 'pending';
+        return `
+            <div class="comp-stepper-mini">
+                <div class="comp-stepper-mini-step ${s1}">
+                    <div class="comp-stepper-mini-dot">\u2714</div>
+                    <span class="comp-stepper-mini-label">Termin\u00E9</span>
+                </div>
+                <div class="comp-stepper-mini-line ${s2 === 'done' ? 'done' : ''}"></div>
+                <div class="comp-stepper-mini-step ${s2}">
+                    <div class="comp-stepper-mini-dot">${hasEnvoye ? '\u2714' : '2'}</div>
+                    <span class="comp-stepper-mini-label">Envoy\u00E9</span>
+                </div>
+                <div class="comp-stepper-mini-line"></div>
+                <div class="comp-stepper-mini-step ${s3}">
+                    <div class="comp-stepper-mini-dot">3</div>
+                    <span class="comp-stepper-mini-label">Correction</span>
                 </div>
             </div>
         `;
@@ -1301,7 +1334,7 @@ Object.assign(EleveCompetences, {
     },
 
     async confirmEnvoi(entrainementId) {
-        const btn = document.querySelector('.comp-suivi-card__btn');
+        const btn = document.querySelector('.comp-result-action-btn');
         if (btn) {
             btn.disabled = true;
             btn.textContent = 'Enregistrement...';
