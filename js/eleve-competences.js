@@ -150,8 +150,10 @@ const EleveCompetences = {
     /**
      * Statut d'une banque pour l'élève :
      * - validee : au moins 1 exercice évalué validé par le prof
+     * - corrigee : au moins 1 exercice corrigé par le prof (en attente de validation)
      * - soumise : au moins 1 exercice évalué soumis, en attente de correction
      * - en_cours : au moins 1 exercice commencé
+     * - non_soumise : au moins 1 exercice refusé par l'élève (pas d'autre progression)
      * - pas_commencee : rien
      */
     getBanqueStatus(banqueId) {
@@ -173,12 +175,20 @@ const EleveCompetences = {
             return { status: 'validee', label: 'Validée', cssClass: 'validated' };
         }
 
+        if (banqueProgressions.some(p => p.mode === 'evalue' && p.statut === 'corrige')) {
+            return { status: 'corrigee', label: 'Corrigée', cssClass: 'corrected' };
+        }
+
         if (banqueProgressions.some(p => p.mode === 'evalue' && p.statut === 'soumis')) {
             return { status: 'soumise', label: 'En attente', cssClass: 'submitted' };
         }
 
-        if (banqueProgressions.length > 0) {
+        if (banqueProgressions.some(p => p.statut !== 'non_soumis')) {
             return { status: 'en_cours', label: 'En cours', cssClass: 'in-progress' };
+        }
+
+        if (banqueProgressions.length > 0) {
+            return { status: 'non_soumise', label: 'Non soumise', cssClass: 'declined' };
         }
 
         return { status: 'pas_commencee', label: 'Pas commencée', cssClass: 'not-started' };
@@ -210,8 +220,12 @@ const EleveCompetences = {
                 return { status: 'entraine', label: 'Entraîné', cssClass: 'trained', icon: '📝' };
             case 'soumis':
                 return { status: 'soumis', label: 'Soumis', cssClass: 'submitted', icon: '📤' };
+            case 'corrige':
+                return { status: 'corrige', label: 'Corrigé', cssClass: 'corrected', icon: '📋' };
             case 'valide':
                 return { status: 'valide', label: 'Validé', cssClass: 'validated', icon: '✓' };
+            case 'non_soumis':
+                return { status: 'non_soumis', label: 'Non soumis', cssClass: 'declined', icon: '✕' };
             default:
                 return { status: 'pas_commence', label: 'Pas commencé', cssClass: 'not-started', icon: '○' };
         }
@@ -497,7 +511,12 @@ const EleveCompetences = {
         } else if (prog.statut === 'entraine') {
             // Entraîné → popup Se ré-entraîner / Consulter correction
             this._showRetrainOrReviewModal(entr, prog);
+        } else if (prog.statut === 'non_soumis') {
+            // Refusé → proposer de recommencer (choix mode)
+            this.openChoiceModal(entrainementId);
         } else if (prog.statut === 'soumis') {
+            this.showExerciseReview(entr, prog);
+        } else if (prog.statut === 'corrige') {
             this.showExerciseReview(entr, prog);
         } else if (prog.statut === 'valide') {
             this.showExerciseReview(entr, prog);

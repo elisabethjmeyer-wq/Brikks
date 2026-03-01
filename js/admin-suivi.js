@@ -424,12 +424,14 @@ const AdminSuivi = {
                     ${stats.taches.length > 0 ? `
                         <div class="trainings-list">
                             ${stats.taches.map(t => {
-                                const tache = this.tachesComplexes.find(tc => tc.id === t.tache_id);
+                                const tache = this.tachesComplexes.find(tc => tc.id === t.entrainement_id);
                                 const statusConfig = {
                                     'en_cours': { label: 'En cours', class: 'status-progress' },
+                                    'entraine': { label: 'Entraîné', class: 'status-progress' },
                                     'soumis': { label: 'Soumis', class: 'status-pending' },
-                                    'termine': { label: 'Terminé', class: 'status-done' },
-                                    'corrige': { label: 'Corrigé', class: 'status-done' }
+                                    'corrige': { label: 'Corrigé', class: 'status-done' },
+                                    'valide': { label: 'Validé', class: 'status-done' },
+                                    'non_soumis': { label: 'Non soumis', class: 'status-declined' }
                                 };
                                 const status = statusConfig[t.statut] || { label: t.statut, class: '' };
 
@@ -591,7 +593,7 @@ const AdminSuivi = {
         this.eleveTaches
             .filter(t => !filteredEleveIds || filteredEleveIds.includes(t.eleve_id))
             .forEach(t => {
-                const tache = this.tachesComplexes.find(tc => tc.id === t.tache_id);
+                const tache = this.tachesComplexes.find(tc => tc.id === t.entrainement_id);
                 if (t.date_debut && new Date(t.date_debut) >= start) {
                     activities.push({
                         type: 'tache_start',

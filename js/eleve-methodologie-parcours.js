@@ -79,7 +79,7 @@ const EleveMethodologieParcours = {
             } else if (bex.type === 'competences') {
                 this.competenceBanks[bex.id] = {
                     titre: bex.titre,
-                    url: bex.url || `entrainements-competences.html?comp=${bex.id}`
+                    url: bex.url || `entrainements-comp.html?comp=${bex.id}`
                 };
             }
         });
