@@ -546,6 +546,9 @@ function handleRequest(e) {
       case 'validateEleveEntrainementCompetence':
         result = validateEleveEntrainementCompetence(request);
         break;
+      case 'saveEnvoiCompetence':
+        result = saveEnvoiCompetence(request);
+        break;
 
       // ALIASES rétro-compatibilité (anciens noms « tâches complexes »)
       case 'getTachesComplexes':
