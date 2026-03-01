@@ -273,28 +273,14 @@ const SubmissionUtils = {
             deadlineText = this.formatDeadlinePapier(delaiPapier, joursNonCours);
         }
 
-        var consigne = this.buildDeliveryHTML(modeRendu, deadlineText);
-
-        // Sauvegarder les instructions pour affichage ultérieur
+        // Sauvegarder les instructions pour affichage sur la page de suivi
         if (options.entrainementId) {
             this.saveDeliveryInfo(options.entrainementId, modeRendu, deadlineText);
         }
 
-        var popup = overlay.querySelector('.submission-popup');
-        popup.innerHTML =
-            '<div class="submission-step">' +
-                '<div class="submission-success-box">' +
-                    '<div class="submission-success-icon">\u2705</div>' +
-                    '<h2>Participation enregistr\u00E9e</h2>' +
-                '</div>' +
-                consigne +
-                '<button class="submission-action-btn submission-action-done" id="submissionDoneBtn">Compris</button>' +
-            '</div>';
-
-        document.getElementById('submissionDoneBtn').addEventListener('click', function() {
-            overlay.remove();
-            if (options.onSubmit) options.onSubmit(modeRendu);
-        });
+        // Fermer le popup et naviguer directement vers la page de suivi
+        overlay.remove();
+        if (options.onSubmit) options.onSubmit(modeRendu);
     },
 
     /**
