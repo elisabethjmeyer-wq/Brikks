@@ -1151,25 +1151,25 @@ Object.assign(EleveCompetences, {
             if (deadlinePassed) {
                 actionCardHTML = `
                     <div class="comp-suivi-card comp-suivi-card--expired">
-                        <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--expired">
-                            <span class="comp-suivi-card__icon">\u26A0\uFE0F</span>
+                        <div class="comp-suivi-card__header">
+                            <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--expired">
+                                <span class="comp-suivi-card__icon">\u26A0\uFE0F</span>
+                            </div>
+                            <h2 class="comp-suivi-card__title">D\u00E9lai d\u00E9pass\u00E9</h2>
                         </div>
-                        <h2 class="comp-suivi-card__title">D\u00E9lai d\u00E9pass\u00E9</h2>
                         <p class="comp-suivi-card__text">Le d\u00E9lai pour envoyer ton travail est pass\u00E9.<br>Contacte ton professeur pour savoir quoi faire.</p>
                     </div>
                 `;
             } else if (modeRendu === 'numerique') {
                 actionCardHTML = `
                     <div class="comp-suivi-card comp-suivi-card--delivery">
-                        <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--delivery">
-                            <span class="comp-suivi-card__icon">\u{1F4E7}</span>
+                        <div class="comp-suivi-card__header">
+                            <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--delivery">
+                                <span class="comp-suivi-card__icon">\u{1F4E7}</span>
+                            </div>
+                            <h2 class="comp-suivi-card__title">Envoie ton travail</h2>
                         </div>
-                        <h2 class="comp-suivi-card__title">Envoie ton travail</h2>
-                        <p class="comp-suivi-card__text">Tu as choisi le rendu <strong>num\u00E9rique</strong>.<br>Envoie ton travail par message sur MBN \u00E0 ton professeur.</p>
-                        <div class="comp-suivi-card__deadline">
-                            <span class="comp-suivi-card__deadline-icon">\u23F0</span>
-                            <span>Date limite : <strong>${delivery.deadlineText}</strong></span>
-                        </div>
+                        <p class="comp-suivi-card__text">Envoie ton travail par message sur MBN \u00E0 ton professeur <strong>${delivery.deadlineText}</strong> dernier d\u00E9lai.</p>
                         <button class="comp-suivi-card__btn" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
                             J\u2019ai envoy\u00E9 mon travail
                         </button>
@@ -1178,17 +1178,15 @@ Object.assign(EleveCompetences, {
             } else {
                 actionCardHTML = `
                     <div class="comp-suivi-card comp-suivi-card--delivery">
-                        <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--delivery">
-                            <span class="comp-suivi-card__icon">\u{1F4C4}</span>
+                        <div class="comp-suivi-card__header">
+                            <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--delivery">
+                                <span class="comp-suivi-card__icon">\u{1F4C4}</span>
+                            </div>
+                            <h2 class="comp-suivi-card__title">D\u00E9pose ton travail</h2>
                         </div>
-                        <h2 class="comp-suivi-card__title">Envoie ton travail</h2>
-                        <p class="comp-suivi-card__text">Tu as choisi le rendu <strong>papier</strong>.<br>D\u00E9pose ta copie dans le casier du professeur.</p>
-                        <div class="comp-suivi-card__deadline">
-                            <span class="comp-suivi-card__deadline-icon">\u23F0</span>
-                            <span>Date limite : <strong>${delivery.deadlineText}</strong></span>
-                        </div>
+                        <p class="comp-suivi-card__text">D\u00E9pose ta copie dans le casier de ton professeur <strong>${delivery.deadlineText}</strong> dernier d\u00E9lai.</p>
                         <button class="comp-suivi-card__btn" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
-                            J\u2019ai envoy\u00E9 mon travail
+                            J\u2019ai d\u00E9pos\u00E9 mon travail
                         </button>
                     </div>
                 `;
@@ -1196,10 +1194,12 @@ Object.assign(EleveCompetences, {
         } else if (hasEnvoye) {
             actionCardHTML = `
                 <div class="comp-suivi-card comp-suivi-card--waiting">
-                    <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--waiting">
-                        <span class="comp-suivi-card__icon">\u23F3</span>
+                    <div class="comp-suivi-card__header">
+                        <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--waiting">
+                            <span class="comp-suivi-card__icon">\u23F3</span>
+                        </div>
+                        <h2 class="comp-suivi-card__title">En attente de correction</h2>
                     </div>
-                    <h2 class="comp-suivi-card__title">En attente de correction</h2>
                     <p class="comp-suivi-card__text">Ton travail a bien \u00E9t\u00E9 envoy\u00E9.<br>Tu recevras ta correction prochainement.</p>
                 </div>
             `;
