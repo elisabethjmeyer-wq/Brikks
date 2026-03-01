@@ -1919,89 +1919,256 @@ body.comp-fullscreen-active {
 }
 
 /* ============================================
-   VUE "SOUMIS" — Récap + Envoi + Suivi
+   STEPPER HORIZONTAL — Suivi évaluation
    ============================================ */
 
-.comp-submitted-view {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.comp-stepper-container {
     padding: 2rem 1.5rem;
-    max-width: 500px;
+    max-width: 640px;
     margin: 0 auto;
 }
 
-.comp-submitted-tracking {
-    gap: 1rem;
-    align-items: stretch;
-    max-width: 480px;
+/* --- Barre horizontale des étapes --- */
+
+.comp-stepper {
+    display: flex;
+    align-items: flex-start;
+    position: relative;
+    padding: 0 0.5rem;
 }
 
-/* --- Cartes de tracking --- */
+.comp-stepper-step {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
 
-.comp-tracking-card {
+/* Ligne entre les étapes (derrière les cercles) */
+.comp-stepper-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: calc(50% + 16px);
+    right: calc(-50% + 16px);
+    height: 3px;
+    background: #e5e7eb;
+    z-index: 0;
+}
+
+.comp-stepper-step.done:not(:last-child)::after {
+    background: #16a34a;
+}
+
+/* Cercle indicateur */
+.comp-stepper-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 3px solid #e5e7eb;
+    background: #fff;
+    color: #9ca3af;
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s;
+}
+
+.comp-stepper-step.done .comp-stepper-icon {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+.comp-stepper-step.active .comp-stepper-icon {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: #eff6ff;
+}
+
+.comp-stepper-step.warning .comp-stepper-icon {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #fff;
+}
+
+/* Label sous le cercle */
+.comp-stepper-label {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #111827;
+    text-align: center;
+}
+
+.comp-stepper-step.pending .comp-stepper-label {
+    color: #9ca3af;
+}
+
+/* Date sous le label */
+.comp-stepper-date {
+    font-size: 0.7rem;
+    color: #6b7280;
+    text-align: center;
+    margin-top: 0.15rem;
+}
+
+.comp-stepper-step.pending .comp-stepper-date {
+    color: #d1d5db;
+}
+
+/* --- Carte d'action (descend de l'étape active) --- */
+
+.comp-stepper-action-zone {
+    position: relative;
+    margin-top: 1.5rem;
+}
+
+/* Trait vertical qui relie le stepper à la carte */
+.comp-stepper-action-zone::before {
+    content: '';
+    position: absolute;
+    top: -1.5rem;
+    width: 2px;
+    height: 1.5rem;
+    background: #d1d5db;
+}
+
+/* Position du trait selon l'étape active (entre étape 1 et 2) */
+.comp-stepper-action-zone.between-1-2::before {
+    left: 25%;
+}
+
+/* Position du trait (entre étape 2 et 3) */
+.comp-stepper-action-zone.between-2-3::before {
+    left: 75%;
+}
+
+/* Position du trait (sur étape 3) */
+.comp-stepper-action-zone.at-3::before {
+    left: calc(100% / 6 * 5);
+}
+
+.comp-stepper-card {
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.comp-tracking-card h4 {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 0.75rem 0;
-}
-
-/* --- Carte récap --- */
-
-.comp-tracking-recap {
-    background: #f9fafb;
-    border-color: #e5e7eb;
-}
-
-.comp-recap-details {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.comp-recap-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.85rem;
-}
-
-.comp-recap-label {
-    color: #6b7280;
-}
-
-.comp-recap-value {
-    font-weight: 600;
-    color: #111827;
-}
-
-/* --- Carte consigne d'envoi --- */
-
-.comp-tracking-delivery {
+/* Variante livraison (vert) */
+.comp-stepper-card.delivery {
     background: #f0fdf4;
     border-color: #bbf7d0;
 }
 
-.comp-delivery-consigne {
-    font-size: 0.9rem;
-    font-weight: 500;
+.comp-stepper-card.delivery .comp-stepper-card-title {
     color: #15803d;
+}
+
+.comp-stepper-card.delivery .comp-stepper-card-consigne {
+    color: #166534;
+}
+
+/* Variante attente (neutre) */
+.comp-stepper-card.waiting {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+.comp-stepper-card.waiting .comp-stepper-card-title {
+    color: #6b7280;
+}
+
+/* Variante validée (vert plein) */
+.comp-stepper-card.validated {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.comp-stepper-card.validated .comp-stepper-card-title {
+    color: #15803d;
+}
+
+/* Variante délai dépassé (rouge) */
+.comp-stepper-card.expired {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.comp-stepper-card.expired .comp-stepper-card-title {
+    color: #991b1b;
+}
+
+.comp-stepper-card.expired .comp-stepper-card-consigne {
+    color: #991b1b;
+}
+
+/* Variante à retravailler (orange) */
+.comp-stepper-card.rework {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.comp-stepper-card.rework .comp-stepper-card-title {
+    color: #92400e;
+}
+
+/* Éléments internes de la carte */
+.comp-stepper-card-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+}
+
+.comp-stepper-card-consigne {
+    font-size: 0.85rem;
     margin: 0 0 0.25rem 0;
 }
 
-.comp-delivery-deadline {
+.comp-stepper-card-deadline {
     font-size: 0.85rem;
     color: #166534;
+    font-weight: 500;
     margin: 0 0 1rem 0;
 }
 
+.comp-stepper-card-date {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+/* Récap compact en dessous du stepper */
+.comp-stepper-recap {
+    margin-top: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 2rem;
+}
+
+.comp-stepper-recap-item {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.comp-stepper-recap-item strong {
+    color: #111827;
+    font-weight: 600;
+}
+
+/* Bouton d'envoi dans le stepper */
 .comp-btn-envoi {
     display: block;
     width: 100%;
@@ -2014,6 +2181,7 @@ body.comp-fullscreen-active {
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
+    margin-top: 0.75rem;
 }
 
 .comp-btn-envoi:hover {
@@ -2025,119 +2193,37 @@ body.comp-fullscreen-active {
     cursor: not-allowed;
 }
 
-/* Délai dépassé */
-.comp-delivery-expired {
-    background: #fef2f2;
-    border-color: #fecaca;
+/* Bouton recommencer dans carte action */
+.comp-stepper-card .comp-btn-retrain {
+    margin-top: 0.75rem;
 }
 
-.comp-delivery-expired h4 {
-    color: #991b1b;
-}
+/* --- Responsive : empiler sur petit écran --- */
 
-.comp-delivery-expired-text {
-    font-size: 0.85rem;
-    color: #991b1b;
-    margin: 0;
-}
+@media (max-width: 480px) {
+    .comp-stepper-container {
+        padding: 1.25rem 1rem;
+    }
 
-/* Envoi confirmé */
-.comp-delivery-done {
-    background: #f0fdf4;
-    border-color: #bbf7d0;
-}
+    .comp-stepper-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+    }
 
-.comp-delivery-done h4 {
-    color: #15803d;
-}
+    .comp-stepper-step:not(:last-child)::after {
+        top: 13px;
+        left: calc(50% + 14px);
+        right: calc(-50% + 14px);
+    }
 
-.comp-delivery-date {
-    font-size: 0.85rem;
-    color: #166534;
-    margin: 0;
-}
+    .comp-stepper-label {
+        font-size: 0.7rem;
+    }
 
-/* --- Carte timeline suivi --- */
-
-.comp-tracking-timeline {
-    background: #fff;
-}
-
-.comp-timeline {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    position: relative;
-}
-
-.comp-timeline-step {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    padding: 0.5rem 0;
-    position: relative;
-}
-
-/* Ligne verticale entre les étapes */
-.comp-timeline-step:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    left: 0.55rem;
-    top: 1.7rem;
-    bottom: -0.3rem;
-    width: 2px;
-    background: #e5e7eb;
-}
-
-.comp-timeline-step.done:not(:last-child)::after {
-    background: #16a34a;
-}
-
-.comp-timeline-icon {
-    width: 1.25rem;
-    height: 1.25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    font-size: 0.75rem;
-    border-radius: 50%;
-    border: 2px solid #e5e7eb;
-    color: #9ca3af;
-    background: #fff;
-    z-index: 1;
-}
-
-.comp-timeline-step.done .comp-timeline-icon {
-    background: #16a34a;
-    border-color: #16a34a;
-    color: #fff;
-}
-
-.comp-timeline-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-    min-height: 1.5rem;
-}
-
-.comp-timeline-label {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #111827;
-}
-
-.comp-timeline-step.pending .comp-timeline-label {
-    color: #9ca3af;
-}
-
-.comp-timeline-date {
-    font-size: 0.75rem;
-    color: #6b7280;
-}
-
-.comp-timeline-step.pending .comp-timeline-date {
-    color: #d1d5db;
+    .comp-stepper-date {
+        font-size: 0.65rem;
+    }
 }
 
 .comp-review-empty {

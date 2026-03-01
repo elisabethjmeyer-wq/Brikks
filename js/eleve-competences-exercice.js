@@ -885,33 +885,52 @@ Object.assign(EleveCompetences, {
             // === MODE ÉVALUATION SOUMIS : récap + consigne d'envoi + suivi ===
             this._renderSoumisView(container, entrainement, progression);
         } else {
-            // === MODE ÉVALUATION : document + sidebar statut (validé, terminé, etc.) ===
-            let sidebarContent = '';
+            // === MODE ÉVALUATION : stepper + document ===
+            const dateSoumission = progression.date_soumission
+                ? this._formatDateHeure(progression.date_soumission) : '';
+            const dateEnvoi = progression.date_envoi
+                ? this._formatDateHeure(progression.date_envoi) : '';
+
+            let step3State = 'done';
+            let label3 = 'Correction';
+            let date3 = '';
+            let actionHTML = '';
+            let actionPosition = null;
+
             if (statut === 'valide') {
-                sidebarContent = `
-                    <div class="comp-review-section comp-review-done">
-                        <div class="comp-review-icon">\u2705</div>
-                        <h4>Comp\u00E9tence valid\u00E9e</h4>
-                        <p>Ta production a \u00E9t\u00E9 corrig\u00E9e et valid\u00E9e par le professeur.</p>
+                label3 = 'Valid\u00E9e';
+                actionHTML = `
+                    <div class="comp-stepper-card validated">
+                        <p class="comp-stepper-card-title">\u2705 Comp\u00E9tence valid\u00E9e</p>
+                        <p class="comp-stepper-card-consigne">Ta production a \u00E9t\u00E9 corrig\u00E9e et valid\u00E9e par le professeur.</p>
                     </div>
                 `;
+                actionPosition = 'at-3';
             } else if (statut === 'corrige') {
-                sidebarContent = `
-                    <div class="comp-review-section comp-review-done">
-                        <div class="comp-review-icon">\u{1F4CB}</div>
-                        <h4>Production corrig\u00E9e</h4>
-                        <p>Ta production a \u00E9t\u00E9 corrig\u00E9e par le professeur.</p>
+                label3 = 'Corrig\u00E9e';
+                actionHTML = `
+                    <div class="comp-stepper-card waiting">
+                        <p class="comp-stepper-card-title">\u{1F4CB} Production corrig\u00E9e</p>
+                        <p class="comp-stepper-card-consigne">Ta production a \u00E9t\u00E9 corrig\u00E9e par le professeur.</p>
                     </div>
                 `;
+                actionPosition = 'at-3';
             } else {
-                sidebarContent = `
-                    <div class="comp-review-section comp-review-done">
-                        <div class="comp-review-icon">\u2705</div>
-                        <h4>Exercice termin\u00E9</h4>
-                        <p>Tu as termin\u00E9 cet exercice.</p>
-                    </div>
-                `;
+                step3State = 'done';
+                label3 = 'Termin\u00E9';
             }
+
+            const stepperHTML = this._buildStepperHTML({
+                step1: 'done',
+                step2: 'done',
+                step3: step3State,
+                date1: dateSoumission,
+                date2: dateEnvoi,
+                date3: date3,
+                label3: label3,
+                actionHTML: actionHTML,
+                actionPosition: actionPosition
+            });
 
             container.innerHTML = `
                 <div class="comp-exercise-view">
@@ -926,13 +945,13 @@ Object.assign(EleveCompetences, {
                         </div>
                     </div>
 
+                    <div class="comp-stepper-container">
+                        ${stepperHTML}
+                    </div>
+
                     <div class="comp-exercise-layout">
                         <div class="comp-document-section" id="compDocSection">
                             ${this._buildDocumentHTML(entrainement)}
-                        </div>
-
-                        <div class="comp-sidebar-section">
-                            ${sidebarContent}
                         </div>
                     </div>
                 </div>
@@ -1045,12 +1064,68 @@ Object.assign(EleveCompetences, {
     // VUE "SOUMIS" — récap + consigne + suivi
     // ==========================================
 
+    /**
+     * Construit le HTML du stepper horizontal pour un état donné.
+     * @param {Object} opts
+     *   - step1 {string} 'done'
+     *   - step2 {string} 'done'|'active'|'pending'
+     *   - step3 {string} 'done'|'active'|'pending'|'warning'
+     *   - date1 {string} date terminé
+     *   - date2 {string} date envoyé
+     *   - date3 {string} date correction
+     *   - label3 {string} label custom pour step 3 (défaut: 'Correction')
+     *   - actionHTML {string} HTML de la carte d'action
+     *   - actionPosition {string} 'between-1-2'|'between-2-3'|'at-3'|null
+     */
+    _buildStepperHTML(opts) {
+        const checkIcon = '\u2714';
+        const emptyIcon = '\u25CB';
+        const warningIcon = '!';
+
+        const iconFor = function(state) {
+            if (state === 'done') return checkIcon;
+            if (state === 'warning') return warningIcon;
+            return emptyIcon;
+        };
+
+        const label3 = opts.label3 || 'Correction';
+
+        let actionZoneHTML = '';
+        if (opts.actionHTML && opts.actionPosition) {
+            actionZoneHTML = `
+                <div class="comp-stepper-action-zone ${opts.actionPosition}">
+                    ${opts.actionHTML}
+                </div>
+            `;
+        }
+
+        return `
+            <div class="comp-stepper">
+                <div class="comp-stepper-step ${opts.step1}">
+                    <div class="comp-stepper-icon">${iconFor(opts.step1)}</div>
+                    <span class="comp-stepper-label">Termin\u00E9</span>
+                    <span class="comp-stepper-date">${opts.date1 || ''}</span>
+                </div>
+                <div class="comp-stepper-step ${opts.step2}">
+                    <div class="comp-stepper-icon">${iconFor(opts.step2)}</div>
+                    <span class="comp-stepper-label">Envoy\u00E9</span>
+                    <span class="comp-stepper-date">${opts.date2 || ''}</span>
+                </div>
+                <div class="comp-stepper-step ${opts.step3}">
+                    <div class="comp-stepper-icon">${iconFor(opts.step3)}</div>
+                    <span class="comp-stepper-label">${label3}</span>
+                    <span class="comp-stepper-date">${opts.date3 || ''}</span>
+                </div>
+            </div>
+            ${actionZoneHTML}
+        `;
+    },
+
     _renderSoumisView(container, entrainement, progression) {
         const delivery = SubmissionUtils.getDeliveryInfo(entrainement.id);
         const dateEnvoi = progression.date_envoi || null;
         const hasEnvoye = !!dateEnvoi;
 
-        // Récap exercice
         const dateSoumission = progression.date_soumission
             ? this._formatDateHeure(progression.date_soumission)
             : null;
@@ -1060,76 +1135,64 @@ Object.assign(EleveCompetences, {
         const modeRendu = progression.mode_rendu || (delivery ? delivery.modeRendu : null);
         const modeRenduLabel = modeRendu === 'numerique' ? 'Num\u00E9rique (MBN)' : modeRendu === 'papier' ? 'Papier' : null;
 
-        // Consigne d'envoi
-        let deliveryHTML = '';
-        if (delivery && !hasEnvoye) {
+        // Déterminer l'état du stepper et la carte d'action
+        let actionHTML = '';
+        let actionPosition = null;
+
+        if (!hasEnvoye && delivery) {
             const deadlinePassed = this._isDeadlinePassed(delivery.deadlineText);
             if (deadlinePassed) {
-                deliveryHTML = `
-                    <div class="comp-tracking-card comp-tracking-delivery comp-delivery-expired">
-                        <h4>${modeRendu === 'numerique' ? '\u{1F4E7}' : '\u{1F4C4}'} Envoi du travail</h4>
-                        <p class="comp-delivery-expired-text">Le d\u00E9lai de rendu est d\u00E9pass\u00E9 \u2014 contacte ton professeur si besoin.</p>
+                actionHTML = `
+                    <div class="comp-stepper-card expired">
+                        <p class="comp-stepper-card-title">${modeRendu === 'numerique' ? '\u{1F4E7}' : '\u{1F4C4}'} D\u00E9lai d\u00E9pass\u00E9</p>
+                        <p class="comp-stepper-card-consigne">Contacte ton professeur si besoin.</p>
                     </div>
                 `;
             } else {
                 const consigne = modeRendu === 'numerique'
                     ? 'Envoie ton travail via MBN'
                     : 'D\u00E9pose ta copie dans le casier du professeur';
-                deliveryHTML = `
-                    <div class="comp-tracking-card comp-tracking-delivery">
-                        <h4>${modeRendu === 'numerique' ? '\u{1F4E7}' : '\u{1F4C4}'} Envoi du travail</h4>
-                        <p class="comp-delivery-consigne">${consigne}</p>
-                        <p class="comp-delivery-deadline">\u23F0 ${delivery.deadlineText}</p>
+                actionHTML = `
+                    <div class="comp-stepper-card delivery">
+                        <p class="comp-stepper-card-title">${modeRendu === 'numerique' ? '\u{1F4E7}' : '\u{1F4C4}'} Envoi du travail</p>
+                        <p class="comp-stepper-card-consigne">${consigne}</p>
+                        <p class="comp-stepper-card-deadline">\u23F0 ${delivery.deadlineText}</p>
                         <button class="comp-btn-envoi" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
                             J\u2019ai envoy\u00E9 mon travail
                         </button>
                     </div>
                 `;
             }
+            actionPosition = 'between-1-2';
         } else if (hasEnvoye) {
-            deliveryHTML = `
-                <div class="comp-tracking-card comp-tracking-delivery comp-delivery-done">
-                    <h4>\u2705 Travail envoy\u00E9</h4>
-                    <p class="comp-delivery-date">Envoy\u00E9 le ${this._formatDateHeure(dateEnvoi)}</p>
+            actionHTML = `
+                <div class="comp-stepper-card waiting">
+                    <p class="comp-stepper-card-title">\u23F3 En attente de correction</p>
+                    <p class="comp-stepper-card-date">Envoy\u00E9 le ${this._formatDateHeure(dateEnvoi)}</p>
                 </div>
             `;
+            actionPosition = 'between-2-3';
         }
 
-        // Suivi (timeline)
-        const stepDone = '\u2714';
-        const stepPending = '\u25CB';
-        const step1Class = 'done';
-        const step2Class = hasEnvoye ? 'done' : 'pending';
-        const step3Class = 'pending';
+        // Récap compact
+        const recapParts = [];
+        if (dateSoumission) recapParts.push('<span class="comp-stepper-recap-item">Termin\u00E9 le <strong>' + dateSoumission + '</strong></span>');
+        if (tempsPasse) recapParts.push('<span class="comp-stepper-recap-item">Dur\u00E9e <strong>' + tempsPasse + '</strong></span>');
+        if (modeRenduLabel) recapParts.push('<span class="comp-stepper-recap-item">Rendu <strong>' + modeRenduLabel + '</strong></span>');
+        const recapHTML = recapParts.length > 0
+            ? '<div class="comp-stepper-recap">' + recapParts.join('') + '</div>'
+            : '';
 
-        const timelineHTML = `
-            <div class="comp-tracking-card comp-tracking-timeline">
-                <h4>\u{1F4CA} Suivi</h4>
-                <div class="comp-timeline">
-                    <div class="comp-timeline-step ${step1Class}">
-                        <span class="comp-timeline-icon">${stepDone}</span>
-                        <div class="comp-timeline-info">
-                            <span class="comp-timeline-label">Exercice termin\u00E9</span>
-                            <span class="comp-timeline-date">${dateSoumission || ''}</span>
-                        </div>
-                    </div>
-                    <div class="comp-timeline-step ${step2Class}">
-                        <span class="comp-timeline-icon">${hasEnvoye ? stepDone : stepPending}</span>
-                        <div class="comp-timeline-info">
-                            <span class="comp-timeline-label">Travail envoy\u00E9</span>
-                            <span class="comp-timeline-date">${hasEnvoye ? this._formatDateHeure(dateEnvoi) : '\u2014'}</span>
-                        </div>
-                    </div>
-                    <div class="comp-timeline-step ${step3Class}">
-                        <span class="comp-timeline-icon">${stepPending}</span>
-                        <div class="comp-timeline-info">
-                            <span class="comp-timeline-label">Correction</span>
-                            <span class="comp-timeline-date">En attente</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        const stepperHTML = this._buildStepperHTML({
+            step1: 'done',
+            step2: hasEnvoye ? 'done' : 'active',
+            step3: 'pending',
+            date1: dateSoumission,
+            date2: hasEnvoye ? this._formatDateHeure(dateEnvoi) : '',
+            date3: 'En attente',
+            actionHTML: actionHTML,
+            actionPosition: actionPosition
+        });
 
         container.innerHTML = `
             <div class="comp-exercise-view">
@@ -1143,19 +1206,9 @@ Object.assign(EleveCompetences, {
                     </div>
                 </div>
 
-                <div class="comp-submitted-view comp-submitted-tracking">
-                    <div class="comp-tracking-card comp-tracking-recap">
-                        <h4>\u{1F4DD} Exercice termin\u00E9</h4>
-                        <div class="comp-recap-details">
-                            ${dateSoumission ? '<div class="comp-recap-row"><span class="comp-recap-label">Termin\u00E9 le</span><span class="comp-recap-value">' + dateSoumission + '</span></div>' : ''}
-                            ${tempsPasse ? '<div class="comp-recap-row"><span class="comp-recap-label">Dur\u00E9e</span><span class="comp-recap-value">' + tempsPasse + '</span></div>' : ''}
-                            ${modeRenduLabel ? '<div class="comp-recap-row"><span class="comp-recap-label">Mode de rendu</span><span class="comp-recap-value">' + modeRenduLabel + '</span></div>' : ''}
-                        </div>
-                    </div>
-
-                    ${deliveryHTML}
-
-                    ${timelineHTML}
+                <div class="comp-stepper-container">
+                    ${stepperHTML}
+                    ${recapHTML}
                 </div>
             </div>
         `;
