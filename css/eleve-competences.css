@@ -2263,7 +2263,8 @@ body.comp-fullscreen-active {
     padding: 2rem 1.5rem;
     display: flex;
     gap: 2rem;
-    align-items: stretch;
+    align-items: flex-start;
+    justify-content: center;
 }
 
 /* --- Stepper vertical (colonne gauche) --- */
@@ -2366,8 +2367,10 @@ body.comp-fullscreen-active {
 }
 
 /* Carte d'action (colonne droite) */
+/* La carte ne s'étire pas — taille naturelle */
 .comp-stepper-container > .comp-suivi-card {
-    flex: 1;
+    flex: 0 1 auto;
+    max-width: 340px;
 }
 
 /* ============================================
