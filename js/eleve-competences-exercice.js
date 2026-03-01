@@ -1129,59 +1129,69 @@ Object.assign(EleveCompetences, {
         const dateSoumission = progression.date_soumission
             ? this._formatDateHeure(progression.date_soumission)
             : null;
-        const tempsPasse = progression.temps_passe
-            ? this._formatDuree(progression.temps_passe)
-            : null;
         const modeRendu = progression.mode_rendu || (delivery ? delivery.modeRendu : null);
-        const modeRenduLabel = modeRendu === 'numerique' ? 'Num\u00E9rique (MBN)' : modeRendu === 'papier' ? 'Papier' : null;
 
-        // Déterminer l'état du stepper et la carte d'action
-        let actionHTML = '';
-        let actionPosition = null;
+        // Construire la carte d'action principale
+        let actionCardHTML = '';
 
         if (!hasEnvoye && delivery) {
             const deadlinePassed = this._isDeadlinePassed(delivery.deadlineText);
             if (deadlinePassed) {
-                actionHTML = `
-                    <div class="comp-stepper-card expired">
-                        <p class="comp-stepper-card-title">${modeRendu === 'numerique' ? '\u{1F4E7}' : '\u{1F4C4}'} D\u00E9lai d\u00E9pass\u00E9</p>
-                        <p class="comp-stepper-card-consigne">Contacte ton professeur si besoin.</p>
+                actionCardHTML = `
+                    <div class="comp-suivi-card comp-suivi-card--expired">
+                        <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--expired">
+                            <span class="comp-suivi-card__icon">\u26A0\uFE0F</span>
+                        </div>
+                        <h2 class="comp-suivi-card__title">D\u00E9lai d\u00E9pass\u00E9</h2>
+                        <p class="comp-suivi-card__text">Le d\u00E9lai pour envoyer ton travail est pass\u00E9.<br>Contacte ton professeur pour savoir quoi faire.</p>
+                    </div>
+                `;
+            } else if (modeRendu === 'numerique') {
+                actionCardHTML = `
+                    <div class="comp-suivi-card comp-suivi-card--delivery">
+                        <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--delivery">
+                            <span class="comp-suivi-card__icon">\u{1F4E7}</span>
+                        </div>
+                        <h2 class="comp-suivi-card__title">Envoie ton travail</h2>
+                        <p class="comp-suivi-card__text">Tu as choisi le rendu <strong>num\u00E9rique</strong>.<br>Envoie ton travail par message sur MBN \u00E0 ton professeur.</p>
+                        <div class="comp-suivi-card__deadline">
+                            <span class="comp-suivi-card__deadline-icon">\u23F0</span>
+                            <span>Date limite : <strong>${delivery.deadlineText}</strong></span>
+                        </div>
+                        <button class="comp-suivi-card__btn" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
+                            J\u2019ai envoy\u00E9 mon travail
+                        </button>
                     </div>
                 `;
             } else {
-                const consigne = modeRendu === 'numerique'
-                    ? 'Envoie ton travail via MBN'
-                    : 'D\u00E9pose ta copie dans le casier du professeur';
-                actionHTML = `
-                    <div class="comp-stepper-card delivery">
-                        <p class="comp-stepper-card-title">${modeRendu === 'numerique' ? '\u{1F4E7}' : '\u{1F4C4}'} Envoi du travail</p>
-                        <p class="comp-stepper-card-consigne">${consigne}</p>
-                        <p class="comp-stepper-card-deadline">\u23F0 ${delivery.deadlineText}</p>
-                        <button class="comp-btn-envoi" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
+                actionCardHTML = `
+                    <div class="comp-suivi-card comp-suivi-card--delivery">
+                        <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--delivery">
+                            <span class="comp-suivi-card__icon">\u{1F4C4}</span>
+                        </div>
+                        <h2 class="comp-suivi-card__title">Envoie ton travail</h2>
+                        <p class="comp-suivi-card__text">Tu as choisi le rendu <strong>papier</strong>.<br>D\u00E9pose ta copie dans le casier du professeur.</p>
+                        <div class="comp-suivi-card__deadline">
+                            <span class="comp-suivi-card__deadline-icon">\u23F0</span>
+                            <span>Date limite : <strong>${delivery.deadlineText}</strong></span>
+                        </div>
+                        <button class="comp-suivi-card__btn" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
                             J\u2019ai envoy\u00E9 mon travail
                         </button>
                     </div>
                 `;
             }
-            actionPosition = 'between-1-2';
         } else if (hasEnvoye) {
-            actionHTML = `
-                <div class="comp-stepper-card waiting">
-                    <p class="comp-stepper-card-title">\u23F3 En attente de correction</p>
-                    <p class="comp-stepper-card-date">Envoy\u00E9 le ${this._formatDateHeure(dateEnvoi)}</p>
+            actionCardHTML = `
+                <div class="comp-suivi-card comp-suivi-card--waiting">
+                    <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--waiting">
+                        <span class="comp-suivi-card__icon">\u23F3</span>
+                    </div>
+                    <h2 class="comp-suivi-card__title">En attente de correction</h2>
+                    <p class="comp-suivi-card__text">Ton travail a bien \u00E9t\u00E9 envoy\u00E9.<br>Tu recevras ta correction prochainement.</p>
                 </div>
             `;
-            actionPosition = 'between-2-3';
         }
-
-        // Récap compact
-        const recapParts = [];
-        if (dateSoumission) recapParts.push('<span class="comp-stepper-recap-item">Termin\u00E9 le <strong>' + dateSoumission + '</strong></span>');
-        if (tempsPasse) recapParts.push('<span class="comp-stepper-recap-item">Dur\u00E9e <strong>' + tempsPasse + '</strong></span>');
-        if (modeRenduLabel) recapParts.push('<span class="comp-stepper-recap-item">Rendu <strong>' + modeRenduLabel + '</strong></span>');
-        const recapHTML = recapParts.length > 0
-            ? '<div class="comp-stepper-recap">' + recapParts.join('') + '</div>'
-            : '';
 
         const stepperHTML = this._buildStepperHTML({
             step1: 'done',
@@ -1189,9 +1199,7 @@ Object.assign(EleveCompetences, {
             step3: 'pending',
             date1: dateSoumission,
             date2: hasEnvoye ? this._formatDateHeure(dateEnvoi) : '',
-            date3: 'En attente',
-            actionHTML: actionHTML,
-            actionPosition: actionPosition
+            date3: ''
         });
 
         container.innerHTML = `
@@ -1208,7 +1216,7 @@ Object.assign(EleveCompetences, {
 
                 <div class="comp-stepper-container">
                     ${stepperHTML}
-                    ${recapHTML}
+                    ${actionCardHTML}
                 </div>
             </div>
         `;
@@ -1254,7 +1262,7 @@ Object.assign(EleveCompetences, {
     },
 
     async confirmEnvoi(entrainementId) {
-        const btn = document.querySelector('.comp-btn-envoi');
+        const btn = document.querySelector('.comp-suivi-card__btn');
         if (btn) {
             btn.disabled = true;
             btn.textContent = 'Enregistrement...';
