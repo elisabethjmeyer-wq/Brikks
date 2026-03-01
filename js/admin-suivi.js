@@ -435,6 +435,22 @@ const AdminSuivi = {
                                 };
                                 const status = statusConfig[t.statut] || { label: t.statut, class: '' };
 
+                                // Ligne de détails soumission (si pertinent)
+                                const detailParts = [];
+                                if (t.date_soumission && ['soumis', 'corrige', 'valide'].includes(t.statut)) {
+                                    detailParts.push(`📅 Soumis le ${this.formatDate(t.date_soumission)}`);
+                                }
+                                if (t.mode_rendu && t.mode_rendu !== 'non_soumis') {
+                                    detailParts.push(t.mode_rendu === 'numerique' ? '📧 Numérique' : '📄 Papier');
+                                }
+                                if (t.date_envoi) {
+                                    detailParts.push(`📤 Envoyé le ${this.formatDate(t.date_envoi)}`);
+                                } else if (t.statut === 'soumis') {
+                                    detailParts.push('<span class="envoi-info waiting">📤 Pas encore envoyé</span>');
+                                }
+                                const detailHTML = detailParts.length > 0
+                                    ? `<div class="training-detail">${detailParts.join(' · ')}</div>` : '';
+
                                 return `
                                     <div class="training-item">
                                         <div class="training-info">
@@ -445,6 +461,7 @@ const AdminSuivi = {
                                                 </span>
                                                 <span>Commencé le ${this.formatDate(t.date_debut)}</span>
                                             </div>
+                                            ${detailHTML}
                                         </div>
                                         <span class="status-badge ${status.class}">${status.label}</span>
                                     </div>
@@ -492,10 +509,21 @@ const AdminSuivi = {
 
     renderCorrectionCard(tache, isDone = false) {
         const eleve = this.eleves.find(e => e.id === tache.eleve_id);
-        const tacheComplexe = this.tachesComplexes.find(t => t.id === tache.tache_id);
+        const tacheComplexe = this.tachesComplexes.find(t => t.id === tache.entrainement_id);
 
         const eleveName = eleve ? `${eleve.prenom || ''} ${eleve.nom || ''}`.trim() || eleve.identifiant : 'Élève inconnu';
         const tacheName = tacheComplexe ? tacheComplexe.titre : 'Tâche inconnue';
+
+        // Mode de rendu
+        const modeRenduLabels = { papier: '📄 Papier', numerique: '📧 Numérique' };
+        const modeRenduHTML = tache.mode_rendu && modeRenduLabels[tache.mode_rendu]
+            ? `<span class="rendu-badge ${tache.mode_rendu}">${modeRenduLabels[tache.mode_rendu]}</span>`
+            : '';
+
+        // Envoi élève
+        const envoiHTML = tache.date_envoi
+            ? `<span class="envoi-info done">📤 Envoyé le ${this.formatDate(tache.date_envoi)}</span>`
+            : (tache.statut === 'soumis' ? '<span class="envoi-info waiting">📤 Pas encore envoyé</span>' : '');
 
         return `
             <div class="correction-card ${isDone ? 'done' : 'pending'}">
@@ -514,6 +542,8 @@ const AdminSuivi = {
                 <div class="correction-meta">
                     <span>📅 Soumis le ${this.formatDate(tache.date_soumission || tache.date_debut)}</span>
                     ${tache.temps_passe ? `<span>⏱ ${this.formatDuration(tache.temps_passe)}</span>` : ''}
+                    ${modeRenduHTML}
+                    ${envoiHTML}
                 </div>
                 ${!isDone ? `
                     <div class="correction-actions">
