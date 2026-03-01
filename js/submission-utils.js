@@ -128,7 +128,7 @@ const SubmissionUtils = {
         var jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
         var mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin',
                      'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-        return 'le ' + jours[d.getDay()] + ' ' + d.getDate() + ' ' + mois[d.getMonth()];
+        return 'le ' + jours[d.getDay()] + ' ' + d.getDate() + ' ' + mois[d.getMonth()] + ' ' + d.getFullYear();
     },
 
     // ==========================================

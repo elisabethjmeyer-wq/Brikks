@@ -1181,14 +1181,10 @@ Object.assign(EleveCompetences, {
                         <div class="comp-suivi-card__icon-wrap comp-suivi-card__icon-wrap--delivery">
                             <span class="comp-suivi-card__icon">\u{1F4C4}</span>
                         </div>
-                        <h2 class="comp-suivi-card__title">Envoie ton travail</h2>
-                        <p class="comp-suivi-card__text">Tu as choisi le rendu <strong>papier</strong>.<br>D\u00E9pose ta copie dans le casier du professeur.</p>
-                        <div class="comp-suivi-card__deadline">
-                            <span class="comp-suivi-card__deadline-icon">\u23F0</span>
-                            <span>Date limite : <strong>${delivery.deadlineText}</strong></span>
-                        </div>
+                        <h2 class="comp-suivi-card__title">D\u00E9pose ton travail</h2>
+                        <p class="comp-suivi-card__text">D\u00E9pose ta copie dans le casier de ton professeur <strong>${delivery.deadlineText}</strong> dernier d\u00E9lai.</p>
                         <button class="comp-suivi-card__btn" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
-                            J\u2019ai envoy\u00E9 mon travail
+                            J\u2019ai d\u00E9pos\u00E9 mon travail
                         </button>
                     </div>
                 `;
