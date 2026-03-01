@@ -703,8 +703,8 @@ const EleveCompetences = {
     async restartTrainingFromModal() {
         if (!this.currentEntrainement) return;
         this._clearTrainTimer(this.currentEntrainement.id);
-        this._setChoiceModalLoading('evalue');
-        await this.restartTraining(this.currentEntrainement.id);
+        this._setChoiceModalLoading('entrainement');
+        await this.startEntrainement('entrainement', this.currentEntrainement.id);
     },
 
     viewReviewFromModal() {
@@ -714,11 +714,19 @@ const EleveCompetences = {
         this.showExerciseReview(this.currentEntrainement, prog);
     },
 
-    async startEntrainement(mode) {
+    /**
+     * Démarre ou relance un entraînement (premier démarrage ou ré-entraînement).
+     * @param {string} mode — 'entrainement' ou 'evalue'
+     * @param {string} [entrainementId] — si fourni, cherche l'entraînement par ID (ré-entraînement)
+     */
+    async startEntrainement(mode, entrainementId) {
         if (this._startingEntrainement) return;
-        if (!this.currentEntrainement) return;
+
+        const entr = entrainementId
+            ? this.entrainements.find(e => String(e.id) === String(entrainementId))
+            : this.currentEntrainement;
+        if (!entr) return;
         this._startingEntrainement = true;
-        const entr = this.currentEntrainement;
 
         // Feedback visuel immédiat sur le modal
         this._setChoiceModalLoading(mode);
@@ -762,9 +770,11 @@ const EleveCompetences = {
                     date_debut: new Date().toISOString()
                 });
             }
+            this.saveToCache();
 
             this._startingEntrainement = false;
             this.closeModal();
+            this.currentEntrainement = entr;
             this.showExercise(entr, mode);
         } catch (error) {
             this._startingEntrainement = false;
@@ -792,58 +802,6 @@ const EleveCompetences = {
             chosen.style.opacity = '1';
             var icon = chosen.querySelector('.comp-choice-icon');
             if (icon) icon.textContent = '\u23F3';
-        }
-    },
-
-    /**
-     * Ré-entraînement : relance un exercice déjà terminé en mode entraînement.
-     */
-    async restartTraining(entrainementId) {
-        if (this._startingEntrainement) return;
-        const entr = this.entrainements.find(e => String(e.id) === String(entrainementId));
-        if (!entr) return;
-        this._startingEntrainement = true;
-
-        if (!this.currentUser) {
-            // Mode prévisualisation
-            this._startingEntrainement = false;
-            this.closeModal();
-            this.showExercise(entr, 'entrainement');
-            return;
-        }
-
-        try {
-            const result = await this.callAPI('startEleveEntrainementCompetence', {
-                eleve_id: this.currentUser.id,
-                entrainement_id: entr.id,
-                mode: 'entrainement'
-            });
-
-            if (!result.success) {
-                this._startingEntrainement = false;
-                alert(result.error || 'Erreur inconnue');
-                this.closeModal();
-                return;
-            }
-
-            // Mettre à jour la progression locale
-            const prog = this.progressions.find(p =>
-                String(p.entrainement_id) === String(entr.id)
-            );
-            if (prog) {
-                prog.statut = 'en_cours';
-                prog.date_debut = new Date().toISOString();
-            }
-            this.saveToCache();
-
-            this._startingEntrainement = false;
-            this.closeModal();
-            this.currentEntrainement = entr;
-            this.showExercise(entr, 'entrainement');
-        } catch (error) {
-            this._startingEntrainement = false;
-            console.error('Erreur ré-entraînement:', error);
-            alert('Erreur lors du démarrage');
         }
     },
 
