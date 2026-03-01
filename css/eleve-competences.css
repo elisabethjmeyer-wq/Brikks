@@ -1924,11 +1924,9 @@ body.comp-fullscreen-active {
 
 .comp-stepper-container {
     padding: 2.5rem 1.5rem;
-    max-width: 900px;
-    margin: 0 auto;
     display: flex;
     gap: 2.5rem;
-    align-items: flex-start;
+    align-items: stretch;
 }
 
 /* --- Stepper vertical (colonne gauche) --- */
@@ -1942,6 +1940,19 @@ body.comp-fullscreen-active {
     flex-shrink: 0;
 }
 
+/* Trait vertical continu sur toute la hauteur du stepper */
+.comp-stepper::before {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 20px;
+    bottom: 0;
+    width: 3px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    z-index: 0;
+}
+
 .comp-stepper-step {
     display: flex;
     align-items: center;
@@ -1949,23 +1960,6 @@ body.comp-fullscreen-active {
     position: relative;
     z-index: 1;
     padding: 0.5rem 0;
-}
-
-/* Ligne verticale entre les étapes */
-.comp-stepper-step:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    left: 19px;
-    top: calc(50% + 21px);
-    bottom: calc(-50% + 21px);
-    width: 3px;
-    background: #e5e7eb;
-    border-radius: 2px;
-    z-index: 0;
-}
-
-.comp-stepper-step.done:not(:last-child)::after {
-    background: #22c55e;
 }
 
 /* Cercle indicateur */
@@ -2046,7 +2040,7 @@ body.comp-fullscreen-active {
 .comp-suivi-card {
     border-radius: 16px;
     padding: 2rem 1.75rem;
-    text-align: center;
+    text-align: left;
 }
 
 /* --- Rond avec icône --- */
@@ -2058,7 +2052,7 @@ body.comp-fullscreen-active {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 auto 1rem;
+    margin: 0 0 1rem;
 }
 
 .comp-suivi-card__icon {
@@ -2302,6 +2296,11 @@ body.comp-fullscreen-active {
         gap: 0;
     }
 
+    /* Masquer le trait vertical continu sur mobile */
+    .comp-stepper::before {
+        display: none;
+    }
+
     .comp-stepper-step {
         flex-direction: column;
         flex: 1;
@@ -2310,18 +2309,27 @@ body.comp-fullscreen-active {
         text-align: center;
     }
 
-    .comp-stepper-info {
-        align-items: center;
-    }
-
-    /* Ligne horizontale sur mobile */
+    /* Ligne horizontale entre étapes sur mobile */
     .comp-stepper-step:not(:last-child)::after {
+        content: '';
+        position: absolute;
         left: calc(50% + 16px);
         right: calc(-50% + 16px);
         top: 16px;
         bottom: auto;
         width: auto;
         height: 3px;
+        background: #e5e7eb;
+        border-radius: 2px;
+        z-index: 0;
+    }
+
+    .comp-stepper-step.done:not(:last-child)::after {
+        background: #22c55e;
+    }
+
+    .comp-stepper-info {
+        align-items: center;
     }
 
     .comp-stepper-icon {
