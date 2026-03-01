@@ -1923,8 +1923,8 @@ body.comp-fullscreen-active {
    ============================================ */
 
 .comp-stepper-container {
-    padding: 2rem 1.5rem;
-    max-width: 640px;
+    padding: 2.5rem 1.5rem;
+    max-width: 520px;
     margin: 0 auto;
 }
 
@@ -1934,7 +1934,8 @@ body.comp-fullscreen-active {
     display: flex;
     align-items: flex-start;
     position: relative;
-    padding: 0 0.5rem;
+    padding: 0 1rem;
+    margin-bottom: 2rem;
 }
 
 .comp-stepper-step {
@@ -1946,26 +1947,27 @@ body.comp-fullscreen-active {
     z-index: 1;
 }
 
-/* Ligne entre les étapes (derrière les cercles) */
+/* Ligne entre les étapes */
 .comp-stepper-step:not(:last-child)::after {
     content: '';
     position: absolute;
-    top: 15px;
-    left: calc(50% + 16px);
-    right: calc(-50% + 16px);
+    top: 16px;
+    left: calc(50% + 18px);
+    right: calc(-50% + 18px);
     height: 3px;
     background: #e5e7eb;
+    border-radius: 2px;
     z-index: 0;
 }
 
 .comp-stepper-step.done:not(:last-child)::after {
-    background: #16a34a;
+    background: #22c55e;
 }
 
 /* Cercle indicateur */
 .comp-stepper-icon {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1981,15 +1983,17 @@ body.comp-fullscreen-active {
 }
 
 .comp-stepper-step.done .comp-stepper-icon {
-    background: #16a34a;
-    border-color: #16a34a;
+    background: #22c55e;
+    border-color: #22c55e;
     color: #fff;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
 }
 
 .comp-stepper-step.active .comp-stepper-icon {
     border-color: #3b82f6;
     color: #3b82f6;
     background: #eff6ff;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 }
 
 .comp-stepper-step.warning .comp-stepper-icon {
@@ -2003,7 +2007,7 @@ body.comp-fullscreen-active {
     margin-top: 0.5rem;
     font-size: 0.8rem;
     font-weight: 600;
-    color: #111827;
+    color: #374151;
     text-align: center;
 }
 
@@ -2023,14 +2027,183 @@ body.comp-fullscreen-active {
     color: #d1d5db;
 }
 
-/* --- Carte d'action (descend de l'étape active) --- */
+/* ============================================
+   CARTES DE SUIVI (nouveau design)
+   ============================================ */
+
+.comp-suivi-card {
+    border-radius: 16px;
+    padding: 2rem 1.75rem;
+    text-align: center;
+}
+
+/* --- Rond avec icône --- */
+
+.comp-suivi-card__icon-wrap {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+}
+
+.comp-suivi-card__icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+/* --- Titre --- */
+
+.comp-suivi-card__title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+}
+
+/* --- Texte explicatif --- */
+
+.comp-suivi-card__text {
+    font-size: 0.95rem;
+    line-height: 1.55;
+    margin: 0 0 1.25rem 0;
+}
+
+/* --- Bloc deadline --- */
+
+.comp-suivi-card__deadline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+}
+
+.comp-suivi-card__deadline-icon {
+    font-size: 1rem;
+}
+
+/* --- Bouton CTA --- */
+
+.comp-suivi-card__btn {
+    display: block;
+    width: 100%;
+    padding: 0.85rem 1.25rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+}
+
+.comp-suivi-card__btn:hover {
+    transform: translateY(-1px);
+}
+
+.comp-suivi-card__btn:active {
+    transform: translateY(0);
+}
+
+.comp-suivi-card__btn:disabled {
+    background: #9ca3af !important;
+    box-shadow: none !important;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* ============================================
+   VARIANTE : Livraison (vert)
+   ============================================ */
+
+.comp-suivi-card--delivery {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border: 1px solid #bbf7d0;
+}
+
+.comp-suivi-card--delivery .comp-suivi-card__icon-wrap {
+    background: #dcfce7;
+}
+
+.comp-suivi-card--delivery .comp-suivi-card__title {
+    color: #15803d;
+}
+
+.comp-suivi-card--delivery .comp-suivi-card__text {
+    color: #166534;
+}
+
+.comp-suivi-card--delivery .comp-suivi-card__deadline {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.comp-suivi-card--delivery .comp-suivi-card__btn {
+    background: #16a34a;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+}
+
+.comp-suivi-card--delivery .comp-suivi-card__btn:hover {
+    background: #15803d;
+    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
+}
+
+/* ============================================
+   VARIANTE : En attente (bleu-gris doux)
+   ============================================ */
+
+.comp-suivi-card--waiting {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+}
+
+.comp-suivi-card--waiting .comp-suivi-card__icon-wrap {
+    background: #e2e8f0;
+}
+
+.comp-suivi-card--waiting .comp-suivi-card__title {
+    color: #475569;
+}
+
+.comp-suivi-card--waiting .comp-suivi-card__text {
+    color: #64748b;
+}
+
+/* ============================================
+   VARIANTE : Délai dépassé (rouge)
+   ============================================ */
+
+.comp-suivi-card--expired {
+    background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+    border: 1px solid #fecaca;
+}
+
+.comp-suivi-card--expired .comp-suivi-card__icon-wrap {
+    background: #fee2e2;
+}
+
+.comp-suivi-card--expired .comp-suivi-card__title {
+    color: #991b1b;
+}
+
+.comp-suivi-card--expired .comp-suivi-card__text {
+    color: #b91c1c;
+}
+
+/* ============================================
+   ANCIENNES CARTES (utilisées par les états validé/corrigé)
+   ============================================ */
 
 .comp-stepper-action-zone {
     position: relative;
     margin-top: 1.5rem;
 }
 
-/* Trait vertical qui relie le stepper à la carte */
 .comp-stepper-action-zone::before {
     content: '';
     position: absolute;
@@ -2040,20 +2213,9 @@ body.comp-fullscreen-active {
     background: #d1d5db;
 }
 
-/* Position du trait selon l'étape active (entre étape 1 et 2) */
-.comp-stepper-action-zone.between-1-2::before {
-    left: 25%;
-}
-
-/* Position du trait (entre étape 2 et 3) */
-.comp-stepper-action-zone.between-2-3::before {
-    left: 75%;
-}
-
-/* Position du trait (sur étape 3) */
-.comp-stepper-action-zone.at-3::before {
-    left: calc(100% / 6 * 5);
-}
+.comp-stepper-action-zone.between-1-2::before { left: 25%; }
+.comp-stepper-action-zone.between-2-3::before { left: 75%; }
+.comp-stepper-action-zone.at-3::before { left: calc(100% / 6 * 5); }
 
 .comp-stepper-card {
     background: #fff;
@@ -2063,21 +2225,6 @@ body.comp-fullscreen-active {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* Variante livraison (vert) */
-.comp-stepper-card.delivery {
-    background: #f0fdf4;
-    border-color: #bbf7d0;
-}
-
-.comp-stepper-card.delivery .comp-stepper-card-title {
-    color: #15803d;
-}
-
-.comp-stepper-card.delivery .comp-stepper-card-consigne {
-    color: #166534;
-}
-
-/* Variante attente (neutre) */
 .comp-stepper-card.waiting {
     background: #f9fafb;
     border-color: #e5e7eb;
@@ -2087,7 +2234,6 @@ body.comp-fullscreen-active {
     color: #6b7280;
 }
 
-/* Variante validée (vert plein) */
 .comp-stepper-card.validated {
     background: #f0fdf4;
     border-color: #bbf7d0;
@@ -2097,21 +2243,6 @@ body.comp-fullscreen-active {
     color: #15803d;
 }
 
-/* Variante délai dépassé (rouge) */
-.comp-stepper-card.expired {
-    background: #fef2f2;
-    border-color: #fecaca;
-}
-
-.comp-stepper-card.expired .comp-stepper-card-title {
-    color: #991b1b;
-}
-
-.comp-stepper-card.expired .comp-stepper-card-consigne {
-    color: #991b1b;
-}
-
-/* Variante à retravailler (orange) */
 .comp-stepper-card.rework {
     background: #fffbeb;
     border-color: #fde68a;
@@ -2121,7 +2252,6 @@ body.comp-fullscreen-active {
     color: #92400e;
 }
 
-/* Éléments internes de la carte */
 .comp-stepper-card-title {
     font-size: 0.95rem;
     font-weight: 700;
@@ -2133,76 +2263,25 @@ body.comp-fullscreen-active {
     margin: 0 0 0.25rem 0;
 }
 
-.comp-stepper-card-deadline {
-    font-size: 0.85rem;
-    color: #166534;
-    font-weight: 500;
-    margin: 0 0 1rem 0;
-}
-
 .comp-stepper-card-date {
     font-size: 0.85rem;
     color: #6b7280;
     margin: 0;
 }
 
-/* Récap compact en dessous du stepper */
-.comp-stepper-recap {
-    margin-top: 1.5rem;
-    padding: 1rem 1.25rem;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem 2rem;
-}
-
-.comp-stepper-recap-item {
-    font-size: 0.8rem;
-    color: #6b7280;
-}
-
-.comp-stepper-recap-item strong {
-    color: #111827;
-    font-weight: 600;
-}
-
-/* Bouton d'envoi dans le stepper */
-.comp-btn-envoi {
-    display: block;
-    width: 100%;
-    padding: 0.7rem 1rem;
-    background: #16a34a;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-    margin-top: 0.75rem;
-}
-
-.comp-btn-envoi:hover {
-    background: #15803d;
-}
-
-.comp-btn-envoi:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-}
-
-/* Bouton recommencer dans carte action */
 .comp-stepper-card .comp-btn-retrain {
     margin-top: 0.75rem;
 }
 
-/* --- Responsive : empiler sur petit écran --- */
+/* --- Responsive --- */
 
 @media (max-width: 480px) {
     .comp-stepper-container {
-        padding: 1.25rem 1rem;
+        padding: 1.5rem 1rem;
+    }
+
+    .comp-stepper {
+        padding: 0 0.25rem;
     }
 
     .comp-stepper-icon {
@@ -2223,6 +2302,18 @@ body.comp-fullscreen-active {
 
     .comp-stepper-date {
         font-size: 0.65rem;
+    }
+
+    .comp-suivi-card {
+        padding: 1.5rem 1.25rem;
+    }
+
+    .comp-suivi-card__title {
+        font-size: 1.05rem;
+    }
+
+    .comp-suivi-card__text {
+        font-size: 0.9rem;
     }
 }
 
