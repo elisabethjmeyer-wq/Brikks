@@ -1109,18 +1109,24 @@ Object.assign(EleveCompetences, {
             <div class="comp-stepper">
                 <div class="comp-stepper-step ${opts.step1}">
                     <div class="comp-stepper-icon">${iconFor(opts.step1)}</div>
-                    <span class="comp-stepper-label">Termin\u00E9</span>
-                    <span class="comp-stepper-date">${opts.date1 || ''}</span>
+                    <div class="comp-stepper-info">
+                        <span class="comp-stepper-label">Termin\u00E9</span>
+                        <span class="comp-stepper-date">${opts.date1 || ''}</span>
+                    </div>
                 </div>
                 <div class="comp-stepper-step ${opts.step2}">
                     <div class="comp-stepper-icon">${iconFor(opts.step2)}</div>
-                    <span class="comp-stepper-label">Envoy\u00E9</span>
-                    <span class="comp-stepper-date">${opts.date2 || ''}</span>
+                    <div class="comp-stepper-info">
+                        <span class="comp-stepper-label">Envoy\u00E9</span>
+                        <span class="comp-stepper-date">${opts.date2 || ''}</span>
+                    </div>
                 </div>
                 <div class="comp-stepper-step ${opts.step3}">
                     <div class="comp-stepper-icon">${iconFor(opts.step3)}</div>
-                    <span class="comp-stepper-label">${label3}</span>
-                    <span class="comp-stepper-date">${opts.date3 || ''}</span>
+                    <div class="comp-stepper-info">
+                        <span class="comp-stepper-label">${label3}</span>
+                        <span class="comp-stepper-date">${opts.date3 || ''}</span>
+                    </div>
                 </div>
             </div>
             ${actionZoneHTML}

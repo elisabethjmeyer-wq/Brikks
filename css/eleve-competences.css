@@ -1919,42 +1919,46 @@ body.comp-fullscreen-active {
 }
 
 /* ============================================
-   STEPPER HORIZONTAL — Suivi évaluation
+   STEPPER VERTICAL + CARTE — Suivi évaluation
    ============================================ */
 
 .comp-stepper-container {
     padding: 2.5rem 1.5rem;
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
+    display: flex;
+    gap: 2.5rem;
+    align-items: flex-start;
 }
 
-/* --- Barre horizontale des étapes --- */
+/* --- Stepper vertical (colonne gauche) --- */
 
 .comp-stepper {
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+    gap: 0;
     position: relative;
-    padding: 0 1rem;
-    margin-bottom: 2rem;
+    min-width: 160px;
+    flex-shrink: 0;
 }
 
 .comp-stepper-step {
-    flex: 1;
     display: flex;
-    flex-direction: column;
     align-items: center;
+    gap: 0.75rem;
     position: relative;
     z-index: 1;
+    padding: 0.5rem 0;
 }
 
-/* Ligne entre les étapes */
+/* Ligne verticale entre les étapes */
 .comp-stepper-step:not(:last-child)::after {
     content: '';
     position: absolute;
-    top: 20px;
-    left: calc(50% + 22px);
-    right: calc(-50% + 22px);
-    height: 3px;
+    left: 19px;
+    top: calc(50% + 21px);
+    bottom: calc(-50% + 21px);
+    width: 3px;
     background: #e5e7eb;
     border-radius: 2px;
     z-index: 0;
@@ -1966,19 +1970,20 @@ body.comp-fullscreen-active {
 
 /* Cercle indicateur */
 .comp-stepper-icon {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 700;
     border: 3px solid #e5e7eb;
     background: #fff;
     color: #9ca3af;
     position: relative;
     z-index: 2;
+    flex-shrink: 0;
     transition: all 0.3s;
 }
 
@@ -2002,13 +2007,16 @@ body.comp-fullscreen-active {
     color: #fff;
 }
 
-/* Label sous le cercle */
+/* Groupe label + date à droite du cercle */
+.comp-stepper-info {
+    display: flex;
+    flex-direction: column;
+}
+
 .comp-stepper-label {
-    margin-top: 0.5rem;
     font-size: 0.9rem;
     font-weight: 600;
     color: #374151;
-    text-align: center;
 }
 
 .comp-stepper-step.pending .comp-stepper-label {
@@ -2019,12 +2027,16 @@ body.comp-fullscreen-active {
 .comp-stepper-date {
     font-size: 0.7rem;
     color: #6b7280;
-    text-align: center;
-    margin-top: 0.15rem;
+    margin-top: 0.1rem;
 }
 
 .comp-stepper-step.pending .comp-stepper-date {
     color: #d1d5db;
+}
+
+/* Carte d'action (colonne droite) */
+.comp-stepper-container > .comp-suivi-card {
+    flex: 1;
 }
 
 /* ============================================
@@ -2275,29 +2287,51 @@ body.comp-fullscreen-active {
 
 /* --- Responsive --- */
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
     .comp-stepper-container {
+        flex-direction: column;
         padding: 1.5rem 1rem;
+        gap: 1.5rem;
     }
 
     .comp-stepper {
-        padding: 0 0.25rem;
+        flex-direction: row;
+        min-width: 0;
+        width: 100%;
+        justify-content: center;
+        gap: 0;
+    }
+
+    .comp-stepper-step {
+        flex-direction: column;
+        flex: 1;
+        gap: 0.4rem;
+        padding: 0;
+        text-align: center;
+    }
+
+    .comp-stepper-info {
+        align-items: center;
+    }
+
+    /* Ligne horizontale sur mobile */
+    .comp-stepper-step:not(:last-child)::after {
+        left: calc(50% + 16px);
+        right: calc(-50% + 16px);
+        top: 16px;
+        bottom: auto;
+        width: auto;
+        height: 3px;
     }
 
     .comp-stepper-icon {
-        width: 28px;
-        height: 28px;
-        font-size: 0.7rem;
-    }
-
-    .comp-stepper-step:not(:last-child)::after {
-        top: 13px;
-        left: calc(50% + 14px);
-        right: calc(-50% + 14px);
+        width: 34px;
+        height: 34px;
+        font-size: 0.75rem;
     }
 
     .comp-stepper-label {
-        font-size: 0.7rem;
+        font-size: 0.75rem;
     }
 
     .comp-stepper-date {
