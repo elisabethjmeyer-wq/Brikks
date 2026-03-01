@@ -1919,62 +1919,70 @@ body.comp-fullscreen-active {
 }
 
 /* ============================================
-   BANDEAU BILAN — Résultat post-exercice
+   CARTE RÉSULTAT — Bilan post-évaluation
    ============================================ */
 
-.comp-bilan-banner {
-    display: flex;
-    align-items: flex-start;
-    gap: 1.25rem;
-    padding: 1.5rem 2rem;
-    margin: 0 1.5rem;
-    margin-top: 1.5rem;
-    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-    border: 1px solid #bbf7d0;
-    border-radius: 14px;
+.comp-result-view {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1.5rem;
 }
 
-.comp-bilan-check {
-    width: 44px;
-    height: 44px;
+.comp-result-card {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    min-height: 380px;
+}
+
+/* --- Colonne gauche : Bilan --- */
+
+.comp-result-bilan {
+    padding: 2rem;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.comp-result-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.comp-result-check {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    background: #22c55e;
-    color: #fff;
+    background: #d1fae5;
+    color: #059669;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 1rem;
     font-weight: 700;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
 }
 
-.comp-bilan-content {
-    flex: 1;
-    min-width: 0;
+.comp-result-message {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #059669;
 }
 
-.comp-bilan-title {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #15803d;
-    margin: 0 0 0.75rem 0;
-    line-height: 44px; /* aligner avec le cercle */
-}
+/* Section compétence */
 
-.comp-bilan-details {
-    display: flex;
-    gap: 2.5rem;
-    flex-wrap: wrap;
-}
-
-.comp-bilan-detail {
+.comp-result-section {
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.25rem;
 }
 
-.comp-bilan-detail-label {
+.comp-result-section-label {
     font-size: 0.75rem;
     font-weight: 600;
     color: #6b7280;
@@ -1982,36 +1990,269 @@ body.comp-fullscreen-active {
     letter-spacing: 0.03em;
 }
 
-.comp-bilan-detail-value {
+.comp-result-section-value {
     font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.4;
+}
+
+/* Temps */
+
+.comp-result-temps {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    width: fit-content;
+}
+
+.comp-result-temps-icon {
+    font-size: 1rem;
+}
+
+.comp-result-temps-value {
+    font-size: 0.9rem;
     font-weight: 600;
     color: #1f2937;
 }
 
+.comp-result-temps-total {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+/* Date */
+
+.comp-result-date {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+/* Mini stepper */
+
+.comp-result-stepper-mini {
+    margin-top: auto;
+    padding-top: 0.5rem;
+}
+
+.comp-stepper-mini {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.comp-stepper-mini-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.comp-stepper-mini-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    color: #9ca3af;
+}
+
+.comp-stepper-mini-step.done .comp-stepper-mini-dot {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #fff;
+}
+
+.comp-stepper-mini-step.active .comp-stepper-mini-dot {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: #eff6ff;
+}
+
+.comp-stepper-mini-label {
+    font-size: 0.65rem;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.comp-stepper-mini-step.pending .comp-stepper-mini-label {
+    color: #d1d5db;
+}
+
+.comp-stepper-mini-line {
+    flex: 1;
+    height: 2px;
+    background: #e5e7eb;
+    min-width: 16px;
+    margin: 0 0.25rem;
+    margin-bottom: 1.2rem; /* aligner avec le dot, pas le label */
+}
+
+.comp-stepper-mini-line.done {
+    background: #22c55e;
+}
+
+/* --- Colonne droite : Action --- */
+
+.comp-result-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+}
+
+.comp-result-action-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.comp-result-action-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+}
+
+.comp-result-action-text {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin: 0 0 1rem 0;
+    max-width: 320px;
+}
+
+.comp-result-deadline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+}
+
+.comp-result-deadline-icon {
+    font-size: 1rem;
+}
+
+.comp-result-action-btn {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
+}
+
+.comp-result-action-btn:hover {
+    transform: translateY(-1px);
+}
+
+.comp-result-action-btn:active {
+    transform: translateY(0);
+}
+
+.comp-result-action-btn:disabled {
+    background: #9ca3af !important;
+    box-shadow: none !important;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Variante livraison (vert) */
+
+.comp-result-action--delivery {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+}
+
+.comp-result-action--delivery .comp-result-action-title {
+    color: #15803d;
+}
+
+.comp-result-action--delivery .comp-result-action-text {
+    color: #166534;
+}
+
+.comp-result-action--delivery .comp-result-deadline {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.comp-result-action--delivery .comp-result-action-btn {
+    background: #16a34a;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+}
+
+.comp-result-action--delivery .comp-result-action-btn:hover {
+    background: #15803d;
+    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
+}
+
+/* Variante en attente (gris) */
+
+.comp-result-action--waiting {
+    background: #fafafa;
+}
+
+.comp-result-action--waiting .comp-result-action-title {
+    color: #475569;
+}
+
+.comp-result-action--waiting .comp-result-action-text {
+    color: #64748b;
+}
+
+/* Variante délai dépassé (rouge) */
+
+.comp-result-action--expired {
+    background: linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%);
+}
+
+.comp-result-action--expired .comp-result-action-title {
+    color: #991b1b;
+}
+
+.comp-result-action--expired .comp-result-action-text {
+    color: #b91c1c;
+}
+
+/* --- Responsive --- */
+
+@media (max-width: 900px) {
+    .comp-result-card {
+        grid-template-columns: 1fr;
+    }
+
+    .comp-result-bilan {
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+    }
+}
+
 @media (max-width: 600px) {
-    .comp-bilan-banner {
-        margin: 1rem 0.75rem 0;
-        padding: 1.25rem 1rem;
+    .comp-result-view {
+        padding: 1rem 0.75rem;
+    }
+
+    .comp-result-bilan {
+        padding: 1.5rem 1.25rem;
         gap: 1rem;
     }
 
-    .comp-bilan-check {
-        width: 38px;
-        height: 38px;
-        font-size: 1.1rem;
-    }
-
-    .comp-bilan-title {
-        font-size: 1.05rem;
-        line-height: 38px;
-    }
-
-    .comp-bilan-details {
-        gap: 1.5rem;
-    }
-
-    .comp-bilan-detail-value {
-        font-size: 0.9rem;
+    .comp-result-action {
+        padding: 1.5rem 1.25rem;
     }
 }
 
