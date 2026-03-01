@@ -533,6 +533,8 @@ Object.assign(EleveCompetences, {
         this._clearEvalTimer(entrainement.id);
         this._removeBeforeUnload();
 
+        let submitFailed = false;
+
         if (this.currentUser) {
             try {
                 const duree = entrainement.duree || 1800;
@@ -553,6 +555,7 @@ Object.assign(EleveCompetences, {
                 this.saveToCache();
             } catch (error) {
                 console.error('Erreur auto-soumission:', error);
+                submitFailed = true;
             }
         }
 
@@ -565,7 +568,10 @@ Object.assign(EleveCompetences, {
                     <p class="comp-result-subtitle">${this.escapeHtml(entrainement.titre)}</p>
                 </div>
                 <div class="comp-result-message">
-                    <p class="comp-result-note">Le temps imparti est \u00E9coul\u00E9. Ta production a \u00E9t\u00E9 automatiquement soumise au professeur.</p>
+                    <p class="comp-result-note">${submitFailed
+                        ? 'Le temps imparti est \u00E9coul\u00E9. <strong>La soumission automatique a \u00E9chou\u00E9</strong> \u2014 pr\u00E9viens ton professeur.'
+                        : 'Le temps imparti est \u00E9coul\u00E9. Ta production a \u00E9t\u00E9 automatiquement soumise au professeur.'
+                    }</p>
                 </div>
                 <div class="comp-result-actions">
                     <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
@@ -574,6 +580,10 @@ Object.assign(EleveCompetences, {
                 </div>
             </div>
         `;
+
+        if (submitFailed) {
+            this._showNotification('La soumission automatique a \u00E9chou\u00E9. Pr\u00E9viens ton professeur.', 'error');
+        }
     },
 
     // ==========================================
@@ -965,9 +975,12 @@ Object.assign(EleveCompetences, {
 
     showCorrigeCommente(entrainement) {
         const container = document.getElementById('competences-content');
-        const correctionData = this._parseCorrectionData(entrainement.correction_commentee);
 
-        if (!correctionData.url && !correctionData.proposition) {
+        // Vérifier s'il y a un corrigé (nouveau format blocs/HTML OU ancien format URL/proposition)
+        const correctionData = this._parseCorrectionData(entrainement.correction_commentee);
+        const hasCorrection = entrainement.correction_contenu || correctionData.url || correctionData.proposition;
+
+        if (!hasCorrection) {
             container.innerHTML = `
                 <button class="comp-back-btn" onclick="EleveCompetences.openCompetence('${entrainement.competence_id}')">
                     \u2190 Retour
@@ -981,7 +994,8 @@ Object.assign(EleveCompetences, {
             return;
         }
 
-        const embedUrl = correctionData.url ? this.getEmbedUrl(correctionData.url) : '';
+        // Déléguer à _buildCorrectionHTML qui gère tous les formats (blocs, HTML, URL, proposition)
+        const correctionContent = this._buildCorrectionHTML(entrainement.correction_commentee, entrainement.correction_contenu);
 
         container.innerHTML = `
             <button class="comp-back-btn" onclick="EleveCompetences.openCompetence('${entrainement.competence_id}')">
@@ -994,21 +1008,7 @@ Object.assign(EleveCompetences, {
                     <p class="comp-corrige-subtitle">${this.escapeHtml(entrainement.titre)}</p>
                 </div>
 
-                ${correctionData.proposition ? `
-                    <div class="comp-inplace-corrige">
-                        <h4>Proposition de corrig\u00E9</h4>
-                        <div class="comp-inplace-corrige-text">${this.escapeHtml(correctionData.proposition)}</div>
-                    </div>
-                ` : ''}
-
-                ${embedUrl ? `
-                    <div class="comp-corrige-doc">
-                        <iframe src="${embedUrl}" class="comp-corrige-iframe" allowfullscreen></iframe>
-                        <a href="${this.escapeHtml(correctionData.url)}" target="_blank" rel="noopener" class="comp-corrige-link">
-                            Ouvrir dans un nouvel onglet \u2197
-                        </a>
-                    </div>
-                ` : ''}
+                ${correctionContent}
             </div>
         `;
     },
