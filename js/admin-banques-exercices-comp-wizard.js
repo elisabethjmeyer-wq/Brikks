@@ -218,6 +218,11 @@ Object.assign(AdminBanquesExercices, {
             e.ordre = ordre ? parseInt(ordre.value) || 1 : (e.ordre || 1);
             e.statut = statut ? statut.value : (e.statut || 'brouillon');
 
+            var delaiMail = document.getElementById('cwDelaiMail');
+            var delaiPapier = document.getElementById('cwDelaiPapier');
+            e.delai_mail_minutes = delaiMail ? (parseInt(delaiMail.value) || 30) : (e.delai_mail_minutes || 30);
+            e.delai_papier_jours = delaiPapier ? (parseInt(delaiPapier.value) || 1) : (e.delai_papier_jours || 1);
+
             // Résoudre la compétence depuis la banque
             var banque = this.banquesCompetences.find(function(b) { return b.id === e.banque_id; });
             e.competence_id = banque ? banque.competence_id : '';
@@ -376,6 +381,16 @@ Object.assign(AdminBanquesExercices, {
                             '<option value="brouillon"' + (e.statut !== 'publie' ? ' selected' : '') + '>Brouillon</option>' +
                             '<option value="publie"' + (e.statut === 'publie' ? ' selected' : '') + '>Publi\u00E9</option>' +
                         '</select>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="form-row">' +
+                    '<div class="form-group">' +
+                        '<label>D\u00E9lai rendu MBN (min)</label>' +
+                        '<input type="number" class="form-input" id="cwDelaiMail" value="' + (e.delai_mail_minutes || 30) + '" min="5" max="1440">' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                        '<label>D\u00E9lai rendu papier (jours de cours)</label>' +
+                        '<input type="number" class="form-input" id="cwDelaiPapier" value="' + (e.delai_papier_jours || 1) + '" min="1" max="30">' +
                     '</div>' +
                 '</div>' +
             '</div>' +
@@ -854,7 +869,9 @@ Object.assign(AdminBanquesExercices, {
             correction_contenu: e.correction_contenu || '',
             duree: e.duree || 1800,
             ordre: e.ordre || 1,
-            statut: e.statut || 'brouillon'
+            statut: e.statut || 'brouillon',
+            delai_mail_minutes: e.delai_mail_minutes || 30,
+            delai_papier_jours: e.delai_papier_jours || 1
         };
 
         try {
