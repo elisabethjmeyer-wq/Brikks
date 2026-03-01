@@ -328,7 +328,7 @@ const SubmissionUtils = {
             return '<div class="submission-confirm-detail">' +
                 '<span class="submission-confirm-icon">\u{1F4E7}</span>' +
                 '<div>' +
-                    '<strong>Envoyez votre travail par mail</strong>' +
+                    '<strong>Envoie moi ton travail via MBN</strong>' +
                     '<p>' + deadlineText + '</p>' +
                 '</div>' +
             '</div>';
