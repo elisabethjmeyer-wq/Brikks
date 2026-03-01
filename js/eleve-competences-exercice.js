@@ -775,8 +775,14 @@ Object.assign(EleveCompetences, {
                 EleveCompetences.backToList();
             });
         } else {
-            // Soumission effectuée — retour direct (le popup de confirmation a déjà été montré)
-            this.backToList();
+            // Soumission effectuée — afficher la page de suivi directement
+            const container = document.getElementById('competences-content');
+            const prog = this.progressions.find(p => String(p.entrainement_id) === String(entr.id));
+            if (container && prog) {
+                this._renderSoumisView(container, entr, prog);
+            } else {
+                this.backToList();
+            }
         }
     },
 
