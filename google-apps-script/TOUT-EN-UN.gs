@@ -550,6 +550,9 @@ function handleRequest(e) {
       case 'validateEleveEntrainementCompetence':
         result = validateEleveEntrainementCompetence(request);
         break;
+      case 'saveEnvoiCompetence':
+        result = saveEnvoiCompetence(request);
+        break;
 
       // ALIASES rétro-compatibilité (anciens noms « tâches complexes »)
       case 'getTachesComplexes':
@@ -8055,6 +8058,45 @@ function finishEleveEntrainementCompetence(data) {
       }
 
       return { success: true };
+    }
+  }
+
+  return { success: false, error: 'Enregistrement non trouvé' };
+}
+
+/**
+ * Enregistre la date d'envoi du travail par l'élève (déclaratif)
+ * L'élève clique "J'ai envoyé mon travail" → horodatage automatique
+ * @param {Object} data - {eleve_id, entrainement_id}
+ */
+function saveEnvoiCompetence(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
+
+  if (!sheet) {
+    return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  // Migration progressive : ajouter date_envoi si absente
+  var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (currentHeaders.indexOf('date_envoi') === -1) {
+    var nextCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, nextCol).setValue('date_envoi');
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var entrainementIdCol = headers.indexOf('entrainement_id');
+  var dateEnvoiCol = headers.indexOf('date_envoi');
+
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][eleveIdCol]) === String(data.eleve_id) &&
+        String(allData[i][entrainementIdCol]) === String(data.entrainement_id)) {
+
+      var now = new Date().toISOString();
+      sheet.getRange(i + 1, dateEnvoiCol + 1).setValue(now);
+      return { success: true, date_envoi: now };
     }
   }
 
