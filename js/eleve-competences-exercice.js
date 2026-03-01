@@ -668,6 +668,7 @@ Object.assign(EleveCompetences, {
         SubmissionUtils.showSubmissionPopup({
             container: document.body,
             timerExpired: timerExpired,
+            entrainementId: entr.id,
             delaiMailMinutes: parseInt(entr.delai_mail_minutes) || 30,
             delaiPapierJours: parseInt(entr.delai_papier_jours) || 1,
             joursNonCours: joursNonCours,
@@ -880,18 +881,39 @@ Object.assign(EleveCompetences, {
                     </div>
                 </div>
             `;
-        } else {
-            // === MODE ÉVALUATION : document + sidebar statut ===
-            let sidebarContent = '';
-            if (statut === 'soumis') {
-                sidebarContent = `
-                    <div class="comp-review-section comp-review-done">
-                        <div class="comp-review-icon">\u{1F4E4}</div>
-                        <h4>Production soumise</h4>
-                        <p>Votre travail a \u00E9t\u00E9 soumis et est en attente de correction par le professeur.</p>
+        } else if (statut === 'soumis') {
+            // === MODE ÉVALUATION SOUMIS : confirmation + instructions de livraison ===
+            const delivery = SubmissionUtils.getDeliveryInfo(entrainement.id);
+            const deliveryHTML = delivery
+                ? SubmissionUtils.buildDeliveryHTML(delivery.modeRendu, delivery.deadlineText)
+                : '';
+
+            container.innerHTML = `
+                <div class="comp-exercise-view">
+                    <div class="comp-exercise-topbar">
+                        <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">\u2190</button>
+                        <div class="comp-exercise-topbar-info">
+                            <h1>${this.escapeHtml(entrainement.titre)}</h1>
+                            <div class="comp-exercise-topbar-meta">
+                                <span class="comp-mode-badge evalue">\u00C9valuation</span>
+                            </div>
+                        </div>
                     </div>
-                `;
-            } else if (statut === 'valide') {
+
+                    <div class="comp-submitted-view">
+                        <div class="comp-submitted-box">
+                            <div class="comp-submitted-icon">\u{1F4E4}</div>
+                            <h3>Production soumise</h3>
+                            <p>Votre travail a \u00E9t\u00E9 soumis et est en attente de correction par le professeur.</p>
+                        </div>
+                        ${deliveryHTML ? '<div class="comp-submitted-delivery">' + deliveryHTML + '</div>' : ''}
+                    </div>
+                </div>
+            `;
+        } else {
+            // === MODE ÉVALUATION : document + sidebar statut (validé, terminé, etc.) ===
+            let sidebarContent = '';
+            if (statut === 'valide') {
                 sidebarContent = `
                     <div class="comp-review-section comp-review-done">
                         <div class="comp-review-icon">\u2705</div>

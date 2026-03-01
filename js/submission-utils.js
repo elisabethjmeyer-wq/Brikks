@@ -128,7 +128,7 @@ const SubmissionUtils = {
         var jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
         var mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin',
                      'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-        return 'avant le ' + jours[d.getDay()] + ' ' + d.getDate() + ' ' + mois[d.getMonth()];
+        return 'le ' + jours[d.getDay()] + ' ' + d.getDate() + ' ' + mois[d.getMonth()];
     },
 
     // ==========================================
@@ -185,7 +185,7 @@ const SubmissionUtils = {
                     '</div>' +
                 '</div>' +
                 '<div class="submission-step hidden" id="submissionStep2Format">' +
-                    '<h2>Comment rendez-vous votre travail ?</h2>' +
+                    '<h2>Dans quel format as-tu r\u00E9alis\u00E9 ton travail ?</h2>' +
                     '<div class="submission-choices">' +
                         '<button class="submission-choice-btn submission-paper" id="submissionPaperBtn">' +
                             '<span class="submission-choice-icon">\u{1F4C4}</span>' +
@@ -202,7 +202,6 @@ const SubmissionUtils = {
                             '</div>' +
                         '</button>' +
                     '</div>' +
-                    '<button class="submission-back-btn" id="submissionBackToStep1">\u2190 Retour</button>' +
                 '</div>' +
                 '<div class="submission-step hidden" id="submissionStep2Decline">' +
                     '<div class="submission-warning-box">' +
@@ -238,11 +237,6 @@ const SubmissionUtils = {
         }
 
         // Étape 2 : choix format
-        document.getElementById('submissionBackToStep1').addEventListener('click', function() {
-            document.getElementById('submissionStep2Format').classList.add('hidden');
-            document.getElementById('submissionStep1').classList.remove('hidden');
-        });
-
         var self = this;
         document.getElementById('submissionPaperBtn').addEventListener('click', function() {
             self._showConfirmation(overlay, 'papier', options);
@@ -272,26 +266,18 @@ const SubmissionUtils = {
         var delaiPapier = options.delaiPapierJours || 1;
         var joursNonCours = options.joursNonCours || new Set();
 
-        var consigne, deadlineText;
-
+        var deadlineText;
         if (modeRendu === 'numerique') {
             deadlineText = this.formatDeadlineMail(delaiMail);
-            consigne = '<div class="submission-confirm-detail">' +
-                '<span class="submission-confirm-icon">\u{1F4E7}</span>' +
-                '<div>' +
-                    '<strong>Envoyez votre travail par mail</strong>' +
-                    '<p>' + deadlineText + '</p>' +
-                '</div>' +
-            '</div>';
         } else {
             deadlineText = this.formatDeadlinePapier(delaiPapier, joursNonCours);
-            consigne = '<div class="submission-confirm-detail">' +
-                '<span class="submission-confirm-icon">\u{1F4C4}</span>' +
-                '<div>' +
-                    '<strong>D\u00E9posez votre copie dans le casier du professeur</strong>' +
-                    '<p>' + deadlineText + '</p>' +
-                '</div>' +
-            '</div>';
+        }
+
+        var consigne = this.buildDeliveryHTML(modeRendu, deadlineText);
+
+        // Sauvegarder les instructions pour affichage ultérieur
+        if (options.entrainementId) {
+            this.saveDeliveryInfo(options.entrainementId, modeRendu, deadlineText);
         }
 
         var popup = overlay.querySelector('.submission-popup');
@@ -309,6 +295,52 @@ const SubmissionUtils = {
             overlay.remove();
             if (options.onSubmit) options.onSubmit(modeRendu);
         });
+    },
+
+    /**
+     * Sauvegarde les instructions de livraison en localStorage.
+     */
+    saveDeliveryInfo(entrainementId, modeRendu, deadlineText) {
+        try {
+            localStorage.setItem('brikks_delivery_' + entrainementId, JSON.stringify({
+                modeRendu: modeRendu,
+                deadlineText: deadlineText
+            }));
+        } catch (e) { /* silencieux */ }
+    },
+
+    /**
+     * Récupère les instructions de livraison depuis localStorage.
+     * @returns {{ modeRendu: string, deadlineText: string }|null}
+     */
+    getDeliveryInfo(entrainementId) {
+        try {
+            var raw = localStorage.getItem('brikks_delivery_' + entrainementId);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+    },
+
+    /**
+     * Construit le HTML des instructions de livraison pour l'affichage post-soumission.
+     */
+    buildDeliveryHTML(modeRendu, deadlineText) {
+        if (modeRendu === 'numerique') {
+            return '<div class="submission-confirm-detail">' +
+                '<span class="submission-confirm-icon">\u{1F4E7}</span>' +
+                '<div>' +
+                    '<strong>Envoyez votre travail par mail</strong>' +
+                    '<p>' + deadlineText + '</p>' +
+                '</div>' +
+            '</div>';
+        } else {
+            return '<div class="submission-confirm-detail">' +
+                '<span class="submission-confirm-icon">\u{1F4C4}</span>' +
+                '<div>' +
+                    '<strong>D\u00E9posez votre copie dans le casier du professeur</strong>' +
+                    '<p>' + deadlineText + '</p>' +
+                '</div>' +
+            '</div>';
+        }
     },
 
     /**

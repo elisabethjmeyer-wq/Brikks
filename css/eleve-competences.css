@@ -1918,6 +1918,51 @@ body.comp-fullscreen-active {
     line-height: 1.5;
 }
 
+.comp-submitted-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.comp-submitted-box {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.comp-submitted-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.comp-submitted-box h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 0.5rem 0;
+}
+
+.comp-submitted-box p {
+    font-size: 0.9rem;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.comp-submitted-delivery {
+    width: 100%;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.comp-submitted-delivery .submission-confirm-detail {
+    margin: 0;
+}
+
 .comp-review-empty {
     padding: 1.5rem;
     text-align: center;
