@@ -1143,6 +1143,31 @@ Object.assign(EleveCompetences, {
             : null;
         const modeRendu = progression.mode_rendu || (delivery ? delivery.modeRendu : null);
 
+        // Compétence associée
+        const comp = this.competences.find(c =>
+            String(c.id) === String(entrainement.competence_id)
+        );
+        const competenceNom = comp ? comp.nom : '';
+
+        // Temps passé formaté
+        const tempsPasse = progression.temps_passe
+            ? this._formatDuree(progression.temps_passe)
+            : '';
+
+        // --- Bandeau bilan (pleine largeur) ---
+        const bilanHTML = `
+            <div class="comp-bilan-banner">
+                <div class="comp-bilan-check">✓</div>
+                <div class="comp-bilan-content">
+                    <h2 class="comp-bilan-title">Exercice terminé !</h2>
+                    <div class="comp-bilan-details">
+                        ${competenceNom ? `<div class="comp-bilan-detail"><span class="comp-bilan-detail-label">Compétence</span><span class="comp-bilan-detail-value">${this.escapeHtml(competenceNom)}</span></div>` : ''}
+                        ${tempsPasse ? `<div class="comp-bilan-detail"><span class="comp-bilan-detail-label">Temps passé</span><span class="comp-bilan-detail-value">${tempsPasse}</span></div>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
         // Construire la carte d'action principale
         let actionCardHTML = '';
 
@@ -1225,6 +1250,8 @@ Object.assign(EleveCompetences, {
                         </div>
                     </div>
                 </div>
+
+                ${bilanHTML}
 
                 <div class="comp-stepper-container">
                     ${stepperHTML}

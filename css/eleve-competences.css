@@ -1919,6 +1919,103 @@ body.comp-fullscreen-active {
 }
 
 /* ============================================
+   BANDEAU BILAN — Résultat post-exercice
+   ============================================ */
+
+.comp-bilan-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.25rem;
+    padding: 1.5rem 2rem;
+    margin: 0 1.5rem;
+    margin-top: 1.5rem;
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border: 1px solid #bbf7d0;
+    border-radius: 14px;
+}
+
+.comp-bilan-check {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #22c55e;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+}
+
+.comp-bilan-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.comp-bilan-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #15803d;
+    margin: 0 0 0.75rem 0;
+    line-height: 44px; /* aligner avec le cercle */
+}
+
+.comp-bilan-details {
+    display: flex;
+    gap: 2.5rem;
+    flex-wrap: wrap;
+}
+
+.comp-bilan-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.comp-bilan-detail-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.comp-bilan-detail-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+@media (max-width: 600px) {
+    .comp-bilan-banner {
+        margin: 1rem 0.75rem 0;
+        padding: 1.25rem 1rem;
+        gap: 1rem;
+    }
+
+    .comp-bilan-check {
+        width: 38px;
+        height: 38px;
+        font-size: 1.1rem;
+    }
+
+    .comp-bilan-title {
+        font-size: 1.05rem;
+        line-height: 38px;
+    }
+
+    .comp-bilan-details {
+        gap: 1.5rem;
+    }
+
+    .comp-bilan-detail-value {
+        font-size: 0.9rem;
+    }
+}
+
+/* ============================================
    STEPPER VERTICAL + CARTE — Suivi évaluation
    ============================================ */
 
