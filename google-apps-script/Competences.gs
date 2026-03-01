@@ -849,15 +849,27 @@ function startEleveEntrainementCompetence(data) {
         return { success: true, id: existingRecord.id, upgraded: true };
       }
 
-      // Déjà soumis ou validé : refuser
-      if (existingStatut === 'soumis' || existingStatut === 'valide') {
+      // Déjà soumis, corrigé ou validé : refuser
+      if (existingStatut === 'soumis' || existingStatut === 'corrige' || existingStatut === 'valide') {
+        var errorMsg = 'Compétence déjà validée sur cet exercice';
+        if (existingStatut === 'soumis') errorMsg = 'Production déjà soumise, en attente de correction';
+        if (existingStatut === 'corrige') errorMsg = 'Production corrigée, en attente de validation';
         return {
           success: false,
-          error: existingStatut === 'soumis'
-            ? 'Production déjà soumise, en attente de correction'
-            : 'Compétence déjà validée sur cet exercice',
+          error: errorMsg,
           existing: existingRecord
         };
+      }
+
+      // Non soumis (l'élève avait refusé) : autoriser à recommencer
+      if (existingStatut === 'non_soumis') {
+        var modeCol3 = headers.indexOf('mode');
+        var statutCol3 = headers.indexOf('statut');
+        var dateDebutCol3 = headers.indexOf('date_debut');
+        sheet.getRange(i + 1, modeCol3 + 1).setValue(data.mode || 'entrainement');
+        sheet.getRange(i + 1, statutCol3 + 1).setValue('en_cours');
+        sheet.getRange(i + 1, dateDebutCol3 + 1).setValue(new Date().toISOString());
+        return { success: true, id: existingRecord.id, resumed: true };
       }
 
       // Entraîné et on veut s'entraîner à nouveau : autoriser

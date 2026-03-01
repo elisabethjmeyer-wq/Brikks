@@ -921,6 +921,14 @@ Object.assign(EleveCompetences, {
                         <p>Votre production a \u00E9t\u00E9 corrig\u00E9e et valid\u00E9e par le professeur.</p>
                     </div>
                 `;
+            } else if (statut === 'corrige') {
+                sidebarContent = `
+                    <div class="comp-review-section comp-review-done">
+                        <div class="comp-review-icon">\u{1F4CB}</div>
+                        <h4>Production corrig\u00E9e</h4>
+                        <p>Votre production a \u00E9t\u00E9 corrig\u00E9e par le professeur.</p>
+                    </div>
+                `;
             } else {
                 sidebarContent = `
                     <div class="comp-review-section comp-review-done">
