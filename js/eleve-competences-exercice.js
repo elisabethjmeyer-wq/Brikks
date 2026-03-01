@@ -565,7 +565,7 @@ Object.assign(EleveCompetences, {
                     <p class="comp-result-subtitle">${this.escapeHtml(entrainement.titre)}</p>
                 </div>
                 <div class="comp-result-message">
-                    <p class="comp-result-note">Le temps imparti est \u00E9coul\u00E9. Votre production a \u00E9t\u00E9 automatiquement soumise au professeur.</p>
+                    <p class="comp-result-note">Le temps imparti est \u00E9coul\u00E9. Ta production a \u00E9t\u00E9 automatiquement soumise au professeur.</p>
                 </div>
                 <div class="comp-result-actions">
                     <button class="comp-btn comp-btn-primary" onclick="EleveCompetences.backToList()">
@@ -754,7 +754,7 @@ Object.assign(EleveCompetences, {
         }
 
         if (saveFailed) {
-            this._showNotification('La sauvegarde a \u00E9chou\u00E9. Votre progression pourrait ne pas \u00EAtre enregistr\u00E9e.', 'error');
+            this._showNotification('La sauvegarde a \u00E9chou\u00E9. Ta progression pourrait ne pas \u00EAtre enregistr\u00E9e.', 'error');
         }
 
         if (mode === 'entrainement') {
@@ -882,34 +882,8 @@ Object.assign(EleveCompetences, {
                 </div>
             `;
         } else if (statut === 'soumis') {
-            // === MODE ÉVALUATION SOUMIS : confirmation + instructions de livraison ===
-            const delivery = SubmissionUtils.getDeliveryInfo(entrainement.id);
-            const deliveryHTML = delivery
-                ? SubmissionUtils.buildDeliveryHTML(delivery.modeRendu, delivery.deadlineText)
-                : '';
-
-            container.innerHTML = `
-                <div class="comp-exercise-view">
-                    <div class="comp-exercise-topbar">
-                        <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">\u2190</button>
-                        <div class="comp-exercise-topbar-info">
-                            <h1>${this.escapeHtml(entrainement.titre)}</h1>
-                            <div class="comp-exercise-topbar-meta">
-                                <span class="comp-mode-badge evalue">\u00C9valuation</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="comp-submitted-view">
-                        <div class="comp-submitted-box">
-                            <div class="comp-submitted-icon">\u{1F4E4}</div>
-                            <h3>Production soumise</h3>
-                            <p>Votre travail a \u00E9t\u00E9 soumis et est en attente de correction par le professeur.</p>
-                        </div>
-                        ${deliveryHTML ? '<div class="comp-submitted-delivery">' + deliveryHTML + '</div>' : ''}
-                    </div>
-                </div>
-            `;
+            // === MODE ÉVALUATION SOUMIS : récap + consigne d'envoi + suivi ===
+            this._renderSoumisView(container, entrainement, progression);
         } else {
             // === MODE ÉVALUATION : document + sidebar statut (validé, terminé, etc.) ===
             let sidebarContent = '';
@@ -918,7 +892,7 @@ Object.assign(EleveCompetences, {
                     <div class="comp-review-section comp-review-done">
                         <div class="comp-review-icon">\u2705</div>
                         <h4>Comp\u00E9tence valid\u00E9e</h4>
-                        <p>Votre production a \u00E9t\u00E9 corrig\u00E9e et valid\u00E9e par le professeur.</p>
+                        <p>Ta production a \u00E9t\u00E9 corrig\u00E9e et valid\u00E9e par le professeur.</p>
                     </div>
                 `;
             } else if (statut === 'corrige') {
@@ -926,7 +900,7 @@ Object.assign(EleveCompetences, {
                     <div class="comp-review-section comp-review-done">
                         <div class="comp-review-icon">\u{1F4CB}</div>
                         <h4>Production corrig\u00E9e</h4>
-                        <p>Votre production a \u00E9t\u00E9 corrig\u00E9e par le professeur.</p>
+                        <p>Ta production a \u00E9t\u00E9 corrig\u00E9e par le professeur.</p>
                     </div>
                 `;
             } else {
@@ -934,7 +908,7 @@ Object.assign(EleveCompetences, {
                     <div class="comp-review-section comp-review-done">
                         <div class="comp-review-icon">\u2705</div>
                         <h4>Exercice termin\u00E9</h4>
-                        <p>Vous avez termin\u00E9 cet exercice.</p>
+                        <p>Tu as termin\u00E9 cet exercice.</p>
                     </div>
                 `;
             }
@@ -1065,5 +1039,209 @@ Object.assign(EleveCompetences, {
         }
 
         return url;
+    },
+
+    // ==========================================
+    // VUE "SOUMIS" — récap + consigne + suivi
+    // ==========================================
+
+    _renderSoumisView(container, entrainement, progression) {
+        const delivery = SubmissionUtils.getDeliveryInfo(entrainement.id);
+        const dateEnvoi = progression.date_envoi || null;
+        const hasEnvoye = !!dateEnvoi;
+
+        // Récap exercice
+        const dateSoumission = progression.date_soumission
+            ? this._formatDateHeure(progression.date_soumission)
+            : null;
+        const tempsPasse = progression.temps_passe
+            ? this._formatDuree(progression.temps_passe)
+            : null;
+        const modeRendu = progression.mode_rendu || (delivery ? delivery.modeRendu : null);
+        const modeRenduLabel = modeRendu === 'numerique' ? 'Num\u00E9rique (MBN)' : modeRendu === 'papier' ? 'Papier' : null;
+
+        // Consigne d'envoi
+        let deliveryHTML = '';
+        if (delivery && !hasEnvoye) {
+            const deadlinePassed = this._isDeadlinePassed(delivery.deadlineText);
+            if (deadlinePassed) {
+                deliveryHTML = `
+                    <div class="comp-tracking-card comp-tracking-delivery comp-delivery-expired">
+                        <h4>${modeRendu === 'numerique' ? '\u{1F4E7}' : '\u{1F4C4}'} Envoi du travail</h4>
+                        <p class="comp-delivery-expired-text">Le d\u00E9lai de rendu est d\u00E9pass\u00E9 \u2014 contacte ton professeur si besoin.</p>
+                    </div>
+                `;
+            } else {
+                const consigne = modeRendu === 'numerique'
+                    ? 'Envoie ton travail via MBN'
+                    : 'D\u00E9pose ta copie dans le casier du professeur';
+                deliveryHTML = `
+                    <div class="comp-tracking-card comp-tracking-delivery">
+                        <h4>${modeRendu === 'numerique' ? '\u{1F4E7}' : '\u{1F4C4}'} Envoi du travail</h4>
+                        <p class="comp-delivery-consigne">${consigne}</p>
+                        <p class="comp-delivery-deadline">\u23F0 ${delivery.deadlineText}</p>
+                        <button class="comp-btn-envoi" onclick="EleveCompetences.confirmEnvoi('${entrainement.id}')">
+                            J\u2019ai envoy\u00E9 mon travail
+                        </button>
+                    </div>
+                `;
+            }
+        } else if (hasEnvoye) {
+            deliveryHTML = `
+                <div class="comp-tracking-card comp-tracking-delivery comp-delivery-done">
+                    <h4>\u2705 Travail envoy\u00E9</h4>
+                    <p class="comp-delivery-date">Envoy\u00E9 le ${this._formatDateHeure(dateEnvoi)}</p>
+                </div>
+            `;
+        }
+
+        // Suivi (timeline)
+        const stepDone = '\u2714';
+        const stepPending = '\u25CB';
+        const step1Class = 'done';
+        const step2Class = hasEnvoye ? 'done' : 'pending';
+        const step3Class = 'pending';
+
+        const timelineHTML = `
+            <div class="comp-tracking-card comp-tracking-timeline">
+                <h4>\u{1F4CA} Suivi</h4>
+                <div class="comp-timeline">
+                    <div class="comp-timeline-step ${step1Class}">
+                        <span class="comp-timeline-icon">${stepDone}</span>
+                        <div class="comp-timeline-info">
+                            <span class="comp-timeline-label">Exercice termin\u00E9</span>
+                            <span class="comp-timeline-date">${dateSoumission || ''}</span>
+                        </div>
+                    </div>
+                    <div class="comp-timeline-step ${step2Class}">
+                        <span class="comp-timeline-icon">${hasEnvoye ? stepDone : stepPending}</span>
+                        <div class="comp-timeline-info">
+                            <span class="comp-timeline-label">Travail envoy\u00E9</span>
+                            <span class="comp-timeline-date">${hasEnvoye ? this._formatDateHeure(dateEnvoi) : '\u2014'}</span>
+                        </div>
+                    </div>
+                    <div class="comp-timeline-step ${step3Class}">
+                        <span class="comp-timeline-icon">${stepPending}</span>
+                        <div class="comp-timeline-info">
+                            <span class="comp-timeline-label">Correction</span>
+                            <span class="comp-timeline-date">En attente</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = `
+            <div class="comp-exercise-view">
+                <div class="comp-exercise-topbar">
+                    <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">\u2190</button>
+                    <div class="comp-exercise-topbar-info">
+                        <h1>${this.escapeHtml(entrainement.titre)}</h1>
+                        <div class="comp-exercise-topbar-meta">
+                            <span class="comp-mode-badge evalue">\u00C9valuation</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comp-submitted-view comp-submitted-tracking">
+                    <div class="comp-tracking-card comp-tracking-recap">
+                        <h4>\u{1F4DD} Exercice termin\u00E9</h4>
+                        <div class="comp-recap-details">
+                            ${dateSoumission ? '<div class="comp-recap-row"><span class="comp-recap-label">Termin\u00E9 le</span><span class="comp-recap-value">' + dateSoumission + '</span></div>' : ''}
+                            ${tempsPasse ? '<div class="comp-recap-row"><span class="comp-recap-label">Dur\u00E9e</span><span class="comp-recap-value">' + tempsPasse + '</span></div>' : ''}
+                            ${modeRenduLabel ? '<div class="comp-recap-row"><span class="comp-recap-label">Mode de rendu</span><span class="comp-recap-value">' + modeRenduLabel + '</span></div>' : ''}
+                        </div>
+                    </div>
+
+                    ${deliveryHTML}
+
+                    ${timelineHTML}
+                </div>
+            </div>
+        `;
+    },
+
+    _formatDateHeure(isoString) {
+        if (!isoString) return '';
+        try {
+            const d = new Date(isoString);
+            if (isNaN(d.getTime())) return '';
+            const jour = d.getDate();
+            const mois = ['janvier', 'f\u00E9vrier', 'mars', 'avril', 'mai', 'juin',
+                'juillet', 'ao\u00FBt', 'septembre', 'octobre', 'novembre', 'd\u00E9cembre'][d.getMonth()];
+            const heures = d.getHours().toString().padStart(2, '0');
+            const minutes = d.getMinutes().toString().padStart(2, '0');
+            return `${jour} ${mois} \u00E0 ${heures}h${minutes}`;
+        } catch (e) { return ''; }
+    },
+
+    _formatDuree(seconds) {
+        const s = Math.abs(parseInt(seconds, 10));
+        if (isNaN(s)) return '';
+        if (s < 60) return s + ' sec';
+        const min = Math.floor(s / 60);
+        const sec = s % 60;
+        return sec > 0 ? `${min} min ${sec} sec` : `${min} min`;
+    },
+
+    _isDeadlinePassed(deadlineText) {
+        if (!deadlineText) return false;
+        // Format "avant HHhMM" → compare avec l'heure actuelle
+        const matchHeure = deadlineText.match(/avant\s+(\d{1,2})h(\d{2})/i);
+        if (matchHeure) {
+            const now = new Date();
+            const deadlineH = parseInt(matchHeure[1], 10);
+            const deadlineM = parseInt(matchHeure[2], 10);
+            const deadlineToday = new Date();
+            deadlineToday.setHours(deadlineH, deadlineM, 0, 0);
+            return now > deadlineToday;
+        }
+        // Format "le lundi 3 mars" ou similaire → pas de parsing fiable, on ne bloque pas
+        return false;
+    },
+
+    async confirmEnvoi(entrainementId) {
+        const btn = document.querySelector('.comp-btn-envoi');
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Enregistrement...';
+        }
+
+        try {
+            const result = await this.callAPI('saveEnvoiCompetence', {
+                eleve_id: this.currentUser.id,
+                entrainement_id: entrainementId
+            });
+
+            if (result && result.success) {
+                // Mettre à jour la progression locale
+                const prog = this.progressions.find(p =>
+                    String(p.entrainement_id) === String(entrainementId));
+                if (prog) {
+                    prog.date_envoi = result.date_envoi;
+                }
+
+                // Re-render la vue
+                const entr = this.entrainements.find(e =>
+                    String(e.id) === String(entrainementId));
+                if (entr && prog) {
+                    const container = document.getElementById('competences-content');
+                    this._renderSoumisView(container, entr, prog);
+                }
+            } else {
+                this._showNotification('Erreur lors de l\u2019enregistrement. R\u00E9essaie.', 'error');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'J\u2019ai envoy\u00E9 mon travail';
+                }
+            }
+        } catch (error) {
+            console.error('Erreur confirmEnvoi:', error);
+            this._showNotification('Erreur lors de l\u2019enregistrement. R\u00E9essaie.', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'J\u2019ai envoy\u00E9 mon travail';
+            }
+        }
     }
 });

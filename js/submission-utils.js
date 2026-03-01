@@ -165,7 +165,7 @@ const SubmissionUtils = {
         overlay.innerHTML =
             '<div class="submission-popup">' +
                 '<div class="submission-step" id="submissionStep1">' +
-                    '<h2>Que souhaitez-vous faire ?</h2>' +
+                    '<h2>Que souhaites-tu faire ?</h2>' +
                     '<div class="submission-choices">' +
                         '<button class="submission-choice-btn submission-submit" id="submissionSubmitBtn">' +
                             '<span class="submission-choice-icon">\u2705</span>' +
@@ -206,8 +206,8 @@ const SubmissionUtils = {
                 '<div class="submission-step hidden" id="submissionStep2Decline">' +
                     '<div class="submission-warning-box">' +
                         '<div class="submission-warning-icon">\u26A0\uFE0F</div>' +
-                        '<h2>\u00CAtes-vous s\u00FBr(e) ?</h2>' +
-                        '<p>Votre travail ne sera pas \u00E9valu\u00E9.<br>Cette d\u00E9cision est d\u00E9finitive.</p>' +
+                        '<h2>Es-tu s\u00FBr(e) ?</h2>' +
+                        '<p>Ton travail ne sera pas \u00E9valu\u00E9.<br>Cette d\u00E9cision est d\u00E9finitive.</p>' +
                     '</div>' +
                     '<div class="submission-confirm-actions">' +
                         '<button class="submission-action-btn submission-action-cancel" id="submissionDeclineCancelBtn">Annuler</button>' +
@@ -336,7 +336,7 @@ const SubmissionUtils = {
             return '<div class="submission-confirm-detail">' +
                 '<span class="submission-confirm-icon">\u{1F4C4}</span>' +
                 '<div>' +
-                    '<strong>D\u00E9posez votre copie dans le casier du professeur</strong>' +
+                    '<strong>D\u00E9pose ta copie dans le casier du professeur</strong>' +
                     '<p>' + deadlineText + '</p>' +
                 '</div>' +
             '</div>';

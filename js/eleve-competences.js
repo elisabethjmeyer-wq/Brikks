@@ -441,14 +441,14 @@ const EleveCompetences = {
                         <div class="comp-mode-card-icon">📝</div>
                         <div class="comp-mode-card-content">
                             <h4>S'entraîner</h4>
-                            <p>Travaillez à votre rythme. Vous verrez le corrigé commenté à la fin.</p>
+                            <p>Travaille \u00E0 ton rythme. Tu verras le corrig\u00E9 comment\u00E9 \u00E0 la fin.</p>
                         </div>
                     </div>
                     <div class="comp-mode-card evalue">
                         <div class="comp-mode-card-icon">🎯</div>
                         <div class="comp-mode-card-content">
                             <h4>Être évalué(e)</h4>
-                            <p>Soumettez votre production pour validation par le professeur.</p>
+                            <p>Soumets ta production pour validation par le professeur.</p>
                         </div>
                     </div>
                 </div>
@@ -536,8 +536,8 @@ const EleveCompetences = {
         this._showChoiceModal(entr, {
             title: this.escapeHtml(entr.titre),
             question: 'Comment veux-tu faire cet exercice ?',
-            option1: { label: "M'entraîner", desc: 'Travaillez à votre rythme. Vous verrez le corrigé commenté à la fin.', mode: 'entrainement' },
-            option2: { label: 'Être évalué(e)', desc: 'Soumettez votre production pour validation par le professeur.', mode: 'evalue' }
+            option1: { label: "M'entraîner", desc: 'Travaille \u00E0 ton rythme. Tu verras le corrig\u00E9 comment\u00E9 \u00E0 la fin.', mode: 'entrainement' },
+            option2: { label: 'Être évalué(e)', desc: 'Soumets ta production pour validation par le professeur.', mode: 'evalue' }
         });
     },
 
