@@ -186,7 +186,7 @@ Object.assign(AdminBanquesExercices, {
             });
 
             return `
-                <div class="banque-card" data-id="${banque.id}" draggable="true">
+                <div class="banque-card" data-id="${banque.id}">
                     <div class="banque-card-header" onclick="AdminBanquesExercices.toggleBanque('${banque.id}')">
                         <span class="drag-handle" title="Glisser pour réordonner">⋮⋮</span>
                         <div class="banque-card-icon connaissances">📋</div>
@@ -244,7 +244,7 @@ Object.assign(AdminBanquesExercices, {
                     const preview = this.getQuestionPreview(q);
 
                     return `
-                        <div class="exercice-item" data-id="${q.id}" draggable="true">
+                        <div class="exercice-item" data-id="${q.id}">
                             <span class="drag-handle drag-handle-sm" title="Glisser pour réordonner">⋮⋮</span>
                             <div class="exercice-numero" style="background:var(--accent-blue-light);color:var(--accent-blue);font-size:11px;">${typeName.substring(0, 3).toUpperCase()}</div>
                             <div class="exercice-info">
@@ -271,15 +271,29 @@ Object.assign(AdminBanquesExercices, {
         const container = document.getElementById('connaissancesContent');
         if (!container) return;
 
+        // Helper : activer le drag seulement depuis la poignée
+        const enableDragFromHandle = (draggableEl) => {
+            draggableEl.setAttribute('draggable', 'false');
+            const handle = draggableEl.querySelector('.drag-handle');
+            if (!handle) return;
+            handle.addEventListener('mousedown', () => {
+                draggableEl.setAttribute('draggable', 'true');
+            });
+            // Désactiver après le drag (ou si on relâche sans drag)
+            draggableEl.addEventListener('dragend', () => {
+                draggableEl.setAttribute('draggable', 'false');
+            });
+            handle.addEventListener('mouseup', () => {
+                draggableEl.setAttribute('draggable', 'false');
+            });
+        };
+
         // --- Drag & drop des banques ---
         let draggedBanque = null;
-        container.querySelectorAll('.banque-card[draggable="true"]').forEach(card => {
+        container.querySelectorAll('.banque-card').forEach(card => {
+            enableDragFromHandle(card);
+
             card.addEventListener('dragstart', (e) => {
-                // Ne démarrer que depuis la poignée
-                if (!e.target.closest('.drag-handle')) {
-                    e.preventDefault();
-                    return;
-                }
                 draggedBanque = card;
                 card.classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
@@ -311,13 +325,10 @@ Object.assign(AdminBanquesExercices, {
         container.querySelectorAll('.exercices-list[data-banque-id]').forEach(list => {
             let draggedQuestion = null;
 
-            list.querySelectorAll('.exercice-item[draggable="true"]').forEach(item => {
+            list.querySelectorAll('.exercice-item').forEach(item => {
+                enableDragFromHandle(item);
+
                 item.addEventListener('dragstart', (e) => {
-                    if (!e.target.closest('.drag-handle')) {
-                        e.preventDefault();
-                        return;
-                    }
-                    // Empêcher que ça déclenche aussi le drag de la banque
                     e.stopPropagation();
                     draggedQuestion = item;
                     item.classList.add('dragging');
