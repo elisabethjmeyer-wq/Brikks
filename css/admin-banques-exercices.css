@@ -1198,6 +1198,35 @@
     flex: 1;
 }
 
+/* ===== Palette couleur marqueurs carte ===== */
+.marqueur-color-picker {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.marqueur-color-swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+}
+
+.marqueur-color-swatch:hover {
+    transform: scale(1.2);
+}
+
+.marqueur-color-swatch.selected {
+    border-color: #1f2937;
+    transform: scale(1.15);
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #1f2937;
+}
+
 /* Question Ouverte Builder */
 .questions-list {
     display: flex;
