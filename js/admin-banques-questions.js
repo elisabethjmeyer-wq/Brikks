@@ -9,6 +9,17 @@ const AdminBanquesQuestions = {
     themes: [],
     chapitres: [],
 
+    MARKER_COLORS: [
+        { value: '#6366f1', label: 'Indigo' },
+        { value: '#3b82f6', label: 'Bleu' },
+        { value: '#06b6d4', label: 'Cyan' },
+        { value: '#10b981', label: 'Vert' },
+        { value: '#f59e0b', label: 'Orange' },
+        { value: '#ef4444', label: 'Rouge' },
+        { value: '#ec4899', label: 'Rose' },
+        { value: '#8b5cf6', label: 'Violet' }
+    ],
+
     // Current state
     currentBanqueId: null,
     currentQuestionType: 'qcm',
@@ -769,7 +780,8 @@ const AdminBanquesQuestions = {
                 x: m.x,
                 y: m.y,
                 reponse: m.reponse || '',
-                reponses_acceptees: m.reponses_acceptees || []
+                reponses_acceptees: m.reponses_acceptees || [],
+                couleur: m.couleur || '#6366f1'
             }))
         };
         document.getElementById('carteImageUrl').value = this.carteBuilder.imageUrl;
@@ -822,7 +834,7 @@ const AdminBanquesQuestions = {
         const container = document.getElementById('cartePreviewMarkers');
         container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => `
             <div class="carte-marker-preview"
-                 style="left: ${m.x}%; top: ${m.y}%;"
+                 style="left: ${m.x}%; top: ${m.y}%;${m.couleur ? ' background: ' + m.couleur + ';' : ''}"
                  title="Marqueur ${i + 1}: ${this.escapeHtml(m.reponse)}">
                 ${i + 1}
             </div>
@@ -841,7 +853,7 @@ const AdminBanquesQuestions = {
     },
 
     addCarteMarqueur(x = 50, y = 50) {
-        this.carteBuilder.marqueurs.push({ x, y, reponse: '', reponses_acceptees: [] });
+        this.carteBuilder.marqueurs.push({ x, y, reponse: '', reponses_acceptees: [], couleur: '#6366f1' });
         this.renderCarteMarkers();
         this.renderCarteMarqueursList();
     },
@@ -861,18 +873,36 @@ const AdminBanquesQuestions = {
             return;
         }
 
-        container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => `
-            <div class="carte-marqueur-item">
-                <span class="marqueur-num">${i + 1}</span>
-                <div class="marqueur-coords">X: ${m.x}% Y: ${m.y}%</div>
-                <input type="text" class="form-input marqueur-reponse" data-index="${i}"
-                       value="${this.escapeHtml(m.reponse)}" placeholder="Réponse principale...">
-                <input type="text" class="form-input marqueur-alternatives" data-index="${i}"
-                       value="${this.escapeHtml((m.reponses_acceptees || []).join(', '))}"
-                       placeholder="Réponses alternatives (séparées par virgule)">
-                <button type="button" class="btn-icon danger" onclick="AdminBanquesQuestions.removeCarteMarqueur(${i})">×</button>
-            </div>
-        `).join('');
+        const colors = this.MARKER_COLORS;
+
+        container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => {
+            const markerColor = m.couleur || '#6366f1';
+            const colorDots = colors.map(c => `
+                <span class="marker-color-dot${c.value === markerColor ? ' active' : ''}"
+                      style="width: 18px; height: 18px; background: ${c.value}; border-radius: 50%;
+                             border: 2px solid ${c.value === markerColor ? '#1f2937' : 'transparent'};
+                             cursor: pointer; display: inline-block; transition: border-color 0.15s;"
+                      title="${c.label}"
+                      data-index="${i}" data-color="${c.value}"></span>
+            `).join('');
+
+            return `
+                <div class="carte-marqueur-item">
+                    <span class="marqueur-num" style="background: ${markerColor};">${i + 1}</span>
+                    <div class="marqueur-coords">X: ${m.x}% Y: ${m.y}%</div>
+                    <input type="text" class="form-input marqueur-reponse" data-index="${i}"
+                           value="${this.escapeHtml(m.reponse)}" placeholder="Réponse principale...">
+                    <input type="text" class="form-input marqueur-alternatives" data-index="${i}"
+                           value="${this.escapeHtml((m.reponses_acceptees || []).join(', '))}"
+                           placeholder="Réponses alternatives (séparées par virgule)">
+                    <button type="button" class="btn-icon danger" onclick="AdminBanquesQuestions.removeCarteMarqueur(${i})">×</button>
+                    <div class="marqueur-color-row" style="display: flex; gap: 4px; align-items: center; width: 100%; padding-left: 30px; margin-top: 4px;">
+                        <span style="font-size: 0.7rem; color: var(--gray-400); margin-right: 2px;">Couleur :</span>
+                        ${colorDots}
+                    </div>
+                </div>
+            `;
+        }).join('');
 
         // Add listeners for inputs
         container.querySelectorAll('.marqueur-reponse').forEach(input => {
@@ -890,6 +920,23 @@ const AdminBanquesQuestions = {
                 this.carteBuilder.marqueurs[idx].reponses_acceptees = alternatives;
             });
         });
+
+        // Add listeners for color dots
+        container.querySelectorAll('.marker-color-dot').forEach(dot => {
+            dot.addEventListener('click', (e) => {
+                const idx = parseInt(e.target.dataset.index);
+                const color = e.target.dataset.color;
+                this.updateMarqueurCouleur(idx, color);
+            });
+        });
+    },
+
+    updateMarqueurCouleur(index, couleur) {
+        if (this.carteBuilder.marqueurs[index]) {
+            this.carteBuilder.marqueurs[index].couleur = couleur;
+            this.renderCarteMarkers();
+            this.renderCarteMarqueursList();
+        }
     },
 
     buildDataFromCarteBuilder() {
@@ -900,7 +947,8 @@ const AdminBanquesQuestions = {
                 x: m.x,
                 y: m.y,
                 reponse: m.reponse,
-                reponses_acceptees: m.reponses_acceptees || []
+                reponses_acceptees: m.reponses_acceptees || [],
+                couleur: m.couleur || '#6366f1'
             }))
         };
     },

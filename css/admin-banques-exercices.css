@@ -1172,6 +1172,7 @@
     padding: 10px 12px;
     background: var(--gray-50);
     border-radius: var(--radius);
+    flex-wrap: wrap;
 }
 
 .marqueur-num {

@@ -902,7 +902,7 @@ Object.assign(EleveConnaissances, {
                         ${marqueurs.map((m, idx) => `
                             <div class="carte-marker-v2"
                                  data-index="${idx}"
-                                 style="left: ${m.x}%; top: ${m.y}%;"
+                                 style="left: ${m.x}%; top: ${m.y}%;${m.couleur ? ' --marker-color: ' + m.couleur + ';' : ''}"
                                  onclick="EleveConnaissances.openCartePopup(${idx}, event)">
                                 <span class="carte-marker-num-v2">${idx + 1}</span>
                                 <span class="carte-marker-answer-label" id="carteMarkerLabel_${idx}"></span>

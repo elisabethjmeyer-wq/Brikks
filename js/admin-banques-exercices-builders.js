@@ -355,7 +355,7 @@ Object.assign(AdminBanquesExercices, {
                         ⚠️ Impossible de charger l'image. Vérifiez le lien.
                     </div>
                     ${donnees.marqueurs.map((m, i) => `
-                        <div class="carte-marker" style="left: ${m.x}%; top: ${m.y}%;">
+                        <div class="carte-marker" style="left: ${m.x}%; top: ${m.y}%;${m.couleur ? ' background: ' + m.couleur + ';' : ''}">
                             ${i + 1}
                             <span class="badge">${this.escapeHtml(m.reponse)}</span>
                         </div>
@@ -670,7 +670,8 @@ Object.assign(AdminBanquesExercices, {
             marqueurs: (donnees.marqueurs || []).map(m => ({
                 x: m.x,
                 y: m.y,
-                reponse: m.reponse || ''
+                reponse: m.reponse || '',
+                couleur: m.couleur || '#6366f1'
             }))
         };
         document.getElementById('carteImageUrl').value = this.carteBuilder.imageUrl;
@@ -728,7 +729,7 @@ Object.assign(AdminBanquesExercices, {
         const container = document.getElementById('cartePreviewMarkers');
         container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => `
             <div class="carte-marker-preview"
-                 style="left: ${m.x}%; top: ${m.y}%;"
+                 style="left: ${m.x}%; top: ${m.y}%;${m.couleur ? ' background: ' + m.couleur + ';' : ''}"
                  title="Marqueur ${i + 1}: ${this.escapeHtml(m.reponse)}">
                 ${i + 1}
             </div>
@@ -745,13 +746,13 @@ Object.assign(AdminBanquesExercices, {
     },
 
     addMarqueur(x, y) {
-        this.carteBuilder.marqueurs.push({ x, y, reponse: '' });
+        this.carteBuilder.marqueurs.push({ x, y, reponse: '', couleur: '#6366f1' });
         this.renderCarteMarkers();
         this.renderMarqueursList();
     },
 
     addMarqueurManual() {
-        this.carteBuilder.marqueurs.push({ x: 50, y: 50, reponse: '' });
+        this.carteBuilder.marqueurs.push({ x: 50, y: 50, reponse: '', couleur: '#6366f1' });
         this.renderCarteMarkers();
         this.renderMarqueursList();
     },
@@ -769,14 +770,25 @@ Object.assign(AdminBanquesExercices, {
             return;
         }
 
+        const colors = this.MARKER_COLORS;
+
         container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => {
             const reponseValue = m.reponse || '';
             const alternatives = reponseValue.split('|');
             const mainAnswer = alternatives[0] || '';
             const altCount = alternatives.length - 1;
+            const markerColor = m.couleur || '#6366f1';
+            const colorDots = colors.map(c => `
+                <span class="marker-color-dot${c.value === markerColor ? ' active' : ''}"
+                      style="width: 18px; height: 18px; background: ${c.value}; border-radius: 50%;
+                             border: 2px solid ${c.value === markerColor ? '#1f2937' : 'transparent'};
+                             cursor: pointer; display: inline-block; transition: border-color 0.15s;"
+                      title="${c.label}"
+                      data-index="${i}" data-color="${c.value}"></span>
+            `).join('');
             return `
             <div class="marqueur-item">
-                <span class="marqueur-num">${i + 1}</span>
+                <span class="marqueur-num" style="background: ${markerColor};">${i + 1}</span>
                 <div class="marqueur-coords">X: ${m.x}% Y: ${m.y}%</div>
                 <div class="marqueur-answer-wrapper">
                     <input type="text" class="form-input marqueur-reponse" data-index="${i}"
@@ -788,6 +800,10 @@ Object.assign(AdminBanquesExercices, {
                     </button>
                 </div>
                 <button type="button" class="btn-icon danger" onclick="AdminBanquesExercices.removeMarqueur(${i})">&times;</button>
+                <div class="marqueur-color-row" style="display: flex; gap: 4px; align-items: center; width: 100%; padding-left: 30px; margin-top: 4px;">
+                    <span style="font-size: 0.7rem; color: var(--gray-400); margin-right: 2px;">Couleur :</span>
+                    ${colorDots}
+                </div>
             </div>
         `;}).join('');
 
@@ -798,6 +814,23 @@ Object.assign(AdminBanquesExercices, {
                 this.updateMarqueurMainAnswer(idx, e.target.value);
             });
         });
+
+        // Add listeners for color dots
+        container.querySelectorAll('.marker-color-dot').forEach(dot => {
+            dot.addEventListener('click', (e) => {
+                const idx = parseInt(e.target.dataset.index);
+                const color = e.target.dataset.color;
+                this.updateMarqueurCouleurSF(idx, color);
+            });
+        });
+    },
+
+    updateMarqueurCouleurSF(index, couleur) {
+        if (this.carteBuilder.marqueurs[index]) {
+            this.carteBuilder.marqueurs[index].couleur = couleur;
+            this.renderCarteMarkers();
+            this.renderMarqueursList();
+        }
     },
 
     updateMarqueurMainAnswer(index, newMainAnswer) {
@@ -875,7 +908,8 @@ Object.assign(AdminBanquesExercices, {
                 id: i,
                 x: m.x,
                 y: m.y,
-                reponse: m.reponse
+                reponse: m.reponse,
+                couleur: m.couleur || '#6366f1'
             }))
         };
     },

@@ -1782,7 +1782,7 @@
     position: absolute;
     width: 32px;
     height: 32px;
-    background: #3b82f6;
+    background: var(--marker-color, #3b82f6);
     border: 3px solid white;
     border-radius: 50%;
     transform: translate(-50%, -50%);

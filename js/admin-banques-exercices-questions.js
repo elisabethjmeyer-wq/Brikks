@@ -1347,6 +1347,18 @@ Object.assign(AdminBanquesExercices, {
     },
 
     // ========== CARTE BUILDER POUR CONNAISSANCES ==========
+
+    MARKER_COLORS: [
+        { value: '#6366f1', label: 'Indigo' },
+        { value: '#3b82f6', label: 'Bleu' },
+        { value: '#06b6d4', label: 'Cyan' },
+        { value: '#10b981', label: 'Vert' },
+        { value: '#f59e0b', label: 'Orange' },
+        { value: '#ef4444', label: 'Rouge' },
+        { value: '#ec4899', label: 'Rose' },
+        { value: '#8b5cf6', label: 'Violet' }
+    ],
+
     carteBuilderConn: {
         imageUrl: '',
         marqueurs: []
@@ -1359,7 +1371,8 @@ Object.assign(AdminBanquesExercices, {
                 x: m.x,
                 y: m.y,
                 reponse: m.reponse || '',
-                reponses_acceptees: m.reponses_acceptees || []
+                reponses_acceptees: m.reponses_acceptees || [],
+                couleur: m.couleur || '#6366f1'
             }))
         };
         if (this.carteBuilderConn.imageUrl) {
@@ -1407,7 +1420,8 @@ Object.assign(AdminBanquesExercices, {
             x: parseFloat(x.toFixed(2)),
             y: parseFloat(y.toFixed(2)),
             reponse: '',
-            reponses_acceptees: []
+            reponses_acceptees: [],
+            couleur: '#6366f1'
         });
 
         this.renderCarteMarkersConn();
@@ -1420,7 +1434,7 @@ Object.assign(AdminBanquesExercices, {
 
         container.innerHTML = this.carteBuilderConn.marqueurs.map((m, i) => `
             <div style="position: absolute; left: ${m.x}%; top: ${m.y}%; transform: translate(-50%, -50%);
-                        width: 28px; height: 28px; background: var(--primary); border: 3px solid white;
+                        width: 28px; height: 28px; background: ${m.couleur || '#6366f1'}; border: 3px solid white;
                         border-radius: 50%; display: flex; align-items: center; justify-content: center;
                         font-size: 0.75rem; font-weight: 700; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
                         pointer-events: auto; cursor: pointer;"
@@ -1435,7 +1449,8 @@ Object.assign(AdminBanquesExercices, {
             x: 50,
             y: 50,
             reponse: '',
-            reponses_acceptees: []
+            reponses_acceptees: [],
+            couleur: '#6366f1'
         });
         this.renderCarteMarkersConn();
         this.renderMarqueursListConn();
@@ -1456,19 +1471,37 @@ Object.assign(AdminBanquesExercices, {
             return;
         }
 
-        container.innerHTML = this.carteBuilderConn.marqueurs.map((m, i) => `
-            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: white; border: 1px solid var(--gray-200); border-radius: 6px; margin-bottom: 0.5rem;">
-                <span style="width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%;
-                             display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">${i + 1}</span>
-                <span style="font-size: 0.75rem; color: var(--gray-500); min-width: 90px;">X: ${m.x}% Y: ${m.y}%</span>
-                <input type="text" class="form-input" placeholder="Réponse principale"
-                       value="${this.escapeHtml(m.reponse)}" onchange="AdminBanquesExercices.updateMarqueurReponseConn(${i}, this.value)" style="flex: 2;">
-                <input type="text" class="form-input" placeholder="Alternatives (virgule)"
-                       value="${this.escapeHtml((m.reponses_acceptees || []).join(', '))}"
-                       onchange="AdminBanquesExercices.updateMarqueurAlternativesConn(${i}, this.value)" style="flex: 2; font-size: 0.85rem;">
-                <button type="button" class="btn btn-sm" onclick="AdminBanquesExercices.removeCarteMarqueurConn(${i})" style="color: #dc2626;">X</button>
-            </div>
-        `).join('');
+        const colors = this.MARKER_COLORS;
+
+        container.innerHTML = this.carteBuilderConn.marqueurs.map((m, i) => {
+            const markerColor = m.couleur || '#6366f1';
+            const colorDots = colors.map(c => `
+                <span class="marker-color-dot${c.value === markerColor ? ' active' : ''}"
+                      style="width: 18px; height: 18px; background: ${c.value}; border-radius: 50%;
+                             border: 2px solid ${c.value === markerColor ? '#1f2937' : 'transparent'};
+                             cursor: pointer; display: inline-block; transition: border-color 0.15s;"
+                      title="${c.label}"
+                      onclick="AdminBanquesExercices.updateMarqueurCouleurConn(${i}, '${c.value}')"></span>
+            `).join('');
+
+            return `
+                <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: white; border: 1px solid var(--gray-200); border-radius: 6px; margin-bottom: 0.5rem; flex-wrap: wrap;">
+                    <span style="width: 24px; height: 24px; background: ${markerColor}; color: white; border-radius: 50%;
+                                 display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${i + 1}</span>
+                    <span style="font-size: 0.75rem; color: var(--gray-500); min-width: 90px;">X: ${m.x}% Y: ${m.y}%</span>
+                    <input type="text" class="form-input" placeholder="Réponse principale"
+                           value="${this.escapeHtml(m.reponse)}" onchange="AdminBanquesExercices.updateMarqueurReponseConn(${i}, this.value)" style="flex: 2; min-width: 120px;">
+                    <input type="text" class="form-input" placeholder="Alternatives (virgule)"
+                           value="${this.escapeHtml((m.reponses_acceptees || []).join(', '))}"
+                           onchange="AdminBanquesExercices.updateMarqueurAlternativesConn(${i}, this.value)" style="flex: 2; font-size: 0.85rem; min-width: 120px;">
+                    <button type="button" class="btn btn-sm" onclick="AdminBanquesExercices.removeCarteMarqueurConn(${i})" style="color: #dc2626;">X</button>
+                    <div style="display: flex; gap: 4px; align-items: center; width: 100%; padding-left: 30px;">
+                        <span style="font-size: 0.7rem; color: var(--gray-400); margin-right: 2px;">Couleur :</span>
+                        ${colorDots}
+                    </div>
+                </div>
+            `;
+        }).join('');
     },
 
     updateMarqueurReponseConn(index, value) {
@@ -1483,6 +1516,14 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
+    updateMarqueurCouleurConn(index, couleur) {
+        if (this.carteBuilderConn.marqueurs[index]) {
+            this.carteBuilderConn.marqueurs[index].couleur = couleur;
+            this.renderCarteMarkersConn();
+            this.renderMarqueursListConn();
+        }
+    },
+
     buildCarteDataConn() {
         return {
             consigne: document.getElementById('carteConsigneConn')?.value || 'Localisez les éléments sur la carte',
@@ -1492,7 +1533,8 @@ Object.assign(AdminBanquesExercices, {
                 x: m.x,
                 y: m.y,
                 reponse: m.reponse,
-                reponses_acceptees: m.reponses_acceptees
+                reponses_acceptees: m.reponses_acceptees,
+                couleur: m.couleur || '#6366f1'
             }))
         };
     },

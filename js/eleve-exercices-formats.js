@@ -60,7 +60,7 @@ Object.assign(EleveExercices, {
         let marqueursHTML = marqueurs.map((m, index) => `
             <div class="carte-marqueur" data-id="${m.id || index}"
                  data-reponse="${this.escapeHtml(m.reponse || '')}"
-                 style="left: ${m.x}%; top: ${m.y}%;"
+                 style="left: ${m.x}%; top: ${m.y}%;${m.couleur ? ' --marker-color: ' + m.couleur + ';' : ''}"
                  onclick="EleveExercices.openMarqueurModal(${index})">
                 <span class="marqueur-numero">${index + 1}</span>
                 <span class="marqueur-reponse-badge hidden" id="badge_${index}"></span>
