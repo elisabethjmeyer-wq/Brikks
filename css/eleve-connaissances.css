@@ -384,7 +384,7 @@
     align-items: center;
     gap: 0.75rem;
     margin-top: 0.75rem;
-    padding-right: 1.5rem;  /* Décalage vers la gauche (marge à droite) */
+    padding-right: 0;
 }
 
 /* Feedback inline pour le carousel multi-format */
@@ -397,31 +397,35 @@
 
 .btn-qcm-validate,
 .btn-qcm-next {
-    padding: 0.6rem 2rem;
+    padding: 0.875rem 2rem;
     border: none;
     border-radius: 8px;
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .btn-qcm-validate {
-    background: #6366f1;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
 }
 
 .btn-qcm-validate:hover {
-    background: #4f46e5;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 .btn-qcm-next {
-    background: #3b82f6;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
 }
 
 .btn-qcm-next:hover {
-    background: #2563eb;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 .qcm-question-block .question-enonce {
@@ -5559,11 +5563,6 @@
     transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
 }
 
-.btn-qcm-validate:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
 .btn-qcm-validate:active {
     transform: translateY(0) scale(0.98);
     box-shadow: none;
@@ -5571,11 +5570,6 @@
 
 .btn-qcm-next {
     transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
-}
-
-.btn-qcm-next:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .btn-qcm-next:active {
