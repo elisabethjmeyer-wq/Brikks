@@ -977,9 +977,21 @@ const EleveConnaissances = {
      * Finish the entrainement - Utilise les résultats déjà calculés par validateCurrentEtape
      */
     async finishEntrainement() {
+        // Guard contre le double-clic
+        if (this._finishing) return;
+        this._finishing = true;
+
+        // Désactiver le bouton visuellement
+        const finishBtn = document.querySelector('#etapeActionBar .finish-btn');
+        const originalBtnText = finishBtn ? finishBtn.textContent : '';
+        if (finishBtn) {
+            finishBtn.disabled = true;
+            finishBtn.classList.add('is-loading');
+            finishBtn.textContent = 'Enregistrement...';
+        }
+
         // Cleanup event listeners
         this.cleanupEventListeners();
-
         this.stopTimer();
 
         // Si l'étape courante n'a pas encore été validée (ex: timer expiré), la valider
@@ -991,7 +1003,20 @@ const EleveConnaissances = {
         const results = this.compileResults();
         this.lastResults = results;
 
-        await this.saveProgression(results);
+        try {
+            await this.saveProgression(results);
+        } catch (e) {
+            this._finishing = false;
+            // Réactiver le bouton en cas d'erreur
+            if (finishBtn) {
+                finishBtn.disabled = false;
+                finishBtn.classList.remove('is-loading');
+                finishBtn.textContent = originalBtnText;
+            }
+            Logger.error('EleveConnaissances', 'Erreur lors de finishEntrainement', e);
+            return;
+        }
+
         this.renderResultScreen(results);
     },
 

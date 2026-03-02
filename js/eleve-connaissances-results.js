@@ -876,6 +876,7 @@ Object.assign(EleveConnaissances, {
      * Recommence l'entraînement actuel
      */
     restartEntrainement() {
+        this._finishing = false;
         this.currentEtapeIndex = 0;
         this.etapesResults = [];
         this.exerciseStartTime = Date.now();
@@ -935,6 +936,7 @@ Object.assign(EleveConnaissances, {
      * Back to accordion list
      */
     backToList() {
+        this._finishing = false;
         this.stopTimer();
         this.currentEntrainement = null;
         this.currentEtapes = [];
