@@ -853,13 +853,7 @@
     box-shadow: 0 0 0 2px var(--primary);
 }
 
-/* Empêcher la sélection de texte pendant le drag */
-.banque-card[draggable="true"],
-.exercice-item[draggable="true"] {
-    touch-action: none;
-}
-
 /* Réduire le gap du header pour que la poignée soit proche de l'icône */
-.banque-card[draggable="true"] .banque-card-header {
-    gap: 10px;
+.banque-card .drag-handle + .banque-card-icon {
+    margin-left: -6px;
 }
