@@ -847,10 +847,6 @@
     border-top: 1.5px solid var(--pair-color, #6366f1);
 }
 
-.association-grid-card.paired .assoc-paired-label {
-    display: block;
-}
-
 /* Labels de correction après validation */
 .assoc-paired-label.assoc-label-success {
     display: block;

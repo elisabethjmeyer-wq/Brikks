@@ -794,6 +794,10 @@ Object.assign(EleveConnaissances, {
         if (chipsZone) chipsZone.classList.add('hidden');
         const zoneLabel = container.querySelector('.association-zone-label');
         if (zoneLabel) zoneLabel.classList.add('hidden');
+        container.querySelectorAll('.assoc-paired-label').forEach(label => {
+            label.classList.add('hidden');
+            label.classList.remove('assoc-label-success', 'assoc-label-error');
+        });
 
         const getChipText = (id) => {
             const p = assocPaires[parseInt(id)];
