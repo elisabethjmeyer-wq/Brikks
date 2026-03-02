@@ -10,289 +10,23 @@ Object.assign(EleveConnaissances, {
         // Utiliser les données combinées stockées lors du rendu (inclut multiQuestions)
         const storedData = this.selectedQuestionsPerEtape[currentEtape.id];
         const donnees = storedData?.donnees || this.getEtapeDonnees(currentEtape);
-
-        let correct = 0;
-        let total = 0;
-        let details = [];
-
         const format = this.normalizeFormat(currentEtape.format_code);
 
-        switch (format) {
-            case 'vrai_faux':
-                if (donnees.reponse !== undefined && !donnees.propositions) {
-                    total = 1;
-                    const answer = this.userAnswers['vf_0'];
-                    const expected = donnees.reponse === true || donnees.reponse === 'vrai' ? 'vrai' : 'faux';
-                    const isCorrect = answer === expected;
-                    if (isCorrect) correct++;
+        const dispatchMap = {
+            vrai_faux:        () => this._validateFormat_vraiFaux(donnees),
+            qcm:              () => this._validateFormat_qcm(donnees),
+            timeline:         () => this._validateFormat_timeline(donnees),
+            texte_trou:       () => this._validateFormat_texteTrou(donnees),
+            carte:            () => this._validateFormat_carte(donnees),
+            question_ouverte: () => this._validateFormat_questionOuverte(donnees),
+            association:      () => this._validateFormat_association(donnees),
+            flashcard:        () => this._validateFormat_flashcard(donnees),
+        };
 
-                    // Construire le texte du feedback
-                    let feedbackText = isCorrect ? 'Correct' : (!answer ? 'Non répondu' : 'Mauvaise réponse');
-
-                    // Utiliser la fonction unifiée de feedback
-                    this.displayUnifiedFeedback('feedback_vf_0', isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
-                    const feedbackVF = answer === 'vrai' ? (donnees.feedback_vrai || '') : (donnees.feedback_faux || '');
-                    details.push({ question: donnees.question, reponse: answer, attendu: expected, correct: isCorrect, feedbackOption: feedbackVF });
-                } else {
-                    const propositions = donnees.propositions || [];
-                    // Si validation question par question (carrousel), récupérer les résultats déjà stockés
-                    if (this._vfResults && Object.keys(this._vfResults).length > 0) {
-                        propositions.forEach((prop, idx) => {
-                            total++;
-                            const r = this._vfResults[idx];
-                            if (r) {
-                                if (r.correct) correct++;
-                                details.push(r);
-                            } else {
-                                const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
-                                details.push({ question: prop.texte, reponse: null, attendu: expected, correct: false });
-                            }
-                        });
-                    } else {
-                        propositions.forEach((prop, idx) => {
-                            total++;
-                            const answer = this.userAnswers[`vf_${idx}`];
-                            const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
-                            const isCorrect = answer === expected;
-                            if (isCorrect) correct++;
-
-                            // Construire le texte du feedback
-                            let feedbackText = isCorrect ? 'Correct' : (!answer ? 'Non répondu' : 'Mauvaise réponse');
-
-                            // Utiliser la fonction unifiée de feedback
-                            this.displayUnifiedFeedback(`feedback_vf_${idx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
-                            const feedbackVFMulti = answer === 'vrai' ? (prop.feedback_vrai || '') : (prop.feedback_faux || '');
-                            details.push({ question: prop.texte, reponse: answer, attendu: expected, correct: isCorrect, feedbackOption: feedbackVFMulti });
-                        });
-                    }
-                }
-                break;
-
-            case 'qcm':
-                // Mode multi-questions (plusieurs QCM dans une étape)
-                if (donnees.multiQuestions && donnees.multiQuestions.length > 0) {
-                    // Si validation question par question (carrousel), récupérer les résultats déjà stockés
-                    if (this._qcmResults && Object.keys(this._qcmResults).length > 0) {
-                        donnees.multiQuestions.forEach((q, qIdx) => {
-                            total++;
-                            const r = this._qcmResults[qIdx];
-                            if (r) {
-                                if (r.correct) correct++;
-                                details.push(r);
-                            } else {
-                                // Question non validée = incorrecte
-                                const choices = q.choix || q.options || [];
-                                const correctIndices = this.getQcmCorrectIndices(q);
-                                details.push({
-                                    question: q.question,
-                                    reponse: null,
-                                    attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
-                                    correct: false
-                                });
-                            }
-                        });
-                    } else {
-                        // Fallback : validation classique (1 seule question ou pas de carrousel)
-                        donnees.multiQuestions.forEach((q, qIdx) => {
-                            total++;
-                            const choices = q.choix || q.options || [];
-                            const userAnswer = this.userAnswers[`qcm_${qIdx}`];
-
-                            const correctIndices = this.getQcmCorrectIndices(q);
-                            const isCorrect = correctIndices.includes(parseInt(userAnswer));
-                            if (isCorrect) correct++;
-
-                            // Construire le texte du feedback
-                            let feedbackText = isCorrect ? 'Correct' : (userAnswer == null ? 'Non répondu' : 'Mauvaise réponse');
-
-                            // Récupérer le feedback spécifique à l'option choisie
-                            const feedbackOption = (q.feedbacks_options && userAnswer != null) ? (q.feedbacks_options[parseInt(userAnswer)] || '') : '';
-
-                            // Utiliser la fonction unifiée de feedback
-                            this.displayUnifiedFeedback(`feedback_qcm_${qIdx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1, 'qcm');
-                            details.push({
-                                question: q.question,
-                                reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
-                                attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
-                                correct: isCorrect,
-                                feedbackOption: feedbackOption
-                            });
-                        });
-                    }
-                } else {
-                    // Mode simple (une seule question QCM)
-                    total = 1;
-                    const choices = donnees.choix || donnees.options || [];
-                    const userAnswer = this.userAnswers['qcm'];
-
-                    const correctIndices = this.getQcmCorrectIndices(donnees);
-                    if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
-
-                    // Construire le texte du feedback
-                    let feedbackText = correct === 1 ? 'Correct' : (userAnswer == null ? 'Non répondu' : 'Mauvaise réponse');
-
-                    // Récupérer le feedback spécifique à l'option choisie
-                    const feedbackOption = (donnees.feedbacks_options && userAnswer != null) ? (donnees.feedbacks_options[parseInt(userAnswer)] || '') : '';
-
-                    // Utiliser la fonction unifiée de feedback
-                    this.displayUnifiedFeedback('feedback_qcm', correct === 1, feedbackText, correct, 1, 'qcm');
-                    details.push({
-                        question: donnees.question,
-                        reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
-                        attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
-                        correct: correct === 1,
-                        feedbackOption: feedbackOption
-                    });
-                }
-                break;
-
-            case 'timeline':
-                if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
-                    Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
-                    break;
-                }
-                {
-                    const timelineResult = (donnees.paires && donnees.mode)
-                        ? this.runChronoValidation(donnees, document)
-                        : this.runTimelineValidation(donnees, document);
-                    correct = timelineResult.correct;
-                    total = timelineResult.total;
-                    details = timelineResult.details;
-
-                    // Afficher le feedback minimaliste avec score pour timeline (mode drag uniquement)
-                    if (!donnees.paires || !donnees.mode) {
-                        const isTimelineCorrect = correct === total;
-                        const feedbackText = isTimelineCorrect ? 'Correct' : 'Mauvaise réponse';
-                        this.displayUnifiedFeedback('feedback_timeline', isTimelineCorrect, feedbackText, correct, total, 'chronologie');
-                    }
-                }
-                break;
-
-            case 'texte_trou':
-                if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
-                    Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
-                    break;
-                }
-                {
-                    const texteResult = this.runTexteValidation(donnees, document);
-                    correct = texteResult.correct;
-                    total = texteResult.total;
-                    details = texteResult.details;
-
-                    // Afficher le feedback avec score pour texte à trous
-                    const isTexteTrousCorrect = correct === total;
-                    const allTrousEmpty = details.every(d => !d.reponse || d.reponse.trim() === '');
-                    const texteTrousTexte = isTexteTrousCorrect ? 'Correct' : (allTrousEmpty ? 'Non répondu' : 'Mauvaise réponse');
-                    this.displayUnifiedFeedback('feedback_texte_trous', isTexteTrousCorrect, texteTrousTexte, correct, total, 'chronologie');
-                }
-                break;
-
-            case 'carte':
-                if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
-                    Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
-                    break;
-                }
-                {
-                    const carteResult = this.runCarteValidation(donnees, document);
-                    correct = carteResult.correct;
-                    total = carteResult.total;
-                    details = carteResult.details;
-
-                    // Feedback visuel sur les answerItems (liste de réponses, propre au mode single)
-                    (donnees.marqueurs || []).forEach((m, idx) => {
-                        const answerItem = document.querySelector(`.carte-answer-item[data-index="${idx}"]`);
-                        if (!answerItem) return;
-                        const d = details[idx];
-                        answerItem.classList.add(d && d.correct ? 'correct' : 'incorrect');
-                    });
-
-                    // Afficher le feedback avec score pour carte
-                    const isCarteCorrect = correct === total;
-                    const allMarkersEmpty = details.every(d => !d.reponse);
-                    const carteTexte = isCarteCorrect ? 'Correct' : (allMarkersEmpty ? 'Non répondu' : 'Mauvaise réponse');
-                    this.displayUnifiedFeedback('feedback_carte', isCarteCorrect, carteTexte, correct, total, 'chronologie');
-                }
-                break;
-
-            case 'question_ouverte':
-                // Multi-questions avec résultats pré-validés
-                if (donnees.multiQuestions && donnees.multiQuestions.length > 0 && this._qoResults && Object.keys(this._qoResults).length > 0) {
-                    donnees.multiQuestions.forEach((q, qIdx) => {
-                        total++;
-                        const r = this._qoResults[qIdx];
-                        if (r) {
-                            if (r.correct) correct++;
-                            details.push(r);
-                        } else {
-                            details.push({ question: q.question, reponse: null, attendu: (q.reponses_acceptees || [])[0] || '', correct: false });
-                        }
-                    });
-                } else {
-                    // Format simple (une seule question)
-                    total = 1;
-                    const qoAnswer = this.userAnswers['question_ouverte'];
-                    const qoReponsesAcceptees = donnees.reponses_acceptees || [];
-                    const qoStricte = donnees.comparaison_stricte || false;
-                    const qoFeedbackEl = document.getElementById('feedback_question_ouverte');
-                    const qoInput = document.getElementById('questionOuverteReponse');
-
-                    let qoCorrect = false;
-                    if (qoAnswer) {
-                        qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep, qoStricte));
-                    }
-                    if (qoCorrect) correct = 1;
-
-                    if (qoInput) {
-                        qoInput.classList.remove('correct', 'incorrect');
-                        qoInput.classList.add(qoCorrect ? 'correct' : 'incorrect');
-                    }
-
-                    if (qoFeedbackEl) {
-                        // Construire le texte du feedback
-                        let feedbackText = qoCorrect ? 'Correct' : (!qoAnswer || qoAnswer.trim() === '' ? 'Non répondu' : 'Mauvaise réponse');
-
-                        // Utiliser la fonction unifiée de feedback
-                        this.displayUnifiedFeedback('feedback_question_ouverte', qoCorrect, feedbackText, qoCorrect ? 1 : 0, 1);
-                    }
-                    details.push({ question: donnees.question, reponse: qoAnswer, attendu: qoReponsesAcceptees[0] || '', correct: qoCorrect });
-                }
-                break;
-
-            case 'association':
-                if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
-                    Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
-                    break;
-                }
-                {
-                    const assocResult = this.runAssociationValidation(donnees, document);
-                    correct = assocResult.correct;
-                    total = assocResult.total;
-                    details = assocResult.details;
-
-                    // Désactiver l'interaction sur les chips
-                    const chipsZone = document.querySelector('#associationChips');
-                    if (chipsZone) chipsZone.classList.add('disabled');
-
-                    // Afficher le feedback avec score
-                    const userPairs = this.userAnswers['association'] || [];
-                    const isAssocCorrect = correct === total;
-                    const allUnpaired = userPairs.length === 0;
-                    const assocFeedbackText = isAssocCorrect ? 'Correct' : (allUnpaired ? 'Non répondu' : 'Mauvaise réponse');
-                    this.displayUnifiedFeedback('association_feedback', isAssocCorrect, assocFeedbackText, correct, total, 'association');
-                }
-                break;
-
-            case 'flashcard':
-                const flashResults = this.userAnswers['flashcard'] || [];
-                const flashCartes = donnees.cartes || [];
-                total = flashCartes.length;
-                correct = flashResults.filter(r => r.savait).length;
-                flashCartes.forEach((carte, idx) => {
-                    const result = flashResults[idx];
-                    details.push({ question: carte.recto, reponse: result ? (result.savait ? 'Je savais' : 'Je ne savais pas') : 'Non évalué', attendu: carte.verso, correct: result ? result.savait : false });
-                });
-                break;
-        }
+        const handler = dispatchMap[format];
+        const { correct, total, details } = handler
+            ? handler()
+            : { correct: 0, total: 0, details: [] };
 
         // Marquer l'étape comme validée
         this.currentEtapeValidated = true;
@@ -346,6 +80,314 @@ Object.assign(EleveConnaissances, {
             actionBar.className = 'etape-action-bar';
             actionBar.innerHTML = `<button class="btn-etape-action ${btnClass}" onclick="EleveConnaissances.${btnAction}()">${btnLabel}</button>`;
         }
+    },
+
+    _validateFormat_vraiFaux(donnees) {
+        let correct = 0;
+        let total = 0;
+        let details = [];
+
+        if (donnees.reponse !== undefined && !donnees.propositions) {
+            total = 1;
+            const answer = this.userAnswers['vf_0'];
+            const expected = donnees.reponse === true || donnees.reponse === 'vrai' ? 'vrai' : 'faux';
+            const isCorrect = answer === expected;
+            if (isCorrect) correct++;
+
+            // Construire le texte du feedback
+            let feedbackText = isCorrect ? 'Correct' : (!answer ? 'Non répondu' : 'Mauvaise réponse');
+
+            // Utiliser la fonction unifiée de feedback
+            this.displayUnifiedFeedback('feedback_vf_0', isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
+            const feedbackVF = answer === 'vrai' ? (donnees.feedback_vrai || '') : (donnees.feedback_faux || '');
+            details.push({ question: donnees.question, reponse: answer, attendu: expected, correct: isCorrect, feedbackOption: feedbackVF });
+        } else {
+            const propositions = donnees.propositions || [];
+            // Si validation question par question (carrousel), récupérer les résultats déjà stockés
+            if (this._vfResults && Object.keys(this._vfResults).length > 0) {
+                propositions.forEach((prop, idx) => {
+                    total++;
+                    const r = this._vfResults[idx];
+                    if (r) {
+                        if (r.correct) correct++;
+                        details.push(r);
+                    } else {
+                        const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
+                        details.push({ question: prop.texte, reponse: null, attendu: expected, correct: false });
+                    }
+                });
+            } else {
+                propositions.forEach((prop, idx) => {
+                    total++;
+                    const answer = this.userAnswers[`vf_${idx}`];
+                    const expected = prop.reponse === true || prop.reponse === 'vrai' ? 'vrai' : 'faux';
+                    const isCorrect = answer === expected;
+                    if (isCorrect) correct++;
+
+                    // Construire le texte du feedback
+                    let feedbackText = isCorrect ? 'Correct' : (!answer ? 'Non répondu' : 'Mauvaise réponse');
+
+                    // Utiliser la fonction unifiée de feedback
+                    this.displayUnifiedFeedback(`feedback_vf_${idx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1);
+                    const feedbackVFMulti = answer === 'vrai' ? (prop.feedback_vrai || '') : (prop.feedback_faux || '');
+                    details.push({ question: prop.texte, reponse: answer, attendu: expected, correct: isCorrect, feedbackOption: feedbackVFMulti });
+                });
+            }
+        }
+        return { correct, total, details };
+    },
+
+    _validateFormat_qcm(donnees) {
+        let correct = 0;
+        let total = 0;
+        let details = [];
+
+        // Mode multi-questions (plusieurs QCM dans une étape)
+        if (donnees.multiQuestions && donnees.multiQuestions.length > 0) {
+            // Si validation question par question (carrousel), récupérer les résultats déjà stockés
+            if (this._qcmResults && Object.keys(this._qcmResults).length > 0) {
+                donnees.multiQuestions.forEach((q, qIdx) => {
+                    total++;
+                    const r = this._qcmResults[qIdx];
+                    if (r) {
+                        if (r.correct) correct++;
+                        details.push(r);
+                    } else {
+                        // Question non validée = incorrecte
+                        const choices = q.choix || q.options || [];
+                        const correctIndices = this.getQcmCorrectIndices(q);
+                        details.push({
+                            question: q.question,
+                            reponse: null,
+                            attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
+                            correct: false
+                        });
+                    }
+                });
+            } else {
+                // Fallback : validation classique (1 seule question ou pas de carrousel)
+                donnees.multiQuestions.forEach((q, qIdx) => {
+                    total++;
+                    const choices = q.choix || q.options || [];
+                    const userAnswer = this.userAnswers[`qcm_${qIdx}`];
+
+                    const correctIndices = this.getQcmCorrectIndices(q);
+                    const isCorrect = correctIndices.includes(parseInt(userAnswer));
+                    if (isCorrect) correct++;
+
+                    // Construire le texte du feedback
+                    let feedbackText = isCorrect ? 'Correct' : (userAnswer == null ? 'Non répondu' : 'Mauvaise réponse');
+
+                    // Récupérer le feedback spécifique à l'option choisie
+                    const feedbackOption = (q.feedbacks_options && userAnswer != null) ? (q.feedbacks_options[parseInt(userAnswer)] || '') : '';
+
+                    // Utiliser la fonction unifiée de feedback
+                    this.displayUnifiedFeedback(`feedback_qcm_${qIdx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1, 'qcm');
+                    details.push({
+                        question: q.question,
+                        reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
+                        attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
+                        correct: isCorrect,
+                        feedbackOption: feedbackOption
+                    });
+                });
+            }
+        } else {
+            // Mode simple (une seule question QCM)
+            total = 1;
+            const choices = donnees.choix || donnees.options || [];
+            const userAnswer = this.userAnswers['qcm'];
+
+            const correctIndices = this.getQcmCorrectIndices(donnees);
+            if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
+
+            // Construire le texte du feedback
+            let feedbackText = correct === 1 ? 'Correct' : (userAnswer == null ? 'Non répondu' : 'Mauvaise réponse');
+
+            // Récupérer le feedback spécifique à l'option choisie
+            const feedbackOption = (donnees.feedbacks_options && userAnswer != null) ? (donnees.feedbacks_options[parseInt(userAnswer)] || '') : '';
+
+            // Utiliser la fonction unifiée de feedback
+            this.displayUnifiedFeedback('feedback_qcm', correct === 1, feedbackText, correct, 1, 'qcm');
+            details.push({
+                question: donnees.question,
+                reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
+                attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
+                correct: correct === 1,
+                feedbackOption: feedbackOption
+            });
+        }
+        return { correct, total, details };
+    },
+
+    _validateFormat_timeline(donnees) {
+        let correct = 0;
+        let total = 0;
+        let details = [];
+
+        if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
+            Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
+            return { correct, total, details };
+        }
+
+        const timelineResult = (donnees.paires && donnees.mode)
+            ? this.runChronoValidation(donnees, document)
+            : this.runTimelineValidation(donnees, document);
+        correct = timelineResult.correct;
+        total = timelineResult.total;
+        details = timelineResult.details;
+
+        // Afficher le feedback minimaliste avec score pour timeline (mode drag uniquement)
+        if (!donnees.paires || !donnees.mode) {
+            const isTimelineCorrect = correct === total;
+            const feedbackText = isTimelineCorrect ? 'Correct' : 'Mauvaise réponse';
+            this.displayUnifiedFeedback('feedback_timeline', isTimelineCorrect, feedbackText, correct, total, 'chronologie');
+        }
+        return { correct, total, details };
+    },
+
+    _validateFormat_texteTrou(donnees) {
+        let correct = 0;
+        let total = 0;
+        let details = [];
+
+        if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
+            Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
+            return { correct, total, details };
+        }
+
+        const texteResult = this.runTexteValidation(donnees, document);
+        correct = texteResult.correct;
+        total = texteResult.total;
+        details = texteResult.details;
+
+        // Afficher le feedback avec score pour texte à trous
+        const isTexteTrousCorrect = correct === total;
+        const allTrousEmpty = details.every(d => !d.reponse || d.reponse.trim() === '');
+        const texteTrousTexte = isTexteTrousCorrect ? 'Correct' : (allTrousEmpty ? 'Non répondu' : 'Mauvaise réponse');
+        this.displayUnifiedFeedback('feedback_texte_trous', isTexteTrousCorrect, texteTrousTexte, correct, total, 'chronologie');
+        return { correct, total, details };
+    },
+
+    _validateFormat_carte(donnees) {
+        let correct = 0;
+        let total = 0;
+        let details = [];
+
+        if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
+            Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
+            return { correct, total, details };
+        }
+
+        const carteResult = this.runCarteValidation(donnees, document);
+        correct = carteResult.correct;
+        total = carteResult.total;
+        details = carteResult.details;
+
+        // Feedback visuel sur les answerItems (liste de réponses, propre au mode single)
+        (donnees.marqueurs || []).forEach((m, idx) => {
+            const answerItem = document.querySelector(`.carte-answer-item[data-index="${idx}"]`);
+            if (!answerItem) return;
+            const d = details[idx];
+            answerItem.classList.add(d && d.correct ? 'correct' : 'incorrect');
+        });
+
+        // Afficher le feedback avec score pour carte
+        const isCarteCorrect = correct === total;
+        const allMarkersEmpty = details.every(d => !d.reponse);
+        const carteTexte = isCarteCorrect ? 'Correct' : (allMarkersEmpty ? 'Non répondu' : 'Mauvaise réponse');
+        this.displayUnifiedFeedback('feedback_carte', isCarteCorrect, carteTexte, correct, total, 'chronologie');
+        return { correct, total, details };
+    },
+
+    _validateFormat_questionOuverte(donnees) {
+        let correct = 0;
+        let total = 0;
+        let details = [];
+
+        // Multi-questions avec résultats pré-validés
+        if (donnees.multiQuestions && donnees.multiQuestions.length > 0 && this._qoResults && Object.keys(this._qoResults).length > 0) {
+            donnees.multiQuestions.forEach((q, qIdx) => {
+                total++;
+                const r = this._qoResults[qIdx];
+                if (r) {
+                    if (r.correct) correct++;
+                    details.push(r);
+                } else {
+                    details.push({ question: q.question, reponse: null, attendu: (q.reponses_acceptees || [])[0] || '', correct: false });
+                }
+            });
+        } else {
+            // Format simple (une seule question)
+            total = 1;
+            const qoAnswer = this.userAnswers['question_ouverte'];
+            const qoReponsesAcceptees = donnees.reponses_acceptees || [];
+            const qoStricte = donnees.comparaison_stricte || false;
+            const qoFeedbackEl = document.getElementById('feedback_question_ouverte');
+            const qoInput = document.getElementById('questionOuverteReponse');
+
+            let qoCorrect = false;
+            if (qoAnswer) {
+                qoCorrect = qoReponsesAcceptees.some(rep => this.compareAnswers(qoAnswer, rep, qoStricte));
+            }
+            if (qoCorrect) correct = 1;
+
+            if (qoInput) {
+                qoInput.classList.remove('correct', 'incorrect');
+                qoInput.classList.add(qoCorrect ? 'correct' : 'incorrect');
+            }
+
+            if (qoFeedbackEl) {
+                // Construire le texte du feedback
+                let feedbackText = qoCorrect ? 'Correct' : (!qoAnswer || qoAnswer.trim() === '' ? 'Non répondu' : 'Mauvaise réponse');
+
+                // Utiliser la fonction unifiée de feedback
+                this.displayUnifiedFeedback('feedback_question_ouverte', qoCorrect, feedbackText, qoCorrect ? 1 : 0, 1);
+            }
+            details.push({ question: donnees.question, reponse: qoAnswer, attendu: qoReponsesAcceptees[0] || '', correct: qoCorrect });
+        }
+        return { correct, total, details };
+    },
+
+    _validateFormat_association(donnees) {
+        let correct = 0;
+        let total = 0;
+        let details = [];
+
+        if (this._multiFormatState && this._multiFormatState.results && Object.keys(this._multiFormatState.results).length > 0) {
+            Object.entries(this._multiFormatState.results).forEach(([qIdx, r]) => { total += r.total; correct += r.correct; r.details.forEach(d => details.push({ ...d, questionIndex: parseInt(qIdx) })); });
+            return { correct, total, details };
+        }
+
+        const assocResult = this.runAssociationValidation(donnees, document);
+        correct = assocResult.correct;
+        total = assocResult.total;
+        details = assocResult.details;
+
+        // Désactiver l'interaction sur les chips
+        const chipsZone = document.querySelector('#associationChips');
+        if (chipsZone) chipsZone.classList.add('disabled');
+
+        // Afficher le feedback avec score
+        const userPairs = this.userAnswers['association'] || [];
+        const isAssocCorrect = correct === total;
+        const allUnpaired = userPairs.length === 0;
+        const assocFeedbackText = isAssocCorrect ? 'Correct' : (allUnpaired ? 'Non répondu' : 'Mauvaise réponse');
+        this.displayUnifiedFeedback('association_feedback', isAssocCorrect, assocFeedbackText, correct, total, 'association');
+        return { correct, total, details };
+    },
+
+    _validateFormat_flashcard(donnees) {
+        const flashResults = this.userAnswers['flashcard'] || [];
+        const flashCartes = donnees.cartes || [];
+        const total = flashCartes.length;
+        const correct = flashResults.filter(r => r.savait).length;
+        const details = [];
+        flashCartes.forEach((carte, idx) => {
+            const result = flashResults[idx];
+            details.push({ question: carte.recto, reponse: result ? (result.savait ? 'Je savais' : 'Je ne savais pas') : 'Non évalué', attendu: carte.verso, correct: result ? result.savait : false });
+        });
+        return { correct, total, details };
     },
 
     /**
