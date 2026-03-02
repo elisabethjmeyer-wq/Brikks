@@ -6,6 +6,29 @@
 
 Object.assign(EleveConnaissances, {
 
+    /**
+     * Normalise les données brutes de plusieurs questions en un objet unifié
+     * consommable par chaque renderer.
+     *
+     * C'est le point d'entrée unique entre les données Sheets et les renderers :
+     * chaque renderer ne doit lire que les champs produits ici, jamais les données
+     * brutes de `questionContents`.
+     *
+     * @param {string} format           - Code du format normalisé (ex. 'qcm', 'vrai_faux', 'timeline'…)
+     * @param {Array<Object>} questionContents - Tableau d'objets question issus du cache Sheets.
+     *   Chaque objet a la forme `{ id, donnees: Object }` où `donnees` est le champ JSON
+     *   de la feuille QuestionsConnaissances déjà parsé.
+     * @returns {Object} Objet normalisé dont la structure dépend du format :
+     *   - `vrai_faux`       → `{ propositions: [{id, texte, reponse, feedback_vrai, feedback_faux}] }`
+     *   - `qcm`             → `{ multiQuestions: [{id, question, choix, reponse, reponses_correctes, multiple, …}] }`
+     *   - `timeline`        → `{ multiQuestions: [{id, consigne, cartes, …}] }`
+     *   - `association`     → `{ multiQuestions: [{id, consigne, paires}] }`
+     *   - `texte_trou`      → `{ multiQuestions: [{id, texte, mots, trous}] }`
+     *   - `carte`           → `{ multiQuestions: [{id, consigne, image_url, marqueurs}] }`
+     *   - `question_ouverte`→ `{ multiQuestions: [{id, question, reponses_acceptees, comparaison_stricte, …}] }`
+     *   - `flashcard`       → `{ consigne, cartes: [{recto, verso}] }` (cartes agrégées de toutes les questions)
+     *   - autres formats    → `donnees` brutes de la première question
+     */
     combineQuestionsData(format, questionContents) {
         Logger.debug('EleveConnaissances', 'combineQuestionsData', { format, questionCount: questionContents.length });
 
@@ -117,10 +140,24 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
-     * Render Vrai/Faux questions
-     * Supporte deux formats:
-     * - Simple: {question, reponse} - une seule question
-     * - Multi: {propositions: [{texte, reponse}, ...]} - plusieurs propositions
+     * Rend le format Vrai/Faux.
+     *
+     * Supporte deux modes :
+     * - **Simple** : `donnees.reponse` est défini et `donnees.propositions` est absent.
+     *   Affiche une seule proposition dont le texte vient de `donnees.question`.
+     * - **Multi** : `donnees.propositions` est un tableau. Affiche les propositions une
+     *   par une avec navigation (carrousel interne).
+     *
+     * @param {Object}   donnees                  - Données normalisées par combineQuestionsData()
+     * @param {string}   [donnees.question]        - Texte de la proposition (mode simple)
+     * @param {boolean}  [donnees.reponse]         - Réponse attendue true/false (mode simple)
+     * @param {Array<{texte: string, reponse: boolean, feedback_vrai: string, feedback_faux: string}>} [donnees.propositions]
+     *   Liste des propositions (mode multi, produit par combineQuestionsData)
+     * @param {Array} questions - Liste des questions de l'étape (non utilisé directement)
+     * @sideeffect userAnswers - Écrit les clés suivantes via saveAnswer() (déclenché par les inputs radio) :
+     *   - `'vf_0'`   → `'vrai'|'faux'` (mode simple, index toujours 0)
+     *   - `'vf_N'`   → `'vrai'|'faux'` (mode multi, N = index 0-based de la proposition)
+     * @returns {string} HTML du renderer
      */
     renderVraiFaux(donnees, questions) {
         const questionText = donnees.question || donnees.enonce || '';
@@ -199,10 +236,36 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
-     * Render QCM questions
-     * Supporte:
-     * - Format simple: {question, choix, reponse}
-     * - Format multi: {multiQuestions: [{question, choix, reponse}, ...]}
+     * Rend le format QCM (choix unique ou multiple).
+     *
+     * Supporte deux modes :
+     * - **Multi** (cas normal) : `donnees.multiQuestions` produit par combineQuestionsData.
+     *   Affiche les questions une par une avec navigation et validation individuelle.
+     * - **Simple** (compatibilité legacy) : `donnees.question` + `donnees.choix` directement.
+     *
+     * Les choix sont mélangés aléatoirement à l'affichage ; les index originaux sont
+     * conservés dans les `value` des inputs pour permettre la validation.
+     *
+     * @param {Object}  donnees                   - Données normalisées par combineQuestionsData()
+     * @param {Array<{
+     *   id: string,
+     *   question: string,
+     *   choix: Array<string|{texte: string}>,
+     *   reponse: number|null,
+     *   reponses_correctes: number[],
+     *   multiple: boolean,
+     *   feedbacks_options: Array,
+     *   feedback_correct: string,
+     *   feedback_incorrect: string
+     * }>}              [donnees.multiQuestions]   - Questions QCM (mode multi, produit par combineQuestionsData)
+     * @param {string}  [donnees.question]         - Énoncé (mode simple)
+     * @param {Array}   [donnees.choix]            - Options (mode simple, alias `options` accepté)
+     * @param {number|null} [donnees.reponse]      - Index de la bonne réponse (mode simple, choix unique)
+     * @param {boolean} [donnees.multiple]         - true si réponse multiple autorisée
+     * @param {Array} questions - Liste des questions de l'étape (non utilisé directement)
+     * @sideeffect userAnswers - Écrit les clés suivantes via saveAnswer() (déclenché par les inputs) :
+     *   - `'qcm_N'` → index (string) du choix sélectionné, N = index 0-based de la question
+     * @returns {string} HTML du renderer
      */
     renderQCM(donnees, questions) {
         // Format multi-questions (plusieurs QCM dans une étape)
@@ -293,10 +356,29 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
-     * Render Chronologie (frise chronologique)
-     * Format admin: {consigne, mode, paires: [{date, evenement, reponses_acceptees?}, ...]}
-     * - mode 'date' : L'événement est affiché, l'élève trouve la date
-     * - mode 'evenement' : La date est affichée, l'élève trouve l'événement
+     * Rend le format Chronologie (frise chronologique à compléter).
+     *
+     * Deux modes selon `donnees.mode` :
+     * - **`'date'`** (défaut) : l'événement est affiché, l'élève saisit la date.
+     * - **`'evenement'`** : la date est affichée, l'élève saisit l'événement.
+     *
+     * Les événements sont triés chronologiquement avant affichage via `sortEventsByDate()`.
+     * Si `donnees.multiQuestions` contient plusieurs frises, délègue à `renderMultiFormat()`.
+     *
+     * @param {Object}  donnees                    - Données normalisées par combineQuestionsData()
+     * @param {string}  [donnees.consigne]          - Texte d'instruction affiché au-dessus de la frise
+     * @param {string}  [donnees.mode]              - `'date'` ou `'evenement'` (défaut : `'date'`)
+     * @param {Array<{date: string|number, evenement: string, reponses_acceptees?: string[]}>} [donnees.paires]
+     *   Paires date/événement (alias `evenements` accepté)
+     * @param {Array}   [donnees.multiQuestions]    - Plusieurs frises (délègue à renderMultiFormat)
+     * @param {Array} questions - Liste des questions de l'étape (non utilisé directement)
+     * @sideeffect _answerStore - Écrit les réponses correctes via storeAnswer() :
+     *   - `'chrono_date_N'`  → string — date attendue pour le point N (mode `'date'`)
+     *   - `'chrono_evt_N'`   → string — événement attendu pour le point N (mode `'evenement'`)
+     *   N correspond à l'index 0-based dans le tableau trié par date.
+     * @sideeffect userAnswers - Les saisies de l'élève sont stockées via saveChronoAnswer() dans
+     *   `userAnswers['chrono'][N] = { type: 'date'|'evenement', value: string }`
+     * @returns {string} HTML du renderer
      */
     renderChronologie(donnees, questions) {
         // Multi-question : carousel render-on-demand
@@ -400,7 +482,24 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
-     * Render Timeline (cartes draggables avec image de fond optionnelle par carte)
+     * Rend le format Timeline (cartes à replacer dans l'ordre chronologique par drag & drop).
+     *
+     * L'ordre de création des cartes dans le Sheets est l'ordre correct.
+     * Les cartes sont mélangées aléatoirement (Fisher-Yates) à l'affichage.
+     * Si `donnees.multiQuestions` contient plusieurs timelines, délègue à `renderMultiFormat()`.
+     *
+     * @param {Object}  donnees                   - Données normalisées par combineQuestionsData()
+     * @param {string}  [donnees.consigne]         - Texte d'instruction (non affiché actuellement,
+     *   l'instruction est fixe : "Replacez les événements dans l'ordre chronologique…")
+     * @param {Array<{titre: string, image_url?: string}>} [donnees.cartes]
+     *   Cartes à ordonner ; leur index 0-based dans ce tableau définit l'ordre correct attendu.
+     * @param {Array}   [donnees.multiQuestions]   - Plusieurs timelines (délègue à renderMultiFormat)
+     * @param {Array} questions - Liste des questions de l'étape (non utilisé directement)
+     * @sideeffect this.timelineCartes - Stocke le tableau original des cartes (référence pour la validation)
+     * @sideeffect userAnswers - `userAnswers['timeline_order']` → Array de `{ originalIndex: number, titre: string }`
+     *   représentant l'ordre courant des cartes dans le DOM, mis à jour par saveTimelineOrder()
+     *   après chaque drag & drop.
+     * @returns {string} HTML du renderer
      */
     renderTimeline(donnees, questions) {
         // Multi-question : carousel render-on-demand
@@ -594,7 +693,25 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
-     * Render Texte à trous
+     * Rend le format Texte à trous.
+     *
+     * Les trous sont détectés par le motif `{mot}` dans `donnees.texte`.
+     * Chaque occurrence est remplacée par un `<input>` numéroté séquentiellement (trou_0, trou_1, …).
+     * Le mot extrait entre accolades est stocké comme réponse attendue dans `_answerStore`.
+     * Si `donnees.mots` est fourni, une barre de mots proposés (drag & drop) est affichée au-dessus.
+     * Si `donnees.multiQuestions` contient plusieurs textes, délègue à `renderMultiFormat()`.
+     *
+     * @param {Object}    donnees                  - Données normalisées par combineQuestionsData()
+     * @param {string}    [donnees.texte]           - Texte contenant les trous sous la forme `{mot}`
+     * @param {string[]}  [donnees.mots]            - Liste de mots proposés à placer (mode liste, optionnel)
+     * @param {Array<{wordIndex: number, reponse: string, alternatives: string[]}>} [donnees.trous]
+     *   Métadonnées des trous (réservé pour usage futur, non utilisé par le renderer)
+     * @param {Array}     [donnees.multiQuestions]  - Plusieurs textes à trous (délègue à renderMultiFormat)
+     * @param {Array} questions - Liste des questions de l'étape (non utilisé directement)
+     * @sideeffect _answerStore - Écrit les réponses correctes via storeAnswer() :
+     *   - `'trou_N'` → string — mot attendu pour le trou N (extrait de `{mot}` dans le texte),
+     *     N = index 0-based dans l'ordre d'apparition des trous dans le texte.
+     * @returns {string} HTML du renderer
      */
     renderTexteTrous(donnees, questions) {
         // Multi-question : carousel render-on-demand
@@ -641,8 +758,30 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
-     * Render Association (matching pairs)
-     * Format: {consigne, paires: [{element1, element2}, ...]}
+     * Rend le format Association (appariement de paires).
+     *
+     * Affiche deux groupes d'éléments : une grille (haut) et des chips (bas).
+     * L'élève clique sur un élément de chaque groupe pour créer une paire.
+     * Le layout (quel côté va en grille) est déterminé automatiquement selon la présence d'images.
+     * Si `donnees.multiQuestions` contient plusieurs associations, délègue à `renderMultiFormat()`.
+     *
+     * @param {Object}  donnees                   - Données normalisées par combineQuestionsData()
+     * @param {string}  [donnees.consigne]         - Texte d'instruction (défaut : "Associez les éléments…")
+     * @param {Array<{
+     *   element1: string,
+     *   element1_type?: 'text'|'image',
+     *   element2: string,
+     *   element2_type?: 'text'|'image'
+     * }>}              [donnees.paires]           - Paires à apparier
+     * @param {Array}   [donnees.multiQuestions]   - Plusieurs associations (délègue à renderMultiFormat)
+     * @param {Array} questions - Liste des questions de l'étape (non utilisé directement)
+     * @sideeffect this.associationPairs  - Réinitialisé à `[]` lors du rendu ; mis à jour par
+     *   selectAssociationItem() au fur et à mesure que l'élève crée des paires.
+     * @sideeffect this._assocGridSide / this._assocChipSide - Mémorisent quel côté (gauche/droite)
+     *   est affiché en grille et en chips, pour la validation.
+     * @sideeffect userAnswers - `userAnswers['association']` → Array de `{ gauche, droite, pairNum }`
+     *   mis à jour via saveAnswer() à chaque action de l'élève.
+     * @returns {string} HTML du renderer
      */
     renderAssociation(donnees, questions) {
         // Multi-question : carousel render-on-demand
@@ -853,9 +992,32 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
-     * Render Carte cliquable (localisation sur image)
-     * Nouvelle version: numéros sur la carte, popup pour répondre
-     * Format: {consigne, image_url, marqueurs: [{id, x, y, reponse, reponses_acceptees?}, ...]}
+     * Rend le format Carte cliquable (localisation sur image).
+     *
+     * Affiche une image avec des marqueurs numérotés positionnés en pourcentage (x%, y%).
+     * L'élève clique sur un numéro → popup de saisie → réponse stockée dans `userAnswers`.
+     * Les réponses correctes sont pré-stockées dans `_answerStore` pour la validation.
+     * Si `donnees.multiQuestions` contient plusieurs cartes, délègue à `renderMultiFormat()`.
+     *
+     * @param {Object}  donnees                   - Données normalisées par combineQuestionsData()
+     * @param {string}  [donnees.consigne]         - Texte d'instruction affiché au-dessus de la carte
+     * @param {string}  [donnees.image_url]        - URL de l'image de fond (alias `image` accepté)
+     * @param {Array<{
+     *   id: string,
+     *   x: number,
+     *   y: number,
+     *   reponse: string,
+     *   reponses_acceptees?: string[]
+     * }>}              [donnees.marqueurs]        - Marqueurs à localiser ; x/y en pourcentage de l'image
+     * @param {Array}   [donnees.multiQuestions]   - Plusieurs cartes (délègue à renderMultiFormat)
+     * @param {Array} questions - Liste des questions de l'étape (non utilisé directement)
+     * @sideeffect _answerStore - Écrit les réponses correctes via storeAnswer() :
+     *   - `'carte_marker_N'` → string — réponse attendue pour le marqueur N,
+     *     N = index 0-based dans `donnees.marqueurs`.
+     * @sideeffect this.carteMarqueurs - Stocke le tableau des marqueurs (référence pour la validation)
+     * @sideeffect userAnswers - `userAnswers['carte_N']` → string (réponse saisie par l'élève
+     *   pour le marqueur N), mis à jour via submitCarteAnswer() lors de la validation du popup.
+     * @returns {string} HTML du renderer
      */
     renderCarte(donnees, questions) {
         // Multi-question : carousel render-on-demand
@@ -1122,9 +1284,24 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
-     * Render Flashcard
-     * Format: {consigne, cartes: [{recto, verso}]}
-     * Auto-évaluation: l'élève voit le recto, retourne la carte, puis dit s'il savait ou non
+     * Rend le format Flashcard (auto-évaluation recto/verso).
+     *
+     * L'élève retourne chaque carte et déclare s'il savait la réponse ou non.
+     * Quand toutes les cartes ont été évaluées, appelle directement `validateCurrentEtape()`.
+     * Il n'y a pas de score binaire correct/incorrect : la progression est calculée selon
+     * la proportion de cartes déclarées réussies.
+     *
+     * @param {Object}  donnees                  - Données normalisées par combineQuestionsData()
+     * @param {string}  [donnees.consigne]        - Texte d'instruction affiché au-dessus des cartes
+     * @param {Array<{recto: string, verso: string}>} [donnees.cartes]
+     *   Cartes à afficher (agrégées depuis toutes les questions par combineQuestionsData ;
+     *   les items sans champ `cartes` sont transformés en `{ titre, contenu }` et doivent
+     *   être remappés vers `{ recto, verso }` côté Sheets)
+     * @param {Array} questions - Liste des questions de l'étape (non utilisé directement)
+     * @sideeffect this.flashcardState - Initialisé avec `{ currentIndex, total, cartes, results, flipped, done }`
+     * @sideeffect userAnswers - `userAnswers['flashcard']` → Array de `{ recto, verso, savait: boolean }`
+     *   mis à jour via evaluateFlashcard() après chaque carte.
+     * @returns {string} HTML du renderer
      */
     renderFlashcard(donnees, questions) {
         const consigne = donnees.consigne || '';
@@ -1295,8 +1472,34 @@ Object.assign(EleveConnaissances, {
     },
 
     /**
-     * Render Question ouverte
-     * Format: {question, reponses_acceptees: [...], feedback_correct?, feedback_incorrect?}
+     * Rend le format Question ouverte (saisie libre comparée à une liste de réponses acceptées).
+     *
+     * Supporte deux modes :
+     * - **Multi** (cas normal) : `donnees.multiQuestions` produit par combineQuestionsData.
+     *   Affiche les questions une par une avec navigation et validation individuelle.
+     * - **Simple** (compatibilité) : `donnees.question` + `donnees.reponses_acceptees` directement.
+     *
+     * La validation est effectuée par `eleve-connaissances-validation.js` qui lit
+     * `userAnswers` et compare les saisies aux `reponses_acceptees` via `compareAnswers()`.
+     *
+     * @param {Object}    donnees                      - Données normalisées par combineQuestionsData()
+     * @param {Array<{
+     *   id: string,
+     *   question: string,
+     *   reponses_acceptees: string[],
+     *   comparaison_stricte: boolean,
+     *   feedback_correct?: string,
+     *   feedback_incorrect?: string
+     * }>}                [donnees.multiQuestions]      - Questions ouvertes (mode multi, produit par combineQuestionsData)
+     * @param {string}    [donnees.question]            - Énoncé de la question (mode simple)
+     * @param {string[]}  [donnees.reponses_acceptees]  - Réponses valides (mode simple)
+     * @param {boolean}   [donnees.comparaison_stricte] - true = comparaison exacte,
+     *   false = normalisation souple via compareAnswers() (défaut : false)
+     * @param {Array} questions - Liste des questions de l'étape (non utilisé directement)
+     * @sideeffect userAnswers - Écrit les clés suivantes via saveAnswer() (déclenché par oninput) :
+     *   - `'question_ouverte'`    → string (mode simple)
+     *   - `'question_ouverte_N'` → string (mode multi, N = index 0-based de la question)
+     * @returns {string} HTML du renderer
      */
     renderQuestionOuverte(donnees, questions) {
         // Format multi-questions
