@@ -747,7 +747,7 @@ Object.assign(EleveConnaissances, {
     },
 
     /** Validation association */
-    runAssociationValidation(qData, container) {
+    runAssociationValidation(qData, container, showCorrection = false) {
         container = container || document.getElementById('multiFormatContent');
         const assocPaires = qData.paires || [];
         let correct = 0;
@@ -801,34 +801,36 @@ Object.assign(EleveConnaissances, {
             return this._assocChipSide === 'gauche' ? p.element1 : p.element2;
         };
 
-        container.querySelectorAll('.association-grid-card').forEach(card => {
-            const cardId = card.dataset.id;
-            const correctText = getChipText(cardId);
-            const label = card.querySelector('.assoc-paired-label');
-            if (!label) return;
+        if (showCorrection) {
+            container.querySelectorAll('.association-grid-card').forEach(card => {
+                const cardId = card.dataset.id;
+                const correctText = getChipText(cardId);
+                const label = card.querySelector('.assoc-paired-label');
+                if (!label) return;
 
-            label.classList.remove('hidden');
-            const userPair = userPairs.find(up => {
-                const gId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
-                return String(gId) === String(cardId);
-            });
+                label.classList.remove('hidden');
+                const userPair = userPairs.find(up => {
+                    const gId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
+                    return String(gId) === String(cardId);
+                });
 
-            if (userPair) {
-                const chipId = this._assocChipSide === 'gauche' ? userPair.gauche : userPair.droite;
-                const isCorrect = String(userPair.gauche) === String(userPair.droite);
-                const studentText = getChipText(chipId);
-                if (isCorrect) {
-                    label.className = 'assoc-paired-label assoc-label-success';
-                    label.innerHTML = `<span class="assoc-answer-ok">✓ ${this.escapeHtml(correctText)}</span>`;
+                if (userPair) {
+                    const chipId = this._assocChipSide === 'gauche' ? userPair.gauche : userPair.droite;
+                    const isCorrect = String(userPair.gauche) === String(userPair.droite);
+                    const studentText = getChipText(chipId);
+                    if (isCorrect) {
+                        label.className = 'assoc-paired-label assoc-label-success';
+                        label.innerHTML = `<span class="assoc-answer-ok">✓ ${this.escapeHtml(correctText)}</span>`;
+                    } else {
+                        label.className = 'assoc-paired-label assoc-label-error';
+                        label.innerHTML = `<span class="assoc-answer-wrong">✗ ${this.escapeHtml(studentText)}</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+                    }
                 } else {
                     label.className = 'assoc-paired-label assoc-label-error';
-                    label.innerHTML = `<span class="assoc-answer-wrong">✗ ${this.escapeHtml(studentText)}</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+                    label.innerHTML = `<span class="assoc-answer-wrong">✗ Non répondu</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
                 }
-            } else {
-                label.className = 'assoc-paired-label assoc-label-error';
-                label.innerHTML = `<span class="assoc-answer-wrong">✗ Non répondu</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
-            }
-        });
+            });
+        }
 
         return { correct, total, details };
     },

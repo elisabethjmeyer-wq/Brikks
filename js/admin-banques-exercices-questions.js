@@ -327,7 +327,15 @@ Object.assign(AdminBanquesExercices, {
             const qType = question.type === 'chronologie' ? 'timeline' : (question.type || 'qcm');
             typeSelect.value = qType;
             if (titreProfInput) titreProfInput.value = question.titre_prof || '';
-            this.renderQuestionBuilder(question.type, question.donnees);
+            let donneesParsed = {};
+            try {
+                donneesParsed = (typeof question.donnees === 'string')
+                    ? (JSON.parse(question.donnees || '{}') || {})
+                    : (question.donnees || {});
+            } catch(e) {
+                donneesParsed = {};
+            }
+            this.renderQuestionBuilder(qType, donneesParsed);
         } else {
             typeSelect.value = 'qcm';
             if (titreProfInput) titreProfInput.value = '';
@@ -343,6 +351,7 @@ Object.assign(AdminBanquesExercices, {
     },
 
     renderQuestionBuilder(type, data = {}) {
+        data = data || {};
         const container = document.getElementById('questionBuilder');
         if (!container) return;
 
