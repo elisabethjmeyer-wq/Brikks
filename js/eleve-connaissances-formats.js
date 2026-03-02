@@ -15,8 +15,8 @@ Object.assign(EleveConnaissances, {
                 return {
                     propositions: questionContents.map((qc, idx) => ({
                         id: qc.id,
-                        texte: qc.donnees.question || qc.donnees.enonce || `Question ${idx + 1}`,
-                        reponse: qc.donnees.reponse,
+                        texte: qc.donnees.question || qc.donnees.enonce || qc.donnees.texte || `Question ${idx + 1}`,
+                        reponse: qc.donnees.reponse ?? qc.donnees.reponse_correcte ?? null,
                         feedback: qc.donnees.feedback,
                         feedback_vrai: qc.donnees.feedback_vrai,
                         feedback_faux: qc.donnees.feedback_faux
@@ -29,10 +29,10 @@ Object.assign(EleveConnaissances, {
                 return {
                     multiQuestions: questionContents.map((qc, idx) => ({
                         id: qc.id,
-                        question: qc.donnees.question || qc.donnees.enonce || `Question ${idx + 1}`,
+                        question: qc.donnees.question || qc.donnees.enonce || qc.donnees.titre || `Question ${idx + 1}`,
                         choix: qc.donnees.choix || qc.donnees.options || [],
-                        reponse: qc.donnees.reponse || qc.donnees.reponse_correcte,
-                        reponses_correctes: qc.donnees.reponses_correctes,
+                        reponse: qc.donnees.reponse ?? qc.donnees.reponse_correcte ?? null,
+                        reponses_correctes: qc.donnees.reponses_correctes || [],
                         multiple: qc.donnees.multiple || false,
                         feedbacks_options: qc.donnees.feedbacks_options,
                         feedback_correct: qc.donnees.feedback_correct,
@@ -44,7 +44,8 @@ Object.assign(EleveConnaissances, {
                 return {
                     multiQuestions: questionContents.map(qc => ({
                         id: qc.id,
-                        ...qc.donnees
+                        ...qc.donnees,
+                        consigne: qc.donnees.consigne || qc.donnees.question || ''
                     }))
                 };
 
@@ -53,7 +54,7 @@ Object.assign(EleveConnaissances, {
                 return {
                     multiQuestions: questionContents.map(qc => ({
                         id: qc.id,
-                        consigne: qc.donnees.consigne,
+                        consigne: qc.donnees.consigne || qc.donnees.question || '',
                         paires: qc.donnees.paires || []
                     }))
                 };
@@ -62,7 +63,7 @@ Object.assign(EleveConnaissances, {
                 return {
                     multiQuestions: questionContents.map(qc => ({
                         id: qc.id,
-                        texte: qc.donnees.texte || qc.donnees.question || '',
+                        texte: qc.donnees.texte || qc.donnees.question || qc.donnees.texte_original || '',
                         mots: qc.donnees.mots || [],
                         trous: qc.donnees.trous || []
                     }))
@@ -73,8 +74,8 @@ Object.assign(EleveConnaissances, {
                 return {
                     multiQuestions: questionContents.map(qc => ({
                         id: qc.id,
-                        consigne: qc.donnees.consigne,
-                        image_url: qc.donnees.image_url,
+                        consigne: qc.donnees.consigne || qc.donnees.question || '',
+                        image_url: qc.donnees.image_url || qc.donnees.image || '',
                         marqueurs: qc.donnees.marqueurs || []
                     }))
                 };
@@ -83,8 +84,8 @@ Object.assign(EleveConnaissances, {
                 return {
                     multiQuestions: questionContents.map((qc, idx) => ({
                         id: qc.id,
-                        question: qc.donnees.question || qc.donnees.enonce || `Question ${idx + 1}`,
-                        reponses_acceptees: qc.donnees.reponses_acceptees || [],
+                        question: qc.donnees.question || qc.donnees.enonce || qc.donnees.titre || `Question ${idx + 1}`,
+                        reponses_acceptees: qc.donnees.reponses_acceptees || qc.donnees.reponses || [],
                         comparaison_stricte: qc.donnees.comparaison_stricte || false,
                         feedback_correct: qc.donnees.feedback_correct,
                         feedback_incorrect: qc.donnees.feedback_incorrect
@@ -95,7 +96,14 @@ Object.assign(EleveConnaissances, {
                 // Combiner toutes les cartes
                 const allCartes = [];
                 questionContents.forEach(qc => {
-                    if (qc.donnees.cartes) allCartes.push(...qc.donnees.cartes);
+                    if (qc.donnees.cartes?.length) {
+                        allCartes.push(...qc.donnees.cartes);
+                    } else {
+                        allCartes.push({
+                            titre: qc.donnees.titre || qc.donnees.question || '',
+                            contenu: qc.donnees.contenu || qc.donnees.reponse || ''
+                        });
+                    }
                 });
                 return {
                     consigne: questionContents[0]?.donnees?.consigne || '',
