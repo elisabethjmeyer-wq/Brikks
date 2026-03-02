@@ -1776,8 +1776,8 @@
 
 .carte-marker-v2 {
     position: absolute;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     background: #3b82f6;
     border: 3px solid white;
     border-radius: 50%;
@@ -1789,6 +1789,18 @@
     cursor: pointer;
     pointer-events: auto;
     transition: all 0.2s;
+}
+
+.carte-marker-v2::before {
+    content: '';
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
 }
 
 .carte-marker-v2:hover {
@@ -1817,6 +1829,7 @@
     color: white;
     font-size: 0.85rem;
     font-weight: 700;
+    pointer-events: none;
 }
 
 /* Popup pour réponse */
