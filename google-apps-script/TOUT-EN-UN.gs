@@ -6028,85 +6028,34 @@ function createBanqueQuestions(data) {
 }
 
 /**
- * Met à jour une banque de questions
+ * Met à jour une banque de questions.
+ * Optimisé : 1 seul setValues() au lieu de N setValue().
  */
 function updateBanqueQuestions(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_QUESTIONS);
-  if (!sheet) {
-    return { success: false, error: 'Feuille non trouvée' };
-  }
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
-
-  let rowIndex = -1;
-  for (let i = 1; i < allData.length; i++) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      rowIndex = i + 1;
-      break;
-    }
-  }
-
-  if (rowIndex === -1) {
-    return { success: false, error: 'Banque non trouvée' };
-  }
-
-  const updates = ['titre', 'description', 'theme_id', 'chapitre_id', 'statut'];
-  updates.forEach(col => {
-    if (data[col] !== undefined) {
-      const colIndex = headers.indexOf(col);
-      if (colIndex >= 0) {
-        sheet.getRange(rowIndex, colIndex + 1).setValue(data[col]);
-      }
-    }
-  });
-
-  return { success: true, message: 'Banque mise à jour' };
+  return updateRowById_(SHEETS.BANQUES_QUESTIONS, data, ['titre', 'description', 'theme_id', 'chapitre_id', 'statut'], 'Banque');
 }
 
 /**
- * Supprime une banque de questions et ses questions
+ * Supprime une banque de questions et ses questions.
+ * Optimisé : 1 seule ouverture du tableur, suppression en batch par feuille.
  */
 function deleteBanqueQuestions(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var banqueId = String(data.id).trim();
 
   // 1. Supprimer les questions liées
-  const questionsSheet = ss.getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
-  if (questionsSheet) {
-    const questionsData = questionsSheet.getDataRange().getValues();
-    const questionsHeaders = questionsData[0].map(h => String(h).toLowerCase().trim());
-    const banqueIdCol = questionsHeaders.indexOf('banque_id');
+  deleteRowsByColumnValue_(ss, SHEETS.QUESTIONS_CONNAISSANCES, 'banque_id', banqueId);
 
-    for (let i = questionsData.length - 1; i >= 1; i--) {
-      if (String(questionsData[i][banqueIdCol]).trim() === String(data.id).trim()) {
-        questionsSheet.deleteRow(i + 1);
-      }
-    }
-  }
-
-  // 2. Supprimer la banque
-  const banqueSheet = ss.getSheetByName(SHEETS.BANQUES_QUESTIONS);
-  if (banqueSheet) {
-    const banqueData = banqueSheet.getDataRange().getValues();
-    const banqueHeaders = banqueData[0].map(h => String(h).toLowerCase().trim());
-    const idCol = banqueHeaders.indexOf('id');
-
-    for (let i = banqueData.length - 1; i >= 1; i--) {
-      if (String(banqueData[i][idCol]).trim() === String(data.id).trim()) {
-        banqueSheet.deleteRow(i + 1);
-        break;
-      }
-    }
-  }
+  // 2. Supprimer la banque elle-même
+  deleteRowsByColumnValue_(ss, SHEETS.BANQUES_QUESTIONS, 'id', banqueId);
 
   return { success: true, message: 'Banque supprimée' };
 }
@@ -6195,92 +6144,39 @@ function createQuestionConnaissances(data) {
 }
 
 /**
- * Met à jour une question de connaissances
+ * Met à jour une question de connaissances.
+ * Optimisé : 1 seul setValues() au lieu de N setValue().
  */
 function updateQuestionConnaissances(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
-  if (!sheet) {
-    return { success: false, error: 'Feuille non trouvée' };
-  }
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
-
-  let rowIndex = -1;
-  for (let i = 1; i < allData.length; i++) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      rowIndex = i + 1;
-      break;
-    }
-  }
-
-  if (rowIndex === -1) {
-    return { success: false, error: 'Question non trouvée' };
-  }
-
-  const updates = ['type', 'titre_prof', 'donnees', 'difficulte'];
-  updates.forEach(col => {
-    if (data[col] !== undefined) {
-      const colIndex = headers.indexOf(col);
-      if (colIndex >= 0) {
-        sheet.getRange(rowIndex, colIndex + 1).setValue(data[col]);
-      }
-    }
-  });
-
-  return { success: true, message: 'Question mise à jour' };
+  return updateRowById_(SHEETS.QUESTIONS_CONNAISSANCES, data, ['type', 'titre_prof', 'donnees', 'difficulte'], 'Question');
 }
 
 /**
- * Supprime une question de connaissances
+ * Supprime une question de connaissances.
+ * Optimisé : 1 seule ouverture du tableur, cascade batch.
  */
 function deleteQuestionConnaissances(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
-  if (!sheet) {
-    return { success: false, error: 'Feuille non trouvée' };
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var questionId = String(data.id).trim();
+
+  // CASCADE: Supprimer les références dans ETAPE_QUESTIONS_CONN
+  deleteRowsByColumnValue_(ss, SHEETS.ETAPE_QUESTIONS_CONN, 'question_id', questionId);
+
+  // Supprimer la question elle-même
+  var deleted = deleteRowsByColumnValue_(ss, SHEETS.QUESTIONS_CONNAISSANCES, 'id', questionId);
+  if (deleted === 0) {
+    return { success: false, error: 'Question non trouvée' };
   }
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
-
-  for (let i = allData.length - 1; i >= 1; i--) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      // CASCADE: Supprimer les références à cette question dans ETAPE_QUESTIONS_CONN
-      deleteEtapeQuestionsForQuestion(data.id);
-      sheet.deleteRow(i + 1);
-      return { success: true, message: 'Question supprimée' };
-    }
-  }
-
-  return { success: false, error: 'Question non trouvée' };
-}
-
-/**
- * Supprime toutes les références à une question dans ETAPE_QUESTIONS_CONN
- */
-function deleteEtapeQuestionsForQuestion(questionId) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
-  if (!sheet) return;
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const questionIdCol = headers.indexOf('question_id');
-
-  for (let i = allData.length - 1; i >= 1; i--) {
-    if (String(allData[i][questionIdCol]).trim() === String(questionId).trim()) {
-      sheet.deleteRow(i + 1);
-    }
-  }
+  return { success: true, message: 'Question supprimée' };
 }
 
 // ========================================
@@ -6358,33 +6254,15 @@ function createFormatQuestion(data) {
 }
 
 /**
- * Met à jour un format de question
+ * Met à jour un format de question.
+ * Optimisé : 1 seul setValues() au lieu de N setValue().
  */
 function updateFormatQuestion(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.FORMATS_QUESTIONS);
-  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
-
-  for (let i = 1; i < allData.length; i++) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      ['nom', 'code', 'icone', 'description', 'config_defaut', 'actif', 'ordre'].forEach(col => {
-        if (data[col] !== undefined) {
-          const colIndex = headers.indexOf(col);
-          if (colIndex >= 0) sheet.getRange(i + 1, colIndex + 1).setValue(data[col]);
-        }
-      });
-      return { success: true, message: 'Format mis à jour' };
-    }
-  }
-
-  return { success: false, error: 'Format non trouvé' };
+  return updateRowById_(SHEETS.FORMATS_QUESTIONS, data, ['nom', 'code', 'icone', 'description', 'config_defaut', 'actif', 'ordre'], 'Format');
 }
 
 // ========== BANQUES D'EXERCICES CONNAISSANCES ==========
@@ -6444,81 +6322,55 @@ function createBanqueExercicesConn(data) {
 }
 
 /**
- * Met à jour une banque d'exercices connaissances
+ * Met à jour une banque d'exercices connaissances.
+ * Optimisé : 1 seul setValues() au lieu de N setValue().
  */
 function updateBanqueExercicesConn(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES_CONN);
-  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
-
-  for (let i = 1; i < allData.length; i++) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      ['titre', 'description', 'type', 'statut', 'ordre'].forEach(col => {
-        if (data[col] !== undefined) {
-          const colIndex = headers.indexOf(col);
-          if (colIndex >= 0) sheet.getRange(i + 1, colIndex + 1).setValue(data[col]);
-        }
-      });
-      return { success: true, message: 'Banque mise à jour' };
-    }
-  }
-
-  return { success: false, error: 'Banque non trouvée' };
+  return updateRowById_(SHEETS.BANQUES_EXERCICES_CONN, data, ['titre', 'description', 'type', 'statut', 'ordre'], 'Banque');
 }
 
 /**
- * Supprime une banque d'exercices connaissances
+ * Supprime une banque d'exercices connaissances.
+ * Optimisé : cascade complète en 1 passe (1 lecture par feuille, suppressions en batch).
  */
 function deleteBanqueExercicesConn(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES_CONN);
-  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var banqueId = String(data.id).trim();
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
+  // 1. Collecter les IDs d'entraînements de cette banque
+  var entrainementIds = collectColumnValues_(ss, SHEETS.ENTRAINEMENTS_CONN, 'banque_exercice_id', banqueId, 'id');
 
-  for (let i = allData.length - 1; i >= 1; i--) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      // CASCADE: Supprimer tous les entraînements de cette banque (et leurs étapes/questions)
-      deleteEntrainementsForBanque(data.id);
-      sheet.deleteRow(i + 1);
-      return { success: true, message: 'Banque et ses entraînements supprimés' };
-    }
+  // 2. Collecter les IDs d'étapes de ces entraînements
+  var etapeIds = [];
+  if (entrainementIds.length > 0) {
+    etapeIds = collectColumnValuesMulti_(ss, SHEETS.ETAPES_CONN, 'entrainement_id', entrainementIds, 'id');
   }
 
-  return { success: false, error: 'Banque non trouvée' };
-}
-
-/**
- * Supprime tous les entraînements d'une banque (cascade)
- */
-function deleteEntrainementsForBanque(banqueId) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
-  if (!sheet) return;
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
-  const banqueCol = headers.indexOf('banque_exercice_id');
-
-  for (let i = allData.length - 1; i >= 1; i--) {
-    if (String(allData[i][banqueCol]).trim() === String(banqueId).trim()) {
-      // CASCADE: supprimer les étapes de cet entraînement (et leurs questions)
-      deleteEtapesForEntrainement(allData[i][idCol]);
-      sheet.deleteRow(i + 1);
-    }
+  // 3. Supprimer en cascade (du plus profond au plus haut)
+  if (etapeIds.length > 0) {
+    deleteRowsByColumnValueMulti_(ss, SHEETS.ETAPE_QUESTIONS_CONN, 'etape_id', etapeIds);
   }
+  if (entrainementIds.length > 0) {
+    deleteRowsByColumnValueMulti_(ss, SHEETS.ETAPES_CONN, 'entrainement_id', entrainementIds);
+    deleteRowsByColumnValueMulti_(ss, SHEETS.PROGRESSION_MEMORISATION, 'entrainement_id', entrainementIds);
+    deleteRowsByColumnValueMulti_(ss, SHEETS.ENTRAINEMENTS_CONN, 'id', entrainementIds);
+  }
+
+  // 4. Supprimer la banque
+  var deleted = deleteRowsByColumnValue_(ss, SHEETS.BANQUES_EXERCICES_CONN, 'id', banqueId);
+  if (deleted === 0) {
+    return { success: false, error: 'Banque non trouvée' };
+  }
+
+  return { success: true, message: 'Banque et ses entraînements supprimés' };
 }
 
 // ========== ENTRAINEMENTS CONNAISSANCES ==========
@@ -6580,63 +6432,46 @@ function createEntrainementConn(data) {
 }
 
 /**
- * Met à jour un entraînement connaissances
+ * Met à jour un entraînement connaissances.
+ * Optimisé : 1 seul setValues() au lieu de N setValue().
  */
 function updateEntrainementConn(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
-  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
-
-  for (let i = 1; i < allData.length; i++) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      ['titre', 'description', 'duree', 'seuil', 'statut', 'ordre'].forEach(col => {
-        if (data[col] !== undefined) {
-          const colIndex = headers.indexOf(col);
-          if (colIndex >= 0) sheet.getRange(i + 1, colIndex + 1).setValue(data[col]);
-        }
-      });
-      return { success: true, message: 'Entraînement mis à jour' };
-    }
-  }
-
-  return { success: false, error: 'Entraînement non trouvé' };
+  return updateRowById_(SHEETS.ENTRAINEMENTS_CONN, data, ['titre', 'description', 'duree', 'seuil', 'statut', 'ordre'], 'Entraînement');
 }
 
 /**
- * Supprime un entraînement connaissances
+ * Supprime un entraînement connaissances.
+ * Optimisé : cascade complète en 1 passe.
  */
 function deleteEntrainementConn(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
-  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var entrainementId = String(data.id).trim();
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
+  // 1. Collecter les IDs d'étapes
+  var etapeIds = collectColumnValues_(ss, SHEETS.ETAPES_CONN, 'entrainement_id', entrainementId, 'id');
 
-  for (let i = allData.length - 1; i >= 1; i--) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      // Supprimer aussi les étapes associées
-      deleteEtapesForEntrainement(data.id);
-      // Supprimer aussi la progression de mémorisation
-      deleteProgressionForEntrainement(data.id);
-      sheet.deleteRow(i + 1);
-      return { success: true, message: 'Entraînement supprimé' };
-    }
+  // 2. Supprimer en cascade (du plus profond au plus haut)
+  if (etapeIds.length > 0) {
+    deleteRowsByColumnValueMulti_(ss, SHEETS.ETAPE_QUESTIONS_CONN, 'etape_id', etapeIds);
+  }
+  deleteRowsByColumnValue_(ss, SHEETS.ETAPES_CONN, 'entrainement_id', entrainementId);
+  deleteRowsByColumnValue_(ss, SHEETS.PROGRESSION_MEMORISATION, 'entrainement_id', entrainementId);
+
+  // 3. Supprimer l'entraînement
+  var deleted = deleteRowsByColumnValue_(ss, SHEETS.ENTRAINEMENTS_CONN, 'id', entrainementId);
+  if (deleted === 0) {
+    return { success: false, error: 'Entraînement non trouvé' };
   }
 
-  return { success: false, error: 'Entraînement non trouvé' };
+  return { success: true, message: 'Entraînement supprimé' };
 }
 
 // ========== ETAPES CONNAISSANCES ==========
@@ -6696,87 +6531,79 @@ function createEtapeConn(data) {
 }
 
 /**
- * Met à jour une étape
+ * Met à jour une étape.
+ * Optimisé : 1 seul setValues() au lieu de N setValue().
  */
 function updateEtapeConn(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPES_CONN);
-  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
-
-  for (let i = 1; i < allData.length; i++) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      ['format_code', 'titre', 'ordre', 'mode_selection', 'banque_source_id', 'nb_questions'].forEach(col => {
-        if (data[col] !== undefined) {
-          const colIndex = headers.indexOf(col);
-          if (colIndex >= 0) sheet.getRange(i + 1, colIndex + 1).setValue(data[col]);
-        }
-      });
-      return { success: true, message: 'Étape mise à jour' };
-    }
-  }
-
-  return { success: false, error: 'Étape non trouvée' };
+  return updateRowById_(SHEETS.ETAPES_CONN, data, ['format_code', 'titre', 'ordre', 'mode_selection', 'banque_source_id', 'nb_questions'], 'Étape');
 }
 
 /**
- * Supprime une étape
+ * Supprime une étape.
+ * Optimisé : 1 seule ouverture du tableur.
  */
 function deleteEtapeConn(data) {
   if (!data.id) {
     return { success: false, error: 'id requis' };
   }
 
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheetByName(SHEETS.ETAPES_CONN);
-  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var etapeId = String(data.id).trim();
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
+  // CASCADE : supprimer les questions de l'étape
+  deleteRowsByColumnValue_(ss, SHEETS.ETAPE_QUESTIONS_CONN, 'etape_id', etapeId);
 
-  for (let i = allData.length - 1; i >= 1; i--) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      // Supprimer aussi les questions de l'étape
-      deleteEtapeQuestionsForEtape(data.id);
-      sheet.deleteRow(i + 1);
-      return { success: true, message: 'Étape supprimée' };
-    }
+  // Supprimer l'étape
+  var deleted = deleteRowsByColumnValue_(ss, SHEETS.ETAPES_CONN, 'id', etapeId);
+  if (deleted === 0) {
+    return { success: false, error: 'Étape non trouvée' };
   }
 
-  return { success: false, error: 'Étape non trouvée' };
+  return { success: true, message: 'Étape supprimée' };
 }
 
 /**
- * Met à jour l'ordre des étapes (pour drag & drop)
+ * Met à jour l'ordre des étapes (pour drag & drop).
+ * Optimisé : 1 seul setValues() pour toutes les étapes modifiées.
  */
 function updateEtapesOrdre(data) {
   if (!data.etapes || !Array.isArray(data.etapes)) {
     return { success: false, error: 'etapes array requis' };
   }
 
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPES_CONN);
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPES_CONN);
   if (!sheet) return { success: false, error: 'Feuille non trouvée' };
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
-  const ordreCol = headers.indexOf('ordre');
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var idCol = headers.indexOf('id');
+  var ordreCol = headers.indexOf('ordre');
+  if (idCol === -1 || ordreCol === -1) return { success: false, error: 'Colonnes id/ordre non trouvées' };
 
-  data.etapes.forEach(({ id, ordre }) => {
-    for (let i = 1; i < allData.length; i++) {
-      if (String(allData[i][idCol]).trim() === String(id).trim()) {
-        sheet.getRange(i + 1, ordreCol + 1).setValue(ordre);
-        break;
-      }
-    }
+  // Construire un map id → nouvel ordre
+  var ordreMap = {};
+  data.etapes.forEach(function(e) {
+    ordreMap[String(e.id).trim()] = e.ordre;
   });
+
+  // Modifier les données en mémoire
+  var modified = false;
+  for (var i = 1; i < allData.length; i++) {
+    var rowId = String(allData[i][idCol]).trim();
+    if (ordreMap[rowId] !== undefined) {
+      allData[i][ordreCol] = ordreMap[rowId];
+      modified = true;
+    }
+  }
+
+  // Écrire toute la feuille en une seule opération
+  if (modified) {
+    sheet.getRange(1, 1, allData.length, allData[0].length).setValues(allData);
+  }
 
   return { success: true, message: 'Ordre mis à jour' };
 }
@@ -6886,55 +6713,6 @@ function deleteEtapeQuestionConn(data) {
 }
 
 /**
- * Supprime toutes les questions d'une étape
- */
-function deleteEtapeQuestionsForEtape(etapeId) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
-  if (!sheet) return;
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const etapeIdCol = headers.indexOf('etape_id');
-
-  for (let i = allData.length - 1; i >= 1; i--) {
-    if (String(allData[i][etapeIdCol]).trim() === String(etapeId).trim()) {
-      sheet.deleteRow(i + 1);
-    }
-  }
-}
-
-/**
- * Nettoie les données de PROGRESSION_MEMORISATION quand un entraînement est supprimé
- * Évite les données orphelines
- */
-function deleteProgressionForEntrainement(entrainementId) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.PROGRESSION_MEMORISATION);
-  if (!sheet) return;
-
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const entrainementIdCol = headers.indexOf('entrainement_id');
-
-  if (entrainementIdCol === -1) {
-    // Colonne entrainement_id non trouvée
-    return;
-  }
-
-  // Collecter les numéros de ligne à supprimer (en sens inverse pour éviter les décalages)
-  const rowsToDelete = [];
-  for (let i = allData.length - 1; i >= 1; i--) {
-    if (String(allData[i][entrainementIdCol]).trim() === String(entrainementId).trim()) {
-      rowsToDelete.push(i + 1); // Google Sheets utilise 1-indexing
-    }
-  }
-
-  // Supprimer les lignes (déjà en sens inverse, donc pas de décalage)
-  for (const rowIndex of rowsToDelete) {
-    sheet.deleteRow(rowIndex);
-  }
-}
-
-/**
  * Remplace toutes les questions d'une étape
  */
 function setEtapeQuestionsConn(data) {
@@ -6951,8 +6729,10 @@ function setEtapeQuestionsConn(data) {
   }
 
   try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
     // Supprimer les questions existantes
-    deleteEtapeQuestionsForEtape(data.etape_id);
+    deleteRowsByColumnValue_(ss, SHEETS.ETAPE_QUESTIONS_CONN, 'etape_id', String(data.etape_id).trim());
 
     // Parser les questions si c'est une string JSON (envoyé via URL)
     var questions = data.questions;
@@ -6997,108 +6777,308 @@ function setEtapeQuestionsConn(data) {
  * Nettoie les données orphelines dans toutes les feuilles connaissances.
  * Supprime en cascade : entrainements sans banque, étapes sans entrainement,
  * liens étape-questions sans étape ou sans question valide.
+ * Optimisé : 1 seule ouverture du tableur, chaque feuille lue 1 fois.
  */
 function cleanupOrphanedData() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let cleaned = { entrainements: 0, etapes: 0, etapeQuestions: 0 };
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var cleaned = { entrainements: 0, etapes: 0, etapeQuestions: 0 };
 
   // 1. Collecter les IDs existants des banques
-  const banquesSheet = ss.getSheetByName(SHEETS.BANQUES_EXERCICES_CONN);
-  const banqueIds = new Set();
-  if (banquesSheet) {
-    const bData = banquesSheet.getDataRange().getValues();
-    const bHeaders = bData[0].map(h => String(h).toLowerCase().trim());
-    const bIdCol = bHeaders.indexOf('id');
-    for (let i = 1; i < bData.length; i++) {
-      const id = String(bData[i][bIdCol]).trim();
-      if (id) banqueIds.add(id);
-    }
-  }
+  var banqueIds = collectAllIds_(ss, SHEETS.BANQUES_EXERCICES_CONN);
 
-  // 2. Nettoyer ENTRAINEMENTS_CONN : supprimer ceux dont banque_exercice_id n'existe plus
-  const entrSheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
-  const entrainementIds = new Set();
+  // 2. Identifier les entraînements orphelins (banque_exercice_id n'existe plus)
+  var entrSheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+  var validEntrIds = new Set();
+  var orphanEntrIds = [];
   if (entrSheet) {
-    const eData = entrSheet.getDataRange().getValues();
-    const eHeaders = eData[0].map(h => String(h).toLowerCase().trim());
-    const eIdCol = eHeaders.indexOf('id');
-    const eBanqueCol = eHeaders.indexOf('banque_exercice_id');
+    var eData = entrSheet.getDataRange().getValues();
+    var eHeaders = eData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    var eIdCol = eHeaders.indexOf('id');
+    var eBanqueCol = eHeaders.indexOf('banque_exercice_id');
+    var rowsToDelete = [];
 
-    for (let i = eData.length - 1; i >= 1; i--) {
-      const banqueId = String(eData[i][eBanqueCol]).trim();
-      const entrId = String(eData[i][eIdCol]).trim();
+    for (var i = 1; i < eData.length; i++) {
+      var banqueId = String(eData[i][eBanqueCol]).trim();
+      var entrId = String(eData[i][eIdCol]).trim();
       if (!banqueId || !banqueIds.has(banqueId)) {
-        // Supprimer les étapes de cet entrainement orphelin
-        deleteEtapesForEntrainement(entrId);
-        entrSheet.deleteRow(i + 1);
-        cleaned.entrainements++;
+        orphanEntrIds.push(entrId);
+        rowsToDelete.push(i + 1);
       } else {
-        entrainementIds.add(entrId);
+        validEntrIds.add(entrId);
       }
     }
+    deleteRowNumbers_(entrSheet, rowsToDelete);
+    cleaned.entrainements = rowsToDelete.length;
   }
 
-  // 3. Nettoyer ETAPES_CONN : supprimer celles dont entrainement_id n'existe plus
-  const etapesSheet = ss.getSheetByName(SHEETS.ETAPES_CONN);
-  const etapeIds = new Set();
+  // 3. Nettoyer les étapes des entraînements orphelins + étapes dont entrainement_id n'existe plus
+  var etapesSheet = ss.getSheetByName(SHEETS.ETAPES_CONN);
+  var validEtapeIds = new Set();
+  var orphanEtapeIds = [];
   if (etapesSheet) {
-    const stData = etapesSheet.getDataRange().getValues();
-    const stHeaders = stData[0].map(h => String(h).toLowerCase().trim());
-    const stIdCol = stHeaders.indexOf('id');
-    const stEntrCol = stHeaders.indexOf('entrainement_id');
+    var stData = etapesSheet.getDataRange().getValues();
+    var stHeaders = stData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    var stIdCol = stHeaders.indexOf('id');
+    var stEntrCol = stHeaders.indexOf('entrainement_id');
+    var stRowsToDelete = [];
 
-    for (let i = stData.length - 1; i >= 1; i--) {
-      const entrId = String(stData[i][stEntrCol]).trim();
-      const etapeId = String(stData[i][stIdCol]).trim();
-      if (!entrId || !entrainementIds.has(entrId)) {
-        // Supprimer les liens question de cette étape orpheline
-        deleteEtapeQuestionsForEtape(etapeId);
-        etapesSheet.deleteRow(i + 1);
-        cleaned.etapes++;
+    for (var j = 1; j < stData.length; j++) {
+      var stEntrId = String(stData[j][stEntrCol]).trim();
+      var stEtapeId = String(stData[j][stIdCol]).trim();
+      if (!stEntrId || !validEntrIds.has(stEntrId)) {
+        orphanEtapeIds.push(stEtapeId);
+        stRowsToDelete.push(j + 1);
       } else {
-        etapeIds.add(etapeId);
+        validEtapeIds.add(stEtapeId);
       }
     }
+    deleteRowNumbers_(etapesSheet, stRowsToDelete);
+    cleaned.etapes = stRowsToDelete.length;
   }
 
-  // 4. Nettoyer ETAPE_QUESTIONS_CONN : supprimer les liens vers étapes ou questions inexistantes
-  const eqSheet = ss.getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
+  // 4. Nettoyer ETAPE_QUESTIONS_CONN : liens vers étapes ou questions inexistantes
+  var eqSheet = ss.getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
   if (eqSheet) {
-    // Collecter les IDs de questions existantes
-    const questionsSheet = ss.getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
-    const questionIds = new Set();
-    if (questionsSheet) {
-      const qData = questionsSheet.getDataRange().getValues();
-      const qHeaders = qData[0].map(h => String(h).toLowerCase().trim());
-      const qIdCol = qHeaders.indexOf('id');
-      for (let i = 1; i < qData.length; i++) {
-        const id = String(qData[i][qIdCol]).trim();
-        if (id) questionIds.add(id);
+    var questionIds = collectAllIds_(ss, SHEETS.QUESTIONS_CONNAISSANCES);
+
+    var eqData = eqSheet.getDataRange().getValues();
+    var eqHeaders = eqData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    var eqEtapeCol = eqHeaders.indexOf('etape_id');
+    var eqQuestionCol = eqHeaders.indexOf('question_id');
+    var eqRowsToDelete = [];
+
+    for (var k = 1; k < eqData.length; k++) {
+      var eqEtapeId = String(eqData[k][eqEtapeCol]).trim();
+      var eqQuestionId = String(eqData[k][eqQuestionCol]).trim();
+      if (!eqEtapeId || !validEtapeIds.has(eqEtapeId) || !eqQuestionId || !questionIds.has(eqQuestionId)) {
+        eqRowsToDelete.push(k + 1);
       }
     }
-
-    const eqData = eqSheet.getDataRange().getValues();
-    const eqHeaders = eqData[0].map(h => String(h).toLowerCase().trim());
-    const eqEtapeCol = eqHeaders.indexOf('etape_id');
-    const eqQuestionCol = eqHeaders.indexOf('question_id');
-
-    for (let i = eqData.length - 1; i >= 1; i--) {
-      const etapeId = String(eqData[i][eqEtapeCol]).trim();
-      const questionId = String(eqData[i][eqQuestionCol]).trim();
-      if (!etapeId || !etapeIds.has(etapeId) || !questionId || !questionIds.has(questionId)) {
-        eqSheet.deleteRow(i + 1);
-        cleaned.etapeQuestions++;
-      }
-    }
+    deleteRowNumbers_(eqSheet, eqRowsToDelete);
+    cleaned.etapeQuestions = eqRowsToDelete.length;
   }
 
   return {
     success: true,
-    message: `Nettoyage terminé: ${cleaned.entrainements} entraînements, ${cleaned.etapes} étapes, ${cleaned.etapeQuestions} liens question supprimés`,
+    message: 'Nettoyage terminé: ' + cleaned.entrainements + ' entraînements, ' + cleaned.etapes + ' étapes, ' + cleaned.etapeQuestions + ' liens question supprimés',
     cleaned: cleaned
   };
 }
 
+// ========================================
+// HELPERS BATCH (lecture/écriture optimisées)
+// ========================================
+
+/**
+ * Met à jour une ligne identifiée par data.id dans la feuille donnée.
+ * Écrit toutes les colonnes modifiées en 1 seul setValues() au lieu de N setValue().
+ * @param {string} sheetName
+ * @param {Object} data — doit contenir .id + les champs à modifier
+ * @param {string[]} allowedCols — liste des colonnes autorisées à modifier
+ * @param {string} entityLabel — nom pour le message d'erreur ('Banque', 'Question', etc.)
+ */
+function updateRowById_(sheetName, data, allowedCols, entityLabel) {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var idCol = headers.indexOf('id');
+  if (idCol === -1) return { success: false, error: 'Colonne id non trouvée' };
+
+  var targetId = String(data.id).trim();
+  var rowIndex = -1;
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][idCol]).trim() === targetId) {
+      rowIndex = i;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    return { success: false, error: entityLabel + ' non trouvé(e)' };
+  }
+
+  // Modifier les colonnes en mémoire
+  var modified = false;
+  for (var c = 0; c < allowedCols.length; c++) {
+    var col = allowedCols[c];
+    if (data[col] !== undefined) {
+      var colIndex = headers.indexOf(col);
+      if (colIndex >= 0) {
+        allData[rowIndex][colIndex] = data[col];
+        modified = true;
+      }
+    }
+  }
+
+  // Écrire la ligne entière en 1 appel
+  if (modified) {
+    sheet.getRange(rowIndex + 1, 1, 1, allData[rowIndex].length).setValues([allData[rowIndex]]);
+  }
+
+  return { success: true, message: entityLabel + ' mis(e) à jour' };
+}
+
+// ========================================
+// HELPERS DE SUPPRESSION EN BATCH
+// ========================================
+
+/**
+ * Supprime toutes les lignes d'une feuille où la colonne `colName` vaut `value`.
+ * @param {Spreadsheet} ss — tableur déjà ouvert
+ * @param {string} sheetName — nom de la feuille
+ * @param {string} colName — nom de la colonne (en minuscule)
+ * @param {string} value — valeur à matcher (déjà trimmée)
+ * @returns {number} nombre de lignes supprimées
+ */
+function deleteRowsByColumnValue_(ss, sheetName, colName, value) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return 0;
+
+  var allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) return 0;
+
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var col = headers.indexOf(colName);
+  if (col === -1) return 0;
+
+  var rowsToDelete = [];
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][col]).trim() === value) {
+      rowsToDelete.push(i + 1);
+    }
+  }
+
+  deleteRowNumbers_(sheet, rowsToDelete);
+  return rowsToDelete.length;
+}
+
+/**
+ * Supprime les lignes où la colonne `colName` est dans le Set de valeurs.
+ * @param {Spreadsheet} ss
+ * @param {string} sheetName
+ * @param {string} colName
+ * @param {string[]} values — tableau de valeurs à matcher
+ * @returns {number} nombre de lignes supprimées
+ */
+function deleteRowsByColumnValueMulti_(ss, sheetName, colName, values) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return 0;
+
+  var allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) return 0;
+
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var col = headers.indexOf(colName);
+  if (col === -1) return 0;
+
+  var valueSet = {};
+  for (var v = 0; v < values.length; v++) {
+    valueSet[String(values[v]).trim()] = true;
+  }
+
+  var rowsToDelete = [];
+  for (var i = 1; i < allData.length; i++) {
+    if (valueSet[String(allData[i][col]).trim()]) {
+      rowsToDelete.push(i + 1);
+    }
+  }
+
+  deleteRowNumbers_(sheet, rowsToDelete);
+  return rowsToDelete.length;
+}
+
+/**
+ * Collecte les valeurs de `returnCol` pour les lignes où `filterCol` === `filterValue`.
+ * @returns {string[]}
+ */
+function collectColumnValues_(ss, sheetName, filterCol, filterValue, returnCol) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return [];
+
+  var allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) return [];
+
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var fCol = headers.indexOf(filterCol);
+  var rCol = headers.indexOf(returnCol);
+  if (fCol === -1 || rCol === -1) return [];
+
+  var results = [];
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][fCol]).trim() === filterValue) {
+      results.push(String(allData[i][rCol]).trim());
+    }
+  }
+  return results;
+}
+
+/**
+ * Comme collectColumnValues_ mais filtre par un ensemble de valeurs.
+ * @returns {string[]}
+ */
+function collectColumnValuesMulti_(ss, sheetName, filterCol, filterValues, returnCol) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return [];
+
+  var allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) return [];
+
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var fCol = headers.indexOf(filterCol);
+  var rCol = headers.indexOf(returnCol);
+  if (fCol === -1 || rCol === -1) return [];
+
+  var filterSet = {};
+  for (var v = 0; v < filterValues.length; v++) {
+    filterSet[String(filterValues[v]).trim()] = true;
+  }
+
+  var results = [];
+  for (var i = 1; i < allData.length; i++) {
+    if (filterSet[String(allData[i][fCol]).trim()]) {
+      results.push(String(allData[i][rCol]).trim());
+    }
+  }
+  return results;
+}
+
+/**
+ * Collecte tous les IDs (colonne 'id') d'une feuille.
+ * @returns {Set}
+ */
+function collectAllIds_(ss, sheetName) {
+  var sheet = ss.getSheetByName(sheetName);
+  var ids = new Set();
+  if (!sheet) return ids;
+
+  var allData = sheet.getDataRange().getValues();
+  if (allData.length <= 1) return ids;
+
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var idCol = headers.indexOf('id');
+  if (idCol === -1) return ids;
+
+  for (var i = 1; i < allData.length; i++) {
+    var id = String(allData[i][idCol]).trim();
+    if (id) ids.add(id);
+  }
+  return ids;
+}
+
+/**
+ * Supprime les lignes par numéro (1-indexed). Les supprime en ordre inverse
+ * pour éviter les décalages d'index.
+ */
+function deleteRowNumbers_(sheet, rowNumbers) {
+  if (!rowNumbers.length) return;
+  // Trier en ordre décroissant
+  rowNumbers.sort(function(a, b) { return b - a; });
+  for (var i = 0; i < rowNumbers.length; i++) {
+    sheet.deleteRow(rowNumbers[i]);
+  }
+}
 
 // ================================================================
 // FILE: Competences.gs

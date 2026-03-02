@@ -170,41 +170,99 @@ Object.assign(AdminBanquesExercices, {
             return;
         }
 
-        try {
-            let result;
-            if (id) {
-                result = await this.callAPI('updateBanqueQuestions', { id, titre, description });
-            } else {
-                result = await this.callAPI('createBanqueQuestions', { titre, description });
-            }
+        // Mise à jour optimiste : UI d'abord
+        this.closeBanqueQuestionsModal();
 
-            if (result.success) {
-                this.closeBanqueQuestionsModal();
-                await this.loadDataFromAPI();
+        if (id) {
+            // Modification — mettre à jour en mémoire
+            const banque = this.banquesQuestions.find(b => b.id === id);
+            const oldTitre = banque ? banque.titre : '';
+            const oldDesc = banque ? banque.description : '';
+            if (banque) {
+                banque.titre = titre;
+                banque.description = description;
+            }
+            this.saveToCache();
+            this.renderBanques();
+            this.updateCounts();
+
+            try {
+                const result = await this.callAPI('updateBanqueQuestions', { id, titre, description });
+                if (!result.success) {
+                    // Rollback
+                    if (banque) { banque.titre = oldTitre; banque.description = oldDesc; }
+                    this.saveToCache();
+                    this.renderBanques();
+                    this.showNotification('Erreur : ' + (result.error || 'Erreur inconnue'), 'error');
+                }
+            } catch (e) {
+                if (banque) { banque.titre = oldTitre; banque.description = oldDesc; }
+                this.saveToCache();
+                this.renderBanques();
+                this.showNotification('Erreur lors de la sauvegarde. Vérifiez votre connexion.', 'error');
+            }
+        } else {
+            // Création — ajouter un placeholder en mémoire
+            const tempId = 'bq_temp_' + Date.now();
+            const newBanque = { id: tempId, titre: titre, description: description, statut: 'brouillon', date_creation: new Date().toISOString().split('T')[0] };
+            this.banquesQuestions.push(newBanque);
+            this.saveToCache();
+            this.renderBanques();
+            this.updateCounts();
+
+            try {
+                const result = await this.callAPI('createBanqueQuestions', { titre, description });
+                if (result.success) {
+                    newBanque.id = result.id;
+                    this.saveToCache();
+                    this.renderBanques();
+                } else {
+                    this.banquesQuestions = this.banquesQuestions.filter(b => b.id !== tempId);
+                    this.saveToCache();
+                    this.renderBanques();
+                    this.updateCounts();
+                    this.showNotification('Erreur : ' + (result.error || 'Erreur inconnue'), 'error');
+                }
+            } catch (e) {
+                this.banquesQuestions = this.banquesQuestions.filter(b => b.id !== tempId);
+                this.saveToCache();
                 this.renderBanques();
                 this.updateCounts();
-            } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                this.showNotification('Erreur lors de la création. Vérifiez votre connexion.', 'error');
             }
-        } catch (e) {
-            alert('Erreur lors de la sauvegarde');
         }
     },
 
     async deleteBanqueQuestions(id) {
         if (!confirm('Supprimer cette banque et toutes ses questions ?')) return;
 
+        // Mise à jour optimiste : retirer de l'UI immédiatement
+        const oldBanques = this.banquesQuestions;
+        const oldQuestions = this.questionsConnaissances;
+        this.banquesQuestions = this.banquesQuestions.filter(b => b.id !== id);
+        this.questionsConnaissances = this.questionsConnaissances.filter(q => q.banque_id !== id);
+        this.saveToCache();
+        this.renderBanques();
+        this.updateCounts();
+
         try {
             const result = await this.callAPI('deleteBanqueQuestions', { id });
-            if (result.success) {
-                await this.loadDataFromAPI();
+            if (!result.success) {
+                // Rollback
+                this.banquesQuestions = oldBanques;
+                this.questionsConnaissances = oldQuestions;
+                this.saveToCache();
                 this.renderBanques();
                 this.updateCounts();
-            } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                this.showNotification('Erreur : ' + (result.error || 'Erreur inconnue'), 'error');
             }
         } catch (e) {
-            alert('Erreur lors de la suppression');
+            this.banquesQuestions = oldBanques;
+            this.questionsConnaissances = oldQuestions;
+            this.saveToCache();
+            this.renderBanques();
+            this.updateCounts();
+            this.showNotification('Erreur lors de la suppression. Vérifiez votre connexion.', 'error');
         }
     },
 
@@ -227,16 +285,25 @@ Object.assign(AdminBanquesExercices, {
     async deleteQuestionConnaissances(id) {
         if (!confirm('Supprimer cette question ?')) return;
 
+        // Mise à jour optimiste
+        const oldQuestions = this.questionsConnaissances;
+        this.questionsConnaissances = this.questionsConnaissances.filter(q => q.id !== id);
+        this.saveToCache();
+        this.renderBanques();
+
         try {
             const result = await this.callAPI('deleteQuestionConnaissances', { id });
-            if (result.success) {
-                await this.loadDataFromAPI();
+            if (!result.success) {
+                this.questionsConnaissances = oldQuestions;
+                this.saveToCache();
                 this.renderBanques();
-            } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                this.showNotification('Erreur : ' + (result.error || 'Erreur inconnue'), 'error');
             }
         } catch (e) {
-            alert('Erreur lors de la suppression');
+            this.questionsConnaissances = oldQuestions;
+            this.saveToCache();
+            this.renderBanques();
+            this.showNotification('Erreur lors de la suppression. Vérifiez votre connexion.', 'error');
         }
     },
 
@@ -1561,33 +1628,69 @@ Object.assign(AdminBanquesExercices, {
 
         const titreProf = document.getElementById('questionTitreProf')?.value?.trim() || '';
 
-        try {
-            let result;
-            if (this.currentQuestionId) {
-                result = await this.callAPI('updateQuestionConnaissances', {
-                    id: this.currentQuestionId,
-                    type: type,
-                    titre_prof: titreProf,
-                    donnees: JSON.stringify(donnees)
-                });
-            } else {
-                result = await this.callAPI('createQuestionConnaissances', {
-                    banque_id: this.currentQuestionBanqueId,
-                    type: type,
-                    titre_prof: titreProf,
-                    donnees: JSON.stringify(donnees)
-                });
-            }
+        const donneesStr = JSON.stringify(donnees);
 
-            if (result.success) {
-                this.closeQuestionModal();
-                await this.loadDataFromAPI();
-                this.renderBanques();
-            } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+        // Mise à jour optimiste : fermer le modal et mettre à jour l'UI immédiatement
+        this.closeQuestionModal();
+
+        if (this.currentQuestionId) {
+            // Modification — mettre à jour en mémoire
+            const question = this.questionsConnaissances.find(q => q.id === this.currentQuestionId);
+            const oldType = question ? question.type : '';
+            const oldTitreProf = question ? question.titre_prof : '';
+            const oldDonnees = question ? question.donnees : '';
+            if (question) {
+                question.type = type;
+                question.titre_prof = titreProf;
+                question.donnees = donneesStr;
             }
-        } catch (e) {
-            alert('Erreur lors de la sauvegarde');
+            this.saveToCache();
+            this.renderBanques();
+
+            try {
+                const result = await this.callAPI('updateQuestionConnaissances', {
+                    id: this.currentQuestionId, type: type, titre_prof: titreProf, donnees: donneesStr
+                });
+                if (!result.success) {
+                    if (question) { question.type = oldType; question.titre_prof = oldTitreProf; question.donnees = oldDonnees; }
+                    this.saveToCache();
+                    this.renderBanques();
+                    this.showNotification('Erreur : ' + (result.error || 'Erreur inconnue'), 'error');
+                }
+            } catch (e) {
+                if (question) { question.type = oldType; question.titre_prof = oldTitreProf; question.donnees = oldDonnees; }
+                this.saveToCache();
+                this.renderBanques();
+                this.showNotification('Erreur lors de la sauvegarde. Vérifiez votre connexion.', 'error');
+            }
+        } else {
+            // Création — ajouter un placeholder
+            const tempId = 'qc_temp_' + Date.now();
+            const newQ = { id: tempId, banque_id: this.currentQuestionBanqueId, type: type, titre_prof: titreProf, donnees: donneesStr, date_creation: new Date().toISOString().split('T')[0] };
+            this.questionsConnaissances.push(newQ);
+            this.saveToCache();
+            this.renderBanques();
+
+            try {
+                const result = await this.callAPI('createQuestionConnaissances', {
+                    banque_id: this.currentQuestionBanqueId, type: type, titre_prof: titreProf, donnees: donneesStr
+                });
+                if (result.success) {
+                    newQ.id = result.id;
+                    this.saveToCache();
+                    this.renderBanques();
+                } else {
+                    this.questionsConnaissances = this.questionsConnaissances.filter(q => q.id !== tempId);
+                    this.saveToCache();
+                    this.renderBanques();
+                    this.showNotification('Erreur : ' + (result.error || 'Erreur inconnue'), 'error');
+                }
+            } catch (e) {
+                this.questionsConnaissances = this.questionsConnaissances.filter(q => q.id !== tempId);
+                this.saveToCache();
+                this.renderBanques();
+                this.showNotification('Erreur lors de la création. Vérifiez votre connexion.', 'error');
+            }
         }
     },
 
