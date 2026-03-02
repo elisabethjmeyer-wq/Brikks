@@ -52,6 +52,11 @@ Object.assign(AdminBanquesExercices, {
                     this.renderBanquesQuestionsAccordions()}
             </div>
         `;
+
+        // Initialiser le drag & drop après le rendu
+        if (this.connaissancesSubView === 'questions') {
+            setTimeout(() => this.initBanquesQuestionsDragDrop(), 0);
+        }
     },
 
     /**
@@ -165,7 +170,15 @@ Object.assign(AdminBanquesExercices, {
             `;
         }
 
-        return this.banquesQuestions.map(banque => {
+        // Trier par ordre (les banques sans ordre vont à la fin, triées par date)
+        const sorted = [...this.banquesQuestions].sort((a, b) => {
+            const oA = parseInt(a.ordre) || 9999;
+            const oB = parseInt(b.ordre) || 9999;
+            if (oA !== oB) return oA - oB;
+            return (a.date_creation || '').localeCompare(b.date_creation || '');
+        });
+
+        return sorted.map(banque => {
             const questions = this.questionsConnaissances.filter(q => q.banque_id === banque.id);
             const typesCounts = {};
             questions.forEach(q => {
@@ -173,8 +186,9 @@ Object.assign(AdminBanquesExercices, {
             });
 
             return `
-                <div class="banque-card" data-id="${banque.id}">
+                <div class="banque-card" data-id="${banque.id}" draggable="true">
                     <div class="banque-card-header" onclick="AdminBanquesExercices.toggleBanque('${banque.id}')">
+                        <span class="drag-handle" title="Glisser pour réordonner">⋮⋮</span>
                         <div class="banque-card-icon connaissances">📋</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
@@ -216,14 +230,22 @@ Object.assign(AdminBanquesExercices, {
             return '<div class="exercices-empty">Aucune question. Cliquez sur "+ Ajouter une question" pour commencer.</div>';
         }
 
+        // Trier par ordre (les questions sans ordre gardent leur position d'origine)
+        const sorted = [...questions].sort((a, b) => {
+            const oA = parseInt(a.ordre) || 9999;
+            const oB = parseInt(b.ordre) || 9999;
+            return oA - oB;
+        });
+
         return `
-            <div class="exercices-list">
-                ${questions.map((q, index) => {
+            <div class="exercices-list" data-banque-id="${banqueId}">
+                ${sorted.map((q) => {
                     const typeName = this.questionTypeNames[q.type] || q.type;
                     const preview = this.getQuestionPreview(q);
 
                     return `
-                        <div class="exercice-item" data-id="${q.id}">
+                        <div class="exercice-item" data-id="${q.id}" draggable="true">
+                            <span class="drag-handle drag-handle-sm" title="Glisser pour réordonner">⋮⋮</span>
                             <div class="exercice-numero" style="background:var(--accent-blue-light);color:var(--accent-blue);font-size:11px;">${typeName.substring(0, 3).toUpperCase()}</div>
                             <div class="exercice-info">
                                 <div class="exercice-title">${this.escapeHtml(preview)}</div>
@@ -238,6 +260,148 @@ Object.assign(AdminBanquesExercices, {
                 }).join('')}
             </div>
         `;
+    },
+
+    // ========== DRAG & DROP : BANQUES ET QUESTIONS ==========
+
+    /**
+     * Initialise le drag & drop pour les banques de questions ET les questions à l'intérieur
+     */
+    initBanquesQuestionsDragDrop() {
+        const container = document.getElementById('connaissancesContent');
+        if (!container) return;
+
+        // --- Drag & drop des banques ---
+        let draggedBanque = null;
+        container.querySelectorAll('.banque-card[draggable="true"]').forEach(card => {
+            card.addEventListener('dragstart', (e) => {
+                // Ne démarrer que depuis la poignée
+                if (!e.target.closest('.drag-handle')) {
+                    e.preventDefault();
+                    return;
+                }
+                draggedBanque = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', 'banque');
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                if (draggedBanque) {
+                    draggedBanque = null;
+                    this.saveBanquesQuestionsOrder();
+                }
+            });
+
+            card.addEventListener('dragover', (e) => {
+                if (!draggedBanque || draggedBanque === card) return;
+                e.preventDefault();
+                const rect = card.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY) {
+                    card.parentNode.insertBefore(draggedBanque, card);
+                } else {
+                    card.parentNode.insertBefore(draggedBanque, card.nextSibling);
+                }
+            });
+        });
+
+        // --- Drag & drop des questions (dans chaque banque) ---
+        container.querySelectorAll('.exercices-list[data-banque-id]').forEach(list => {
+            let draggedQuestion = null;
+
+            list.querySelectorAll('.exercice-item[draggable="true"]').forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    if (!e.target.closest('.drag-handle')) {
+                        e.preventDefault();
+                        return;
+                    }
+                    // Empêcher que ça déclenche aussi le drag de la banque
+                    e.stopPropagation();
+                    draggedQuestion = item;
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', 'question');
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    if (draggedQuestion) {
+                        draggedQuestion = null;
+                        this.saveQuestionsOrder(list);
+                    }
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    if (!draggedQuestion || draggedQuestion === item) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        item.parentNode.insertBefore(draggedQuestion, item);
+                    } else {
+                        item.parentNode.insertBefore(draggedQuestion, item.nextSibling);
+                    }
+                });
+            });
+        });
+    },
+
+    /**
+     * Sauvegarde l'ordre des banques de questions après drag & drop
+     */
+    async saveBanquesQuestionsOrder() {
+        const container = document.getElementById('connaissancesContent');
+        if (!container) return;
+
+        const cards = container.querySelectorAll('.banque-card[data-id]');
+        const newOrder = [];
+        cards.forEach((card, index) => {
+            newOrder.push({ id: card.dataset.id, ordre: index + 1 });
+        });
+
+        if (newOrder.length === 0) return;
+
+        try {
+            await this.callAPI('updateBanquesQuestionsOrdre', {
+                banques: JSON.stringify(newOrder)
+            });
+            // Mettre à jour les données locales
+            newOrder.forEach(({ id, ordre }) => {
+                const banque = this.banquesQuestions.find(b => b.id === id);
+                if (banque) banque.ordre = ordre;
+            });
+        } catch (error) {
+            console.error('Erreur sauvegarde ordre banques:', error);
+        }
+    },
+
+    /**
+     * Sauvegarde l'ordre des questions dans une banque après drag & drop
+     */
+    async saveQuestionsOrder(list) {
+        const items = list.querySelectorAll('.exercice-item[data-id]');
+        const newOrder = [];
+        items.forEach((item, index) => {
+            newOrder.push({ id: item.dataset.id, ordre: index + 1 });
+        });
+
+        if (newOrder.length === 0) return;
+
+        try {
+            await this.callAPI('updateQuestionsConnaissancesOrdre', {
+                questions: JSON.stringify(newOrder)
+            });
+            // Mettre à jour les données locales
+            newOrder.forEach(({ id, ordre }) => {
+                const q = this.questionsConnaissances.find(qc => qc.id === id);
+                if (q) q.ordre = ordre;
+            });
+        } catch (error) {
+            console.error('Erreur sauvegarde ordre questions:', error);
+        }
     },
 
     /**

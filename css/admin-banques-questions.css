@@ -810,3 +810,56 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ========== DRAG & DROP (banques + questions) ========== */
+
+/* Poignée de drag */
+.drag-handle {
+    cursor: grab;
+    color: var(--gray-400);
+    font-size: 1.1rem;
+    padding: 0.25rem 0.35rem;
+    border-radius: 4px;
+    user-select: none;
+    flex-shrink: 0;
+    letter-spacing: -2px;
+    transition: color 0.15s, background 0.15s;
+}
+
+.drag-handle:hover {
+    color: var(--gray-600);
+    background: var(--gray-100);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.drag-handle-sm {
+    font-size: 0.9rem;
+    padding: 0.15rem 0.25rem;
+}
+
+/* État pendant le drag */
+.banque-card.dragging {
+    opacity: 0.4;
+    box-shadow: 0 0 0 2px var(--primary);
+    border-radius: 12px;
+}
+
+.exercice-item.dragging {
+    opacity: 0.4;
+    background: var(--accent-blue-light);
+    box-shadow: 0 0 0 2px var(--primary);
+}
+
+/* Empêcher la sélection de texte pendant le drag */
+.banque-card[draggable="true"],
+.exercice-item[draggable="true"] {
+    touch-action: none;
+}
+
+/* Réduire le gap du header pour que la poignée soit proche de l'icône */
+.banque-card[draggable="true"] .banque-card-header {
+    gap: 10px;
+}

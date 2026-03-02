@@ -624,6 +624,12 @@ function handleRequest(e) {
       case 'deleteQuestionConnaissances':
         result = deleteQuestionConnaissances(request);
         break;
+      case 'updateQuestionsConnaissancesOrdre':
+        result = updateQuestionsConnaissancesOrdre(request);
+        break;
+      case 'updateBanquesQuestionsOrdre':
+        result = updateBanquesQuestionsOrdre(request);
+        break;
 
       // NOUVEAU SYSTÈME CONNAISSANCES
       // Formats de questions

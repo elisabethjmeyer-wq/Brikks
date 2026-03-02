@@ -903,6 +903,120 @@ function cleanupOrphanedData() {
 }
 
 // ========================================
+// MISE À JOUR D'ORDRE (drag & drop)
+// ========================================
+
+/**
+ * Met à jour l'ordre des questions de connaissances (pour drag & drop).
+ * Optimisé : 1 seul setValues() pour toutes les questions modifiées.
+ */
+function updateQuestionsConnaissancesOrdre(data) {
+  var questions = data.questions;
+  if (typeof questions === 'string') {
+    try { questions = JSON.parse(questions); } catch (e) {
+      return { success: false, error: 'Format questions invalide' };
+    }
+  }
+  if (!questions || !Array.isArray(questions)) {
+    return { success: false, error: 'questions array requis' };
+  }
+
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var idCol = headers.indexOf('id');
+  var ordreCol = headers.indexOf('ordre');
+
+  // Si la colonne ordre n'existe pas encore, l'ajouter
+  if (ordreCol === -1) {
+    ordreCol = headers.length;
+    allData[0].push('ordre');
+    for (var r = 1; r < allData.length; r++) {
+      allData[r].push('');
+    }
+  }
+
+  if (idCol === -1) return { success: false, error: 'Colonne id non trouvée' };
+
+  var ordreMap = {};
+  questions.forEach(function(q) {
+    ordreMap[String(q.id).trim()] = q.ordre;
+  });
+
+  var modified = false;
+  for (var i = 1; i < allData.length; i++) {
+    var rowId = String(allData[i][idCol]).trim();
+    if (ordreMap[rowId] !== undefined) {
+      allData[i][ordreCol] = ordreMap[rowId];
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    sheet.getRange(1, 1, allData.length, allData[0].length).setValues(allData);
+  }
+
+  return { success: true, message: 'Ordre des questions mis à jour' };
+}
+
+/**
+ * Met à jour l'ordre des banques de questions (pour drag & drop).
+ * Optimisé : 1 seul setValues() pour toutes les banques modifiées.
+ */
+function updateBanquesQuestionsOrdre(data) {
+  var banques = data.banques;
+  if (typeof banques === 'string') {
+    try { banques = JSON.parse(banques); } catch (e) {
+      return { success: false, error: 'Format banques invalide' };
+    }
+  }
+  if (!banques || !Array.isArray(banques)) {
+    return { success: false, error: 'banques array requis' };
+  }
+
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_QUESTIONS);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var idCol = headers.indexOf('id');
+  var ordreCol = headers.indexOf('ordre');
+
+  // Si la colonne ordre n'existe pas encore, l'ajouter
+  if (ordreCol === -1) {
+    ordreCol = headers.length;
+    allData[0].push('ordre');
+    for (var r = 1; r < allData.length; r++) {
+      allData[r].push('');
+    }
+  }
+
+  if (idCol === -1) return { success: false, error: 'Colonne id non trouvée' };
+
+  var ordreMap = {};
+  banques.forEach(function(b) {
+    ordreMap[String(b.id).trim()] = b.ordre;
+  });
+
+  var modified = false;
+  for (var i = 1; i < allData.length; i++) {
+    var rowId = String(allData[i][idCol]).trim();
+    if (ordreMap[rowId] !== undefined) {
+      allData[i][ordreCol] = ordreMap[rowId];
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    sheet.getRange(1, 1, allData.length, allData[0].length).setValues(allData);
+  }
+
+  return { success: true, message: 'Ordre des banques mis à jour' };
+}
+
+// ========================================
 // HELPERS BATCH (lecture/écriture optimisées)
 // ========================================
 
