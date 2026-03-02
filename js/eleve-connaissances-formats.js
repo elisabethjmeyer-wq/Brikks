@@ -1381,14 +1381,14 @@ Object.assign(EleveConnaissances, {
                 return isCorrect ? 'Correct !' : 'Mauvaise réponse';
 
             case 'question_ouverte':
-                if (isCorrect && questionData.feedback_correct) return questionData.feedback_correct;
-                if (!isCorrect) {
-                    const correctAnswer = (questionData.reponses_acceptees && questionData.reponses_acceptees[0]) || '';
-                    let text = `La bonne réponse était: ${correctAnswer}`;
-                    if (questionData.feedback_incorrect) text += ` ${questionData.feedback_incorrect}`;
-                    return text;
+                if (isCorrect) {
+                    if (questionData.feedback_correct) return questionData.feedback_correct;
+                    return 'Correct !';
+                } else {
+                    if (questionData.feedback_incorrect) return questionData.feedback_incorrect;
+                    if (!userAnswer || (typeof userAnswer === 'string' && userAnswer.trim() === '')) return 'Non répondu';
+                    return 'Mauvaise réponse';
                 }
-                return isCorrect ? 'Correct !' : 'Mauvaise réponse';
 
             case 'multi_format':
                 // Pour les formats multiples (texte, association, chrono, carte)
