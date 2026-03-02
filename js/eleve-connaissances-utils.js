@@ -63,6 +63,7 @@ Object.assign(EleveConnaissances, {
         this.carteActiveIndex = 0;
         this.timelineDraggedCard = null;
         this.flashcardState = null;
+        this.clearAnswerStore();
     },
 
     escapeHtml(text) {
