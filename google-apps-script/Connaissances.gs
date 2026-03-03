@@ -1121,6 +1121,96 @@ function updateEntrainementsConnOrdre(data) {
 
   return { success: true, message: 'Ordre des entrainements mis à jour' };
 }
+
+/**
+ * Met à jour l'ordre des banques d'exercices SF (pour drag & drop).
+ */
+function updateBanquesExercicesOrdre(data) {
+  var banques = data.banques;
+  if (typeof banques === 'string') {
+    try { banques = JSON.parse(banques); } catch (e) {
+      return { success: false, error: 'Format banques invalide' };
+    }
+  }
+  if (!banques || !Array.isArray(banques)) {
+    return { success: false, error: 'banques array requis' };
+  }
+
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BANQUES_EXERCICES);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var idCol = headers.indexOf('id');
+  var ordreCol = headers.indexOf('ordre');
+
+  if (ordreCol === -1) {
+    ordreCol = headers.length;
+    allData[0].push('ordre');
+    for (var r = 1; r < allData.length; r++) { allData[r].push(''); }
+  }
+  if (idCol === -1) return { success: false, error: 'Colonne id non trouvée' };
+
+  var ordreMap = {};
+  banques.forEach(function(b) { ordreMap[String(b.id).trim()] = b.ordre; });
+
+  var modified = false;
+  for (var i = 1; i < allData.length; i++) {
+    var rowId = String(allData[i][idCol]).trim();
+    if (ordreMap[rowId] !== undefined) {
+      allData[i][ordreCol] = ordreMap[rowId];
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    sheet.getRange(1, 1, allData.length, allData[0].length).setValues(allData);
+  }
+  return { success: true };
+}
+
+/**
+ * Met à jour le numéro des exercices SF (pour drag & drop).
+ */
+function updateExercicesOrdre(data) {
+  var exercices = data.exercices;
+  if (typeof exercices === 'string') {
+    try { exercices = JSON.parse(exercices); } catch (e) {
+      return { success: false, error: 'Format exercices invalide' };
+    }
+  }
+  if (!exercices || !Array.isArray(exercices)) {
+    return { success: false, error: 'exercices array requis' };
+  }
+
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.EXERCICES);
+  if (!sheet) return { success: false, error: 'Feuille non trouvée' };
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var idCol = headers.indexOf('id');
+  var numeroCol = headers.indexOf('numero');
+
+  if (numeroCol === -1) return { success: false, error: 'Colonne numero non trouvée' };
+  if (idCol === -1) return { success: false, error: 'Colonne id non trouvée' };
+
+  var ordreMap = {};
+  exercices.forEach(function(e) { ordreMap[String(e.id).trim()] = e.numero; });
+
+  var modified = false;
+  for (var i = 1; i < allData.length; i++) {
+    var rowId = String(allData[i][idCol]).trim();
+    if (ordreMap[rowId] !== undefined) {
+      allData[i][numeroCol] = ordreMap[rowId];
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    sheet.getRange(1, 1, allData.length, allData[0].length).setValues(allData);
+  }
+  return { success: true };
+}
 // ========================================
 
 /**

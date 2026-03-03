@@ -690,6 +690,7 @@ const AdminBanquesExercices = {
             return `
                 <div class="banque-card" data-id="${banque.id}">
                     <div class="banque-card-header" onclick="AdminBanquesExercices.toggleBanque('${banque.id}')">
+                        <span class="drag-handle" title="Glisser pour réordonner">⋮⋮</span>
                         <div class="banque-card-icon ${banque.type}">${config.icon}</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
@@ -722,6 +723,11 @@ const AdminBanquesExercices = {
                 </div>
             `;
         }).join('');
+
+        if (this.currentType === 'savoir-faire') {
+            // setTimeout(0) ensures DOM is fully rendered before attaching drag listeners
+            setTimeout(() => this.initSavoirFaireDragDrop(), 0);
+        }
     },
 
     renderExercices(exercices, banqueId) {
@@ -733,7 +739,7 @@ const AdminBanquesExercices = {
         exercices.sort((a, b) => (a.numero || 0) - (b.numero || 0));
 
         return `
-            <div class="exercices-list">
+            <div class="exercices-list" data-banque-id="${banqueId}">
                 ${exercices.map(exo => {
                     const format = this.formats.find(f => f.id === exo.format_id);
                     const formatName = format ? format.nom : 'Format inconnu';
@@ -741,6 +747,7 @@ const AdminBanquesExercices = {
 
                     return `
                         <div class="exercice-item" data-id="${exo.id}">
+                            <span class="drag-handle drag-handle-sm" title="Glisser pour réordonner">⋮⋮</span>
                             <div class="exercice-numero">${exo.numero || '?'}</div>
                             <div class="exercice-info">
                                 <div class="exercice-title">${this.escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</div>
@@ -765,17 +772,158 @@ const AdminBanquesExercices = {
         }
     },
 
+    // ========== DRAG & DROP : SAVOIR-FAIRE ==========
+
+    initSavoirFaireDragDrop() {
+        const container = document.getElementById('banquesList');
+        if (!container) return;
+
+        // Helper : activer le drag seulement depuis la poignée
+        const enableDragFromHandle = (draggableEl) => {
+            draggableEl.setAttribute('draggable', 'false');
+            const handle = draggableEl.querySelector('.drag-handle');
+            if (!handle) return;
+            handle.addEventListener('mousedown', () => {
+                draggableEl.setAttribute('draggable', 'true');
+            });
+            draggableEl.addEventListener('dragend', () => {
+                draggableEl.setAttribute('draggable', 'false');
+            });
+            handle.addEventListener('mouseup', () => {
+                draggableEl.setAttribute('draggable', 'false');
+            });
+        };
+
+        // --- Drag & drop des banques ---
+        let draggedBanque = null;
+        container.querySelectorAll('.banque-card').forEach(card => {
+            enableDragFromHandle(card);
+
+            card.addEventListener('dragstart', (e) => {
+                draggedBanque = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', 'banque');
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                if (draggedBanque) {
+                    draggedBanque = null;
+                    this.saveBanquesSFOrder();
+                }
+            });
+
+            card.addEventListener('dragover', (e) => {
+                if (!draggedBanque || draggedBanque === card) return;
+                e.preventDefault();
+                const rect = card.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY) {
+                    card.parentNode.insertBefore(draggedBanque, card);
+                } else {
+                    card.parentNode.insertBefore(draggedBanque, card.nextSibling);
+                }
+            });
+        });
+
+        // --- Drag & drop des exercices (dans chaque banque) ---
+        container.querySelectorAll('.exercices-list[data-banque-id]').forEach(list => {
+            let draggedExercice = null;
+
+            list.querySelectorAll('.exercice-item').forEach(item => {
+                enableDragFromHandle(item);
+
+                item.addEventListener('dragstart', (e) => {
+                    e.stopPropagation();
+                    draggedExercice = item;
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', 'exercice');
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    if (draggedExercice) {
+                        draggedExercice = null;
+                        this.saveExercicesSFOrder(list);
+                    }
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    if (!draggedExercice || draggedExercice === item) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        item.parentNode.insertBefore(draggedExercice, item);
+                    } else {
+                        item.parentNode.insertBefore(draggedExercice, item.nextSibling);
+                    }
+                });
+            });
+        });
+    },
+
+    async saveBanquesSFOrder() {
+        const container = document.getElementById('banquesList');
+        if (!container) return;
+        const cards = container.querySelectorAll('.banque-card[data-id]');
+        const newOrder = [];
+        cards.forEach((card, index) => {
+            newOrder.push({ id: card.dataset.id, ordre: index + 1 });
+        });
+        if (newOrder.length === 0) return;
+        try {
+            await this.callAPI('updateBanquesExercicesOrdre', {
+                banques: JSON.stringify(newOrder)
+            });
+            newOrder.forEach(({ id, ordre }) => {
+                const b = this.banques.find(bq => bq.id === id);
+                if (b) b.ordre = ordre;
+            });
+            this.saveToCache();
+        } catch (error) {
+            console.error('Erreur sauvegarde ordre banques SF:', error);
+        }
+    },
+
+    async saveExercicesSFOrder(list) {
+        const items = list.querySelectorAll('.exercice-item[data-id]');
+        const newOrder = [];
+        items.forEach((item, index) => {
+            newOrder.push({ id: item.dataset.id, numero: index + 1 });
+        });
+        if (newOrder.length === 0) return;
+        try {
+            await this.callAPI('updateExercicesOrdre', {
+                exercices: JSON.stringify(newOrder)
+            });
+            newOrder.forEach(({ id, numero }) => {
+                const e = this.exercices.find(ex => ex.id === id);
+                if (e) e.numero = numero;
+            });
+            this.saveToCache();
+        } catch (error) {
+            console.error('Erreur sauvegarde ordre exercices:', error);
+        }
+    },
+
     // ========== BANQUE MODAL ==========
     openBanqueModal(banque = null) {
         const modal = document.getElementById('banqueModal');
         const title = document.getElementById('banqueModalTitle');
+
+        // Masquer le champ ordre (géré par drag & drop)
+        const ordreGroup = document.getElementById('banqueOrdre')?.closest('.form-group');
+        if (ordreGroup) ordreGroup.style.display = 'none';
 
         if (banque) {
             title.textContent = 'Modifier la banque';
             document.getElementById('editBanqueId').value = banque.id;
             document.getElementById('banqueTitre').value = banque.titre || '';
             document.getElementById('banqueDescription').value = banque.description || '';
-            document.getElementById('banqueOrdre').value = banque.ordre || 1;
             document.getElementById('banqueStatut').value = banque.statut || 'brouillon';
 
             // Select type
@@ -791,7 +939,6 @@ const AdminBanquesExercices = {
             document.getElementById('editBanqueId').value = '';
             document.getElementById('banqueTitre').value = '';
             document.getElementById('banqueDescription').value = '';
-            document.getElementById('banqueOrdre').value = 1;
             document.getElementById('banqueStatut').value = 'brouillon';
 
             // Select current type
@@ -823,7 +970,9 @@ const AdminBanquesExercices = {
         const type = document.querySelector('input[name="banqueType"]:checked').value;
         const titre = document.getElementById('banqueTitre').value.trim();
         const description = document.getElementById('banqueDescription').value.trim();
-        const ordre = parseInt(document.getElementById('banqueOrdre').value) || 1;
+        const ordre = id
+            ? (this.banques.find(b => b.id === id)?.ordre || 1)
+            : this.banques.filter(b => b.type === type).length + 1;
         const statut = document.getElementById('banqueStatut').value;
 
         if (!titre) {
@@ -909,6 +1058,10 @@ const AdminBanquesExercices = {
         // Populate formats dropdown
         this.populateFormatsDropdown();
 
+        // Masquer le champ numéro (géré par drag & drop)
+        const numeroGroup = document.getElementById('exerciceNumero')?.closest('.form-group');
+        if (numeroGroup) numeroGroup.style.display = 'none';
+
         // Hide all builders first
         document.querySelectorAll('.format-builder').forEach(el => el.style.display = 'none');
         document.getElementById('documentSectionTableau').style.display = 'none';
@@ -917,7 +1070,6 @@ const AdminBanquesExercices = {
             title.textContent = 'Modifier l\'exercice';
             document.getElementById('editExerciceId').value = exercice.id;
             document.getElementById('exerciceBanqueId').value = exercice.banque_id;
-            document.getElementById('exerciceNumero').value = exercice.numero || 1;
             document.getElementById('exerciceTitre').value = exercice.titre || '';
             document.getElementById('exerciceFormat').value = exercice.format_id || '';
             document.getElementById('exerciceConsigne').value = exercice.consigne || '';
@@ -967,11 +1119,10 @@ const AdminBanquesExercices = {
             document.getElementById('editExerciceId').value = '';
             document.getElementById('exerciceBanqueId').value = banqueId;
 
-            // Get next numero
+            // Get next numero for title suggestion
             const banqueExercices = this.exercices.filter(e => e.banque_id === banqueId);
             const nextNumero = banqueExercices.length + 1;
 
-            document.getElementById('exerciceNumero').value = nextNumero;
             document.getElementById('exerciceTitre').value = 'Exercice ' + nextNumero;
             document.getElementById('exerciceFormat').value = '';
             document.getElementById('exerciceConsigne').value = '';
@@ -1008,7 +1159,9 @@ const AdminBanquesExercices = {
     async saveExercice() {
         const id = document.getElementById('editExerciceId').value;
         const banque_id = document.getElementById('exerciceBanqueId').value;
-        const numero = parseInt(document.getElementById('exerciceNumero').value) || 1;
+        const numero = id
+            ? (this.exercices.find(e => e.id === id)?.numero || 1)
+            : this.exercices.filter(e => e.banque_id === banque_id).length + 1;
         const titre = document.getElementById('exerciceTitre').value.trim();
         const format_id = document.getElementById('exerciceFormat').value;
         const consigne = document.getElementById('exerciceConsigne').value.trim();
