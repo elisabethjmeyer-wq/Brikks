@@ -1121,7 +1121,7 @@ Object.assign(AdminBanquesExercices, {
         if (!m) return;
 
         const mainAnswer = (m.reponse || '').split('|')[0];
-        const alts = (m.reponse || '').split('|').slice(1).filter(a => a.trim());
+        const alts = (m.reponse || '').split('|').slice(1);
         const isSouple = m.correction !== 'stricte';
 
         // Construire les sélecteurs de forme
@@ -1250,6 +1250,18 @@ Object.assign(AdminBanquesExercices, {
     },
 
     _closeCartePopover() {
+        // Synchroniser les valeurs saisies avant de détruire le DOM
+        if (this._selectedMarqueur != null) {
+            this._syncCartePopoverToModel(this._selectedMarqueur);
+            // Nettoyer les alternatives vides
+            const m = this.carteBuilder.marqueurs[this._selectedMarqueur];
+            if (m) {
+                const parts = (m.reponse || '').split('|');
+                const main = parts[0];
+                const alts = parts.slice(1).filter(a => a.trim());
+                m.reponse = alts.length > 0 ? [main, ...alts].join('|') : main;
+            }
+        }
         const wrapper = document.getElementById('cbPopoverWrapper');
         if (wrapper) wrapper.remove();
         if (this._cartePopoverOutsideHandler) {
