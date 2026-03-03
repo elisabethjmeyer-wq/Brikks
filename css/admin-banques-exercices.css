@@ -1342,6 +1342,14 @@
     color: white;
 }
 
+.tb-header-row .tb-row-move {
+    margin-right: 6px;
+}
+
+.tb-header-cell .tb-row-move {
+    vertical-align: middle;
+}
+
 .tb-add-buttons {
     display: flex;
     gap: 8px;

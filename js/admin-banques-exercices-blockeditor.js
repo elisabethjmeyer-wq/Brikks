@@ -102,7 +102,7 @@ Object.assign(AdminBanquesExercices, {
         clean = clean.filter(function(b) {
             if (b.type === 'text') return b.content && b.content.trim() !== '';
             if (b.type === 'document' || b.type === 'image' || b.type === 'video') return b.url && b.url.trim() !== '';
-            if (b.type === 'tableau') return b.colonnes && b.colonnes.length > 0 && b.lignes && b.lignes.length > 0;
+            if (b.type === 'tableau') return b.colonnes && b.colonnes.length > 0 && b.lignes && b.lignes.filter(function(r) { return !r.header; }).length > 0;
             if (b.type === 'group') return b.children && b.children.length > 0;
             if (b.type === 'question') return b.question && b.question.trim() !== '';
             return false;
@@ -174,7 +174,9 @@ Object.assign(AdminBanquesExercices, {
             return {
                 type: 'tableau',
                 colonnes: block.colonnes || [],
-                lignes: (block.lignes || []).map(function(ligne) {
+                lignes: (block.lignes || []).filter(function(ligne) {
+                    return !ligne.header; // L'en-tête est sérialisé dans colonnes
+                }).map(function(ligne) {
                     if (ligne.section) {
                         return { section: true, text: ligne.text || '' };
                     }
@@ -725,29 +727,41 @@ Object.assign(AdminBanquesExercices, {
         var cols = block.colonnes || [];
         var rows = block.lignes || [];
 
-        var theadHtml = '<tr>';
-        for (var ci = 0; ci < cols.length; ci++) {
-            theadHtml += '<th class="tb-header-cell">' +
-                '<input type="text" class="tb-col-title" value="' + this.escapeHtml(cols[ci] || '') + '" ' +
-                'placeholder="Colonne ' + (ci + 1) + '" data-col="' + ci + '" data-block="' + bid + '">' +
-                (cols.length > 1
-                    ? '<button type="button" class="tb-col-remove" onclick="AdminBanquesExercices._blockTableRemoveCol(\'' + bid + '\',' + ci + ')">&times;</button>'
-                    : '') +
-                '</th>';
+        // Migration : insérer la ligne d'en-tête si absente
+        var hasHeader = rows.some(function(r) { return r.header; });
+        if (!hasHeader) {
+            rows.unshift({ header: true });
+            block.lignes = rows;
         }
-        theadHtml += '<th class="tb-actions-col">' +
-            '<button type="button" class="tb-add-col" onclick="AdminBanquesExercices._blockTableAddCol(\'' + bid + '\')" title="Ajouter une colonne">+</button>' +
-            '</th></tr>';
 
         var tbodyHtml = '';
         for (var ri = 0; ri < rows.length; ri++) {
-            // Ligne section (titre violet)
-            // Flèches de déplacement (communes aux sections et lignes normales)
+            // Flèches de déplacement (communes à tous les types de lignes)
             var moveButtons = '<span class="tb-row-move">' +
                 (ri > 0 ? '<button type="button" class="tb-move-btn" onclick="AdminBanquesExercices._blockTableMoveRow(\'' + bid + '\',' + ri + ',-1)" title="Monter">\u25B2</button>' : '') +
                 (ri < rows.length - 1 ? '<button type="button" class="tb-move-btn" onclick="AdminBanquesExercices._blockTableMoveRow(\'' + bid + '\',' + ri + ',1)" title="Descendre">\u25BC</button>' : '') +
                 '</span>';
 
+            // Ligne d'en-tête (colonnes)
+            if (rows[ri].header) {
+                tbodyHtml += '<tr data-row="' + ri + '" class="tb-header-row">';
+                for (var ci = 0; ci < cols.length; ci++) {
+                    tbodyHtml += '<td class="tb-header-cell">' +
+                        (ci === 0 ? moveButtons : '') +
+                        '<input type="text" class="tb-col-title" value="' + this.escapeHtml(cols[ci] || '') + '" ' +
+                        'placeholder="Colonne ' + (ci + 1) + '" data-col="' + ci + '" data-block="' + bid + '">' +
+                        (cols.length > 1
+                            ? '<button type="button" class="tb-col-remove" onclick="AdminBanquesExercices._blockTableRemoveCol(\'' + bid + '\',' + ci + ')">&times;</button>'
+                            : '') +
+                        '</td>';
+                }
+                tbodyHtml += '<td class="tb-actions-col">' +
+                    '<button type="button" class="tb-add-col" onclick="AdminBanquesExercices._blockTableAddCol(\'' + bid + '\')" title="Ajouter une colonne">+</button>' +
+                    '</td></tr>';
+                continue;
+            }
+
+            // Ligne section (titre violet)
             if (rows[ri].section) {
                 tbodyHtml += '<tr data-row="' + ri + '" class="tb-section-row">' +
                     '<td colspan="' + (cols.length + 1) + '" class="tb-section-cell">' +
@@ -793,7 +807,6 @@ Object.assign(AdminBanquesExercices, {
             '<p class="tb-hint">Cliquez sur <strong>D</strong>/<strong>R</strong> pour configurer chaque cellule</p>' +
             '<div class="table-builder-wrapper">' +
             '<table class="table-builder" id="blockTable-' + bid + '">' +
-            '<thead>' + theadHtml + '</thead>' +
             '<tbody>' + tbodyHtml + '</tbody>' +
             '</table></div>' +
             '<div class="tb-add-buttons">' +
@@ -806,16 +819,19 @@ Object.assign(AdminBanquesExercices, {
     _saveBlockTableauState(block) {
         var table = document.getElementById('blockTable-' + block.id);
         if (!table) return;
-        // Lire les titres de colonnes
-        var headerInputs = table.querySelectorAll('thead .tb-col-title');
-        headerInputs.forEach(function(input, i) {
-            if (i < block.colonnes.length) block.colonnes[i] = input.value || '';
-        });
-        // Lire les valeurs des cellules
+        // Lire les valeurs de toutes les lignes (en-tête, sections, données)
         var trs = table.querySelectorAll('tbody tr[data-row]');
         trs.forEach(function(tr) {
             var ri = parseInt(tr.dataset.row);
             if (isNaN(ri) || ri >= block.lignes.length) return;
+            // Ligne d'en-tête (colonnes)
+            if (block.lignes[ri].header) {
+                var headerInputs = tr.querySelectorAll('.tb-col-title');
+                headerInputs.forEach(function(input, i) {
+                    if (i < block.colonnes.length) block.colonnes[i] = input.value || '';
+                });
+                return;
+            }
             // Ligne section
             if (block.lignes[ri].section) {
                 var secInput = tr.querySelector('.tb-section-input');
@@ -884,7 +900,11 @@ Object.assign(AdminBanquesExercices, {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
-        if (block.lignes.length <= 1) return;
+        // Ne pas supprimer la ligne d'en-tête
+        if (block.lignes[rowIndex] && block.lignes[rowIndex].header) return;
+        // Garder au moins 1 ligne de données (hors en-tête)
+        var dataRows = block.lignes.filter(function(r) { return !r.header; });
+        if (dataRows.length <= 1) return;
         block.lignes.splice(rowIndex, 1);
         this._renderBlocks();
     },
