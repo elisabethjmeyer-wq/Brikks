@@ -24,7 +24,6 @@ Object.assign(AdminBanquesExercices, {
         };
         this._selectedCell = null;
         this.renderTableBuilder();
-        this.renderTablePreview();
     },
 
     /** Charge les données existantes dans le builder. Gère l'ancien et le nouveau format. */
@@ -85,7 +84,6 @@ Object.assign(AdminBanquesExercices, {
         }
         this._selectedCell = null;
         this.renderTableBuilder();
-        this.renderTablePreview();
     },
 
     /** Construit les données pour la sauvegarde (nouveau format v2). */
@@ -151,7 +149,7 @@ Object.assign(AdminBanquesExercices, {
                 <th class="tb-header-cell">
                     <input type="text" class="tb-col-title" value="${this.escapeHtml(col)}"
                            placeholder="Colonne ${i + 1}" data-col="${i}"
-                           oninput="AdminBanquesExercices._onTableInputDebounced()">
+                           oninput="AdminBanquesExercices.readTableBuilderValues()">
                     <button type="button" class="tb-col-remove" onclick="AdminBanquesExercices.removeColumn(${i})" title="Supprimer la colonne">&times;</button>
                 </th>
             `).join('')}
@@ -193,7 +191,7 @@ Object.assign(AdminBanquesExercices, {
                                            data-row="${ri}" data-col="${ci}"
                                            value="${this.escapeHtml(cell.valeur)}"
                                            placeholder="${isDonnee ? 'Donnée...' : 'Réponse...'}"
-                                           oninput="AdminBanquesExercices._onTableInputDebounced()">
+                                           oninput="AdminBanquesExercices.readTableBuilderValues()">
                                     ${extraIndicators ? `<div class="tb-cell-indicators">${extraIndicators}</div>` : ''}
                                 </div>
                             </td>`;
@@ -204,48 +202,6 @@ Object.assign(AdminBanquesExercices, {
                 </tr>
             `).join('');
         }
-    },
-
-    /** Rend l'aperçu live côté droit (vue élève). */
-    renderTablePreview() {
-        const container = document.getElementById('tableBuilderPreview');
-        if (!container) return;
-
-        const cols = this.tableBuilder.columns;
-        const rows = this.tableBuilder.rows;
-
-        if (cols.length === 0 || rows.length === 0) {
-            container.innerHTML = '<div class="tb-preview-empty">Ajoutez des colonnes et des lignes pour voir l\'aperçu</div>';
-            return;
-        }
-
-        let html = `<table class="tb-preview-table">
-            <thead><tr>${cols.map(c => `<th>${this.escapeHtml(c) || '...'}</th>`).join('')}</tr></thead>
-            <tbody>`;
-
-        rows.forEach(row => {
-            html += '<tr>';
-            row.forEach(cell => {
-                if (cell.type === 'donnee') {
-                    html += `<td class="tb-pv-donnee">${this.escapeHtml(cell.valeur) || '<span class="tb-pv-vide">—</span>'}</td>`;
-                } else {
-                    html += '<td class="tb-pv-reponse"><input type="text" disabled placeholder="..."></td>';
-                }
-            });
-            html += '</tr>';
-        });
-
-        html += '</tbody></table>';
-        container.innerHTML = html;
-    },
-
-    /** Debounce pour la mise à jour de l'aperçu à chaque frappe. */
-    _onTableInputDebounced() {
-        clearTimeout(this._tableInputTimer);
-        this._tableInputTimer = setTimeout(() => {
-            this.readTableBuilderValues();
-            this.renderTablePreview();
-        }, 300);
     },
 
     // ========== SÉLECTION DE CELLULE + POPOVER ==========
@@ -400,7 +356,7 @@ Object.assign(AdminBanquesExercices, {
         // Re-afficher le popover avec le nouveau contenu
         this._selectedCell = { row, col };
         this.renderTableBuilder();
-        this.renderTablePreview();
+
         this._showCellPopover(row, col);
     },
 
@@ -448,7 +404,7 @@ Object.assign(AdminBanquesExercices, {
             row.push({ valeur: '', type: 'reponse', correction: 'souple', alternatives: [] });
         });
         this.renderTableBuilder();
-        this.renderTablePreview();
+
     },
 
     removeColumn(index) {
@@ -461,7 +417,7 @@ Object.assign(AdminBanquesExercices, {
         this.tableBuilder.columns.splice(index, 1);
         this.tableBuilder.rows.forEach(row => row.splice(index, 1));
         this.renderTableBuilder();
-        this.renderTablePreview();
+
     },
 
     addRow() {
@@ -471,7 +427,7 @@ Object.assign(AdminBanquesExercices, {
         }));
         this.tableBuilder.rows.push(newRow);
         this.renderTableBuilder();
-        this.renderTablePreview();
+
     },
 
     removeRow(index) {
@@ -483,7 +439,7 @@ Object.assign(AdminBanquesExercices, {
         this._closeCellPopover();
         this.tableBuilder.rows.splice(index, 1);
         this.renderTableBuilder();
-        this.renderTablePreview();
+
     },
 
     previewExercice() {
