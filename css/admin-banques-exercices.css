@@ -1582,21 +1582,38 @@
     z-index: 10;
 }
 
-/* Formes */
-.cb-shape-cercle { border-radius: 50%; }
-.cb-shape-losange {
+/* Formes — sélecteurs composés pour gagner sur le transform de base */
+.carte-marker-preview.cb-shape-cercle,
+.cb-pv-marker.cb-shape-cercle { border-radius: 50%; }
+
+.carte-marker-preview.cb-shape-losange,
+.cb-pv-marker.cb-shape-losange {
     border-radius: 4px;
     transform: translate(-50%, -50%) rotate(45deg);
 }
 .cb-shape-losange .cb-marker-num,
+.cb-shape-losange .cb-marker-indicators,
 .cb-shape-losange .cb-pv-marker-num { transform: rotate(-45deg); }
-.cb-shape-carre { border-radius: 4px; }
-.cb-shape-pin {
+
+.carte-marker-preview.cb-shape-carre,
+.cb-pv-marker.cb-shape-carre { border-radius: 4px; }
+
+.carte-marker-preview.cb-shape-pin,
+.cb-pv-marker.cb-shape-pin {
     border-radius: 50% 50% 50% 0;
     transform: translate(-50%, -50%) rotate(-45deg);
 }
 .cb-shape-pin .cb-marker-num,
+.cb-shape-pin .cb-marker-indicators,
 .cb-shape-pin .cb-pv-marker-num { transform: rotate(45deg); }
+
+/* Hover avec rotation préservée */
+.cb-pv-marker.cb-shape-losange:hover {
+    transform: translate(-50%, -50%) rotate(45deg) scale(1.1);
+}
+.cb-pv-marker.cb-shape-pin:hover {
+    transform: translate(-50%, -50%) rotate(-45deg) scale(1.1);
+}
 
 /* Indicateurs sur les marqueurs */
 .cb-marker-indicators {
