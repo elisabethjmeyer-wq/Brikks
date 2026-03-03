@@ -182,8 +182,8 @@ Object.assign(AdminBanquesExercices, {
             var duree = document.getElementById('sfwDuree');
             if (duree) {
                 var val = parseInt(duree.value) || 0;
-                if (val < 60) {
-                    this.showNotification('La dur\u00e9e doit \u00eatre d\u2019au moins 60 secondes', 'warning');
+                if (val < 1 || val > 999) {
+                    this.showNotification('La dur\u00e9e doit \u00eatre entre 1 et 999 minutes', 'warning');
                     duree.focus();
                     return false;
                 }
@@ -262,13 +262,11 @@ Object.assign(AdminBanquesExercices, {
             var consigne = document.getElementById('sfwConsigne');
             var duree = document.getElementById('sfwDuree');
             var statut = document.getElementById('sfwStatut');
-            var peutTomber = document.getElementById('sfwPeutTomber');
 
             e.titre = titre ? titre.value.trim() : (e.titre || '');
             e.consigne = consigne ? consigne.value.trim() : (e.consigne || '');
-            e.duree = duree ? (parseInt(duree.value) || 600) : (e.duree || 600);
+            e.duree = duree ? (parseInt(duree.value) || 10) * 60 : (e.duree || 600);
             e.statut = statut ? statut.value : (e.statut || 'brouillon');
-            e.peut_tomber_en_eval = peutTomber ? peutTomber.checked : (e.peut_tomber_en_eval !== false);
 
             this.sfWizardData.exercice = e;
             break;
@@ -334,8 +332,7 @@ Object.assign(AdminBanquesExercices, {
 
     _renderSFWizardStep1: function() {
         var e = this.sfWizardData.exercice || {};
-        var duree = e.duree || 600;
-        var peutTomber = e.peut_tomber_en_eval !== false;
+        var dureeMin = Math.round((e.duree || 600) / 60);
 
         // Titre par défaut pour un nouvel exercice
         var defaultTitre = e.titre || '';
@@ -364,9 +361,8 @@ Object.assign(AdminBanquesExercices, {
                 '</div>' +
                 '<div class="form-row">' +
                     '<div class="form-group">' +
-                        '<label>Dur\u00e9e (secondes)</label>' +
-                        '<input type="number" class="form-input" id="sfwDuree" value="' + duree + '" min="60">' +
-                        '<div class="form-help">600 = 10 minutes</div>' +
+                        '<label>Dur\u00e9e (minutes)</label>' +
+                        '<input type="number" class="form-input" id="sfwDuree" value="' + dureeMin + '" min="1" max="999">' +
                     '</div>' +
                     '<div class="form-group">' +
                         '<label>Statut</label>' +
@@ -375,12 +371,6 @@ Object.assign(AdminBanquesExercices, {
                             '<option value="publie"' + (e.statut === 'publie' ? ' selected' : '') + '>Publi\u00e9</option>' +
                         '</select>' +
                     '</div>' +
-                '</div>' +
-                '<div class="form-group">' +
-                    '<label class="checkbox-label">' +
-                        '<input type="checkbox" id="sfwPeutTomber"' + (peutTomber ? ' checked' : '') + '>' +
-                        '<span>Peut tomber en \u00e9valuation</span>' +
-                    '</label>' +
                 '</div>' +
             '</div>' +
         '</div>';
@@ -768,7 +758,6 @@ Object.assign(AdminBanquesExercices, {
         var format = this.formats.find(function(f) { return String(f.id) === String(self.sfWizardData.formatId); });
         var formatName = format ? format.nom : 'Non s\u00e9lectionn\u00e9';
         var dureeMin = Math.round((e.duree || 600) / 60);
-        var peutTomber = e.peut_tomber_en_eval !== false;
 
         // Résumé du contenu selon le format
         var contentSummary = this._getSFContentSummary();
@@ -786,9 +775,8 @@ Object.assign(AdminBanquesExercices, {
                     '<h4>\u2699\uFE0F Param\u00e8tres</h4>' +
                     '<div class="summary-row"><span class="label">Titre</span><span class="value">' + this.escapeHtml(e.titre || '(vide)') + '</span></div>' +
                     (e.consigne ? '<div class="summary-row"><span class="label">Consigne</span><span class="value">' + this.escapeHtml(e.consigne) + '</span></div>' : '') +
-                    '<div class="summary-row"><span class="label">Dur\u00e9e</span><span class="value">' + dureeMin + ' min (' + (e.duree || 600) + 's)</span></div>' +
+                    '<div class="summary-row"><span class="label">Dur\u00e9e</span><span class="value">' + dureeMin + ' min</span></div>' +
                     '<div class="summary-row"><span class="label">Statut</span><span class="value status-badge ' + (e.statut || 'brouillon') + '">' + (e.statut === 'publie' ? 'Publi\u00e9' : 'Brouillon') + '</span></div>' +
-                    '<div class="summary-row"><span class="label">\u00c9valuation</span><span class="value">' + (peutTomber ? 'Peut tomber en \u00e9val' : 'Non') + '</span></div>' +
                 '</div>' +
                 '<div class="summary-card">' +
                     '<h4>\uD83C\uDFAF Format & Contenu</h4>' +
@@ -880,7 +868,6 @@ Object.assign(AdminBanquesExercices, {
             consigne: e.consigne || '',
             duree: e.duree || 600,
             donnees: JSON.stringify(donnees),
-            peut_tomber_en_eval: e.peut_tomber_en_eval !== false,
             statut: e.statut || 'brouillon'
         };
 
