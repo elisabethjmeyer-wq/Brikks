@@ -1054,6 +1054,30 @@ textarea.answered {
     cursor: pointer;
 }
 
+/* Formes des marqueurs */
+.carte-marqueur.carte-shape-cercle { border-radius: 50%; }
+.carte-marqueur.carte-shape-losange {
+    border-radius: 4px;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+.carte-marqueur.carte-shape-losange:hover {
+    transform: translate(-50%, -50%) rotate(45deg) scale(1.15);
+}
+.carte-marqueur.carte-shape-losange .marqueur-numero { transform: rotate(-45deg); }
+.carte-marqueur.carte-shape-losange .marqueur-reponse-badge { transform: rotate(-45deg); }
+.carte-marqueur.carte-shape-carre {
+    border-radius: 4px;
+}
+.carte-marqueur.carte-shape-pin {
+    border-radius: 50% 50% 50% 0;
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+.carte-marqueur.carte-shape-pin:hover {
+    transform: translate(-50%, -50%) rotate(-45deg) scale(1.15);
+}
+.carte-marqueur.carte-shape-pin .marqueur-numero { transform: rotate(45deg); }
+.carte-marqueur.carte-shape-pin .marqueur-reponse-badge { transform: rotate(45deg); }
+
 .marqueur-numero {
     color: white;
     font-weight: 700;

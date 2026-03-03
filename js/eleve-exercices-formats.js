@@ -96,19 +96,35 @@ Object.assign(EleveExercices, {
         };
     },
 
+    /** Couleurs carte cliquable (id → hex) */
+    CARTE_COLOR_MAP: {
+        bleu: '#6366f1', rouge: '#ef4444', vert: '#10b981',
+        orange: '#f59e0b', violet: '#8b5cf6', noir: '#374151'
+    },
+
+    /** Classe CSS pour la forme du marqueur */
+    _getMarqueurShapeClass(shape) {
+        const valid = ['cercle', 'losange', 'carre', 'pin'];
+        return 'carte-shape-' + (valid.includes(shape) ? shape : 'cercle');
+    },
+
     renderCarteCliquable(donnees, structure) {
         const imageUrl = this.convertToDirectImageUrl(donnees.image_url || '');
         const marqueurs = donnees.marqueurs || [];
+        const colorMap = this.CARTE_COLOR_MAP;
 
-        let marqueursHTML = marqueurs.map((m, index) => `
-            <div class="carte-marqueur" data-id="${m.id || index}"
+        let marqueursHTML = marqueurs.map((m, index) => {
+            const colorHex = colorMap[m.color] || colorMap.bleu;
+            const shapeClass = this._getMarqueurShapeClass(m.shape);
+            return `<div class="carte-marqueur ${shapeClass}" data-id="${m.id || index}"
                  data-reponse="${this.escapeHtml(m.reponse || '')}"
-                 style="left: ${m.x}%; top: ${m.y}%;"
+                 data-correction="${m.correction || 'souple'}"
+                 style="left: ${m.x}%; top: ${m.y}%; background: ${colorHex};"
                  onclick="EleveExercices.openMarqueurModal(${index})">
                 <span class="marqueur-numero">${index + 1}</span>
                 <span class="marqueur-reponse-badge hidden" id="badge_${index}"></span>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
 
         this.carteMarqueurs = marqueurs;
         this.carteReponses = new Array(marqueurs.length).fill('');
@@ -545,7 +561,8 @@ Object.assign(EleveExercices, {
             const marqueur = document.querySelector(`.carte-marqueur[data-id="${index}"]`);
             const userAnswer = reponses[index] || '';
             const correctAnswer = m.reponse || '';
-            const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswer);
+            const isStricte = m.correction === 'stricte';
+            const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswer, isStricte);
             const firstCorrectAnswer = correctAnswer.split(/[|;]/)[0].trim();
 
             if (badge) {

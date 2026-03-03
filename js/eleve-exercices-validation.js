@@ -195,8 +195,9 @@ Object.assign(EleveExercices, {
             const badge = document.getElementById(`badge_${index}`);
 
             const correctAnswerRaw = m.reponse || '';
+            const isStricte = m.correction === 'stricte';
 
-            if (this.checkAnswerMatch(reponses[index] || '', correctAnswerRaw)) {
+            if (this.checkAnswerMatch(reponses[index] || '', correctAnswerRaw, isStricte)) {
                 if (marqueur) marqueur.classList.add('correct');
                 if (badge) badge.classList.add('correct');
                 correct++;
