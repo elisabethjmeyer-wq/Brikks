@@ -104,6 +104,7 @@ Object.assign(AdminBanquesExercices, {
             if (b.type === 'document' || b.type === 'image' || b.type === 'video') return b.url && b.url.trim() !== '';
             if (b.type === 'tableau') return b.colonnes && b.colonnes.length > 0 && b.lignes && b.lignes.length > 0;
             if (b.type === 'group') return b.children && b.children.length > 0;
+            if (b.type === 'question') return b.question && b.question.trim() !== '';
             return false;
         });
         if (clean.length === 0) return '';
