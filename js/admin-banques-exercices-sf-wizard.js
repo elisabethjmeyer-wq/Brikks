@@ -502,15 +502,21 @@ Object.assign(AdminBanquesExercices, {
             '<div class="form-group">' +
                 '<div class="tb-structure-bar">' +
                     '<span class="tb-structure-label">Tableau</span>' +
-                    '<span class="tb-structure-hint">Cliquez sur le badge <strong>D</strong>/<strong>R</strong> d\'une cellule pour la configurer</span>' +
+                    '<span class="tb-structure-hint" id="tbHint">Cliquez sur le badge <strong>D</strong>/<strong>R</strong> d\'une cellule pour la configurer</span>' +
+                    '<button type="button" class="tb-toggle-preview" id="tbTogglePreview" onclick="AdminBanquesExercices.toggleTablePreview()">' +
+                        '<span class="tb-toggle-icon">&#x1F441;</span> Vue \u00e9l\u00e8ve' +
+                    '</button>' +
                 '</div>' +
-                '<div class="table-builder-wrapper">' +
-                    '<table class="table-builder" id="tableBuilder">' +
-                        '<thead id="tableBuilderHead"></thead>' +
-                        '<tbody id="tableBuilderBody"></tbody>' +
-                    '</table>' +
+                '<div id="tbConstructionPanel">' +
+                    '<div class="table-builder-wrapper">' +
+                        '<table class="table-builder" id="tableBuilder">' +
+                            '<thead id="tableBuilderHead"></thead>' +
+                            '<tbody id="tableBuilderBody"></tbody>' +
+                        '</table>' +
+                    '</div>' +
+                    '<button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>' +
                 '</div>' +
-                '<button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>' +
+                '<div id="tbPreviewPanel" class="tb-preview-panel" style="display:none;"></div>' +
             '</div>' +
         '</div>';
     },
