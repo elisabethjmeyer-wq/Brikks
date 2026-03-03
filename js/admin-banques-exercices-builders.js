@@ -172,24 +172,30 @@ Object.assign(AdminBanquesExercices, {
                         const isSouple = cell.correction === 'souple';
                         const isSelected = this._selectedCell && this._selectedCell.row === ri && this._selectedCell.col === ci;
 
-                        // Icônes indicateurs pour les cellules réponse
-                        let indicators = '';
+                        // Badge type : bouton cliquable qui ouvre le popover
+                        const typeLabel = isDonnee ? 'D' : 'R';
+                        const typeTitle = isDonnee ? 'Donnée — cliquer pour configurer' : 'Réponse — cliquer pour configurer';
+
+                        // Indicateurs supplémentaires pour les cellules réponse
+                        let extraIndicators = '';
                         if (!isDonnee) {
-                            const parts = [];
-                            if (hasAlts) parts.push(`<span class="tb-indicator tb-ind-alt" title="${cell.alternatives.length} alternative(s)">&#xB1;${cell.alternatives.length}</span>`);
-                            if (!isSouple) parts.push('<span class="tb-indicator tb-ind-strict" title="Correction stricte">S</span>');
-                            indicators = parts.join('');
+                            if (hasAlts) extraIndicators += `<span class="tb-indicator tb-ind-alt" title="${cell.alternatives.length} alternative(s)">\u00B1${cell.alternatives.length}</span>`;
+                            if (!isSouple) extraIndicators += '<span class="tb-indicator tb-ind-strict" title="Correction stricte">S</span>';
                         }
 
                         return `
-                            <td class="tb-cell ${isDonnee ? 'tb-cell-donnee' : 'tb-cell-reponse'} ${isSelected ? 'tb-cell-selected' : ''}"
-                                onclick="AdminBanquesExercices.selectCell(${ri}, ${ci}, event)">
-                                <input type="text" class="tb-cell-input"
-                                       data-row="${ri}" data-col="${ci}"
-                                       value="${this.escapeHtml(cell.valeur)}"
-                                       placeholder="${isDonnee ? 'Donnée...' : 'Réponse...'}"
-                                       oninput="AdminBanquesExercices._onTableInputDebounced()">
-                                <div class="tb-cell-indicators">${indicators}</div>
+                            <td class="tb-cell ${isDonnee ? 'tb-cell-donnee' : 'tb-cell-reponse'} ${isSelected ? 'tb-cell-selected' : ''}">
+                                <div class="tb-cell-row">
+                                    <button type="button" class="tb-cell-badge ${isDonnee ? 'tb-badge-donnee' : 'tb-badge-reponse'}"
+                                            onclick="AdminBanquesExercices.selectCell(${ri}, ${ci})"
+                                            title="${typeTitle}">${typeLabel}</button>
+                                    <input type="text" class="tb-cell-input"
+                                           data-row="${ri}" data-col="${ci}"
+                                           value="${this.escapeHtml(cell.valeur)}"
+                                           placeholder="${isDonnee ? 'Donnée...' : 'Réponse...'}"
+                                           oninput="AdminBanquesExercices._onTableInputDebounced()">
+                                    ${extraIndicators ? `<div class="tb-cell-indicators">${extraIndicators}</div>` : ''}
+                                </div>
                             </td>`;
                     }).join('')}
                     <td class="tb-row-actions">
@@ -244,14 +250,11 @@ Object.assign(AdminBanquesExercices, {
 
     // ========== SÉLECTION DE CELLULE + POPOVER ==========
 
-    selectCell(rowIndex, colIndex, event) {
-        // Ne pas ouvrir le popover si on clique dans l'input
-        if (event && event.target.tagName === 'INPUT') return;
-
+    selectCell(rowIndex, colIndex) {
         this.readTableBuilderValues();
         this._selectedCell = { row: rowIndex, col: colIndex };
         this.renderTableBuilder();
-        this._showCellPopover(rowIndex, colIndex, event);
+        this._showCellPopover(rowIndex, colIndex);
     },
 
     _showCellPopover(rowIndex, colIndex) {
@@ -330,8 +333,9 @@ Object.assign(AdminBanquesExercices, {
                 </div>
             </div>`;
 
-        // Positionner le popover à côté de la cellule cliquée
-        const clickedTd = document.querySelector(`.tb-cell[onclick*="selectCell(${rowIndex}, ${colIndex}"]`);
+        // Positionner le popover à côté du badge cliqué
+        const clickedBadge = document.querySelector(`.tb-cell-badge[onclick*="selectCell(${rowIndex}, ${colIndex})"]`);
+        const clickedTd = clickedBadge ? clickedBadge.closest('td') : null;
         if (!clickedTd) return;
 
         const wrapper = document.createElement('div');
@@ -364,7 +368,7 @@ Object.assign(AdminBanquesExercices, {
         setTimeout(() => {
             this._popoverOutsideHandler = (e) => {
                 const pop = document.getElementById('tbCellPopover');
-                if (pop && !pop.contains(e.target) && !e.target.closest('.tb-cell')) {
+                if (pop && !pop.contains(e.target) && !e.target.closest('.tb-cell-badge')) {
                     this._closeCellPopover();
                 }
             };
