@@ -204,33 +204,27 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
-    // ========== TOGGLE VUE ÉLÈVE ==========
+    // ========== TABS CONSTRUCTION / VUE ÉLÈVE ==========
 
-    toggleTablePreview() {
-        this.readTableBuilderValues();
+    switchTableTab(tab) {
         const constructionPanel = document.getElementById('tbConstructionPanel');
         const previewPanel = document.getElementById('tbPreviewPanel');
-        const toggleBtn = document.getElementById('tbTogglePreview');
-        const hint = document.getElementById('tbHint');
+        const tabConstruction = document.getElementById('tbTabConstruction');
+        const tabPreview = document.getElementById('tbTabPreview');
         if (!constructionPanel || !previewPanel) return;
 
-        const showingPreview = constructionPanel.style.display === 'none';
-
-        if (showingPreview) {
-            // Retour à la construction
-            constructionPanel.style.display = '';
-            previewPanel.style.display = 'none';
-            toggleBtn.innerHTML = '<span class="tb-toggle-icon">&#x1F441;</span> Vue \u00e9l\u00e8ve';
-            toggleBtn.classList.remove('tb-toggle-active');
-            if (hint) hint.style.display = '';
-        } else {
-            // Afficher la preview
+        if (tab === 'preview') {
+            this.readTableBuilderValues();
             this._renderTablePreview(previewPanel);
             constructionPanel.style.display = 'none';
             previewPanel.style.display = '';
-            toggleBtn.innerHTML = '<span class="tb-toggle-icon">&#x270F;</span> Construction';
-            toggleBtn.classList.add('tb-toggle-active');
-            if (hint) hint.style.display = 'none';
+            tabConstruction.classList.remove('active');
+            tabPreview.classList.add('active');
+        } else {
+            constructionPanel.style.display = '';
+            previewPanel.style.display = 'none';
+            tabConstruction.classList.add('active');
+            tabPreview.classList.remove('active');
         }
     },
 
@@ -243,7 +237,16 @@ Object.assign(AdminBanquesExercices, {
             return;
         }
 
-        let html = '<table class="tb-preview-table"><thead><tr>';
+        // Récupérer la consigne
+        const consigneEl = document.getElementById('sfwConsigneStep3');
+        const consigne = consigneEl ? consigneEl.value.trim() : '';
+
+        let html = '';
+        if (consigne) {
+            html += `<p class="tb-pv-consigne">${this.escapeHtml(consigne)}</p>`;
+        }
+
+        html += '<table class="tb-preview-table"><thead><tr>';
         cols.forEach(c => { html += `<th>${this.escapeHtml(c) || '...'}</th>`; });
         html += '</tr></thead><tbody>';
 

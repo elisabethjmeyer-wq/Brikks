@@ -925,65 +925,72 @@
 
 /* ===== TABLE BUILDER v2 ===== */
 
-.tb-structure-bar {
+/* Tabs Construction / Vue élève */
+.tb-tabs {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
+    gap: 4px;
+    background: var(--gray-100);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 16px;
+    border: 1px solid var(--gray-200);
 }
 
-.tb-structure-label {
-    font-weight: 600;
+.tb-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: transparent;
     font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-500);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tb-tab:hover:not(.active) {
+    background: white;
     color: var(--gray-700);
 }
 
-.tb-structure-hint {
-    font-size: 11px;
-    color: var(--gray-400);
-    font-style: italic;
-    flex: 1;
-}
-
-/* Toggle vue élève */
-.tb-toggle-preview {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border: 1px solid var(--gray-300);
-    border-radius: 6px;
+.tb-tab.active {
     background: white;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--gray-600);
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.15s ease;
+    color: #d97706;
+    border-color: #d97706;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(217, 119, 6, 0.15);
 }
 
-.tb-toggle-preview:hover {
-    background: var(--gray-50);
-    border-color: var(--gray-400);
+.tb-tab-icon {
+    font-size: 14px;
 }
 
-.tb-toggle-preview.tb-toggle-active {
-    background: #eff6ff;
-    border-color: #93c5fd;
-    color: #2563eb;
-}
-
-.tb-toggle-icon {
-    font-size: 13px;
-    line-height: 1;
+.tb-hint {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin: 0 0 10px 0;
+    font-style: italic;
 }
 
 /* Preview panel */
 .tb-preview-panel {
-    padding: 16px;
+    padding: 20px;
     background: var(--gray-50);
     border: 1px solid var(--gray-200);
     border-radius: 8px;
+}
+
+.tb-pv-consigne {
+    font-size: 14px;
+    color: var(--gray-700);
+    margin: 0 0 16px 0;
+    padding: 12px 16px;
+    background: white;
+    border-left: 3px solid #d97706;
+    border-radius: 0 6px 6px 0;
 }
 
 .tb-preview-table {

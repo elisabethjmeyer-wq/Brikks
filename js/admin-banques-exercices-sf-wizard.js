@@ -516,25 +516,25 @@ Object.assign(AdminBanquesExercices, {
 
         return '<div id="builderTableau" class="format-builder">' +
             docSection +
-            '<div class="form-group">' +
-                '<div class="tb-structure-bar">' +
-                    '<span class="tb-structure-label">Tableau</span>' +
-                    '<span class="tb-structure-hint" id="tbHint">Cliquez sur le badge <strong>D</strong>/<strong>R</strong> d\'une cellule pour la configurer</span>' +
-                    '<button type="button" class="tb-toggle-preview" id="tbTogglePreview" onclick="AdminBanquesExercices.toggleTablePreview()">' +
-                        '<span class="tb-toggle-icon">&#x1F441;</span> Vue \u00e9l\u00e8ve' +
-                    '</button>' +
-                '</div>' +
-                '<div id="tbConstructionPanel">' +
-                    '<div class="table-builder-wrapper">' +
-                        '<table class="table-builder" id="tableBuilder">' +
-                            '<thead id="tableBuilderHead"></thead>' +
-                            '<tbody id="tableBuilderBody"></tbody>' +
-                        '</table>' +
-                    '</div>' +
-                    '<button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>' +
-                '</div>' +
-                '<div id="tbPreviewPanel" class="tb-preview-panel" style="display:none;"></div>' +
+            '<div class="tb-tabs">' +
+                '<button type="button" class="tb-tab active" id="tbTabConstruction" onclick="AdminBanquesExercices.switchTableTab(\'construction\')">' +
+                    '<span class="tb-tab-icon">\u2699\uFE0F</span> Construction' +
+                '</button>' +
+                '<button type="button" class="tb-tab" id="tbTabPreview" onclick="AdminBanquesExercices.switchTableTab(\'preview\')">' +
+                    '<span class="tb-tab-icon">\uD83D\uDC41\uFE0F</span> Vue \u00e9l\u00e8ve' +
+                '</button>' +
             '</div>' +
+            '<div id="tbConstructionPanel">' +
+                '<p class="tb-hint">Cliquez sur le badge <strong>D</strong> (donn\u00e9e) ou <strong>R</strong> (r\u00e9ponse) pour configurer une cellule</p>' +
+                '<div class="table-builder-wrapper">' +
+                    '<table class="table-builder" id="tableBuilder">' +
+                        '<thead id="tableBuilderHead"></thead>' +
+                        '<tbody id="tableBuilderBody"></tbody>' +
+                    '</table>' +
+                '</div>' +
+                '<button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>' +
+            '</div>' +
+            '<div id="tbPreviewPanel" class="tb-preview-panel" style="display:none;"></div>' +
         '</div>';
     },
 
