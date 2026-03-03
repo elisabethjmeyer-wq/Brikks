@@ -1306,6 +1306,42 @@
     position: relative;
 }
 
+/* ===== ROW MOVE BUTTONS ===== */
+
+.tb-row-move {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.tb-move-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--gray-400, #9ca3af);
+    font-size: 8px;
+    padding: 0 2px;
+    line-height: 1;
+}
+
+.tb-move-btn:hover {
+    color: var(--gray-700, #374151);
+}
+
+.tb-section-cell .tb-row-move {
+    margin-right: 6px;
+}
+
+.tb-section-cell .tb-move-btn {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.tb-section-cell .tb-move-btn:hover {
+    color: white;
+}
+
 .tb-add-buttons {
     display: flex;
     gap: 8px;
