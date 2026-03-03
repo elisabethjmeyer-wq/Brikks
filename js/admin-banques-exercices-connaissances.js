@@ -1017,7 +1017,7 @@ Object.assign(AdminBanquesExercices, {
                                 ${formats.map(f => `
                                     <button class="format-card" onclick="AdminBanquesExercices.addWizardEtape('${f.code}')">
                                         <span class="format-icon">${f.icone || '📋'}</span>
-                                        <span class="format-name">${f.nom}</span>
+                                        <span class="format-name">${this.questionTypeNames[f.code] || f.nom}</span>
                                         <span class="format-count">${this.countQuestionsForFormat(f.code)} disponibles</span>
                                     </button>
                                 `).join('')}
@@ -1041,7 +1041,7 @@ Object.assign(AdminBanquesExercices, {
                 <div class="etape-number">${index + 1}</div>
                 <div class="etape-format-icon">${format.icone || '📋'}</div>
                 <div class="etape-info">
-                    <div class="etape-format-name">${format.nom || etape.format_code}</div>
+                    <div class="etape-format-name">${this.questionTypeNames[etape.format_code] || format.nom || etape.format_code}</div>
                     <div class="etape-meta">
                         ${questionsCount} question${questionsCount > 1 ? 's' : ''}
                         <span class="etape-mode ${etape.mode_selection}">${etape.mode_selection === 'aleatoire' ? '🎲 Aléatoire' : '✋ Manuel'}</span>
@@ -1404,7 +1404,7 @@ Object.assign(AdminBanquesExercices, {
                     <div class="etape-header-left">
                         <span class="etape-number">${index + 1}</span>
                         <span class="etape-format-icon">${format.icone || '📋'}</span>
-                        <span class="etape-format-name">${format.nom || etape.format_code}</span>
+                        <span class="etape-format-name">${this.questionTypeNames[etape.format_code] || format.nom || etape.format_code}</span>
                     </div>
                     <div class="etape-header-right">
                         <span class="questions-count ${selectedIds.length === 0 ? 'warning' : ''}">${selectedIds.length} / ${availableQuestions.length} question${selectedIds.length > 1 ? 's' : ''}</span>
@@ -1763,7 +1763,7 @@ Object.assign(AdminBanquesExercices, {
                                         <div class="summary-etape">
                                             <span class="etape-num">${index + 1}</span>
                                             <span class="etape-icon">${format.icone || '📋'}</span>
-                                            <span class="etape-name">${format.nom || etape.format_code}</span>
+                                            <span class="etape-name">${this.questionTypeNames[etape.format_code] || format.nom || etape.format_code}</span>
                                             <span class="etape-questions">${qCount} question${qCount > 1 ? 's' : ''}</span>
                                             <span class="etape-mode-badge ${etape.mode_selection}">${etape.mode_selection === 'aleatoire' ? '🎲' : '✋'}</span>
                                         </div>
