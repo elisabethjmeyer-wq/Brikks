@@ -1078,11 +1078,19 @@ const AdminBanquesExercices = {
         document.getElementById('deleteModal').classList.remove('hidden');
     },
 
-    // ========== EXERCICE MODAL ==========
+    // ========== EXERCICE MODAL (remplacé par le wizard SF) ==========
     addExercice(banqueId) {
-        this.openExerciceModal(null, banqueId);
+        this.openSFWizard(null, banqueId);
     },
 
+    editExercice(id) {
+        const exercice = this.exercices.find(e => e.id === id);
+        if (exercice) {
+            this.openSFWizard(exercice);
+        }
+    },
+
+    // Ancienne modal conservée pour référence (plus utilisée)
     openExerciceModal(exercice = null, banqueId = null) {
         const modal = document.getElementById('exerciceModal');
         const title = document.getElementById('exerciceModalTitle');
@@ -1178,15 +1186,10 @@ const AdminBanquesExercices = {
     },
 
     closeExerciceModal() {
-        document.getElementById('exerciceModal').classList.add('hidden');
+        var modal = document.getElementById('exerciceModal');
+        if (modal) modal.classList.add('hidden');
     },
 
-    editExercice(id) {
-        const exercice = this.exercices.find(e => e.id === id);
-        if (exercice) {
-            this.openExerciceModal(exercice);
-        }
-    },
 
     async saveExercice() {
         const id = document.getElementById('editExerciceId').value;
