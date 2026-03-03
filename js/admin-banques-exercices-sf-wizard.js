@@ -633,6 +633,9 @@ Object.assign(AdminBanquesExercices, {
                             '<button type="button" class="block-add-menu-item" onclick="AdminBanquesExercices._addMixteBlock(\'tableau\')">' +
                                 '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>' +
                                 ' Tableau</button>' +
+                            '<button type="button" class="block-add-menu-item" onclick="AdminBanquesExercices._addMixteBlock(\'question\')">' +
+                                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' +
+                                ' Question</button>' +
                         '</div>' +
                     '</div>' +
                 '</div>' +
@@ -763,6 +766,15 @@ Object.assign(AdminBanquesExercices, {
         }
         case 'tableau': {
             html += this._renderPreviewBlockTableau(block);
+            break;
+        }
+        case 'question': {
+            html += '<div class="comp-block-question">';
+            if (block.question) {
+                html += '<p class="comp-block-question-label">' + this.escapeHtml(block.question) + '</p>';
+            }
+            html += '<input type="text" class="comp-block-question-input" disabled placeholder="R\u00e9ponse de l\u2019\u00e9l\u00e8ve\u2026">';
+            html += '</div>';
             break;
         }
         }
@@ -1047,7 +1059,7 @@ Object.assign(AdminBanquesExercices, {
                     }
                 });
             }
-            var typeLabelsMap = { text: 'Texte', document: 'Document', image: 'Image', video: 'Vid\u00e9o', tableau: 'Tableau' };
+            var typeLabelsMap = { text: 'Texte', document: 'Document', image: 'Image', video: 'Vid\u00e9o', tableau: 'Tableau', question: 'Question' };
             var typeSummary = Object.keys(types).map(function(t) { return types[t] + ' ' + (typeLabelsMap[t] || t); }).join(', ');
             html += '<div class="summary-row"><span class="label">Blocs</span><span class="value">' + nbBlocks + ' (' + (typeSummary || 'vide') + ')</span></div>';
         } else {

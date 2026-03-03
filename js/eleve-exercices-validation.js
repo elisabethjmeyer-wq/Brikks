@@ -229,32 +229,56 @@ Object.assign(EleveExercices, {
         let correct = 0, total = 0;
         const data = this.mixteData || {};
 
-        // Nouveau format : blocks avec tableaux
-        if (data.blocks && this._mixteBlockTableaux) {
-            this._mixteBlockTableaux.forEach(tab => {
-                tab.lignes.forEach((ligne, ri) => {
-                    (ligne.cells || []).forEach((cell, ci) => {
-                        if (cell.type === 'reponse') {
-                            total++;
-                            const input = document.getElementById(`mixte_btab_${tab.tableIdx}_${ri}_${ci}`);
-                            if (input) {
-                                const correctRaw = cell.valeur || '';
-                                const alts = cell.alternatives || [];
-                                const allCorrect = [correctRaw].concat(alts).join('|');
-                                const stricte = cell.correction === 'stricte';
-                                if (this.checkAnswerMatch(input.value, allCorrect, stricte)) {
-                                    input.classList.add('correct');
-                                    input.classList.remove('incorrect');
-                                    correct++;
-                                } else {
-                                    input.classList.add('incorrect');
-                                    input.classList.remove('correct');
+        // Nouveau format : blocks avec tableaux et questions
+        if (data.blocks) {
+            // Tableaux
+            if (this._mixteBlockTableaux) {
+                this._mixteBlockTableaux.forEach(tab => {
+                    tab.lignes.forEach((ligne, ri) => {
+                        (ligne.cells || []).forEach((cell, ci) => {
+                            if (cell.type === 'reponse') {
+                                total++;
+                                const input = document.getElementById(`mixte_btab_${tab.tableIdx}_${ri}_${ci}`);
+                                if (input) {
+                                    const correctRaw = cell.valeur || '';
+                                    const alts = cell.alternatives || [];
+                                    const allCorrect = [correctRaw].concat(alts).join('|');
+                                    const stricte = cell.correction === 'stricte';
+                                    if (this.checkAnswerMatch(input.value, allCorrect, stricte)) {
+                                        input.classList.add('correct');
+                                        input.classList.remove('incorrect');
+                                        correct++;
+                                    } else {
+                                        input.classList.add('incorrect');
+                                        input.classList.remove('correct');
+                                    }
                                 }
                             }
-                        }
+                        });
                     });
                 });
-            });
+            }
+            // Questions
+            if (this._mixteBlockQuestions) {
+                this._mixteBlockQuestions.forEach(q => {
+                    total++;
+                    const input = document.getElementById(`mixte_bq_${q.qIdx}`);
+                    if (input) {
+                        const correctRaw = q.reponse || '';
+                        const alts = q.alternatives || [];
+                        const allCorrect = [correctRaw].concat(alts).join('|');
+                        const stricte = q.correction === 'stricte';
+                        if (this.checkAnswerMatch(input.value, allCorrect, stricte)) {
+                            input.classList.add('correct');
+                            input.classList.remove('incorrect');
+                            correct++;
+                        } else {
+                            input.classList.add('incorrect');
+                            input.classList.remove('correct');
+                        }
+                    }
+                });
+            }
             return { correct, total };
         }
 
