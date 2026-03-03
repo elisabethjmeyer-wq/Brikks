@@ -1115,7 +1115,7 @@ Object.assign(AdminBanquesExercices, {
     },
 
     _showCartePopover(index) {
-        this._closeCartePopover();
+        this._removeCartePopoverDOM();
 
         const m = this.carteBuilder.marqueurs[index];
         if (!m) return;
@@ -1249,11 +1249,21 @@ Object.assign(AdminBanquesExercices, {
         }, 50);
     },
 
+    /** Retire le popover du DOM sans sync ni nettoyage (utilisé avant reconstruction) */
+    _removeCartePopoverDOM() {
+        const wrapper = document.getElementById('cbPopoverWrapper');
+        if (wrapper) wrapper.remove();
+        if (this._cartePopoverOutsideHandler) {
+            document.removeEventListener('click', this._cartePopoverOutsideHandler);
+            this._cartePopoverOutsideHandler = null;
+        }
+    },
+
+    /** Ferme le popover : sync les valeurs, nettoie les alternatives vides, retire le DOM */
     _closeCartePopover() {
-        // Synchroniser les valeurs saisies avant de détruire le DOM
         if (this._selectedMarqueur != null) {
             this._syncCartePopoverToModel(this._selectedMarqueur);
-            // Nettoyer les alternatives vides
+            // Nettoyer les alternatives vides à la fermeture
             const m = this.carteBuilder.marqueurs[this._selectedMarqueur];
             if (m) {
                 const parts = (m.reponse || '').split('|');
@@ -1262,12 +1272,7 @@ Object.assign(AdminBanquesExercices, {
                 m.reponse = alts.length > 0 ? [main, ...alts].join('|') : main;
             }
         }
-        const wrapper = document.getElementById('cbPopoverWrapper');
-        if (wrapper) wrapper.remove();
-        if (this._cartePopoverOutsideHandler) {
-            document.removeEventListener('click', this._cartePopoverOutsideHandler);
-            this._cartePopoverOutsideHandler = null;
-        }
+        this._removeCartePopoverDOM();
         this._selectedMarqueur = null;
         this.renderCarteMarkers();
     },
