@@ -1834,6 +1834,52 @@ textarea.answered {
     min-width: 0;
 }
 
+/* Bloc question */
+.mixte-block-question {
+    background: var(--gray-50, #f9fafb);
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 8px;
+    padding: 12px 16px;
+}
+
+.mixte-block-question-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--gray-700, #374151);
+}
+
+.mixte-block-question-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--gray-300, #d1d5db);
+    border-radius: 6px;
+    font-size: 0.95em;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.mixte-block-question-input:focus {
+    outline: none;
+    border-color: var(--primary, #3b82f6);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.mixte-block-question-input.correct {
+    border-color: #22c55e;
+    background: #f0fdf4;
+}
+
+.mixte-block-question-input.incorrect {
+    border-color: #ef4444;
+    background: #fef2f2;
+}
+
+.mixte-block-question-input.empty-answer {
+    color: #9ca3af;
+    font-style: italic;
+}
+
 @media (max-width: 768px) {
     .mixte-blocks-group {
         flex-direction: column;

@@ -336,9 +336,11 @@ Object.assign(EleveExercices, {
     // ========== NOUVEAU FORMAT BLOCKS POUR DOCUMENT_MIXTE ==========
 
     _renderMixteBlocks(blocks) {
-        // Collecter tous les tableaux pour la validation
+        // Collecter les tableaux et questions pour la validation
         this._mixteBlockTableaux = [];
         this._mixteBlockTableauCounter = 0;
+        this._mixteBlockQuestions = [];
+        this._mixteBlockQuestionCounter = 0;
 
         const self = this;
         const html = blocks.map(block => self._renderMixteBlock(block)).join('');
@@ -412,6 +414,9 @@ Object.assign(EleveExercices, {
         case 'tableau': {
             return this._renderMixteBlockTableau(block);
         }
+        case 'question': {
+            return this._renderMixteBlockQuestion(block);
+        }
         default:
             return '';
         }
@@ -462,6 +467,25 @@ Object.assign(EleveExercices, {
                     <thead><tr>${headerHTML}</tr></thead>
                     <tbody>${bodyHTML}</tbody>
                 </table>
+            </div>
+        `;
+    },
+
+    _renderMixteBlockQuestion(block) {
+        const qIdx = this._mixteBlockQuestionCounter++;
+        // Stocker la question pour la validation
+        this._mixteBlockQuestions.push({
+            qIdx,
+            reponse: block.reponse || '',
+            correction: block.correction || 'souple',
+            alternatives: block.alternatives || []
+        });
+
+        return `
+            <div class="mixte-block-question">
+                <label class="mixte-block-question-label">${this.escapeHtml(block.question || '')}</label>
+                <input type="text" class="mixte-block-question-input" id="mixte_bq_${qIdx}"
+                       placeholder="Votre r\u00e9ponse\u2026" autocomplete="off">
             </div>
         `;
     },
@@ -802,38 +826,69 @@ Object.assign(EleveExercices, {
         const data = this.mixteData || {};
 
         // Nouveau format : blocks
-        if (data.blocks && this._mixteBlockTableaux) {
-            this._mixteBlockTableaux.forEach(tab => {
-                tab.lignes.forEach((ligne, ri) => {
-                    (ligne.cells || []).forEach((cell, ci) => {
-                        if (cell.type === 'reponse') {
-                            const input = document.getElementById(`mixte_btab_${tab.tableIdx}_${ri}_${ci}`);
-                            if (!input) return;
-                            const userAnswer = input.value.trim();
-                            const correctAnswer = cell.valeur || '';
-                            const alts = cell.alternatives || [];
-                            const allCorrect = [correctAnswer].concat(alts).join('|');
-                            const stricte = cell.correction === 'stricte';
-                            const isCorrect = this.checkAnswerMatch(userAnswer, allCorrect, stricte);
+        if (data.blocks) {
+            // Correction des tableaux
+            if (this._mixteBlockTableaux) {
+                this._mixteBlockTableaux.forEach(tab => {
+                    tab.lignes.forEach((ligne, ri) => {
+                        (ligne.cells || []).forEach((cell, ci) => {
+                            if (cell.type === 'reponse') {
+                                const input = document.getElementById(`mixte_btab_${tab.tableIdx}_${ri}_${ci}`);
+                                if (!input) return;
+                                const userAnswer = input.value.trim();
+                                const correctAnswer = cell.valeur || '';
+                                const alts = cell.alternatives || [];
+                                const allCorrect = [correctAnswer].concat(alts).join('|');
+                                const stricte = cell.correction === 'stricte';
+                                const isCorrect = this.checkAnswerMatch(userAnswer, allCorrect, stricte);
 
-                            input.classList.remove('incorrect', 'correct');
-                            input.classList.add(isCorrect ? 'correct' : 'incorrect');
-                            input.disabled = true;
+                                input.classList.remove('incorrect', 'correct');
+                                input.classList.add(isCorrect ? 'correct' : 'incorrect');
+                                input.disabled = true;
 
-                            if (!userAnswer) {
-                                input.value = '(non r\u00e9pondu)';
-                                input.classList.add('empty-answer');
+                                if (!userAnswer) {
+                                    input.value = '(non r\u00e9pondu)';
+                                    input.classList.add('empty-answer');
+                                }
+                                if (!isCorrect) {
+                                    const correctionDiv = document.createElement('div');
+                                    correctionDiv.className = 'correction-expected-below';
+                                    correctionDiv.innerHTML = `R\u00e9ponse : ${this.escapeHtml(correctAnswer)}`;
+                                    input.parentNode.appendChild(correctionDiv);
+                                }
                             }
-                            if (!isCorrect) {
-                                const correctionDiv = document.createElement('div');
-                                correctionDiv.className = 'correction-expected-below';
-                                correctionDiv.innerHTML = `R\u00e9ponse : ${this.escapeHtml(correctAnswer)}`;
-                                input.parentNode.appendChild(correctionDiv);
-                            }
-                        }
+                        });
                     });
                 });
-            });
+            }
+            // Correction des questions
+            if (this._mixteBlockQuestions) {
+                this._mixteBlockQuestions.forEach(q => {
+                    const input = document.getElementById(`mixte_bq_${q.qIdx}`);
+                    if (!input) return;
+                    const userAnswer = input.value.trim();
+                    const correctAnswer = q.reponse || '';
+                    const alts = q.alternatives || [];
+                    const allCorrect = [correctAnswer].concat(alts).join('|');
+                    const stricte = q.correction === 'stricte';
+                    const isCorrect = this.checkAnswerMatch(userAnswer, allCorrect, stricte);
+
+                    input.classList.remove('incorrect', 'correct');
+                    input.classList.add(isCorrect ? 'correct' : 'incorrect');
+                    input.disabled = true;
+
+                    if (!userAnswer) {
+                        input.value = '(non r\u00e9pondu)';
+                        input.classList.add('empty-answer');
+                    }
+                    if (!isCorrect) {
+                        const correctionDiv = document.createElement('div');
+                        correctionDiv.className = 'correction-expected-below';
+                        correctionDiv.innerHTML = `R\u00e9ponse : ${this.escapeHtml(correctAnswer)}`;
+                        input.parentNode.appendChild(correctionDiv);
+                    }
+                });
+            }
             return;
         }
 
@@ -1053,23 +1108,39 @@ Object.assign(EleveExercices, {
         const data = this.mixteData || {};
 
         // Nouveau format : blocks
-        if (data.blocks && this._mixteBlockTableaux) {
-            this._mixteBlockTableaux.forEach(tab => {
-                tab.lignes.forEach((ligne, ri) => {
-                    (ligne.cells || []).forEach((cell, ci) => {
-                        if (cell.type === 'reponse') {
-                            const input = document.getElementById(`mixte_btab_${tab.tableIdx}_${ri}_${ci}`);
-                            if (input) {
-                                input.value = '';
-                                input.classList.remove('correct', 'incorrect', 'empty-answer');
-                                input.disabled = false;
-                                const correction = input.parentNode.querySelector('.correction-expected-below');
-                                if (correction) correction.remove();
+        if (data.blocks) {
+            // Reset tableaux
+            if (this._mixteBlockTableaux) {
+                this._mixteBlockTableaux.forEach(tab => {
+                    tab.lignes.forEach((ligne, ri) => {
+                        (ligne.cells || []).forEach((cell, ci) => {
+                            if (cell.type === 'reponse') {
+                                const input = document.getElementById(`mixte_btab_${tab.tableIdx}_${ri}_${ci}`);
+                                if (input) {
+                                    input.value = '';
+                                    input.classList.remove('correct', 'incorrect', 'empty-answer');
+                                    input.disabled = false;
+                                    const correction = input.parentNode.querySelector('.correction-expected-below');
+                                    if (correction) correction.remove();
+                                }
                             }
-                        }
+                        });
                     });
                 });
-            });
+            }
+            // Reset questions
+            if (this._mixteBlockQuestions) {
+                this._mixteBlockQuestions.forEach(q => {
+                    const input = document.getElementById(`mixte_bq_${q.qIdx}`);
+                    if (input) {
+                        input.value = '';
+                        input.classList.remove('correct', 'incorrect', 'empty-answer');
+                        input.disabled = false;
+                        const correction = input.parentNode.querySelector('.correction-expected-below');
+                        if (correction) correction.remove();
+                    }
+                });
+            }
             return;
         }
 

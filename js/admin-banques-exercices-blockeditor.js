@@ -132,6 +132,8 @@ Object.assign(AdminBanquesExercices, {
                     { valeur: '', type: 'reponse', correction: 'souple', alternatives: [] }
                 ]}]
             };
+        case 'question':
+            return { id: id, type: 'question', question: '', reponse: '', correction: 'souple', alternatives: [] };
         default:
             return { id: id, type: 'text', content: '' };
         }
@@ -185,6 +187,14 @@ Object.assign(AdminBanquesExercices, {
                 })
             };
         }
+        if (block.type === 'question') {
+            var qout = { type: 'question', question: block.question || '', reponse: block.reponse || '' };
+            qout.correction = block.correction || 'souple';
+            if (block.alternatives && block.alternatives.length > 0) {
+                qout.alternatives = block.alternatives;
+            }
+            return qout;
+        }
         var out = { type: block.type };
         if (block.type === 'text') {
             out.content = block.content || '';
@@ -228,13 +238,14 @@ Object.assign(AdminBanquesExercices, {
             return this._renderGroup(block);
         }
 
-        var typeLabels = { text: 'Texte', document: 'Document', image: 'Image', video: 'Video', tableau: 'Tableau' };
+        var typeLabels = { text: 'Texte', document: 'Document', image: 'Image', video: 'Video', tableau: 'Tableau', question: 'Question' };
         var typeIcons = {
             text: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
             document: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
             image: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
             video: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>',
-            tableau: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>'
+            tableau: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>',
+            question: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
         };
 
         var html = '<div class="block-item" id="block-' + block.id + '" data-block-id="' + block.id + '" draggable="true">';
@@ -315,6 +326,9 @@ Object.assign(AdminBanquesExercices, {
 
         case 'tableau':
             return this._renderBlockTableau(block);
+
+        case 'question':
+            return this._renderBlockQuestion(block);
 
         default:
             return '<p>Type de bloc inconnu: ' + block.type + '</p>';
@@ -413,6 +427,8 @@ Object.assign(AdminBanquesExercices, {
                 if (txtLegendeInput) block.legende = txtLegendeInput.value.trim();
             } else if (block.type === 'tableau') {
                 self._saveBlockTableauState(block);
+            } else if (block.type === 'question') {
+                self._saveBlockQuestionState(block);
             } else if (block.type === 'group') {
                 if (block.children) block.children.forEach(saveBlock);
             } else {
@@ -993,6 +1009,92 @@ Object.assign(AdminBanquesExercices, {
         var block = this._getBlockById(blockId);
         if (!block) return;
         block.lignes[row].cells[col].alternatives[altIndex] = value;
+    },
+
+    // ========== BLOC QUESTION (mini question ouverte intégrée) ==========
+
+    /** Rend le contenu d'un bloc question */
+    _renderBlockQuestion(block) {
+        var bid = block.id;
+        var isSouple = block.correction !== 'stricte';
+        var alts = block.alternatives || [];
+
+        var altsHtml = '';
+        for (var i = 0; i < alts.length; i++) {
+            altsHtml += '<div class="block-q-alt-row">' +
+                '<input type="text" class="form-input block-q-alt-input" data-block="' + bid + '" data-alt="' + i + '" ' +
+                'value="' + this.escapeHtml(alts[i] || '') + '" placeholder="Alternative ' + (i + 1) + '...">' +
+                '<button type="button" class="btn-icon danger" onclick="AdminBanquesExercices._blockQuestionRemoveAlt(\'' + bid + '\',' + i + ')">&times;</button>' +
+                '</div>';
+        }
+
+        return '<div class="block-question-builder">' +
+            '<div class="block-field">' +
+                '<label>Question</label>' +
+                '<input type="text" class="form-input block-input" id="block-q-question-' + bid + '" ' +
+                'value="' + this.escapeHtml(block.question || '') + '" placeholder="Ex : Quel est le nom du trait\u00e9 sign\u00e9 en 1919 ?">' +
+            '</div>' +
+            '<div class="block-field">' +
+                '<label>R\u00e9ponse attendue</label>' +
+                '<input type="text" class="form-input block-input" id="block-q-reponse-' + bid + '" ' +
+                'value="' + this.escapeHtml(block.reponse || '') + '" placeholder="Ex : Le trait\u00e9 de Versailles">' +
+            '</div>' +
+            '<div class="block-q-options">' +
+                '<div class="block-q-correction-toggle">' +
+                    '<label>Correction :</label>' +
+                    '<select class="form-select block-q-correction-select" id="block-q-correction-' + bid + '" data-block="' + bid + '">' +
+                        '<option value="souple"' + (isSouple ? ' selected' : '') + '>Souple (tol\u00e8re accents, casse\u2026)</option>' +
+                        '<option value="stricte"' + (!isSouple ? ' selected' : '') + '>Stricte (r\u00e9ponse exacte)</option>' +
+                    '</select>' +
+                '</div>' +
+                '<div class="block-q-alternatives">' +
+                    '<label>Alternatives accept\u00e9es <span class="optional">(optionnel)</span></label>' +
+                    '<div id="block-q-alts-' + bid + '">' + altsHtml + '</div>' +
+                    '<button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices._blockQuestionAddAlt(\'' + bid + '\')">+ Alternative</button>' +
+                '</div>' +
+            '</div>' +
+            '</div>';
+    },
+
+    /** Sauvegarde l'état DOM d'un bloc question */
+    _saveBlockQuestionState(block) {
+        var qInput = document.getElementById('block-q-question-' + block.id);
+        if (qInput) block.question = qInput.value.trim();
+        var rInput = document.getElementById('block-q-reponse-' + block.id);
+        if (rInput) block.reponse = rInput.value.trim();
+        var cSelect = document.getElementById('block-q-correction-' + block.id);
+        if (cSelect) block.correction = cSelect.value;
+        // Alternatives
+        var altsContainer = document.getElementById('block-q-alts-' + block.id);
+        if (altsContainer) {
+            var altInputs = altsContainer.querySelectorAll('.block-q-alt-input');
+            block.alternatives = Array.from(altInputs).map(function(inp) { return inp.value; });
+        }
+    },
+
+    _blockQuestionAddAlt(blockId) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block || block.type !== 'question') return;
+        if (!block.alternatives) block.alternatives = [];
+        block.alternatives.push('');
+        this._renderBlocks();
+        // Focus le nouveau champ
+        setTimeout(function() {
+            var container = document.getElementById('block-q-alts-' + blockId);
+            if (container) {
+                var inputs = container.querySelectorAll('.block-q-alt-input');
+                if (inputs.length > 0) inputs[inputs.length - 1].focus();
+            }
+        }, 50);
+    },
+
+    _blockQuestionRemoveAlt(blockId, altIndex) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block || block.type !== 'question') return;
+        block.alternatives.splice(altIndex, 1);
+        this._renderBlocks();
     },
 
     // ========== FALLBACK MOBILE : FLÈCHES + BOUTON GROUPER ==========
