@@ -259,12 +259,10 @@ Object.assign(AdminBanquesExercices, {
         switch (step) {
         case 1: {
             var titre = document.getElementById('sfwTitre');
-            var consigne = document.getElementById('sfwConsigne');
             var duree = document.getElementById('sfwDuree');
             var statut = document.getElementById('sfwStatut');
 
             e.titre = titre ? titre.value.trim() : (e.titre || '');
-            e.consigne = consigne ? consigne.value.trim() : (e.consigne || '');
             e.duree = duree ? (parseInt(duree.value) || 10) * 60 : (e.duree || 600);
             e.statut = statut ? statut.value : (e.statut || 'brouillon');
 
@@ -361,10 +359,6 @@ Object.assign(AdminBanquesExercices, {
                     '<label>Titre <span class="req">*</span></label>' +
                     '<input type="text" class="form-input" id="sfwTitre" value="' + this.escapeHtml(defaultTitre) + '" placeholder="Ex: Exercice 1 - Les dates cl\u00e9s">' +
                 '</div>' +
-                '<div class="form-group">' +
-                    '<label>Consigne <span class="optional">(optionnel)</span></label>' +
-                    '<textarea class="form-textarea" id="sfwConsigne" rows="2" placeholder="Pour chaque date, trouve le si\u00e8cle\u2026">' + this.escapeHtml(e.consigne || '') + '</textarea>' +
-                '</div>' +
                 '<div class="form-row">' +
                     '<div class="form-group">' +
                         '<label>Dur\u00e9e (minutes)</label>' +
@@ -389,13 +383,20 @@ Object.assign(AdminBanquesExercices, {
         var selectedFormatId = this.sfWizardData.formatId;
         var isEditing = this.sfWizardData.isEditing;
 
-        // Icônes par type_ui
+        // Icônes et labels courts par type_ui
         var formatIcons = {
             'tableau_saisie': '\uD83D\uDCCA',
             'carte_cliquable': '\uD83D\uDDFA\uFE0F',
             'document_tableau': '\uD83D\uDCC4',
             'question_ouverte': '\u270F\uFE0F',
             'document_mixte': '\uD83D\uDCDD'
+        };
+        var formatLabelsStep2 = {
+            'tableau_saisie': 'Tableau',
+            'carte_cliquable': 'Carte cliquable',
+            'document_tableau': 'Document + Tableau',
+            'question_ouverte': 'Question ouverte',
+            'document_mixte': 'Document mixte'
         };
 
         var cardsHtml = '';
@@ -409,6 +410,7 @@ Object.assign(AdminBanquesExercices, {
             }
             var typeUI = structure ? (structure.type_ui || 'tableau_saisie') : 'tableau_saisie';
             var icon = formatIcons[typeUI] || '\uD83D\uDCCB';
+            var displayName = formatLabelsStep2[typeUI] || format.nom;
             var isSelected = String(format.id) === String(selectedFormatId);
             var isLocked = isEditing && selectedFormatId && !isSelected;
 
@@ -423,7 +425,7 @@ Object.assign(AdminBanquesExercices, {
                     : 'onclick="AdminBanquesExercices._selectSFFormat(\'' + format.id + '\', \'' + typeUI + '\')"') +
                 '>' +
                 '<span class="sf-format-icon">' + icon + '</span>' +
-                '<span class="sf-format-name">' + self.escapeHtml(format.nom) + '</span>' +
+                '<span class="sf-format-name">' + self.escapeHtml(displayName) + '</span>' +
                 '<span class="sf-format-desc">' + self.escapeHtml(format.description || '') + '</span>' +
                 (isSelected ? '<span class="sf-format-check">\u2713</span>' : '') +
             '</button>';
@@ -774,9 +776,15 @@ Object.assign(AdminBanquesExercices, {
 
     _renderSFWizardStep4: function() {
         var e = this.sfWizardData.exercice || {};
-        var self = this;
-        var format = this.formats.find(function(f) { return String(f.id) === String(self.sfWizardData.formatId); });
-        var formatName = format ? format.nom : 'Non s\u00e9lectionn\u00e9';
+        var formatUI = this.sfWizardData.formatUI || 'tableau_saisie';
+        var formatLabelsStep4 = {
+            'tableau_saisie': 'Tableau',
+            'carte_cliquable': 'Carte cliquable',
+            'document_tableau': 'Document + Tableau',
+            'question_ouverte': 'Question ouverte',
+            'document_mixte': 'Document mixte'
+        };
+        var formatName = formatLabelsStep4[formatUI] || 'Non s\u00e9lectionn\u00e9';
         var dureeMin = Math.round((e.duree || 600) / 60);
 
         // Résumé du contenu selon le format
