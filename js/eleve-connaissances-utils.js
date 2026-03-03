@@ -12,11 +12,10 @@ Object.assign(EleveConnaissances, {
 
     /**
      * Normalise les alias de format en nom canonique.
-     * texte_trous → texte_trou, chronologie → timeline
+     * texte_trous → texte_trou
      */
     normalizeFormat(format) {
         if (format === 'texte_trous') return 'texte_trou';
-        if (format === 'chronologie') return 'timeline';
         return format;
     },
 
@@ -350,7 +349,8 @@ Object.assign(EleveConnaissances, {
         const labels = {
             'vrai_faux': 'Vrai/Faux',
             'qcm': 'QCM',
-            'timeline': 'Frise chronologique',
+            'chronologie': 'Frise à compléter',
+        'timeline': 'Cartes à ordonner',
             'texte_trou': 'Texte à trous',
             'association': 'Association',
             'carte': 'Image cliquable',

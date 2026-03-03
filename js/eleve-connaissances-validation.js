@@ -15,6 +15,7 @@ Object.assign(EleveConnaissances, {
         const dispatchMap = {
             vrai_faux:        () => this._validateFormat_vraiFaux(donnees),
             qcm:              () => this._validateFormat_qcm(donnees),
+            chronologie:      () => this._validateFormat_timeline(donnees),
             timeline:         () => this._validateFormat_timeline(donnees),
             texte_trou:       () => this._validateFormat_texteTrou(donnees),
             carte:            () => this._validateFormat_carte(donnees),
@@ -672,6 +673,7 @@ Object.assign(EleveConnaissances, {
                 return this.runTexteValidation(qData, container);
             case 'association':
                 return this.runAssociationValidation(qData, container);
+            case 'chronologie':
             case 'timeline':
                 if (qData.paires && qData.mode) return this.runChronoValidation(qData, container);
                 return this.runTimelineValidation(qData, container);
