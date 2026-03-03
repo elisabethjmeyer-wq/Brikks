@@ -204,6 +204,65 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
+    // ========== TOGGLE VUE ÉLÈVE ==========
+
+    toggleTablePreview() {
+        this.readTableBuilderValues();
+        const constructionPanel = document.getElementById('tbConstructionPanel');
+        const previewPanel = document.getElementById('tbPreviewPanel');
+        const toggleBtn = document.getElementById('tbTogglePreview');
+        const hint = document.getElementById('tbHint');
+        if (!constructionPanel || !previewPanel) return;
+
+        const showingPreview = constructionPanel.style.display === 'none';
+
+        if (showingPreview) {
+            // Retour à la construction
+            constructionPanel.style.display = '';
+            previewPanel.style.display = 'none';
+            toggleBtn.innerHTML = '<span class="tb-toggle-icon">&#x1F441;</span> Vue \u00e9l\u00e8ve';
+            toggleBtn.classList.remove('tb-toggle-active');
+            if (hint) hint.style.display = '';
+        } else {
+            // Afficher la preview
+            this._renderTablePreview(previewPanel);
+            constructionPanel.style.display = 'none';
+            previewPanel.style.display = '';
+            toggleBtn.innerHTML = '<span class="tb-toggle-icon">&#x270F;</span> Construction';
+            toggleBtn.classList.add('tb-toggle-active');
+            if (hint) hint.style.display = 'none';
+        }
+    },
+
+    _renderTablePreview(container) {
+        const cols = this.tableBuilder.columns;
+        const rows = this.tableBuilder.rows;
+
+        if (cols.length === 0 || rows.length === 0) {
+            container.innerHTML = '<div class="tb-preview-empty">Ajoutez des colonnes et des lignes pour voir l\'aper\u00e7u</div>';
+            return;
+        }
+
+        let html = '<table class="tb-preview-table"><thead><tr>';
+        cols.forEach(c => { html += `<th>${this.escapeHtml(c) || '...'}</th>`; });
+        html += '</tr></thead><tbody>';
+
+        rows.forEach(row => {
+            html += '<tr>';
+            row.forEach(cell => {
+                if (cell.type === 'donnee') {
+                    html += `<td class="tb-pv-donnee">${this.escapeHtml(cell.valeur) || '\u2014'}</td>`;
+                } else {
+                    html += '<td class="tb-pv-reponse"><input type="text" disabled placeholder="..."></td>';
+                }
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    },
+
     // ========== SÉLECTION DE CELLULE + POPOVER ==========
 
     selectCell(rowIndex, colIndex) {
