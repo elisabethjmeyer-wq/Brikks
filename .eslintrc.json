@@ -10,7 +10,7 @@
         "no-undef": "warn",
         "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
         "no-console": "off",
-        "eqeqeq": "warn",
+        "eqeqeq": ["warn", "allow-null"],
         "no-empty": "warn",
         "no-unreachable": "error",
         "no-constant-condition": "warn",

@@ -1804,6 +1804,7 @@ Object.assign(AdminBanquesExercices, {
             return `
                 <div class="banque-card" data-banque-comp-id="${banque.id}">
                     <div class="banque-card-header" onclick="AdminBanquesExercices.toggleTache('bc_${banque.id}')">
+                        <span class="drag-handle" title="Glisser pour réordonner">⋮⋮</span>
                         <div class="banque-card-icon competences">&#128995;</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
@@ -1832,26 +1833,27 @@ Object.assign(AdminBanquesExercices, {
                         <div class="exercices-header">
                             <h4>Entrainements</h4>
                         </div>
-                        ${this._renderCompetenceEntrainements(entrainements)}
+                        ${this._renderCompetenceEntrainements(entrainements, banque.id)}
                     </div>
                 </div>
             `;
         }).join('');
     },
 
-    _renderCompetenceEntrainements(entrainements) {
+    _renderCompetenceEntrainements(entrainements, banqueId) {
         if (entrainements.length === 0) {
             return '<div class="exercices-empty">Aucun entrainement dans cette competence</div>';
         }
 
         return `
-            <div class="exercices-list">
+            <div class="exercices-list" data-banque-id="${banqueId}">
                 ${entrainements.map(tache => {
                     const dureeMin = Math.round((tache.duree || 1800) / 60);
                     const hasCorrige = this._hasCorrectionCommentee(tache);
 
                     return `
                         <div class="exercice-item" data-id="${tache.id}">
+                            <span class="drag-handle drag-handle-sm" title="Glisser pour réordonner">⋮⋮</span>
                             <div class="exercice-numero">${tache.ordre || '?'}</div>
                             <div class="exercice-info">
                                 <div class="exercice-title">${this.escapeHtml(tache.titre || 'Sans titre')}</div>
@@ -1876,6 +1878,154 @@ Object.assign(AdminBanquesExercices, {
         if (!tache.correction_commentee) return false;
         const url = this._extractCorrectionUrl(tache.correction_commentee);
         return url && url.trim().length > 0;
+    },
+
+    // ========== DRAG & DROP : BANQUES ET ENTRAÎNEMENTS COMPÉTENCES ==========
+
+    initCompetencesDragDrop() {
+        const container = document.getElementById('banquesList');
+        if (!container) return;
+
+        // Helper : activer le drag seulement depuis la poignée
+        const enableDragFromHandle = (draggableEl) => {
+            draggableEl.setAttribute('draggable', 'false');
+            const handle = draggableEl.querySelector('.drag-handle');
+            if (!handle) return;
+            handle.addEventListener('mousedown', () => {
+                draggableEl.setAttribute('draggable', 'true');
+            });
+            draggableEl.addEventListener('dragend', () => {
+                draggableEl.setAttribute('draggable', 'false');
+            });
+            handle.addEventListener('mouseup', () => {
+                draggableEl.setAttribute('draggable', 'false');
+            });
+        };
+
+        // --- Drag & drop des banques ---
+        let draggedBanque = null;
+        container.querySelectorAll('.banque-card[data-banque-comp-id]').forEach(card => {
+            enableDragFromHandle(card);
+
+            card.addEventListener('dragstart', (e) => {
+                draggedBanque = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', 'banque-comp');
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                if (draggedBanque) {
+                    draggedBanque = null;
+                    this.saveBanquesCompetencesOrder();
+                }
+            });
+
+            card.addEventListener('dragover', (e) => {
+                if (!draggedBanque || draggedBanque === card) return;
+                e.preventDefault();
+                const rect = card.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY) {
+                    card.parentNode.insertBefore(draggedBanque, card);
+                } else {
+                    card.parentNode.insertBefore(draggedBanque, card.nextSibling);
+                }
+            });
+        });
+
+        // --- Drag & drop des entraînements (dans chaque banque) ---
+        container.querySelectorAll('.exercices-list[data-banque-id]').forEach(list => {
+            let draggedEntrainement = null;
+
+            list.querySelectorAll('.exercice-item').forEach(item => {
+                enableDragFromHandle(item);
+
+                item.addEventListener('dragstart', (e) => {
+                    e.stopPropagation();
+                    draggedEntrainement = item;
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', 'entrainement-comp');
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    if (draggedEntrainement) {
+                        draggedEntrainement = null;
+                        // Recalculer les numéros affichés
+                        list.querySelectorAll('.exercice-item').forEach((el, idx) => {
+                            const numero = el.querySelector('.exercice-numero');
+                            if (numero) numero.textContent = idx + 1;
+                        });
+                        this.saveEntrainementsCompetencesOrder(list);
+                    }
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    if (!draggedEntrainement || draggedEntrainement === item) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        item.parentNode.insertBefore(draggedEntrainement, item);
+                    } else {
+                        item.parentNode.insertBefore(draggedEntrainement, item.nextSibling);
+                    }
+                });
+            });
+        });
+    },
+
+    async saveBanquesCompetencesOrder() {
+        const container = document.getElementById('banquesList');
+        if (!container) return;
+
+        const cards = container.querySelectorAll('.banque-card[data-banque-comp-id]');
+        const newOrder = [];
+        cards.forEach((card, index) => {
+            newOrder.push({ id: card.dataset.banqueCompId, ordre: index + 1 });
+        });
+
+        if (newOrder.length === 0) return;
+
+        try {
+            await this.callAPI('updateBanquesCompetencesOrdre', {
+                banques: JSON.stringify(newOrder)
+            });
+            newOrder.forEach(({ id, ordre }) => {
+                const b = this.banquesCompetences.find(bc => bc.id === id);
+                if (b) b.ordre = ordre;
+            });
+            this.saveToCache();
+        } catch (error) {
+            console.error('Erreur sauvegarde ordre banques compétences:', error);
+        }
+    },
+
+    async saveEntrainementsCompetencesOrder(list) {
+        const items = list.querySelectorAll('.exercice-item[data-id]');
+        const newOrder = [];
+        items.forEach((item, index) => {
+            newOrder.push({ id: item.dataset.id, ordre: index + 1 });
+        });
+
+        if (newOrder.length === 0) return;
+
+        try {
+            await this.callAPI('updateEntrainementsCompetencesOrdre', {
+                entrainements: JSON.stringify(newOrder)
+            });
+            newOrder.forEach(({ id, ordre }) => {
+                const t = this.tachesComplexes.find(tc => tc.id === id);
+                if (t) t.ordre = ordre;
+            });
+            this.saveToCache();
+        } catch (error) {
+            console.error('Erreur sauvegarde ordre entraînements compétences:', error);
+        }
     },
 
     toggleTache(id) {
