@@ -358,6 +358,11 @@ Object.assign(AdminBanquesExercices, {
                     item.classList.remove('dragging');
                     if (draggedQuestion) {
                         draggedQuestion = null;
+                        // Recalculer les numéros affichés
+                        list.querySelectorAll('.exercice-item').forEach((el, idx) => {
+                            const numero = el.querySelector('.exercice-numero');
+                            if (numero) numero.textContent = idx + 1;
+                        });
                         this.saveQuestionsOrder(list);
                     }
                 });
@@ -402,6 +407,7 @@ Object.assign(AdminBanquesExercices, {
                 const banque = this.banquesQuestions.find(b => b.id === id);
                 if (banque) banque.ordre = ordre;
             });
+            this.saveToCache();
         } catch (error) {
             console.error('Erreur sauvegarde ordre banques:', error);
         }
@@ -428,6 +434,7 @@ Object.assign(AdminBanquesExercices, {
                 const q = this.questionsConnaissances.find(qc => qc.id === id);
                 if (q) q.ordre = ordre;
             });
+            this.saveToCache();
         } catch (error) {
             console.error('Erreur sauvegarde ordre questions:', error);
         }
@@ -510,6 +517,11 @@ Object.assign(AdminBanquesExercices, {
                     item.classList.remove('dragging');
                     if (draggedEntrainement) {
                         draggedEntrainement = null;
+                        // Recalculer les numéros affichés
+                        list.querySelectorAll('.exercice-item').forEach((el, idx) => {
+                            const numero = el.querySelector('.exercice-numero');
+                            if (numero) numero.textContent = idx + 1;
+                        });
                         this.saveEntrainementsConnOrder(list);
                     }
                 });
@@ -553,6 +565,7 @@ Object.assign(AdminBanquesExercices, {
                 const banque = this.banquesExercicesConn.find(b => b.id === id);
                 if (banque) banque.ordre = ordre;
             });
+            this.saveToCache();
         } catch (error) {
             console.error('Erreur sauvegarde ordre banques exercices conn:', error);
         }
@@ -578,6 +591,7 @@ Object.assign(AdminBanquesExercices, {
                 const e = this.entrainementsConn.find(ec => ec.id === id);
                 if (e) e.ordre = ordre;
             });
+            this.saveToCache();
         } catch (error) {
             console.error('Erreur sauvegarde ordre entrainements:', error);
         }

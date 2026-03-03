@@ -641,6 +641,7 @@ const AdminBanquesExercices = {
         // For competences tab, render tâches complexes instead
         if (this.currentType === 'competences') {
             this.renderTachesComplexes(container, emptyState);
+            setTimeout(() => this.initCompetencesDragDrop(), 0);
             return;
         }
 
@@ -846,6 +847,11 @@ const AdminBanquesExercices = {
                     item.classList.remove('dragging');
                     if (draggedExercice) {
                         draggedExercice = null;
+                        // Recalculer les numéros affichés
+                        list.querySelectorAll('.exercice-item').forEach((el, idx) => {
+                            const numero = el.querySelector('.exercice-numero');
+                            if (numero) numero.textContent = idx + 1;
+                        });
                         this.saveExercicesSFOrder(list);
                     }
                 });

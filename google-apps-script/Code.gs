@@ -642,6 +642,12 @@ function handleRequest(e) {
       case 'updateExercicesOrdre':
         result = updateExercicesOrdre(request);
         break;
+      case 'updateBanquesCompetencesOrdre':
+        result = updateBanquesCompetencesOrdre(request);
+        break;
+      case 'updateEntrainementsCompetencesOrdre':
+        result = updateEntrainementsCompetencesOrdre(request);
+        break;
 
       // NOUVEAU SYSTÈME CONNAISSANCES
       // Formats de questions
