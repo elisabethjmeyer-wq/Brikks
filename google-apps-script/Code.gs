@@ -630,6 +630,12 @@ function handleRequest(e) {
       case 'updateBanquesQuestionsOrdre':
         result = updateBanquesQuestionsOrdre(request);
         break;
+      case 'updateBanquesExercicesConnOrdre':
+        result = updateBanquesExercicesConnOrdre(request);
+        break;
+      case 'updateEntrainementsConnOrdre':
+        result = updateEntrainementsConnOrdre(request);
+        break;
 
       // NOUVEAU SYSTÈME CONNAISSANCES
       // Formats de questions
