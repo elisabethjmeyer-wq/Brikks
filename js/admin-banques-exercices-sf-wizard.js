@@ -228,12 +228,10 @@ Object.assign(AdminBanquesExercices, {
                 return false;
             }
         } else if (formatUI === 'document_mixte') {
-            var doc = document.getElementById('toggleDocument');
-            var tab = document.getElementById('toggleTableau');
-            var q = document.getElementById('toggleQuestions');
-            var hasContent = (doc && doc.checked) || (tab && tab.checked) || (q && q.checked);
+            var mb = this.mixteBuilder;
+            var hasContent = mb && (mb.document.actif || mb.tableau.actif || mb.questions.actif);
             if (!hasContent) {
-                this.showNotification('Activez au moins une section', 'warning');
+                this.showNotification('Ajoutez au moins un \u00e9l\u00e9ment (Document, Tableau ou Questions)', 'warning');
                 return false;
             }
         } else {
@@ -601,131 +599,40 @@ Object.assign(AdminBanquesExercices, {
         '</div>';
     },
 
-    // --- HTML pour le builder Document mixte ---
+    // --- HTML pour le builder Document mixte (v2 — blocs + rangées + toggle) ---
     _renderDocumentMixteBuilderHTML: function() {
         return '<div id="builderDocumentMixte" class="format-builder">' +
-            '<div class="form-section">Construction de l\'exercice</div>' +
-            '<div class="mixte-toggles">' +
-                '<label class="toggle-label">' +
-                    '<input type="checkbox" id="toggleDocument" checked onchange="AdminBanquesExercices.onMixteToggle(\'document\', this.checked)">' +
-                    '<span class="toggle-text">\uD83D\uDCC4 Document</span>' +
-                '</label>' +
-                '<label class="toggle-label">' +
-                    '<input type="checkbox" id="toggleTableau" onchange="AdminBanquesExercices.onMixteToggle(\'tableau\', this.checked)">' +
-                    '<span class="toggle-text">\uD83D\uDCCA Tableau \u00e0 compl\u00e9ter</span>' +
-                '</label>' +
-                '<label class="toggle-label">' +
-                    '<input type="checkbox" id="toggleQuestions" onchange="AdminBanquesExercices.onMixteToggle(\'questions\', this.checked)">' +
-                    '<span class="toggle-text">\u2753 Questions ouvertes</span>' +
-                '</label>' +
+            // Tabs Construction / Vue élève
+            '<div class="tb-tabs">' +
+                '<button type="button" class="tb-tab active" id="mixteTabConstruction" onclick="AdminBanquesExercices.switchMixteTab(\'construction\')">' +
+                    '<span class="tb-tab-icon">\u2699\uFE0F</span> Construction' +
+                '</button>' +
+                '<button type="button" class="tb-tab" id="mixteTabPreview" onclick="AdminBanquesExercices.switchMixteTab(\'preview\')">' +
+                    '<span class="tb-tab-icon">\uD83D\uDC41\uFE0F</span> Vue \u00e9l\u00e8ve' +
+                '</button>' +
             '</div>' +
-            '<div class="mixte-layout-option">' +
-                '<label>Disposition :</label>' +
-                '<select id="mixteLayoutSelect" onchange="AdminBanquesExercices.onLayoutChange(this.value)">' +
-                    '<option value="vertical">Vertical (empil\u00e9)</option>' +
-                    '<option value="horizontal">Horizontal (document \u00e0 gauche)</option>' +
-                '</select>' +
-            '</div>' +
-            '<div class="mixte-builder-sections" id="mixteBuilderSections">' +
-                // Section Document
-                '<div id="sectionDocument" class="mixte-section" data-section="document">' +
-                    '<div class="section-header">' +
-                        '<span class="drag-handle" title="Glisser pour r\u00e9organiser">\u22EE\u22EE</span>' +
-                        '<h4>\uD83D\uDCC4 Document</h4>' +
-                    '</div>' +
-                    '<div class="section-content">' +
-                        '<div class="form-row">' +
-                            '<label>Type de document</label>' +
-                            '<div class="doc-type-toggle">' +
-                                '<label class="toggle-option">' +
-                                    '<input type="radio" name="docType" value="url" checked onchange="AdminBanquesExercices.toggleDocType(\'url\')">' +
-                                    '<span>\uD83D\uDD17 Image/URL</span>' +
-                                '</label>' +
-                                '<label class="toggle-option">' +
-                                    '<input type="radio" name="docType" value="texte" onchange="AdminBanquesExercices.toggleDocType(\'texte\')">' +
-                                    '<span>\uD83D\uDCDD Texte</span>' +
-                                '</label>' +
-                            '</div>' +
-                        '</div>' +
-                        '<div id="docUrlSection" class="form-row">' +
-                            '<label>URL du document</label>' +
-                            '<input type="text" class="form-input" id="docUrlMixte" placeholder="Lien Google Drive, image, PDF\u2026">' +
-                            '<div class="form-help">Collez un lien Google Drive (image, PDF, Doc) ou une URL directe</div>' +
-                        '</div>' +
-                        '<div id="docTexteSection" class="form-row" style="display: none;">' +
-                            '<label>Contenu du texte</label>' +
-                            '<div class="wysiwyg-container">' +
-                                '<div class="wysiwyg-toolbar">' +
-                                    '<button type="button" class="wysiwyg-btn" data-cmd="bold" title="Gras (Ctrl+B)"><b>G</b></button>' +
-                                    '<button type="button" class="wysiwyg-btn" data-cmd="italic" title="Italique (Ctrl+I)"><i>I</i></button>' +
-                                    '<button type="button" class="wysiwyg-btn" data-cmd="underline" title="Soulign\u00e9 (Ctrl+U)"><u>S</u></button>' +
-                                    '<span class="wysiwyg-sep"></span>' +
-                                    '<button type="button" class="wysiwyg-btn" data-cmd="justifyLeft" title="Aligner \u00e0 gauche">\u25C0</button>' +
-                                    '<button type="button" class="wysiwyg-btn" data-cmd="justifyCenter" title="Centrer">\u25C6</button>' +
-                                    '<button type="button" class="wysiwyg-btn" data-cmd="justifyRight" title="Aligner \u00e0 droite">\u25B6</button>' +
-                                    '<span class="wysiwyg-sep"></span>' +
-                                    '<select class="wysiwyg-color" data-cmd="foreColor" title="Couleur">' +
-                                        '<option value="">Couleur</option>' +
-                                        '<option value="#000000">Noir</option>' +
-                                        '<option value="#dc2626">Rouge</option>' +
-                                        '<option value="#2563eb">Bleu</option>' +
-                                        '<option value="#16a34a">Vert</option>' +
-                                    '</select>' +
-                                '</div>' +
-                                '<div class="wysiwyg-editor" id="docTexteMixte" contenteditable="true" data-placeholder="Saisissez votre texte ici\u2026"></div>' +
-                            '</div>' +
-                            '<div class="form-help">Utilisez la barre d\'outils pour le formatage (gras, italique, couleurs\u2026)</div>' +
-                        '</div>' +
-                        '<div class="form-row">' +
-                            '<label>Titre du document</label>' +
-                            '<input type="text" class="form-input" id="docTitreMixte" placeholder="Ex: Doc. 1 - Titre du document">' +
-                        '</div>' +
-                        '<div class="form-row">' +
-                            '<label>L\u00e9gende <span class="optional">(optionnel)</span></label>' +
-                            '<textarea class="form-textarea" id="docLegendeMixte" rows="2" placeholder="L\u00e9gende du document\u2026"></textarea>' +
-                            '<div class="form-help">Utilisez *texte* pour mettre en italique</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-                // Section Tableau
-                '<div id="sectionTableau" class="mixte-section" data-section="tableau" style="display: none;">' +
-                    '<div class="section-header">' +
-                        '<span class="drag-handle" title="Glisser pour r\u00e9organiser">\u22EE\u22EE</span>' +
-                        '<h4>\uD83D\uDCCA Tableau \u00e0 compl\u00e9ter</h4>' +
-                    '</div>' +
-                    '<div class="section-content">' +
-                        '<div class="form-row">' +
-                            '<label>Titre du tableau <span class="optional">(optionnel)</span></label>' +
-                            '<input type="text" class="form-input" id="tableauTitreMixte" placeholder="Ex: \u00c0 COMPL\u00c9TER">' +
-                        '</div>' +
-                        '<div class="form-row">' +
-                            '<label>\u00c9l\u00e9ments du tableau</label>' +
-                            '<div class="tableau-elements-list" id="tableauElementsList"></div>' +
-                            '<div class="tableau-add-buttons">' +
-                                '<button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices.addTableauElement(\'section\')">+ Section</button>' +
-                                '<button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices.addTableauElement(\'row\')">+ Ligne</button>' +
-                            '</div>' +
-                        '</div>' +
-                    '</div>' +
-                '</div>' +
-                // Section Questions
-                '<div id="sectionQuestions" class="mixte-section" data-section="questions" style="display: none;">' +
-                    '<div class="section-header">' +
-                        '<span class="drag-handle" title="Glisser pour r\u00e9organiser">\u22EE\u22EE</span>' +
-                        '<h4>\u2753 Questions ouvertes</h4>' +
-                    '</div>' +
-                    '<div class="section-content">' +
-                        '<div class="questions-list-mixte" id="questionsListMixte"></div>' +
-                        '<button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices.addQuestionMixte()">+ Ajouter une question</button>' +
+            // Panel Construction
+            '<div id="mixteConstructionPanel">' +
+                '<div class="mixte-rows-container" id="mixteRowsContainer"></div>' +
+                '<div class="mixte-add-block">' +
+                    '<button type="button" class="btn-add-block" id="mixteAddBlockBtn" onclick="AdminBanquesExercices.toggleMixteBlockMenu()">' +
+                        '+ Ajouter un \u00e9l\u00e9ment' +
+                    '</button>' +
+                    '<div class="mixte-block-menu hidden" id="mixteBlockMenu">' +
+                        '<button type="button" class="block-menu-item" data-block="document" onclick="AdminBanquesExercices.addMixteBlock(\'document\')">' +
+                            '\uD83D\uDCC4 Document' +
+                        '</button>' +
+                        '<button type="button" class="block-menu-item" data-block="tableau" onclick="AdminBanquesExercices.addMixteBlock(\'tableau\')">' +
+                            '\uD83D\uDCCB Tableau' +
+                        '</button>' +
+                        '<button type="button" class="block-menu-item" data-block="questions" onclick="AdminBanquesExercices.addMixteBlock(\'questions\')">' +
+                            '\u2753 Questions' +
+                        '</button>' +
                     '</div>' +
                 '</div>' +
             '</div>' +
-            '<div class="mixte-preview-section">' +
-                '<div class="form-section">Aper\u00e7u</div>' +
-                '<div class="mixte-preview-content" id="mixtePreviewContent">' +
-                    '<div class="preview-placeholder">Activez des sections pour voir l\'aper\u00e7u</div>' +
-                '</div>' +
-            '</div>' +
+            // Panel Vue élève
+            '<div id="mixtePreviewPanel" class="tb-preview-panel" style="display:none;"></div>' +
         '</div>';
     },
 
