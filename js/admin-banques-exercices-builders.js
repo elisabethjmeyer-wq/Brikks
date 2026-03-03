@@ -1,326 +1,485 @@
 Object.assign(AdminBanquesExercices, {
-    // ========== TABLE BUILDER ==========
+    // ========== TABLE BUILDER (v2 — cellule par cellule) ==========
+
+    /**
+     * Modèle de données v2 :
+     *   tableBuilder.columns = ["Date", "Événement", "Siècle"]   (titres uniquement)
+     *   tableBuilder.rows = [
+     *     [ {valeur, type, correction?, alternatives?}, ... ],   (1 objet par cellule)
+     *   ]
+     * type = "donnee" | "reponse"
+     * correction = "souple" | "stricte"  (uniquement si type="reponse")
+     * alternatives = ["alt1", "alt2"]    (uniquement si type="reponse")
+     */
+
     initTableBuilder() {
-        // Default: 2 columns (Date = display, Siècle = editable)
         this.tableBuilder = {
-            columns: [
-                { titre: 'Date', editable: false },
-                { titre: 'Siècle', editable: true }
-            ],
+            columns: ['Date', 'Événement'],
             rows: [
-                ['', '']
+                [
+                    { valeur: '', type: 'donnee' },
+                    { valeur: '', type: 'reponse', correction: 'souple', alternatives: [] }
+                ]
             ]
         };
-        this.renderColumnsBuilder();
+        this._selectedCell = null;
         this.renderTableBuilder();
+        this.renderTablePreview();
     },
 
+    /** Charge les données existantes dans le builder. Gère l'ancien et le nouveau format. */
     loadTableBuilderFromData(donnees) {
-        if (donnees && donnees.colonnes && donnees.lignes) {
+        if (!donnees) { this.initTableBuilder(); return; }
+
+        // Nouveau format v2 : colonnes = tableau de strings, cells = objets
+        if (donnees.colonnes && donnees.lignes && donnees.lignes[0]?.cells?.[0]?.type) {
             this.tableBuilder = {
-                columns: donnees.colonnes.map(c => ({
-                    titre: c.titre || '',
-                    editable: c.editable !== false
-                })),
-                rows: donnees.lignes.map(ligne => ligne.cells || [])
+                columns: donnees.colonnes.map(c => typeof c === 'string' ? c : c.titre || ''),
+                rows: donnees.lignes.map(ligne => (ligne.cells || []).map(cell => ({
+                    valeur: cell.valeur || '',
+                    type: cell.type || 'donnee',
+                    correction: cell.correction || 'souple',
+                    alternatives: cell.alternatives || []
+                })))
             };
-        } else if (donnees && donnees.lignes && Array.isArray(donnees.lignes)) {
-            // Legacy format: lignes with named properties
-            // Try to infer columns from first row
-            const firstRow = donnees.lignes[0];
-            const keys = Object.keys(firstRow);
+        }
+        // Ancien format v1 : colonnes = [{titre, editable}], cells = strings
+        else if (donnees.colonnes && donnees.lignes) {
+            const oldCols = donnees.colonnes;
             this.tableBuilder = {
-                columns: keys.map(key => ({
-                    titre: key.charAt(0).toUpperCase() + key.slice(1),
-                    editable: key !== 'date'
-                })),
-                rows: donnees.lignes.map(ligne => keys.map(k => ligne[k] || ''))
+                columns: oldCols.map(c => c.titre || ''),
+                rows: donnees.lignes.map(ligne => {
+                    const cells = ligne.cells || Object.values(ligne);
+                    return oldCols.map((col, i) => {
+                        const raw = cells[i] || '';
+                        if (col.editable) {
+                            const parts = String(raw).split('|');
+                            return {
+                                valeur: parts[0] || '',
+                                type: 'reponse',
+                                correction: 'souple',
+                                alternatives: parts.slice(1).filter(a => a.trim())
+                            };
+                        }
+                        return { valeur: raw, type: 'donnee' };
+                    });
+                })
+            };
+        }
+        // Legacy format : lignes avec propriétés nommées
+        else if (donnees.lignes && Array.isArray(donnees.lignes) && donnees.lignes.length > 0) {
+            const firstRow = donnees.lignes[0];
+            const keys = Object.keys(firstRow).filter(k => k !== 'cells');
+            this.tableBuilder = {
+                columns: keys.map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+                rows: donnees.lignes.map(ligne => keys.map(k => ({
+                    valeur: ligne[k] || '',
+                    type: k === 'date' ? 'donnee' : 'reponse',
+                    correction: 'souple',
+                    alternatives: []
+                })))
             };
         } else {
             this.initTableBuilder();
             return;
         }
-        this.renderColumnsBuilder();
+        this._selectedCell = null;
         this.renderTableBuilder();
+        this.renderTablePreview();
     },
 
+    /** Construit les données pour la sauvegarde (nouveau format v2). */
     buildDataFromTableBuilder() {
-        // Read current values from DOM
         this.readTableBuilderValues();
-
         return {
-            colonnes: this.tableBuilder.columns.map(c => ({
-                titre: c.titre,
-                editable: c.editable
-            })),
+            colonnes: this.tableBuilder.columns,
             lignes: this.tableBuilder.rows.map(row => ({
-                cells: row
+                cells: row.map(cell => {
+                    const out = { valeur: cell.valeur, type: cell.type };
+                    if (cell.type === 'reponse') {
+                        out.correction = cell.correction || 'souple';
+                        if (cell.alternatives && cell.alternatives.length > 0) {
+                            out.alternatives = cell.alternatives;
+                        }
+                    }
+                    return out;
+                })
             }))
         };
     },
 
+    /** Lit les valeurs actuelles depuis le DOM (en-têtes + cellules). */
     readTableBuilderValues() {
-        // Read columns
-        const colDefs = document.querySelectorAll('.column-def');
-        this.tableBuilder.columns = Array.from(colDefs).map(def => ({
-            titre: def.querySelector('.col-title-input').value || '',
-            editable: def.querySelector('.col-editable-check').checked
-        }));
+        // Lire les titres de colonnes
+        const headerInputs = document.querySelectorAll('#tableBuilderHead .tb-col-title');
+        if (headerInputs.length > 0) {
+            headerInputs.forEach((input, i) => {
+                if (i < this.tableBuilder.columns.length) {
+                    this.tableBuilder.columns[i] = input.value || '';
+                }
+            });
+        }
 
-        // Sauvegarder les anciennes valeurs (avec alternatives) avant de reconstruire
-        const oldRows = this.tableBuilder.rows || [];
-
-        // Read rows - préserver les alternatives pour les colonnes éditables
+        // Lire les valeurs des cellules
         const tbody = document.getElementById('tableBuilderBody');
+        if (!tbody) return;
         const rows = tbody.querySelectorAll('tr[data-row]');
-        this.tableBuilder.rows = Array.from(rows).map((tr, rowIndex) => {
-            return this.tableBuilder.columns.map((col, colIndex) => {
-                if (col.editable) {
-                    // Pour les colonnes éditables, préserver les alternatives
-                    const input = tr.querySelector(`input[data-row="${rowIndex}"][data-col="${colIndex}"]`);
-                    if (input) {
-                        const currentValue = oldRows[rowIndex] ? oldRows[rowIndex][colIndex] || '' : '';
-                        const alternatives = currentValue.split('|');
-                        alternatives[0] = input.value || '';
-                        return alternatives.join('|');
-                    }
-                    return oldRows[rowIndex] ? oldRows[rowIndex][colIndex] || '' : '';
-                } else {
-                    // Pour les colonnes non-éditables, lire directement depuis le DOM
-                    const inputs = tr.querySelectorAll('td input[type="text"]');
-                    return inputs[colIndex] ? inputs[colIndex].value || '' : '';
+        rows.forEach((tr, rowIndex) => {
+            if (rowIndex >= this.tableBuilder.rows.length) return;
+            const inputs = tr.querySelectorAll('.tb-cell-input');
+            inputs.forEach(input => {
+                const colIndex = parseInt(input.dataset.col);
+                if (!isNaN(colIndex) && colIndex < this.tableBuilder.rows[rowIndex].length) {
+                    this.tableBuilder.rows[rowIndex][colIndex].valeur = input.value || '';
                 }
             });
         });
     },
 
-    renderColumnsBuilder() {
-        const container = document.getElementById('columnsBuilder');
-        container.innerHTML = this.tableBuilder.columns.map((col, index) => `
-            <div class="column-def" data-index="${index}">
-                <span class="column-num">${index + 1}</span>
-                <input type="text" class="col-title-input" value="${this.escapeHtml(col.titre)}" placeholder="Nom de la colonne">
-                <label class="column-editable">
-                    <input type="checkbox" class="col-editable-check" ${col.editable ? 'checked' : ''}>
-                    <span>Réponse élève</span>
-                </label>
-                <button type="button" class="btn-remove-col" onclick="AdminBanquesExercices.removeColumn(${index})" title="Supprimer">&times;</button>
-            </div>
-        `).join('');
-
-        // Add change listeners
-        container.querySelectorAll('.col-title-input, .col-editable-check').forEach(input => {
-            input.addEventListener('change', () => this.onColumnChange());
-        });
-    },
-
+    /** Rend la grille éditable dans le panneau gauche. */
     renderTableBuilder() {
         const thead = document.getElementById('tableBuilderHead');
         const tbody = document.getElementById('tableBuilderBody');
+        if (!thead || !tbody) return;
 
-        // Render headers
-        thead.innerHTML = `
-            <tr>
-                ${this.tableBuilder.columns.map((col, i) => `
-                    <th class="${col.editable ? 'editable-col' : ''}">
-                        ${this.escapeHtml(col.titre) || 'Colonne ' + (i + 1)}
-                        <span class="col-hint">${col.editable ? '(réponse)' : '(donnée)'}</span>
-                    </th>
-                `).join('')}
-                <th class="row-actions"></th>
-            </tr>
-        `;
+        const cols = this.tableBuilder.columns;
+        const rows = this.tableBuilder.rows;
 
-        // Ensure rows have correct number of cells
-        this.tableBuilder.rows = this.tableBuilder.rows.map(row => {
-            const newRow = [...row];
-            while (newRow.length < this.tableBuilder.columns.length) {
-                newRow.push('');
-            }
-            return newRow.slice(0, this.tableBuilder.columns.length);
-        });
+        // En-têtes éditables
+        thead.innerHTML = `<tr>
+            ${cols.map((col, i) => `
+                <th class="tb-header-cell">
+                    <input type="text" class="tb-col-title" value="${this.escapeHtml(col)}"
+                           placeholder="Colonne ${i + 1}" data-col="${i}"
+                           oninput="AdminBanquesExercices._onTableInputDebounced()">
+                    <button type="button" class="tb-col-remove" onclick="AdminBanquesExercices.removeColumn(${i})" title="Supprimer la colonne">&times;</button>
+                </th>
+            `).join('')}
+            <th class="tb-actions-col">
+                <button type="button" class="tb-add-col" onclick="AdminBanquesExercices.addColumn()" title="Ajouter une colonne">+</button>
+            </th>
+        </tr>`;
 
-        // Render rows
-        if (this.tableBuilder.rows.length === 0) {
+        // Lignes
+        if (rows.length === 0) {
             tbody.innerHTML = '<tr><td colspan="100" class="table-builder-empty">Aucune ligne. Cliquez sur "Ajouter une ligne".</td></tr>';
         } else {
-            tbody.innerHTML = this.tableBuilder.rows.map((row, rowIndex) => `
-                <tr data-row="${rowIndex}">
-                    ${this.tableBuilder.columns.map((col, colIndex) => {
-                        const cellValue = row[colIndex] || '';
-                        const alternatives = cellValue.split('|');
-                        const mainAnswer = alternatives[0] || '';
-                        const altCount = alternatives.length - 1;
+            tbody.innerHTML = rows.map((row, ri) => `
+                <tr data-row="${ri}">
+                    ${row.map((cell, ci) => {
+                        const isDonnee = cell.type === 'donnee';
+                        const hasAlts = cell.alternatives && cell.alternatives.length > 0;
+                        const isSouple = cell.correction === 'souple';
+                        const isSelected = this._selectedCell && this._selectedCell.row === ri && this._selectedCell.col === ci;
 
-                        if (col.editable) {
-                            return `
-                                <td class="cell-with-alternatives">
-                                    <div class="cell-answer-wrapper">
-                                        <input type="text"
-                                               class="editable-input main-answer-input"
-                                               data-row="${rowIndex}" data-col="${colIndex}"
-                                               value="${this.escapeHtml(mainAnswer)}"
-                                               placeholder="Réponse attendue"
-                                               onchange="AdminBanquesExercices.updateCellMainAnswer(${rowIndex}, ${colIndex}, this.value)">
-                                        <button type="button" class="btn-alternatives ${altCount > 0 ? 'has-alternatives' : ''}"
-                                                onclick="AdminBanquesExercices.openAlternativesModal(${rowIndex}, ${colIndex})"
-                                                title="Réponses alternatives">
-                                            <span class="alt-icon">±</span>
-                                            ${altCount > 0 ? `<span class="alt-count">${altCount}</span>` : ''}
-                                        </button>
-                                    </div>
-                                </td>
-                            `;
-                        } else {
-                            return `
-                                <td>
-                                    <input type="text"
-                                           value="${this.escapeHtml(cellValue)}"
-                                           placeholder="Donnée affichée">
-                                </td>
-                            `;
+                        // Icônes indicateurs pour les cellules réponse
+                        let indicators = '';
+                        if (!isDonnee) {
+                            const parts = [];
+                            if (hasAlts) parts.push(`<span class="tb-indicator tb-ind-alt" title="${cell.alternatives.length} alternative(s)">&#xB1;${cell.alternatives.length}</span>`);
+                            if (!isSouple) parts.push('<span class="tb-indicator tb-ind-strict" title="Correction stricte">S</span>');
+                            indicators = parts.join('');
                         }
+
+                        return `
+                            <td class="tb-cell ${isDonnee ? 'tb-cell-donnee' : 'tb-cell-reponse'} ${isSelected ? 'tb-cell-selected' : ''}"
+                                onclick="AdminBanquesExercices.selectCell(${ri}, ${ci}, event)">
+                                <input type="text" class="tb-cell-input"
+                                       data-row="${ri}" data-col="${ci}"
+                                       value="${this.escapeHtml(cell.valeur)}"
+                                       placeholder="${isDonnee ? 'Donnée...' : 'Réponse...'}"
+                                       oninput="AdminBanquesExercices._onTableInputDebounced()">
+                                <div class="tb-cell-indicators">${indicators}</div>
+                            </td>`;
                     }).join('')}
-                    <td class="row-actions">
-                        <button type="button" class="btn-remove-row" onclick="AdminBanquesExercices.removeRow(${rowIndex})" title="Supprimer">&times;</button>
+                    <td class="tb-row-actions">
+                        <button type="button" class="tb-row-remove" onclick="AdminBanquesExercices.removeRow(${ri})" title="Supprimer la ligne">&times;</button>
                     </td>
                 </tr>
             `).join('');
         }
     },
 
-    // Gestion des réponses alternatives pour les cellules de tableau
-    updateCellMainAnswer(rowIndex, colIndex, newMainAnswer) {
-        const cellValue = this.tableBuilder.rows[rowIndex][colIndex] || '';
-        const alternatives = cellValue.split('|');
-        alternatives[0] = newMainAnswer;
-        this.tableBuilder.rows[rowIndex][colIndex] = alternatives.join('|');
-    },
+    /** Rend l'aperçu live côté droit (vue élève). */
+    renderTablePreview() {
+        const container = document.getElementById('tableBuilderPreview');
+        if (!container) return;
 
-    openAlternativesModal(rowIndex, colIndex) {
-        const cellValue = this.tableBuilder.rows[rowIndex][colIndex] || '';
-        const alternatives = cellValue.split('|');
-        const mainAnswer = alternatives[0] || '';
-        const altAnswers = alternatives.slice(1);
+        const cols = this.tableBuilder.columns;
+        const rows = this.tableBuilder.rows;
 
-        // Créer le modal
-        const existingModal = document.getElementById('alternativesModal');
-        if (existingModal) existingModal.remove();
-
-        const modal = document.createElement('div');
-        modal.id = 'alternativesModal';
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content modal-alternatives">
-                <div class="modal-header">
-                    <h3>Réponses alternatives</h3>
-                    <button type="button" class="modal-close" onclick="AdminBanquesExercices.closeAlternativesModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p class="help-text">La réponse principale est "<strong>${this.escapeHtml(mainAnswer)}</strong>". Ajoutez des réponses alternatives qui seront aussi acceptées.</p>
-                    <div id="alternativesList">
-                        ${altAnswers.map((alt, i) => `
-                            <div class="alternative-item">
-                                <input type="text" class="alt-input" value="${this.escapeHtml(alt)}" placeholder="Réponse alternative ${i + 1}">
-                                <button type="button" class="btn-remove-alt" onclick="this.parentElement.remove()">×</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button type="button" class="btn-add-alternative" onclick="AdminBanquesExercices.addAlternativeInput()">
-                        + Ajouter une alternative
-                    </button>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="AdminBanquesExercices.closeAlternativesModal()">Annuler</button>
-                    <button type="button" class="btn btn-primary" onclick="AdminBanquesExercices.saveAlternatives(${rowIndex}, ${colIndex})">Enregistrer</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        // Focus sur le premier champ vide ou ajouter un nouveau
-        if (altAnswers.length === 0) {
-            this.addAlternativeInput();
+        if (cols.length === 0 || rows.length === 0) {
+            container.innerHTML = '<div class="tb-preview-empty">Ajoutez des colonnes et des lignes pour voir l\'aperçu</div>';
+            return;
         }
-    },
 
-    addAlternativeInput() {
-        const list = document.getElementById('alternativesList');
-        const count = list.querySelectorAll('.alternative-item').length;
-        const div = document.createElement('div');
-        div.className = 'alternative-item';
-        div.innerHTML = `
-            <input type="text" class="alt-input" placeholder="Réponse alternative ${count + 1}">
-            <button type="button" class="btn-remove-alt" onclick="this.parentElement.remove()">×</button>
-        `;
-        list.appendChild(div);
-        div.querySelector('input').focus();
-    },
+        let html = `<table class="tb-preview-table">
+            <thead><tr>${cols.map(c => `<th>${this.escapeHtml(c) || '...'}</th>`).join('')}</tr></thead>
+            <tbody>`;
 
-    saveAlternatives(rowIndex, colIndex) {
-        const mainInput = document.querySelector(`input[data-row="${rowIndex}"][data-col="${colIndex}"]`);
-        const mainAnswer = mainInput ? mainInput.value : '';
-        const altInputs = document.querySelectorAll('#alternativesList .alt-input');
-        const alternatives = [mainAnswer];
-
-        altInputs.forEach(input => {
-            const val = input.value.trim();
-            if (val) alternatives.push(val);
+        rows.forEach(row => {
+            html += '<tr>';
+            row.forEach(cell => {
+                if (cell.type === 'donnee') {
+                    html += `<td class="tb-pv-donnee">${this.escapeHtml(cell.valeur) || '<span class="tb-pv-vide">—</span>'}</td>`;
+                } else {
+                    html += '<td class="tb-pv-reponse"><input type="text" disabled placeholder="..."></td>';
+                }
+            });
+            html += '</tr>';
         });
 
-        this.tableBuilder.rows[rowIndex][colIndex] = alternatives.join('|');
-        this.closeAlternativesModal();
-        this.renderTableBuilder();
+        html += '</tbody></table>';
+        container.innerHTML = html;
     },
 
-    closeAlternativesModal() {
-        const modal = document.getElementById('alternativesModal');
-        if (modal) modal.remove();
+    /** Debounce pour la mise à jour de l'aperçu à chaque frappe. */
+    _onTableInputDebounced() {
+        clearTimeout(this._tableInputTimer);
+        this._tableInputTimer = setTimeout(() => {
+            this.readTableBuilderValues();
+            this.renderTablePreview();
+        }, 300);
     },
 
-    onColumnChange() {
+    // ========== SÉLECTION DE CELLULE + POPOVER ==========
+
+    selectCell(rowIndex, colIndex, event) {
+        // Ne pas ouvrir le popover si on clique dans l'input
+        if (event && event.target.tagName === 'INPUT') return;
+
         this.readTableBuilderValues();
+        this._selectedCell = { row: rowIndex, col: colIndex };
+        this.renderTableBuilder();
+        this._showCellPopover(rowIndex, colIndex, event);
+    },
+
+    _showCellPopover(rowIndex, colIndex) {
+        this._closeCellPopover();
+
+        const cell = this.tableBuilder.rows[rowIndex]?.[colIndex];
+        if (!cell) return;
+
+        const colName = this.tableBuilder.columns[colIndex] || 'Colonne ' + (colIndex + 1);
+        const isDonnee = cell.type === 'donnee';
+
+        // Construire le contenu du popover
+        let popoverHTML = `
+            <div class="tb-popover" id="tbCellPopover">
+                <div class="tb-popover-header">
+                    <span class="tb-popover-title">L${rowIndex + 1} &times; ${this.escapeHtml(colName)}</span>
+                    <button type="button" class="tb-popover-close" onclick="AdminBanquesExercices._closeCellPopover()">&times;</button>
+                </div>
+                <div class="tb-popover-body">
+                    <div class="tb-popover-field">
+                        <label class="tb-popover-label">Type</label>
+                        <div class="tb-popover-radio-group">
+                            <label class="tb-popover-radio ${!isDonnee ? 'active' : ''}">
+                                <input type="radio" name="tbCellType" value="reponse" ${!isDonnee ? 'checked' : ''}
+                                       onchange="AdminBanquesExercices._setCellType(${rowIndex}, ${colIndex}, 'reponse')">
+                                <span class="tb-radio-label tb-radio-reponse">Réponse</span>
+                            </label>
+                            <label class="tb-popover-radio ${isDonnee ? 'active' : ''}">
+                                <input type="radio" name="tbCellType" value="donnee" ${isDonnee ? 'checked' : ''}
+                                       onchange="AdminBanquesExercices._setCellType(${rowIndex}, ${colIndex}, 'donnee')">
+                                <span class="tb-radio-label tb-radio-donnee">Donnée</span>
+                            </label>
+                        </div>
+                    </div>`;
+
+        if (!isDonnee) {
+            const isSouple = cell.correction !== 'stricte';
+            const alts = cell.alternatives || [];
+
+            popoverHTML += `
+                    <div class="tb-popover-field">
+                        <label class="tb-popover-label">Correction</label>
+                        <div class="tb-popover-radio-group">
+                            <label class="tb-popover-radio ${isSouple ? 'active' : ''}">
+                                <input type="radio" name="tbCellCorrection" value="souple" ${isSouple ? 'checked' : ''}
+                                       onchange="AdminBanquesExercices._setCellCorrection(${rowIndex}, ${colIndex}, 'souple')">
+                                <span class="tb-radio-label">Souple</span>
+                            </label>
+                            <label class="tb-popover-radio ${!isSouple ? 'active' : ''}">
+                                <input type="radio" name="tbCellCorrection" value="stricte" ${!isSouple ? 'checked' : ''}
+                                       onchange="AdminBanquesExercices._setCellCorrection(${rowIndex}, ${colIndex}, 'stricte')">
+                                <span class="tb-radio-label">Stricte</span>
+                            </label>
+                        </div>
+                        <div class="tb-popover-hint">${isSouple ? 'Tolère accents, majuscules, ponctuation' : 'La réponse doit être exacte'}</div>
+                    </div>
+                    <div class="tb-popover-field">
+                        <label class="tb-popover-label">Alternatives acceptées</label>
+                        <div class="tb-popover-alts" id="tbPopoverAlts">
+                            ${alts.map((alt, i) => `
+                                <div class="tb-popover-alt-item">
+                                    <input type="text" class="tb-popover-alt-input" value="${this.escapeHtml(alt)}"
+                                           placeholder="Alternative ${i + 1}" data-alt-index="${i}"
+                                           onchange="AdminBanquesExercices._updateAlt(${rowIndex}, ${colIndex}, ${i}, this.value)">
+                                    <button type="button" class="tb-popover-alt-remove"
+                                            onclick="AdminBanquesExercices._removeAlt(${rowIndex}, ${colIndex}, ${i})">×</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button type="button" class="tb-popover-add-alt"
+                                onclick="AdminBanquesExercices._addAlt(${rowIndex}, ${colIndex})">+ Ajouter une alternative</button>
+                    </div>`;
+        }
+
+        popoverHTML += `
+                </div>
+            </div>`;
+
+        // Positionner le popover à côté de la cellule cliquée
+        const clickedTd = document.querySelector(`.tb-cell[onclick*="selectCell(${rowIndex}, ${colIndex}"]`);
+        if (!clickedTd) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.id = 'tbPopoverWrapper';
+        wrapper.innerHTML = popoverHTML;
+        document.body.appendChild(wrapper);
+
+        // Positionner
+        const rect = clickedTd.getBoundingClientRect();
+        const popover = document.getElementById('tbCellPopover');
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+        // Essayer à droite de la cellule, sinon à gauche
+        let left = rect.right + 8 + scrollLeft;
+        if (left + 280 > window.innerWidth) {
+            left = rect.left - 288 + scrollLeft;
+        }
+        let top = rect.top + scrollTop;
+        // Vérifier que le popover ne dépasse pas en bas
+        if (top + 350 > window.innerHeight + scrollTop) {
+            top = window.innerHeight + scrollTop - 360;
+        }
+
+        popover.style.position = 'absolute';
+        popover.style.left = left + 'px';
+        popover.style.top = top + 'px';
+
+        // Fermer au clic en dehors
+        setTimeout(() => {
+            this._popoverOutsideHandler = (e) => {
+                const pop = document.getElementById('tbCellPopover');
+                if (pop && !pop.contains(e.target) && !e.target.closest('.tb-cell')) {
+                    this._closeCellPopover();
+                }
+            };
+            document.addEventListener('click', this._popoverOutsideHandler);
+        }, 50);
+    },
+
+    _closeCellPopover() {
+        const wrapper = document.getElementById('tbPopoverWrapper');
+        if (wrapper) wrapper.remove();
+        if (this._popoverOutsideHandler) {
+            document.removeEventListener('click', this._popoverOutsideHandler);
+            this._popoverOutsideHandler = null;
+        }
+        this._selectedCell = null;
         this.renderTableBuilder();
     },
+
+    // ========== ACTIONS POPOVER ==========
+
+    _setCellType(row, col, type) {
+        this.readTableBuilderValues();
+        const cell = this.tableBuilder.rows[row][col];
+        cell.type = type;
+        if (type === 'reponse' && !cell.correction) {
+            cell.correction = 'souple';
+            cell.alternatives = cell.alternatives || [];
+        }
+        // Re-afficher le popover avec le nouveau contenu
+        this._selectedCell = { row, col };
+        this.renderTableBuilder();
+        this.renderTablePreview();
+        this._showCellPopover(row, col);
+    },
+
+    _setCellCorrection(row, col, mode) {
+        this.tableBuilder.rows[row][col].correction = mode;
+        // Mettre à jour le hint sans tout re-render
+        const hint = document.querySelector('.tb-popover-hint');
+        if (hint) {
+            hint.textContent = mode === 'souple' ? 'Tolère accents, majuscules, ponctuation' : 'La réponse doit être exacte';
+        }
+        this.renderTableBuilder();
+    },
+
+    _addAlt(row, col) {
+        const cell = this.tableBuilder.rows[row][col];
+        if (!cell.alternatives) cell.alternatives = [];
+        cell.alternatives.push('');
+        this._selectedCell = { row, col };
+        this._showCellPopover(row, col);
+        // Focus le nouveau champ
+        setTimeout(() => {
+            const inputs = document.querySelectorAll('.tb-popover-alt-input');
+            if (inputs.length > 0) inputs[inputs.length - 1].focus();
+        }, 50);
+    },
+
+    _removeAlt(row, col, altIndex) {
+        this.tableBuilder.rows[row][col].alternatives.splice(altIndex, 1);
+        this._selectedCell = { row, col };
+        this.renderTableBuilder();
+        this._showCellPopover(row, col);
+    },
+
+    _updateAlt(row, col, altIndex, value) {
+        this.tableBuilder.rows[row][col].alternatives[altIndex] = value;
+        this.renderTableBuilder();
+    },
+
+    // ========== COLONNES & LIGNES ==========
 
     addColumn() {
         this.readTableBuilderValues();
-        this.tableBuilder.columns.push({ titre: '', editable: true });
-        this.tableBuilder.rows = this.tableBuilder.rows.map(row => [...row, '']);
-        this.renderColumnsBuilder();
+        this.tableBuilder.columns.push('');
+        this.tableBuilder.rows.forEach(row => {
+            row.push({ valeur: '', type: 'reponse', correction: 'souple', alternatives: [] });
+        });
         this.renderTableBuilder();
+        this.renderTablePreview();
     },
 
     removeColumn(index) {
         if (this.tableBuilder.columns.length <= 1) {
-            alert('Il faut au moins une colonne');
+            this.showNotification('Il faut au moins une colonne', 'warning');
             return;
         }
         this.readTableBuilderValues();
+        this._closeCellPopover();
         this.tableBuilder.columns.splice(index, 1);
-        this.tableBuilder.rows = this.tableBuilder.rows.map(row => {
-            row.splice(index, 1);
-            return row;
-        });
-        this.renderColumnsBuilder();
+        this.tableBuilder.rows.forEach(row => row.splice(index, 1));
         this.renderTableBuilder();
+        this.renderTablePreview();
     },
 
     addRow() {
         this.readTableBuilderValues();
-        const newRow = this.tableBuilder.columns.map(() => '');
+        const newRow = this.tableBuilder.columns.map(() => ({
+            valeur: '', type: 'reponse', correction: 'souple', alternatives: []
+        }));
         this.tableBuilder.rows.push(newRow);
         this.renderTableBuilder();
+        this.renderTablePreview();
     },
 
     removeRow(index) {
         if (this.tableBuilder.rows.length <= 1) {
-            alert('Il faut au moins une ligne');
+            this.showNotification('Il faut au moins une ligne', 'warning');
             return;
         }
         this.readTableBuilderValues();
+        this._closeCellPopover();
         this.tableBuilder.rows.splice(index, 1);
         this.renderTableBuilder();
+        this.renderTablePreview();
     },
 
     previewExercice() {
@@ -395,7 +554,7 @@ Object.assign(AdminBanquesExercices, {
                 </div>
             `;
         } else if (formatUI === 'document_tableau') {
-            // Document + Table format
+            // Document + Table format (v2)
             this.readTableBuilderValues();
             const donnees = this.buildDataFromTableBuilder();
             const docType = document.getElementById('docTypeTableau').value;
@@ -407,7 +566,6 @@ Object.assign(AdminBanquesExercices, {
                 .dt-document img { max-width: 100%; height: auto; }
                 table { width: 100%; border-collapse: collapse; }
                 th { background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
-                th.editable { background: #dbeafe; color: #2563eb; }
                 td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
                 .data-cell { font-weight: 500; }
                 .input-cell input { width: 100%; padding: 8px 12px; border: 2px solid #dbeafe; border-radius: 6px; font-size: 14px; }
@@ -419,23 +577,7 @@ Object.assign(AdminBanquesExercices, {
                 <div class="dt-layout">
                     <div class="dt-document">${docContent}</div>
                     <div class="dt-table">
-                        <table>
-                            <thead>
-                                <tr>
-                                    ${donnees.colonnes.map(col => `<th class="${col.editable ? 'editable' : ''}">${this.escapeHtml(col.titre)}</th>`).join('')}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${donnees.lignes.map(ligne => `
-                                    <tr>
-                                        ${donnees.colonnes.map((col, i) => col.editable
-                                            ? `<td class="input-cell"><input type="text" placeholder="..."></td>`
-                                            : `<td class="data-cell">${this.escapeHtml(ligne.cells[i] || '')}</td>`
-                                        ).join('')}
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+                        ${this._buildPreviewTableHTML(donnees)}
                     </div>
                 </div>
             `;
@@ -545,36 +687,17 @@ Object.assign(AdminBanquesExercices, {
                 contentHTML = `<div class="mixte-container">${docHTML}${tableauHTML}${questionsHTML}</div>`;
             }
         } else {
-            // Default: tableau_saisie
+            // Default: tableau_saisie (v2)
             this.readTableBuilderValues();
             const donnees = this.buildDataFromTableBuilder();
             extraStyles = `
                 table { width: 100%; border-collapse: collapse; }
                 th { background: #f3f4f6; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
-                th.editable { background: #dbeafe; color: #2563eb; }
                 td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
                 .data-cell { font-weight: 500; }
                 .input-cell input { width: 100%; padding: 8px 12px; border: 2px solid #dbeafe; border-radius: 6px; font-size: 14px; }
             `;
-            contentHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            ${donnees.colonnes.map(col => `<th class="${col.editable ? 'editable' : ''}">${this.escapeHtml(col.titre)}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${donnees.lignes.map(ligne => `
-                            <tr>
-                                ${donnees.colonnes.map((col, i) => col.editable
-                                    ? `<td class="input-cell"><input type="text" placeholder="..."></td>`
-                                    : `<td class="data-cell">${this.escapeHtml(ligne.cells[i] || '')}</td>`
-                                ).join('')}
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
+            contentHTML = this._buildPreviewTableHTML(donnees);
         }
 
         const previewWindow = window.open('', '_blank', 'width=800,height=600');
@@ -606,6 +729,33 @@ Object.assign(AdminBanquesExercices, {
             </body>
             </html>
         `);
+    },
+
+    /** Construit le HTML d'un tableau pour la prévisualisation (format v2). */
+    _buildPreviewTableHTML(donnees) {
+        const cols = donnees.colonnes || [];
+        const rows = donnees.lignes || [];
+        return `
+            <table>
+                <thead>
+                    <tr>${cols.map(c => `<th>${this.escapeHtml(typeof c === 'string' ? c : c.titre || '')}</th>`).join('')}</tr>
+                </thead>
+                <tbody>
+                    ${rows.map(ligne => `
+                        <tr>
+                            ${(ligne.cells || []).map(cell => {
+                                if (typeof cell === 'object' && cell.type === 'reponse') {
+                                    return '<td class="input-cell"><input type="text" placeholder="..."></td>';
+                                } else if (typeof cell === 'object') {
+                                    return `<td class="data-cell">${this.escapeHtml(cell.valeur || '')}</td>`;
+                                }
+                                // Fallback ancien format string
+                                return `<td class="data-cell">${this.escapeHtml(cell || '')}</td>`;
+                            }).join('')}
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>`;
     },
 
     // ========== FORMAT SWITCHING ==========
@@ -642,7 +792,8 @@ Object.assign(AdminBanquesExercices, {
             this.initQuestionBuilder();
         } else if (typeUI === 'document_tableau') {
             document.getElementById('builderTableau').style.display = 'block';
-            document.getElementById('documentSectionTableau').style.display = 'block';
+            const docSection = document.getElementById('documentSectionTableau');
+            if (docSection) docSection.style.display = 'block';
             this.initTableBuilder();
         } else if (typeUI === 'document_mixte') {
             document.getElementById('builderDocumentMixte').style.display = 'block';
@@ -650,7 +801,6 @@ Object.assign(AdminBanquesExercices, {
         } else {
             // Default: tableau_saisie
             document.getElementById('builderTableau').style.display = 'block';
-            document.getElementById('documentSectionTableau').style.display = 'none';
             this.initTableBuilder();
         }
     },

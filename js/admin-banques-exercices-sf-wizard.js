@@ -482,7 +482,7 @@ Object.assign(AdminBanquesExercices, {
         '</div>';
     },
 
-    // --- HTML pour le builder Tableau ---
+    // --- HTML pour le builder Tableau (v2 — split construction / aperçu) ---
     _renderTableBuilderHTML: function(withDocument) {
         var docSection = '';
         if (withDocument) {
@@ -498,22 +498,28 @@ Object.assign(AdminBanquesExercices, {
         }
 
         return '<div id="builderTableau" class="format-builder">' +
-            '<div class="form-section">Construction du tableau</div>' +
-            docSection +
-            '<div class="form-group">' +
-                '<label>Colonnes du tableau</label>' +
-                '<div class="columns-builder" id="columnsBuilder"></div>' +
-                '<button type="button" class="btn btn-secondary btn-sm" id="addColumnBtn">+ Ajouter une colonne</button>' +
-            '</div>' +
-            '<div class="form-group">' +
-                '<label>Lignes du tableau</label>' +
-                '<div class="table-builder-wrapper">' +
-                    '<table class="table-builder" id="tableBuilder">' +
-                        '<thead id="tableBuilderHead"></thead>' +
-                        '<tbody id="tableBuilderBody"></tbody>' +
-                    '</table>' +
+            '<div class="tb-split-layout">' +
+                '<div class="tb-split-left">' +
+                    '<div class="tb-split-header">Construction</div>' +
+                    docSection +
+                    '<div class="form-group">' +
+                        '<div class="tb-structure-bar">' +
+                            '<span class="tb-structure-label">Tableau</span>' +
+                            '<span class="tb-structure-hint">Cliquez sur une cellule pour la configurer</span>' +
+                        '</div>' +
+                        '<div class="table-builder-wrapper">' +
+                            '<table class="table-builder" id="tableBuilder">' +
+                                '<thead id="tableBuilderHead"></thead>' +
+                                '<tbody id="tableBuilderBody"></tbody>' +
+                            '</table>' +
+                        '</div>' +
+                        '<button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>' +
+                    '</div>' +
                 '</div>' +
-                '<button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>' +
+                '<div class="tb-split-right">' +
+                    '<div class="tb-split-header">Vue \u00e9l\u00e8ve</div>' +
+                    '<div class="tb-preview-container" id="tableBuilderPreview"></div>' +
+                '</div>' +
             '</div>' +
         '</div>';
     },
