@@ -63,6 +63,7 @@ Object.assign(EleveConnaissances, {
                     }))
                 };
 
+            case 'chronologie':
             case 'timeline':
                 return {
                     multiQuestions: questionContents.map(qc => ({

@@ -5,8 +5,8 @@ Object.assign(AdminBanquesExercices, {
     questionTypeNames: {
         'qcm': 'QCM',
         'vrai_faux': 'Vrai/Faux',
-        'chronologie': 'Frise chronologique',
-        'timeline': 'Frise chronologique',
+        'chronologie': 'Frise à compléter',
+        'timeline': 'Cartes à ordonner',
         'association': 'Association',
         'texte_trou': 'Texte à trous',
         'ordre': 'Mise en ordre',
@@ -1137,21 +1137,34 @@ Object.assign(AdminBanquesExercices, {
 
     /**
      * Normalise les formats chargés depuis le Google Sheet :
-     * - Fusionne chronologie dans timeline (un seul format "Frise chronologique")
+     * - Met à jour les noms/icônes des formats chronologie et timeline
      * - Ajoute flashcard si absent
      */
     normalizeFormatsQuestions() {
         if (!this.formatsQuestions) return;
 
-        // 1. Retirer l'entrée chronologie (les questions chronologie seront affichées sous timeline)
-        this.formatsQuestions = this.formatsQuestions.filter(f => f.code !== 'chronologie');
+        // 1. Mettre à jour l'entrée chronologie (frise à compléter)
+        const chronoFormat = this.formatsQuestions.find(f => f.code === 'chronologie');
+        if (chronoFormat) {
+            chronoFormat.nom = 'Frise à compléter';
+            chronoFormat.icone = '📝';
+            chronoFormat.description = 'L\'élève complète les dates ou événements manquants';
+        } else {
+            this.formatsQuestions.push({
+                id: 'fmt_chronologie',
+                code: 'chronologie',
+                nom: 'Frise à compléter',
+                icone: '📝',
+                description: 'L\'élève complète les dates ou événements manquants'
+            });
+        }
 
-        // 2. Mettre à jour l'entrée timeline
+        // 2. Mettre à jour l'entrée timeline (cartes à ordonner)
         const timelineFormat = this.formatsQuestions.find(f => f.code === 'timeline');
         if (timelineFormat) {
-            timelineFormat.nom = 'Frise chronologique';
-            timelineFormat.icone = '📅';
-            timelineFormat.description = 'Texte ou cartes à ordonner chronologiquement';
+            timelineFormat.nom = 'Cartes à ordonner';
+            timelineFormat.icone = '🗂️';
+            timelineFormat.description = 'L\'élève remet les cartes dans l\'ordre chronologique';
         }
 
         // 3. Ajouter flashcard si absent
@@ -1181,7 +1194,9 @@ Object.assign(AdminBanquesExercices, {
         if (donnees.options && (donnees.reponses_correctes || donnees.reponse_correcte !== undefined)) return 'qcm';
         // Vrai/Faux: a question + reponse (vrai/faux)
         if (donnees.question && donnees.reponse && (donnees.reponse === 'vrai' || donnees.reponse === 'faux')) return 'vrai_faux';
-        // Timeline: a cartes (sans recto) ou evenements
+        // Chronologie (frise à compléter) : a paires avec date + mode
+        if (donnees.paires && donnees.mode && donnees.paires[0]?.date !== undefined) return 'chronologie';
+        // Timeline (cartes à ordonner) : a cartes sans recto, ou evenements
         if (donnees.cartes || donnees.evenements) return 'timeline';
         // Association: a paires avec element1/element2
         if (donnees.paires && donnees.paires.length > 0 && donnees.paires[0].element1 !== undefined) return 'association';
@@ -1220,9 +1235,14 @@ Object.assign(AdminBanquesExercices, {
             filtered = questions.filter(q => q.banque_id === banqueFilter);
         }
 
-        // Timeline unifié : inclure aussi les anciennes questions chronologie
-        if (formatCode === 'timeline') {
-            return filtered.filter(q => q.type === 'timeline' || q.type === 'chronologie');
+        // Chronologie / Timeline : classer selon la structure réelle des données
+        if (formatCode === 'chronologie' || formatCode === 'timeline') {
+            return filtered.filter(q => {
+                if (q.type !== 'timeline' && q.type !== 'chronologie') return false;
+                const d = typeof q.donnees === 'string' ? JSON.parse(q.donnees || '{}') : (q.donnees || {});
+                const isTexteMode = !!(d.paires && d.mode);
+                return formatCode === 'chronologie' ? isTexteMode : !isTexteMode;
+            });
         }
         return filtered.filter(q => q.type === formatCode);
     },

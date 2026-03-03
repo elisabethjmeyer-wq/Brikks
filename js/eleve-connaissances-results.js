@@ -63,6 +63,7 @@ Object.assign(EleveConnaissances, {
                 return donnees.multiQuestions?.length || 1;
             case 'vrai_faux':
                 return donnees.propositions?.length || 1;
+            case 'chronologie':
             case 'timeline':
                 return donnees.cartes?.length || donnees.paires?.length || 1;
             case 'texte_trou':
@@ -531,7 +532,7 @@ Object.assign(EleveConnaissances, {
                         </div>
                     `;
                 }).filter(Boolean).join('');
-            } else if ((fmt === 'chronologie' || fmt === 'timeline') && donnees.cartes?.length > 0) {
+            } else if ((fmt === 'chronologie' || fmt === 'timeline') && (donnees.cartes?.length > 0 || (donnees.paires?.length > 0 && donnees.mode))) {
                 // Timeline simple (pas multi) : frise élève + frise correcte
                 const allDetails = ed.etape.details || [];
                 content = renderSingleCorrection(donnees, allDetails, ed.errors);

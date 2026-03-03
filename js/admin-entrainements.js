@@ -32,8 +32,8 @@ const AdminEntrainements = {
     questionTypeNames: {
         'qcm': 'QCM',
         'vrai_faux': 'Vrai/Faux',
-        'chronologie': 'Chronologie',
-        'timeline': 'Timeline',
+        'chronologie': 'Frise à compléter',
+        'timeline': 'Cartes à ordonner',
         'association': 'Association',
         'texte_trou': 'Texte à trous'
     },
