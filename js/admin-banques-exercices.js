@@ -633,14 +633,37 @@ const AdminBanquesExercices = {
         }
     },
 
+    // ========== ACCORDION STATE ==========
+
+    _getExpandedBanques() {
+        const expanded = new Set();
+        document.querySelectorAll('.banque-card.expanded').forEach(card => {
+            const id = card.dataset.id || card.dataset.banqueCompId;
+            if (id) expanded.add(id);
+        });
+        return expanded;
+    },
+
+    _restoreExpandedBanques(expanded) {
+        if (!expanded || expanded.size === 0) return;
+        document.querySelectorAll('.banque-card').forEach(card => {
+            const id = card.dataset.id || card.dataset.banqueCompId;
+            if (id && expanded.has(id)) {
+                card.classList.add('expanded');
+            }
+        });
+    },
+
     // ========== RENDER ==========
     renderBanques() {
+        const expanded = this._getExpandedBanques();
         const container = document.getElementById('banquesList');
         const emptyState = document.getElementById('emptyState');
 
         // For competences tab, render tâches complexes instead
         if (this.currentType === 'competences') {
             this.renderTachesComplexes(container, emptyState);
+            this._restoreExpandedBanques(expanded);
             setTimeout(() => this.initCompetencesDragDrop(), 0);
             return;
         }
@@ -648,6 +671,7 @@ const AdminBanquesExercices = {
         // For connaissances tab, render new dual-section view
         if (this.currentType === 'connaissances') {
             this.renderConnaissancesView(container, emptyState);
+            this._restoreExpandedBanques(expanded);
             return;
         }
 
@@ -724,6 +748,8 @@ const AdminBanquesExercices = {
                 </div>
             `;
         }).join('');
+
+        this._restoreExpandedBanques(expanded);
 
         if (this.currentType === 'savoir-faire') {
             // setTimeout(0) ensures DOM is fully rendered before attaching drag listeners
