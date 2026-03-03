@@ -158,22 +158,21 @@ Object.assign(EleveExercices, {
 
     validateTableauSaisie() {
         const donnees = parseJSONField(this.currentExercise.donnees);
-
-        const colonnes = donnees.colonnes || [];
-        const lignes = donnees.lignes || [];
+        const parsed = this._parseTableauDonnees(donnees, {});
         let correct = 0, total = 0;
 
-        lignes.forEach((ligne, rowIndex) => {
-            const cells = ligne.cells || Object.values(ligne);
-            colonnes.forEach((col, colIndex) => {
-                if (col.editable) {
+        parsed.lignes.forEach((row, rowIndex) => {
+            row.forEach((cell, colIndex) => {
+                if (cell.type === 'reponse') {
                     total++;
                     const input = document.getElementById(`input_${rowIndex}_${colIndex}`);
                     if (!input) return;
 
-                    const correctAnswerRaw = cells[colIndex] || '';
+                    // Construire la chaîne de réponses acceptées (principale + alternatives)
+                    const allAnswers = [cell.valeur, ...(cell.alternatives || [])].filter(a => a).join('|');
+                    const isStricte = cell.correction === 'stricte';
 
-                    if (this.checkAnswerMatch(input.value, correctAnswerRaw)) {
+                    if (this.checkAnswerMatch(input.value, allAnswers, isStricte)) {
                         input.className = 'correct';
                         correct++;
                     } else {
@@ -300,15 +299,24 @@ Object.assign(EleveExercices, {
     },
 
     /**
-     * Vérifie si la réponse utilisateur correspond à la réponse correcte
+     * Vérifie si la réponse utilisateur correspond à la réponse correcte.
      * Supporte les réponses multiples séparées par | ou ;
+     * @param {string} userAnswer - Réponse de l'élève
+     * @param {string} correctAnswer - Réponse(s) correcte(s), séparées par | ou ;
+     * @param {boolean} [stricte=false] - Si true, comparaison exacte (trim seulement)
      */
-    checkAnswerMatch(userAnswer, correctAnswer) {
-        const normalizedUser = this.normalizeAnswer(userAnswer);
-        if (normalizedUser === '') return false;
+    checkAnswerMatch(userAnswer, correctAnswer, stricte) {
+        const userTrimmed = String(userAnswer).trim();
+        if (userTrimmed === '') return false;
 
-        const correctOptions = String(correctAnswer).split(/[|;]/).map(opt => this.normalizeAnswer(opt));
-        return correctOptions.some(opt => opt !== '' && normalizedUser === opt);
+        const correctOptions = String(correctAnswer).split(/[|;]/).map(opt => opt.trim()).filter(opt => opt !== '');
+
+        if (stricte) {
+            return correctOptions.some(opt => userTrimmed === opt);
+        }
+
+        const normalizedUser = this.normalizeAnswer(userAnswer);
+        return correctOptions.some(opt => normalizedUser === this.normalizeAnswer(opt));
     },
 
 });

@@ -12,27 +12,25 @@ Object.assign(EleveExercices, {
     // ===============================
 
     renderTableauSaisie(donnees, structure) {
-        let colonnes = donnees.colonnes || structure.colonnes || [
-            { titre: 'Date', editable: false },
-            { titre: 'Réponse', editable: true }
-        ];
-        const lignes = donnees.lignes || [];
+        // Normaliser les données : supporter format v2 (objets) et v1 (ancien)
+        const parsed = this._parseTableauDonnees(donnees, structure);
+        const colonnes = parsed.colonnes;
+        const lignes = parsed.lignes;
 
         let html = `
             <table class="tableau-exercice">
                 <thead>
                     <tr>
-                        ${colonnes.map(col => `<th>${this.escapeHtml(col.titre)}</th>`).join('')}
+                        ${colonnes.map(titre => `<th>${this.escapeHtml(titre)}</th>`).join('')}
                     </tr>
                 </thead>
                 <tbody>
         `;
 
-        lignes.forEach((ligne, rowIndex) => {
-            const cells = ligne.cells || Object.values(ligne);
+        lignes.forEach((row, rowIndex) => {
             html += '<tr>';
-            colonnes.forEach((col, colIndex) => {
-                if (col.editable) {
+            row.forEach((cell, colIndex) => {
+                if (cell.type === 'reponse') {
                     html += `
                         <td>
                             <input type="text" id="input_${rowIndex}_${colIndex}"
@@ -42,8 +40,7 @@ Object.assign(EleveExercices, {
                         </td>
                     `;
                 } else {
-                    const value = cells[colIndex] || '';
-                    html += `<td class="cell-display">${this.escapeHtml(value)}</td>`;
+                    html += `<td class="cell-display">${this.escapeHtml(cell.valeur)}</td>`;
                 }
             });
             html += '</tr>';
@@ -51,6 +48,52 @@ Object.assign(EleveExercices, {
 
         html += '</tbody></table>';
         return html;
+    },
+
+    /**
+     * Normalise les données du tableau (v1 ou v2) vers un format interne unifié.
+     * Retourne { colonnes: [string], lignes: [[{valeur, type, correction, alternatives}]] }
+     */
+    _parseTableauDonnees(donnees, structure) {
+        // Format v2 : colonnes = strings, cells = objets avec .type
+        if (donnees.colonnes && donnees.lignes && donnees.lignes[0]?.cells?.[0]?.type) {
+            return {
+                colonnes: donnees.colonnes.map(c => typeof c === 'string' ? c : c.titre || ''),
+                lignes: donnees.lignes.map(ligne => (ligne.cells || []).map(cell => ({
+                    valeur: cell.valeur || '',
+                    type: cell.type || 'donnee',
+                    correction: cell.correction || 'souple',
+                    alternatives: cell.alternatives || []
+                })))
+            };
+        }
+
+        // Format v1 : colonnes = [{titre, editable}], cells = strings
+        const colDefs = donnees.colonnes || (structure && structure.colonnes) || [
+            { titre: 'Date', editable: false },
+            { titre: 'Réponse', editable: true }
+        ];
+        const rawLignes = donnees.lignes || [];
+
+        return {
+            colonnes: colDefs.map(c => c.titre || ''),
+            lignes: rawLignes.map(ligne => {
+                const cells = ligne.cells || Object.values(ligne);
+                return colDefs.map((col, i) => {
+                    const raw = String(cells[i] || '');
+                    if (col.editable) {
+                        const parts = raw.split('|');
+                        return {
+                            valeur: parts[0],
+                            type: 'reponse',
+                            correction: 'souple',
+                            alternatives: parts.slice(1).filter(a => a.trim())
+                        };
+                    }
+                    return { valeur: raw, type: 'donnee' };
+                });
+            })
+        };
     },
 
     renderCarteCliquable(donnees, structure) {
@@ -137,8 +180,6 @@ Object.assign(EleveExercices, {
 
     renderDocumentTableau(donnees, structure) {
         const doc = donnees.document || {};
-        const colonnes = donnees.colonnes || [];
-        const lignes = donnees.lignes || [];
 
         let documentHTML = '';
         if (doc.type === 'image') {
@@ -148,17 +189,19 @@ Object.assign(EleveExercices, {
             documentHTML = `<div class="doc-texte">${this.escapeHtml(doc.contenu || '')}</div>`;
         }
 
+        // Réutiliser le même parser que renderTableauSaisie pour supporter v1 et v2
+        const parsed = this._parseTableauDonnees(donnees, structure);
+
         let tableHTML = `
             <table class="tableau-exercice">
-                <thead><tr>${colonnes.map(col => `<th>${this.escapeHtml(col.titre)}</th>`).join('')}</tr></thead>
+                <thead><tr>${parsed.colonnes.map(titre => `<th>${this.escapeHtml(titre)}</th>`).join('')}</tr></thead>
                 <tbody>
         `;
 
-        lignes.forEach((ligne, rowIndex) => {
-            const cells = ligne.cells || Object.values(ligne);
+        parsed.lignes.forEach((row, rowIndex) => {
             tableHTML += '<tr>';
-            colonnes.forEach((col, colIndex) => {
-                if (col.editable) {
+            row.forEach((cell, colIndex) => {
+                if (cell.type === 'reponse') {
                     tableHTML += `
                         <td>
                             <input type="text" id="input_${rowIndex}_${colIndex}"
@@ -168,7 +211,7 @@ Object.assign(EleveExercices, {
                         </td>
                     `;
                 } else {
-                    tableHTML += `<td class="cell-display">${this.escapeHtml(cells[colIndex] || '')}</td>`;
+                    tableHTML += `<td class="cell-display">${this.escapeHtml(cell.valeur)}</td>`;
                 }
             });
             tableHTML += '</tr>';
@@ -689,42 +732,39 @@ Object.assign(EleveExercices, {
 
     showTableauCorrige() {
         const donnees = parseJSONField(this.currentExercise.donnees);
+        const parsed = this._parseTableauDonnees(donnees, {});
 
-        const colonnes = donnees.colonnes || [];
-        const lignes = donnees.lignes || [];
-
-        lignes.forEach((ligne, rowIdx) => {
-            colonnes.forEach((col, colIdx) => {
-                if (col.editable) {
+        parsed.lignes.forEach((row, rowIdx) => {
+            row.forEach((cell, colIdx) => {
+                if (cell.type === 'reponse') {
                     const input = document.getElementById(`input_${rowIdx}_${colIdx}`);
-                    if (input) {
-                        const fullAnswer = ligne.cells[colIdx] || '';
-                        const firstAnswer = fullAnswer.split(/[|;]/)[0].trim();
-                        const userAnswer = input.value.trim();
-                        const isCorrect = input.classList.contains('correct');
-                        const isEmpty = userAnswer === '';
+                    if (!input) return;
 
-                        const correctionCell = document.createElement('div');
-                        correctionCell.className = 'correction-cell';
+                    const expectedAnswer = cell.valeur;
+                    const userAnswer = input.value.trim();
+                    const isCorrect = input.classList.contains('correct');
+                    const isEmpty = userAnswer === '';
 
-                        if (isCorrect) {
-                            correctionCell.classList.add('correct');
-                            correctionCell.innerHTML = `<span class="answer-text">${this.escapeHtml(userAnswer)}</span>`;
+                    const correctionCell = document.createElement('div');
+                    correctionCell.className = 'correction-cell';
+
+                    if (isCorrect) {
+                        correctionCell.classList.add('correct');
+                        correctionCell.innerHTML = `<span class="answer-text">${this.escapeHtml(userAnswer)}</span>`;
+                    } else {
+                        correctionCell.classList.add('incorrect');
+                        if (isEmpty) {
+                            correctionCell.innerHTML = `<span class="correct-answer">${this.escapeHtml(expectedAnswer)}</span>`;
                         } else {
-                            correctionCell.classList.add('incorrect');
-                            if (isEmpty) {
-                                correctionCell.innerHTML = `<span class="correct-answer">${this.escapeHtml(firstAnswer)}</span>`;
-                            } else {
-                                correctionCell.innerHTML = `
-                                    <span class="wrong-answer">${this.escapeHtml(userAnswer)}</span>
-                                    <span class="arrow">→</span>
-                                    <span class="correct-answer">${this.escapeHtml(firstAnswer)}</span>
-                                `;
-                            }
+                            correctionCell.innerHTML = `
+                                <span class="wrong-answer">${this.escapeHtml(userAnswer)}</span>
+                                <span class="arrow">&rarr;</span>
+                                <span class="correct-answer">${this.escapeHtml(expectedAnswer)}</span>
+                            `;
                         }
-
-                        input.parentNode.replaceChild(correctionCell, input);
                     }
+
+                    input.parentNode.replaceChild(correctionCell, input);
                 }
             });
         });
@@ -803,13 +843,11 @@ Object.assign(EleveExercices, {
 
     resetTableauSaisie() {
         const donnees = parseJSONField(this.currentExercise.donnees);
+        const parsed = this._parseTableauDonnees(donnees, {});
 
-        const colonnes = donnees.colonnes || [];
-        const lignes = donnees.lignes || [];
-
-        lignes.forEach((_, rowIndex) => {
-            colonnes.forEach((col, colIndex) => {
-                if (col.editable) {
+        parsed.lignes.forEach((row, rowIndex) => {
+            row.forEach((cell, colIndex) => {
+                if (cell.type === 'reponse') {
                     const input = document.getElementById(`input_${rowIndex}_${colIndex}`);
                     const correction = document.getElementById(`correction_${rowIndex}_${colIndex}`);
                     if (input) {
