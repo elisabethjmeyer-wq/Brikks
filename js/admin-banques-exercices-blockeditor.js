@@ -42,6 +42,7 @@ Object.assign(AdminBanquesExercices, {
      * @param {string} type — 'text', 'document', 'image', 'video'
      */
     addBlock(type) {
+        this._saveEditorsState();
         var block = this._createBlock(type);
         this._blocks.push(block);
         this._renderBlocks();
