@@ -449,8 +449,12 @@ Object.assign(EleveExercices, {
             `<th>${this.escapeHtml(c || '')}</th>`
         ).join('');
 
-        const bodyHTML = lignes.map((ligne, ri) =>
-            `<tr>${(ligne.cells || []).map((cell, ci) => {
+        const colCount = cols.length;
+        const bodyHTML = lignes.map((ligne, ri) => {
+            if (ligne.section) {
+                return `<tr><td colspan="${colCount}" class="mixte-table-section">${this.escapeHtml(ligne.text || '')}</td></tr>`;
+            }
+            return `<tr>${(ligne.cells || []).map((cell, ci) => {
                 if (cell.type === 'reponse') {
                     return `<td class="cell-editable">
                         <input type="text" class="cell-input" id="mixte_btab_${tableIdx}_${ri}_${ci}"
@@ -458,8 +462,8 @@ Object.assign(EleveExercices, {
                     </td>`;
                 }
                 return `<td class="cell-donnee">${this.escapeHtml(cell.valeur || '')}</td>`;
-            }).join('')}</tr>`
-        ).join('');
+            }).join('')}</tr>`;
+        }).join('');
 
         return `
             <div class="mixte-block-tableau">
