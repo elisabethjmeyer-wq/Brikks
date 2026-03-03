@@ -1262,6 +1262,29 @@ Object.assign(AdminBanquesExercices, {
 
     // ========== CARTE POPOVER ACTIONS ==========
 
+    /** Synchronise les valeurs du popover ouvert vers le modèle avant de le reconstruire */
+    _syncCartePopoverToModel(index) {
+        const m = this.carteBuilder.marqueurs[index];
+        if (!m) return;
+        // Lire la réponse principale depuis le champ input
+        const answerInput = document.getElementById('cbPopoverAnswer');
+        if (answerInput) {
+            const parts = (m.reponse || '').split('|');
+            parts[0] = answerInput.value;
+            m.reponse = parts.join('|');
+        }
+        // Lire les alternatives depuis les champs input
+        const altInputs = document.querySelectorAll('.cb-popover-alt-input');
+        if (altInputs.length > 0) {
+            const mainPart = (m.reponse || '').split('|')[0];
+            const alts = [];
+            altInputs.forEach(input => {
+                alts.push(input.value);
+            });
+            m.reponse = [mainPart, ...alts].join('|');
+        }
+    },
+
     _updateMarqueurAnswer(index, value) {
         const m = this.carteBuilder.marqueurs[index];
         const parts = (m.reponse || '').split('|');
@@ -1279,6 +1302,7 @@ Object.assign(AdminBanquesExercices, {
     },
 
     _setMarqueurShape(index, shape) {
+        this._syncCartePopoverToModel(index);
         this.carteBuilder.marqueurs[index].shape = shape;
         this._selectedMarqueur = index;
         this.renderCarteMarkers();
@@ -1286,6 +1310,7 @@ Object.assign(AdminBanquesExercices, {
     },
 
     _setMarqueurColor(index, color) {
+        this._syncCartePopoverToModel(index);
         this.carteBuilder.marqueurs[index].color = color;
         this._selectedMarqueur = index;
         this.renderCarteMarkers();
@@ -1305,10 +1330,13 @@ Object.assign(AdminBanquesExercices, {
     },
 
     _addMarqueurAlt(index) {
+        this._syncCartePopoverToModel(index);
         const m = this.carteBuilder.marqueurs[index];
-        const parts = (m.reponse || '').split('|');
-        parts.push('');
-        m.reponse = parts.join('|');
+        // Séparer réponse principale et alternatives existantes
+        const mainAnswer = (m.reponse || '').split('|')[0];
+        const existingAlts = (m.reponse || '').split('|').slice(1);
+        existingAlts.push('');
+        m.reponse = [mainAnswer, ...existingAlts].join('|');
         this._selectedMarqueur = index;
         this._showCartePopover(index);
         setTimeout(() => {
@@ -1318,11 +1346,12 @@ Object.assign(AdminBanquesExercices, {
     },
 
     _removeMarqueurAlt(index, altIndex) {
+        this._syncCartePopoverToModel(index);
         const m = this.carteBuilder.marqueurs[index];
-        const parts = (m.reponse || '').split('|');
-        // L'index 0 est la réponse principale, les alternatives commencent à 1
-        parts.splice(altIndex + 1, 1);
-        m.reponse = parts.join('|');
+        const mainAnswer = (m.reponse || '').split('|')[0];
+        const alts = (m.reponse || '').split('|').slice(1);
+        alts.splice(altIndex, 1);
+        m.reponse = alts.length > 0 ? [mainAnswer, ...alts].join('|') : mainAnswer;
         this._selectedMarqueur = index;
         this._showCartePopover(index);
     },
