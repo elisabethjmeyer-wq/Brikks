@@ -274,9 +274,15 @@ Object.assign(AdminBanquesExercices, {
         case 2:
             // Le format est déjà stocké via _selectSFFormat
             break;
-        case 3:
-            // Le builder gère son propre état dans le DOM — on le lit au moment de sauvegarder
+        case 3: {
+            // Sauvegarder la consigne si modifiée en étape 3
+            var consigneEl = document.getElementById('sfwConsigneStep3');
+            if (consigneEl) {
+                e.consigne = consigneEl.value.trim();
+                this.sfWizardData.exercice = e;
+            }
             break;
+        }
         case 4:
             break;
         }
@@ -465,10 +471,17 @@ Object.assign(AdminBanquesExercices, {
             builderHtml = this._renderTableBuilderHTML(false);
         }
 
-        // Nom du format pour affichage
-        var self = this;
-        var format = this.formats.find(function(f) { return String(f.id) === String(self.sfWizardData.formatId); });
-        var formatName = format ? format.nom : 'Exercice';
+        // Nom du format pour affichage (label court basé sur le type UI)
+        var formatLabels = {
+            'tableau_saisie': 'Tableau',
+            'carte_cliquable': 'Carte cliquable',
+            'document_tableau': 'Document + Tableau',
+            'question_ouverte': 'Question ouverte',
+            'document_mixte': 'Document mixte'
+        };
+        var formatName = formatLabels[formatUI] || 'Exercice';
+
+        var consigne = (this.sfWizardData.exercice && this.sfWizardData.exercice.consigne) || '';
 
         return '<div class="wizard-step-content">' +
             '<div class="step-header">' +
@@ -477,6 +490,10 @@ Object.assign(AdminBanquesExercices, {
                     '<h3>Contenu de l\u2019exercice</h3>' +
                     '<p>Format : ' + this.escapeHtml(formatName) + '</p>' +
                 '</div>' +
+            '</div>' +
+            '<div class="form-group">' +
+                '<label>Consigne</label>' +
+                '<textarea class="form-textarea" id="sfwConsigneStep3" rows="2" placeholder="Ex : Pour chaque date, trouve le si\u00e8cle\u2026">' + this.escapeHtml(consigne) + '</textarea>' +
             '</div>' +
             builderHtml +
         '</div>';
