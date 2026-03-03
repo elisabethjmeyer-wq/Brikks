@@ -1712,11 +1712,6 @@ textarea.answered {
     font-size: 0.85rem;
     color: #6b7280;
     padding: 4px 0;
-    font-style: italic;
-}
-
-.mixte-block-legende em {
-    font-style: italic;
 }
 
 /* Titre */
