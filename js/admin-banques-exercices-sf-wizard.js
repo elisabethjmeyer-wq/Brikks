@@ -809,7 +809,12 @@ Object.assign(AdminBanquesExercices, {
             html += '<th>' + AdminBanquesExercices.escapeHtml(c || '...') + '</th>';
         });
         html += '</tr></thead><tbody>';
+        var colCount = cols.length;
         rows.forEach(function(ligne) {
+            if (ligne.section) {
+                html += '<tr><td colspan="' + colCount + '" class="tb-pv-section">' + AdminBanquesExercices.escapeHtml(ligne.text || '') + '</td></tr>';
+                return;
+            }
             html += '<tr>';
             (ligne.cells || []).forEach(function(cell) {
                 if (cell.type === 'donnee') {

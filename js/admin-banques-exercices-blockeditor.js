@@ -175,6 +175,9 @@ Object.assign(AdminBanquesExercices, {
                 type: 'tableau',
                 colonnes: block.colonnes || [],
                 lignes: (block.lignes || []).map(function(ligne) {
+                    if (ligne.section) {
+                        return { section: true, text: ligne.text || '' };
+                    }
                     return { cells: (ligne.cells || []).map(function(cell) {
                         var out = { valeur: cell.valeur, type: cell.type };
                         if (cell.type === 'reponse') {
@@ -738,6 +741,17 @@ Object.assign(AdminBanquesExercices, {
 
         var tbodyHtml = '';
         for (var ri = 0; ri < rows.length; ri++) {
+            // Ligne section (titre violet)
+            if (rows[ri].section) {
+                tbodyHtml += '<tr data-row="' + ri + '" class="tb-section-row">' +
+                    '<td colspan="' + (cols.length + 1) + '" class="tb-section-cell">' +
+                    '<input type="text" class="tb-section-input" data-row="' + ri + '" data-block="' + bid + '" ' +
+                    'value="' + this.escapeHtml(rows[ri].text || '') + '" placeholder="Titre de la section\u2026">' +
+                    '<button type="button" class="tb-section-remove" onclick="AdminBanquesExercices._blockTableRemoveRow(\'' + bid + '\',' + ri + ')">&times;</button>' +
+                    '</td></tr>';
+                continue;
+            }
+            // Ligne normale avec cellules
             var cells = rows[ri].cells || [];
             tbodyHtml += '<tr data-row="' + ri + '">';
             for (var cj = 0; cj < cells.length; cj++) {
@@ -774,8 +788,10 @@ Object.assign(AdminBanquesExercices, {
             '<thead>' + theadHtml + '</thead>' +
             '<tbody>' + tbodyHtml + '</tbody>' +
             '</table></div>' +
-            '<button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices._blockTableAddRow(\'' + bid + '\')">+ Ajouter une ligne</button>' +
-            '</div>';
+            '<div class="tb-add-buttons">' +
+            '<button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices._blockTableAddRow(\'' + bid + '\')">+ Ligne</button>' +
+            '<button type="button" class="btn btn-secondary btn-sm tb-add-section-btn" onclick="AdminBanquesExercices._blockTableAddSection(\'' + bid + '\')">+ Section</button>' +
+            '</div></div>';
     },
 
     /** Sauve l'état DOM d'un bloc tableau */
@@ -789,8 +805,16 @@ Object.assign(AdminBanquesExercices, {
         });
         // Lire les valeurs des cellules
         var trs = table.querySelectorAll('tbody tr[data-row]');
-        trs.forEach(function(tr, ri) {
-            if (ri >= block.lignes.length) return;
+        trs.forEach(function(tr) {
+            var ri = parseInt(tr.dataset.row);
+            if (isNaN(ri) || ri >= block.lignes.length) return;
+            // Ligne section
+            if (block.lignes[ri].section) {
+                var secInput = tr.querySelector('.tb-section-input');
+                if (secInput) block.lignes[ri].text = secInput.value || '';
+                return;
+            }
+            // Ligne normale
             var inputs = tr.querySelectorAll('.tb-cell-input');
             inputs.forEach(function(input) {
                 var ci = parseInt(input.dataset.col);
@@ -818,6 +842,7 @@ Object.assign(AdminBanquesExercices, {
         if (!block || block.type !== 'tableau') return;
         block.colonnes.push('');
         block.lignes.forEach(function(ligne) {
+            if (ligne.section) return;
             ligne.cells.push({ valeur: '', type: 'reponse', correction: 'souple', alternatives: [] });
         });
         this._renderBlocks();
@@ -829,7 +854,10 @@ Object.assign(AdminBanquesExercices, {
         if (!block || block.type !== 'tableau') return;
         if (block.colonnes.length <= 1) return;
         block.colonnes.splice(colIndex, 1);
-        block.lignes.forEach(function(ligne) { ligne.cells.splice(colIndex, 1); });
+        block.lignes.forEach(function(ligne) {
+            if (ligne.section) return;
+            ligne.cells.splice(colIndex, 1);
+        });
         this._renderBlocks();
     },
 
@@ -850,6 +878,14 @@ Object.assign(AdminBanquesExercices, {
         if (!block || block.type !== 'tableau') return;
         if (block.lignes.length <= 1) return;
         block.lignes.splice(rowIndex, 1);
+        this._renderBlocks();
+    },
+
+    _blockTableAddSection(blockId) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block || block.type !== 'tableau') return;
+        block.lignes.push({ section: true, text: '' });
         this._renderBlocks();
     },
 
