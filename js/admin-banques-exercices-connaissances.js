@@ -54,6 +54,9 @@ Object.assign(AdminBanquesExercices, {
         `;
 
         // Initialiser le drag & drop après le rendu
+        if (this.connaissancesSubView === 'entrainements') {
+            setTimeout(() => this.initEntrainementsDragDrop(), 0);
+        }
         if (this.connaissancesSubView === 'questions') {
             setTimeout(() => this.initBanquesQuestionsDragDrop(), 0);
         }
@@ -84,13 +87,21 @@ Object.assign(AdminBanquesExercices, {
             `;
         }
 
-        return this.banquesExercicesConn.map(banque => {
+        const sorted = [...this.banquesExercicesConn].sort((a, b) => {
+            const oA = parseInt(a.ordre) || 9999;
+            const oB = parseInt(b.ordre) || 9999;
+            if (oA !== oB) return oA - oB;
+            return (a.date_creation || '').localeCompare(b.date_creation || '');
+        });
+
+        return sorted.map(banque => {
             const entrainements = this.entrainementsConn.filter(e => e.banque_exercice_id === banque.id);
             const publies = entrainements.filter(e => e.statut === 'publie').length;
 
             return `
                 <div class="banque-card" data-id="${banque.id}">
                     <div class="banque-card-header" onclick="AdminBanquesExercices.toggleBanque('${banque.id}')">
+                        <span class="drag-handle" title="Glisser pour réordonner">⋮⋮</span>
                         <div class="banque-card-icon connaissances">📚</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
@@ -133,11 +144,18 @@ Object.assign(AdminBanquesExercices, {
             return '<div class="exercices-empty">Aucun entraînement. Cliquez sur ➕ pour en ajouter.</div>';
         }
 
+        const sorted = [...entrainements].sort((a, b) => {
+            const oA = parseInt(a.ordre) || 9999;
+            const oB = parseInt(b.ordre) || 9999;
+            return oA - oB;
+        });
+
         return `
-            <div class="exercices-list">
-                ${entrainements.map((entr, index) => {
+            <div class="exercices-list" data-banque-id="${banqueId}">
+                ${sorted.map((entr, index) => {
                     return `
                         <div class="exercice-item" data-id="${entr.id}" onclick="AdminBanquesExercices.openEntrainementWizard(AdminBanquesExercices.entrainementsConn.find(e => e.id === '${entr.id}'), '${banqueId}')" style="cursor:pointer;">
+                            <span class="drag-handle drag-handle-sm" title="Glisser pour réordonner">⋮⋮</span>
                             <div class="exercice-numero">${index + 1}</div>
                             <div class="exercice-info">
                                 <div class="exercice-title">${this.escapeHtml(entr.titre || 'Sans titre')}</div>
@@ -412,6 +430,156 @@ Object.assign(AdminBanquesExercices, {
             });
         } catch (error) {
             console.error('Erreur sauvegarde ordre questions:', error);
+        }
+    },
+
+    // ========== DRAG & DROP : BANQUES ET ENTRAÎNEMENTS ==========
+
+    /**
+     * Initialise le drag & drop pour les banques d'exercices ET les entraînements à l'intérieur
+     */
+    initEntrainementsDragDrop() {
+        const container = document.getElementById('connaissancesContent');
+        if (!container) return;
+
+        // Helper : activer le drag seulement depuis la poignée
+        const enableDragFromHandle = (draggableEl) => {
+            draggableEl.setAttribute('draggable', 'false');
+            const handle = draggableEl.querySelector('.drag-handle');
+            if (!handle) return;
+            handle.addEventListener('mousedown', () => {
+                draggableEl.setAttribute('draggable', 'true');
+            });
+            draggableEl.addEventListener('dragend', () => {
+                draggableEl.setAttribute('draggable', 'false');
+            });
+            handle.addEventListener('mouseup', () => {
+                draggableEl.setAttribute('draggable', 'false');
+            });
+        };
+
+        // --- Drag & drop des banques ---
+        let draggedBanque = null;
+        container.querySelectorAll('.banque-card').forEach(card => {
+            enableDragFromHandle(card);
+
+            card.addEventListener('dragstart', (e) => {
+                draggedBanque = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', 'banque');
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                if (draggedBanque) {
+                    draggedBanque = null;
+                    this.saveBanquesExercicesConnOrder();
+                }
+            });
+
+            card.addEventListener('dragover', (e) => {
+                if (!draggedBanque || draggedBanque === card) return;
+                e.preventDefault();
+                const rect = card.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY) {
+                    card.parentNode.insertBefore(draggedBanque, card);
+                } else {
+                    card.parentNode.insertBefore(draggedBanque, card.nextSibling);
+                }
+            });
+        });
+
+        // --- Drag & drop des entraînements (dans chaque banque) ---
+        container.querySelectorAll('.exercices-list[data-banque-id]').forEach(list => {
+            let draggedEntrainement = null;
+
+            list.querySelectorAll('.exercice-item').forEach(item => {
+                enableDragFromHandle(item);
+
+                item.addEventListener('dragstart', (e) => {
+                    e.stopPropagation();
+                    draggedEntrainement = item;
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', 'entrainement');
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    if (draggedEntrainement) {
+                        draggedEntrainement = null;
+                        this.saveEntrainementsConnOrder(list);
+                    }
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    if (!draggedEntrainement || draggedEntrainement === item) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        item.parentNode.insertBefore(draggedEntrainement, item);
+                    } else {
+                        item.parentNode.insertBefore(draggedEntrainement, item.nextSibling);
+                    }
+                });
+            });
+        });
+    },
+
+    /**
+     * Sauvegarde l'ordre des banques d'exercices conn après drag & drop
+     */
+    async saveBanquesExercicesConnOrder() {
+        const container = document.getElementById('connaissancesContent');
+        if (!container) return;
+
+        const cards = container.querySelectorAll('.banque-card[data-id]');
+        const newOrder = [];
+        cards.forEach((card, index) => {
+            newOrder.push({ id: card.dataset.id, ordre: index + 1 });
+        });
+
+        if (newOrder.length === 0) return;
+
+        try {
+            await this.callAPI('updateBanquesExercicesConnOrdre', {
+                banques: JSON.stringify(newOrder)
+            });
+            newOrder.forEach(({ id, ordre }) => {
+                const banque = this.banquesExercicesConn.find(b => b.id === id);
+                if (banque) banque.ordre = ordre;
+            });
+        } catch (error) {
+            console.error('Erreur sauvegarde ordre banques exercices conn:', error);
+        }
+    },
+
+    /**
+     * Sauvegarde l'ordre des entraînements dans une banque après drag & drop
+     */
+    async saveEntrainementsConnOrder(list) {
+        const items = list.querySelectorAll('.exercice-item[data-id]');
+        const newOrder = [];
+        items.forEach((item, index) => {
+            newOrder.push({ id: item.dataset.id, ordre: index + 1 });
+        });
+
+        if (newOrder.length === 0) return;
+
+        try {
+            await this.callAPI('updateEntrainementsConnOrdre', {
+                entrainements: JSON.stringify(newOrder)
+            });
+            newOrder.forEach(({ id, ordre }) => {
+                const e = this.entrainementsConn.find(ec => ec.id === id);
+                if (e) e.ordre = ordre;
+            });
+        } catch (error) {
+            console.error('Erreur sauvegarde ordre entrainements:', error);
         }
     },
 
