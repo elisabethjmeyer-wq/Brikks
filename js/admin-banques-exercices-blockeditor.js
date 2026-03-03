@@ -742,9 +742,16 @@ Object.assign(AdminBanquesExercices, {
         var tbodyHtml = '';
         for (var ri = 0; ri < rows.length; ri++) {
             // Ligne section (titre violet)
+            // Flèches de déplacement (communes aux sections et lignes normales)
+            var moveButtons = '<span class="tb-row-move">' +
+                (ri > 0 ? '<button type="button" class="tb-move-btn" onclick="AdminBanquesExercices._blockTableMoveRow(\'' + bid + '\',' + ri + ',-1)" title="Monter">\u25B2</button>' : '') +
+                (ri < rows.length - 1 ? '<button type="button" class="tb-move-btn" onclick="AdminBanquesExercices._blockTableMoveRow(\'' + bid + '\',' + ri + ',1)" title="Descendre">\u25BC</button>' : '') +
+                '</span>';
+
             if (rows[ri].section) {
                 tbodyHtml += '<tr data-row="' + ri + '" class="tb-section-row">' +
                     '<td colspan="' + (cols.length + 1) + '" class="tb-section-cell">' +
+                    moveButtons +
                     '<input type="text" class="tb-section-input" data-row="' + ri + '" data-block="' + bid + '" ' +
                     'value="' + this.escapeHtml(rows[ri].text || '') + '" placeholder="Titre de la section\u2026">' +
                     '<button type="button" class="tb-section-remove" onclick="AdminBanquesExercices._blockTableRemoveRow(\'' + bid + '\',' + ri + ')">&times;</button>' +
@@ -767,6 +774,7 @@ Object.assign(AdminBanquesExercices, {
                 }
                 tbodyHtml += '<td class="tb-cell ' + (isDonnee ? 'tb-cell-donnee' : 'tb-cell-reponse') + '">' +
                     '<div class="tb-cell-row">' +
+                    (cj === 0 ? moveButtons : '') +
                     '<button type="button" class="tb-cell-badge ' + (isDonnee ? 'tb-badge-donnee' : 'tb-badge-reponse') + '" ' +
                     'onclick="AdminBanquesExercices._blockTableSelectCell(\'' + bid + '\',' + ri + ',' + cj + ')">' + typeLabel + '</button>' +
                     '<input type="text" class="tb-cell-input" data-row="' + ri + '" data-col="' + cj + '" data-block="' + bid + '" ' +
@@ -886,6 +894,18 @@ Object.assign(AdminBanquesExercices, {
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
         block.lignes.push({ section: true, text: '' });
+        this._renderBlocks();
+    },
+
+    _blockTableMoveRow(blockId, rowIndex, direction) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block || block.type !== 'tableau') return;
+        var newIndex = rowIndex + direction;
+        if (newIndex < 0 || newIndex >= block.lignes.length) return;
+        var temp = block.lignes[rowIndex];
+        block.lignes[rowIndex] = block.lignes[newIndex];
+        block.lignes[newIndex] = temp;
         this._renderBlocks();
     },
 
