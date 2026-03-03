@@ -923,36 +923,7 @@
     gap: 4px;
 }
 
-/* ===== TABLE BUILDER v2 (split layout) ===== */
-
-/* Split layout : construction à gauche, aperçu à droite */
-.tb-split-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    min-height: 300px;
-}
-
-.tb-split-left, .tb-split-right {
-    display: flex;
-    flex-direction: column;
-}
-
-.tb-split-header {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--gray-500);
-    padding: 0 0 8px 0;
-    border-bottom: 2px solid var(--gray-200);
-    margin-bottom: 12px;
-}
-
-.tb-split-right .tb-split-header {
-    color: var(--accent-blue, #3b82f6);
-    border-bottom-color: var(--accent-blue, #3b82f6);
-}
+/* ===== TABLE BUILDER v2 ===== */
 
 .tb-structure-bar {
     display: flex;
@@ -1376,74 +1347,6 @@
 .tb-popover-add-alt:hover {
     border-color: var(--primary, #6366f1);
     color: var(--primary, #6366f1);
-}
-
-/* ===== APERÇU LIVE (panneau droit) ===== */
-
-.tb-preview-container {
-    flex: 1;
-    padding: 12px;
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius, 8px);
-}
-
-.tb-preview-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.tb-preview-table th {
-    background: #f3f4f6;
-    padding: 10px 12px;
-    text-align: left;
-    font-size: 12px;
-    font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #e5e7eb;
-}
-
-.tb-preview-table td {
-    padding: 10px 12px;
-    border-bottom: 1px solid #f3f4f6;
-    font-size: 13px;
-}
-
-.tb-pv-donnee {
-    font-weight: 500;
-    color: #1f2937;
-}
-
-.tb-pv-reponse input {
-    width: 100%;
-    padding: 6px 10px;
-    border: 2px solid #dbeafe;
-    border-radius: 6px;
-    font-size: 13px;
-    background: #fafbff;
-    box-sizing: border-box;
-}
-
-.tb-pv-vide {
-    color: var(--gray-300);
-}
-
-.tb-preview-empty {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--gray-400);
-    font-size: 13px;
-}
-
-/* Responsive : empiler sur petits écrans */
-@media (max-width: 900px) {
-    .tb-split-layout {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* ===== FORMAT BUILDERS ===== */

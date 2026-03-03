@@ -498,28 +498,19 @@ Object.assign(AdminBanquesExercices, {
         }
 
         return '<div id="builderTableau" class="format-builder">' +
-            '<div class="tb-split-layout">' +
-                '<div class="tb-split-left">' +
-                    '<div class="tb-split-header">Construction</div>' +
-                    docSection +
-                    '<div class="form-group">' +
-                        '<div class="tb-structure-bar">' +
-                            '<span class="tb-structure-label">Tableau</span>' +
-                            '<span class="tb-structure-hint">Cliquez sur une cellule pour la configurer</span>' +
-                        '</div>' +
-                        '<div class="table-builder-wrapper">' +
-                            '<table class="table-builder" id="tableBuilder">' +
-                                '<thead id="tableBuilderHead"></thead>' +
-                                '<tbody id="tableBuilderBody"></tbody>' +
-                            '</table>' +
-                        '</div>' +
-                        '<button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>' +
-                    '</div>' +
+            docSection +
+            '<div class="form-group">' +
+                '<div class="tb-structure-bar">' +
+                    '<span class="tb-structure-label">Tableau</span>' +
+                    '<span class="tb-structure-hint">Cliquez sur le badge <strong>D</strong>/<strong>R</strong> d\'une cellule pour la configurer</span>' +
                 '</div>' +
-                '<div class="tb-split-right">' +
-                    '<div class="tb-split-header">Vue \u00e9l\u00e8ve</div>' +
-                    '<div class="tb-preview-container" id="tableBuilderPreview"></div>' +
+                '<div class="table-builder-wrapper">' +
+                    '<table class="table-builder" id="tableBuilder">' +
+                        '<thead id="tableBuilderHead"></thead>' +
+                        '<tbody id="tableBuilderBody"></tbody>' +
+                    '</table>' +
                 '</div>' +
+                '<button type="button" class="btn btn-secondary btn-sm" id="addRowBtn">+ Ajouter une ligne</button>' +
             '</div>' +
         '</div>';
     },
