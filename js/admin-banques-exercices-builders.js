@@ -612,110 +612,73 @@ Object.assign(AdminBanquesExercices, {
                 </div>
             `;
         } else if (formatUI === 'document_mixte') {
-            // Document Mixte format
-            const donnees = this.buildDataFromDocumentMixte();
-            const layout = donnees.layout || 'vertical';
+            // Document Mixte format — block editor v3
+            const donnees = this._buildMixteBlockData();
+            const blocks = donnees.blocks || [];
 
             extraStyles = `
-                .mixte-container { display: flex; flex-direction: column; gap: 1.5rem; }
-                .mixte-container.horizontal { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-                .mixte-container.horizontal .mixte-left, .mixte-container.horizontal .mixte-right { display: flex; flex-direction: column; gap: 1rem; }
-                .mixte-section { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-                .mixte-section-header { padding: 0.75rem 1rem; font-weight: 600; }
-                .doc-header { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
-                .tableau-header { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; }
-                .questions-header { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; }
-                .mixte-doc-content { padding: 1rem; }
-                .mixte-doc-content img { max-width: 100%; height: auto; border-radius: 4px; }
-                .mixte-doc-content iframe { width: 100%; height: 300px; border: none; }
-                .mixte-doc-legend { padding: 0.75rem 1rem; font-size: 0.9rem; color: #666; border-top: 1px solid #eee; }
-                .tableau-section-row { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 0.6rem 1rem; font-weight: 600; }
-                .tableau-row { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #e5e7eb; }
-                .tableau-row:last-child { border-bottom: none; }
-                .tableau-row .label { padding: 0.75rem 1rem; background: #f9fafb; font-weight: 500; border-right: 1px solid #e5e7eb; }
-                .tableau-row .input { padding: 0.75rem 1rem; background: #fef3c7; }
-                .tableau-row .input input { width: 100%; padding: 0.5rem; border: 1px solid #fbbf24; border-radius: 4px; }
-                .question-item { padding: 1rem; border-bottom: 1px solid #eee; }
-                .question-item:last-child { border-bottom: none; }
-                .question-text { font-weight: 500; margin-bottom: 0.5rem; }
-                .question-textarea { width: 100%; min-height: 80px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; resize: vertical; }
+                .blocks-container { display: flex; flex-direction: column; gap: 1rem; }
+                .blocks-container p { margin: 0.25rem 0; }
+                .blocks-container img { max-width: 100%; height: auto; border-radius: 8px; }
+                .blocks-container iframe { width: 100%; min-height: 300px; border: none; border-radius: 8px; }
+                .block-legende { font-size: 0.9rem; color: #666; padding: 4px 0; font-style: italic; }
+                .block-titre { font-weight: 600; padding: 4px 0; }
+                .blocks-group { display: flex; gap: 1rem; }
+                .blocks-group-child { min-width: 0; }
+                table { width: 100%; border-collapse: collapse; }
+                th { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 10px 14px; font-weight: 600; text-align: left; }
+                td { padding: 8px 14px; border-bottom: 1px solid #e5e7eb; }
+                .cell-donnee { font-weight: 500; background: #f9fafb; }
+                .cell-editable input { width: 100%; padding: 6px 10px; border: 2px solid #fbbf24; border-radius: 6px; }
             `;
 
-            // Build document HTML
-            let docHTML = '';
-            if (donnees.document?.actif) {
-                const doc = donnees.document;
-                const converted = this.convertGoogleUrl(doc.url);
-                let docContent = '';
-                if (converted.type === 'drive_file') {
-                    docContent = `<img src="${converted.imageUrl}" alt="Document" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
-                        <iframe src="${converted.iframeUrl}" style="display:none;"></iframe>`;
-                } else if (converted.iframeUrl) {
-                    docContent = `<iframe src="${converted.iframeUrl}"></iframe>`;
-                } else if (doc.url) {
-                    docContent = `<img src="${this.convertToDirectImageUrl(doc.url)}" alt="Document">`;
+            const self = this;
+            function renderPreviewBlockPopup(block) {
+                if (block.type === 'group') {
+                    const ratio = block.ratio || '50-50';
+                    const parts = ratio.split('-');
+                    return `<div class="blocks-group">${(block.children || []).map((c, i) =>
+                        `<div class="blocks-group-child" style="flex:${parseInt(parts[i] || 50)}">${renderPreviewBlockPopup(c)}</div>`
+                    ).join('')}</div>`;
                 }
-                docHTML = `
-                    <div class="mixte-section">
-                        ${doc.titre ? `<div class="mixte-section-header doc-header">${this.escapeHtml(doc.titre)}</div>` : ''}
-                        <div class="mixte-doc-content">${docContent || '<div style="color:#999;">Aucun document</div>'}</div>
-                        ${doc.legende ? `<div class="mixte-doc-legend">${this.escapeHtml(doc.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>` : ''}
-                    </div>
-                `;
-            }
-
-            // Build tableau HTML
-            let tableauHTML = '';
-            if (donnees.tableau?.actif) {
-                const elements = donnees.tableau.elements || [];
-                let tableContent = elements.map(el => {
-                    if (el.type === 'section') {
-                        return `<div class="tableau-section-row">${this.escapeHtml(el.text)}</div>`;
-                    } else {
-                        // Show empty input like student will see
-                        return `<div class="tableau-row">
-                            <div class="label">${this.escapeHtml(el.label)}</div>
-                            <div class="input"><input type="text" placeholder=""></div>
-                        </div>`;
+                let html = '';
+                if (block.type === 'text') {
+                    html += block.content || '';
+                    if (block.legende) html += `<div class="block-legende">${block.legende.replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+                } else if (block.type === 'document' || block.type === 'image') {
+                    if (block.titre) html += `<div class="block-titre">${self.escapeHtml(block.titre)}</div>`;
+                    if (block.url) {
+                        const imgSrc = self._convertToDirectImageUrl(block.url);
+                        html += `<img src="${self.escapeHtml(imgSrc)}" alt="">`;
                     }
-                }).join('');
-
-                tableauHTML = `
-                    <div class="mixte-section">
-                        <div class="mixte-section-header tableau-header">${this.escapeHtml(donnees.tableau.titre) || 'À COMPLÉTER'}</div>
-                        ${tableContent || '<div style="padding:1rem;color:#999;">Aucun élément</div>'}
-                    </div>
-                `;
+                    if (block.legende) html += `<div class="block-legende">${block.legende.replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+                } else if (block.type === 'video') {
+                    if (block.url) {
+                        const embedUrl = self._getPreviewEmbedUrl(block.url);
+                        if (embedUrl) html += `<iframe src="${self.escapeHtml(embedUrl)}"></iframe>`;
+                    }
+                    if (block.legende) html += `<div class="block-legende">${block.legende.replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+                } else if (block.type === 'tableau') {
+                    const cols = block.colonnes || [];
+                    const rows = block.lignes || [];
+                    html += `<table><thead><tr>${cols.map(c => `<th>${self.escapeHtml(c || '')}</th>`).join('')}</tr></thead><tbody>`;
+                    rows.forEach(ligne => {
+                        html += '<tr>';
+                        (ligne.cells || []).forEach(cell => {
+                            if (cell.type === 'donnee') {
+                                html += `<td class="cell-donnee">${self.escapeHtml(cell.valeur || '')}</td>`;
+                            } else {
+                                html += '<td class="cell-editable"><input type="text" placeholder="..."></td>';
+                            }
+                        });
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+                }
+                return html;
             }
 
-            // Build questions HTML
-            let questionsHTML = '';
-            if (donnees.questions?.actif) {
-                const questions = donnees.questions.liste || [];
-                let questionsContent = questions.map((q, i) => `
-                    <div class="question-item">
-                        <div class="question-text">${i + 1}. ${this.escapeHtml(q.question)}</div>
-                        <textarea class="question-textarea" placeholder="Votre réponse..."></textarea>
-                    </div>
-                `).join('');
-
-                questionsHTML = `
-                    <div class="mixte-section">
-                        <div class="mixte-section-header questions-header">Questions ouvertes</div>
-                        ${questionsContent || '<div style="padding:1rem;color:#999;">Aucune question</div>'}
-                    </div>
-                `;
-            }
-
-            // Combine based on layout
-            if (layout === 'horizontal' && docHTML && (tableauHTML || questionsHTML)) {
-                contentHTML = `<div class="mixte-container horizontal">
-                    <div class="mixte-left">${docHTML}</div>
-                    <div class="mixte-right">${tableauHTML}${questionsHTML}</div>
-                </div>`;
-            } else {
-                contentHTML = `<div class="mixte-container">${docHTML}${tableauHTML}${questionsHTML}</div>`;
-            }
+            contentHTML = `<div class="blocks-container">${blocks.map(renderPreviewBlockPopup).join('')}</div>`;
         } else {
             // Default: tableau_saisie (v2)
             this.readTableBuilderValues();

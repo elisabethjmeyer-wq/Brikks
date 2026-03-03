@@ -228,10 +228,9 @@ Object.assign(AdminBanquesExercices, {
                 return false;
             }
         } else if (formatUI === 'document_mixte') {
-            var mb = this.mixteBuilder;
-            var hasContent = mb && (mb.document.actif || mb.tableau.actif || mb.questions.actif);
-            if (!hasContent) {
-                this.showNotification('Ajoutez au moins un \u00e9l\u00e9ment (Document, Tableau ou Questions)', 'warning');
+            this._saveEditorsState();
+            if (!this._blocks || this._blocks.length === 0) {
+                this.showNotification('Ajoutez au moins un bloc', 'warning');
                 return false;
             }
         } else {
@@ -599,41 +598,320 @@ Object.assign(AdminBanquesExercices, {
         '</div>';
     },
 
-    // --- HTML pour le builder Document mixte (v2 — blocs + rangées + toggle) ---
+    // --- HTML pour le builder Document mixte (v3 — block editor) ---
     _renderDocumentMixteBuilderHTML: function() {
         return '<div id="builderDocumentMixte" class="format-builder">' +
             // Tabs Construction / Vue élève
             '<div class="tb-tabs">' +
-                '<button type="button" class="tb-tab active" id="mixteTabConstruction" onclick="AdminBanquesExercices.switchMixteTab(\'construction\')">' +
+                '<button type="button" class="tb-tab active" id="mixteTabConstruction" onclick="AdminBanquesExercices._switchMixteBlockTab(\'construction\')">' +
                     '<span class="tb-tab-icon">\u2699\uFE0F</span> Construction' +
                 '</button>' +
-                '<button type="button" class="tb-tab" id="mixteTabPreview" onclick="AdminBanquesExercices.switchMixteTab(\'preview\')">' +
+                '<button type="button" class="tb-tab" id="mixteTabPreview" onclick="AdminBanquesExercices._switchMixteBlockTab(\'preview\')">' +
                     '<span class="tb-tab-icon">\uD83D\uDC41\uFE0F</span> Vue \u00e9l\u00e8ve' +
                 '</button>' +
             '</div>' +
-            // Panel Construction
+            // Panel Construction (block editor)
             '<div id="mixteConstructionPanel">' +
-                '<div class="mixte-rows-container" id="mixteRowsContainer"></div>' +
-                '<div class="mixte-add-block">' +
-                    '<button type="button" class="btn-add-block" id="mixteAddBlockBtn" onclick="AdminBanquesExercices.toggleMixteBlockMenu()">' +
-                        '+ Ajouter un \u00e9l\u00e9ment' +
-                    '</button>' +
-                    '<div class="mixte-block-menu hidden" id="mixteBlockMenu">' +
-                        '<button type="button" class="block-menu-item" data-block="document" onclick="AdminBanquesExercices.addMixteBlock(\'document\')">' +
-                            '\uD83D\uDCC4 Document' +
-                        '</button>' +
-                        '<button type="button" class="block-menu-item" data-block="tableau" onclick="AdminBanquesExercices.addMixteBlock(\'tableau\')">' +
-                            '\uD83D\uDCCB Tableau' +
-                        '</button>' +
-                        '<button type="button" class="block-menu-item" data-block="questions" onclick="AdminBanquesExercices.addMixteBlock(\'questions\')">' +
-                            '\u2753 Questions' +
-                        '</button>' +
+                '<div id="mixteBlockEditorContainer"></div>' +
+                '<div class="block-add-bar">' +
+                    '<div class="block-add-wrapper">' +
+                        '<button type="button" class="block-add-plus" id="mixteAddBtn" onclick="AdminBanquesExercices._toggleMixteAddMenu()"' +
+                            ' title="Ajouter un bloc">+</button>' +
+                        '<div class="block-add-menu hidden" id="mixteAddMenu">' +
+                            '<button type="button" class="block-add-menu-item" onclick="AdminBanquesExercices._addMixteBlock(\'text\')">' +
+                                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' +
+                                ' Texte</button>' +
+                            '<button type="button" class="block-add-menu-item" onclick="AdminBanquesExercices._addMixteBlock(\'document\')">' +
+                                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' +
+                                ' Document</button>' +
+                            '<button type="button" class="block-add-menu-item" onclick="AdminBanquesExercices._addMixteBlock(\'image\')">' +
+                                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+                                ' Image</button>' +
+                            '<button type="button" class="block-add-menu-item" onclick="AdminBanquesExercices._addMixteBlock(\'video\')">' +
+                                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>' +
+                                ' Vid\u00e9o</button>' +
+                            '<button type="button" class="block-add-menu-item" onclick="AdminBanquesExercices._addMixteBlock(\'tableau\')">' +
+                                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>' +
+                                ' Tableau</button>' +
+                        '</div>' +
                     '</div>' +
                 '</div>' +
             '</div>' +
             // Panel Vue élève
             '<div id="mixtePreviewPanel" class="tb-preview-panel" style="display:none;"></div>' +
         '</div>';
+    },
+
+    // --- Block editor helpers pour document_mixte ---
+
+    _toggleMixteAddMenu: function() {
+        var menu = document.getElementById('mixteAddMenu');
+        if (menu) menu.classList.toggle('hidden');
+    },
+
+    _addMixteBlock: function(type) {
+        var menu = document.getElementById('mixteAddMenu');
+        if (menu) menu.classList.add('hidden');
+        this._blockEditorContainerId = 'mixteBlockEditorContainer';
+        this.addBlock(type);
+    },
+
+    _switchMixteBlockTab: function(tab) {
+        var constructionPanel = document.getElementById('mixteConstructionPanel');
+        var previewPanel = document.getElementById('mixtePreviewPanel');
+        var tabConstruction = document.getElementById('mixteTabConstruction');
+        var tabPreview = document.getElementById('mixteTabPreview');
+        if (!constructionPanel || !previewPanel) return;
+
+        if (tab === 'preview') {
+            this._saveEditorsState();
+            this._renderMixteBlocksPreview(previewPanel);
+            constructionPanel.style.display = 'none';
+            previewPanel.style.display = '';
+            if (tabConstruction) tabConstruction.classList.remove('active');
+            if (tabPreview) tabPreview.classList.add('active');
+        } else {
+            constructionPanel.style.display = '';
+            previewPanel.style.display = 'none';
+            if (tabConstruction) tabConstruction.classList.add('active');
+            if (tabPreview) tabPreview.classList.remove('active');
+        }
+    },
+
+    /** Rendu prévisualisation des blocs (vue élève) */
+    _renderMixteBlocksPreview: function(container) {
+        var blocks = this._blocks || [];
+        if (blocks.length === 0) {
+            container.innerHTML = '<div class="tb-preview-empty">Aucun contenu \u00e0 pr\u00e9visualiser</div>';
+            return;
+        }
+
+        // Récupérer la consigne
+        var consigneEl = document.getElementById('sfwConsigneStep3');
+        var consigne = consigneEl ? consigneEl.value.trim() : '';
+
+        var html = '';
+        if (consigne) {
+            html += '<p class="tb-pv-consigne">' + this.escapeHtml(consigne) + '</p>';
+        }
+        html += '<div class="mixte-blocks-preview">';
+
+        var self = this;
+        blocks.forEach(function(block) {
+            html += self._renderPreviewBlock(block);
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    },
+
+    /** Rend un bloc dans la preview élève */
+    _renderPreviewBlock: function(block) {
+        if (block.type === 'group') {
+            return this._renderPreviewGroup(block);
+        }
+
+        var html = '';
+        switch (block.type) {
+        case 'text': {
+            var content = block.content || '';
+            var legende = block.legende || '';
+            if (content) {
+                html += '<div class="comp-block-text">' + content + '</div>';
+            }
+            if (legende) {
+                html += '<div class="comp-block-legende">' + legende.replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>';
+            }
+            break;
+        }
+        case 'document': {
+            if (block.titre) {
+                html += '<div class="comp-block-titre">' + this.escapeHtml(block.titre) + '</div>';
+            }
+            if (block.url) {
+                var embedUrl = this._getPreviewEmbedUrl(block.url);
+                if (embedUrl) {
+                    html += '<iframe src="' + this.escapeHtml(embedUrl) + '" class="comp-block-document" frameborder="0" allowfullscreen></iframe>';
+                }
+            }
+            if (block.legende) {
+                html += '<div class="comp-block-legende">' + block.legende.replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>';
+            }
+            break;
+        }
+        case 'image': {
+            if (block.url) {
+                var imgSrc = this._convertToDirectImageUrl(block.url);
+                html += '<div class="comp-block-image"><img src="' + this.escapeHtml(imgSrc) + '" alt="Image"></div>';
+            }
+            if (block.legende) {
+                html += '<div class="comp-block-legende">' + block.legende.replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>';
+            }
+            break;
+        }
+        case 'video': {
+            if (block.url) {
+                var vidUrl = this._getPreviewEmbedUrl(block.url);
+                if (vidUrl) {
+                    html += '<div class="comp-block-video"><iframe src="' + this.escapeHtml(vidUrl) + '" frameborder="0" allowfullscreen></iframe></div>';
+                }
+            }
+            if (block.legende) {
+                html += '<div class="comp-block-legende">' + block.legende.replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>';
+            }
+            break;
+        }
+        case 'tableau': {
+            html += this._renderPreviewBlockTableau(block);
+            break;
+        }
+        }
+        return html;
+    },
+
+    _renderPreviewGroup: function(group) {
+        var ratio = group.ratio || '50-50';
+        var parts = ratio.split('-');
+        var leftFlex = parseInt(parts[0]) || 50;
+        var rightFlex = parseInt(parts[1]) || 50;
+
+        var html = '<div class="comp-blocks-group">';
+        var self = this;
+        (group.children || []).forEach(function(child, i) {
+            var flex = i === 0 ? leftFlex : rightFlex;
+            html += '<div class="comp-blocks-group-child" style="flex:' + flex + '">';
+            html += self._renderPreviewBlock(child);
+            html += '</div>';
+        });
+        html += '</div>';
+        return html;
+    },
+
+    _renderPreviewBlockTableau: function(block) {
+        var cols = block.colonnes || [];
+        var rows = block.lignes || [];
+        if (cols.length === 0) return '<p style="color:#999;">Tableau vide</p>';
+
+        var html = '<table class="tb-preview-table"><thead><tr>';
+        cols.forEach(function(c) {
+            html += '<th>' + AdminBanquesExercices.escapeHtml(c || '...') + '</th>';
+        });
+        html += '</tr></thead><tbody>';
+        rows.forEach(function(ligne) {
+            html += '<tr>';
+            (ligne.cells || []).forEach(function(cell) {
+                if (cell.type === 'donnee') {
+                    html += '<td class="tb-pv-donnee">' + AdminBanquesExercices.escapeHtml(cell.valeur || '') + '</td>';
+                } else {
+                    html += '<td class="tb-pv-reponse"><input type="text" disabled placeholder="..."></td>';
+                }
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        return html;
+    },
+
+    /** Initialise un block editor vide pour document_mixte. */
+    _initMixteBlockEditor: function() {
+        this._blockEditorContainerId = 'mixteBlockEditorContainer';
+        this.initBlockEditor(null);
+    },
+
+    /** Charge un block editor depuis des données existantes pour document_mixte. */
+    _loadMixteBlockEditor: function(donnees) {
+        this._blockEditorContainerId = 'mixteBlockEditorContainer';
+        // Nouveau format (blocks) : charger directement
+        if (donnees && donnees.blocks && Array.isArray(donnees.blocks)) {
+            this.initBlockEditor(donnees.blocks);
+            return;
+        }
+        // Ancien format (document/tableau/questions) : convertir vers blocks
+        var blocks = this._convertLegacyMixteToBlocks(donnees);
+        this.initBlockEditor(blocks.length > 0 ? blocks : null);
+    },
+
+    /** Convertit l'ancien format document_mixte en blocs. */
+    _convertLegacyMixteToBlocks: function(donnees) {
+        if (!donnees) return [];
+        var blocks = [];
+        var sectionOrder = donnees.sectionOrder || ['document', 'tableau', 'questions'];
+
+        sectionOrder.forEach(function(section) {
+            if (section === 'document' && donnees.document && donnees.document.actif) {
+                var doc = donnees.document;
+                if (doc.type === 'texte' && doc.texte) {
+                    blocks.push({ type: 'text', content: doc.texte, legende: doc.legende || '' });
+                } else if (doc.url) {
+                    // Détecter si c'est une image ou un document
+                    var url = doc.url.toLowerCase();
+                    var isImage = /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url) ||
+                        (url.indexOf('drive.google.com/file') !== -1 && !url.match(/docs\.google\.com/));
+                    blocks.push({
+                        type: isImage ? 'image' : 'document',
+                        url: doc.url,
+                        titre: doc.titre || '',
+                        legende: doc.legende || ''
+                    });
+                }
+            } else if (section === 'tableau' && donnees.tableau && donnees.tableau.actif) {
+                var tab = donnees.tableau;
+                if (tab.elements && tab.elements.length > 0) {
+                    // Convertir elements vers colonnes/lignes v2
+                    var colonnes = ['', ''];
+                    var lignes = [];
+                    tab.elements.forEach(function(el) {
+                        if (el.type === 'row') {
+                            var mainAnswer = (el.reponse || '').split('|')[0];
+                            var alternatives = (el.reponse || '').split('|').slice(1).filter(function(a) { return a.trim(); });
+                            lignes.push({ cells: [
+                                { valeur: el.label || '', type: 'donnee' },
+                                { valeur: mainAnswer, type: 'reponse', correction: 'souple', alternatives: alternatives }
+                            ]});
+                        }
+                    });
+                    if (lignes.length > 0) {
+                        blocks.push({ type: 'tableau', colonnes: colonnes, lignes: lignes });
+                    }
+                } else if (tab.colonnes && tab.lignes) {
+                    // Ancien format colonnes/lignes
+                    var cols = tab.colonnes.map(function(c) { return typeof c === 'string' ? c : c.titre || ''; });
+                    var rows = tab.lignes.map(function(ligne) {
+                        return { cells: (ligne.cells || []).map(function(cell, ci) {
+                            var col = tab.colonnes[ci];
+                            if (col && col.editable) {
+                                var parts = String(cell || '').split('|');
+                                return { valeur: parts[0], type: 'reponse', correction: 'souple', alternatives: parts.slice(1) };
+                            }
+                            return { valeur: cell || '', type: 'donnee' };
+                        })};
+                    });
+                    blocks.push({ type: 'tableau', colonnes: cols, lignes: rows });
+                }
+            } else if (section === 'questions' && donnees.questions && donnees.questions.actif) {
+                // Convertir les questions en blocs texte (pas de bloc question dédié)
+                var liste = donnees.questions.liste || [];
+                if (liste.length > 0) {
+                    var questionsHtml = '<ol>';
+                    liste.forEach(function(q) {
+                        questionsHtml += '<li>' + (q.question || '') + '</li>';
+                    });
+                    questionsHtml += '</ol>';
+                    blocks.push({ type: 'text', content: questionsHtml, legende: '' });
+                }
+            }
+        });
+
+        return blocks;
+    },
+
+    /** Construit les données à sauvegarder depuis le block editor. */
+    _buildMixteBlockData: function() {
+        this._blockEditorContainerId = 'mixteBlockEditorContainer';
+        this._saveEditorsState();
+        var blocksJSON = this.getBlocksJSON();
+        var blocks = blocksJSON ? JSON.parse(blocksJSON) : [];
+        return { blocks: blocks };
     },
 
     /** Initialise le builder approprié après le rendu de l'étape 3. */
@@ -664,7 +942,7 @@ Object.assign(AdminBanquesExercices, {
                 }
                 this.loadTableBuilderFromData(donnees);
             } else if (formatUI === 'document_mixte') {
-                this.loadDocumentMixteFromData(donnees);
+                this._loadMixteBlockEditor(donnees);
             } else {
                 this.loadTableBuilderFromData(donnees);
             }
@@ -675,7 +953,7 @@ Object.assign(AdminBanquesExercices, {
             } else if (formatUI === 'question_ouverte') {
                 this.initQuestionBuilder();
             } else if (formatUI === 'document_mixte') {
-                this.initDocumentMixteBuilder();
+                this._initMixteBlockEditor();
             } else {
                 this.initTableBuilder();
             }
@@ -737,11 +1015,20 @@ Object.assign(AdminBanquesExercices, {
             var nbQ = snapshot && snapshot.questions ? snapshot.questions.length : 0;
             html += '<div class="summary-row"><span class="label">Questions</span><span class="value">' + nbQ + '</span></div>';
         } else if (formatUI === 'document_mixte') {
-            var sections = [];
-            if (snapshot && snapshot.document && snapshot.document.actif) sections.push('Document');
-            if (snapshot && snapshot.tableau && snapshot.tableau.actif) sections.push('Tableau');
-            if (snapshot && snapshot.questions && snapshot.questions.actif) sections.push('Questions');
-            html += '<div class="summary-row"><span class="label">Sections actives</span><span class="value">' + (sections.join(', ') || 'Aucune') + '</span></div>';
+            var nbBlocks = snapshot && snapshot.blocks ? snapshot.blocks.length : 0;
+            var types = {};
+            if (snapshot && snapshot.blocks) {
+                snapshot.blocks.forEach(function(b) {
+                    if (b.type === 'group') {
+                        (b.children || []).forEach(function(c) { types[c.type] = (types[c.type] || 0) + 1; });
+                    } else {
+                        types[b.type] = (types[b.type] || 0) + 1;
+                    }
+                });
+            }
+            var typeLabelsMap = { text: 'Texte', document: 'Document', image: 'Image', video: 'Vid\u00e9o', tableau: 'Tableau' };
+            var typeSummary = Object.keys(types).map(function(t) { return types[t] + ' ' + (typeLabelsMap[t] || t); }).join(', ');
+            html += '<div class="summary-row"><span class="label">Blocs</span><span class="value">' + nbBlocks + ' (' + (typeSummary || 'vide') + ')</span></div>';
         } else {
             var nbCols = snapshot && snapshot.colonnes ? snapshot.colonnes.length : 0;
             var nbRows = snapshot && snapshot.lignes ? snapshot.lignes.length : 0;
@@ -775,7 +1062,7 @@ Object.assign(AdminBanquesExercices, {
                 contenu: docContenu ? docContenu.value : ''
             };
         } else if (formatUI === 'document_mixte') {
-            donnees = this.buildDataFromDocumentMixte();
+            donnees = this._buildMixteBlockData();
         } else {
             donnees = this.buildDataFromTableBuilder();
         }

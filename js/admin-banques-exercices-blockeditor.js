@@ -1,10 +1,10 @@
 /**
- * Block Editor pour les entraînements de compétences.
+ * Block Editor pour les entraînements de compétences et exercices SF document_mixte.
  * Extension de AdminBanquesExercices via Object.assign.
  *
- * Types de blocs : text, document, image, video
- * Groupement côte à côte par drag & drop.
- * Stockage : JSON array dans document_contenu.
+ * Types de blocs : text, document, image, video, tableau
+ * Groupement côte à côte par drag & drop, ratio configurable.
+ * Stockage : JSON array dans document_contenu / donnees.blocks.
  */
 Object.assign(AdminBanquesExercices, {
 
@@ -101,6 +101,7 @@ Object.assign(AdminBanquesExercices, {
         clean = clean.filter(function(b) {
             if (b.type === 'text') return b.content && b.content.trim() !== '';
             if (b.type === 'document' || b.type === 'image' || b.type === 'video') return b.url && b.url.trim() !== '';
+            if (b.type === 'tableau') return b.colonnes && b.colonnes.length > 0 && b.lignes && b.lignes.length > 0;
             if (b.type === 'group') return b.children && b.children.length > 0;
             return false;
         });
@@ -121,6 +122,15 @@ Object.assign(AdminBanquesExercices, {
             return { id: id, type: 'image', url: '', legende: '' };
         case 'video':
             return { id: id, type: 'video', url: '', legende: '' };
+        case 'tableau':
+            return {
+                id: id, type: 'tableau',
+                colonnes: ['Colonne 1', 'Colonne 2'],
+                lignes: [{ cells: [
+                    { valeur: '', type: 'donnee' },
+                    { valeur: '', type: 'reponse', correction: 'souple', alternatives: [] }
+                ]}]
+            };
         default:
             return { id: id, type: 'text', content: '' };
         }
@@ -131,11 +141,13 @@ Object.assign(AdminBanquesExercices, {
         var id = 'blk_' + (++this._blockIdCounter);
         if (raw.type === 'group') {
             var self = this;
-            return {
+            var group = {
                 id: id,
                 type: 'group',
+                ratio: raw.ratio || '50-50',
                 children: (raw.children || []).map(function(c) { return self._hydrateBlock(c); })
             };
+            return group;
         }
         var block = Object.assign({ id: id }, raw);
         return block;
@@ -144,11 +156,31 @@ Object.assign(AdminBanquesExercices, {
     /** Sérialise un bloc (enlève l'ID interne). */
     _serializeBlock(block) {
         if (block.type === 'group') {
-            return {
+            var g = {
                 type: 'group',
                 layout: 'side-by-side',
                 children: (block.children || []).map(function(c) {
                     return AdminBanquesExercices._serializeBlock(c);
+                })
+            };
+            if (block.ratio && block.ratio !== '50-50') g.ratio = block.ratio;
+            return g;
+        }
+        if (block.type === 'tableau') {
+            return {
+                type: 'tableau',
+                colonnes: block.colonnes || [],
+                lignes: (block.lignes || []).map(function(ligne) {
+                    return { cells: (ligne.cells || []).map(function(cell) {
+                        var out = { valeur: cell.valeur, type: cell.type };
+                        if (cell.type === 'reponse') {
+                            out.correction = cell.correction || 'souple';
+                            if (cell.alternatives && cell.alternatives.length > 0) {
+                                out.alternatives = cell.alternatives;
+                            }
+                        }
+                        return out;
+                    })};
                 })
             };
         }
@@ -195,12 +227,13 @@ Object.assign(AdminBanquesExercices, {
             return this._renderGroup(block);
         }
 
-        var typeLabels = { text: 'Texte', document: 'Document', image: 'Image', video: 'Video' };
+        var typeLabels = { text: 'Texte', document: 'Document', image: 'Image', video: 'Video', tableau: 'Tableau' };
         var typeIcons = {
             text: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
             document: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
             image: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
-            video: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>'
+            video: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>',
+            tableau: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>'
         };
 
         var html = '<div class="block-item" id="block-' + block.id + '" data-block-id="' + block.id + '" draggable="true">';
@@ -279,19 +312,49 @@ Object.assign(AdminBanquesExercices, {
                 'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Contexte historique de la *R\u00e9volution*">' +
                 '</div>';
 
+        case 'tableau':
+            return this._renderBlockTableau(block);
+
         default:
             return '<p>Type de bloc inconnu: ' + block.type + '</p>';
         }
     },
 
     _renderGroup(group) {
+        var ratio = group.ratio || '50-50';
+        var ratioOptions = [
+            { value: '50-50', label: '50 / 50' },
+            { value: '40-60', label: '40 / 60' },
+            { value: '60-40', label: '60 / 40' },
+            { value: '33-67', label: '33 / 67' },
+            { value: '67-33', label: '67 / 33' }
+        ];
+        var ratioSelect = '<select class="block-ratio-select" onchange="AdminBanquesExercices._setGroupRatio(\'' + group.id + '\', this.value)">';
+        for (var r = 0; r < ratioOptions.length; r++) {
+            ratioSelect += '<option value="' + ratioOptions[r].value + '"' +
+                (ratio === ratioOptions[r].value ? ' selected' : '') + '>' +
+                ratioOptions[r].label + '</option>';
+        }
+        ratioSelect += '</select>';
+
         var html = '<div class="block-group" id="block-' + group.id + '" data-block-id="' + group.id + '">';
         html += '<div class="block-group-header">';
-        html += '<span class="block-type-badge">&#8596; Cote a cote</span>';
+        html += '<span class="block-type-badge">&#8596; C\u00f4te \u00e0 c\u00f4te</span>';
+        html += ratioSelect;
+        html += '<button type="button" class="block-degroup-btn" onclick="AdminBanquesExercices._degroupBlock(\'' + group.id + '\')" title="D\u00e9grouper">';
+        html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+        html += '</button>';
         html += '</div>';
+
+        // Appliquer le ratio comme style flex
+        var parts = ratio.split('-');
+        var leftFlex = parseInt(parts[0]) || 50;
+        var rightFlex = parseInt(parts[1]) || 50;
+
         html += '<div class="block-group-children">';
         for (var i = 0; i < group.children.length; i++) {
-            html += '<div class="block-group-child" data-block-id="' + group.children[i].id + '">';
+            var flex = i === 0 ? leftFlex : rightFlex;
+            html += '<div class="block-group-child" data-block-id="' + group.children[i].id + '" style="flex:' + flex + '">';
             html += this._renderBlock(group.children[i]);
             html += '</div>';
         }
@@ -304,18 +367,18 @@ Object.assign(AdminBanquesExercices, {
 
     _initBlockEditors() {
         var self = this;
-        this._blocks.forEach(function(block) {
+        function initBlock(block) {
             if (block.type === 'text') {
                 self._initSingleBlockEditor(block);
             }
-            if (block.type === 'group' && block.children) {
-                block.children.forEach(function(child) {
-                    if (child.type === 'text') {
-                        self._initSingleBlockEditor(child);
-                    }
-                });
+            if (block.type === 'tableau') {
+                self._initBlockTableauListeners(block);
             }
-        });
+            if (block.type === 'group' && block.children) {
+                block.children.forEach(initBlock);
+            }
+        }
+        this._blocks.forEach(initBlock);
     },
 
     _initSingleBlockEditor(block) {
@@ -337,6 +400,7 @@ Object.assign(AdminBanquesExercices, {
 
     /** Lit le DOM et met à jour this._blocks avec les valeurs courantes. */
     _saveEditorsState() {
+        var self = this;
         function saveBlock(block) {
             if (block.type === 'text') {
                 var editor = document.getElementById('block-editor-' + block.id);
@@ -346,6 +410,8 @@ Object.assign(AdminBanquesExercices, {
                 }
                 var txtLegendeInput = document.getElementById('block-legende-' + block.id);
                 if (txtLegendeInput) block.legende = txtLegendeInput.value.trim();
+            } else if (block.type === 'tableau') {
+                self._saveBlockTableauState(block);
             } else if (block.type === 'group') {
                 if (block.children) block.children.forEach(saveBlock);
             } else {
@@ -596,11 +662,336 @@ Object.assign(AdminBanquesExercices, {
         var group = {
             id: groupId,
             type: 'group',
+            ratio: '50-50',
             children: dropLeft ? [extracted, target] : [target, extracted]
         };
 
         this._blocks.splice(targetIndex, 1, group);
         this._renderBlocks();
+    },
+
+    // ========== GROUPES : RATIO + DÉGROUPER ==========
+
+    _setGroupRatio(groupId, ratio) {
+        this._saveEditorsState();
+        var group = this._findBlock(groupId);
+        if (group && group.type === 'group') {
+            group.ratio = ratio;
+            this._renderBlocks();
+        }
+    },
+
+    _degroupBlock(groupId) {
+        this._saveEditorsState();
+        var idx = -1;
+        for (var i = 0; i < this._blocks.length; i++) {
+            if (this._blocks[i].id === groupId) { idx = i; break; }
+        }
+        if (idx === -1) return;
+        var group = this._blocks[idx];
+        if (!group || group.type !== 'group') return;
+        // Remplacer le groupe par ses enfants
+        var args = [idx, 1].concat(group.children || []);
+        Array.prototype.splice.apply(this._blocks, args);
+        this._renderBlocks();
+    },
+
+    // ========== BLOC TABLEAU (mini table-builder intégré) ==========
+
+    /** Rend le contenu d'un bloc tableau */
+    _renderBlockTableau(block) {
+        var bid = block.id;
+        var cols = block.colonnes || [];
+        var rows = block.lignes || [];
+
+        var theadHtml = '<tr>';
+        for (var ci = 0; ci < cols.length; ci++) {
+            theadHtml += '<th class="tb-header-cell">' +
+                '<input type="text" class="tb-col-title" value="' + this.escapeHtml(cols[ci] || '') + '" ' +
+                'placeholder="Colonne ' + (ci + 1) + '" data-col="' + ci + '" data-block="' + bid + '">' +
+                (cols.length > 1
+                    ? '<button type="button" class="tb-col-remove" onclick="AdminBanquesExercices._blockTableRemoveCol(\'' + bid + '\',' + ci + ')">&times;</button>'
+                    : '') +
+                '</th>';
+        }
+        theadHtml += '<th class="tb-actions-col">' +
+            '<button type="button" class="tb-add-col" onclick="AdminBanquesExercices._blockTableAddCol(\'' + bid + '\')" title="Ajouter une colonne">+</button>' +
+            '</th></tr>';
+
+        var tbodyHtml = '';
+        for (var ri = 0; ri < rows.length; ri++) {
+            var cells = rows[ri].cells || [];
+            tbodyHtml += '<tr data-row="' + ri + '">';
+            for (var cj = 0; cj < cells.length; cj++) {
+                var cell = cells[cj];
+                var isDonnee = cell.type === 'donnee';
+                var hasAlts = cell.alternatives && cell.alternatives.length > 0;
+                var isSouple = cell.correction !== 'stricte';
+                var typeLabel = isDonnee ? 'D' : 'R';
+                var extraInd = '';
+                if (!isDonnee) {
+                    if (hasAlts) extraInd += '<span class="tb-indicator tb-ind-alt" title="' + cell.alternatives.length + ' alternative(s)">\u00B1' + cell.alternatives.length + '</span>';
+                    if (!isSouple) extraInd += '<span class="tb-indicator tb-ind-strict" title="Correction stricte">S</span>';
+                }
+                tbodyHtml += '<td class="tb-cell ' + (isDonnee ? 'tb-cell-donnee' : 'tb-cell-reponse') + '">' +
+                    '<div class="tb-cell-row">' +
+                    '<button type="button" class="tb-cell-badge ' + (isDonnee ? 'tb-badge-donnee' : 'tb-badge-reponse') + '" ' +
+                    'onclick="AdminBanquesExercices._blockTableSelectCell(\'' + bid + '\',' + ri + ',' + cj + ')">' + typeLabel + '</button>' +
+                    '<input type="text" class="tb-cell-input" data-row="' + ri + '" data-col="' + cj + '" data-block="' + bid + '" ' +
+                    'value="' + this.escapeHtml(cell.valeur || '') + '" placeholder="' + (isDonnee ? 'Donn\u00e9e...' : 'R\u00e9ponse...') + '">' +
+                    (extraInd ? '<div class="tb-cell-indicators">' + extraInd + '</div>' : '') +
+                    '</div></td>';
+            }
+            tbodyHtml += '<td class="tb-row-actions">' +
+                (rows.length > 1
+                    ? '<button type="button" class="tb-row-remove" onclick="AdminBanquesExercices._blockTableRemoveRow(\'' + bid + '\',' + ri + ')">&times;</button>'
+                    : '') +
+                '</td></tr>';
+        }
+
+        return '<div class="block-tableau-builder">' +
+            '<p class="tb-hint">Cliquez sur <strong>D</strong>/<strong>R</strong> pour configurer chaque cellule</p>' +
+            '<div class="table-builder-wrapper">' +
+            '<table class="table-builder" id="blockTable-' + bid + '">' +
+            '<thead>' + theadHtml + '</thead>' +
+            '<tbody>' + tbodyHtml + '</tbody>' +
+            '</table></div>' +
+            '<button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices._blockTableAddRow(\'' + bid + '\')">+ Ajouter une ligne</button>' +
+            '</div>';
+    },
+
+    /** Sauve l'état DOM d'un bloc tableau */
+    _saveBlockTableauState(block) {
+        var table = document.getElementById('blockTable-' + block.id);
+        if (!table) return;
+        // Lire les titres de colonnes
+        var headerInputs = table.querySelectorAll('thead .tb-col-title');
+        headerInputs.forEach(function(input, i) {
+            if (i < block.colonnes.length) block.colonnes[i] = input.value || '';
+        });
+        // Lire les valeurs des cellules
+        var trs = table.querySelectorAll('tbody tr[data-row]');
+        trs.forEach(function(tr, ri) {
+            if (ri >= block.lignes.length) return;
+            var inputs = tr.querySelectorAll('.tb-cell-input');
+            inputs.forEach(function(input) {
+                var ci = parseInt(input.dataset.col);
+                if (!isNaN(ci) && block.lignes[ri].cells[ci]) {
+                    block.lignes[ri].cells[ci].valeur = input.value || '';
+                }
+            });
+        });
+    },
+
+    /** Initialise les listeners du tableau intégré */
+    _initBlockTableauListeners(_block) {
+        // Rien de spécial à initialiser (tout est en onclick inline)
+    },
+
+    // --- Actions tableau intégré ---
+
+    _getBlockById(blockId) {
+        return this._findBlock(blockId);
+    },
+
+    _blockTableAddCol(blockId) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block || block.type !== 'tableau') return;
+        block.colonnes.push('');
+        block.lignes.forEach(function(ligne) {
+            ligne.cells.push({ valeur: '', type: 'reponse', correction: 'souple', alternatives: [] });
+        });
+        this._renderBlocks();
+    },
+
+    _blockTableRemoveCol(blockId, colIndex) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block || block.type !== 'tableau') return;
+        if (block.colonnes.length <= 1) return;
+        block.colonnes.splice(colIndex, 1);
+        block.lignes.forEach(function(ligne) { ligne.cells.splice(colIndex, 1); });
+        this._renderBlocks();
+    },
+
+    _blockTableAddRow(blockId) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block || block.type !== 'tableau') return;
+        var newRow = { cells: block.colonnes.map(function() {
+            return { valeur: '', type: 'reponse', correction: 'souple', alternatives: [] };
+        })};
+        block.lignes.push(newRow);
+        this._renderBlocks();
+    },
+
+    _blockTableRemoveRow(blockId, rowIndex) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block || block.type !== 'tableau') return;
+        if (block.lignes.length <= 1) return;
+        block.lignes.splice(rowIndex, 1);
+        this._renderBlocks();
+    },
+
+    _blockTableSelectCell(blockId, rowIndex, colIndex) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block || block.type !== 'tableau') return;
+        var cell = block.lignes[rowIndex] && block.lignes[rowIndex].cells[colIndex];
+        if (!cell) return;
+
+        // Fermer un éventuel popover précédent
+        this._closeCellPopover();
+
+        var colName = block.colonnes[colIndex] || 'Colonne ' + (colIndex + 1);
+        var isDonnee = cell.type === 'donnee';
+        var bid = blockId;
+
+        var popoverHTML = '<div class="tb-popover" id="tbCellPopover">' +
+            '<div class="tb-popover-header">' +
+            '<span class="tb-popover-title">L' + (rowIndex + 1) + ' &times; ' + this.escapeHtml(colName) + '</span>' +
+            '<button type="button" class="tb-popover-close" onclick="AdminBanquesExercices._closeBlockTablePopover()">&times;</button>' +
+            '</div><div class="tb-popover-body">' +
+            '<div class="tb-popover-field"><label class="tb-popover-label">Type</label>' +
+            '<div class="tb-popover-radio-group">' +
+            '<label class="tb-popover-radio ' + (!isDonnee ? 'active' : '') + '">' +
+            '<input type="radio" name="tbCellType" value="reponse" ' + (!isDonnee ? 'checked' : '') +
+            ' onchange="AdminBanquesExercices._blockTableSetCellType(\'' + bid + '\',' + rowIndex + ',' + colIndex + ',\'reponse\')">' +
+            '<span class="tb-radio-label tb-radio-reponse">R\u00e9ponse</span></label>' +
+            '<label class="tb-popover-radio ' + (isDonnee ? 'active' : '') + '">' +
+            '<input type="radio" name="tbCellType" value="donnee" ' + (isDonnee ? 'checked' : '') +
+            ' onchange="AdminBanquesExercices._blockTableSetCellType(\'' + bid + '\',' + rowIndex + ',' + colIndex + ',\'donnee\')">' +
+            '<span class="tb-radio-label tb-radio-donnee">Donn\u00e9e</span></label>' +
+            '</div></div>';
+
+        if (!isDonnee) {
+            var isSouple = cell.correction !== 'stricte';
+            var alts = cell.alternatives || [];
+            popoverHTML += '<div class="tb-popover-field"><label class="tb-popover-label">Correction</label>' +
+                '<div class="tb-popover-radio-group">' +
+                '<label class="tb-popover-radio ' + (isSouple ? 'active' : '') + '">' +
+                '<input type="radio" name="tbCellCorrection" value="souple" ' + (isSouple ? 'checked' : '') +
+                ' onchange="AdminBanquesExercices._blockTableSetCorrection(\'' + bid + '\',' + rowIndex + ',' + colIndex + ',\'souple\')">' +
+                '<span class="tb-radio-label">Souple</span></label>' +
+                '<label class="tb-popover-radio ' + (!isSouple ? 'active' : '') + '">' +
+                '<input type="radio" name="tbCellCorrection" value="stricte" ' + (!isSouple ? 'checked' : '') +
+                ' onchange="AdminBanquesExercices._blockTableSetCorrection(\'' + bid + '\',' + rowIndex + ',' + colIndex + ',\'stricte\')">' +
+                '<span class="tb-radio-label">Stricte</span></label></div>' +
+                '<div class="tb-popover-hint">' + (isSouple ? 'Tol\u00e8re accents, majuscules, ponctuation' : 'La r\u00e9ponse doit \u00eatre exacte') + '</div></div>';
+
+            popoverHTML += '<div class="tb-popover-field"><label class="tb-popover-label">Alternatives accept\u00e9es</label>' +
+                '<div class="tb-popover-alts" id="tbPopoverAlts">';
+            for (var ai = 0; ai < alts.length; ai++) {
+                popoverHTML += '<div class="tb-popover-alt-item">' +
+                    '<input type="text" class="tb-popover-alt-input" value="' + this.escapeHtml(alts[ai]) + '" ' +
+                    'placeholder="Alternative ' + (ai + 1) + '" data-alt-index="' + ai + '" ' +
+                    'onchange="AdminBanquesExercices._blockTableUpdateAlt(\'' + bid + '\',' + rowIndex + ',' + colIndex + ',' + ai + ',this.value)">' +
+                    '<button type="button" class="tb-popover-alt-remove" ' +
+                    'onclick="AdminBanquesExercices._blockTableRemoveAlt(\'' + bid + '\',' + rowIndex + ',' + colIndex + ',' + ai + ')">\u00D7</button>' +
+                    '</div>';
+            }
+            popoverHTML += '</div>' +
+                '<button type="button" class="tb-popover-add-alt" ' +
+                'onclick="AdminBanquesExercices._blockTableAddAlt(\'' + bid + '\',' + rowIndex + ',' + colIndex + ')">+ Ajouter une alternative</button></div>';
+        }
+
+        popoverHTML += '</div></div>';
+
+        // Positionner le popover
+        var clickedBadge = document.querySelector('#blockTable-' + bid + ' .tb-cell-badge[onclick*="' + rowIndex + ',' + colIndex + '"]');
+        var clickedTd = clickedBadge ? clickedBadge.closest('td') : null;
+        if (!clickedTd) return;
+
+        var wrapper = document.createElement('div');
+        wrapper.id = 'tbPopoverWrapper';
+        wrapper.innerHTML = popoverHTML;
+        document.body.appendChild(wrapper);
+
+        var rect = clickedTd.getBoundingClientRect();
+        var popover = document.getElementById('tbCellPopover');
+        var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        var scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        var left = rect.right + 8 + scrollLeft;
+        if (left + 280 > window.innerWidth) left = rect.left - 288 + scrollLeft;
+        var top = rect.top + scrollTop;
+        if (top + 350 > window.innerHeight + scrollTop) top = window.innerHeight + scrollTop - 360;
+        popover.style.position = 'absolute';
+        popover.style.left = left + 'px';
+        popover.style.top = top + 'px';
+
+        var self = this;
+        setTimeout(function() {
+            self._blockTablePopoverHandler = function(e) {
+                var pop = document.getElementById('tbCellPopover');
+                if (pop && !pop.contains(e.target) && !e.target.closest('.tb-cell-badge')) {
+                    self._closeBlockTablePopover();
+                }
+            };
+            document.addEventListener('click', self._blockTablePopoverHandler);
+        }, 50);
+    },
+
+    _closeBlockTablePopover() {
+        var wrapper = document.getElementById('tbPopoverWrapper');
+        if (wrapper) wrapper.remove();
+        if (this._blockTablePopoverHandler) {
+            document.removeEventListener('click', this._blockTablePopoverHandler);
+            this._blockTablePopoverHandler = null;
+        }
+    },
+
+    _blockTableSetCellType(blockId, row, col, type) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block) return;
+        var cell = block.lignes[row].cells[col];
+        cell.type = type;
+        if (type === 'reponse' && !cell.correction) {
+            cell.correction = 'souple';
+            cell.alternatives = cell.alternatives || [];
+        }
+        this._renderBlocks();
+        this._blockTableSelectCell(blockId, row, col);
+    },
+
+    _blockTableSetCorrection(blockId, row, col, mode) {
+        var block = this._getBlockById(blockId);
+        if (!block) return;
+        block.lignes[row].cells[col].correction = mode;
+        var hint = document.querySelector('.tb-popover-hint');
+        if (hint) hint.textContent = mode === 'souple' ? 'Tol\u00e8re accents, majuscules, ponctuation' : 'La r\u00e9ponse doit \u00eatre exacte';
+    },
+
+    _blockTableAddAlt(blockId, row, col) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block) return;
+        var cell = block.lignes[row].cells[col];
+        if (!cell.alternatives) cell.alternatives = [];
+        cell.alternatives.push('');
+        this._renderBlocks();
+        this._blockTableSelectCell(blockId, row, col);
+        setTimeout(function() {
+            var inputs = document.querySelectorAll('.tb-popover-alt-input');
+            if (inputs.length > 0) inputs[inputs.length - 1].focus();
+        }, 50);
+    },
+
+    _blockTableRemoveAlt(blockId, row, col, altIndex) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block) return;
+        block.lignes[row].cells[col].alternatives.splice(altIndex, 1);
+        this._renderBlocks();
+        this._blockTableSelectCell(blockId, row, col);
+    },
+
+    _blockTableUpdateAlt(blockId, row, col, altIndex, value) {
+        var block = this._getBlockById(blockId);
+        if (!block) return;
+        block.lignes[row].cells[col].alternatives[altIndex] = value;
     },
 
     // ========== FALLBACK MOBILE : FLÈCHES + BOUTON GROUPER ==========
