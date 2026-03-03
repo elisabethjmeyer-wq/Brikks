@@ -921,24 +921,45 @@ Object.assign(AdminBanquesExercices, {
         var isEditing = this.sfWizardData.isEditing && exercice;
         this.currentFormatUI = formatUI;
 
-        if (isEditing && exercice.donnees) {
-            // Parse donnees
+        // Priorité au snapshot (données modifiées durant cette session de wizard)
+        var snapshot = this.sfWizardData._builderSnapshot;
+
+        if (snapshot) {
+            // On a déjà travaillé sur l'étape 3 dans cette session → restaurer le snapshot
+            if (formatUI === 'carte_cliquable') {
+                this.loadCarteBuilderFromData(snapshot);
+            } else if (formatUI === 'question_ouverte') {
+                this.loadQuestionBuilderFromData(snapshot);
+            } else if (formatUI === 'document_tableau') {
+                var docType = document.getElementById('docTypeTableau');
+                var docContenu = document.getElementById('docContenuTableau');
+                if (snapshot.document) {
+                    if (docType) docType.value = snapshot.document.type || 'texte';
+                    if (docContenu) docContenu.value = snapshot.document.contenu || '';
+                }
+                this.loadTableBuilderFromData(snapshot);
+            } else if (formatUI === 'document_mixte') {
+                this._loadMixteBlockEditor(snapshot);
+            } else {
+                this.loadTableBuilderFromData(snapshot);
+            }
+        } else if (isEditing && exercice.donnees) {
+            // Première visite de l'étape 3 en mode édition → charger les données originales
             var donnees = exercice.donnees;
             if (typeof donnees === 'string') {
                 try { donnees = JSON.parse(donnees); } catch (e) { donnees = {}; }
             }
 
-            // Charger les données dans le builder approprié
             if (formatUI === 'carte_cliquable') {
                 this.loadCarteBuilderFromData(donnees);
             } else if (formatUI === 'question_ouverte') {
                 this.loadQuestionBuilderFromData(donnees);
             } else if (formatUI === 'document_tableau') {
-                var docType = document.getElementById('docTypeTableau');
-                var docContenu = document.getElementById('docContenuTableau');
+                var docType2 = document.getElementById('docTypeTableau');
+                var docContenu2 = document.getElementById('docContenuTableau');
                 if (donnees.document) {
-                    if (docType) docType.value = donnees.document.type || 'texte';
-                    if (docContenu) docContenu.value = donnees.document.contenu || '';
+                    if (docType2) docType2.value = donnees.document.type || 'texte';
+                    if (docContenu2) docContenu2.value = donnees.document.contenu || '';
                 }
                 this.loadTableBuilderFromData(donnees);
             } else if (formatUI === 'document_mixte') {
