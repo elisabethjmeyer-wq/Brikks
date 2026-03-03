@@ -514,37 +514,45 @@ Object.assign(AdminBanquesExercices, {
 
         if (formatUI === 'carte_cliquable') {
             const donnees = this.buildDataFromCarteBuilder();
+            const colorMap = { bleu: '#6366f1', rouge: '#ef4444', vert: '#10b981', orange: '#f59e0b', violet: '#8b5cf6', noir: '#374151' };
             extraStyles = `
                 .carte-container { position: relative; display: inline-block; max-width: 100%; }
                 .carte-image { max-width: 100%; height: auto; display: block; border-radius: 8px; }
-                .carte-marker { position: absolute; width: 32px; height: 32px; background: #6366f1; color: white;
-                    border: 3px solid white; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                .carte-marker { position: absolute; width: 32px; height: 32px; color: white;
+                    border: 3px solid white; display: flex; align-items: center; justify-content: center;
                     font-weight: bold; font-size: 14px; transform: translate(-50%, -50%); cursor: pointer;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-                .carte-marker:hover { background: #4f46e5; transform: translate(-50%, -50%) scale(1.1); }
+                .carte-marker.shape-cercle { border-radius: 50%; }
+                .carte-marker.shape-losange { border-radius: 4px; transform: translate(-50%, -50%) rotate(45deg); }
+                .carte-marker.shape-losange span { transform: rotate(-45deg); }
+                .carte-marker.shape-carre { border-radius: 4px; }
+                .carte-marker.shape-pin { border-radius: 50% 50% 50% 0; transform: translate(-50%, -50%) rotate(-45deg); }
+                .carte-marker.shape-pin span { transform: rotate(45deg); }
                 .carte-marker .badge { position: absolute; top: -8px; left: 100%; margin-left: 4px; background: white;
                     color: #374151; padding: 2px 6px; border-radius: 4px; font-size: 11px; white-space: nowrap;
                     box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
                 .preview-note { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px; margin-top: 1rem;
                     font-size: 0.875rem; color: #92400e; }
             `;
-            const imageUrl = this.convertToDirectImageUrl(donnees.imageUrl);
+            const imageUrl = this.convertToDirectImageUrl(donnees.image_url);
             contentHTML = `
                 <div class="carte-container">
                     <img src="${this.escapeHtml(imageUrl)}" class="carte-image" alt="Carte" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <div style="display:none; padding: 2rem; background: #fee2e2; color: #991b1b; border-radius: 8px; text-align: center;">
-                        ⚠️ Impossible de charger l'image. Vérifiez le lien.
+                        Impossible de charger l'image. Vérifiez le lien.
                     </div>
-                    ${donnees.marqueurs.map((m, i) => `
-                        <div class="carte-marker" style="left: ${m.x}%; top: ${m.y}%;">
-                            ${i + 1}
-                            <span class="badge">${this.escapeHtml(m.reponse)}</span>
-                        </div>
-                    `).join('')}
+                    ${donnees.marqueurs.map((m, i) => {
+                        const bg = colorMap[m.color] || colorMap.bleu;
+                        const shape = m.shape || 'cercle';
+                        return `<div class="carte-marker shape-${shape}" style="left: ${m.x}%; top: ${m.y}%; background: ${bg};">
+                            <span>${i + 1}</span>
+                            <span class="badge">${this.escapeHtml((m.reponse || '').split('|')[0])}</span>
+                        </div>`;
+                    }).join('')}
                 </div>
                 <div class="preview-note">
-                    <strong>Aperçu admin:</strong> Les élèves cliqueront sur les numéros pour saisir leur réponse dans un popup.
-                    Les réponses attendues (${donnees.marqueurs.length}) sont affichées ici à titre indicatif.
+                    <strong>Aperçu admin :</strong> Les élèves cliqueront sur les marqueurs pour saisir leur réponse.
+                    ${donnees.marqueurs.length} marqueur(s) configuré(s).
                 </div>
             `;
         } else if (formatUI === 'question_ouverte') {
@@ -827,13 +835,36 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
-    // ========== CARTE CLIQUABLE BUILDER ==========
+    // ========== CARTE CLIQUABLE BUILDER (v2 — popover + forme/couleur) ==========
+
+    /** Constantes formes et couleurs disponibles pour les marqueurs */
+    CARTE_SHAPES: [
+        { id: 'cercle', label: 'Cercle', icon: '●' },
+        { id: 'losange', label: 'Losange', icon: '◆' },
+        { id: 'carre', label: 'Carré', icon: '■' },
+        { id: 'pin', label: 'Épingle', icon: '📍' }
+    ],
+
+    CARTE_COLORS: [
+        { id: 'bleu', hex: '#6366f1', label: 'Bleu' },
+        { id: 'rouge', hex: '#ef4444', label: 'Rouge' },
+        { id: 'vert', hex: '#10b981', label: 'Vert' },
+        { id: 'orange', hex: '#f59e0b', label: 'Orange' },
+        { id: 'violet', hex: '#8b5cf6', label: 'Violet' },
+        { id: 'noir', hex: '#374151', label: 'Noir' }
+    ],
+
     initCarteBuilder() {
         this.carteBuilder = { imageUrl: '', marqueurs: [] };
-        document.getElementById('carteImageUrl').value = '';
-        document.getElementById('cartePreviewWrapper').style.display = 'none';
-        document.getElementById('cartePreviewPlaceholder').style.display = 'block';
-        this.renderMarqueursList();
+        this._selectedMarqueur = null;
+        const urlInput = document.getElementById('carteImageUrl');
+        if (urlInput) urlInput.value = '';
+        const wrapper = document.getElementById('cartePreviewWrapper');
+        if (wrapper) wrapper.style.display = 'none';
+        const placeholder = document.getElementById('cartePreviewPlaceholder');
+        if (placeholder) placeholder.style.display = 'block';
+        this.renderCarteMarkers();
+        this.switchCarteTab('construction');
     },
 
     loadCarteBuilderFromData(donnees) {
@@ -842,18 +873,23 @@ Object.assign(AdminBanquesExercices, {
             marqueurs: (donnees.marqueurs || []).map(m => ({
                 x: m.x,
                 y: m.y,
-                reponse: m.reponse || ''
+                reponse: m.reponse || '',
+                correction: m.correction || 'souple',
+                shape: m.shape || 'cercle',
+                color: m.color || 'bleu'
             }))
         };
-        document.getElementById('carteImageUrl').value = this.carteBuilder.imageUrl;
+        this._selectedMarqueur = null;
+        const urlInput = document.getElementById('carteImageUrl');
+        if (urlInput) urlInput.value = this.carteBuilder.imageUrl;
         if (this.carteBuilder.imageUrl) {
             this.updateCartePreview(this.carteBuilder.imageUrl);
         }
-        this.renderMarqueursList();
+        this.renderCarteMarkers();
+        this.switchCarteTab('construction');
     },
 
     updateCartePreview(url) {
-        // Convert Google Drive share links to direct image URLs
         url = this.convertToDirectImageUrl(url);
         this.carteBuilder.imageUrl = url;
 
@@ -876,168 +912,426 @@ Object.assign(AdminBanquesExercices, {
         } else {
             wrapper.style.display = 'none';
             placeholder.style.display = 'block';
-            placeholder.textContent = 'Entrez une URL d\'image ci-dessus pour voir l\'apercu';
+            placeholder.textContent = 'Entrez une URL d\'image ci-dessus pour voir l\'aperçu';
         }
     },
 
-    // Convert Google Drive share links to direct image URLs
     convertToDirectImageUrl(url) {
         if (!url) return url;
-
-        // Pattern: https://drive.google.com/file/d/FILE_ID/view...
         const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
         if (driveMatch) {
-            const fileId = driveMatch[1];
-            // Use lh3.googleusercontent.com format which works better for embedding
-            return `https://lh3.googleusercontent.com/d/${fileId}`;
+            return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
         }
-
-        // Already a direct link or other URL format
         return url;
     },
 
-    renderCarteMarkers() {
-        const container = document.getElementById('cartePreviewMarkers');
-        container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => `
-            <div class="carte-marker-preview"
-                 style="left: ${m.x}%; top: ${m.y}%;"
-                 title="Marqueur ${i + 1}: ${this.escapeHtml(m.reponse)}">
-                ${i + 1}
-            </div>
-        `).join('');
+    // ========== CARTE TABS CONSTRUCTION / VUE ÉLÈVE ==========
 
-        // Add click handler to image for adding markers
-        const wrapper = document.getElementById('cartePreviewWrapper');
-        wrapper.onclick = (e) => {
-            const rect = wrapper.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
-            const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
-            this.addMarqueur(parseFloat(x), parseFloat(y));
-        };
+    switchCarteTab(tab) {
+        const constructionPanel = document.getElementById('carteConstructionPanel');
+        const previewPanel = document.getElementById('cartePreviewPanel');
+        const tabConstruction = document.getElementById('carteTabConstruction');
+        const tabPreview = document.getElementById('carteTabPreview');
+        if (!constructionPanel || !previewPanel) return;
+
+        if (tab === 'preview') {
+            this._renderCartePreview(previewPanel);
+            constructionPanel.style.display = 'none';
+            previewPanel.style.display = '';
+            if (tabConstruction) tabConstruction.classList.remove('active');
+            if (tabPreview) tabPreview.classList.add('active');
+        } else {
+            constructionPanel.style.display = '';
+            previewPanel.style.display = 'none';
+            if (tabConstruction) tabConstruction.classList.add('active');
+            if (tabPreview) tabPreview.classList.remove('active');
+        }
     },
 
-    addMarqueur(x, y) {
-        this.carteBuilder.marqueurs.push({ x, y, reponse: '' });
-        this.renderCarteMarkers();
-        this.renderMarqueursList();
-    },
+    _renderCartePreview(container) {
+        const marqueurs = this.carteBuilder.marqueurs;
+        const imageUrl = this.carteBuilder.imageUrl;
 
-    addMarqueurManual() {
-        this.carteBuilder.marqueurs.push({ x: 50, y: 50, reponse: '' });
-        this.renderCarteMarkers();
-        this.renderMarqueursList();
-    },
-
-    removeMarqueur(index) {
-        this.carteBuilder.marqueurs.splice(index, 1);
-        this.renderCarteMarkers();
-        this.renderMarqueursList();
-    },
-
-    renderMarqueursList() {
-        const container = document.getElementById('marqueursList');
-        if (this.carteBuilder.marqueurs.length === 0) {
-            container.innerHTML = '<div class="exercices-empty">Aucun marqueur. Cliquez sur l\'image ou ajoutez manuellement.</div>';
+        if (!imageUrl) {
+            container.innerHTML = '<div class="cb-preview-empty">Ajoutez une image pour voir l\'aperçu</div>';
             return;
         }
 
-        container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => {
-            const reponseValue = m.reponse || '';
-            const alternatives = reponseValue.split('|');
-            const mainAnswer = alternatives[0] || '';
-            const altCount = alternatives.length - 1;
-            return `
-            <div class="marqueur-item">
-                <span class="marqueur-num">${i + 1}</span>
-                <div class="marqueur-coords">X: ${m.x}% Y: ${m.y}%</div>
-                <div class="marqueur-answer-wrapper">
-                    <input type="text" class="form-input marqueur-reponse" data-index="${i}"
-                           value="${this.escapeHtml(mainAnswer)}" placeholder="Réponse attendue...">
-                    <button type="button" class="btn-alternatives-small ${altCount > 0 ? 'has-alternatives' : ''}"
-                            onclick="AdminBanquesExercices.openMarqueurAlternativesModal(${i})"
-                            title="Réponses alternatives">
-                        ±${altCount > 0 ? `<span class="alt-count">${altCount}</span>` : ''}
-                    </button>
-                </div>
-                <button type="button" class="btn-icon danger" onclick="AdminBanquesExercices.removeMarqueur(${i})">&times;</button>
-            </div>
-        `;}).join('');
+        const consigneEl = document.getElementById('sfwConsigneStep3');
+        const consigne = consigneEl ? consigneEl.value.trim() : '';
 
-        // Add listeners for reponse inputs (main answer only)
-        container.querySelectorAll('.marqueur-reponse').forEach(input => {
-            input.addEventListener('input', (e) => {
-                const idx = parseInt(e.target.dataset.index);
-                this.updateMarqueurMainAnswer(idx, e.target.value);
+        let html = '';
+        if (consigne) {
+            html += `<p class="cb-pv-consigne">${this.escapeHtml(consigne)}</p>`;
+        }
+
+        html += `<div class="cb-pv-image-wrapper">
+            <img src="${this.escapeHtml(imageUrl)}" alt="Aperçu carte" class="cb-pv-image">
+            <div class="cb-pv-marqueurs">`;
+
+        marqueurs.forEach((m, i) => {
+            const colorHex = (this.CARTE_COLORS.find(c => c.id === m.color) || this.CARTE_COLORS[0]).hex;
+            const shapeClass = 'cb-shape-' + (m.shape || 'cercle');
+            html += `<div class="cb-pv-marker ${shapeClass}" style="left:${m.x}%;top:${m.y}%;background:${colorHex};">
+                <span class="cb-pv-marker-num">${i + 1}</span>
+            </div>`;
+        });
+
+        html += `</div></div>`;
+
+        // Indication sous l'image
+        if (marqueurs.length > 0) {
+            html += '<p class="cb-pv-hint">L\'élève clique sur un marqueur pour saisir sa réponse</p>';
+        } else {
+            html += '<p class="cb-pv-hint">Aucun marqueur — revenez à l\'onglet Construction pour en ajouter</p>';
+        }
+
+        container.innerHTML = html;
+
+        // Rendre les marqueurs cliquables pour simuler la vue élève
+        container.querySelectorAll('.cb-pv-marker').forEach((marker, idx) => {
+            marker.style.cursor = 'pointer';
+            marker.addEventListener('click', () => {
+                // Toggle un petit input simulé
+                const existing = marker.querySelector('.cb-pv-input-sim');
+                if (existing) {
+                    existing.remove();
+                    return;
+                }
+                // Fermer les autres
+                container.querySelectorAll('.cb-pv-input-sim').forEach(el => el.remove());
+                const sim = document.createElement('div');
+                sim.className = 'cb-pv-input-sim';
+                sim.innerHTML = '<input type="text" disabled placeholder="Réponse..." class="cb-pv-input-field">';
+                marker.appendChild(sim);
             });
         });
     },
 
-    updateMarqueurMainAnswer(index, newMainAnswer) {
-        const reponseValue = this.carteBuilder.marqueurs[index].reponse || '';
-        const alternatives = reponseValue.split('|');
-        alternatives[0] = newMainAnswer;
-        this.carteBuilder.marqueurs[index].reponse = alternatives.join('|');
+    // ========== CARTE MARKERS RENDERING ==========
+
+    _getMarkerShapeClass(shape) {
+        const valid = ['cercle', 'losange', 'carre', 'pin'];
+        return 'cb-shape-' + (valid.includes(shape) ? shape : 'cercle');
     },
 
-    openMarqueurAlternativesModal(index) {
-        const reponseValue = this.carteBuilder.marqueurs[index].reponse || '';
-        const alternatives = reponseValue.split('|');
-        const mainAnswer = alternatives[0] || '';
-        const altAnswers = alternatives.slice(1);
+    _getMarkerColorHex(colorId) {
+        const color = this.CARTE_COLORS.find(c => c.id === colorId);
+        return color ? color.hex : this.CARTE_COLORS[0].hex;
+    },
 
-        const existingModal = document.getElementById('alternativesModal');
-        if (existingModal) existingModal.remove();
+    renderCarteMarkers() {
+        const container = document.getElementById('cartePreviewMarkers');
+        if (!container) return;
 
-        const modal = document.createElement('div');
-        modal.id = 'alternativesModal';
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content modal-alternatives">
-                <div class="modal-header">
-                    <h3>Réponses alternatives - Marqueur ${index + 1}</h3>
-                    <button type="button" class="modal-close" onclick="AdminBanquesExercices.closeAlternativesModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p class="help-text">La réponse principale est "<strong>${this.escapeHtml(mainAnswer)}</strong>". Ajoutez des réponses alternatives qui seront aussi acceptées.</p>
-                    <div id="alternativesList">
-                        ${altAnswers.map((alt, i) => `
-                            <div class="alternative-item">
-                                <input type="text" class="alt-input" value="${this.escapeHtml(alt)}" placeholder="Réponse alternative ${i + 1}">
-                                <button type="button" class="btn-remove-alt" onclick="this.parentElement.remove()">×</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button type="button" class="btn-add-alternative" onclick="AdminBanquesExercices.addAlternativeInput()">
-                        + Ajouter une alternative
-                    </button>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="AdminBanquesExercices.closeAlternativesModal()">Annuler</button>
-                    <button type="button" class="btn btn-primary" onclick="AdminBanquesExercices.saveMarqueurAlternatives(${index})">Enregistrer</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
+        const marqueurs = this.carteBuilder.marqueurs;
 
-        if (altAnswers.length === 0) {
-            this.addAlternativeInput();
+        container.innerHTML = marqueurs.map((m, i) => {
+            const colorHex = this._getMarkerColorHex(m.color);
+            const shapeClass = this._getMarkerShapeClass(m.shape);
+            const isSelected = this._selectedMarqueur === i;
+            const mainAnswer = (m.reponse || '').split('|')[0];
+            const hasAnswer = mainAnswer !== '';
+            const alts = (m.reponse || '').split('|').slice(1).filter(a => a.trim());
+            const isStricte = m.correction === 'stricte';
+
+            let indicators = '';
+            if (hasAnswer) {
+                indicators += `<span class="cb-marker-answer-badge">${this.escapeHtml(mainAnswer)}</span>`;
+            }
+            if (alts.length > 0) {
+                indicators += `<span class="cb-marker-indicator cb-ind-alt">\u00B1${alts.length}</span>`;
+            }
+            if (isStricte) {
+                indicators += '<span class="cb-marker-indicator cb-ind-strict">S</span>';
+            }
+
+            return `<div class="carte-marker-preview ${shapeClass} ${isSelected ? 'cb-marker-selected' : ''}"
+                 style="left:${m.x}%;top:${m.y}%;background:${colorHex};"
+                 data-index="${i}"
+                 title="Marqueur ${i + 1}${mainAnswer ? ': ' + mainAnswer : ''}">
+                <span class="cb-marker-num">${i + 1}</span>
+                ${indicators ? '<div class="cb-marker-indicators">' + indicators + '</div>' : ''}
+            </div>`;
+        }).join('');
+
+        // Make markers clickable to open popover
+        container.querySelectorAll('.carte-marker-preview').forEach(marker => {
+            marker.style.pointerEvents = 'auto';
+            marker.style.cursor = 'pointer';
+            marker.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = parseInt(marker.dataset.index);
+                this.selectMarqueur(idx);
+            });
+        });
+
+        // Add click handler to wrapper for adding markers
+        const wrapper = document.getElementById('cartePreviewWrapper');
+        if (wrapper) {
+            wrapper.onclick = (e) => {
+                // Ignore clicks on existing markers
+                if (e.target.closest('.carte-marker-preview')) return;
+                const rect = wrapper.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(1);
+                const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(1);
+                this.addMarqueur(parseFloat(x), parseFloat(y));
+            };
+        }
+
+        // Update counter
+        const counter = document.getElementById('carteMarqueurCount');
+        if (counter) {
+            counter.textContent = marqueurs.length + ' marqueur' + (marqueurs.length > 1 ? 's' : '');
         }
     },
 
-    saveMarqueurAlternatives(index) {
-        const mainInput = document.querySelector(`.marqueur-reponse[data-index="${index}"]`);
-        const mainAnswer = mainInput ? mainInput.value : '';
-        const altInputs = document.querySelectorAll('#alternativesList .alt-input');
-        const alternatives = [mainAnswer];
-
-        altInputs.forEach(input => {
-            const val = input.value.trim();
-            if (val) alternatives.push(val);
+    addMarqueur(x, y) {
+        this.carteBuilder.marqueurs.push({
+            x, y, reponse: '', correction: 'souple', shape: 'cercle', color: 'bleu'
         });
+        const newIndex = this.carteBuilder.marqueurs.length - 1;
+        this.renderCarteMarkers();
+        // Ouvrir le popover du nouveau marqueur automatiquement
+        this.selectMarqueur(newIndex);
+    },
 
-        this.carteBuilder.marqueurs[index].reponse = alternatives.join('|');
-        this.closeAlternativesModal();
-        this.renderMarqueursList();
+    addMarqueurManual() {
+        this.addMarqueur(50, 50);
+    },
+
+    removeMarqueur(index) {
+        this._closeCartePopover();
+        this.carteBuilder.marqueurs.splice(index, 1);
+        this.renderCarteMarkers();
+    },
+
+    // ========== CARTE POPOVER (même pattern que le tableau) ==========
+
+    selectMarqueur(index) {
+        this._selectedMarqueur = index;
+        this.renderCarteMarkers();
+        this._showCartePopover(index);
+    },
+
+    _showCartePopover(index) {
+        this._closeCartePopover();
+
+        const m = this.carteBuilder.marqueurs[index];
+        if (!m) return;
+
+        const mainAnswer = (m.reponse || '').split('|')[0];
+        const alts = (m.reponse || '').split('|').slice(1).filter(a => a.trim());
+        const isSouple = m.correction !== 'stricte';
+
+        // Construire les sélecteurs de forme
+        const shapesHTML = this.CARTE_SHAPES.map(s =>
+            `<button type="button" class="cb-shape-btn ${m.shape === s.id ? 'active' : ''} cb-shape-opt-${s.id}"
+                     onclick="AdminBanquesExercices._setMarqueurShape(${index}, '${s.id}')"
+                     title="${s.label}">${s.icon}</button>`
+        ).join('');
+
+        // Construire les sélecteurs de couleur
+        const colorsHTML = this.CARTE_COLORS.map(c =>
+            `<button type="button" class="cb-color-btn ${m.color === c.id ? 'active' : ''}"
+                     style="background:${c.hex};"
+                     onclick="AdminBanquesExercices._setMarqueurColor(${index}, '${c.id}')"
+                     title="${c.label}"></button>`
+        ).join('');
+
+        const popoverHTML = `
+            <div class="cb-popover" id="cbPopover">
+                <div class="cb-popover-header">
+                    <span class="cb-popover-title">Marqueur ${index + 1}</span>
+                    <button type="button" class="cb-popover-close" onclick="AdminBanquesExercices._closeCartePopover()">&times;</button>
+                </div>
+                <div class="cb-popover-body">
+                    <div class="cb-popover-field">
+                        <label class="cb-popover-label">Réponse attendue</label>
+                        <input type="text" class="cb-popover-input" id="cbPopoverAnswer"
+                               value="${this.escapeHtml(mainAnswer)}" placeholder="Ex : Paris"
+                               oninput="AdminBanquesExercices._updateMarqueurAnswer(${index}, this.value)">
+                    </div>
+                    <div class="cb-popover-field">
+                        <label class="cb-popover-label">Apparence</label>
+                        <div class="cb-popover-appearance">
+                            <div class="cb-shapes-row">${shapesHTML}</div>
+                            <div class="cb-colors-row">${colorsHTML}</div>
+                        </div>
+                    </div>
+                    <div class="cb-popover-field">
+                        <label class="cb-popover-label">Correction</label>
+                        <div class="cb-popover-radio-group">
+                            <label class="cb-popover-radio ${isSouple ? 'active' : ''}">
+                                <input type="radio" name="cbCorrection" value="souple" ${isSouple ? 'checked' : ''}
+                                       onchange="AdminBanquesExercices._setMarqueurCorrection(${index}, 'souple')">
+                                <span>Souple</span>
+                            </label>
+                            <label class="cb-popover-radio ${!isSouple ? 'active' : ''}">
+                                <input type="radio" name="cbCorrection" value="stricte" ${!isSouple ? 'checked' : ''}
+                                       onchange="AdminBanquesExercices._setMarqueurCorrection(${index}, 'stricte')">
+                                <span>Stricte</span>
+                            </label>
+                        </div>
+                        <div class="cb-popover-hint" id="cbCorrectionHint">${isSouple ? 'Tolère accents, majuscules, ponctuation' : 'La réponse doit être exacte'}</div>
+                    </div>
+                    <div class="cb-popover-field">
+                        <label class="cb-popover-label">Alternatives acceptées</label>
+                        <div class="cb-popover-alts" id="cbPopoverAlts">
+                            ${alts.map((alt, i) => `
+                                <div class="cb-popover-alt-item">
+                                    <input type="text" class="cb-popover-alt-input" value="${this.escapeHtml(alt)}"
+                                           placeholder="Alternative ${i + 1}" data-alt-index="${i}"
+                                           onchange="AdminBanquesExercices._updateMarqueurAlt(${index}, ${i}, this.value)">
+                                    <button type="button" class="cb-popover-alt-remove"
+                                            onclick="AdminBanquesExercices._removeMarqueurAlt(${index}, ${i})">×</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button type="button" class="cb-popover-add-alt"
+                                onclick="AdminBanquesExercices._addMarqueurAlt(${index})">+ Ajouter une alternative</button>
+                    </div>
+                    <div class="cb-popover-footer">
+                        <button type="button" class="cb-popover-delete"
+                                onclick="AdminBanquesExercices.removeMarqueur(${index})">Supprimer ce marqueur</button>
+                    </div>
+                </div>
+            </div>`;
+
+        // Positionner à côté du marqueur cliqué
+        const clickedMarker = document.querySelector(`.carte-marker-preview[data-index="${index}"]`);
+        if (!clickedMarker) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.id = 'cbPopoverWrapper';
+        wrapper.innerHTML = popoverHTML;
+        document.body.appendChild(wrapper);
+
+        const rect = clickedMarker.getBoundingClientRect();
+        const popover = document.getElementById('cbPopover');
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+        // Essayer à droite, sinon à gauche
+        let left = rect.right + 10 + scrollLeft;
+        if (left + 300 > window.innerWidth) {
+            left = rect.left - 310 + scrollLeft;
+        }
+        // Si toujours hors écran, centrer sous le marqueur
+        if (left < 0) {
+            left = rect.left + scrollLeft - 130;
+        }
+        let top = rect.top + scrollTop - 20;
+        if (top + 420 > window.innerHeight + scrollTop) {
+            top = window.innerHeight + scrollTop - 430;
+        }
+        if (top < scrollTop) top = scrollTop + 10;
+
+        popover.style.position = 'absolute';
+        popover.style.left = left + 'px';
+        popover.style.top = top + 'px';
+
+        // Focus sur le champ réponse
+        setTimeout(() => {
+            const input = document.getElementById('cbPopoverAnswer');
+            if (input) input.focus();
+        }, 50);
+
+        // Fermer au clic en dehors
+        setTimeout(() => {
+            this._cartePopoverOutsideHandler = (e) => {
+                const pop = document.getElementById('cbPopover');
+                if (pop && !pop.contains(e.target) && !e.target.closest('.carte-marker-preview')) {
+                    this._closeCartePopover();
+                }
+            };
+            document.addEventListener('click', this._cartePopoverOutsideHandler);
+        }, 50);
+    },
+
+    _closeCartePopover() {
+        const wrapper = document.getElementById('cbPopoverWrapper');
+        if (wrapper) wrapper.remove();
+        if (this._cartePopoverOutsideHandler) {
+            document.removeEventListener('click', this._cartePopoverOutsideHandler);
+            this._cartePopoverOutsideHandler = null;
+        }
+        this._selectedMarqueur = null;
+        this.renderCarteMarkers();
+    },
+
+    // ========== CARTE POPOVER ACTIONS ==========
+
+    _updateMarqueurAnswer(index, value) {
+        const m = this.carteBuilder.marqueurs[index];
+        const parts = (m.reponse || '').split('|');
+        parts[0] = value;
+        m.reponse = parts.join('|');
+        // Mettre à jour le marqueur visuellement sans fermer le popover
+        const marker = document.querySelector(`.carte-marker-preview[data-index="${index}"]`);
+        if (marker) {
+            const badge = marker.querySelector('.cb-marker-answer-badge');
+            if (badge) {
+                badge.textContent = value;
+                badge.style.display = value ? '' : 'none';
+            }
+        }
+    },
+
+    _setMarqueurShape(index, shape) {
+        this.carteBuilder.marqueurs[index].shape = shape;
+        this._selectedMarqueur = index;
+        this.renderCarteMarkers();
+        this._showCartePopover(index);
+    },
+
+    _setMarqueurColor(index, color) {
+        this.carteBuilder.marqueurs[index].color = color;
+        this._selectedMarqueur = index;
+        this.renderCarteMarkers();
+        this._showCartePopover(index);
+    },
+
+    _setMarqueurCorrection(index, mode) {
+        this.carteBuilder.marqueurs[index].correction = mode;
+        const hint = document.getElementById('cbCorrectionHint');
+        if (hint) {
+            hint.textContent = mode === 'souple' ? 'Tolère accents, majuscules, ponctuation' : 'La réponse doit être exacte';
+        }
+        // Mettre à jour les classes active sur les radios
+        document.querySelectorAll('.cb-popover-radio').forEach(label => {
+            label.classList.toggle('active', label.querySelector('input').value === mode);
+        });
+    },
+
+    _addMarqueurAlt(index) {
+        const m = this.carteBuilder.marqueurs[index];
+        const parts = (m.reponse || '').split('|');
+        parts.push('');
+        m.reponse = parts.join('|');
+        this._selectedMarqueur = index;
+        this._showCartePopover(index);
+        setTimeout(() => {
+            const inputs = document.querySelectorAll('.cb-popover-alt-input');
+            if (inputs.length > 0) inputs[inputs.length - 1].focus();
+        }, 50);
+    },
+
+    _removeMarqueurAlt(index, altIndex) {
+        const m = this.carteBuilder.marqueurs[index];
+        const parts = (m.reponse || '').split('|');
+        // L'index 0 est la réponse principale, les alternatives commencent à 1
+        parts.splice(altIndex + 1, 1);
+        m.reponse = parts.join('|');
+        this._selectedMarqueur = index;
+        this._showCartePopover(index);
+    },
+
+    _updateMarqueurAlt(index, altIndex, value) {
+        const m = this.carteBuilder.marqueurs[index];
+        const parts = (m.reponse || '').split('|');
+        parts[altIndex + 1] = value;
+        m.reponse = parts.join('|');
     },
 
     buildDataFromCarteBuilder() {
@@ -1047,7 +1341,10 @@ Object.assign(AdminBanquesExercices, {
                 id: i,
                 x: m.x,
                 y: m.y,
-                reponse: m.reponse
+                reponse: m.reponse,
+                correction: m.correction || 'souple',
+                shape: m.shape || 'cercle',
+                color: m.color || 'bleu'
             }))
         };
     },

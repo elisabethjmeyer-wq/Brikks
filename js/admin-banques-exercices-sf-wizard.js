@@ -540,33 +540,44 @@ Object.assign(AdminBanquesExercices, {
         '</div>';
     },
 
-    // --- HTML pour le builder Carte cliquable ---
+    // --- HTML pour le builder Carte cliquable (v2 — popover) ---
     _renderCarteBuilderHTML: function() {
         return '<div id="builderCarte" class="format-builder">' +
-            '<div class="form-section">Construction de la carte cliquable</div>' +
             '<div class="form-group">' +
                 '<label>URL de l\'image de fond <span class="req">*</span></label>' +
                 '<input type="text" class="form-input" id="carteImageUrl" placeholder="https://\u2026">' +
                 '<div class="form-help">URL de l\'image (carte, sch\u00e9ma, document\u2026)</div>' +
             '</div>' +
-            '<div class="form-group">' +
-                '<label>Aper\u00e7u et placement des marqueurs</label>' +
-                '<div class="carte-preview-container" id="cartePreviewContainer">' +
-                    '<div class="carte-preview-placeholder" id="cartePreviewPlaceholder">' +
-                        'Entrez une URL d\'image ci-dessus pour voir l\'aper\u00e7u' +
+            // Tabs Construction / Vue élève
+            '<div class="tb-tabs">' +
+                '<button type="button" class="tb-tab active" id="carteTabConstruction" onclick="AdminBanquesExercices.switchCarteTab(\'construction\')">' +
+                    '<span class="tb-tab-icon">\u2699\uFE0F</span> Construction' +
+                '</button>' +
+                '<button type="button" class="tb-tab" id="carteTabPreview" onclick="AdminBanquesExercices.switchCarteTab(\'preview\')">' +
+                    '<span class="tb-tab-icon">\uD83D\uDC41\uFE0F</span> Vue \u00e9l\u00e8ve' +
+                '</button>' +
+            '</div>' +
+            // Panel Construction
+            '<div id="carteConstructionPanel">' +
+                '<div class="form-group">' +
+                    '<div class="carte-preview-container" id="cartePreviewContainer">' +
+                        '<div class="carte-preview-placeholder" id="cartePreviewPlaceholder">' +
+                            'Entrez une URL d\'image ci-dessus pour voir l\'aper\u00e7u' +
+                        '</div>' +
+                        '<div class="carte-preview-wrapper" id="cartePreviewWrapper" style="display: none;">' +
+                            '<img src="" alt="Aper\u00e7u" id="cartePreviewImage">' +
+                            '<div class="carte-preview-markers" id="cartePreviewMarkers"></div>' +
+                        '</div>' +
                     '</div>' +
-                    '<div class="carte-preview-wrapper" id="cartePreviewWrapper" style="display: none;">' +
-                        '<img src="" alt="Aper\u00e7u" id="cartePreviewImage">' +
-                        '<div class="carte-preview-markers" id="cartePreviewMarkers"></div>' +
+                    '<div class="cb-construction-footer">' +
+                        '<span class="cb-marker-count" id="carteMarqueurCount">0 marqueur</span>' +
+                        '<span class="cb-footer-hint">Clic image = ajouter \u2022 Clic marqueur = configurer</span>' +
+                        '<button type="button" class="btn btn-secondary btn-sm" id="addMarqueurBtn" onclick="AdminBanquesExercices.addMarqueurManual()">+ Ajouter manuellement</button>' +
                     '</div>' +
                 '</div>' +
-                '<div class="form-help">Cliquez sur l\'image pour placer des marqueurs</div>' +
             '</div>' +
-            '<div class="form-group">' +
-                '<label>Marqueurs</label>' +
-                '<div class="marqueurs-list" id="marqueursList"></div>' +
-                '<button type="button" class="btn btn-secondary btn-sm" id="addMarqueurBtn">+ Ajouter un marqueur manuellement</button>' +
-            '</div>' +
+            // Panel Vue élève
+            '<div id="cartePreviewPanel" class="tb-preview-panel" style="display: none;"></div>' +
         '</div>';
     },
 

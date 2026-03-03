@@ -1571,6 +1571,400 @@
     box-shadow: 0 0 0 2px white, 0 0 0 4px #1f2937;
 }
 
+/* ===== Carte Builder v2 — Popover + Formes + Couleurs ===== */
+
+/* Formes des marqueurs sur l'image (admin construction) */
+.carte-marker-preview {
+    transition: all 0.15s ease;
+}
+.carte-marker-preview.cb-marker-selected {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+/* Formes */
+.cb-shape-cercle { border-radius: 50%; }
+.cb-shape-losange {
+    border-radius: 4px;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+.cb-shape-losange .cb-marker-num,
+.cb-shape-losange .cb-pv-marker-num { transform: rotate(-45deg); }
+.cb-shape-carre { border-radius: 4px; }
+.cb-shape-pin {
+    border-radius: 50% 50% 50% 0;
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+.cb-shape-pin .cb-marker-num,
+.cb-shape-pin .cb-pv-marker-num { transform: rotate(45deg); }
+
+/* Indicateurs sur les marqueurs */
+.cb-marker-indicators {
+    position: absolute;
+    top: -6px;
+    left: 100%;
+    margin-left: 4px;
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    pointer-events: none;
+}
+.cb-marker-answer-badge {
+    background: white;
+    color: #374151;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cb-marker-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+.cb-ind-alt {
+    background: #dbeafe;
+    color: #2563eb;
+}
+.cb-ind-strict {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+/* Footer sous l'image */
+.cb-construction-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    font-size: 13px;
+}
+.cb-marker-count {
+    font-weight: 600;
+    color: var(--gray-700);
+}
+.cb-footer-hint {
+    color: var(--gray-400);
+    font-size: 12px;
+    flex: 1;
+}
+
+/* Popover carte (même style que le tableau) */
+.cb-popover {
+    width: 300px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    z-index: 1000;
+    overflow: hidden;
+}
+.cb-popover-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--gray-200);
+}
+.cb-popover-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+}
+.cb-popover-close {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--gray-400);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.cb-popover-close:hover { background: var(--gray-200); }
+.cb-popover-body { padding: 12px 14px; }
+.cb-popover-field { margin-bottom: 14px; }
+.cb-popover-field:last-child { margin-bottom: 0; }
+.cb-popover-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--gray-500);
+    margin-bottom: 6px;
+}
+.cb-popover-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.cb-popover-input:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Sélecteurs forme et couleur */
+.cb-popover-appearance {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.cb-shapes-row, .cb-colors-row {
+    display: flex;
+    gap: 4px;
+}
+.cb-shape-btn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--gray-200);
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.15s;
+    padding: 0;
+}
+.cb-shape-btn:hover {
+    border-color: var(--gray-400);
+    background: var(--gray-50);
+}
+.cb-shape-btn.active {
+    border-color: var(--primary, #6366f1);
+    background: #f5f3ff;
+    box-shadow: 0 0 0 1px var(--primary, #6366f1);
+}
+.cb-color-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.15s;
+}
+.cb-color-btn:hover {
+    transform: scale(1.15);
+}
+.cb-color-btn.active {
+    border-color: #1f2937;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #1f2937;
+}
+
+/* Correction radio group */
+.cb-popover-radio-group {
+    display: flex;
+    gap: 6px;
+}
+.cb-popover-radio {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 12px;
+    font-weight: 500;
+}
+.cb-popover-radio input[type="radio"] { display: none; }
+.cb-popover-radio.active {
+    border-color: var(--primary, #6366f1);
+    background: #f5f3ff;
+}
+.cb-popover-hint {
+    font-size: 11px;
+    color: var(--gray-400);
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* Alternatives dans le popover carte */
+.cb-popover-alts {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.cb-popover-alt-item {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.cb-popover-alt-input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--gray-200);
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: inherit;
+}
+.cb-popover-alt-input:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+}
+.cb-popover-alt-remove {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--gray-400);
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+.cb-popover-alt-remove:hover { color: var(--accent-red, #ef4444); }
+.cb-popover-add-alt {
+    background: transparent;
+    border: 1px dashed var(--gray-300);
+    color: var(--gray-500);
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+    width: 100%;
+}
+.cb-popover-add-alt:hover {
+    border-color: var(--primary, #6366f1);
+    color: var(--primary, #6366f1);
+}
+
+/* Bouton supprimer dans le popover */
+.cb-popover-footer {
+    padding-top: 10px;
+    border-top: 1px solid var(--gray-100);
+    margin-top: 4px;
+    text-align: right;
+}
+.cb-popover-delete {
+    background: transparent;
+    border: 1px solid #fca5a5;
+    color: #dc2626;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+.cb-popover-delete:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+}
+
+/* Vue élève preview */
+.cb-preview-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-400);
+    font-size: 13px;
+}
+.cb-pv-consigne {
+    font-size: 14px;
+    color: var(--gray-700);
+    margin: 0 0 16px 0;
+    padding: 12px 16px;
+    background: white;
+    border-left: 3px solid #d97706;
+    border-radius: 0 6px 6px 0;
+}
+.cb-pv-image-wrapper {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+.cb-pv-image {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+.cb-pv-marqueurs {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+.cb-pv-marker {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    color: white;
+    border: 3px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transform: translate(-50%, -50%);
+    transition: all 0.2s;
+}
+.cb-pv-marker:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.cb-pv-marker-num {
+    font-size: 12px;
+}
+.cb-pv-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 12px;
+    font-style: italic;
+}
+
+/* Input simulé dans la vue élève preview */
+.cb-pv-input-sim {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 6px;
+    z-index: 10;
+    pointer-events: auto;
+}
+.cb-pv-input-field {
+    width: 120px;
+    padding: 6px 10px;
+    border: 2px solid #dbeafe;
+    border-radius: 6px;
+    font-size: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    text-align: center;
+}
+
 /* Question Ouverte Builder */
 .questions-list {
     display: flex;
