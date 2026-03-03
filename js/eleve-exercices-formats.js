@@ -286,13 +286,19 @@ Object.assign(EleveExercices, {
     },
 
     renderDocumentMixte(donnees, structure) {
+        this.mixteData = donnees;
+
+        // Nouveau format : blocks
+        if (donnees.blocks && Array.isArray(donnees.blocks)) {
+            return this._renderMixteBlocks(donnees.blocks);
+        }
+
+        // Ancien format : document/tableau/questions
         const doc = donnees.document || { actif: false };
         const tableau = donnees.tableau || { actif: false };
         const questions = donnees.questions || { actif: false };
         const sectionOrder = donnees.sectionOrder || ['document', 'tableau', 'questions'];
         const layout = donnees.layout || 'vertical';
-
-        this.mixteData = donnees;
 
         if (layout === 'horizontal' && doc.actif) {
             const docHTML = this.renderMixteDocumentSection(doc);
@@ -325,6 +331,150 @@ Object.assign(EleveExercices, {
         });
 
         return `<div class="document-mixte-container">${sectionsHTML}</div>`;
+    },
+
+    // ========== NOUVEAU FORMAT BLOCKS POUR DOCUMENT_MIXTE ==========
+
+    _renderMixteBlocks(blocks) {
+        // Collecter tous les tableaux pour la validation
+        this._mixteBlockTableaux = [];
+        this._mixteBlockTableauCounter = 0;
+
+        const self = this;
+        const html = blocks.map(block => self._renderMixteBlock(block)).join('');
+        return `<div class="document-mixte-container mixte-blocks-layout">${html}</div>`;
+    },
+
+    _renderMixteBlock(block) {
+        if (block.type === 'group') {
+            return this._renderMixteBlockGroup(block);
+        }
+
+        switch (block.type) {
+        case 'text': {
+            const content = block.content || '';
+            const legende = block.legende || '';
+            let html = '';
+            if (content) {
+                html += `<div class="mixte-block-text">${content}</div>`;
+            }
+            if (legende) {
+                html += `<div class="mixte-block-legende">${this.escapeHtml(legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+            }
+            return html;
+        }
+        case 'document': {
+            let html = '';
+            if (block.titre) {
+                html += `<div class="mixte-block-titre">${this.escapeHtml(block.titre)}</div>`;
+            }
+            if (block.url) {
+                const converted = this.convertGoogleUrl(block.url);
+                if (converted.type === 'drive_file') {
+                    html += `<img src="${converted.imageUrl}" alt="Document" class="mixte-block-doc-img"
+                                 onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                             <iframe src="${converted.iframeUrl}" class="mixte-block-doc-iframe" style="display:none;"></iframe>`;
+                } else if (converted.iframeUrl) {
+                    html += `<iframe src="${this.escapeHtml(converted.iframeUrl)}" class="mixte-block-doc-iframe"></iframe>`;
+                } else {
+                    html += `<img src="${this.escapeHtml(this.convertToDirectImageUrl(block.url))}" alt="Document" class="mixte-block-doc-img">`;
+                }
+            }
+            if (block.legende) {
+                html += `<div class="mixte-block-legende">${this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+            }
+            return html;
+        }
+        case 'image': {
+            let html = '';
+            if (block.url) {
+                const imgSrc = this.convertToDirectImageUrl(block.url);
+                html += `<div class="mixte-block-image"><img src="${this.escapeHtml(imgSrc)}" alt="Image"></div>`;
+            }
+            if (block.legende) {
+                html += `<div class="mixte-block-legende">${this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+            }
+            return html;
+        }
+        case 'video': {
+            let html = '';
+            if (block.url) {
+                const embedUrl = this._getVideoEmbedUrl(block.url);
+                if (embedUrl) {
+                    html += `<div class="mixte-block-video"><iframe src="${this.escapeHtml(embedUrl)}" frameborder="0" allowfullscreen></iframe></div>`;
+                }
+            }
+            if (block.legende) {
+                html += `<div class="mixte-block-legende">${this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+            }
+            return html;
+        }
+        case 'tableau': {
+            return this._renderMixteBlockTableau(block);
+        }
+        default:
+            return '';
+        }
+    },
+
+    _renderMixteBlockGroup(group) {
+        const ratio = group.ratio || '50-50';
+        const parts = ratio.split('-');
+        const leftFlex = parseInt(parts[0]) || 50;
+        const rightFlex = parseInt(parts[1]) || 50;
+
+        const self = this;
+        const childrenHTML = (group.children || []).map((child, i) => {
+            const flex = i === 0 ? leftFlex : rightFlex;
+            return `<div class="mixte-blocks-group-child" style="flex:${flex}">${self._renderMixteBlock(child)}</div>`;
+        }).join('');
+
+        return `<div class="mixte-blocks-group">${childrenHTML}</div>`;
+    },
+
+    _renderMixteBlockTableau(block) {
+        const cols = block.colonnes || [];
+        const lignes = block.lignes || [];
+        const tableIdx = this._mixteBlockTableauCounter++;
+
+        // Stocker le tableau pour la validation
+        this._mixteBlockTableaux.push({ cols, lignes, tableIdx });
+
+        const headerHTML = cols.map(c =>
+            `<th>${this.escapeHtml(c || '')}</th>`
+        ).join('');
+
+        const bodyHTML = lignes.map((ligne, ri) =>
+            `<tr>${(ligne.cells || []).map((cell, ci) => {
+                if (cell.type === 'reponse') {
+                    return `<td class="cell-editable">
+                        <input type="text" class="cell-input" id="mixte_btab_${tableIdx}_${ri}_${ci}"
+                               placeholder="..." autocomplete="off">
+                    </td>`;
+                }
+                return `<td class="cell-donnee">${this.escapeHtml(cell.valeur || '')}</td>`;
+            }).join('')}</tr>`
+        ).join('');
+
+        return `
+            <div class="mixte-block-tableau">
+                <table class="mixte-table">
+                    <thead><tr>${headerHTML}</tr></thead>
+                    <tbody>${bodyHTML}</tbody>
+                </table>
+            </div>
+        `;
+    },
+
+    _getVideoEmbedUrl(url) {
+        if (!url) return null;
+        // YouTube
+        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/);
+        if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+        // Google Drive video
+        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/);
+        if (driveMatch) return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+        return url;
     },
 
     renderMixteDocumentSection(doc) {
@@ -650,6 +800,44 @@ Object.assign(EleveExercices, {
 
     showDocumentMixteCorrige() {
         const data = this.mixteData || {};
+
+        // Nouveau format : blocks
+        if (data.blocks && this._mixteBlockTableaux) {
+            this._mixteBlockTableaux.forEach(tab => {
+                tab.lignes.forEach((ligne, ri) => {
+                    (ligne.cells || []).forEach((cell, ci) => {
+                        if (cell.type === 'reponse') {
+                            const input = document.getElementById(`mixte_btab_${tab.tableIdx}_${ri}_${ci}`);
+                            if (!input) return;
+                            const userAnswer = input.value.trim();
+                            const correctAnswer = cell.valeur || '';
+                            const alts = cell.alternatives || [];
+                            const allCorrect = [correctAnswer].concat(alts).join('|');
+                            const stricte = cell.correction === 'stricte';
+                            const isCorrect = this.checkAnswerMatch(userAnswer, allCorrect, stricte);
+
+                            input.classList.remove('incorrect', 'correct');
+                            input.classList.add(isCorrect ? 'correct' : 'incorrect');
+                            input.disabled = true;
+
+                            if (!userAnswer) {
+                                input.value = '(non r\u00e9pondu)';
+                                input.classList.add('empty-answer');
+                            }
+                            if (!isCorrect) {
+                                const correctionDiv = document.createElement('div');
+                                correctionDiv.className = 'correction-expected-below';
+                                correctionDiv.innerHTML = `R\u00e9ponse : ${this.escapeHtml(correctAnswer)}`;
+                                input.parentNode.appendChild(correctionDiv);
+                            }
+                        }
+                    });
+                });
+            });
+            return;
+        }
+
+        // Ancien format
         const container = document.querySelector('.document-mixte-container');
 
         const docSection = document.querySelector('.mixte-document') || document.querySelector('.mixte-left-column');
@@ -667,7 +855,7 @@ Object.assign(EleveExercices, {
                 const toggleBtn = document.createElement('button');
                 toggleBtn.id = 'toggleDocumentBtn';
                 toggleBtn.className = 'btn-toggle-document';
-                toggleBtn.innerHTML = '📄 Voir le document';
+                toggleBtn.innerHTML = '\uD83D\uDCC4 Voir le document';
                 toggleBtn.setAttribute('onclick', 'EleveExercices.openDocumentModal()');
                 container.insertBefore(toggleBtn, container.firstChild);
 
@@ -677,8 +865,8 @@ Object.assign(EleveExercices, {
                 modal.innerHTML = `
                     <div class="document-modal">
                         <div class="document-modal-header">
-                            <h3>📄 Document</h3>
-                            <button class="document-modal-close" onclick="EleveExercices.closeDocumentModal()">×</button>
+                            <h3>\uD83D\uDCC4 Document</h3>
+                            <button class="document-modal-close" onclick="EleveExercices.closeDocumentModal()">\u00D7</button>
                         </div>
                         <div class="document-modal-body">
                             ${documentHTML}
@@ -705,14 +893,14 @@ Object.assign(EleveExercices, {
                             input.disabled = true;
 
                             if (!userAnswer) {
-                                input.value = '(non répondu)';
+                                input.value = '(non r\u00e9pondu)';
                                 input.classList.add('empty-answer');
                             }
 
                             if (!isCorrect) {
                                 const correctionDiv = document.createElement('div');
                                 correctionDiv.className = 'correction-expected-below';
-                                correctionDiv.innerHTML = `Réponse : ${this.escapeHtml(firstCorrectAnswer)}`;
+                                correctionDiv.innerHTML = `R\u00e9ponse : ${this.escapeHtml(firstCorrectAnswer)}`;
                                 input.parentNode.appendChild(correctionDiv);
                             }
                         }
@@ -737,14 +925,14 @@ Object.assign(EleveExercices, {
                                 input.disabled = true;
 
                                 if (!userAnswer) {
-                                    input.value = '(non répondu)';
+                                    input.value = '(non r\u00e9pondu)';
                                     input.classList.add('empty-answer');
                                 }
 
                                 if (!isCorrect) {
                                     const correctionDiv = document.createElement('div');
                                     correctionDiv.className = 'correction-expected-below';
-                                    correctionDiv.innerHTML = `Réponse : ${this.escapeHtml(firstCorrectAnswer)}`;
+                                    correctionDiv.innerHTML = `R\u00e9ponse : ${this.escapeHtml(firstCorrectAnswer)}`;
                                     input.parentNode.appendChild(correctionDiv);
                                 }
                             }
@@ -761,7 +949,7 @@ Object.assign(EleveExercices, {
                 if (textarea) textarea.disabled = true;
                 if (correctionDiv && q.reponse_attendue) {
                     const firstAnswer = q.reponse_attendue.split(/[|;]/)[0].trim();
-                    correctionDiv.innerHTML = `<strong>Réponse attendue :</strong> ${this.escapeHtml(firstAnswer)}`;
+                    correctionDiv.innerHTML = `<strong>R\u00e9ponse attendue :</strong> ${this.escapeHtml(firstAnswer)}`;
                     correctionDiv.classList.remove('hidden');
                 }
             });
@@ -864,6 +1052,28 @@ Object.assign(EleveExercices, {
     resetDocumentMixte() {
         const data = this.mixteData || {};
 
+        // Nouveau format : blocks
+        if (data.blocks && this._mixteBlockTableaux) {
+            this._mixteBlockTableaux.forEach(tab => {
+                tab.lignes.forEach((ligne, ri) => {
+                    (ligne.cells || []).forEach((cell, ci) => {
+                        if (cell.type === 'reponse') {
+                            const input = document.getElementById(`mixte_btab_${tab.tableIdx}_${ri}_${ci}`);
+                            if (input) {
+                                input.value = '';
+                                input.classList.remove('correct', 'incorrect', 'empty-answer');
+                                input.disabled = false;
+                                const correction = input.parentNode.querySelector('.correction-expected-below');
+                                if (correction) correction.remove();
+                            }
+                        }
+                    });
+                });
+            });
+            return;
+        }
+
+        // Ancien format
         if (data.tableau && data.tableau.actif) {
             if (this.mixteTableauElements && this.mixteTableauElements.length > 0) {
                 this.mixteTableauElements.forEach((el, idx) => {
@@ -873,7 +1083,6 @@ Object.assign(EleveExercices, {
                             input.value = '';
                             input.className = 'cell-input';
                             input.disabled = false;
-                            // Retirer la div de correction ajoutée par showDocumentMixteCorrige
                             const correction = input.parentNode.querySelector('.correction-expected-below');
                             if (correction) correction.remove();
                         }
