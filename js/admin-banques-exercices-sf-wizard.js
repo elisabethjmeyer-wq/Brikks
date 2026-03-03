@@ -279,6 +279,8 @@ Object.assign(AdminBanquesExercices, {
                 e.consigne = consigneEl.value.trim();
                 this.sfWizardData.exercice = e;
             }
+            // Capturer les données du builder avant de quitter l'étape 3
+            this.sfWizardData._builderSnapshot = this._buildSFDonnees();
             break;
         }
         case 4:
@@ -325,8 +327,6 @@ Object.assign(AdminBanquesExercices, {
             this._initSFWizardStep3();
             break;
         case 4:
-            // Sauvegarder l'état du builder avant de quitter l'étape 3
-            this._saveSFBuilderSnapshot();
             content.innerHTML = this._renderSFWizardStep4();
             break;
         }
@@ -772,14 +772,6 @@ Object.assign(AdminBanquesExercices, {
             } else {
                 this.initTableBuilder();
             }
-        }
-    },
-
-    /** Capture un snapshot des données du builder avant de quitter l'étape 3. */
-    _saveSFBuilderSnapshot: function() {
-        // On ne snapshot que si on était sur l'étape 3
-        if (this.sfWizardData.currentStep === 3 || this._lastSFStep === 3) {
-            this.sfWizardData._builderSnapshot = this._buildSFDonnees();
         }
     },
 
