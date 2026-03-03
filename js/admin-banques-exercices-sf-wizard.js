@@ -393,7 +393,7 @@ Object.assign(AdminBanquesExercices, {
         };
         var formatLabelsStep2 = {
             'tableau_saisie': 'Tableau',
-            'carte_cliquable': 'Carte cliquable',
+            'carte_cliquable': 'Image cliquable',
             'document_tableau': 'Document + Tableau',
             'question_ouverte': 'Question ouverte',
             'document_mixte': 'Document mixte'
@@ -476,7 +476,7 @@ Object.assign(AdminBanquesExercices, {
         // Nom du format pour affichage (label court basé sur le type UI)
         var formatLabels = {
             'tableau_saisie': 'Tableau',
-            'carte_cliquable': 'Carte cliquable',
+            'carte_cliquable': 'Image cliquable',
             'document_tableau': 'Document + Tableau',
             'question_ouverte': 'Question ouverte',
             'document_mixte': 'Document mixte'
@@ -540,7 +540,7 @@ Object.assign(AdminBanquesExercices, {
         '</div>';
     },
 
-    // --- HTML pour le builder Carte cliquable (v2 — popover) ---
+    // --- HTML pour le builder Image cliquable (v2 — popover) ---
     _renderCarteBuilderHTML: function() {
         return '<div id="builderCarte" class="format-builder">' +
             '<div class="form-group">' +
@@ -790,7 +790,7 @@ Object.assign(AdminBanquesExercices, {
         var formatUI = this.sfWizardData.formatUI || 'tableau_saisie';
         var formatLabelsStep4 = {
             'tableau_saisie': 'Tableau',
-            'carte_cliquable': 'Carte cliquable',
+            'carte_cliquable': 'Image cliquable',
             'document_tableau': 'Document + Tableau',
             'question_ouverte': 'Question ouverte',
             'document_mixte': 'Document mixte'
