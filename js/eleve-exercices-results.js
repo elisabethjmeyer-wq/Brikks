@@ -237,6 +237,20 @@ Object.assign(EleveExercices, {
                     });
                 }
             }
+            if (data.questions && data.questions.actif) {
+                const questions = this.mixteQuestions || [];
+                questions.forEach((q, idx) => {
+                    const textarea = document.getElementById(`mixte_answer_${idx}`);
+                    const userAnswer = textarea ? textarea.value.trim() : '';
+                    details.push({
+                        question: q.question || `Question ${idx + 1}`,
+                        reponseUtilisateur: userAnswer,
+                        reponseAttendue: q.reponse_attendue || '(voir corrigé)',
+                        correct: null,
+                        isOpenQuestion: true
+                    });
+                });
+            }
         } else if (typeUI === 'question_ouverte') {
             const questions = this.questionsOuvertes || [];
             questions.forEach((q, qIndex) => {

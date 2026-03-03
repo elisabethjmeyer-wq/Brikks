@@ -689,45 +689,80 @@ Object.assign(EleveExercices, {
             }
         }
 
-        if (data.tableau && data.tableau.actif && this.mixteTableauElements) {
-            this.mixteTableauElements.forEach((el, idx) => {
-                if (el.type === 'row' && el.reponse) {
-                    const input = document.getElementById(`mixte_element_${idx}`);
-                    if (input) {
-                        const userAnswer = input.value.trim();
-                        const correctAnswerRaw = el.reponse;
-                        const firstCorrectAnswer = correctAnswerRaw.split(/[|;]/)[0].trim();
-                        const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswerRaw);
+        if (data.tableau && data.tableau.actif) {
+            if (this.mixteTableauElements && this.mixteTableauElements.length > 0) {
+                this.mixteTableauElements.forEach((el, idx) => {
+                    if (el.type === 'row' && el.reponse) {
+                        const input = document.getElementById(`mixte_element_${idx}`);
+                        if (input) {
+                            const userAnswer = input.value.trim();
+                            const correctAnswerRaw = el.reponse;
+                            const firstCorrectAnswer = correctAnswerRaw.split(/[|;]/)[0].trim();
+                            const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswerRaw);
 
-                        input.classList.remove('incorrect', 'correct');
-                        input.classList.add(isCorrect ? 'correct' : 'incorrect');
-                        input.disabled = true;
+                            input.classList.remove('incorrect', 'correct');
+                            input.classList.add(isCorrect ? 'correct' : 'incorrect');
+                            input.disabled = true;
 
-                        if (!userAnswer) {
-                            input.value = '(non répondu)';
-                            input.classList.add('empty-answer');
-                        }
+                            if (!userAnswer) {
+                                input.value = '(non répondu)';
+                                input.classList.add('empty-answer');
+                            }
 
-                        if (!isCorrect) {
-                            const correctionDiv = document.createElement('div');
-                            correctionDiv.className = 'correction-expected-below';
-                            correctionDiv.innerHTML = `Réponse : ${this.escapeHtml(firstCorrectAnswer)}`;
-                            input.parentNode.appendChild(correctionDiv);
+                            if (!isCorrect) {
+                                const correctionDiv = document.createElement('div');
+                                correctionDiv.className = 'correction-expected-below';
+                                correctionDiv.innerHTML = `Réponse : ${this.escapeHtml(firstCorrectAnswer)}`;
+                                input.parentNode.appendChild(correctionDiv);
+                            }
                         }
                     }
-                }
-            });
+                });
+            } else {
+                const colonnes = this.mixteTableauColonnes || [];
+                const lignes = this.mixteTableauLignes || [];
+
+                lignes.forEach((ligne, rowIdx) => {
+                    colonnes.forEach((col, colIdx) => {
+                        if (col.editable) {
+                            const input = document.getElementById(`mixte_cell_${rowIdx}_${colIdx}`);
+                            if (input) {
+                                const userAnswer = input.value.trim();
+                                const correctAnswerRaw = ligne.cells[colIdx] || '';
+                                const firstCorrectAnswer = correctAnswerRaw.split(/[|;]/)[0].trim();
+                                const isCorrect = this.checkAnswerMatch(userAnswer, correctAnswerRaw);
+
+                                input.classList.remove('incorrect', 'correct');
+                                input.classList.add(isCorrect ? 'correct' : 'incorrect');
+                                input.disabled = true;
+
+                                if (!userAnswer) {
+                                    input.value = '(non répondu)';
+                                    input.classList.add('empty-answer');
+                                }
+
+                                if (!isCorrect) {
+                                    const correctionDiv = document.createElement('div');
+                                    correctionDiv.className = 'correction-expected-below';
+                                    correctionDiv.innerHTML = `Réponse : ${this.escapeHtml(firstCorrectAnswer)}`;
+                                    input.parentNode.appendChild(correctionDiv);
+                                }
+                            }
+                        }
+                    });
+                });
+            }
         }
 
         if (data.questions && data.questions.actif && this.mixteQuestions) {
             this.mixteQuestions.forEach((q, idx) => {
-                const textarea = document.getElementById(`mixte_question_${idx}`);
+                const textarea = document.getElementById(`mixte_answer_${idx}`);
                 const correctionDiv = document.getElementById(`mixte_correction_${idx}`);
                 if (textarea) textarea.disabled = true;
                 if (correctionDiv && q.reponse_attendue) {
                     const firstAnswer = q.reponse_attendue.split(/[|;]/)[0].trim();
                     correctionDiv.innerHTML = `<strong>Réponse attendue :</strong> ${this.escapeHtml(firstAnswer)}`;
-                    correctionDiv.style.display = 'block';
+                    correctionDiv.classList.remove('hidden');
                 }
             });
         }
@@ -829,29 +864,52 @@ Object.assign(EleveExercices, {
     resetDocumentMixte() {
         const data = this.mixteData || {};
 
-        if (data.tableau && data.tableau.actif && this.mixteTableauElements) {
-            this.mixteTableauElements.forEach((el, idx) => {
-                if (el.type === 'row') {
-                    const input = document.getElementById(`mixte_element_${idx}`);
-                    if (input) {
-                        input.value = '';
-                        input.className = 'cell-input';
-                        input.disabled = false;
+        if (data.tableau && data.tableau.actif) {
+            if (this.mixteTableauElements && this.mixteTableauElements.length > 0) {
+                this.mixteTableauElements.forEach((el, idx) => {
+                    if (el.type === 'row') {
+                        const input = document.getElementById(`mixte_element_${idx}`);
+                        if (input) {
+                            input.value = '';
+                            input.className = 'cell-input';
+                            input.disabled = false;
+                            // Retirer la div de correction ajoutée par showDocumentMixteCorrige
+                            const correction = input.parentNode.querySelector('.correction-expected-below');
+                            if (correction) correction.remove();
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                const colonnes = this.mixteTableauColonnes || [];
+                const lignes = this.mixteTableauLignes || [];
+
+                lignes.forEach((_, rowIdx) => {
+                    colonnes.forEach((col, colIdx) => {
+                        if (col.editable) {
+                            const input = document.getElementById(`mixte_cell_${rowIdx}_${colIdx}`);
+                            if (input) {
+                                input.value = '';
+                                input.classList.remove('correct', 'incorrect', 'empty-answer');
+                                input.disabled = false;
+                                const correction = input.parentNode.querySelector('.correction-expected-below');
+                                if (correction) correction.remove();
+                            }
+                        }
+                    });
+                });
+            }
         }
 
         if (data.questions && data.questions.actif && this.mixteQuestions) {
             this.mixteQuestions.forEach((q, idx) => {
-                const textarea = document.getElementById(`mixte_question_${idx}`);
+                const textarea = document.getElementById(`mixte_answer_${idx}`);
                 const correctionDiv = document.getElementById(`mixte_correction_${idx}`);
                 if (textarea) {
                     textarea.value = '';
                     textarea.disabled = false;
                 }
                 if (correctionDiv) {
-                    correctionDiv.style.display = 'none';
+                    correctionDiv.classList.add('hidden');
                     correctionDiv.innerHTML = '';
                 }
             });

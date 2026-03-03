@@ -279,7 +279,7 @@ Object.assign(EleveExercices, {
         if (data.questions && data.questions.actif) {
             const questions = this.mixteQuestions || [];
             questions.forEach((q, idx) => {
-                const textarea = document.getElementById(`mixte_question_${idx}`);
+                const textarea = document.getElementById(`mixte_answer_${idx}`);
                 if (textarea && textarea.value.trim()) {
                     textarea.classList.add('answered');
                 }
