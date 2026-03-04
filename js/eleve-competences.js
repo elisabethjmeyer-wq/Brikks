@@ -207,28 +207,111 @@ const EleveCompetences = {
     },
 
     /**
-     * Statut d'un exercice individuel
+     * Statut d'un exercice individuel — badge unique (mode + statut fusionnés)
+     * @param {Object|null} progression
+     * @param {Object} [entrainement] — nécessaire pour calculer la deadline (soumis sans envoi)
      */
-    getExerciseStatus(progression) {
+    getExerciseStatus(progression, entrainement) {
         if (!progression) {
-            return { status: 'pas_commence', label: 'Pas commencé', cssClass: 'not-started', icon: '○' };
+            return { status: 'pas_commence', label: '', cssClass: 'not-started', icon: '' };
         }
         switch (progression.statut) {
             case 'en_cours':
+                if (progression.mode === 'evalue') {
+                    return { status: 'en_cours_eval', label: 'Évaluation en cours', cssClass: 'in-progress-eval', icon: '⏱' };
+                }
                 return { status: 'en_cours', label: 'En cours', cssClass: 'in-progress', icon: '▶' };
             case 'entraine':
-                return { status: 'entraine', label: 'Entraîné', cssClass: 'trained', icon: '📝' };
+                return { status: 'entraine', label: 'Terminé', cssClass: 'trained', icon: '✓' };
             case 'soumis':
-                return { status: 'soumis', label: 'Soumis', cssClass: 'submitted', icon: '📤' };
+                return this._getSoumisStatus(progression, entrainement);
             case 'corrige':
                 return { status: 'corrige', label: 'Corrigé', cssClass: 'corrected', icon: '📋' };
             case 'valide':
                 return { status: 'valide', label: 'Validé', cssClass: 'validated', icon: '✓' };
             case 'non_soumis':
-                return { status: 'non_soumis', label: 'Non soumis', cssClass: 'declined', icon: '✕' };
+                return { status: 'non_soumis', label: 'Non évalué', cssClass: 'declined', icon: '✕' };
             default:
-                return { status: 'pas_commence', label: 'Pas commencé', cssClass: 'not-started', icon: '○' };
+                return { status: 'pas_commence', label: '', cssClass: 'not-started', icon: '' };
         }
+    },
+
+    /**
+     * Sous-statuts pour 'soumis' : distingue "à envoyer" vs "en attente de correction"
+     */
+    _getSoumisStatus(progression, entrainement) {
+        const hasEnvoye = !!progression.date_envoi;
+
+        if (hasEnvoye) {
+            return { status: 'soumis_envoye', label: 'En attente de correction', cssClass: 'submitted-sent', icon: '📤' };
+        }
+
+        // Pas encore envoyé → calculer la deadline
+        const modeRendu = progression.mode_rendu;
+        const delivery = SubmissionUtils.getDeliveryInfo(
+            entrainement ? entrainement.id : (progression.entrainement_id || '')
+        );
+
+        if (modeRendu === 'numerique' || (delivery && delivery.modeRendu === 'numerique')) {
+            const deadlineText = this._calcDeadlineMail(progression, entrainement);
+            if (this._isDeadlinePassed(deadlineText)) {
+                return { status: 'soumis_expire', label: 'Délai dépassé', cssClass: 'submitted-expired', icon: '⚠️' };
+            }
+            return { status: 'soumis_a_envoyer', label: 'À envoyer via MBN', sublabel: deadlineText, cssClass: 'submitted-pending', icon: '📧' };
+        }
+
+        if (modeRendu === 'papier' || (delivery && delivery.modeRendu === 'papier')) {
+            const deadlineText = this._calcDeadlinePapier(progression, entrainement);
+            return { status: 'soumis_a_deposer', label: 'À déposer dans le casier', sublabel: deadlineText, cssClass: 'submitted-pending', icon: '📄' };
+        }
+
+        // Fallback : pas de mode_rendu connu
+        return { status: 'soumis', label: 'En attente de correction', cssClass: 'submitted-sent', icon: '📤' };
+    },
+
+    /**
+     * Calcule le texte de deadline mail à partir de date_soumission + délai
+     */
+    _calcDeadlineMail(progression, entrainement) {
+        // Essayer d'abord le localStorage (calculé au moment de la soumission)
+        const delivery = SubmissionUtils.getDeliveryInfo(
+            entrainement ? entrainement.id : (progression.entrainement_id || '')
+        );
+        if (delivery && delivery.deadlineText) return delivery.deadlineText;
+
+        // Recalculer depuis date_soumission + delai_mail_minutes
+        if (progression.date_soumission && entrainement) {
+            const delai = entrainement.delai_mail_minutes || 30;
+            const soumissionDate = new Date(progression.date_soumission);
+            const deadline = new Date(soumissionDate.getTime() + delai * 60 * 1000);
+            const h = deadline.getHours();
+            const m = String(deadline.getMinutes()).padStart(2, '0');
+            return 'avant ' + h + 'h' + m;
+        }
+
+        return '';
+    },
+
+    /**
+     * Calcule le texte de deadline papier à partir de date_soumission + délai
+     */
+    _calcDeadlinePapier(progression, entrainement) {
+        const delivery = SubmissionUtils.getDeliveryInfo(
+            entrainement ? entrainement.id : (progression.entrainement_id || '')
+        );
+        if (delivery && delivery.deadlineText) return delivery.deadlineText;
+
+        // Recalculer depuis date_soumission + delai_papier_jours
+        if (progression.date_soumission && entrainement) {
+            const delai = entrainement.delai_papier_jours || 1;
+            const jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+            const moisNoms = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+                'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+            const d = SubmissionUtils.prochainJourOuvre(delai, SubmissionUtils._joursNonCoursCache || new Set());
+            return 'le ' + jours[d.getDay()] + ' ' + d.getDate() + ' ' + moisNoms[d.getMonth()];
+        }
+
+        return '';
     },
 
     // ==========================================
@@ -272,18 +355,14 @@ const EleveCompetences = {
         const cardsHTML = sorted.map(banque => {
             const comp = this.competences.find(c => String(c.id) === String(banque.competence_id));
             const compNom = comp ? comp.nom : (banque.titre || 'Sans titre');
-            const status = this.getBanqueStatus(banque.id);
             const banqueEntr = this.getEntrainementsForBanque(banque.id);
 
             // Calcul de la progression par banque
             const metaParts = this._getBanqueMetaParts(banqueEntr);
 
             return `
-                <div class="comp-card ${status.cssClass}" onclick="EleveCompetences.openBanque('${banque.id}')">
+                <div class="comp-card" onclick="EleveCompetences.openBanque('${banque.id}')">
                     <div class="comp-card-left">
-                        <div class="comp-card-status-icon ${status.cssClass}">
-                            ${status.status === 'validee' ? '✓' : status.status === 'soumise' ? '📤' : status.status === 'en_cours' ? '⋯' : '○'}
-                        </div>
                         <div class="comp-card-info">
                             <h3 class="comp-card-title">${this.escapeHtml(banque.titre || compNom)}</h3>
                             <div class="comp-card-meta">
@@ -292,7 +371,6 @@ const EleveCompetences = {
                         </div>
                     </div>
                     <div class="comp-card-right">
-                        <span class="comp-card-badge ${status.cssClass}">${status.label}</span>
                         <span class="comp-card-chevron">›</span>
                     </div>
                 </div>
@@ -334,25 +412,31 @@ const EleveCompetences = {
      */
     _getBanqueMetaParts(banqueEntrainements) {
         const parts = [];
-        let nbEntraines = 0, nbSoumis = 0, nbValides = 0, nbEnCours = 0;
+        let nbTermines = 0, nbAEnvoyer = 0, nbEnAttente = 0, nbValides = 0, nbEnCours = 0, nbCorrige = 0, nbNonEvalue = 0;
 
         banqueEntrainements.forEach(entr => {
             const prog = this.progressions.find(p =>
                 String(p.entrainement_id) === String(entr.id)
             );
             if (!prog) return;
-            if (prog.statut === 'entraine') nbEntraines++;
-            else if (prog.statut === 'soumis') nbSoumis++;
+            if (prog.statut === 'entraine') nbTermines++;
+            else if (prog.statut === 'soumis' && prog.date_envoi) nbEnAttente++;
+            else if (prog.statut === 'soumis') nbAEnvoyer++;
             else if (prog.statut === 'valide') nbValides++;
+            else if (prog.statut === 'corrige') nbCorrige++;
             else if (prog.statut === 'en_cours') nbEnCours++;
+            else if (prog.statut === 'non_soumis') nbNonEvalue++;
         });
 
         const total = banqueEntrainements.length;
 
         if (nbValides > 0) parts.push(`<span>${nbValides} validé${nbValides > 1 ? 's' : ''}</span>`);
-        if (nbSoumis > 0) parts.push(`<span>${nbSoumis} en attente</span>`);
-        if (nbEntraines > 0) parts.push(`<span>${nbEntraines} entraîné${nbEntraines > 1 ? 's' : ''}</span>`);
+        if (nbCorrige > 0) parts.push(`<span>${nbCorrige} corrigé${nbCorrige > 1 ? 's' : ''}</span>`);
+        if (nbEnAttente > 0) parts.push(`<span>${nbEnAttente} en attente de correction</span>`);
+        if (nbAEnvoyer > 0) parts.push(`<span>${nbAEnvoyer} à envoyer</span>`);
+        if (nbTermines > 0) parts.push(`<span>${nbTermines} terminé${nbTermines > 1 ? 's' : ''}</span>`);
         if (nbEnCours > 0) parts.push(`<span>${nbEnCours} en cours</span>`);
+        if (nbNonEvalue > 0) parts.push(`<span>${nbNonEvalue} non évalué${nbNonEvalue > 1 ? 's' : ''}</span>`);
 
         if (parts.length === 0) {
             parts.push(`<span>${total} exercice${total > 1 ? 's' : ''}</span>`);
@@ -376,7 +460,6 @@ const EleveCompetences = {
         this.currentCompetence = comp || null;
 
         const container = document.getElementById('competences-content');
-        const status = this.getBanqueStatus(banque.id);
 
         // Exercices (de la banque)
         const banqueEntrainements = this.getEntrainementsForBanque(banque.id)
@@ -391,11 +474,11 @@ const EleveCompetences = {
                 String(p.entrainement_id) === String(entr.id)
             );
             const dureeMin = Math.round((entr.duree || 1800) / 60);
-            const exStatus = this.getExerciseStatus(prog);
+            const exStatus = this.getExerciseStatus(prog, entr);
 
-            // Tag mode (Entraînement / Évaluation) si un mode a été choisi
-            const modeTag = prog && prog.mode
-                ? `<span class="comp-exercise-mode-tag ${prog.mode === 'entrainement' ? 'mode-entrainement' : 'mode-evalue'}">${prog.mode === 'entrainement' ? 'Entraînement' : 'Évaluation'}</span>`
+            // Badge unique (vide si pas commencé)
+            const badgeHTML = exStatus.label
+                ? `<span class="comp-exercise-badge ${exStatus.cssClass}">${exStatus.label}${exStatus.sublabel ? '<span class="comp-exercise-badge-sub">' + exStatus.sublabel + '</span>' : ''}</span>`
                 : '';
 
             return `
@@ -405,11 +488,10 @@ const EleveCompetences = {
                         <div class="comp-exercise-title">${this.escapeHtml(entr.titre)}</div>
                         <div class="comp-exercise-meta">
                             <span>⏱ ${dureeMin} min</span>
-                            ${modeTag}
                         </div>
                     </div>
                     <div class="comp-exercise-action">
-                        <span class="comp-exercise-badge ${exStatus.cssClass}">${exStatus.label}</span>
+                        ${badgeHTML}
                     </div>
                 </div>
             `;
@@ -426,7 +508,6 @@ const EleveCompetences = {
                 <div class="comp-detail-header">
                     <div class="comp-detail-title-section">
                         <h2 class="comp-detail-title">${this.escapeHtml(banque.titre || compNom)}</h2>
-                        <span class="comp-detail-badge ${status.cssClass}">${status.label}</span>
                     </div>
                 </div>
 
