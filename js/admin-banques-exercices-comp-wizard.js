@@ -336,7 +336,7 @@ Object.assign(AdminBanquesExercices, {
             var comp = self.competencesReferentiel.find(function(c) { return c.id === b.competence_id; });
             var label = b.titre || (comp ? comp.nom : '(sans titre)');
             var selected = b.id === banqueId ? ' selected' : '';
-            banqueOptions += '<option value="' + b.id + '"' + selected + '>' + self.escapeHtml(label) + '</option>';
+            banqueOptions += '<option value="' + b.id + '"' + selected + '>' + escapeHtml(label) + '</option>';
         });
 
         var isLocked = !!(this.compWizardData.banqueId || e.banque_id);
