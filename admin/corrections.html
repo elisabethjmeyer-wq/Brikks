@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Correction des entraînements de compétences">
+    <title>Corrections - Administration - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-corrections.css">
+</head>
+<body>
+
+<!-- Contenu de la page -->
+<div id="corrections-page">
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="page-header-left">
+            <h1><span class="header-icon">✏️</span> Corrections</h1>
+        </div>
+    </header>
+
+    <!-- Toggle à corriger / terminées -->
+    <div class="corrections-toggle">
+        <button class="toggle-btn active" id="togglePending" onclick="AdminCorrections.showTab('pending')">
+            🔴 À corriger (<span id="pendingCount">0</span>)
+        </button>
+        <button class="toggle-btn" id="toggleDone" onclick="AdminCorrections.showTab('done')">
+            ✅ Terminées (<span id="doneCount">0</span>)
+        </button>
+    </div>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des corrections...</p>
+    </div>
+
+    <!-- Contenu principal -->
+    <div id="corrections-content" style="display: none;">
+        <!-- Grille de cartes -->
+        <div class="corrections-grid" id="correctionsGrid">
+            <!-- Généré dynamiquement -->
+        </div>
+
+        <!-- État vide -->
+        <div class="empty-state hidden" id="emptyState">
+            <p id="emptyMessage">Aucune copie à corriger pour le moment.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal correction (wizard 3 étapes) -->
+<div class="modal-overlay hidden" id="correctionModal">
+    <div class="modal modal-correction">
+        <div class="modal-header">
+            <h3 id="correctionModalTitle">Correction</h3>
+            <button class="modal-close" onclick="AdminCorrections.closeModal()">×</button>
+        </div>
+
+        <!-- Indicateur d'étapes -->
+        <div class="wizard-steps">
+            <div class="wizard-step active" data-step="1">
+                <span class="step-number">1</span>
+                <span class="step-label">Informations</span>
+            </div>
+            <div class="wizard-step" data-step="2">
+                <span class="step-number">2</span>
+                <span class="step-label">Correction</span>
+            </div>
+            <div class="wizard-step" data-step="3">
+                <span class="step-number">3</span>
+                <span class="step-label">Bilan</span>
+            </div>
+        </div>
+
+        <div class="modal-body" id="correctionModalBody">
+            <!-- Contenu dynamique par étape -->
+        </div>
+
+        <div class="modal-footer" id="correctionModalFooter">
+            <!-- Boutons dynamiques par étape -->
+        </div>
+    </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/app.js"></script>
+<script src="../components/admin-layout.js"></script>
+<script src="../js/admin-corrections.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        AdminLayout.init('corrections', 'Corrections');
+        AdminCorrections.init();
+    });
+</script>
+
+</body>
+</html>

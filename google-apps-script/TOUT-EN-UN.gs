@@ -8529,7 +8529,7 @@ function validateEleveEntrainementCompetence(data) {
 
   // Migration progressive : ajouter les colonnes manquantes
   var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  var colsToAdd = ['remarque_prof', 'correction_prof'];
+  var colsToAdd = ['remarque_prof', 'correction_prof', 'criteres_valides'];
   for (var c = 0; c < colsToAdd.length; c++) {
     if (currentHeaders.indexOf(colsToAdd[c]) === -1) {
       var nextCol = sheet.getLastColumn() + 1;
@@ -8547,6 +8547,7 @@ function validateEleveEntrainementCompetence(data) {
   var dateCorrectionCol = headers.indexOf('date_correction');
   var remarqueProfCol = headers.indexOf('remarque_prof');
   var correctionProfCol = headers.indexOf('correction_prof');
+  var criteresValidesCol = headers.indexOf('criteres_valides');
 
   for (var i = 1; i < allData.length; i++) {
     var match = false;
@@ -8574,6 +8575,10 @@ function validateEleveEntrainementCompetence(data) {
       // Correction personnalisée (URL ou HTML)
       if (correctionProfCol !== -1 && data.correction_prof !== undefined) {
         sheet.getRange(i + 1, correctionProfCol + 1).setValue(data.correction_prof);
+      }
+      // Critères de réussite validés (JSON array d'IDs)
+      if (criteresValidesCol !== -1 && data.criteres_valides !== undefined) {
+        sheet.getRange(i + 1, criteresValidesCol + 1).setValue(data.criteres_valides);
       }
       return { success: true };
     }

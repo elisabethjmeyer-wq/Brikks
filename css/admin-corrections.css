@@ -1,0 +1,652 @@
+/**
+ * Admin Corrections - Correction des entraînements de compétences
+ */
+
+/* ========== Toggle tabs ========== */
+.corrections-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.toggle-btn {
+    padding: 0.6rem 1.25rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+    background: #f9fafb;
+}
+
+.toggle-btn.active {
+    background: #7C5CFC;
+    color: #fff;
+    border-color: #7C5CFC;
+}
+
+/* ========== Grille de cartes ========== */
+.corrections-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.correction-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.correction-card:hover {
+    border-color: #7C5CFC;
+    box-shadow: 0 4px 12px rgba(124, 92, 252, 0.12);
+    transform: translateY(-2px);
+}
+
+.correction-card.done {
+    opacity: 0.7;
+    border-color: #d1fae5;
+}
+
+.correction-card.done:hover {
+    opacity: 1;
+}
+
+.card-eleve {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1f2937;
+}
+
+.card-entrainement {
+    font-size: 0.85rem;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+.card-competence {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f3f4f6;
+}
+
+.card-mode {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+.card-date {
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+.card-decision {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+}
+
+.card-decision.valide {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.card-decision.non_valide {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* ========== Empty state ========== */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #9ca3af;
+}
+
+.empty-state p {
+    font-size: 1rem;
+}
+
+/* ========== Modal correction ========== */
+.modal-correction {
+    max-width: 700px;
+    width: 95%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-correction .modal-body {
+    overflow-y: auto;
+    flex: 1;
+    padding: 1.5rem;
+}
+
+/* ========== Wizard steps ========== */
+.wizard-steps {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fafbfc;
+}
+
+.wizard-step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #9ca3af;
+    font-size: 0.85rem;
+}
+
+.wizard-step.active {
+    color: #7C5CFC;
+    font-weight: 600;
+}
+
+.wizard-step.completed {
+    color: #059669;
+}
+
+.step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #6b7280;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.wizard-step.active .step-number {
+    background: #7C5CFC;
+    color: #fff;
+}
+
+.wizard-step.completed .step-number {
+    background: #059669;
+    color: #fff;
+}
+
+/* ========== Étape 1 — Informations ========== */
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.info-item .info-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.info-item .info-label {
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+.info-item .info-value {
+    font-weight: 500;
+}
+
+.document-section {
+    margin-top: 1rem;
+}
+
+.document-section h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.document-frame {
+    width: 100%;
+    height: 350px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.document-html {
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fafbfc;
+    max-height: 350px;
+    overflow-y: auto;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+/* ========== Étape 2 — Correction ========== */
+.correction-section {
+    margin-bottom: 1.25rem;
+}
+
+.correction-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.correction-section-header:hover {
+    background: #f3f4f6;
+}
+
+.correction-section-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.correction-section-header .toggle-icon {
+    transition: transform 0.2s;
+    color: #9ca3af;
+}
+
+.correction-section-header.expanded .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.correction-section-body {
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+}
+
+.correction-section-body.hidden {
+    display: none;
+}
+
+/* Critères */
+.criteres-correction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.critere-check {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.critere-check:hover {
+    border-color: #7C5CFC;
+    background: #faf8ff;
+}
+
+.critere-check.checked {
+    border-color: #059669;
+    background: #ecfdf5;
+}
+
+.critere-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #059669;
+    flex-shrink: 0;
+}
+
+.critere-check label {
+    font-size: 0.9rem;
+    color: #374151;
+    cursor: pointer;
+}
+
+/* Corrigé personnalisé */
+.corrige-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.corrige-toggle-btn {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.corrige-toggle-btn.active {
+    background: #7C5CFC;
+    color: #fff;
+    border-color: #7C5CFC;
+}
+
+.corrige-url-input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.corrige-url-input:focus {
+    outline: none;
+    border-color: #7C5CFC;
+    box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.1);
+}
+
+.corrige-editor {
+    width: 100%;
+    min-height: 120px;
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.corrige-editor:focus {
+    outline: none;
+    border-color: #7C5CFC;
+    box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.1);
+}
+
+/* Remarque */
+.remarque-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.remarque-textarea:focus {
+    outline: none;
+    border-color: #7C5CFC;
+    box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.1);
+}
+
+/* Décision */
+.decision-section {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 2px solid #e5e7eb;
+}
+
+.decision-section h4 {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.decision-buttons {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn-decision {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.btn-decision:hover {
+    transform: translateY(-1px);
+}
+
+.btn-decision.btn-valide {
+    color: #059669;
+}
+
+.btn-decision.btn-valide:hover,
+.btn-decision.btn-valide.selected {
+    border-color: #059669;
+    background: #ecfdf5;
+}
+
+.btn-decision.btn-non-valide {
+    color: #dc2626;
+}
+
+.btn-decision.btn-non-valide:hover,
+.btn-decision.btn-non-valide.selected {
+    border-color: #dc2626;
+    background: #fef2f2;
+}
+
+/* ========== Étape 3 — Bilan ========== */
+.bilan-section {
+    margin-bottom: 1.25rem;
+}
+
+.bilan-section h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.bilan-value {
+    font-size: 0.95rem;
+    color: #1f2937;
+    padding: 0.5rem 0;
+}
+
+.bilan-decision {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.bilan-decision.valide {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.bilan-decision.non_valide {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.bilan-criteres-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.bilan-critere {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.bilan-critere.checked {
+    color: #059669;
+}
+
+.bilan-critere.unchecked {
+    color: #dc2626;
+}
+
+.bilan-remarque {
+    padding: 0.75rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #374151;
+    font-style: italic;
+    white-space: pre-wrap;
+}
+
+/* ========== Modal footer buttons ========== */
+.modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.footer-left,
+.footer-right {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-confirm {
+    background: #059669;
+    color: #fff;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.btn-confirm:hover {
+    background: #047857;
+}
+
+.btn-confirm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ========== Notification ========== */
+.correction-notification {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 10001;
+    animation: slideIn 0.3s ease;
+}
+
+.correction-notification.success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.correction-notification.error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 640px) {
+    .corrections-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .wizard-steps {
+        gap: 1rem;
+    }
+
+    .step-label {
+        display: none;
+    }
+
+    .decision-buttons {
+        flex-direction: column;
+    }
+
+    .modal-correction {
+        width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+}
