@@ -49,6 +49,7 @@
         "EleveCompetences": "readonly",
         "SubmissionUtils": "readonly",
         "AdminCorrections": "readonly",
+        "createBlockEditorMixin": "readonly",
         "escapeHtml": "readonly"
     }
 }
