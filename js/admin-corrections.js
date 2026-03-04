@@ -21,7 +21,8 @@ const AdminCorrections = {
         criteresValides: [],
         decision: null,
         correctionType: null,
-        correctionValue: ''
+        correctionValue: '',
+        statutCorrection: 'publie'
     },
 
     _saving: false,
@@ -360,7 +361,8 @@ const AdminCorrections = {
             criteresValides: Array.isArray(existingCriteres) ? existingCriteres.map(String) : [],
             decision: (sub.statut === 'valide' || sub.statut === 'non_valide') ? sub.statut : null,
             correctionType: corrType,
-            correctionValue: corrValue
+            correctionValue: corrValue,
+            statutCorrection: sub.statut_correction || 'publie'
         };
 
         this.updateModalTitle();
@@ -394,7 +396,7 @@ const AdminCorrections = {
     updateWizardIndicators() {
         var self = this;
         document.querySelectorAll('.wizard-step').forEach(function(el) {
-            var stepNum = parseInt(el.dataset.step);
+            var stepNum = parseInt(el.dataset.step, 10);
             el.classList.remove('active', 'completed');
             if (stepNum === self.currentStep) {
                 el.classList.add('active');
@@ -901,7 +903,8 @@ const AdminCorrections = {
             entrainement_id: sub.entrainement_id,
             statut: wd.decision,
             criteres_valides: JSON.stringify(wd.criteresValides),
-            correction_prof: wd.correctionValue || ''
+            correction_prof: wd.correctionValue || '',
+            statut_correction: wd.statutCorrection || 'publie'
         };
 
         try {
@@ -911,6 +914,7 @@ const AdminCorrections = {
                 sub.statut = wd.decision;
                 sub.correction_prof = wd.correctionValue;
                 sub.criteres_valides = JSON.stringify(wd.criteresValides);
+                sub.statut_correction = wd.statutCorrection || 'publie';
                 sub.date_correction = new Date().toISOString();
 
                 try { localStorage.removeItem('brikks_sheets_EleveEntrainementsCompetences'); } catch (_e) { /* ignore */ }
