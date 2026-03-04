@@ -1108,28 +1108,44 @@ Object.assign(EleveCompetences, {
         // Feedback du prof (remarque + corrigé personnalisé)
         const feedbackHTML = this._buildFeedbackHTML(progression);
 
-        // Document (sujet) + corrigé général
-        const correctionContent = this._buildCorrectionHTML(entrainement.correction_commentee, entrainement.correction_contenu);
-        const hasDoc = !!(this.getEmbedUrl(entrainement.document_url) || entrainement.document_contenu);
+        // En mode évaluation, seul le retour du prof s'affiche (pas le sujet/corrigé par défaut)
+        const hasFeedback = !!(progression.remarque_prof || progression.correction_prof);
 
-        const tabsHTML = hasDoc ? `
-            <div class="comp-review-tabs">
-                <button class="comp-review-tab active" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">📄 Sujet</button>
-                <button class="comp-review-tab" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">📝 Corrigé</button>
-            </div>
-        ` : '';
+        // Document (sujet) + corrigé général — uniquement si pas de feedback prof personnalisé
+        let reviewLayoutHTML = '';
+        if (!hasFeedback) {
+            const correctionContent = this._buildCorrectionHTML(entrainement.correction_commentee, entrainement.correction_contenu);
+            const hasDoc = !!(this.getEmbedUrl(entrainement.document_url) || entrainement.document_contenu);
 
-        const sujetHTML = hasDoc ? `
-            <div class="comp-review-tab-content active" id="compTabSujet">
-                ${this._buildDocumentHTML(entrainement)}
-            </div>
-        ` : '';
+            const tabsHTML = hasDoc ? `
+                <div class="comp-review-tabs">
+                    <button class="comp-review-tab active" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">📄 Sujet</button>
+                    <button class="comp-review-tab" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">📝 Corrigé</button>
+                </div>
+            ` : '';
 
-        const corrigeHTML = `
-            <div class="comp-review-tab-content${hasDoc ? '' : ' active'}" id="compTabCorrige">
-                ${correctionContent}
-            </div>
-        `;
+            const sujetHTML = hasDoc ? `
+                <div class="comp-review-tab-content active" id="compTabSujet">
+                    ${this._buildDocumentHTML(entrainement)}
+                </div>
+            ` : '';
+
+            const corrigeHTML = `
+                <div class="comp-review-tab-content${hasDoc ? '' : ' active'}" id="compTabCorrige">
+                    ${correctionContent}
+                </div>
+            `;
+
+            reviewLayoutHTML = `
+                <div class="comp-review-layout">
+                    <div class="comp-document-section" id="compDocSection">
+                        ${tabsHTML}
+                        ${sujetHTML}
+                        ${corrigeHTML}
+                    </div>
+                </div>
+            `;
+        }
 
         container.innerHTML = `
             <div class="comp-exercise-view">
@@ -1154,13 +1170,7 @@ Object.assign(EleveCompetences, {
 
                 ${feedbackHTML}
 
-                <div class="comp-review-layout">
-                    <div class="comp-document-section" id="compDocSection">
-                        ${tabsHTML}
-                        ${sujetHTML}
-                        ${corrigeHTML}
-                    </div>
-                </div>
+                ${reviewLayoutHTML}
             </div>
         `;
     },
@@ -1182,7 +1192,7 @@ Object.assign(EleveCompetences, {
         }
 
         if (correction) {
-            // Déterminer si c'est une URL ou du HTML
+            // Déterminer le type de contenu : URL, blocs JSON, ou HTML riche
             var isUrl = correction.indexOf('http') === 0;
             if (isUrl) {
                 // Embed URL (Google Doc, Loom, etc.)
@@ -1199,8 +1209,18 @@ Object.assign(EleveCompetences, {
                     html += '</div>';
                 }
             } else {
-                // HTML riche
-                html += '<div class="comp-prof-correction-html">' + correction + '</div>';
+                // Tenter de parser comme JSON (format blocs du block editor)
+                var parsed = null;
+                try {
+                    parsed = JSON.parse(correction);
+                } catch (e) { /* pas du JSON */ }
+
+                if (Array.isArray(parsed)) {
+                    html += this._renderCorrectionBlocks(parsed);
+                } else {
+                    // HTML riche (ancien format)
+                    html += '<div class="comp-prof-correction-html">' + correction + '</div>';
+                }
             }
         }
 
