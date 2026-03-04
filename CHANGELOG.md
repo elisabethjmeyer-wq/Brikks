@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-03-04 — Session 12 : Audit coordination frontend ↔ backend + corrections
+
+### Contexte
+Audit systématique de tous les appels API (callAPI / SheetsAPI) entre le frontend JS et le backend GAS. Vérification des noms d'actions, des paramètres, de la gestion des réponses et des erreurs.
+
+### Corrections (6 bugs)
+1. **`eleve-evaluation.js`** : `eleve_id: 'current_user'` (en dur) → récupère l'ID réel via `Auth.user` / `sessionStorage` / `localStorage`. Toutes les évaluations étaient enregistrées avec un faux ID.
+2. **`eleve-competences-exercice.js`** : auto-soumission (timer expiré) ne vérifiait pas `result.success` → maintenant vérifie avant de mettre à jour l'état local.
+3. **`admin-banques-exercices-connaissances.js`** : sauvegarde étape 1 du wizard en fire-and-forget → `await` + vérification `result.success`.
+4. **`eleve-connaissances-results.js`** : pas de `else` si `saveProgressionMemorisation` échoue → branche else ajoutée avec `{ saveError: true }`.
+5. **`eleve-exercices-results.js`** : échec silencieux de `saveResultatExercice` → log de l'erreur.
+6. **`admin-competences.js`** : chaîne critères (delete/create/update) sans vérifier chaque `success` → vérification individuelle + arrêt si échec.
+
+### Constats de l'audit (non corrigés, documentés)
+- 7 implémentations différentes de `callAPI` (seule `admin-banques-exercices.js` a un timeout de 15s)
+- Double système de lecture (callAPI JSONP vs SheetsAPI REST) avec caches indépendants
+- `SheetsAPI.clearCache()` efface le cache de toutes les tables au lieu de celle modifiée
+
+### Fichiers modifiés
+`js/eleve-evaluation.js`, `js/eleve-competences-exercice.js`, `js/admin-banques-exercices-connaissances.js`, `js/eleve-connaissances-results.js`, `js/eleve-exercices-results.js`, `js/admin-competences.js`
+
+---
+
 ## 2026-03-04 — Session 11 : Audit et nettoyage global du codebase
 
 ### Contexte

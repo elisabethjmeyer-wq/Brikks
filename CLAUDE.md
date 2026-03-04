@@ -298,6 +298,15 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - ~~**`SEUIL_ETAPES` hardcodé côté frontend**~~ : **CORRIGÉ (session 11)** — les seuils sont maintenant centralisés dans `CONFIG.SEUIL_CONNAISSANCES` et `CONFIG.SEUIL_SAVOIR_FAIRE` dans `config.js`.
 - ~~**Listener leak**~~ : **CORRIGÉ (session 6)** — listener stocké dans `_popoverClickHandler` et nettoyé dans `cleanupEventListeners()`.
 
+### Bugs coordination frontend ↔ backend (session 12)
+
+- ~~**`eleve_id` en dur dans evaluations**~~ : **CORRIGÉ (session 12)** — `eleve-evaluation.js` envoyait `'current_user'` au lieu de l'ID réel. Ajout de `_getCurrentUserId()` (Auth.user / sessionStorage / localStorage).
+- ~~**Auto-soumission compétences sans vérification**~~ : **CORRIGÉ (session 12)** — `eleve-competences-exercice.js:_autoSubmitExpired()` mettait à jour l'état local même si l'API échouait. Vérifie maintenant `result.success`.
+- ~~**Sauvegarde fire-and-forget wizard**~~ : **CORRIGÉ (session 12)** — `admin-banques-exercices-connaissances.js` envoyait `updateEntrainementConn` sans `await`. Maintenant attend + vérifie la réponse.
+- ~~**Progression mémorisation sans else**~~ : **CORRIGÉ (session 12)** — `eleve-connaissances-results.js` ne gérait pas `response.success === false`. Branche else ajoutée avec `{ saveError: true }`.
+- ~~**saveResultatExercice silencieux**~~ : **CORRIGÉ (session 12)** — `eleve-exercices-results.js` ignorait les échecs API. Log ajouté.
+- ~~**Chaîne critères sans vérification**~~ : **CORRIGÉ (session 12)** — `admin-competences.js` ne vérifiait pas le succès de chaque delete/create/update de critère. Vérifie maintenant chaque opération.
+
 ### Points structurels
 
 - **Sécurité** : mots de passe en clair dans Google Sheets, pas d'auth côté serveur, clé API exposée côté client. Acceptable pour ~50 élèves en environnement scolaire, mais à documenter.
@@ -307,3 +316,6 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - **Code admin connaissances** : audité et nettoyé. Reste : CSS du wizard avec ~7 sélecteurs `.etape-*` dupliqués (fonctionnel mais fragile), `getQuestionPreview()` dupliqué dans 3 fichiers différents (à extraire dans un helper partagé un jour)
 - **Module exercices élève SF** : audité et restructuré (session 4). L'ancien sous-module compétences (`eleve-exercices-competences.js`) a été supprimé — remplacé par `eleve-competences.js` + `eleve-competences-exercice.js`.
 - **Tests** : aucun test automatisé (pas de framework de test configuré)
+- **7 copies de `callAPI`** : chaque module a sa propre implémentation. Seul `admin-banques-exercices.js` a un timeout (15s). Les 6 autres peuvent rester bloqués indéfiniment. À centraliser un jour dans un fichier partagé.
+- **Double système de lecture** : `callAPI` (JSONP) et `SheetsAPI` (REST direct) avec caches indépendants (TTL 3-5 min). Peut causer des décalages de données entre pages admin.
+- **`SheetsAPI.clearCache()` trop large** : efface le cache de toutes les tables au lieu de celle modifiée. Force des rechargements inutiles.
