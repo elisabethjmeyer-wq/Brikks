@@ -1542,8 +1542,8 @@ body.comp-fullscreen-active {
 /* In-place correction (appears below document) */
 .comp-inplace-corrige {
     padding: 1.25rem;
-    background: #f0fdf4;
-    border-top: 2px solid #bbf7d0;
+    background: transparent;
+    border-top: none;
 }
 
 .comp-corrige-header {
@@ -1556,7 +1556,7 @@ body.comp-fullscreen-active {
 .comp-inplace-corrige h4 {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #16a34a;
+    color: #374151;
     margin: 0;
 }
 
@@ -1906,17 +1906,6 @@ body.comp-fullscreen-active {
     margin: 0.25rem 0 0 0;
     font-size: 0.85rem;
     color: #6b7280;
-}
-
-/* Neutraliser le fond vert du corrigé dans le contexte évaluation */
-.comp-exercise-layout #compTabCorrige .comp-inplace-corrige {
-    background: transparent;
-    border-top: none;
-    padding: 0;
-}
-
-.comp-exercise-layout #compTabCorrige .comp-inplace-corrige h4 {
-    color: #374151;
 }
 
 /* ============================================
