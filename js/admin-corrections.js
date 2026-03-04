@@ -1,6 +1,6 @@
 /**
  * Admin Corrections — Correction des entraînements de compétences
- * Wizard 3 étapes : Informations → Correction → Bilan
+ * Wizard 4 étapes : Informations → Correction → Critères → Bilan
  */
 
 const AdminCorrections = {
@@ -20,7 +20,6 @@ const AdminCorrections = {
     wizardData: {
         criteresValides: [],
         decision: null,
-        remarque: '',
         correctionType: null,
         correctionValue: ''
     },
@@ -360,7 +359,6 @@ const AdminCorrections = {
         this.wizardData = {
             criteresValides: Array.isArray(existingCriteres) ? existingCriteres.map(String) : [],
             decision: (sub.statut === 'valide' || sub.statut === 'non_valide') ? sub.statut : null,
-            remarque: sub.remarque_prof || '',
             correctionType: corrType,
             correctionValue: corrValue
         };
@@ -420,6 +418,9 @@ const AdminCorrections = {
         } else if (this.currentStep === 3) {
             body.innerHTML = this.renderStep3();
             footer.innerHTML = this.renderFooter3();
+        } else if (this.currentStep === 4) {
+            body.innerHTML = this.renderStep4();
+            footer.innerHTML = this.renderFooter4();
         }
     },
 
@@ -482,21 +483,13 @@ const AdminCorrections = {
             '</div>';
     },
 
-    // ========== ÉTAPE 2 — CORRECTION (block editor + critères + décision) ==========
+    // ========== ÉTAPE 2 — CORRECTION (block editor uniquement) ==========
 
     renderStep2() {
-        var sub = this.currentSubmission;
-        var entrainement = this.getEntrainement(sub.entrainement_id);
-        var competence = this.getCompetenceForEntrainement(entrainement);
-        var competenceId = competence ? competence.id : null;
-        var criteres = competenceId ? this.getCriteresByCompetence(competenceId) : [];
         var wd = this.wizardData;
 
         // Détecter le mode corrigé
-        var hasCorrectionBlocks = false;
-        if (wd.correctionType === 'blocks' && wd.correctionValue) {
-            hasCorrectionBlocks = true;
-        }
+        var hasCorrectionBlocks = wd.correctionType === 'blocks' && wd.correctionValue;
         var corrMode = hasCorrectionBlocks ? 'editor' : 'url';
 
         var html = '';
@@ -548,46 +541,6 @@ const AdminCorrections = {
         html += '</div>';
 
         html += '</div>'; // fin source-panel éditeur
-
-        // Critères de réussite (dropdown)
-        if (criteres.length > 0) {
-            var checkedCount = wd.criteresValides.length;
-            var hasCriteres = checkedCount > 0;
-            html += '<div class="correction-section" style="margin-top: 1rem">';
-            html += '<div class="correction-section-header' + (hasCriteres ? ' expanded' : '') + '" onclick="AdminCorrections.toggleSection(this)">';
-            html += '<h4>✅ Critères de réussite (' + checkedCount + '/' + criteres.length + ')</h4>';
-            html += '<span class="toggle-icon">▼</span>';
-            html += '</div>';
-            html += '<div class="correction-section-body' + (hasCriteres ? '' : ' hidden') + '">';
-            html += '<div class="criteres-correction-list">';
-            criteres.forEach(function(c) {
-                var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
-                html += '<div class="critere-check' + (checked ? ' checked' : '') + '" onclick="AdminCorrections.toggleCritere(\'' + c.id + '\', this)">';
-                html += '<input type="checkbox" id="critere_' + c.id + '"' + (checked ? ' checked' : '') + '>';
-                html += '<label for="critere_' + c.id + '">' + escapeHtml(c.libelle) + '</label>';
-                html += '</div>';
-            });
-            html += '</div></div></div>';
-        }
-
-        // Remarque (dropdown)
-        var hasRemarque = wd.remarque.length > 0;
-        html += '<div class="correction-section">';
-        html += '<div class="correction-section-header' + (hasRemarque ? ' expanded' : '') + '" onclick="AdminCorrections.toggleSection(this)">';
-        html += '<h4>💬 Remarque pour l\'élève (optionnel)</h4>';
-        html += '<span class="toggle-icon">▼</span>';
-        html += '</div>';
-        html += '<div class="correction-section-body' + (hasRemarque ? '' : ' hidden') + '">';
-        html += '<textarea class="remarque-textarea" id="remarqueTextarea" placeholder="Bon travail sur la chronologie, mais pense à croiser les documents sources...">' + escapeHtml(wd.remarque) + '</textarea>';
-        html += '</div></div>';
-
-        // Décision
-        html += '<div class="decision-section">';
-        html += '<h4>Décision</h4>';
-        html += '<div class="decision-buttons">';
-        html += '<button class="btn-decision btn-non-valide' + (wd.decision === 'non_valide' ? ' selected' : '') + '" onclick="AdminCorrections.setDecision(\'non_valide\')">❌ Non validé</button>';
-        html += '<button class="btn-decision btn-valide' + (wd.decision === 'valide' ? ' selected' : '') + '" onclick="AdminCorrections.setDecision(\'valide\')">✅ Validé</button>';
-        html += '</div></div>';
 
         return html;
     },
@@ -763,12 +716,63 @@ const AdminCorrections = {
             this.wizardData.correctionValue = val;
         }
 
-        // Remarque
-        var remarqueEl = document.getElementById('remarqueTextarea');
-        if (remarqueEl) this.wizardData.remarque = remarqueEl.value.trim();
     },
 
     // ========== ACTIONS ÉTAPE 2 ==========
+
+    renderFooter2() {
+        return '<div class="footer-left">' +
+                '<button class="btn btn-secondary" onclick="AdminCorrections.goToStep(1)">← Précédent</button>' +
+            '</div>' +
+            '<div class="footer-right">' +
+                '<button class="btn btn-primary" onclick="AdminCorrections.goToStep(3)">Suivant →</button>' +
+            '</div>';
+    },
+
+    // ========== ÉTAPE 3 — CRITÈRES + DÉCISION ==========
+
+    renderStep3() {
+        var sub = this.currentSubmission;
+        var entrainement = this.getEntrainement(sub.entrainement_id);
+        var competence = this.getCompetenceForEntrainement(entrainement);
+        var competenceId = competence ? competence.id : null;
+        var criteres = competenceId ? this.getCriteresByCompetence(competenceId) : [];
+        var wd = this.wizardData;
+
+        var html = '';
+
+        // Header
+        html += '<div class="step-header">';
+        html += '<span class="step-icon">✅</span>';
+        html += '<div><h3>Critères de réussite</h3>';
+        html += '<p>Cochez les critères validés par l\'élève</p></div>';
+        html += '</div>';
+
+        // Critères de réussite
+        if (criteres.length > 0) {
+            html += '<div class="criteres-correction-list">';
+            criteres.forEach(function(c) {
+                var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
+                html += '<div class="critere-check' + (checked ? ' checked' : '') + '" onclick="AdminCorrections.toggleCritere(\'' + c.id + '\', this)">';
+                html += '<input type="checkbox" id="critere_' + c.id + '"' + (checked ? ' checked' : '') + '>';
+                html += '<label for="critere_' + c.id + '">' + escapeHtml(c.libelle) + '</label>';
+                html += '</div>';
+            });
+            html += '</div>';
+        } else {
+            html += '<div class="empty-criteres">Aucun critère défini pour cette compétence.</div>';
+        }
+
+        // Décision
+        html += '<div class="decision-section">';
+        html += '<h4>Décision</h4>';
+        html += '<div class="decision-buttons">';
+        html += '<button class="btn-decision btn-non-valide' + (wd.decision === 'non_valide' ? ' selected' : '') + '" onclick="AdminCorrections.setDecision(\'non_valide\')">❌ Non validé</button>';
+        html += '<button class="btn-decision btn-valide' + (wd.decision === 'valide' ? ' selected' : '') + '" onclick="AdminCorrections.setDecision(\'valide\')">✅ Validé</button>';
+        html += '</div></div>';
+
+        return html;
+    },
 
     toggleCritere(critereId, el) {
         var idx = this.wizardData.criteresValides.indexOf(String(critereId));
@@ -781,17 +785,6 @@ const AdminCorrections = {
             el.classList.remove('checked');
             el.querySelector('input').checked = false;
         }
-        var headerH4 = el.closest('.correction-section').querySelector('.correction-section-header h4');
-        if (headerH4) {
-            var total = el.closest('.criteres-correction-list').children.length;
-            headerH4.textContent = '✅ Critères de réussite (' + this.wizardData.criteresValides.length + '/' + total + ')';
-        }
-    },
-
-    toggleSection(header) {
-        header.classList.toggle('expanded');
-        var body = header.nextElementSibling;
-        body.classList.toggle('hidden');
     },
 
     setDecision(decision) {
@@ -804,27 +797,26 @@ const AdminCorrections = {
         if (btn) btn.classList.add('selected');
     },
 
-    renderFooter2() {
+    renderFooter3() {
         return '<div class="footer-left">' +
-                '<button class="btn btn-secondary" onclick="AdminCorrections.goToStep(1)">← Précédent</button>' +
+                '<button class="btn btn-secondary" onclick="AdminCorrections.goToStep(2)">← Précédent</button>' +
             '</div>' +
             '<div class="footer-right">' +
-                '<button class="btn btn-primary" onclick="AdminCorrections.validateStep2()">Suivant →</button>' +
+                '<button class="btn btn-primary" onclick="AdminCorrections.validateStep3()">Suivant →</button>' +
             '</div>';
     },
 
-    validateStep2() {
-        this._saveStep2State();
+    validateStep3() {
         if (!this.wizardData.decision) {
             this.showNotification('Veuillez choisir une décision (validé ou non validé).', 'error');
             return;
         }
-        this.goToStep(3);
+        this.goToStep(4);
     },
 
-    // ========== ÉTAPE 3 — BILAN ==========
+    // ========== ÉTAPE 4 — BILAN ==========
 
-    renderStep3() {
+    renderStep4() {
         var sub = this.currentSubmission;
         var eleve = this.getEleve(sub.eleve_id);
         var entrainement = this.getEntrainement(sub.entrainement_id);
@@ -867,14 +859,6 @@ const AdminCorrections = {
             html += '</div></div>';
         }
 
-        // Remarque
-        if (wd.remarque) {
-            html += '<div class="bilan-section">';
-            html += '<h4>Remarque</h4>';
-            html += '<div class="bilan-remarque">' + escapeHtml(wd.remarque) + '</div>';
-            html += '</div>';
-        }
-
         // Corrigé
         if (wd.correctionValue) {
             html += '<div class="bilan-section">';
@@ -888,9 +872,9 @@ const AdminCorrections = {
         return html;
     },
 
-    renderFooter3() {
+    renderFooter4() {
         return '<div class="footer-left">' +
-                '<button class="btn btn-secondary" onclick="AdminCorrections.goToStep(2)">← Modifier</button>' +
+                '<button class="btn btn-secondary" onclick="AdminCorrections.goToStep(3)">← Modifier</button>' +
             '</div>' +
             '<div class="footer-right">' +
                 '<button class="btn-confirm" id="confirmBtn" onclick="AdminCorrections.confirmCorrection()">✅ Confirmer la correction</button>' +
@@ -917,7 +901,6 @@ const AdminCorrections = {
             entrainement_id: sub.entrainement_id,
             statut: wd.decision,
             criteres_valides: JSON.stringify(wd.criteresValides),
-            remarque_prof: wd.remarque || '',
             correction_prof: wd.correctionValue || ''
         };
 
@@ -926,7 +909,6 @@ const AdminCorrections = {
 
             if (result.success) {
                 sub.statut = wd.decision;
-                sub.remarque_prof = wd.remarque;
                 sub.correction_prof = wd.correctionValue;
                 sub.criteres_valides = JSON.stringify(wd.criteresValides);
                 sub.date_correction = new Date().toISOString();
