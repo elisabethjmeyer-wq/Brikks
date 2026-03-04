@@ -187,8 +187,10 @@ Object.assign(EleveCompetences, {
         blocks.forEach(function(block) {
             if (block.type === 'group') {
                 html += '<div class="comp-blocks-group">';
-                (block.children || []).forEach(function(child) {
-                    html += '<div class="comp-blocks-group-child">';
+                var ratios = (block.ratio || '50-50').split('-').map(Number);
+                (block.children || []).forEach(function(child, idx) {
+                    var flex = ratios[idx] || 50;
+                    html += '<div class="comp-blocks-group-child" style="flex:' + flex + '">';
                     html += self._renderSingleBlock(child);
                     html += '</div>';
                 });
@@ -337,8 +339,10 @@ Object.assign(EleveCompetences, {
         blocks.forEach(function(block) {
             if (block.type === 'group') {
                 html += '<div class="comp-blocks-group">';
-                (block.children || []).forEach(function(child) {
-                    html += '<div class="comp-blocks-group-child">';
+                var ratios = (block.ratio || '50-50').split('-').map(Number);
+                (block.children || []).forEach(function(child, idx) {
+                    var flex = ratios[idx] || 50;
+                    html += '<div class="comp-blocks-group-child" style="flex:' + flex + '">';
                     html += self._renderSingleBlock(child);
                     html += '</div>';
                 });
