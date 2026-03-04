@@ -78,10 +78,23 @@ const CONFIG = {
         LOGIN: '/Brikks/'
     },
 
+    // Seuils de mémorisation (répétition espacée)
+    SEUIL_CONNAISSANCES: 7,   // 7 niveaux pour les entraînements connaissances
+    SEUIL_SAVOIR_FAIRE: 5,    // 5 niveaux pour les exercices savoir-faire
+
     // Clés de stockage local
     STORAGE_KEYS: {
         USER: 'brikks_user',
-        TOKEN: 'brikks_token'
+        TOKEN: 'brikks_token',
+        PREVIEW: 'brikks_preview',
+        CACHE_CONN: 'brikks_conn_eleve_cache',
+        CACHE_EXERCICES: 'brikks_exercices_cache',
+        CACHE_RESULTATS: 'brikks_resultats_cache',
+        CACHE_HISTORIQUE_SF: 'brikks_historique_sf_cache',
+        CACHE_HISTORIQUE_SF_BANQUE: 'brikks_historique_sf_banque_cache',
+        CACHE_COMPETENCES: 'brikks_competences_eleve_cache',
+        CACHE_ADMIN_BANQUES: 'brikks_admin_banques_cache',
+        WATCHED_VIDEOS: 'brikks_watched_videos'
     }
 };
 

@@ -38,7 +38,7 @@ const AdminBanquesExercices = {
     connaissancesView: 'questions',
 
     // Cache configuration
-    CACHE_KEY: 'brikks_admin_banques_cache',
+    CACHE_KEY: CONFIG.STORAGE_KEYS.CACHE_ADMIN_BANQUES,
     CACHE_TTL: 3 * 60 * 1000, // 3 minutes pour admin (refresh plus fréquent)
 
     // Current tab type

@@ -22,7 +22,7 @@ if (typeof parseJSONField === 'undefined') {
 
 const EleveConnaissances = {
     // Nombre d'étapes de mémorisation (doit correspondre à ETAPE_MAX côté backend)
-    SEUIL_ETAPES: 7,
+    SEUIL_ETAPES: CONFIG.SEUIL_CONNAISSANCES,
 
     // Données
     banques: [],
@@ -48,7 +48,7 @@ const EleveConnaissances = {
     currentEtapeValidated: false,
 
     // Cache config (5 minutes TTL)
-    CACHE_KEY: 'brikks_conn_eleve_cache',
+    CACHE_KEY: CONFIG.STORAGE_KEYS.CACHE_CONN,
     CACHE_TTL: 5 * 60 * 1000,
 
     /**

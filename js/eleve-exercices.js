@@ -93,16 +93,16 @@ const EleveExercices = {
     expandedBanques: new Set(), // Track which banques are expanded
 
     // Cache config (5 minutes TTL)
-    CACHE_KEY: 'brikks_exercices_cache',
-    CACHE_RESULTATS_KEY: 'brikks_resultats_cache',
-    CACHE_HISTORIQUE_SF_KEY: 'brikks_historique_sf_cache',
-    CACHE_HISTORIQUE_SF_BANQUE_KEY: 'brikks_historique_sf_banque_cache',
+    CACHE_KEY: CONFIG.STORAGE_KEYS.CACHE_EXERCICES,
+    CACHE_RESULTATS_KEY: CONFIG.STORAGE_KEYS.CACHE_RESULTATS,
+    CACHE_HISTORIQUE_SF_KEY: CONFIG.STORAGE_KEYS.CACHE_HISTORIQUE_SF,
+    CACHE_HISTORIQUE_SF_BANQUE_KEY: CONFIG.STORAGE_KEYS.CACHE_HISTORIQUE_SF_BANQUE,
     CACHE_TTL: 5 * 60 * 1000,
 
     // ============================================
     // SYSTÈME 5 RÉPÉTITIONS ESPACÉES - SAVOIR-FAIRE
     // ============================================
-    SEUIL_REPETITIONS: 5,              // 5 répétitions pour maîtriser
+    SEUIL_REPETITIONS: CONFIG.SEUIL_SAVOIR_FAIRE,              // Répétitions pour maîtriser
     SEUIL_JOURS_RAPPEL: 21,            // Rappel suggéré après 21 jours (3 semaines)
 
     // Espacements entre répétitions (en jours)

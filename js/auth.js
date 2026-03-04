@@ -142,7 +142,7 @@ const Auth = {
 
             if (!allowed) {
                 // Autoriser les admins en mode prévisualisation sur les pages élève
-                const isPreviewMode = sessionStorage.getItem('brikks_preview') === 'true';
+                const isPreviewMode = sessionStorage.getItem(CONFIG.STORAGE_KEYS.PREVIEW) === 'true';
                 const isAdmin = ['prof', 'admin', 'professeur'].includes(userRole);
                 const isElevePage = allowedRoles.some(r =>
                     ['eleve', 'élève', 'etudiant', 'étudiant'].includes(r.toLowerCase())
