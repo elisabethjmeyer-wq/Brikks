@@ -610,6 +610,8 @@ const EleveCompetences = {
             this.showExerciseReview(entr, prog);
         } else if (prog.statut === 'valide') {
             this.showExerciseReview(entr, prog);
+        } else if (prog.statut === 'non_valide') {
+            this.showExerciseReview(entr, prog);
         }
     },
 

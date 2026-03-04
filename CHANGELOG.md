@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-03-04 — Session 15 : Corrections bugs affichage corrigé + wizard
+
+### Contexte
+L'utilisatrice signale que le corrigé ne s'affiche pas côté élève, que les notifications fonctionnent mal, et que le wizard correction perd ses données à la navigation.
+
+### Corrections
+
+1. **Statut `non_valide` manquant** (`js/eleve-competences.js`) : le switch `handleExerciseClick` ne gérait pas le statut `non_valide`. L'élève cliquait sur un exercice corrigé "non validé" → rien ne se passait. C'était la raison principale pour laquelle le corrigé ne s'affichait pas.
+
+2. **Wizard correction : `beforeunload`** (`js/admin-corrections.js`) : tout l'état du wizard était en mémoire. Navigation hors de la page = perte totale sans avertissement. Ajout de `_addBeforeUnload()` / `_removeBeforeUnload()` à l'ouverture/fermeture du modal.
+
+3. **`callAPI` sans timeout** (`js/admin-corrections.js`) : les requêtes JSONP pouvaient rester bloquées indéfiniment (pas de timeout, pas d'erreur). Ajout d'un timeout de 30s avec rejet de la promise.
+
+4. **Notifications améliorées** (`js/admin-corrections.js` + `css/admin-corrections.css`) : durée portée à 4s (success) / 6s (error), animation de sortie `slideOut` ajoutée.
+
+5. **Code.gs : lecture de l'action depuis le body POST** : `handleRequest` ne lisait `action` que depuis `e.parameter`. Ajout de `data.action` en fallback pour les futurs appels POST.
+
+### Fichiers modifiés
+- `js/eleve-competences.js` — ajout `non_valide` dans `handleExerciseClick`
+- `js/admin-corrections.js` — beforeunload, timeout callAPI, notifications améliorées
+- `css/admin-corrections.css` — animation slideOut
+- `google-apps-script/Code.gs` — action POST fallback
+- `google-apps-script/TOUT-EN-UN.gs` — rebuild
+
+---
+
 ## 2026-03-04 — Session 14 : Wizard correction refondé + vue évaluation élève
 
 ### Contexte

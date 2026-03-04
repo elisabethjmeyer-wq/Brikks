@@ -352,6 +352,14 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - ~~**Wizards admin cassés (self.escapeHtml)**~~ : **CORRIGÉ (session 13)** — la centralisation de `escapeHtml()` en global (session 11, Phase 1) n'avait pas été propagée à 3 fichiers d'extension (`comp-wizard`, `sf-wizard`, `builders`). 8 appels `self.escapeHtml(...)` lançaient un TypeError silencieux. Wizard compétences vide, wizard SF affichait l'étape 1 en double, prévisualisation exercices cassée.
 - ~~**CSS modal-overlay conflit de convention**~~ : **CORRIGÉ (session 13)** — `style.css` base utilisait `display: none` + `.active`, toutes les pages utilisent `display: flex` + `.hidden`. Aligné sur `.hidden`.
 
+### Bugs session 15 (correction + vue élève)
+
+- ~~**Statut `non_valide` non géré dans `handleExerciseClick`**~~ : **CORRIGÉ (session 15)** — l'élève cliquait sur un exercice non validé et rien ne se passait. Le statut n'était pas dans le switch. Ajouté → ouvre la vue review.
+- ~~**Wizard correction sans `beforeunload`**~~ : **CORRIGÉ (session 15)** — toute navigation hors de la page perdait les données du wizard sans avertissement. `beforeunload` ajouté à l'ouverture du modal, retiré à la fermeture/sauvegarde.
+- ~~**`callAPI` sans timeout dans admin-corrections**~~ : **CORRIGÉ (session 15)** — timeout 30s ajouté pour éviter les requêtes bloquées indéfiniment.
+- ~~**Notifications trop rapides**~~ : **CORRIGÉ (session 15)** — durée augmentée (4s success, 6s error) + animation de sortie `slideOut`.
+- ~~**Code.gs : action POST non lue**~~ : **CORRIGÉ (session 15)** — `handleRequest` ne lisait `action` que depuis `e.parameter` (query params). Si un futur appel POST envoie l'action dans le body, elle était ignorée. Maintenant : `params.action || data.action`.
+
 ### Points structurels
 
 - **Sécurité** : mots de passe en clair dans Google Sheets, pas d'auth côté serveur, clé API exposée côté client. Acceptable pour ~50 élèves en environnement scolaire, mais à documenter.

@@ -157,7 +157,6 @@ function doPost(e) {
 function handleRequest(e) {
   try {
     const params = e.parameter || {};
-    const action = params.action;
     const callback = params.callback; // Support JSONP
 
     // Si POST avec body JSON
@@ -168,6 +167,9 @@ function handleRequest(e) {
 
     // Fusionner params et data
     const request = { ...params, ...data };
+
+    // Action : query params (JSONP) ou body (POST)
+    const action = params.action || data.action;
 
     let result;
 
