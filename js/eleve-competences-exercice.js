@@ -905,77 +905,8 @@ Object.assign(EleveCompetences, {
             // === MODE ÉVALUATION SOUMIS : récap + consigne d'envoi + suivi ===
             this._renderSoumisView(container, entrainement, progression);
         } else {
-            // === MODE ÉVALUATION : stepper + document ===
-            const dateSoumission = progression.date_soumission
-                ? this._formatDateHeure(progression.date_soumission) : '';
-            const dateEnvoi = progression.date_envoi
-                ? this._formatDateHeure(progression.date_envoi) : '';
-
-            let step3State = 'done';
-            let label3 = 'Correction';
-            let date3 = '';
-            let actionHTML = '';
-            let actionPosition = null;
-
-            if (statut === 'valide') {
-                label3 = 'Valid\u00E9e';
-                actionHTML = `
-                    <div class="comp-stepper-card validated">
-                        <p class="comp-stepper-card-title">\u2705 Comp\u00E9tence valid\u00E9e</p>
-                        <p class="comp-stepper-card-consigne">Ta production a \u00E9t\u00E9 corrig\u00E9e et valid\u00E9e par le professeur.</p>
-                    </div>
-                `;
-                actionPosition = 'at-3';
-            } else if (statut === 'corrige') {
-                label3 = 'Corrig\u00E9e';
-                actionHTML = `
-                    <div class="comp-stepper-card waiting">
-                        <p class="comp-stepper-card-title">\u{1F4CB} Production corrig\u00E9e</p>
-                        <p class="comp-stepper-card-consigne">Ta production a \u00E9t\u00E9 corrig\u00E9e par le professeur.</p>
-                    </div>
-                `;
-                actionPosition = 'at-3';
-            } else {
-                step3State = 'done';
-                label3 = 'Termin\u00E9';
-            }
-
-            const stepperHTML = this._buildStepperHTML({
-                step1: 'done',
-                step2: 'done',
-                step3: step3State,
-                date1: dateSoumission,
-                date2: dateEnvoi,
-                date3: date3,
-                label3: label3,
-                actionHTML: actionHTML,
-                actionPosition: actionPosition
-            });
-
-            container.innerHTML = `
-                <div class="comp-exercise-view">
-                    <div class="comp-exercise-topbar">
-                        <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">\u2190</button>
-                        <div class="comp-exercise-topbar-info">
-                            <h1>${this.escapeHtml(entrainement.titre)}</h1>
-                            <div class="comp-exercise-topbar-meta">
-                                <span class="comp-mode-badge ${mode}">${modeBadgeLabel}</span>
-                                <span class="comp-review-badge">Relecture</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="comp-stepper-container">
-                        ${stepperHTML}
-                    </div>
-
-                    <div class="comp-exercise-layout">
-                        <div class="comp-document-section" id="compDocSection">
-                            ${this._buildDocumentHTML(entrainement)}
-                        </div>
-                    </div>
-                </div>
-            `;
+            // === MODE ÉVALUATION : corrigé / validé / autre ===
+            this._renderEvalReview(container, entrainement, progression, mode, modeBadgeLabel);
         }
     },
 
@@ -1135,6 +1066,136 @@ Object.assign(EleveCompetences, {
             </div>
             ${actionZoneHTML}
         `;
+    },
+
+    /**
+     * Vue évaluation : corrigé, validé ou autre état post-soumission.
+     * Remplace l'ancien stepper + carte flottante par un affichage propre.
+     */
+    _renderEvalReview(container, entrainement, progression, mode, modeBadgeLabel) {
+        const statut = progression.statut;
+
+        // Message principal selon le statut
+        let statusIcon, statusTitle, statusMessage, statusClass;
+
+        if (statut === 'valide') {
+            statusIcon = '✅';
+            statusTitle = 'Compétence validée';
+            statusMessage = 'Ta production a été corrigée et validée par le professeur.';
+            statusClass = 'validated';
+        } else if (statut === 'corrige') {
+            statusIcon = '📋';
+            statusTitle = 'Production corrigée';
+            statusMessage = 'Ta production a été corrigée par le professeur. La validation est en attente.';
+            statusClass = 'corrected';
+        } else {
+            statusIcon = '✓';
+            statusTitle = 'Terminé';
+            statusMessage = '';
+            statusClass = 'done';
+        }
+
+        // Feedback du prof (remarque + corrigé personnalisé)
+        const feedbackHTML = this._buildFeedbackHTML(progression);
+
+        // Document (sujet) + corrigé général
+        const correctionContent = this._buildCorrectionHTML(entrainement.correction_commentee, entrainement.correction_contenu);
+        const hasDoc = !!(this.getEmbedUrl(entrainement.document_url) || entrainement.document_contenu);
+
+        const tabsHTML = hasDoc ? `
+            <div class="comp-review-tabs">
+                <button class="comp-review-tab active" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">📄 Sujet</button>
+                <button class="comp-review-tab" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">📝 Corrigé</button>
+            </div>
+        ` : '';
+
+        const sujetHTML = hasDoc ? `
+            <div class="comp-review-tab-content active" id="compTabSujet">
+                ${this._buildDocumentHTML(entrainement)}
+            </div>
+        ` : '';
+
+        const corrigeHTML = `
+            <div class="comp-review-tab-content${hasDoc ? '' : ' active'}" id="compTabCorrige">
+                ${correctionContent}
+            </div>
+        `;
+
+        container.innerHTML = `
+            <div class="comp-exercise-view">
+                <div class="comp-exercise-topbar">
+                    <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">←</button>
+                    <div class="comp-exercise-topbar-info">
+                        <h1>${this.escapeHtml(entrainement.titre)}</h1>
+                        <div class="comp-exercise-topbar-meta">
+                            <span class="comp-mode-badge ${mode}">${modeBadgeLabel}</span>
+                            <span class="comp-review-badge">Relecture</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comp-eval-status ${statusClass}">
+                    <span class="comp-eval-status-icon">${statusIcon}</span>
+                    <div class="comp-eval-status-text">
+                        <h3>${statusTitle}</h3>
+                        ${statusMessage ? '<p>' + statusMessage + '</p>' : ''}
+                    </div>
+                </div>
+
+                ${feedbackHTML}
+
+                <div class="comp-review-layout">
+                    <div class="comp-document-section" id="compDocSection">
+                        ${tabsHTML}
+                        ${sujetHTML}
+                        ${corrigeHTML}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Construit le HTML du feedback prof (remarque + corrigé personnalisé)
+     */
+    _buildFeedbackHTML(progression) {
+        const remarque = progression.remarque_prof;
+        const correction = progression.correction_prof;
+
+        if (!remarque && !correction) return '';
+
+        let html = '<div class="comp-prof-feedback">';
+        html += '<h4 class="comp-prof-feedback-title">Retour du professeur</h4>';
+
+        if (remarque) {
+            html += '<div class="comp-prof-remarque">' + this.escapeHtml(remarque) + '</div>';
+        }
+
+        if (correction) {
+            // Déterminer si c'est une URL ou du HTML
+            var isUrl = correction.indexOf('http') === 0;
+            if (isUrl) {
+                // Embed URL (Google Doc, Loom, etc.)
+                var embedUrl = this.getEmbedUrl(correction) || correction;
+                var isLoom = correction.indexOf('loom.com') !== -1;
+                if (isLoom) {
+                    html += '<div class="comp-prof-correction-embed">';
+                    html += '<div style="position:relative;padding-bottom:56.25%;height:0;">';
+                    html += '<iframe src="' + embedUrl + '" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe>';
+                    html += '</div></div>';
+                } else {
+                    html += '<div class="comp-prof-correction-embed">';
+                    html += '<iframe src="' + embedUrl + '" class="comp-prof-correction-iframe"></iframe>';
+                    html += '</div>';
+                }
+            } else {
+                // HTML riche
+                html += '<div class="comp-prof-correction-html">' + correction + '</div>';
+            }
+        }
+
+        html += '</div>';
+        return html;
     },
 
     _renderSoumisView(container, entrainement, progression) {

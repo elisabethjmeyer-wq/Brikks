@@ -476,8 +476,12 @@ const AdminSuivi = {
 
     renderCorrections() {
         const pending = this.eleveTaches.filter(t => t.statut === 'soumis');
-        const recent = this.eleveTaches
+        const corrected = this.eleveTaches
             .filter(t => t.statut === 'corrige')
+            .sort((a, b) => new Date(b.date_correction || 0) - new Date(a.date_correction || 0))
+            .slice(0, 10);
+        const validated = this.eleveTaches
+            .filter(t => t.statut === 'valide')
             .sort((a, b) => new Date(b.date_correction || 0) - new Date(a.date_correction || 0))
             .slice(0, 10);
 
@@ -491,23 +495,32 @@ const AdminSuivi = {
                     </div>
                 ` : `
                     <div class="corrections-list">
-                        ${pending.map(t => this.renderCorrectionCard(t)).join('')}
+                        ${pending.map(t => this.renderCorrectionCard(t, 'pending')).join('')}
                     </div>
                 `}
             </div>
 
-            ${recent.length > 0 ? `
+            ${corrected.length > 0 ? `
                 <div class="corrections-section">
-                    <h3>✅ Récemment corrigées</h3>
+                    <h3>📋 Corrigées (en attente de validation)</h3>
+                    <div class="corrections-list">
+                        ${corrected.map(t => this.renderCorrectionCard(t, 'corrected')).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            ${validated.length > 0 ? `
+                <div class="corrections-section">
+                    <h3>✅ Validées</h3>
                     <div class="corrections-list recent">
-                        ${recent.map(t => this.renderCorrectionCard(t, true)).join('')}
+                        ${validated.map(t => this.renderCorrectionCard(t, 'validated')).join('')}
                     </div>
                 </div>
             ` : ''}
         `;
     },
 
-    renderCorrectionCard(tache, isDone = false) {
+    renderCorrectionCard(tache, state) {
         const eleve = this.eleves.find(e => e.id === tache.eleve_id);
         const tacheComplexe = this.tachesComplexes.find(t => t.id === tache.entrainement_id);
 
@@ -523,10 +536,77 @@ const AdminSuivi = {
         // Envoi élève
         const envoiHTML = tache.date_envoi
             ? `<span class="envoi-info done">📤 Envoyé le ${this.formatDate(tache.date_envoi)}</span>`
-            : (tache.statut === 'soumis' ? '<span class="envoi-info waiting">📤 Pas encore envoyé</span>' : '');
+            : (state === 'pending' ? '<span class="envoi-info waiting">📤 Pas encore envoyé</span>' : '');
+
+        // Remarque existante
+        const existingRemarque = tache.remarque_prof || '';
+        const existingCorrection = tache.correction_prof || '';
+
+        // Zone d'actions selon l'état
+        let actionsHTML = '';
+
+        if (state === 'pending') {
+            actionsHTML = `
+                <div class="correction-form" id="correction-form-${tache.id}">
+                    <div class="correction-form-field">
+                        <label>Remarque pour l'élève (optionnel)</label>
+                        <textarea class="correction-remarque" id="remarque-${tache.id}" rows="2"
+                            placeholder="Ex: Bonne analyse du doc 1, mais attention à croiser les sources...">${this.escapeHtml(existingRemarque)}</textarea>
+                    </div>
+                    <div class="correction-form-field">
+                        <label>Corrigé personnalisé (optionnel)</label>
+                        <div class="correction-type-tabs">
+                            <button type="button" class="correction-type-tab active" data-type="none"
+                                onclick="AdminSuivi.setCorrectionType('${tache.id}', 'none')">Aucun</button>
+                            <button type="button" class="correction-type-tab" data-type="url"
+                                onclick="AdminSuivi.setCorrectionType('${tache.id}', 'url')">Lien</button>
+                            <button type="button" class="correction-type-tab" data-type="editor"
+                                onclick="AdminSuivi.setCorrectionType('${tache.id}', 'editor')">Texte</button>
+                        </div>
+                        <div class="correction-type-content" id="correction-content-${tache.id}"></div>
+                    </div>
+                    <div class="correction-actions">
+                        <button class="btn btn-primary btn-sm" onclick="AdminSuivi.submitCorrection('${tache.id}', 'corrige')">
+                            📋 Corriger
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="AdminSuivi.submitCorrection('${tache.id}', 'valide')">
+                            ✅ Corriger et valider
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else if (state === 'corrected') {
+            const remarqueHTML = existingRemarque
+                ? `<div class="correction-existing-remarque"><strong>Remarque :</strong> ${this.escapeHtml(existingRemarque)}</div>` : '';
+            const correctionHTML = existingCorrection
+                ? `<div class="correction-existing-link">📎 Corrigé personnalisé joint</div>` : '';
+
+            actionsHTML = `
+                ${remarqueHTML}
+                ${correctionHTML}
+                <div class="correction-done-info">
+                    📋 Corrigé le ${this.formatDate(tache.date_correction)}
+                </div>
+                <div class="correction-actions">
+                    <button class="btn btn-success btn-sm" onclick="AdminSuivi.submitCorrection('${tache.id}', 'valide')">
+                        ✅ Valider la compétence
+                    </button>
+                </div>
+            `;
+        } else {
+            const remarqueHTML = existingRemarque
+                ? `<div class="correction-existing-remarque"><strong>Remarque :</strong> ${this.escapeHtml(existingRemarque)}</div>` : '';
+
+            actionsHTML = `
+                ${remarqueHTML}
+                <div class="correction-done-info">
+                    ✅ Validé le ${this.formatDate(tache.date_correction)}
+                </div>
+            `;
+        }
 
         return `
-            <div class="correction-card ${isDone ? 'done' : 'pending'}">
+            <div class="correction-card ${state}">
                 <div class="correction-header">
                     <div class="correction-eleve">
                         <div class="student-avatar">${this.getInitials(eleveName)}</div>
@@ -545,19 +625,99 @@ const AdminSuivi = {
                     ${modeRenduHTML}
                     ${envoiHTML}
                 </div>
-                ${!isDone ? `
-                    <div class="correction-actions">
-                        <button class="btn btn-primary btn-sm" onclick="AdminSuivi.markAsCorrected('${tache.id}')">
-                            ✓ Marquer comme corrigé
-                        </button>
-                    </div>
-                ` : `
-                    <div class="correction-done-info">
-                        ✅ Corrigé le ${this.formatDate(tache.date_correction)}
-                    </div>
-                `}
+                ${actionsHTML}
             </div>
         `;
+    },
+
+    /**
+     * Toggle correction type : none / url / editor
+     */
+    setCorrectionType(tacheId, type) {
+        const container = document.getElementById('correction-content-' + tacheId);
+        if (!container) return;
+
+        // Update tab active state
+        const form = document.getElementById('correction-form-' + tacheId);
+        form.querySelectorAll('.correction-type-tab').forEach(function(tab) {
+            tab.classList.toggle('active', tab.dataset.type === type);
+        });
+
+        if (type === 'url') {
+            container.innerHTML = `
+                <input type="url" class="correction-url-input" id="correction-url-${tacheId}"
+                    placeholder="https://docs.google.com/... ou https://www.loom.com/...">
+                <p class="correction-url-hint">Lien vers un Google Doc, une vidéo Loom, ou tout autre document.</p>
+            `;
+        } else if (type === 'editor') {
+            container.innerHTML = `<div id="correction-editor-ctn-${tacheId}"></div>`;
+            this._createRichTextEditor('correction-editor-ctn-' + tacheId, 'correction-editor-' + tacheId);
+        } else {
+            container.innerHTML = '';
+        }
+    },
+
+    /**
+     * Éditeur riche simplifié (même API que celui du wizard)
+     */
+    _createRichTextEditor(containerId, editorId) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="rt-toolbar">
+                <div class="rt-group">
+                    <button type="button" class="rt-btn" data-cmd="bold" title="Gras"><b>G</b></button>
+                    <button type="button" class="rt-btn" data-cmd="italic" title="Italique"><i>I</i></button>
+                    <button type="button" class="rt-btn" data-cmd="underline" title="Souligné"><u>S</u></button>
+                </div>
+                <div class="rt-group">
+                    <button type="button" class="rt-btn" data-cmd="insertUnorderedList" title="Liste">☰</button>
+                </div>
+                <div class="rt-group">
+                    <input type="color" class="rt-color" id="${editorId}Color" value="#000000" title="Couleur">
+                </div>
+            </div>
+            <div class="rt-editor" id="${editorId}" contenteditable="true" data-placeholder="Saisissez votre correction..."></div>
+        `;
+
+        // Bind toolbar buttons
+        container.querySelectorAll('.rt-btn[data-cmd]').forEach(function(btn) {
+            btn.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                document.execCommand(btn.dataset.cmd, false, null);
+            });
+        });
+
+        // Bind color picker
+        var colorInput = document.getElementById(editorId + 'Color');
+        if (colorInput) {
+            colorInput.addEventListener('input', function() {
+                document.execCommand('foreColor', false, colorInput.value);
+            });
+        }
+    },
+
+    /**
+     * Récupère le contenu du corrigé personnalisé (URL ou HTML)
+     */
+    _getCorrectionContent(tacheId) {
+        // Check URL field
+        var urlInput = document.getElementById('correction-url-' + tacheId);
+        if (urlInput && urlInput.value.trim()) {
+            return urlInput.value.trim();
+        }
+
+        // Check editor
+        var editor = document.getElementById('correction-editor-' + tacheId);
+        if (editor) {
+            var html = editor.innerHTML.trim();
+            if (html && html !== '<br>' && html !== '<div><br></div>') {
+                return html;
+            }
+        }
+
+        return '';
     },
 
     renderActivityItem(activity) {
@@ -751,31 +911,73 @@ const AdminSuivi = {
         this.render();
     },
 
-    async markAsCorrected(tacheId) {
+    /**
+     * Soumet la correction (corriger ou valider) avec remarque + corrigé personnalisé
+     */
+    async submitCorrection(tacheId, statut) {
+        // Désactiver les boutons pendant l'appel
+        var form = document.getElementById('correction-form-' + tacheId);
+        var buttons = form
+            ? form.querySelectorAll('.correction-actions .btn')
+            : document.querySelectorAll('.correction-card .correction-actions .btn');
+        buttons.forEach(function(b) { b.disabled = true; b.style.opacity = '0.5'; });
+
+        // Récupérer les champs
+        var remarqueEl = document.getElementById('remarque-' + tacheId);
+        var remarque = remarqueEl ? remarqueEl.value.trim() : '';
+        var correction = this._getCorrectionContent(tacheId);
+
         try {
-            const result = await this.callAPI('updateEleveTacheComplexe', {
+            var params = {
                 id: tacheId,
-                statut: 'corrige',
-                date_correction: new Date().toISOString()
-            });
+                statut: statut
+            };
+            if (remarque) params.remarque_prof = remarque;
+            if (correction) params.correction_prof = correction;
+
+            var result = await this.callAPI('updateEleveTacheComplexe', params);
 
             if (result.success) {
-                const tache = this.eleveTaches.find(t => t.id === tacheId);
+                var tache = this.eleveTaches.find(function(t) { return t.id === tacheId; });
                 if (tache) {
-                    tache.statut = 'corrige';
+                    tache.statut = statut;
                     tache.date_correction = new Date().toISOString();
+                    if (remarque) tache.remarque_prof = remarque;
+                    if (correction) tache.correction_prof = correction;
                 }
+
+                // Invalider le cache Sheets pour que les recharges voient le changement
+                this._invalidateCache();
+
                 this.render();
 
-                const pendingCount = this.eleveTaches.filter(t => t.statut === 'soumis').length;
+                var pendingCount = this.eleveTaches.filter(function(t) { return t.statut === 'soumis'; }).length;
                 AdminLayout.updateNotificationBadges(pendingCount);
             } else {
                 alert('Erreur lors de la mise à jour');
+                buttons.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
             }
         } catch (error) {
             console.error('Erreur:', error);
             alert('Erreur lors de la mise à jour');
+            buttons.forEach(function(b) { b.disabled = false; b.style.opacity = ''; });
         }
+    },
+
+    /**
+     * Invalide le cache localStorage pour EleveEntrainementsCompetences
+     */
+    _invalidateCache() {
+        // SheetsAPI utilise le préfixe brikks_sheets_
+        var prefix = 'brikks_sheets_EleveEntrainementsCompetences';
+        var keysToRemove = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var key = localStorage.key(i);
+            if (key && key.indexOf(prefix) === 0) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
     },
 
     // Utility functions

@@ -1796,6 +1796,100 @@ body.comp-fullscreen-active {
 /* Tags mode supprimés — fusionnés dans les badges exercices */
 
 /* ============================================
+   BANDEAU STATUT ÉVALUATION (corrigé / validé)
+   ============================================ */
+
+.comp-eval-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    margin: 0 1rem 1rem 1rem;
+}
+
+.comp-eval-status.validated {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.comp-eval-status.corrected {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+
+.comp-eval-status.done {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+}
+
+.comp-eval-status-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.comp-eval-status-text h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.comp-eval-status-text p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+/* ============================================
+   FEEDBACK PROF (remarque + corrigé personnalisé)
+   ============================================ */
+
+.comp-prof-feedback {
+    margin: 0 1rem 1rem 1rem;
+    padding: 1rem 1.25rem;
+    background: #faf5ff;
+    border: 1px solid #e9d5ff;
+    border-radius: 12px;
+}
+
+.comp-prof-feedback-title {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #6b21a8;
+}
+
+.comp-prof-remarque {
+    font-size: 0.9rem;
+    color: #374151;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.comp-prof-correction-embed {
+    margin-top: 0.75rem;
+}
+
+.comp-prof-correction-iframe {
+    width: 100%;
+    min-height: 400px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.comp-prof-correction-html {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #374151;
+}
+
+/* ============================================
    VUE RELECTURE (après complétion)
    ============================================ */
 
