@@ -422,9 +422,10 @@ const AdminSuivi = {
                                     detailParts.push(t.mode_rendu === 'numerique' ? '📧 Numérique' : '📄 Papier');
                                 }
                                 if (t.date_envoi) {
-                                    detailParts.push(`📤 Envoyé le ${this.formatDate(t.date_envoi)}`);
+                                    var envoiLabel = t.mode_rendu === 'papier' ? 'Copie déposée' : 'Copie envoyée';
+                                    detailParts.push(`📤 ${envoiLabel} le ${this.formatDate(t.date_envoi)}`);
                                 } else if (t.statut === 'soumis') {
-                                    detailParts.push('<span class="envoi-info waiting">📤 Pas encore envoyé</span>');
+                                    detailParts.push('<span class="envoi-info waiting">📤 Copie en attente</span>');
                                 }
                                 const detailHTML = detailParts.length > 0
                                     ? `<div class="training-detail">${detailParts.join(' · ')}</div>` : '';
@@ -525,9 +526,10 @@ const AdminSuivi = {
             : '';
 
         // Envoi élève
+        const envoiLabel = tache.mode_rendu === 'papier' ? 'Copie déposée' : 'Copie envoyée';
         const envoiHTML = tache.date_envoi
-            ? `<span class="envoi-info done">📤 Envoyé le ${this.formatDate(tache.date_envoi)}</span>`
-            : (state === 'pending' ? '<span class="envoi-info waiting">📤 Pas encore envoyé</span>' : '');
+            ? `<span class="envoi-info done">📤 ${envoiLabel} le ${this.formatDate(tache.date_envoi)}</span>`
+            : (state === 'pending' ? '<span class="envoi-info waiting">📤 Copie en attente</span>' : '');
 
         // Remarque existante
         const existingRemarque = tache.remarque_prof || '';

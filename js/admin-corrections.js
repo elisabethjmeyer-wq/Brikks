@@ -289,12 +289,10 @@ const AdminCorrections = {
 
         if (!isDone) {
             if (sub.date_envoi) {
-                var envoyeLabel = sub.mode_rendu === 'papier' ? '✅ Déposé' : '✅ Envoyé';
+                var envoyeLabel = sub.mode_rendu === 'papier' ? '✅ Copie déposée' : '✅ Copie envoyée';
                 badgesHtml += '<span class="card-badge badge-sent">' + envoyeLabel + '</span>';
-            } else if (sub.mode_rendu === 'papier') {
-                badgesHtml += '<span class="card-badge badge-waiting">📄 À déposer</span>';
-            } else if (sub.mode_rendu === 'numerique') {
-                badgesHtml += '<span class="card-badge badge-waiting">💻 À envoyer</span>';
+            } else if (sub.mode_rendu === 'papier' || sub.mode_rendu === 'numerique') {
+                badgesHtml += '<span class="card-badge badge-waiting">📄 Copie en attente</span>';
             } else {
                 badgesHtml += '<span class="card-badge badge-waiting">⏳ Terminé</span>';
             }
