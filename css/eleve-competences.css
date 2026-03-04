@@ -1542,8 +1542,8 @@ body.comp-fullscreen-active {
 /* In-place correction (appears below document) */
 .comp-inplace-corrige {
     padding: 1.25rem;
-    background: #f0fdf4;
-    border-top: 2px solid #bbf7d0;
+    background: transparent;
+    border-top: none;
 }
 
 .comp-corrige-header {
@@ -1556,7 +1556,7 @@ body.comp-fullscreen-active {
 .comp-inplace-corrige h4 {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #16a34a;
+    color: #374151;
     margin: 0;
 }
 
