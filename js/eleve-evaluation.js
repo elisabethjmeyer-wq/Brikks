@@ -1348,20 +1348,41 @@ const EleveEvaluation = {
         };
     },
 
+    _getCurrentUserId() {
+        try {
+            if (typeof Auth !== 'undefined' && Auth.user) return Auth.user.id;
+            const sessionUser = sessionStorage.getItem('brikks_user');
+            if (sessionUser) return JSON.parse(sessionUser).id;
+            const localSession = localStorage.getItem('brikks_session');
+            if (localSession) return JSON.parse(localSession).id;
+            return null;
+        } catch (e) {
+            console.error('Erreur récupération utilisateur:', e);
+            return null;
+        }
+    },
+
     async saveResults(globalResult) {
         try {
-            await this.callAPI('saveEvaluationResult', {
+            const eleveId = this._getCurrentUserId();
+            if (!eleveId) {
+                console.error('Impossible de sauvegarder : aucun utilisateur connecté');
+                return;
+            }
+            const result = await this.callAPI('saveEvaluationResult', {
                 evaluation_id: this.evaluation.id,
-                eleve_id: 'current_user', // A remplacer par l'ID reel de l'eleve
+                eleve_id: eleveId,
                 score: globalResult.score,
                 validations: globalResult.validationsEarned,
                 is_validated: globalResult.isValidated,
                 temps_passe: globalResult.elapsedTime,
                 details: JSON.stringify(this.results)
             });
+            if (!result.success) {
+                console.error('Erreur sauvegarde résultats:', result.error);
+            }
         } catch (error) {
             console.error('Erreur sauvegarde resultats:', error);
-            // On continue quand meme a afficher les resultats
         }
     },
 

@@ -753,11 +753,17 @@ Object.assign(AdminBanquesExercices, {
                         banque_exercice_id: this.wizardData.banqueId
                     };
                     Object.assign(this.wizardData.entrainement, formData);
-                    // Sauvegarde en arrière-plan
-                    this.callAPI('updateEntrainementConn', formData).catch(err => {
+                    // Sauvegarde en arrière-plan avec vérification
+                    try {
+                        const saveResult = await this.callAPI('updateEntrainementConn', formData);
+                        if (!saveResult.success) {
+                            console.error('Erreur sauvegarde étape 1:', saveResult.error);
+                            this.showNotification('Les paramètres n\'ont pas pu être sauvegardés : ' + (saveResult.error || 'erreur inconnue'), 'error');
+                        }
+                    } catch (err) {
                         console.error('Erreur sauvegarde étape 1:', err);
                         this.showNotification('Les paramètres n\'ont pas pu être sauvegardés. Vérifiez votre connexion.', 'error');
-                    });
+                    }
                 } else {
                     // Mode création : on a besoin de l'ID du serveur → indicateur de chargement
                     if (nextBtn) {

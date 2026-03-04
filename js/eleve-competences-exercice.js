@@ -542,21 +542,26 @@ Object.assign(EleveCompetences, {
         if (this.currentUser) {
             try {
                 const duree = entrainement.duree || 1800;
-                await this.callAPI('finishEleveEntrainementCompetence', {
+                const result = await this.callAPI('finishEleveEntrainementCompetence', {
                     eleve_id: this.currentUser.id,
                     entrainement_id: entrainement.id,
                     temps_passe: duree
                 });
 
-                const prog = this.progressions.find(p =>
-                    String(p.entrainement_id) === String(entrainement.id)
-                );
-                if (prog) {
-                    prog.statut = 'soumis';
-                    prog.temps_passe = duree;
-                    prog.date_soumission = new Date().toISOString();
+                if (!result.success) {
+                    console.error('Erreur auto-soumission (API):', result.error);
+                    submitFailed = true;
+                } else {
+                    const prog = this.progressions.find(p =>
+                        String(p.entrainement_id) === String(entrainement.id)
+                    );
+                    if (prog) {
+                        prog.statut = 'soumis';
+                        prog.temps_passe = duree;
+                        prog.date_soumission = new Date().toISOString();
+                    }
+                    this.saveToCache();
                 }
-                this.saveToCache();
             } catch (error) {
                 console.error('Erreur auto-soumission:', error);
                 submitFailed = true;

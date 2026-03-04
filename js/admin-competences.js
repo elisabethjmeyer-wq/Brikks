@@ -371,7 +371,11 @@ const AdminCompetences = {
                     var existing = existingCriteres[j];
                     var stillExists = self.criteresTemp.find(function(c) { return c.id === existing.id; });
                     if (!stillExists) {
-                        await self.callAPI('deleteCritereReussite', { id: existing.id });
+                        var delResult = await self.callAPI('deleteCritereReussite', { id: existing.id });
+                        if (!delResult.success) {
+                            alert('Erreur suppression critère « ' + existing.libelle + ' » : ' + (delResult.error || 'erreur inconnue'));
+                            return;
+                        }
                     }
                 }
             }
@@ -385,11 +389,16 @@ const AdminCompetences = {
                     ordre: i + 1
                 };
 
+                var critResult;
                 if (critere.id && critere.isExisting) {
                     critereData.id = critere.id;
-                    await this.callAPI('updateCritereReussite', critereData);
+                    critResult = await this.callAPI('updateCritereReussite', critereData);
                 } else {
-                    await this.callAPI('createCritereReussite', critereData);
+                    critResult = await this.callAPI('createCritereReussite', critereData);
+                }
+                if (!critResult.success) {
+                    alert('Erreur sauvegarde critère « ' + critere.libelle + ' » : ' + (critResult.error || 'erreur inconnue'));
+                    return;
                 }
             }
 

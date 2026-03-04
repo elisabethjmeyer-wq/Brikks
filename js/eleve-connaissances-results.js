@@ -118,6 +118,9 @@ Object.assign(EleveConnaissances, {
                     prochaine_revision: response.prochaine_revision
                 };
                 Logger.debug('EleveConnaissances', 'Progression sauvegardée', response);
+            } else {
+                Logger.error('EleveConnaissances', 'Erreur sauvegarde progression (API)', response.error);
+                this.lastProgressionResult = { saveError: true, error: response.error };
             }
         } catch (error) {
             Logger.error('EleveConnaissances', 'Erreur sauvegarde progression', error);

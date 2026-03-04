@@ -64,6 +64,8 @@ Object.assign(EleveExercices, {
             const result = await this.callAPI('saveResultatExercice', resultData);
             if (result.success) {
                 this.updateLocalResult(resultData);
+            } else {
+                console.error('[EleveExercices] Erreur sauvegarde résultat (API):', result.error);
             }
 
             // Pour les savoir-faire, sauvegarder dans l'historique des pratiques
