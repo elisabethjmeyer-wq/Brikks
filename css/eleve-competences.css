@@ -2964,11 +2964,10 @@ body.comp-fullscreen-active {
 .comp-blocks-group {
     display: flex;
     gap: 24px;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .comp-blocks-group-child {
-    flex: 1;
     min-width: 0;
 }
 
