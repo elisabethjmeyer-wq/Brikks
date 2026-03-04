@@ -838,6 +838,15 @@
     to { transform: translateX(0); opacity: 1; }
 }
 
+.correction-notification.fade-out {
+    animation: slideOut 0.3s ease forwards;
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
 /* ========== Statut brouillon / publié (étape 1) ========== */
 .statut-toggle-section {
     margin-top: 1.25rem;

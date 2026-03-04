@@ -4,6 +4,87 @@
 
 ---
 
+## 2026-03-04 — Session 15 : Corrections bugs affichage corrigé + wizard
+
+### Contexte
+L'utilisatrice signale que le corrigé ne s'affiche pas côté élève, que les notifications fonctionnent mal, et que le wizard correction perd ses données à la navigation.
+
+### Corrections
+
+1. **Statut `non_valide` manquant** (`js/eleve-competences.js`) : le switch `handleExerciseClick` ne gérait pas le statut `non_valide`. L'élève cliquait sur un exercice corrigé "non validé" → rien ne se passait. C'était la raison principale pour laquelle le corrigé ne s'affichait pas.
+
+2. **Wizard correction : `beforeunload`** (`js/admin-corrections.js`) : tout l'état du wizard était en mémoire. Navigation hors de la page = perte totale sans avertissement. Ajout de `_addBeforeUnload()` / `_removeBeforeUnload()` à l'ouverture/fermeture du modal.
+
+3. **`callAPI` sans timeout** (`js/admin-corrections.js`) : les requêtes JSONP pouvaient rester bloquées indéfiniment (pas de timeout, pas d'erreur). Ajout d'un timeout de 30s avec rejet de la promise.
+
+4. **Notifications améliorées** (`js/admin-corrections.js` + `css/admin-corrections.css`) : durée portée à 4s (success) / 6s (error), animation de sortie `slideOut` ajoutée.
+
+5. **Code.gs : lecture de l'action depuis le body POST** : `handleRequest` ne lisait `action` que depuis `e.parameter`. Ajout de `data.action` en fallback pour les futurs appels POST.
+
+### Fichiers modifiés
+- `js/eleve-competences.js` — ajout `non_valide` dans `handleExerciseClick`
+- `js/admin-corrections.js` — beforeunload, timeout callAPI, notifications améliorées
+- `css/admin-corrections.css` — animation slideOut
+- `google-apps-script/Code.gs` — action POST fallback
+- `google-apps-script/TOUT-EN-UN.gs` — rebuild
+
+---
+
+## 2026-03-04 — Session 14 : Wizard correction refondé + vue évaluation élève
+
+### Contexte
+Refonte complète du wizard de correction (admin) et de la vue post-correction (élève) pour les entraînements de compétences en mode évaluation.
+
+### Modifications
+
+1. **Block editor partagé** (`js/block-editor.js`) : extraction d'un mixin factory `createBlockEditorMixin(hostName)` réutilisable. Blocs : text, document, image, video, group. Drag & drop, éditeur de texte riche intégré, groupes côte à côte avec ratios.
+
+2. **Wizard correction 4 étapes** (`js/admin-corrections.js`) :
+   - Étape 1 : Informations + toggle brouillon/publié
+   - Étape 2 : Block editor avec toggle Lien Google Doc / Éditeur + onglets Construction / Vue élève
+   - Étape 3 : Critères de réussite (cocher/décocher) + décision validé / non validé
+   - Étape 4 : Bilan résumé avant confirmation
+   - Remarque supprimée (redondante avec le block editor)
+
+3. **Vue évaluation élève** (`js/eleve-competences-exercice.js`) :
+   - Layout 2 colonnes identique au mode entraînement
+   - Colonne gauche : toggle Sujet (document exercice) / Corrigé (correction_prof du wizard)
+   - Colonne droite : critères de réussite en lecture seule (cochés par le prof) + bandeau statut
+   - Parsing JSON blocs dans `_buildCorrectionProfHTML()` (remplace `_buildFeedbackHTML`)
+   - Si `statut_correction === 'brouillon'`, corrigé et critères masqués côté élève
+
+4. **Backend** (`Competences.gs`) :
+   - Colonne `statut_correction` ajoutée à la migration progressive
+   - Écriture/lecture de `statut_correction` dans `validateEleveEntrainementCompetence()`
+
+5. **Nettoyage post-audit** :
+   - 6 classes CSS mortes supprimées (`.comp-prof-feedback`, `.comp-prof-remarque`, etc.)
+   - XSS corrigé dans `_formatLegende()` de `admin-corrections.js` (manquait `escapeHtml`)
+   - `parseInt` radix ajouté dans `block-editor.js` et `admin-corrections.js`
+   - Fond vert `.comp-inplace-corrige` supprimé (neutre partout)
+
+### Fichiers créés
+- `js/block-editor.js` — mixin block editor partagé
+
+### Fichiers modifiés
+- `js/admin-corrections.js` — refondu (wizard 4 étapes + block editor)
+- `js/admin-banques-exercices-blockeditor.js` — réécrit pour utiliser le mixin
+- `js/eleve-competences-exercice.js` — vue évaluation 2 colonnes
+- `css/admin-corrections.css` — styles wizard + block editor
+- `css/eleve-competences.css` — styles eval review + nettoyage CSS mort
+- `admin/corrections.html` — ajout script block-editor.js, 4 étapes wizard
+- `admin/banques-exercices.html` — ajout script block-editor.js
+- `google-apps-script/Competences.gs` — colonne statut_correction
+- `google-apps-script/TOUT-EN-UN.gs` — rebuild
+- `.eslintrc.json` — ajout global `createBlockEditorMixin`
+
+### Décisions
+- Le block editor est un mixin (pas une classe) pour rester cohérent avec le pattern singleton du projet
+- `remarque_prof` conservée en colonne inerte (migration progressive la crée mais le wizard ne l'utilise plus)
+- Le fond vert du corrigé (`.comp-inplace-corrige`) supprimé en entraînement ET évaluation — fond neutre partout
+
+---
+
 ## 2026-03-04 — Session 13 : Correction bugs wizards cassés par la session 11
 
 ### Contexte

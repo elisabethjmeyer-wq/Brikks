@@ -67,7 +67,15 @@ const AdminCorrections = {
             var callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             var script = document.createElement('script');
 
+            // Timeout de 30 secondes (les écritures peuvent être lentes)
+            var timeout = setTimeout(function() {
+                delete window[callbackName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                reject(new Error('Timeout: ' + action));
+            }, 30000);
+
             window[callbackName] = function(response) {
+                clearTimeout(timeout);
                 delete window[callbackName];
                 if (script.parentNode) script.parentNode.removeChild(script);
                 resolve(response);
@@ -76,6 +84,7 @@ const AdminCorrections = {
             var queryParams = new URLSearchParams(Object.assign({ action: action, callback: callbackName }, params));
             script.src = CONFIG.WEBAPP_URL + '?' + queryParams.toString();
             script.onerror = function() {
+                clearTimeout(timeout);
                 delete window[callbackName];
                 if (script.parentNode) script.parentNode.removeChild(script);
                 reject(new Error('API call failed: ' + action));
@@ -365,15 +374,37 @@ const AdminCorrections = {
             statutCorrection: sub.statut_correction || 'publie'
         };
 
+        this._wizardDirty = false;
         this.updateModalTitle();
         this.renderStep();
         this.updateWizardIndicators();
         document.getElementById('correctionModal').classList.remove('hidden');
+        this._addBeforeUnload();
     },
 
     closeModal() {
         document.getElementById('correctionModal').classList.add('hidden');
         this.currentSubmission = null;
+        this._wizardDirty = false;
+        this._removeBeforeUnload();
+    },
+
+    _beforeUnloadHandler: null,
+
+    _addBeforeUnload() {
+        this._removeBeforeUnload();
+        this._beforeUnloadHandler = function(e) {
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', this._beforeUnloadHandler);
+    },
+
+    _removeBeforeUnload() {
+        if (this._beforeUnloadHandler) {
+            window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+            this._beforeUnloadHandler = null;
+        }
     },
 
     updateModalTitle() {
@@ -962,9 +993,16 @@ const AdminCorrections = {
         notif.textContent = message;
         document.body.appendChild(notif);
 
+        // Durée plus longue pour les erreurs, animation de sortie
+        var duration = type === 'error' ? 6000 : 4000;
         setTimeout(function() {
-            if (notif.parentNode) notif.remove();
-        }, 3000);
+            if (notif.parentNode) {
+                notif.classList.add('fade-out');
+                setTimeout(function() {
+                    if (notif.parentNode) notif.remove();
+                }, 300);
+            }
+        }, duration);
     }
 };
 

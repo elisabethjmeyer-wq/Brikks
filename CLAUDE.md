@@ -120,7 +120,45 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - Colonne `mode_rendu` dans EleveEntrainementsCompetences (migration progressive)
 - Champs admin pour configurer les délais de rendu par entraînement
 
-**État** : audité et nettoyé (session 9, popup session 10). Code propre, factorisé et maintenable.
+**Ajouts session 14** :
+- Vue évaluation élève refaite : layout 2 colonnes identique au mode entraînement
+- `_buildFeedbackHTML()` supprimée, remplacée par `_buildCorrectionProfHTML()` (URL, blocs JSON, HTML brut)
+- `_renderEvalReview()` : colonne gauche (Sujet/Corrigé toggle), colonne droite (critères lecture seule + bandeau statut)
+- Critères validés par le prof (`progression.criteres_valides`) affichés avec indicateurs visuels
+- Si `statut_correction === 'brouillon'`, corrigé et critères masqués côté élève
+
+**État** : audité et nettoyé (session 9, popup session 10, vue évaluation session 14). Code propre, factorisé et maintenable.
+
+### Correction des évaluations (admin) — CRÉÉ SESSION 14
+
+**Page** : `admin/corrections.html`
+**Fichiers** : `js/admin-corrections.js`, `js/block-editor.js` (mixin partagé)
+**Backend** : `Competences.gs` (`validateEleveEntrainementCompetence`)
+**CSS** : `css/admin-corrections.css`
+
+**Ce que fait le module :**
+- La prof voit une grille de cartes (1 par copie soumise), avec compteurs par état
+- Clic sur une carte ouvre un **wizard 4 étapes** :
+  1. **Informations** : infos élève/exercice + toggle brouillon/publié (visibilité élève)
+  2. **Correction** : block editor (ou lien Google Doc) + onglets Construction / Vue élève
+  3. **Critères** : liste des critères de réussite à cocher + décision valide / non valide
+  4. **Bilan** : résumé avant confirmation
+- `statut_correction` (brouillon/publié) persisté côté backend — si brouillon, l'élève ne voit pas le corrigé
+
+**Block editor partagé** (`js/block-editor.js`) :
+- Factory `createBlockEditorMixin(hostName)` retourne un objet de méthodes paramétré par le nom du module hôte
+- Monté via `Object.assign(Module, createBlockEditorMixin('Module'))`
+- Types de blocs : text, document, image, video, group (+ tableau/question pour AdminBanquesExercices)
+- Éditeur de texte riche intégré (contenteditable + toolbar)
+- Drag & drop, groupes côte à côte avec ratios configurables
+- Utilisé par `AdminCorrections` et `AdminBanquesExercices`
+
+**Données** : colonnes de `EleveEntrainementsCompetences` (migration progressive) :
+`correction_prof` (URL ou JSON blocs), `criteres_valides` (JSON array d'IDs), `statut_correction` (brouillon/publie), `remarque_prof` (inutilisé)
+
+**Appels API** : `validateEleveEntrainementCompetence` (écriture), `getEleveEntrainementsCompetences` (lecture, retourne toutes les colonnes dynamiquement)
+
+**État** : créé et audité (session 14). Code propre et maintenable.
 
 ## Architecture technique
 
@@ -136,6 +174,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 ### Fonctions globales
 - **`escapeHtml(str)`** : fonction globale définie dans `app.js` (hors de l'objet `App`). Échappe les caractères HTML via DOM. Utilisée dans tous les modules — ne pas redéfinir en local.
+- **`createBlockEditorMixin(hostName)`** : factory globale définie dans `js/block-editor.js`. Retourne un objet de méthodes pour un éditeur de blocs (text, document, image, video, group). Le paramètre `hostName` est utilisé pour générer les `onclick` (ex: `AdminCorrections.addBlock('text')`). Monter via `Object.assign(Module, createBlockEditorMixin('Module'))`.
 
 ### Fichiers clés à connaître
 - **`js/config.js`** : configuration centrale — tables Google Sheets (`CONFIG.SHEETS`), URL API, routes, seuils de mémorisation (`CONFIG.SEUIL_*`), clés localStorage (`CONFIG.STORAGE_KEYS`). C'est le schéma de la "base de données".
@@ -149,6 +188,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 Brikks/
 ├── js/                          # 48 fichiers JS (~37k lignes)
 │   ├── config.js                # ⭐ Configuration centrale (sheets, API, routes)
+│   ├── block-editor.js          # Mixin block editor partagé (createBlockEditorMixin)
 │   └── submission-utils.js      # Utilitaires de soumission (popup, calcul délais, jours ouvrés)
 ├── css/                         # 29 fichiers CSS (~38k lignes)
 ├── google-apps-script/          # 12 fichiers .gs (~7.8k lignes)
@@ -312,6 +352,14 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - ~~**Wizards admin cassés (self.escapeHtml)**~~ : **CORRIGÉ (session 13)** — la centralisation de `escapeHtml()` en global (session 11, Phase 1) n'avait pas été propagée à 3 fichiers d'extension (`comp-wizard`, `sf-wizard`, `builders`). 8 appels `self.escapeHtml(...)` lançaient un TypeError silencieux. Wizard compétences vide, wizard SF affichait l'étape 1 en double, prévisualisation exercices cassée.
 - ~~**CSS modal-overlay conflit de convention**~~ : **CORRIGÉ (session 13)** — `style.css` base utilisait `display: none` + `.active`, toutes les pages utilisent `display: flex` + `.hidden`. Aligné sur `.hidden`.
 
+### Bugs session 15 (correction + vue élève)
+
+- ~~**Statut `non_valide` non géré dans `handleExerciseClick`**~~ : **CORRIGÉ (session 15)** — l'élève cliquait sur un exercice non validé et rien ne se passait. Le statut n'était pas dans le switch. Ajouté → ouvre la vue review.
+- ~~**Wizard correction sans `beforeunload`**~~ : **CORRIGÉ (session 15)** — toute navigation hors de la page perdait les données du wizard sans avertissement. `beforeunload` ajouté à l'ouverture du modal, retiré à la fermeture/sauvegarde.
+- ~~**`callAPI` sans timeout dans admin-corrections**~~ : **CORRIGÉ (session 15)** — timeout 30s ajouté pour éviter les requêtes bloquées indéfiniment.
+- ~~**Notifications trop rapides**~~ : **CORRIGÉ (session 15)** — durée augmentée (4s success, 6s error) + animation de sortie `slideOut`.
+- ~~**Code.gs : action POST non lue**~~ : **CORRIGÉ (session 15)** — `handleRequest` ne lisait `action` que depuis `e.parameter` (query params). Si un futur appel POST envoie l'action dans le body, elle était ignorée. Maintenant : `params.action || data.action`.
+
 ### Points structurels
 
 - **Sécurité** : mots de passe en clair dans Google Sheets, pas d'auth côté serveur, clé API exposée côté client. Acceptable pour ~50 élèves en environnement scolaire, mais à documenter.
@@ -324,3 +372,5 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - **7 copies de `callAPI`** : chaque module a sa propre implémentation. Seul `admin-banques-exercices.js` a un timeout (15s). Les 6 autres peuvent rester bloqués indéfiniment. À centraliser un jour dans un fichier partagé.
 - **Double système de lecture** : `callAPI` (JSONP) et `SheetsAPI` (REST direct) avec caches indépendants (TTL 3-5 min). Peut causer des décalages de données entre pages admin.
 - **`SheetsAPI.clearCache()` trop large** : efface le cache de toutes les tables au lieu de celle modifiée. Force des rechargements inutiles.
+- **Block editor : listeners non nettoyés** : `_initBlockDragDrop()` dans `block-editor.js` ajoute des listeners à chaque re-render (`_renderBlocks()`). Les anciens listeners sont orphelins. Pas de bug observable sur des sessions courtes, mais memory leak théorique sur de longues sessions d'édition.
+- **`remarque_prof`** : colonne créée par migration progressive dans `EleveEntrainementsCompetences`, mais le wizard correction ne l'utilise plus (remarque supprimée au profit du block editor). Colonne inerte.
