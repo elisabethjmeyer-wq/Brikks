@@ -1939,54 +1939,6 @@ body.comp-fullscreen-active {
 }
 
 /* ============================================
-   FEEDBACK PROF (remarque + corrigé personnalisé)
-   ============================================ */
-
-.comp-prof-feedback {
-    margin: 0 1rem 1rem 1rem;
-    padding: 1rem 1.25rem;
-    background: #faf5ff;
-    border: 1px solid #e9d5ff;
-    border-radius: 12px;
-}
-
-.comp-prof-feedback-title {
-    margin: 0 0 0.75rem 0;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #6b21a8;
-}
-
-.comp-prof-remarque {
-    font-size: 0.9rem;
-    color: #374151;
-    line-height: 1.5;
-    white-space: pre-wrap;
-}
-
-.comp-prof-correction-embed {
-    margin-top: 0.75rem;
-}
-
-.comp-prof-correction-iframe {
-    width: 100%;
-    min-height: 400px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-}
-
-.comp-prof-correction-html {
-    margin-top: 0.75rem;
-    padding: 0.75rem;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: #374151;
-}
-
-/* ============================================
    VUE RELECTURE (après complétion)
    ============================================ */
 

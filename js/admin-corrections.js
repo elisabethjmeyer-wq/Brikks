@@ -693,7 +693,7 @@ const AdminCorrections = {
 
     _formatLegende(text) {
         if (!text) return '';
-        return text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        return escapeHtml(text).replace(/\*([^*]+)\*/g, '<em>$1</em>');
     },
 
     // ========== SAUVEGARDE ÉTAT ÉTAPE 2 ==========
