@@ -175,6 +175,10 @@ const EleveCompetences = {
             return { status: 'validee', label: 'Validée', cssClass: 'validated' };
         }
 
+        if (banqueProgressions.some(p => p.mode === 'evalue' && p.statut === 'non_valide')) {
+            return { status: 'non_validee', label: 'Non validée', cssClass: 'not-validated' };
+        }
+
         if (banqueProgressions.some(p => p.mode === 'evalue' && p.statut === 'corrige')) {
             return { status: 'corrigee', label: 'Corrigée', cssClass: 'corrected' };
         }
@@ -229,6 +233,8 @@ const EleveCompetences = {
                 return { status: 'corrige', label: 'Corrigé', cssClass: 'corrected', icon: '📋' };
             case 'valide':
                 return { status: 'valide', label: 'Validé', cssClass: 'validated', icon: '✓' };
+            case 'non_valide':
+                return { status: 'non_valide', label: 'Non validé', cssClass: 'not-validated', icon: '✕' };
             case 'non_soumis':
                 return { status: 'non_soumis', label: 'Non évalué', cssClass: 'declined', icon: '✕' };
             default:
@@ -412,7 +418,7 @@ const EleveCompetences = {
      */
     _getBanqueMetaParts(banqueEntrainements) {
         const parts = [];
-        let nbTermines = 0, nbAEnvoyer = 0, nbEnAttente = 0, nbValides = 0, nbEnCours = 0, nbCorrige = 0, nbNonEvalue = 0;
+        let nbTermines = 0, nbAEnvoyer = 0, nbEnAttente = 0, nbValides = 0, nbEnCours = 0, nbCorrige = 0, nbNonEvalue = 0, nbNonValide = 0;
 
         banqueEntrainements.forEach(entr => {
             const prog = this.progressions.find(p =>
@@ -424,6 +430,7 @@ const EleveCompetences = {
             else if (prog.statut === 'soumis') nbAEnvoyer++;
             else if (prog.statut === 'valide') nbValides++;
             else if (prog.statut === 'corrige') nbCorrige++;
+            else if (prog.statut === 'non_valide') nbNonValide++;
             else if (prog.statut === 'en_cours') nbEnCours++;
             else if (prog.statut === 'non_soumis') nbNonEvalue++;
         });
@@ -432,6 +439,7 @@ const EleveCompetences = {
 
         if (nbValides > 0) parts.push(`<span>${nbValides} validé${nbValides > 1 ? 's' : ''}</span>`);
         if (nbCorrige > 0) parts.push(`<span>${nbCorrige} corrigé${nbCorrige > 1 ? 's' : ''}</span>`);
+        if (nbNonValide > 0) parts.push(`<span>${nbNonValide} non validé${nbNonValide > 1 ? 's' : ''}</span>`);
         if (nbEnAttente > 0) parts.push(`<span>${nbEnAttente} en attente de correction</span>`);
         if (nbAEnvoyer > 0) parts.push(`<span>${nbAEnvoyer} à envoyer</span>`);
         if (nbTermines > 0) parts.push(`<span>${nbTermines} terminé${nbTermines > 1 ? 's' : ''}</span>`);

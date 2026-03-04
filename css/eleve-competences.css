@@ -331,6 +331,11 @@
     color: #16a34a;
 }
 
+.comp-detail-status.not-validated {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
 .comp-detail-title-section {
     display: flex;
     flex-direction: column;
@@ -634,6 +639,11 @@
 .comp-exercise-badge.validated {
     background: #dcfce7;
     color: #16a34a;
+}
+
+.comp-exercise-badge.not-validated {
+    background: #fee2e2;
+    color: #dc2626;
 }
 
 .comp-exercise-badge.declined {
@@ -1816,6 +1826,11 @@ body.comp-fullscreen-active {
 .comp-eval-status.corrected {
     background: #eff6ff;
     border: 1px solid #bfdbfe;
+}
+
+.comp-eval-status.not-validated {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
 }
 
 .comp-eval-status.done {

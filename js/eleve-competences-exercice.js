@@ -1083,6 +1083,11 @@ Object.assign(EleveCompetences, {
             statusTitle = 'Compétence validée';
             statusMessage = 'Ta production a été corrigée et validée par le professeur.';
             statusClass = 'validated';
+        } else if (statut === 'non_valide') {
+            statusIcon = '❌';
+            statusTitle = 'Compétence non validée';
+            statusMessage = 'Ta production a été corrigée mais la compétence n\'est pas encore validée. Tu peux recommencer un entraînement.';
+            statusClass = 'not-validated';
         } else if (statut === 'corrige') {
             statusIcon = '📋';
             statusTitle = 'Production corrigée';
