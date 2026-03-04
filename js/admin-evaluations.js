@@ -78,7 +78,6 @@ const AdminEvaluations = {
             const evaluationsData = await SheetsAPI.getSheetData('EVALUATIONS');
             this.evaluations = SheetsAPI.parseSheetData(evaluationsData);
         } catch (e) {
-            console.log('Table EVALUATIONS not found, using empty array');
             this.evaluations = [];
         }
     },
@@ -197,7 +196,7 @@ const AdminEvaluations = {
     populateFilters() {
         const chapitreSelect = document.getElementById('filterChapitre');
         chapitreSelect.innerHTML = '<option value="">Tous les chapitres</option>' +
-            this.chapitres.map(c => `<option value="${c.id}">${this.escapeHtml(c.titre || c.id)}</option>`).join('');
+            this.chapitres.map(c => `<option value="${c.id}">${escapeHtml(c.titre || c.id)}</option>`).join('');
     },
 
     // ========== RENDER ==========
@@ -228,8 +227,6 @@ const AdminEvaluations = {
 
     renderEvaluationCard(evaluation) {
         const chapitre = this.chapitres.find(c => c.id === evaluation.chapitre_id);
-        const chapterName = chapitre?.titre || 'Non défini';
-
         const typeClass = evaluation.type || 'connaissances';
         const statusClass = evaluation.statut || 'brouillon';
         const order = evaluation.ordre || this.getEvaluationOrder(evaluation);
@@ -335,7 +332,7 @@ const AdminEvaluations = {
                     <div class="eval-card-order ${typeClass}">${typeIcons[typeClass]}</div>
                     <div class="eval-card-content">
                         <div class="eval-card-title">
-                            ${this.escapeHtml(evaluation.titre || 'Sans titre')}
+                            ${escapeHtml(evaluation.titre || 'Sans titre')}
                             <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
                         </div>
                         <div class="eval-card-meta">
@@ -429,7 +426,7 @@ const AdminEvaluations = {
     populateChapitreSelect() {
         const select = document.getElementById('evalChapitre');
         select.innerHTML = '<option value="">Selectionner...</option>' +
-            this.chapitres.map(c => `<option value="${c.id}">${this.escapeHtml(c.titre || c.id)}</option>`).join('');
+            this.chapitres.map(c => `<option value="${c.id}">${escapeHtml(c.titre || c.id)}</option>`).join('');
     },
 
     populateMethodologieSelects() {
@@ -438,11 +435,11 @@ const AdminEvaluations = {
 
         const selectSF = document.getElementById('evalMethodologie');
         selectSF.innerHTML = '<option value="">Selectionner...</option>' +
-            savoirFaire.map(m => `<option value="${m.id}">${this.escapeHtml(m.titre || m.id)}</option>`).join('');
+            savoirFaire.map(m => `<option value="${m.id}">${escapeHtml(m.titre || m.id)}</option>`).join('');
 
         const selectTC = document.getElementById('evalMethodologieTC');
         selectTC.innerHTML = '<option value="">Selectionner...</option>' +
-            competences.map(m => `<option value="${m.id}">${this.escapeHtml(m.titre || m.id)}</option>`).join('');
+            competences.map(m => `<option value="${m.id}">${escapeHtml(m.titre || m.id)}</option>`).join('');
     },
 
     onTypeChange(type) {
@@ -549,7 +546,7 @@ const AdminEvaluations = {
         const tbody = document.getElementById('attributionTableBody');
         tbody.innerHTML = this.eleves.map(eleve => `
             <tr>
-                <td>${this.escapeHtml(eleve.prenom || '')} ${this.escapeHtml(eleve.nom || '')}</td>
+                <td>${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</td>
                 <td>${eleve.classe_id || '-'}</td>
                 <td><span class="progress-badge not-started">Non commence</span></td>
                 <td>
@@ -660,13 +657,6 @@ const AdminEvaluations = {
         });
     },
 
-    // ========== UTILS ==========
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 };
 
 // Initialize

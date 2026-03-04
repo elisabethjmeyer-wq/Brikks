@@ -65,13 +65,6 @@ Object.assign(EleveConnaissances, {
         this.clearAnswerStore();
     },
 
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
-
     /**
      * Store interne pour les réponses correctes (non exposées dans le DOM).
      * Clé = identifiant unique (ex: "chrono_date_0"), Valeur = { correct, acceptees }

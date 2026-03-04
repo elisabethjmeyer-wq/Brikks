@@ -21,7 +21,7 @@ Object.assign(EleveExercices, {
             <table class="tableau-exercice">
                 <thead>
                     <tr>
-                        ${colonnes.map(titre => `<th>${this.escapeHtml(titre)}</th>`).join('')}
+                        ${colonnes.map(titre => `<th>${escapeHtml(titre)}</th>`).join('')}
                     </tr>
                 </thead>
                 <tbody>
@@ -40,7 +40,7 @@ Object.assign(EleveExercices, {
                         </td>
                     `;
                 } else {
-                    html += `<td class="cell-display">${this.escapeHtml(cell.valeur)}</td>`;
+                    html += `<td class="cell-display">${escapeHtml(cell.valeur)}</td>`;
                 }
             });
             html += '</tr>';
@@ -108,7 +108,7 @@ Object.assign(EleveExercices, {
         return 'carte-shape-' + (valid.includes(shape) ? shape : 'cercle');
     },
 
-    renderCarteCliquable(donnees, structure) {
+    renderCarteCliquable(donnees, _structure) {
         const imageUrl = this.convertToDirectImageUrl(donnees.image_url || '');
         const marqueurs = donnees.marqueurs || [];
         const colorMap = this.CARTE_COLOR_MAP;
@@ -117,7 +117,7 @@ Object.assign(EleveExercices, {
             const colorHex = colorMap[m.color] || colorMap.bleu;
             const shapeClass = this._getMarqueurShapeClass(m.shape);
             return `<div class="carte-marqueur ${shapeClass}" data-id="${m.id || index}"
-                 data-reponse="${this.escapeHtml(m.reponse || '')}"
+                 data-reponse="${escapeHtml(m.reponse || '')}"
                  data-correction="${m.correction || 'souple'}"
                  style="left: ${m.x}%; top: ${m.y}%; background: ${colorHex};"
                  onclick="EleveExercices.openMarqueurModal(${index})">
@@ -133,7 +133,7 @@ Object.assign(EleveExercices, {
         return `
             <div class="carte-cliquable-container">
                 <div class="carte-image-wrapper">
-                    <img src="${this.escapeHtml(imageUrl)}" alt="Carte" class="carte-image">
+                    <img src="${escapeHtml(imageUrl)}" alt="Carte" class="carte-image">
                     <div class="carte-marqueurs">${marqueursHTML}</div>
                 </div>
             </div>
@@ -200,9 +200,9 @@ Object.assign(EleveExercices, {
         let documentHTML = '';
         if (doc.type === 'image') {
             const imgUrl = this.convertToDirectImageUrl(doc.contenu);
-            documentHTML = `<img src="${this.escapeHtml(imgUrl)}" alt="Document" class="doc-image">`;
+            documentHTML = `<img src="${escapeHtml(imgUrl)}" alt="Document" class="doc-image">`;
         } else {
-            documentHTML = `<div class="doc-texte">${this.escapeHtml(doc.contenu || '')}</div>`;
+            documentHTML = `<div class="doc-texte">${escapeHtml(doc.contenu || '')}</div>`;
         }
 
         // Réutiliser le même parser que renderTableauSaisie pour supporter v1 et v2
@@ -210,7 +210,7 @@ Object.assign(EleveExercices, {
 
         let tableHTML = `
             <table class="tableau-exercice">
-                <thead><tr>${parsed.colonnes.map(titre => `<th>${this.escapeHtml(titre)}</th>`).join('')}</tr></thead>
+                <thead><tr>${parsed.colonnes.map(titre => `<th>${escapeHtml(titre)}</th>`).join('')}</tr></thead>
                 <tbody>
         `;
 
@@ -227,7 +227,7 @@ Object.assign(EleveExercices, {
                         </td>
                     `;
                 } else {
-                    tableHTML += `<td class="cell-display">${this.escapeHtml(cell.valeur)}</td>`;
+                    tableHTML += `<td class="cell-display">${escapeHtml(cell.valeur)}</td>`;
                 }
             });
             tableHTML += '</tr>';
@@ -243,33 +243,33 @@ Object.assign(EleveExercices, {
         `;
     },
 
-    renderQuestionOuverte(donnees, structure) {
+    renderQuestionOuverte(donnees, _structure) {
         const doc = donnees.document || {};
         const questions = donnees.questions || [];
 
         let documentHTML = '';
         if (doc.type === 'image') {
             const imgUrl = this.convertToDirectImageUrl(doc.contenu);
-            documentHTML = `<img src="${this.escapeHtml(imgUrl)}" alt="Document" class="doc-image">`;
+            documentHTML = `<img src="${escapeHtml(imgUrl)}" alt="Document" class="doc-image">`;
         } else {
-            documentHTML = `<div class="doc-texte">${this.escapeHtml(doc.contenu || '')}</div>`;
+            documentHTML = `<div class="doc-texte">${escapeHtml(doc.contenu || '')}</div>`;
         }
 
         let questionsHTML = questions.map((q, qIndex) => {
             const etapesHTML = (q.etapes || []).map((etape, eIndex) => `
                 <div class="question-etape">
-                    <label>${this.escapeHtml(etape)}</label>
+                    <label>${escapeHtml(etape)}</label>
                     <textarea id="reponse_${qIndex}_${eIndex}" rows="2" placeholder="Votre réponse..."></textarea>
                 </div>
             `).join('');
 
             return `
                 <div class="question-ouverte-item" id="question_${qIndex}">
-                    <h4>${this.escapeHtml(q.titre || `Question ${qIndex + 1}`)}</h4>
+                    <h4>${escapeHtml(q.titre || `Question ${qIndex + 1}`)}</h4>
                     ${etapesHTML}
                     <div class="correction-box hidden" id="correctionBox_${qIndex}">
                         <h5>Correction</h5>
-                        <div class="correction-content">${this.escapeHtml(q.reponse_attendue || '')}</div>
+                        <div class="correction-content">${escapeHtml(q.reponse_attendue || '')}</div>
                     </div>
                 </div>
             `;
@@ -285,7 +285,7 @@ Object.assign(EleveExercices, {
         `;
     },
 
-    renderDocumentMixte(donnees, structure) {
+    renderDocumentMixte(donnees, _structure) {
         this.mixteData = donnees;
 
         // Nouveau format : blocks
@@ -361,14 +361,14 @@ Object.assign(EleveExercices, {
                 html += `<div class="mixte-block-text">${content}</div>`;
             }
             if (legende) {
-                html += `<div class="mixte-block-legende">${this.escapeHtml(legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+                html += `<div class="mixte-block-legende">${escapeHtml(legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
             }
             return html;
         }
         case 'document': {
             let html = '';
             if (block.titre) {
-                html += `<div class="mixte-block-titre">${this.escapeHtml(block.titre)}</div>`;
+                html += `<div class="mixte-block-titre">${escapeHtml(block.titre)}</div>`;
             }
             if (block.url) {
                 const converted = this.convertGoogleUrl(block.url);
@@ -377,13 +377,13 @@ Object.assign(EleveExercices, {
                                  onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
                              <iframe src="${converted.iframeUrl}" class="mixte-block-doc-iframe" style="display:none;"></iframe>`;
                 } else if (converted.iframeUrl) {
-                    html += `<iframe src="${this.escapeHtml(converted.iframeUrl)}" class="mixte-block-doc-iframe"></iframe>`;
+                    html += `<iframe src="${escapeHtml(converted.iframeUrl)}" class="mixte-block-doc-iframe"></iframe>`;
                 } else {
-                    html += `<img src="${this.escapeHtml(this.convertToDirectImageUrl(block.url))}" alt="Document" class="mixte-block-doc-img">`;
+                    html += `<img src="${escapeHtml(this.convertToDirectImageUrl(block.url))}" alt="Document" class="mixte-block-doc-img">`;
                 }
             }
             if (block.legende) {
-                html += `<div class="mixte-block-legende">${this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+                html += `<div class="mixte-block-legende">${escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
             }
             return html;
         }
@@ -391,10 +391,10 @@ Object.assign(EleveExercices, {
             let html = '';
             if (block.url) {
                 const imgSrc = this.convertToDirectImageUrl(block.url);
-                html += `<div class="mixte-block-image"><img src="${this.escapeHtml(imgSrc)}" alt="Image"></div>`;
+                html += `<div class="mixte-block-image"><img src="${escapeHtml(imgSrc)}" alt="Image"></div>`;
             }
             if (block.legende) {
-                html += `<div class="mixte-block-legende">${this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+                html += `<div class="mixte-block-legende">${escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
             }
             return html;
         }
@@ -403,11 +403,11 @@ Object.assign(EleveExercices, {
             if (block.url) {
                 const embedUrl = this._getVideoEmbedUrl(block.url);
                 if (embedUrl) {
-                    html += `<div class="mixte-block-video"><iframe src="${this.escapeHtml(embedUrl)}" frameborder="0" allowfullscreen></iframe></div>`;
+                    html += `<div class="mixte-block-video"><iframe src="${escapeHtml(embedUrl)}" frameborder="0" allowfullscreen></iframe></div>`;
                 }
             }
             if (block.legende) {
-                html += `<div class="mixte-block-legende">${this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
+                html += `<div class="mixte-block-legende">${escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
             }
             return html;
         }
@@ -449,7 +449,7 @@ Object.assign(EleveExercices, {
         const colCount = cols.length;
         const bodyHTML = lignes.map((ligne, ri) => {
             if (ligne.section) {
-                return `<tr><td colspan="${colCount}" class="mixte-table-section">${this.escapeHtml(ligne.text || '')}</td></tr>`;
+                return `<tr><td colspan="${colCount}" class="mixte-table-section">${escapeHtml(ligne.text || '')}</td></tr>`;
             }
             return `<tr>${(ligne.cells || []).map((cell, ci) => {
                 if (cell.type === 'reponse') {
@@ -458,14 +458,14 @@ Object.assign(EleveExercices, {
                                placeholder="..." autocomplete="off">
                     </td>`;
                 }
-                return `<td class="cell-donnee">${this.escapeHtml(cell.valeur || '')}</td>`;
+                return `<td class="cell-donnee">${escapeHtml(cell.valeur || '')}</td>`;
             }).join('')}</tr>`;
         }).join('');
 
         let theadHTML = '';
         if (showHeader) {
             const headerHTML = cols.map(c =>
-                `<th>${this.escapeHtml(c || '')}</th>`
+                `<th>${escapeHtml(c || '')}</th>`
             ).join('');
             theadHTML = `<thead><tr>${headerHTML}</tr></thead>`;
         }
@@ -492,7 +492,7 @@ Object.assign(EleveExercices, {
 
         return `
             <div class="mixte-block-question">
-                <label class="mixte-block-question-label">${this.escapeHtml(block.question || '')}</label>
+                <label class="mixte-block-question-label">${escapeHtml(block.question || '')}</label>
                 <input type="text" class="mixte-block-question-input" id="mixte_bq_${qIdx}"
                        placeholder="Votre r\u00e9ponse\u2026" autocomplete="off">
             </div>
@@ -517,7 +517,7 @@ Object.assign(EleveExercices, {
         const titre = doc.titre || '';
         const legende = doc.legende || '';
 
-        const legendeHTML = this.escapeHtml(legende).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        const legendeHTML = escapeHtml(legende).replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
         let contentHTML = '';
 
@@ -544,7 +544,7 @@ Object.assign(EleveExercices, {
 
         return `
             <div class="mixte-section mixte-document">
-                ${titre ? `<div class="mixte-section-header doc-header">${this.escapeHtml(titre)}</div>` : ''}
+                ${titre ? `<div class="mixte-section-header doc-header">${escapeHtml(titre)}</div>` : ''}
                 <div class="mixte-doc-content ${docType === 'texte' ? 'doc-text-content' : ''}">${contentHTML}</div>
                 ${legende ? `<div class="mixte-doc-legend">${legendeHTML}</div>` : ''}
             </div>
@@ -553,7 +553,7 @@ Object.assign(EleveExercices, {
 
     textToHtml(text) {
         if (!text) return '';
-        let html = this.escapeHtml(text);
+        let html = escapeHtml(text);
         html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
         const paragraphs = html.split(/\n\s*\n/);
         return paragraphs.map(p => {
@@ -570,15 +570,15 @@ Object.assign(EleveExercices, {
 
             const elementsHTML = tableau.elements.map((el, idx) => {
                 if (el.type === 'section') {
-                    return `<div class="mixte-tableau-section-row">${this.escapeHtml(el.text)}</div>`;
+                    return `<div class="mixte-tableau-section-row">${escapeHtml(el.text)}</div>`;
                 } else {
                     return `
                         <div class="mixte-tableau-row">
-                            <div class="row-label">${this.escapeHtml(el.label)}</div>
+                            <div class="row-label">${escapeHtml(el.label)}</div>
                             <div class="row-input">
                                 <input type="text" class="cell-input" id="mixte_element_${idx}"
-                                       placeholder="${this.escapeHtml(el.placeholder || '')}" data-index="${idx}"
-                                       data-reponse="${this.escapeHtml(el.reponse || '')}" autocomplete="off">
+                                       placeholder="${escapeHtml(el.placeholder || '')}" data-index="${idx}"
+                                       data-reponse="${escapeHtml(el.reponse || '')}" autocomplete="off">
                             </div>
                         </div>
                     `;
@@ -587,7 +587,7 @@ Object.assign(EleveExercices, {
 
             return `
                 <div class="mixte-section mixte-tableau">
-                    <div class="mixte-section-header tableau-header">${this.escapeHtml(titre)}</div>
+                    <div class="mixte-section-header tableau-header">${escapeHtml(titre)}</div>
                     <div class="mixte-tableau-content">${elementsHTML}</div>
                 </div>
             `;
@@ -599,7 +599,7 @@ Object.assign(EleveExercices, {
             this.mixteTableauLignes = lignes;
 
             const headerHTML = colonnes.map(col =>
-                `<th class="${col.editable ? 'editable-header' : ''}">${this.escapeHtml(col.titre)}</th>`
+                `<th class="${col.editable ? 'editable-header' : ''}">${escapeHtml(col.titre)}</th>`
             ).join('');
 
             const bodyHTML = lignes.map((ligne, rowIdx) =>
@@ -609,14 +609,14 @@ Object.assign(EleveExercices, {
                             <input type="text" class="cell-input" id="mixte_cell_${rowIdx}_${colIdx}" placeholder="..." data-row="${rowIdx}" data-col="${colIdx}" autocomplete="off">
                         </td>`;
                     } else {
-                        return `<td>${this.escapeHtml(ligne.cells[colIdx] || '')}</td>`;
+                        return `<td>${escapeHtml(ligne.cells[colIdx] || '')}</td>`;
                     }
                 }).join('')}</tr>`
             ).join('');
 
             return `
                 <div class="mixte-section mixte-tableau">
-                    <div class="mixte-section-header tableau-header">${this.escapeHtml(titre)}</div>
+                    <div class="mixte-section-header tableau-header">${escapeHtml(titre)}</div>
                     <div class="mixte-tableau-content">
                         <table class="mixte-table">
                             <thead><tr>${headerHTML}</tr></thead>
@@ -634,10 +634,10 @@ Object.assign(EleveExercices, {
 
         const questionsHTML = liste.map((q, idx) => `
             <div class="mixte-question-item" id="mixte_question_${idx}">
-                <div class="mixte-question-text">${idx + 1}. ${this.escapeHtml(q.question)}</div>
+                <div class="mixte-question-text">${idx + 1}. ${escapeHtml(q.question)}</div>
                 <textarea id="mixte_answer_${idx}" class="mixte-question-textarea" placeholder="Votre réponse..." rows="3"></textarea>
                 <div class="mixte-correction hidden" id="mixte_correction_${idx}">
-                    <strong>Correction:</strong> ${this.escapeHtml(q.reponse_attendue || '')}
+                    <strong>Correction:</strong> ${escapeHtml(q.reponse_attendue || '')}
                 </div>
             </div>
         `).join('');
@@ -787,18 +787,18 @@ Object.assign(EleveExercices, {
         if (isCorrect) {
             bodyHTML = `
                 <div class="correction-answer correct">
-                    <span class="answer-text">${this.escapeHtml(userAnswer)}</span>
+                    <span class="answer-text">${escapeHtml(userAnswer)}</span>
                     <span class="answer-icon">✓</span>
                 </div>
             `;
         } else {
             bodyHTML = `
                 <div class="correction-answer incorrect">
-                    <span class="answer-text">${hasAnswer ? this.escapeHtml(userAnswer) : 'Non répondu'}</span>
+                    <span class="answer-text">${hasAnswer ? escapeHtml(userAnswer) : 'Non répondu'}</span>
                     <span class="answer-icon">✗</span>
                 </div>
                 <div class="correction-answer expected">
-                    <span class="answer-text">Réponse correcte : ${this.escapeHtml(correctAnswer)}</span>
+                    <span class="answer-text">Réponse correcte : ${escapeHtml(correctAnswer)}</span>
                 </div>
             `;
         }
@@ -862,7 +862,7 @@ Object.assign(EleveExercices, {
                                 if (!isCorrect) {
                                     const correctionDiv = document.createElement('div');
                                     correctionDiv.className = 'correction-expected-below';
-                                    correctionDiv.innerHTML = `R\u00e9ponse : ${this.escapeHtml(correctAnswer)}`;
+                                    correctionDiv.innerHTML = `R\u00e9ponse : ${escapeHtml(correctAnswer)}`;
                                     input.parentNode.appendChild(correctionDiv);
                                 }
                             }
@@ -893,7 +893,7 @@ Object.assign(EleveExercices, {
                     if (!isCorrect) {
                         const correctionDiv = document.createElement('div');
                         correctionDiv.className = 'correction-expected-below';
-                        correctionDiv.innerHTML = `R\u00e9ponse : ${this.escapeHtml(correctAnswer)}`;
+                        correctionDiv.innerHTML = `R\u00e9ponse : ${escapeHtml(correctAnswer)}`;
                         input.parentNode.appendChild(correctionDiv);
                     }
                 });
@@ -964,7 +964,7 @@ Object.assign(EleveExercices, {
                             if (!isCorrect) {
                                 const correctionDiv = document.createElement('div');
                                 correctionDiv.className = 'correction-expected-below';
-                                correctionDiv.innerHTML = `R\u00e9ponse : ${this.escapeHtml(firstCorrectAnswer)}`;
+                                correctionDiv.innerHTML = `R\u00e9ponse : ${escapeHtml(firstCorrectAnswer)}`;
                                 input.parentNode.appendChild(correctionDiv);
                             }
                         }
@@ -996,7 +996,7 @@ Object.assign(EleveExercices, {
                                 if (!isCorrect) {
                                     const correctionDiv = document.createElement('div');
                                     correctionDiv.className = 'correction-expected-below';
-                                    correctionDiv.innerHTML = `R\u00e9ponse : ${this.escapeHtml(firstCorrectAnswer)}`;
+                                    correctionDiv.innerHTML = `R\u00e9ponse : ${escapeHtml(firstCorrectAnswer)}`;
                                     input.parentNode.appendChild(correctionDiv);
                                 }
                             }
@@ -1013,7 +1013,7 @@ Object.assign(EleveExercices, {
                 if (textarea) textarea.disabled = true;
                 if (correctionDiv && q.reponse_attendue) {
                     const firstAnswer = q.reponse_attendue.split(/[|;]/)[0].trim();
-                    correctionDiv.innerHTML = `<strong>R\u00e9ponse attendue :</strong> ${this.escapeHtml(firstAnswer)}`;
+                    correctionDiv.innerHTML = `<strong>R\u00e9ponse attendue :</strong> ${escapeHtml(firstAnswer)}`;
                     correctionDiv.classList.remove('hidden');
                 }
             });
@@ -1054,16 +1054,16 @@ Object.assign(EleveExercices, {
 
                     if (isCorrect) {
                         correctionCell.classList.add('correct');
-                        correctionCell.innerHTML = `<span class="answer-text">${this.escapeHtml(userAnswer)}</span>`;
+                        correctionCell.innerHTML = `<span class="answer-text">${escapeHtml(userAnswer)}</span>`;
                     } else {
                         correctionCell.classList.add('incorrect');
                         if (isEmpty) {
-                            correctionCell.innerHTML = `<span class="correct-answer">${this.escapeHtml(expectedAnswer)}</span>`;
+                            correctionCell.innerHTML = `<span class="correct-answer">${escapeHtml(expectedAnswer)}</span>`;
                         } else {
                             correctionCell.innerHTML = `
-                                <span class="wrong-answer">${this.escapeHtml(userAnswer)}</span>
+                                <span class="wrong-answer">${escapeHtml(userAnswer)}</span>
                                 <span class="arrow">&rarr;</span>
-                                <span class="correct-answer">${this.escapeHtml(expectedAnswer)}</span>
+                                <span class="correct-answer">${escapeHtml(expectedAnswer)}</span>
                             `;
                         }
                     }

@@ -88,7 +88,7 @@ const AdminCompetences = {
     showError(message) {
         document.getElementById('loader').innerHTML =
             '<div style="text-align: center; color: #ef4444;">' +
-                '<p>' + this.escapeHtml(message) + '</p>' +
+                '<p>' + escapeHtml(message) + '</p>' +
                 '<button class="btn btn-primary" onclick="location.reload()">Réessayer</button>' +
             '</div>';
     },
@@ -133,10 +133,10 @@ const AdminCompetences = {
                         '</div>' +
                         '<div class="comp-card-content">' +
                             '<div class="comp-card-top">' +
-                                '<span class="comp-card-nom">' + self.escapeHtml(comp.nom) + '</span>' +
+                                '<span class="comp-card-nom">' + escapeHtml(comp.nom) + '</span>' +
                                 (criteresCount > 0 ? '<span class="comp-badge badge-criteres">' + criteresCount + ' critère' + (criteresCount > 1 ? 's' : '') + '</span>' : '') +
                             '</div>' +
-                            (comp.description ? '<p class="comp-card-desc">' + self.escapeHtml(comp.description) + '</p>' : '') +
+                            (comp.description ? '<p class="comp-card-desc">' + escapeHtml(comp.description) + '</p>' : '') +
                         '</div>' +
                         '<div class="comp-card-actions" onclick="event.stopPropagation()">' +
                             // Edit
@@ -172,7 +172,7 @@ const AdminCompetences = {
                         '</div>' +
                         '<ol class="comp-criteres-list">' +
                             criteres.map(function(c) {
-                                return '<li>' + self.escapeHtml(c.libelle) + '</li>';
+                                return '<li>' + escapeHtml(c.libelle) + '</li>';
                             }).join('') +
                         '</ol>' +
                     '</div>';
@@ -261,8 +261,6 @@ const AdminCompetences = {
     // ========== CRITERES MANAGEMENT ==========
     renderCriteresList() {
         var container = document.getElementById('criteresList');
-        var self = this;
-
         if (this.criteresTemp.length === 0) {
             container.innerHTML =
                 '<div class="criteres-empty">' +
@@ -274,7 +272,7 @@ const AdminCompetences = {
         container.innerHTML = this.criteresTemp.map(function(critere, index) {
             return '<div class="critere-field" data-index="' + index + '">' +
                 '<span class="critere-order">' + (index + 1) + '</span>' +
-                '<input type="text" class="critere-input" value="' + self.escapeHtml(critere.libelle) + '"' +
+                '<input type="text" class="critere-input" value="' + escapeHtml(critere.libelle) + '"' +
                 ' placeholder="Ex: Le texte est rédigé en phrases complètes"' +
                 ' onchange="AdminCompetences.updateCritereText(' + index + ', this.value)">' +
                 '<button type="button" class="btn-remove-critere" onclick="AdminCompetences.removeCritere(' + index + ')" title="Supprimer">' +
@@ -450,13 +448,6 @@ const AdminCompetences = {
         }
     },
 
-    // ========== UTILITIES ==========
-    escapeHtml(text) {
-        if (!text) return '';
-        var div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 };
 
 window.AdminCompetences = AdminCompetences;

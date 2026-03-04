@@ -120,8 +120,6 @@ const AdminParametres = {
         try {
             // Charger PARAMETRES
             const params = await SheetsAPI.fetchAndParse('PARAMETRES');
-            console.log('[Parametres] PARAMETRES data:', params);
-
             // Extraire les valeurs
             this.originalData = {
                 site_titre: this.getParamValue(params, 'site_titre', 'Espace cours'),
@@ -256,12 +254,9 @@ const AdminParametres = {
     async loadMenuConfig() {
         try {
             const menuItems = await SheetsAPI.fetchAndParse('CONFIG_MENU');
-            console.log('[Parametres] CONFIG_MENU data:', menuItems);
-
             this.menuConfig = menuItems;
             this.renderMenuConfig();
         } catch (error) {
-            console.log('[Parametres] CONFIG_MENU non disponible, utilisation config par défaut');
             this.renderDefaultMenuConfig();
         }
     },
@@ -428,7 +423,7 @@ const AdminParametres = {
     /**
      * Ouvre le picker d'icône pour un élément
      */
-    openIconPicker(iconEl, itemId) {
+    openIconPicker(iconEl, _itemId) {
         // Fermer tout picker existant
         this.closeIconPicker();
 
@@ -660,21 +655,12 @@ const AdminParametres = {
             // Collecter les données du menu
             const menuItems = this.collectMenuState();
 
-            console.log('[Parametres] Saving params:', params);
-            console.log('[Parametres] Saving menu:', menuItems);
-
             // Envoyer les paramètres via JSONP
-            const paramsResult = await this.postToAppsScript('updateParametres', params);
-            console.log('[Parametres] Params saved:', paramsResult);
-
+            await this.postToAppsScript('updateParametres', params);
             // Envoyer le menu via JSONP
-            const menuResult = await this.postToAppsScript('updateMenuConfig', menuItems);
-            console.log('[Parametres] Menu saved:', menuResult);
-
+            await this.postToAppsScript('updateMenuConfig', menuItems);
             // Vider le cache pour que les nouvelles valeurs soient utilisées immédiatement
             SheetsAPI.clearCache();
-            console.log('[Parametres] Cache cleared');
-
             this.hasChanges = false;
             document.getElementById('saveBar')?.classList.remove('show');
             alert('✅ Paramètres enregistrés !');

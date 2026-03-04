@@ -115,9 +115,8 @@ const EleveLayout = {
                 }
             });
 
-            console.log('[EleveLayout] Site params loaded:', this.siteParams);
         } catch (error) {
-            console.log('[EleveLayout] Using default site params');
+            // parse error expected
         }
     },
 
@@ -135,7 +134,6 @@ const EleveLayout = {
     async loadMenuConfig() {
         try {
             const menuConfig = await SheetsAPI.fetchAndParse('CONFIG_MENU');
-            console.log('[EleveLayout] CONFIG_MENU loaded:', menuConfig);
             const isPreview = this.isPreviewMode();
 
             if (menuConfig && menuConfig.length > 0) {
@@ -191,14 +189,12 @@ const EleveLayout = {
 
                 if (sections.length > 0) {
                     this.menuItems = sections;
-                    console.log('[EleveLayout] Dynamic menu loaded:', this.menuItems);
                     return;
                 }
             }
 
             this.menuItems = this.defaultMenuItems;
         } catch (error) {
-            console.log('[EleveLayout] Using default menu, error:', error);
             this.menuItems = this.defaultMenuItems;
         }
     },
@@ -421,10 +417,8 @@ const EleveLayout = {
         try {
             // Précharger en arrière-plan sans bloquer
             await SheetsAPI.preload(this.commonSheets);
-            console.log('[EleveLayout] Common data preloaded for instant navigation');
         } catch (error) {
             // Ignorer les erreurs de préchargement
-            console.log('[EleveLayout] Preload error:', error);
         }
     },
 
@@ -444,7 +438,6 @@ const EleveLayout = {
             });
         } catch (error) {
             // Ignorer les erreurs de tracking
-            console.log('[EleveLayout] Track error:', error);
         }
     },
 

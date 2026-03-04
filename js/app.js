@@ -3,12 +3,23 @@
  * Logique générale et utilitaires
  */
 
+/**
+ * Échappe les caractères HTML pour éviter les XSS
+ * @param {string} str - Chaîne à échapper
+ * @returns {string} - Chaîne sécurisée
+ */
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 const App = {
     /**
      * Initialise l'application
      */
     init() {
-        console.log('Brikks initialisé');
         this.checkAPIKey();
         this.initModalEscapeHandler();
     },
@@ -93,18 +104,6 @@ const App = {
             month: '2-digit',
             year: 'numeric'
         });
-    },
-
-    /**
-     * Échappe les caractères HTML pour éviter les XSS
-     * @param {string} str - Chaîne à échapper
-     * @returns {string} - Chaîne sécurisée
-     */
-    escapeHtml(str) {
-        if (!str) return '';
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
     },
 
     /**

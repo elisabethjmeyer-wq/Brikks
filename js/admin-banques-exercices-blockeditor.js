@@ -286,37 +286,37 @@ Object.assign(AdminBanquesExercices, {
                 '<div class="block-field">' +
                 '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
                 '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Extrait du *trait\u00e9 de Versailles*, 1919">' +
+                'value="' + escapeHtml(block.legende || '') + '" placeholder="Ex: Extrait du *trait\u00e9 de Versailles*, 1919">' +
                 '</div>';
 
         case 'document':
             return '<div class="block-field">' +
                 '<label>URL du document</label>' +
                 '<input type="text" class="form-input block-input" id="block-url-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.url || '') + '" ' +
+                'value="' + escapeHtml(block.url || '') + '" ' +
                 'placeholder="Lien Google Drive, PDF, page web...">' +
                 '</div>' +
                 '<div class="block-field">' +
                 '<label>Titre <span class="optional">(optionnel)</span></label>' +
                 '<input type="text" class="form-input block-input" id="block-titre-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.titre || '') + '" placeholder="Ex: Source 1 - Discours de Robespierre">' +
+                'value="' + escapeHtml(block.titre || '') + '" placeholder="Ex: Source 1 - Discours de Robespierre">' +
                 '</div>' +
                 '<div class="block-field">' +
                 '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
                 '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: *Archives nationales*, 1793">' +
+                'value="' + escapeHtml(block.legende || '') + '" placeholder="Ex: *Archives nationales*, 1793">' +
                 '</div>';
 
         case 'image':
             var preview = '';
             if (block.url) {
                 var imgSrc = this._convertToDirectImageUrl(block.url);
-                preview = '<div class="block-image-preview"><img src="' + this.escapeHtml(imgSrc) + '" alt="Apercu"></div>';
+                preview = '<div class="block-image-preview"><img src="' + escapeHtml(imgSrc) + '" alt="Apercu"></div>';
             }
             return '<div class="block-field">' +
                 '<label>URL de l\'image</label>' +
                 '<input type="text" class="form-input block-input" id="block-url-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.url || '') + '" ' +
+                'value="' + escapeHtml(block.url || '') + '" ' +
                 'placeholder="Lien Google Drive, lien direct..." ' +
                 'onchange="AdminBanquesExercices._onImageUrlChange(\'' + block.id + '\')">' +
                 '</div>' +
@@ -324,20 +324,20 @@ Object.assign(AdminBanquesExercices, {
                 '<div class="block-field">' +
                 '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
                 '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Carte de l\'*Empire romain*, IIe si\u00e8cle">' +
+                'value="' + escapeHtml(block.legende || '') + '" placeholder="Ex: Carte de l\'*Empire romain*, IIe si\u00e8cle">' +
                 '</div>';
 
         case 'video':
             return '<div class="block-field">' +
                 '<label>URL de la video</label>' +
                 '<input type="text" class="form-input block-input" id="block-url-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.url || '') + '" ' +
+                'value="' + escapeHtml(block.url || '') + '" ' +
                 'placeholder="Lien YouTube ou Google Drive...">' +
                 '</div>' +
                 '<div class="block-field">' +
                 '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
                 '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + this.escapeHtml(block.legende || '') + '" placeholder="Ex: Contexte historique de la *R\u00e9volution*">' +
+                'value="' + escapeHtml(block.legende || '') + '" placeholder="Ex: Contexte historique de la *R\u00e9volution*">' +
                 '</div>';
 
         case 'tableau':
@@ -468,7 +468,7 @@ Object.assign(AdminBanquesExercices, {
         var url = input.value.trim();
         if (url) {
             var imgSrc = this._convertToDirectImageUrl(url);
-            previewContainer.innerHTML = '<div class="block-image-preview"><img src="' + this.escapeHtml(imgSrc) + '" alt="Apercu"></div>';
+            previewContainer.innerHTML = '<div class="block-image-preview"><img src="' + escapeHtml(imgSrc) + '" alt="Apercu"></div>';
         } else {
             previewContainer.innerHTML = '';
         }
@@ -752,7 +752,7 @@ Object.assign(AdminBanquesExercices, {
                 tbodyHtml += '<tr data-row="' + ri + '" class="tb-header-row">';
                 for (var ci = 0; ci < cols.length; ci++) {
                     tbodyHtml += '<td class="tb-header-cell">' +
-                        '<input type="text" class="tb-col-title" value="' + this.escapeHtml(cols[ci] || '') + '" ' +
+                        '<input type="text" class="tb-col-title" value="' + escapeHtml(cols[ci] || '') + '" ' +
                         'placeholder="Colonne ' + (ci + 1) + '" data-col="' + ci + '" data-block="' + bid + '">' +
                         (cols.length > 1
                             ? '<button type="button" class="tb-col-remove" onclick="AdminBanquesExercices._blockTableRemoveCol(\'' + bid + '\',' + ci + ')">&times;</button>'
@@ -774,7 +774,7 @@ Object.assign(AdminBanquesExercices, {
                     '<td colspan="' + (cols.length + 1) + '" class="tb-section-cell">' +
                     moveButtons +
                     '<input type="text" class="tb-section-input" data-row="' + ri + '" data-block="' + bid + '" ' +
-                    'value="' + this.escapeHtml(rows[ri].text || '') + '" placeholder="Titre de la section\u2026">' +
+                    'value="' + escapeHtml(rows[ri].text || '') + '" placeholder="Titre de la section\u2026">' +
                     '<button type="button" class="tb-section-remove" onclick="AdminBanquesExercices._blockTableRemoveRow(\'' + bid + '\',' + ri + ')">&times;</button>' +
                     '</td></tr>';
                 continue;
@@ -799,7 +799,7 @@ Object.assign(AdminBanquesExercices, {
                     '<button type="button" class="tb-cell-badge ' + (isDonnee ? 'tb-badge-donnee' : 'tb-badge-reponse') + '" ' +
                     'onclick="AdminBanquesExercices._blockTableSelectCell(\'' + bid + '\',' + ri + ',' + cj + ')">' + typeLabel + '</button>' +
                     '<input type="text" class="tb-cell-input" data-row="' + ri + '" data-col="' + cj + '" data-block="' + bid + '" ' +
-                    'value="' + this.escapeHtml(cell.valeur || '') + '" placeholder="' + (isDonnee ? 'Donn\u00e9e...' : 'R\u00e9ponse...') + '">' +
+                    'value="' + escapeHtml(cell.valeur || '') + '" placeholder="' + (isDonnee ? 'Donn\u00e9e...' : 'R\u00e9ponse...') + '">' +
                     (extraInd ? '<div class="tb-cell-indicators">' + extraInd + '</div>' : '') +
                     '</div></td>';
             }
@@ -966,7 +966,7 @@ Object.assign(AdminBanquesExercices, {
 
         var popoverHTML = '<div class="tb-popover" id="tbCellPopover">' +
             '<div class="tb-popover-header">' +
-            '<span class="tb-popover-title">L' + (rowIndex + 1) + ' &times; ' + this.escapeHtml(colName) + '</span>' +
+            '<span class="tb-popover-title">L' + (rowIndex + 1) + ' &times; ' + escapeHtml(colName) + '</span>' +
             '<button type="button" class="tb-popover-close" onclick="AdminBanquesExercices._closeBlockTablePopover()">&times;</button>' +
             '</div><div class="tb-popover-body">' +
             '<div class="tb-popover-field"><label class="tb-popover-label">Type</label>' +
@@ -1000,7 +1000,7 @@ Object.assign(AdminBanquesExercices, {
                 '<div class="tb-popover-alts" id="tbPopoverAlts">';
             for (var ai = 0; ai < alts.length; ai++) {
                 popoverHTML += '<div class="tb-popover-alt-item">' +
-                    '<input type="text" class="tb-popover-alt-input" value="' + this.escapeHtml(alts[ai]) + '" ' +
+                    '<input type="text" class="tb-popover-alt-input" value="' + escapeHtml(alts[ai]) + '" ' +
                     'placeholder="Alternative ' + (ai + 1) + '" data-alt-index="' + ai + '" ' +
                     'onchange="AdminBanquesExercices._blockTableUpdateAlt(\'' + bid + '\',' + rowIndex + ',' + colIndex + ',' + ai + ',this.value)">' +
                     '<button type="button" class="tb-popover-alt-remove" ' +
@@ -1121,7 +1121,7 @@ Object.assign(AdminBanquesExercices, {
         for (var i = 0; i < alts.length; i++) {
             altsHtml += '<div class="block-q-alt-row">' +
                 '<input type="text" class="form-input block-q-alt-input" data-block="' + bid + '" data-alt="' + i + '" ' +
-                'value="' + this.escapeHtml(alts[i] || '') + '" placeholder="Alternative ' + (i + 1) + '...">' +
+                'value="' + escapeHtml(alts[i] || '') + '" placeholder="Alternative ' + (i + 1) + '...">' +
                 '<button type="button" class="btn-icon danger" onclick="AdminBanquesExercices._blockQuestionRemoveAlt(\'' + bid + '\',' + i + ')">&times;</button>' +
                 '</div>';
         }
@@ -1130,12 +1130,12 @@ Object.assign(AdminBanquesExercices, {
             '<div class="block-field">' +
                 '<label>Question</label>' +
                 '<input type="text" class="form-input block-input" id="block-q-question-' + bid + '" ' +
-                'value="' + this.escapeHtml(block.question || '') + '" placeholder="Ex : Quel est le nom du trait\u00e9 sign\u00e9 en 1919 ?">' +
+                'value="' + escapeHtml(block.question || '') + '" placeholder="Ex : Quel est le nom du trait\u00e9 sign\u00e9 en 1919 ?">' +
             '</div>' +
             '<div class="block-field">' +
                 '<label>R\u00e9ponse attendue</label>' +
                 '<input type="text" class="form-input block-input" id="block-q-reponse-' + bid + '" ' +
-                'value="' + this.escapeHtml(block.reponse || '') + '" placeholder="Ex : Le trait\u00e9 de Versailles">' +
+                'value="' + escapeHtml(block.reponse || '') + '" placeholder="Ex : Le trait\u00e9 de Versailles">' +
             '</div>' +
             '<div class="block-q-options">' +
                 '<div class="block-q-correction-toggle">' +
@@ -1251,7 +1251,7 @@ Object.assign(AdminBanquesExercices, {
         // Si on a un contenu texte ET une légende séparée (ancien format avec légende)
         if (blocks.length > 0 && blocks[0].type === 'text' && tache.document_legende) {
             // Ajouter la légende comme info supplémentaire (pas idéal mais pas de perte)
-            blocks[0].content += '<p><em>' + this.escapeHtml(tache.document_legende) + '</em></p>';
+            blocks[0].content += '<p><em>' + escapeHtml(tache.document_legende) + '</em></p>';
         }
 
         return blocks;

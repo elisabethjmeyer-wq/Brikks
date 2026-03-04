@@ -41,7 +41,7 @@ Object.assign(EleveEntrainement, {
                         <div class="vrai-faux-item ${isQuestionVerified ? (answer === currentQuestion.correctAnswer ? 'correct' : 'incorrect') : ''}">
                             <div class="vrai-faux-question">
                                 <span class="vrai-faux-number">${this.currentQuestionIndex + 1}</span>
-                                <span class="vrai-faux-text">${this.escapeHtml(currentQuestion.question)}</span>
+                                <span class="vrai-faux-text">${escapeHtml(currentQuestion.question)}</span>
                             </div>
                             <div class="vrai-faux-buttons">
                                 <button class="vrai-faux-btn vrai ${answer === true ? 'selected' : ''} ${isQuestionVerified && currentQuestion.correctAnswer === true ? 'correct-answer' : ''} ${isQuestionVerified ? 'disabled' : ''}"
@@ -58,7 +58,7 @@ Object.assign(EleveEntrainement, {
                             ${isQuestionVerified ? `
                                 <div class="vrai-faux-feedback ${answer === currentQuestion.correctAnswer ? 'correct' : 'incorrect'}">
                                     ${answer === currentQuestion.correctAnswer ? '✓ Correct' : (answer !== undefined ? '✗ Incorrect' : '⚠️ Non répondu')}
-                                    ${currentQuestion.explanation ? `<p>${this.escapeHtml(currentQuestion.explanation)}</p>` : ''}
+                                    ${currentQuestion.explanation ? `<p>${escapeHtml(currentQuestion.explanation)}</p>` : ''}
                                 </div>
                             ` : ''}
                         </div>
@@ -139,7 +139,6 @@ Object.assign(EleveEntrainement, {
     },
 
     renderVraiFauxStepSummaryButtons() {
-        const step = this.steps[this.currentStepIndex];
         if (this.currentStepIndex < this.steps.length - 1) {
             return `
                 <button class="btn btn-secondary" onclick="EleveEntrainement.restartCurrentStep()">Recommencer cette étape</button>
@@ -165,10 +164,6 @@ Object.assign(EleveEntrainement, {
     },
 
     verifyVraiFaux() {
-        const step = this.steps[this.currentStepIndex];
-        const questions = step.questions || [{ id: 'q1', correctAnswer: step.correctAnswer }];
-        const stepAnswers = this.answers[this.currentStepIndex] || {};
-
         // Cette fonction n'est plus utilisée pour la vérification question par question
         // Elle pourrait être utilisée dans le mode correction si nécessaire
     },
@@ -205,7 +200,7 @@ Object.assign(EleveEntrainement, {
                                 <div class="qcm-item ${isVerified ? 'answered' : ''}" id="qcm-${q.id}">
                                     <div class="qcm-item-header">
                                         <div class="qcm-item-number">${qIndex + 1}</div>
-                                        <div class="qcm-item-question">${this.escapeHtml(q.question)}</div>
+                                        <div class="qcm-item-question">${escapeHtml(q.question)}</div>
                                         <span class="qcm-item-hint">Plusieurs réponses possibles</span>
                                     </div>
                                     <div class="qcm-options">
@@ -226,7 +221,7 @@ Object.assign(EleveEntrainement, {
                                                     <div class="qcm-checkbox">
                                                         ${isSelected ? '✓' : ''}
                                                     </div>
-                                                    <span class="qcm-option-text">${this.escapeHtml(option)}</span>
+                                                    <span class="qcm-option-text">${escapeHtml(option)}</span>
                                                 </div>
                                             `;
                                         }).join('')}
@@ -302,7 +297,7 @@ Object.assign(EleveEntrainement, {
         const stepAnswers = this.answers[this.currentStepIndex] || {};
 
         // Parser le texte avec les trous {0}, {1}, etc.
-        let texteHtml = this.escapeHtml(step.texte || step.titre);
+        let texteHtml = escapeHtml(step.texte || step.titre);
         const trous = step.trous || [];
 
         trous.forEach((trou, index) => {
@@ -314,11 +309,11 @@ Object.assign(EleveEntrainement, {
                     <input type="text"
                            class="trou-input"
                            id="trou_${index}"
-                           value="${this.escapeHtml(userAnswer)}"
+                           value="${escapeHtml(userAnswer)}"
                            placeholder="${trou.indice || '...'}"
                            ${isVerified ? 'disabled' : ''}
                            onchange="EleveEntrainement.updateTrou(${index}, this.value)">
-                    ${isVerified && !isCorrect ? `<span class="trou-correction">${this.escapeHtml(trou.reponse)}</span>` : ''}
+                    ${isVerified && !isCorrect ? `<span class="trou-correction">${escapeHtml(trou.reponse)}</span>` : ''}
                 </span>
             `;
 
@@ -445,28 +440,27 @@ Object.assign(EleveEntrainement, {
                         <div class="association-column association-left">
                             ${paires.map((p, index) => {
                                 const isConnected = stepAnswers.connections[index] !== undefined;
-                                const isCorrect = stepAnswers.connections[index] === index;
                                 const isActive = stepAnswers.activeLeft === index;
 
                                 return `
                                     <div class="association-item ${isActive ? 'active' : ''} ${isConnected ? 'connected' : ''}"
                                          data-index="${index}"
                                          onclick="EleveEntrainement.selectAssociationLeft(${index})">
-                                        ${this.escapeHtml(p.gauche)}
+                                        ${escapeHtml(p.gauche)}
                                     </div>
                                 `;
                             }).join('')}
                         </div>
 
                         <div class="association-column association-right">
-                            ${stepAnswers.shuffledRight.map((item, displayIndex) => {
+                            ${stepAnswers.shuffledRight.map((item, _displayIndex) => {
                                 const isConnected = Object.values(stepAnswers.connections).includes(item.originalIndex);
 
                                 return `
                                     <div class="association-item ${isConnected ? 'connected' : ''}"
                                          data-original="${item.originalIndex}"
                                          onclick="EleveEntrainement.selectAssociationRight(${item.originalIndex})">
-                                        ${this.escapeHtml(item.text)}
+                                        ${escapeHtml(item.text)}
                                     </div>
                                 `;
                             }).join('')}
@@ -491,19 +485,19 @@ Object.assign(EleveEntrainement, {
 
             return `
                 <div class="association-pair ${isCorrect ? 'correct' : 'incorrect'}">
-                    <div class="association-pair-left">${this.escapeHtml(p.gauche)}</div>
+                    <div class="association-pair-left">${escapeHtml(p.gauche)}</div>
                     <div class="association-pair-arrow">→</div>
-                    <div class="association-pair-right">${this.escapeHtml(connectedText)}</div>
+                    <div class="association-pair-right">${escapeHtml(connectedText)}</div>
                 </div>
             `;
         }).join('');
 
-        const correctAnswersHtml = paires.map((p, index) => {
+        const correctAnswersHtml = paires.map((p, _index) => {
             return `
                 <div class="association-pair correct">
-                    <div class="association-pair-left">${this.escapeHtml(p.gauche)}</div>
+                    <div class="association-pair-left">${escapeHtml(p.gauche)}</div>
                     <div class="association-pair-arrow">→</div>
-                    <div class="association-pair-right">${this.escapeHtml(p.droite)}</div>
+                    <div class="association-pair-right">${escapeHtml(p.droite)}</div>
                 </div>
             `;
         }).join('');
@@ -634,7 +628,7 @@ Object.assign(EleveEntrainement, {
                                 <div class="ordonner-item ${isVerified ? (isCorrectPosition ? 'correct' : 'incorrect') : ''}"
                                      data-index="${elementIndex}">
                                     <span class="ordonner-position">${position + 1}</span>
-                                    <span class="ordonner-text">${this.escapeHtml(typeof element === 'object' ? element.titre || element.text : element)}</span>
+                                    <span class="ordonner-text">${escapeHtml(typeof element === 'object' ? element.titre || element.text : element)}</span>
                                     ${!isVerified ? `
                                         <div class="ordonner-controls">
                                             <button class="ordonner-btn" onclick="EleveEntrainement.moveOrdonner(${position}, -1)" ${position === 0 ? 'disabled' : ''}>▲</button>
@@ -685,7 +679,7 @@ Object.assign(EleveEntrainement, {
         items.forEach(item => {
             item.draggable = true;
 
-            item.addEventListener('dragstart', (e) => {
+            item.addEventListener('dragstart', (_e) => {
                 draggedItem = item;
                 item.classList.add('dragging');
             });
@@ -800,7 +794,6 @@ Object.assign(EleveEntrainement, {
     },
 
     renderTimelineEvent(event, displayIndex, isVerified, allEvents) {
-        const correctIndex = allEvents.findIndex(e => e.date === event.date && e.titre === event.titre);
         const isCorrectPosition = isVerified && this.isTimelinePositionCorrect(displayIndex, event.originalIndex, allEvents);
 
         let statusClass = '';
@@ -817,9 +810,9 @@ Object.assign(EleveEntrainement, {
                     ${isVerified ? (isCorrectPosition ? '✓' : '✗') : '⋮⋮'}
                 </div>
                 <div class="timeline-event-content">
-                    ${isVerified ? `<div class="timeline-event-date">${this.escapeHtml(event.date)}</div>` : ''}
-                    <div class="timeline-event-titre">${this.escapeHtml(event.titre)}</div>
-                    ${event.description ? `<div class="timeline-event-desc">${this.escapeHtml(event.description)}</div>` : ''}
+                    ${isVerified ? `<div class="timeline-event-date">${escapeHtml(event.date)}</div>` : ''}
+                    <div class="timeline-event-titre">${escapeHtml(event.titre)}</div>
+                    ${event.description ? `<div class="timeline-event-desc">${escapeHtml(event.description)}</div>` : ''}
                 </div>
                 ${isVerified && !isCorrectPosition ? `
                     <div class="timeline-event-correction">
@@ -1016,12 +1009,12 @@ Object.assign(EleveEntrainement, {
                             <input type="text"
                                    class="chronologie-input ${statusClass}"
                                    placeholder="Date ?"
-                                   value="${this.escapeHtml(answer)}"
+                                   value="${escapeHtml(answer)}"
                                    ${isVerified ? 'disabled' : ''}
                                    onchange="EleveEntrainement.setChronologieAnswer(${index}, this.value)">
-                            ${isVerified ? `<span class="chronologie-correction">${this.escapeHtml(item.date)}</span>` : ''}
+                            ${isVerified ? `<span class="chronologie-correction">${escapeHtml(item.date)}</span>` : ''}
                         ` : `
-                            <span class="chronologie-date-fixed">${this.escapeHtml(item.date)}</span>
+                            <span class="chronologie-date-fixed">${escapeHtml(item.date)}</span>
                         `}
                     </div>
                     <div class="chronologie-item-event">
@@ -1029,12 +1022,12 @@ Object.assign(EleveEntrainement, {
                             <input type="text"
                                    class="chronologie-input event ${statusClass}"
                                    placeholder="Événement ?"
-                                   value="${this.escapeHtml(answer)}"
+                                   value="${escapeHtml(answer)}"
                                    ${isVerified ? 'disabled' : ''}
                                    onchange="EleveEntrainement.setChronologieAnswer(${index}, this.value)">
-                            ${isVerified ? `<span class="chronologie-correction">${this.escapeHtml(item.event)}</span>` : ''}
+                            ${isVerified ? `<span class="chronologie-correction">${escapeHtml(item.event)}</span>` : ''}
                         ` : `
-                            <span class="chronologie-event-fixed">${this.escapeHtml(item.event)}</span>
+                            <span class="chronologie-event-fixed">${escapeHtml(item.event)}</span>
                         `}
                     </div>
                 </div>
@@ -1119,13 +1112,11 @@ Object.assign(EleveEntrainement, {
     renderQuestionOuverteItem(question, index, stepAnswers, isVerified) {
         const answer = stepAnswers[question.id] || '';
         const keywordsFound = isVerified ? this.checkKeywords(answer, question.keywords || []) : [];
-        const hasAnswer = answer.trim().length > 0;
-
         return `
             <div class="question-ouverte-item ${isVerified ? 'verified' : ''}">
                 <div class="question-ouverte-header">
                     <div class="question-ouverte-number">${index + 1}</div>
-                    <div class="question-ouverte-text">${this.escapeHtml(question.question)}</div>
+                    <div class="question-ouverte-text">${escapeHtml(question.question)}</div>
                 </div>
 
                 <div class="question-ouverte-answer">
@@ -1135,7 +1126,7 @@ Object.assign(EleveEntrainement, {
                         ${isVerified ? 'disabled' : ''}
                         onchange="EleveEntrainement.setQuestionOuverteAnswer('${question.id}', this.value)"
                         oninput="EleveEntrainement.setQuestionOuverteAnswer('${question.id}', this.value)"
-                    >${this.escapeHtml(answer)}</textarea>
+                    >${escapeHtml(answer)}</textarea>
 
                     ${!isVerified && question.keywords ? `
                         <div class="question-ouverte-hint">
@@ -1153,7 +1144,7 @@ Object.assign(EleveEntrainement, {
                                     ${(() => {
                                         const kw = question.keywords[0];
                                         const found = keywordsFound.includes(kw.toLowerCase());
-                                        return `<span class="keyword-tag ${found ? 'found' : 'missing'}">${found ? '✓' : '✗'} ${this.escapeHtml(kw)}</span>`;
+                                        return `<span class="keyword-tag ${found ? 'found' : 'missing'}">${found ? '✓' : '✗'} ${escapeHtml(kw)}</span>`;
                                     })()}
                                 </div>
                             </div>
@@ -1162,7 +1153,7 @@ Object.assign(EleveEntrainement, {
                         ${question.correction ? `
                             <div class="question-ouverte-correction">
                                 <div class="question-ouverte-correction-title">Réponse attendue :</div>
-                                <div class="question-ouverte-correction-text">${this.escapeHtml(question.correction)}</div>
+                                <div class="question-ouverte-correction-text">${escapeHtml(question.correction)}</div>
                             </div>
                         ` : ''}
                     </div>
@@ -1242,7 +1233,7 @@ Object.assign(EleveEntrainement, {
 
                         <div class="image-cliquable-question">
                             <div class="image-cliquable-question-icon">Cible</div>
-                            <div class="image-cliquable-question-text">${this.escapeHtml(currentQuestion.question)}</div>
+                            <div class="image-cliquable-question-text">${escapeHtml(currentQuestion.question)}</div>
                         </div>
                     ` : ''}
 
@@ -1287,7 +1278,7 @@ Object.assign(EleveEntrainement, {
             const isCorrect = userAnswer === q.correctZoneId;
 
             return `
-                <span class="image-cliquable-result-badge ${isCorrect ? 'correct' : 'incorrect'}" title="${this.escapeHtml(q.question)}">
+                <span class="image-cliquable-result-badge ${isCorrect ? 'correct' : 'incorrect'}" title="${escapeHtml(q.question)}">
                     Q${qIndex + 1} ${isCorrect ? '✓' : '✗'}
                 </span>
             `;
@@ -1328,7 +1319,7 @@ Object.assign(EleveEntrainement, {
             <div class="image-cliquable-zone ${zoneStatus}"
                  data-zone-id="${zone.id}"
                  style="left: ${zone.x}%; top: ${zone.y}%; width: ${zone.width}%; height: ${zone.height}%;"
-                 title="${this.escapeHtml(zone.label)}">
+                 title="${escapeHtml(zone.label)}">
                 ${isVerified && zoneIcon ? `<span class="zone-icon">${zoneIcon}</span>` : ''}
                 ${isVerified && zoneLabel ? `<span class="zone-label">${zoneLabel}</span>` : ''}
             </div>
@@ -1342,7 +1333,6 @@ Object.assign(EleveEntrainement, {
 
     setupImageClickHandlers(step, currentQuestionIndex) {
         const zones = document.querySelectorAll('.image-cliquable-zone');
-        const currentQuestion = step.questions[currentQuestionIndex];
         const stepAnswers = this.answers[this.currentStepIndex] || {};
         const isVerified = this.results[this.currentStepIndex]?.verified || this.correctionMode;
 
@@ -1389,7 +1379,6 @@ Object.assign(EleveEntrainement, {
 
         // Trouver quelle question cette zone concerne
         let questionInfo = null;
-        let userAnswer = null;
         let isCorrect = false;
 
         for (let i = 0; i < step.questions.length; i++) {
@@ -1398,7 +1387,6 @@ Object.assign(EleveEntrainement, {
 
             if (q.correctZoneId === zoneId || answer === zoneId) {
                 questionInfo = q;
-                userAnswer = answer;
                 isCorrect = answer === q.correctZoneId;
                 break;
             }
@@ -1410,17 +1398,17 @@ Object.assign(EleveEntrainement, {
         const popupContent = `
             <div class="image-zone-popup">
                 <div class="popup-close" onclick="this.parentElement.parentElement.style.display='none'">✕</div>
-                <div class="popup-question">${this.escapeHtml(questionInfo.question)}</div>
+                <div class="popup-question">${escapeHtml(questionInfo.question)}</div>
 
                 <div class="popup-section ${isCorrect ? 'correct' : 'incorrect'}">
                     <div class="popup-label">Ta réponse :</div>
-                    <div class="popup-zone-name">${isCorrect ? '✓' : '✗'} ${this.escapeHtml(zone.label)}</div>
+                    <div class="popup-zone-name">${isCorrect ? '✓' : '✗'} ${escapeHtml(zone.label)}</div>
                 </div>
 
                 ${!isCorrect ? `
                     <div class="popup-section correct">
                         <div class="popup-label">Réponse correcte :</div>
-                        <div class="popup-zone-name">✓ ${this.escapeHtml(this.getZoneName(step.zones, questionInfo.correctZoneId))}</div>
+                        <div class="popup-zone-name">✓ ${escapeHtml(this.getZoneName(step.zones, questionInfo.correctZoneId))}</div>
                     </div>
                 ` : ''}
             </div>

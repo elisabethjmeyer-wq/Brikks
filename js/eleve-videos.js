@@ -43,8 +43,6 @@ const EleveVideos = {
         // Déterminer la vidéo mise en avant
         const featured = this.videos.find(v => v.est_featured === 'TRUE' || v.est_featured === true);
         this.featuredVideo = featured || this.videos[0] || null;
-
-        console.log('Vidéos chargées:', this.videos.length);
     },
 
     /**
@@ -108,7 +106,7 @@ const EleveVideos = {
         if (info) {
             info.innerHTML = `
                 <div class="featured-meta">
-                    <span class="featured-title">${this.escapeHtml(video.titre)}</span>
+                    <span class="featured-title">${escapeHtml(video.titre)}</span>
                     <span class="featured-date">${this.formatDate(video.date_publication)}</span>
                 </div>
                 <div class="watch-status ${isWatched ? 'watched' : 'not-watched'}">
@@ -170,10 +168,10 @@ const EleveVideos = {
                                 <div class="play">▶</div>
                             </div>
                             <div class="video-info">
-                                <div class="video-title">${this.escapeHtml(video.titre)}</div>
+                                <div class="video-title">${escapeHtml(video.titre)}</div>
                                 <div class="video-meta">
                                     <span>${this.formatDate(video.date_publication)}</span>
-                                    ${video.tags ? `<span>•</span><span>${this.escapeHtml(video.tags)}</span>` : ''}
+                                    ${video.tags ? `<span>•</span><span>${escapeHtml(video.tags)}</span>` : ''}
                                 </div>
                             </div>
                             <div class="video-status ${isWatched ? 'watched' : 'not-watched'}">
@@ -404,18 +402,9 @@ const EleveVideos = {
         }
         // Sinon, formater le texte simple
         if (!text) return '';
-        return this.escapeHtml(text).replace(/\n/g, '<br>');
+        return escapeHtml(text).replace(/\n/g, '<br>');
     },
 
-    /**
-     * Échappe le HTML
-     */
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 };
 
 // Export global

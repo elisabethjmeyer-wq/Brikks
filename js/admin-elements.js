@@ -253,7 +253,7 @@ const AdminElements = {
                 <div class="tree-discipline expanded" data-id="${disc.id}">
                     <div class="tree-discipline-header" onclick="AdminElements.toggleDiscipline('${disc.id}')">
                         <span class="toggle-icon">▶</span>
-                        <span>${disc.emoji || '📚'} ${this.escapeHtml(disc.nom || disc.id)}</span>
+                        <span>${disc.emoji || '📚'} ${escapeHtml(disc.nom || disc.id)}</span>
                     </div>
                     <div class="tree-discipline-content">
             `;
@@ -263,7 +263,7 @@ const AdminElements = {
                     <div class="tree-chapter" data-id="${chap.id}" onclick="AdminElements.selectChapter('${chap.id}')">
                         <span class="tree-chapter-icon">📜</span>
                         <div class="tree-chapter-info">
-                            <h4>${this.escapeHtml(chap.titre || chap.id)}</h4>
+                            <h4>${escapeHtml(chap.titre || chap.id)}</h4>
                         </div>
                         <span class="tree-chapter-count">${chap.elementCount}</span>
                     </div>
@@ -351,28 +351,28 @@ const AdminElements = {
                 const correctAnswer = donnees.options?.[correctIdx] || '';
                 detailsHtml = `
                     <span class="element-detail"><span class="element-detail-icon">🔢</span> ${nbOptions} choix</span>
-                    <span class="element-detail correct"><span class="element-detail-icon">✓</span> ${this.escapeHtml(correctAnswer)}</span>
+                    <span class="element-detail correct"><span class="element-detail-icon">✓</span> ${escapeHtml(correctAnswer)}</span>
                 `;
                 break;
             case 'evenement':
                 detailsHtml = `
-                    <span class="element-detail date"><span class="element-detail-icon">📆</span> ${this.escapeHtml(donnees.date || '')}</span>
-                    ${donnees.periode ? `<span class="element-detail"><span class="element-detail-icon">🕐</span> ${this.escapeHtml(donnees.periode)}</span>` : ''}
+                    <span class="element-detail date"><span class="element-detail-icon">📆</span> ${escapeHtml(donnees.date || '')}</span>
+                    ${donnees.periode ? `<span class="element-detail"><span class="element-detail-icon">🕐</span> ${escapeHtml(donnees.periode)}</span>` : ''}
                 `;
                 break;
             case 'paire':
                 detailsHtml = `
-                    <span class="element-detail"><span class="element-detail-icon">🔗</span> ${this.escapeHtml(donnees.terme_a || '')} ↔ ${this.escapeHtml(donnees.terme_b || '')}</span>
+                    <span class="element-detail"><span class="element-detail-icon">🔗</span> ${escapeHtml(donnees.terme_a || '')} ↔ ${escapeHtml(donnees.terme_b || '')}</span>
                 `;
                 break;
             case 'point_carte':
                 detailsHtml = `
-                    <span class="element-detail"><span class="element-detail-icon">🗺️</span> ${this.escapeHtml(donnees.carte_id || 'Carte non definie')}</span>
+                    <span class="element-detail"><span class="element-detail-icon">🗺️</span> ${escapeHtml(donnees.carte_id || 'Carte non definie')}</span>
                 `;
                 break;
             case 'item_categorie':
                 detailsHtml = `
-                    <span class="element-detail"><span class="element-detail-icon">📂</span> ${this.escapeHtml(donnees.categorie || '')}</span>
+                    <span class="element-detail"><span class="element-detail-icon">📂</span> ${escapeHtml(donnees.categorie || '')}</span>
                 `;
                 break;
             case 'reponse_libre':
@@ -388,10 +388,10 @@ const AdminElements = {
                 <div class="element-type-badge ${element.type}">${typeInfo.icon}</div>
                 <div class="element-content">
                     <span class="element-type-label">${typeInfo.label}</span>
-                    <h3 class="element-title">${this.escapeHtml(element.contenu || 'Sans contenu')}</h3>
+                    <h3 class="element-title">${escapeHtml(element.contenu || 'Sans contenu')}</h3>
                     <div class="element-details">
                         ${detailsHtml}
-                        <span class="element-detail"><span class="element-detail-icon">📁</span> ${this.escapeHtml(chapitre?.titre || '')}</span>
+                        <span class="element-detail"><span class="element-detail-icon">📁</span> ${escapeHtml(chapitre?.titre || '')}</span>
                     </div>
                 </div>
                 <div class="element-actions">
@@ -536,7 +536,7 @@ const AdminElements = {
     populateDisciplines() {
         const select = document.getElementById('elementDiscipline');
         select.innerHTML = '<option value="">Selectionner...</option>' +
-            this.disciplines.map(d => `<option value="${d.id}">${d.emoji || ''} ${this.escapeHtml(d.nom || d.id)}</option>`).join('');
+            this.disciplines.map(d => `<option value="${d.id}">${d.emoji || ''} ${escapeHtml(d.nom || d.id)}</option>`).join('');
     },
 
     onDisciplineChange(disciplineId, callback) {
@@ -557,7 +557,7 @@ const AdminElements = {
         });
 
         chapitreSelect.innerHTML = '<option value="">Selectionner un chapitre...</option>' +
-            chapitres.map(c => `<option value="${c.id}">${this.escapeHtml(c.titre || c.id)}</option>`).join('');
+            chapitres.map(c => `<option value="${c.id}">${escapeHtml(c.titre || c.id)}</option>`).join('');
         chapitreSelect.disabled = false;
 
         if (callback) setTimeout(callback, 0);
@@ -673,7 +673,7 @@ const AdminElements = {
         container.innerHTML = options.map((opt, i) => `
             <div class="reponse-item ${i === correctIndex ? 'correct' : ''}">
                 <div class="reponse-radio">${i === correctIndex ? '✓' : ''}</div>
-                <input type="text" class="form-input reponse-input" value="${this.escapeHtml(opt)}" placeholder="Reponse">
+                <input type="text" class="form-input reponse-input" value="${escapeHtml(opt)}" placeholder="Reponse">
                 <button type="button" class="reponse-delete">&times;</button>
             </div>
         `).join('');
@@ -931,7 +931,7 @@ const AdminElements = {
         if (!select) return;
 
         select.innerHTML = '<option value="">Selectionner une carte...</option>' +
-            this.cartes.map(c => `<option value="${c.id}" data-url="${this.escapeHtml(c.image_url || '')}">${this.escapeHtml(c.nom || c.id)}</option>`).join('');
+            this.cartes.map(c => `<option value="${c.id}" data-url="${escapeHtml(c.image_url || '')}">${escapeHtml(c.nom || c.id)}</option>`).join('');
     },
 
     onCarteChange(carteId) {
@@ -1029,13 +1029,6 @@ const AdminElements = {
     },
 
     // ========== UTILS ==========
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
-
     /**
      * Convert various image URL formats to direct viewable URLs
      * Supports: Google Drive, Dropbox, and direct URLs

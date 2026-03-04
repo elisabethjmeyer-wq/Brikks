@@ -163,15 +163,13 @@ const AdminBanquesExercices = {
     clearCache() {
         try {
             localStorage.removeItem(this.CACHE_KEY);
-        } catch (e) {}
+        } catch (e) { /* storage unavailable, ignore */ }
     },
 
     // Normalise les types de questions (trim, lowercase, underscores, inférence si vide)
     normalizeQuestionsTypes() {
         if (!this.questionsConnaissances) return;
-        let fixed = 0;
         this.questionsConnaissances.forEach(q => {
-            const originalType = q.type;
             // Parse donnees si nécessaire
             if (q.donnees && typeof q.donnees === 'string') {
                 try { q.donnees = JSON.parse(q.donnees); } catch(e) { q.donnees = {}; }
@@ -183,12 +181,6 @@ const AdminBanquesExercices = {
             // Si type vide/absent, inférer depuis la structure de donnees
             if (!q.type && q.donnees && typeof q.donnees === 'object') {
                 q.type = this.inferQuestionType(q.donnees);
-                if (q.type) {
-                    fixed++;
-                }
-            }
-            if (originalType && q.type !== String(originalType).trim().toLowerCase().replace(/[\s-]+/g, '_')) {
-                fixed++;
             }
         });
     },
@@ -719,11 +711,11 @@ const AdminBanquesExercices = {
                         <div class="banque-card-icon ${banque.type}">${config.icon}</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
-                                ${this.escapeHtml(banque.titre || 'Sans titre')}
+                                ${escapeHtml(banque.titre || 'Sans titre')}
                                 <span class="status-badge ${banque.statut}">${banque.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
                             </div>
                             <div class="banque-card-meta">
-                                ${banque.description ? this.escapeHtml(banque.description) : 'Aucune description'}
+                                ${banque.description ? escapeHtml(banque.description) : 'Aucune description'}
                             </div>
                         </div>
                         <div class="banque-card-stats">
@@ -777,7 +769,7 @@ const AdminBanquesExercices = {
                             <span class="drag-handle drag-handle-sm" title="Glisser pour réordonner">⋮⋮</span>
                             <div class="exercice-numero">${exo.numero || '?'}</div>
                             <div class="exercice-info">
-                                <div class="exercice-title">${this.escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</div>
+                                <div class="exercice-title">${escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</div>
                                 <div class="exercice-meta">${formatName} - ${dureeMin} min</div>
                             </div>
                             <span class="status-badge ${exo.statut}">${exo.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
@@ -1182,7 +1174,7 @@ const AdminBanquesExercices = {
     populateFormatsDropdown() {
         const select = document.getElementById('exerciceFormat');
         select.innerHTML = '<option value="">Selectionner un format...</option>' +
-            this.formats.map(f => `<option value="${f.id}">${this.escapeHtml(f.nom)}</option>`).join('');
+            this.formats.map(f => `<option value="${f.id}">${escapeHtml(f.nom)}</option>`).join('');
     },
 
     closeExerciceModal() {
@@ -1365,8 +1357,8 @@ const AdminBanquesExercices = {
                 <div class="format-item" data-id="${format.id}">
                     <div class="format-item-icon">&#128221;</div>
                     <div class="format-item-content">
-                        <div class="format-item-name">${this.escapeHtml(format.nom)}</div>
-                        <div class="format-item-desc">${this.escapeHtml(format.description || 'Aucune description')}</div>
+                        <div class="format-item-name">${escapeHtml(format.nom)}</div>
+                        <div class="format-item-desc">${escapeHtml(format.description || 'Aucune description')}</div>
                     </div>
                     <div class="format-item-types">
                         ${types.map(t => `<span class="format-type-badge ${t.trim()}">${t.trim()}</span>`).join('')}
@@ -1670,13 +1662,6 @@ const AdminBanquesExercices = {
     },
 
     // ========== UTILS ==========
-    escapeHtml(str) {
-        if (!str) return '';
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    },
-
     normalizeImageUrl(url) {
         if (!url) return '';
         const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^\/\?]+)/);

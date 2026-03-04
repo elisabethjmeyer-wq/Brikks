@@ -147,7 +147,7 @@ Object.assign(AdminBanquesExercices, {
         thead.innerHTML = `<tr>
             ${cols.map((col, i) => `
                 <th class="tb-header-cell">
-                    <input type="text" class="tb-col-title" value="${this.escapeHtml(col)}"
+                    <input type="text" class="tb-col-title" value="${escapeHtml(col)}"
                            placeholder="Colonne ${i + 1}" data-col="${i}"
                            oninput="AdminBanquesExercices.readTableBuilderValues()">
                     <button type="button" class="tb-col-remove" onclick="AdminBanquesExercices.removeColumn(${i})" title="Supprimer la colonne">&times;</button>
@@ -189,7 +189,7 @@ Object.assign(AdminBanquesExercices, {
                                             title="${typeTitle}">${typeLabel}</button>
                                     <input type="text" class="tb-cell-input"
                                            data-row="${ri}" data-col="${ci}"
-                                           value="${this.escapeHtml(cell.valeur)}"
+                                           value="${escapeHtml(cell.valeur)}"
                                            placeholder="${isDonnee ? 'Donnée...' : 'Réponse...'}"
                                            oninput="AdminBanquesExercices.readTableBuilderValues()">
                                     ${extraIndicators ? `<div class="tb-cell-indicators">${extraIndicators}</div>` : ''}
@@ -243,18 +243,18 @@ Object.assign(AdminBanquesExercices, {
 
         let html = '';
         if (consigne) {
-            html += `<p class="tb-pv-consigne">${this.escapeHtml(consigne)}</p>`;
+            html += `<p class="tb-pv-consigne">${escapeHtml(consigne)}</p>`;
         }
 
         html += '<table class="tb-preview-table"><thead><tr>';
-        cols.forEach(c => { html += `<th>${this.escapeHtml(c) || '...'}</th>`; });
+        cols.forEach(c => { html += `<th>${escapeHtml(c) || '...'}</th>`; });
         html += '</tr></thead><tbody>';
 
         rows.forEach(row => {
             html += '<tr>';
             row.forEach(cell => {
                 if (cell.type === 'donnee') {
-                    html += `<td class="tb-pv-donnee">${this.escapeHtml(cell.valeur) || '\u2014'}</td>`;
+                    html += `<td class="tb-pv-donnee">${escapeHtml(cell.valeur) || '\u2014'}</td>`;
                 } else {
                     html += '<td class="tb-pv-reponse"><input type="text" disabled placeholder="..."></td>';
                 }
@@ -288,7 +288,7 @@ Object.assign(AdminBanquesExercices, {
         let popoverHTML = `
             <div class="tb-popover" id="tbCellPopover">
                 <div class="tb-popover-header">
-                    <span class="tb-popover-title">L${rowIndex + 1} &times; ${this.escapeHtml(colName)}</span>
+                    <span class="tb-popover-title">L${rowIndex + 1} &times; ${escapeHtml(colName)}</span>
                     <button type="button" class="tb-popover-close" onclick="AdminBanquesExercices._closeCellPopover()">&times;</button>
                 </div>
                 <div class="tb-popover-body">
@@ -334,7 +334,7 @@ Object.assign(AdminBanquesExercices, {
                         <div class="tb-popover-alts" id="tbPopoverAlts">
                             ${alts.map((alt, i) => `
                                 <div class="tb-popover-alt-item">
-                                    <input type="text" class="tb-popover-alt-input" value="${this.escapeHtml(alt)}"
+                                    <input type="text" class="tb-popover-alt-input" value="${escapeHtml(alt)}"
                                            placeholder="Alternative ${i + 1}" data-alt-index="${i}"
                                            onchange="AdminBanquesExercices._updateAlt(${rowIndex}, ${colIndex}, ${i}, this.value)">
                                     <button type="button" class="tb-popover-alt-remove"
@@ -537,7 +537,7 @@ Object.assign(AdminBanquesExercices, {
             const imageUrl = this.convertToDirectImageUrl(donnees.image_url);
             contentHTML = `
                 <div class="carte-container">
-                    <img src="${this.escapeHtml(imageUrl)}" class="carte-image" alt="Carte" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <img src="${escapeHtml(imageUrl)}" class="carte-image" alt="Carte" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <div style="display:none; padding: 2rem; background: #fee2e2; color: #991b1b; border-radius: 8px; text-align: center;">
                         Impossible de charger l'image. Vérifiez le lien.
                     </div>
@@ -546,7 +546,7 @@ Object.assign(AdminBanquesExercices, {
                         const shape = m.shape || 'cercle';
                         return `<div class="carte-marker shape-${shape}" style="left: ${m.x}%; top: ${m.y}%; background: ${bg};">
                             <span>${i + 1}</span>
-                            <span class="badge">${this.escapeHtml((m.reponse || '').split('|')[0])}</span>
+                            <span class="badge">${escapeHtml((m.reponse || '').split('|')[0])}</span>
                         </div>`;
                     }).join('')}
                 </div>
@@ -568,15 +568,15 @@ Object.assign(AdminBanquesExercices, {
             `;
             const docImgUrl = this.convertToDirectImageUrl(donnees.document.contenu);
             const docContent = donnees.document.type === 'image'
-                ? `<img src="${this.escapeHtml(docImgUrl)}" alt="Document">`
-                : `<p>${this.escapeHtml(donnees.document.contenu)}</p>`;
+                ? `<img src="${escapeHtml(docImgUrl)}" alt="Document">`
+                : `<p>${escapeHtml(donnees.document.contenu)}</p>`;
             contentHTML = `
                 <div class="qo-layout">
                     <div class="qo-document">${docContent}</div>
                     <div class="qo-questions">
                         ${donnees.questions.map((q, i) => `
                             <div class="qo-question">
-                                <div class="qo-question-text">${i + 1}. ${this.escapeHtml(q.question)}</div>
+                                <div class="qo-question-text">${i + 1}. ${escapeHtml(q.question)}</div>
                                 <textarea class="qo-textarea" placeholder="Votre réponse..."></textarea>
                             </div>
                         `).join('')}
@@ -601,8 +601,8 @@ Object.assign(AdminBanquesExercices, {
                 .input-cell input { width: 100%; padding: 8px 12px; border: 2px solid #dbeafe; border-radius: 6px; font-size: 14px; }
             `;
             const docContent = docType === 'image'
-                ? `<img src="${this.escapeHtml(docImgUrl)}" alt="Document">`
-                : `<p>${this.escapeHtml(docContenu)}</p>`;
+                ? `<img src="${escapeHtml(docImgUrl)}" alt="Document">`
+                : `<p>${escapeHtml(docContenu)}</p>`;
             contentHTML = `
                 <div class="dt-layout">
                     <div class="dt-document">${docContent}</div>
@@ -698,7 +698,7 @@ Object.assign(AdminBanquesExercices, {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Prévisualisation - ${this.escapeHtml(titre)}</title>
+                <title>Prévisualisation - ${escapeHtml(titre)}</title>
                 <style>
                     body { font-family: 'Inter', Arial, sans-serif; padding: 2rem; background: #f5f5f5; }
                     .preview-card { background: white; border-radius: 12px; max-width: 800px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
@@ -712,9 +712,9 @@ Object.assign(AdminBanquesExercices, {
             <body>
                 <div class="preview-card">
                     <div class="preview-header">
-                        <h1>${this.escapeHtml(titre)}</h1>
+                        <h1>${escapeHtml(titre)}</h1>
                     </div>
-                    ${consigne ? `<div class="preview-consigne">${this.escapeHtml(consigne)}</div>` : ''}
+                    ${consigne ? `<div class="preview-consigne">${escapeHtml(consigne)}</div>` : ''}
                     <div class="preview-content">
                         ${contentHTML}
                     </div>
@@ -731,7 +731,7 @@ Object.assign(AdminBanquesExercices, {
         return `
             <table>
                 <thead>
-                    <tr>${cols.map(c => `<th>${this.escapeHtml(typeof c === 'string' ? c : c.titre || '')}</th>`).join('')}</tr>
+                    <tr>${cols.map(c => `<th>${escapeHtml(typeof c === 'string' ? c : c.titre || '')}</th>`).join('')}</tr>
                 </thead>
                 <tbody>
                     ${rows.map(ligne => `
@@ -740,10 +740,10 @@ Object.assign(AdminBanquesExercices, {
                                 if (typeof cell === 'object' && cell.type === 'reponse') {
                                     return '<td class="input-cell"><input type="text" placeholder="..."></td>';
                                 } else if (typeof cell === 'object') {
-                                    return `<td class="data-cell">${this.escapeHtml(cell.valeur || '')}</td>`;
+                                    return `<td class="data-cell">${escapeHtml(cell.valeur || '')}</td>`;
                                 }
                                 // Fallback ancien format string
-                                return `<td class="data-cell">${this.escapeHtml(cell || '')}</td>`;
+                                return `<td class="data-cell">${escapeHtml(cell || '')}</td>`;
                             }).join('')}
                         </tr>
                     `).join('')}
@@ -925,11 +925,11 @@ Object.assign(AdminBanquesExercices, {
 
         let html = '';
         if (consigne) {
-            html += `<p class="cb-pv-consigne">${this.escapeHtml(consigne)}</p>`;
+            html += `<p class="cb-pv-consigne">${escapeHtml(consigne)}</p>`;
         }
 
         html += `<div class="cb-pv-image-wrapper">
-            <img src="${this.escapeHtml(imageUrl)}" alt="Aperçu carte" class="cb-pv-image">
+            <img src="${escapeHtml(imageUrl)}" alt="Aperçu carte" class="cb-pv-image">
             <div class="cb-pv-marqueurs">`;
 
         marqueurs.forEach((m, i) => {
@@ -952,7 +952,7 @@ Object.assign(AdminBanquesExercices, {
         container.innerHTML = html;
 
         // Rendre les marqueurs cliquables pour simuler la vue élève
-        container.querySelectorAll('.cb-pv-marker').forEach((marker, idx) => {
+        container.querySelectorAll('.cb-pv-marker').forEach((marker, _idx) => {
             marker.style.cursor = 'pointer';
             marker.addEventListener('click', () => {
                 // Toggle un petit input simulé
@@ -1000,7 +1000,7 @@ Object.assign(AdminBanquesExercices, {
 
             let indicators = '';
             if (hasAnswer) {
-                indicators += `<span class="cb-marker-answer-badge">${this.escapeHtml(mainAnswer)}</span>`;
+                indicators += `<span class="cb-marker-answer-badge">${escapeHtml(mainAnswer)}</span>`;
             }
             if (alts.length > 0) {
                 indicators += `<span class="cb-marker-indicator cb-ind-alt">\u00B1${alts.length}</span>`;
@@ -1112,7 +1112,7 @@ Object.assign(AdminBanquesExercices, {
                     <div class="cb-popover-field">
                         <label class="cb-popover-label">Réponse attendue</label>
                         <input type="text" class="cb-popover-input" id="cbPopoverAnswer"
-                               value="${this.escapeHtml(mainAnswer)}" placeholder="Ex : Paris"
+                               value="${escapeHtml(mainAnswer)}" placeholder="Ex : Paris"
                                oninput="AdminBanquesExercices._updateMarqueurAnswer(${index}, this.value)">
                     </div>
                     <div class="cb-popover-field">
@@ -1143,7 +1143,7 @@ Object.assign(AdminBanquesExercices, {
                         <div class="cb-popover-alts" id="cbPopoverAlts">
                             ${alts.map((alt, i) => `
                                 <div class="cb-popover-alt-item">
-                                    <input type="text" class="cb-popover-alt-input" value="${this.escapeHtml(alt)}"
+                                    <input type="text" class="cb-popover-alt-input" value="${escapeHtml(alt)}"
                                            placeholder="Alternative ${i + 1}" data-alt-index="${i}"
                                            onchange="AdminBanquesExercices._updateMarqueurAlt(${index}, ${i}, this.value)">
                                     <button type="button" class="cb-popover-alt-remove"
@@ -1413,7 +1413,7 @@ Object.assign(AdminBanquesExercices, {
         const container = document.getElementById('questionsList');
         const items = container.querySelectorAll('.question-item');
 
-        this.questionBuilder.questions = Array.from(items).map((item, qIndex) => {
+        this.questionBuilder.questions = Array.from(items).map((item, _qIndex) => {
             const titre = item.querySelector('.question-titre').value;
             const etapes = Array.from(item.querySelectorAll('.etape-input')).map(inp => inp.value);
             const reponse = item.querySelector('.question-correction').value;
@@ -1432,14 +1432,14 @@ Object.assign(AdminBanquesExercices, {
             <div class="question-item" data-index="${qIndex}">
                 <div class="question-header">
                     <span class="question-num">${qIndex + 1}</span>
-                    <input type="text" class="form-input question-titre" value="${this.escapeHtml(q.titre)}" placeholder="Titre de la question">
+                    <input type="text" class="form-input question-titre" value="${escapeHtml(q.titre)}" placeholder="Titre de la question">
                     <button type="button" class="btn-icon danger" onclick="AdminBanquesExercices.removeQuestion(${qIndex})">&times;</button>
                 </div>
                 <div class="question-etapes">
                     <label>Etapes/Guidage</label>
                     ${q.etapes.map((e, eIndex) => `
                         <div class="etape-row">
-                            <input type="text" class="form-input etape-input" value="${this.escapeHtml(e)}" placeholder="Ex: Identifiez les elements cles...">
+                            <input type="text" class="form-input etape-input" value="${escapeHtml(e)}" placeholder="Ex: Identifiez les elements cles...">
                             <button type="button" class="btn-icon danger" onclick="AdminBanquesExercices.removeEtape(${qIndex}, ${eIndex})">&times;</button>
                         </div>
                     `).join('')}
@@ -1447,7 +1447,7 @@ Object.assign(AdminBanquesExercices, {
                 </div>
                 <div class="question-correction-wrap">
                     <label>Correction attendue</label>
-                    <textarea class="form-textarea question-correction" rows="3" placeholder="Reponse modele...">${this.escapeHtml(q.reponse_attendue)}</textarea>
+                    <textarea class="form-textarea question-correction" rows="3" placeholder="Reponse modele...">${escapeHtml(q.reponse_attendue)}</textarea>
                 </div>
             </div>
         `).join('');
@@ -1719,7 +1719,7 @@ Object.assign(AdminBanquesExercices, {
             </div>
             <div id="docUrlSection" class="form-row" style="display:${docType === 'url' ? 'block' : 'none'}">
                 <label>URL du document</label>
-                <input type="text" class="form-input" id="docUrlMixte" value="${this.escapeHtml(doc.url)}"
+                <input type="text" class="form-input" id="docUrlMixte" value="${escapeHtml(doc.url)}"
                        placeholder="Lien Google Drive, image, PDF\u2026">
                 <div class="form-help">Collez un lien Google Drive (image, PDF, Doc) ou une URL directe</div>
             </div>
@@ -1749,13 +1749,13 @@ Object.assign(AdminBanquesExercices, {
             </div>
             <div class="form-row">
                 <label>Titre du document</label>
-                <input type="text" class="form-input" id="docTitreMixte" value="${this.escapeHtml(doc.titre)}"
+                <input type="text" class="form-input" id="docTitreMixte" value="${escapeHtml(doc.titre)}"
                        placeholder="Ex: Doc. 1 - Titre du document">
             </div>
             <div class="form-row">
                 <label>L\u00e9gende <span class="optional">(optionnel)</span></label>
                 <textarea class="form-textarea" id="docLegendeMixte" rows="2"
-                          placeholder="L\u00e9gende du document\u2026">${this.escapeHtml(doc.legende)}</textarea>
+                          placeholder="L\u00e9gende du document\u2026">${escapeHtml(doc.legende)}</textarea>
                 <div class="form-help">Utilisez *texte* pour mettre en italique</div>
             </div>`;
     },
@@ -1765,7 +1765,7 @@ Object.assign(AdminBanquesExercices, {
         return `
             <div class="form-row">
                 <label>Titre du tableau <span class="optional">(optionnel)</span></label>
-                <input type="text" class="form-input" id="tableauTitreMixte" value="${this.escapeHtml(tab.titre)}"
+                <input type="text" class="form-input" id="tableauTitreMixte" value="${escapeHtml(tab.titre)}"
                        placeholder="Ex: \u00c0 COMPL\u00c9TER">
             </div>
             <div class="form-row">
@@ -1968,7 +1968,7 @@ Object.assign(AdminBanquesExercices, {
                     <div class="tableau-element section-element" data-index="${i}" draggable="true">
                         <span class="drag-handle-small">\u22EE\u22EE</span>
                         <div class="element-content">
-                            <input type="text" class="section-input" value="${this.escapeHtml(el.text)}"
+                            <input type="text" class="section-input" value="${escapeHtml(el.text)}"
                                    placeholder="Titre de la section (ex: OEUVRE D'ORIGINE)"
                                    onchange="AdminBanquesExercices.updateTableauElement(${i}, 'text', this.value)">
                         </div>
@@ -1984,11 +1984,11 @@ Object.assign(AdminBanquesExercices, {
                         <span class="drag-handle-small">\u22EE\u22EE</span>
                         <div class="element-content">
                             <div class="row-inputs">
-                                <input type="text" class="label-input" value="${this.escapeHtml(el.label)}"
+                                <input type="text" class="label-input" value="${escapeHtml(el.label)}"
                                        placeholder="Label (ex: Auteur)"
                                        onchange="AdminBanquesExercices.updateTableauElement(${i}, 'label', this.value)">
                                 <div class="answer-with-alternatives">
-                                    <input type="text" class="answer-input" value="${this.escapeHtml(mainAnswer)}"
+                                    <input type="text" class="answer-input" value="${escapeHtml(mainAnswer)}"
                                            data-element-index="${i}"
                                            placeholder="R\u00e9ponse attendue"
                                            onchange="AdminBanquesExercices.updateTableauElementMainAnswer(${i}, this.value)">
@@ -2036,11 +2036,11 @@ Object.assign(AdminBanquesExercices, {
                     <button type="button" class="modal-close" onclick="AdminBanquesExercices.closeAlternativesModal()">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p class="help-text">La r\u00e9ponse principale est "<strong>${this.escapeHtml(mainAnswer)}</strong>". Ajoutez des r\u00e9ponses alternatives qui seront aussi accept\u00e9es.</p>
+                    <p class="help-text">La r\u00e9ponse principale est "<strong>${escapeHtml(mainAnswer)}</strong>". Ajoutez des r\u00e9ponses alternatives qui seront aussi accept\u00e9es.</p>
                     <div id="alternativesList">
                         ${altAnswers.map((alt, i) => `
                             <div class="alternative-item">
-                                <input type="text" class="alt-input" value="${this.escapeHtml(alt)}" placeholder="R\u00e9ponse alternative ${i + 1}">
+                                <input type="text" class="alt-input" value="${escapeHtml(alt)}" placeholder="R\u00e9ponse alternative ${i + 1}">
                                 <button type="button" class="btn-remove-alt" onclick="this.parentElement.remove()">×</button>
                             </div>
                         `).join('')}
@@ -2187,7 +2187,7 @@ Object.assign(AdminBanquesExercices, {
                         <div class="alternatives-list-mixte" id="altList_${i}">
                             ${alternatives.map((alt, ai) => `
                                 <div class="alternative-item-mixte">
-                                    <input type="text" class="alt-input-mixte" value="${this.escapeHtml(alt)}"
+                                    <input type="text" class="alt-input-mixte" value="${escapeHtml(alt)}"
                                            onchange="AdminBanquesExercices.updateMixteAlternative(${i}, ${ai}, this.value)"
                                            placeholder="R\u00e9ponse alternative ${ai + 1}">
                                     <button type="button" class="btn-remove-alt" onclick="AdminBanquesExercices.removeMixteAlternative(${i}, ${ai})">×</button>
@@ -2345,7 +2345,7 @@ Object.assign(AdminBanquesExercices, {
         }
 
         return `<div class="preview-document">
-            ${titre ? `<div class="preview-doc-header">${this.escapeHtml(titre)}</div>` : ''}
+            ${titre ? `<div class="preview-doc-header">${escapeHtml(titre)}</div>` : ''}
             <div class="preview-doc-content">${contentHTML}</div>
             ${legende ? `<div class="preview-doc-legend">${legendeHTML}</div>` : ''}
         </div>`;
@@ -2361,21 +2361,21 @@ Object.assign(AdminBanquesExercices, {
 
         const contentHTML = elements.map(el => {
             if (el.type === 'section') {
-                return `<div class="preview-tableau-section">${this.escapeHtml(el.text) || 'Section...'}</div>`;
+                return `<div class="preview-tableau-section">${escapeHtml(el.text) || 'Section...'}</div>`;
             }
             const reponse = el.reponse || '';
             const label = el.label || 'Label...';
             return `<div class="preview-tableau-row">
-                <div class="row-label">${this.escapeHtml(label)}</div>
-                <div class="row-input-preview" title="R\u00e9ponse: ${this.escapeHtml(reponse)}">
+                <div class="row-label">${escapeHtml(label)}</div>
+                <div class="row-input-preview" title="R\u00e9ponse: ${escapeHtml(reponse)}">
                     <input type="text" disabled placeholder="Champ \u00e9l\u00e8ve" class="preview-input">
-                    ${reponse ? `<span class="answer-hint">\u2713 ${this.escapeHtml(reponse)}</span>` : '<span class="answer-missing">\u26A0 R\u00e9ponse manquante</span>'}
+                    ${reponse ? `<span class="answer-hint">\u2713 ${escapeHtml(reponse)}</span>` : '<span class="answer-missing">\u26A0 R\u00e9ponse manquante</span>'}
                 </div>
             </div>`;
         }).join('');
 
         return `<div class="preview-tableau">
-            <div class="preview-tableau-header">${this.escapeHtml(titre) || '\u00c0 COMPL\u00c9TER'}</div>
+            <div class="preview-tableau-header">${escapeHtml(titre) || '\u00c0 COMPL\u00c9TER'}</div>
             ${contentHTML}
         </div>`;
     },

@@ -14,32 +14,12 @@ const Auth = {
         try {
             const utilisateurs = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.UTILISATEURS);
 
-            // DEBUG: Données reçues du Google Sheets
-            console.log('=== DEBUG AUTH ===');
-            console.log('1. Données Google Sheets:', utilisateurs);
-            console.log('2. Colonnes disponibles:', utilisateurs.length > 0 ? Object.keys(utilisateurs[0]) : 'Aucune donnée');
-
-            // DEBUG: Identifiants saisis
-            console.log('3. Identifiant saisi:', identifiant);
-            console.log('4. Mot de passe saisi:', motDePasse);
-
             const user = utilisateurs.find(u => {
                 // Trim des valeurs pour éviter les espaces parasites
                 const sheetId = (u.identifiant || '').trim();
                 const sheetPwd = (u.mot_de_passe || '').trim();
-                // DEBUG: Comparaison pour chaque utilisateur
-                console.log('5. Comparaison avec:', {
-                    identifiant_sheets: sheetId,
-                    mot_de_passe_sheets: sheetPwd,
-                    match_identifiant: sheetId === identifiant,
-                    match_mdp: sheetPwd === motDePasse
-                });
                 return sheetId === identifiant && sheetPwd === motDePasse;
             });
-
-            // DEBUG: Résultat
-            console.log('6. Utilisateur trouvé:', user || 'Aucun');
-            console.log('=== FIN DEBUG ===');
 
             return user || null;
         } catch (error) {

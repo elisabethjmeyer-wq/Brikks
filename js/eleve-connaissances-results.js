@@ -144,7 +144,7 @@ Object.assign(EleveConnaissances, {
             <div class="locked-modal">
                 <div class="locked-modal-icon">🔒</div>
                 <h3>Pas encore !</h3>
-                <p class="locked-modal-title">${this.escapeHtml(titre)}</p>
+                <p class="locked-modal-title">${escapeHtml(titre)}</p>
                 <p class="locked-modal-message">
                     Tu as réussi cet entraînement ! Pour que ça reste en mémoire,
                     reviens <strong>${dateStr}</strong> pour la prochaine révision.
@@ -214,9 +214,9 @@ Object.assign(EleveConnaissances, {
             if (!val || val === '—' || val === 'Non répondu') return `<span class="${className}">Non répondu</span>`;
             const str = String(val);
             if (isImageUrl(str)) {
-                return `<img class="correction-mini-img ${className}" src="${this.escapeHtml(this.normalizeImageUrl(str))}" alt="" />`;
+                return `<img class="correction-mini-img ${className}" src="${escapeHtml(this.normalizeImageUrl(str))}" alt="" />`;
             }
-            return `<span class="${className}">${this.escapeHtml(str)}</span>`;
+            return `<span class="${className}">${escapeHtml(str)}</span>`;
         };
 
         // Préparer les données par étape
@@ -243,7 +243,7 @@ Object.assign(EleveConnaissances, {
                             <div class="overview-row has-errors" onclick="EleveConnaissances.carouselGoTo(${i + 1})">
                                 <span class="overview-status">❌</span>
                                 <div class="overview-info">
-                                    <span class="overview-etape-name">${this.escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))} — ${this.getFormatLabel(ed.etape.format)}</span>
+                                    <span class="overview-etape-name">${escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))} — ${this.getFormatLabel(ed.etape.format)}</span>
                                     <span class="overview-score">${ed.correct}/${ed.total} correct</span>
                                 </div>
                                 <span class="overview-arrow">→</span>
@@ -274,12 +274,12 @@ Object.assign(EleveConnaissances, {
                             const carte = qData.cartes.find(c => c.titre === sc.titre) || {};
                             const imageUrl = carte.image_url ? this.normalizeImageUrl(carte.image_url) : '';
                             const hasImage = !!imageUrl;
-                            const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
+                            const imgStyle = hasImage ? `style="background-image: url('${escapeHtml(imageUrl)}');"` : '';
                             const statusClass = sc.correct ? 'card-correct' : 'card-incorrect';
                             return `
                                 <div class="correction-timeline-card ${hasImage ? 'has-image' : ''} ${statusClass}" ${imgStyle}>
                                     <span class="correction-timeline-pos">${ci + 1}</span>
-                                    <span class="correction-timeline-titre">${this.escapeHtml(sc.titre || 'Non répondu')}</span>
+                                    <span class="correction-timeline-titre">${escapeHtml(sc.titre || 'Non répondu')}</span>
                                 </div>
                             `;
                         }).join('')}
@@ -291,11 +291,11 @@ Object.assign(EleveConnaissances, {
                         ${qData.cartes.map((carte, ci) => {
                             const imageUrl = carte.image_url ? this.normalizeImageUrl(carte.image_url) : '';
                             const hasImage = !!imageUrl;
-                            const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
+                            const imgStyle = hasImage ? `style="background-image: url('${escapeHtml(imageUrl)}');"` : '';
                             return `
                                 <div class="correction-timeline-card ${hasImage ? 'has-image' : ''}" ${imgStyle}>
                                     <span class="correction-timeline-pos">${ci + 1}</span>
-                                    <span class="correction-timeline-titre">${this.escapeHtml(carte.titre)}</span>
+                                    <span class="correction-timeline-titre">${escapeHtml(carte.titre)}</span>
                                 </div>
                             `;
                         }).join('')}
@@ -313,7 +313,7 @@ Object.assign(EleveConnaissances, {
                     <div class="correction-error-row">
                         <div class="correction-error-q">${renderElement(err.question, 'correction-q-text')}</div>
                         <div class="correction-error-answers">
-                            <span class="${givenClass}">${this.escapeHtml(String(err.reponse || 'Non répondu'))}</span>
+                            <span class="${givenClass}">${escapeHtml(String(err.reponse || 'Non répondu'))}</span>
                             ${err.attendu ? `<span class="correction-expected">→ ${renderElement(err.attendu, 'correction-expected-val')}</span>` : ''}
                         </div>
                     </div>
@@ -356,17 +356,17 @@ Object.assign(EleveConnaissances, {
                     }
 
                     const hasImage = !!imageUrl;
-                    const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
+                    const imgStyle = hasImage ? `style="background-image: url('${escapeHtml(imageUrl)}');"` : '';
                     const labelClass = isUnanswered ? 'correction-assoc-card-label correction-assoc-card-label--empty' : 'correction-assoc-card-label';
                     // Si le label est une image URL, afficher une miniature
                     const labelIsImg = labelVal && isImageUrl(labelVal);
                     const labelHtml = labelIsImg
-                        ? `<img class="correction-assoc-card-label-img" src="${this.escapeHtml(this.normalizeImageUrl(labelVal))}" alt="">`
-                        : `<span class="${labelClass}">${this.escapeHtml(labelVal)}</span>`;
+                        ? `<img class="correction-assoc-card-label-img" src="${escapeHtml(this.normalizeImageUrl(labelVal))}" alt="">`
+                        : `<span class="${labelClass}">${escapeHtml(labelVal)}</span>`;
 
                     return `
                         <div class="correction-timeline-card correction-assoc-card-v2 ${hasImage ? 'has-image' : ''} ${statusClass}" ${imgStyle}>
-                            ${!hasImage && textVal ? `<span class="correction-timeline-titre">${this.escapeHtml(textVal)}</span>` : ''}
+                            ${!hasImage && textVal ? `<span class="correction-timeline-titre">${escapeHtml(textVal)}</span>` : ''}
                             ${labelHtml}
                         </div>
                     `;
@@ -417,7 +417,7 @@ Object.assign(EleveConnaissances, {
                         popoverContent = `
                             <div class="popover-panel popover-panel--correct">
                                 <span class="popover-panel-icon">✓</span>
-                                <span class="popover-panel-value">${this.escapeHtml(userAnswer)}</span>
+                                <span class="popover-panel-value">${escapeHtml(userAnswer)}</span>
                             </div>`;
                     } else if (isUnanswered) {
                         popoverContent = `
@@ -427,17 +427,17 @@ Object.assign(EleveConnaissances, {
                             </div>
                             <div class="popover-panel popover-panel--correct">
                                 <span class="popover-panel-icon">✓</span>
-                                <span class="popover-panel-value">${this.escapeHtml(correctAnswer)}</span>
+                                <span class="popover-panel-value">${escapeHtml(correctAnswer)}</span>
                             </div>`;
                     } else {
                         popoverContent = `
                             <div class="popover-panel popover-panel--wrong">
                                 <span class="popover-panel-icon">✗</span>
-                                <span class="popover-panel-value">${this.escapeHtml(userAnswer)}</span>
+                                <span class="popover-panel-value">${escapeHtml(userAnswer)}</span>
                             </div>
                             <div class="popover-panel popover-panel--correct">
                                 <span class="popover-panel-icon">✓</span>
-                                <span class="popover-panel-value">${this.escapeHtml(correctAnswer)}</span>
+                                <span class="popover-panel-value">${escapeHtml(correctAnswer)}</span>
                             </div>`;
                     }
 
@@ -457,7 +457,7 @@ Object.assign(EleveConnaissances, {
                 return `
                     <div class="correction-carte-visual">
                         <div class="correction-carte-image-wrapper correction-carte-image-wrapper--popover">
-                            <img src="${this.escapeHtml(imageUrl)}" alt="Carte" class="correction-carte-image">
+                            <img src="${escapeHtml(imageUrl)}" alt="Carte" class="correction-carte-image">
                             <div class="correction-carte-markers-layer">
                                 ${markersHtml}
                             </div>
@@ -480,8 +480,8 @@ Object.assign(EleveConnaissances, {
                             <span class="correction-panel-icon">✗</span>
                             <span class="correction-panel-label">${isUnanswered ? 'Non répondu' : 'Ta réponse'}</span>
                         </div>
-                        ${!isUnanswered ? `<div class="correction-panel-value correction-panel-value--wrong">${this.escapeHtml(String(err.reponse))}</div>` : ''}
-                        ${hasFeedback ? `<div class="correction-panel-feedback">${this.escapeHtml(err.feedbackOption)}</div>` : ''}
+                        ${!isUnanswered ? `<div class="correction-panel-value correction-panel-value--wrong">${escapeHtml(String(err.reponse))}</div>` : ''}
+                        ${hasFeedback ? `<div class="correction-panel-feedback">${escapeHtml(err.feedbackOption)}</div>` : ''}
                     </div>
                     ${err.attendu ? `
                     <div class="correction-error-panel correction-panel-correct">
@@ -525,7 +525,7 @@ Object.assign(EleveConnaissances, {
                         <div class="correction-sub-question">
                             <div class="correction-sub-header">
                                 <span class="correction-sub-title">Exercice ${qIdx + 1}/${subQuestions.length}</span>
-                                <span class="correction-sub-format">${this.escapeHtml(subLabel)}</span>
+                                <span class="correction-sub-format">${escapeHtml(subLabel)}</span>
                                 <span class="correction-sub-score">${sq.result.correct}/${sq.result.total}</span>
                             </div>
                             ${subContent}
@@ -543,17 +543,17 @@ Object.assign(EleveConnaissances, {
                 const failedCartes = failedIndices.map(fi => donnees.cartes[fi]).filter(Boolean);
                 content = `
                     <div class="correction-flashcards-grid">
-                        ${failedCartes.map((carte, ci) => `
+                        ${failedCartes.map((carte, _ci) => `
                             <div class="correction-fc-scene" onclick="this.querySelector('.correction-fc-card').classList.toggle('flipped')">
                                 <div class="correction-fc-card">
                                     <div class="correction-fc-face correction-fc-front">
                                         <div class="correction-fc-face-label">Recto</div>
-                                        <div class="correction-fc-face-content">${this.escapeHtml(carte.recto)}</div>
+                                        <div class="correction-fc-face-content">${escapeHtml(carte.recto)}</div>
                                         <div class="correction-fc-hint">Cliquer pour retourner</div>
                                     </div>
                                     <div class="correction-fc-face correction-fc-back">
                                         <div class="correction-fc-face-label">Verso</div>
-                                        <div class="correction-fc-face-content">${this.escapeHtml(carte.verso)}</div>
+                                        <div class="correction-fc-face-content">${escapeHtml(carte.verso)}</div>
                                     </div>
                                 </div>
                             </div>
@@ -574,7 +574,7 @@ Object.assign(EleveConnaissances, {
             return `
                 <div class="carousel-slide hidden" data-slide="${i + 1}">
                     <div class="carousel-slide-header">
-                        <span class="carousel-slide-title">${this.escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))} — ${this.getFormatLabel(ed.etape.format)}</span>
+                        <span class="carousel-slide-title">${escapeHtml(ed.etape.etapeTitre || 'Étape ' + (ed.idx + 1))} — ${this.getFormatLabel(ed.etape.format)}</span>
                         <span class="carousel-slide-score ${ed.hasErr ? 'has-errors' : 'all-correct'}">${ed.hasErr ? '❌' : '✅'} ${ed.correct}/${ed.total}</span>
                     </div>
                     <div class="carousel-slide-content">

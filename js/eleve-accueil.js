@@ -45,7 +45,7 @@ const EleveAccueil = {
         if (hour >= 18) greeting = 'Bonsoir';
 
         container.innerHTML = `
-            <h1 class="greeting">${greeting} <span class="prenom">${this.escapeHtml(prenom)}</span> !</h1>
+            <h1 class="greeting">${greeting} <span class="prenom">${escapeHtml(prenom)}</span> !</h1>
             <p class="subtitle">Voici les actualités de la semaine</p>
         `;
     },
@@ -95,7 +95,7 @@ const EleveAccueil = {
                         </div>
                     </div>
                     <div class="slide-content">
-                        <h3 class="slide-title">${this.escapeHtml(v.titre)}</h3>
+                        <h3 class="slide-title">${escapeHtml(v.titre)}</h3>
                         <p class="slide-desc">${this.formatDescription(v.description, 500)}</p>
                         <div class="slide-footer">
                             <span class="slide-date">📅 ${this.formatDate(v.date_publication)}</span>
@@ -125,7 +125,7 @@ const EleveAccueil = {
                         </div>
                     </div>
                     <div class="slide-content">
-                        <h3 class="slide-title">${this.escapeHtml(r.titre)}</h3>
+                        <h3 class="slide-title">${escapeHtml(r.titre)}</h3>
                         <p class="slide-desc">${this.formatDescription(r.description, 500)}</p>
                         <div class="slide-footer">
                             <span class="slide-date">📅 ${this.formatDate(r.date_publication)}</span>
@@ -317,13 +317,6 @@ const EleveAccueil = {
         return isNaN(d) ? str : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     },
 
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
-
     /**
      * Formate la description avec sauts de ligne et formatage basique
      * Supporte: **gras**, *italique*, _souligné_, sauts de ligne
@@ -335,7 +328,7 @@ const EleveAccueil = {
         let truncated = text.length > maxLength ? text.substring(0, maxLength).trim() + '...' : text;
 
         // Échapper le HTML d'abord
-        truncated = this.escapeHtml(truncated);
+        truncated = escapeHtml(truncated);
 
         // Convertir les sauts de ligne en <br>
         truncated = truncated.replace(/\n/g, '<br>');

@@ -160,7 +160,7 @@ Object.assign(EleveConnaissances, {
      *   - `'vf_N'`   → `'vrai'|'faux'` (mode multi, N = index 0-based de la proposition)
      * @returns {string} HTML du renderer
      */
-    renderVraiFaux(donnees, questions) {
+    renderVraiFaux(donnees, _questions) {
         const questionText = donnees.question || donnees.enonce || '';
 
         // Format simple: une seule question vrai/faux
@@ -169,7 +169,7 @@ Object.assign(EleveConnaissances, {
                 <div class="vrai-faux-container">
                     <div class="vrai-faux-items">
                         <div class="vrai-faux-item" data-index="0">
-                            <div class="vf-proposition">${this.escapeHtml(questionText)}</div>
+                            <div class="vf-proposition">${escapeHtml(questionText)}</div>
                             <div class="vf-choices">
                                 <label class="vf-choice">
                                     <input type="radio" name="vf_0" value="vrai" onchange="EleveConnaissances.saveAnswer('vf_0', 'vrai')">
@@ -208,11 +208,11 @@ Object.assign(EleveConnaissances, {
 
         return `
             <div class="vrai-faux-container" ${totalVf > 1 ? `data-total-vf="${totalVf}"` : ''}>
-                ${questionText ? `<div class="question-enonce">${this.escapeHtml(questionText)}</div>` : ''}
+                ${questionText ? `<div class="question-enonce">${escapeHtml(questionText)}</div>` : ''}
                 <div class="vrai-faux-items">
                     ${items.map((item, idx) => `
                         <div class="vrai-faux-item${totalVf > 1 && idx > 0 ? ' hidden' : ''}" data-index="${idx}">
-                            <div class="vf-proposition">${this.escapeHtml(item.texte || item)}</div>
+                            <div class="vf-proposition">${escapeHtml(item.texte || item)}</div>
                             <div class="vf-choices">
                                 <label class="vf-choice">
                                     <input type="radio" name="vf_${idx}" value="vrai" onchange="EleveConnaissances.saveAnswer('vf_${idx}', 'vrai')">
@@ -268,7 +268,7 @@ Object.assign(EleveConnaissances, {
      *   - `'qcm_N'` → index (string) du choix sélectionné, N = index 0-based de la question
      * @returns {string} HTML du renderer
      */
-    renderQCM(donnees, questions) {
+    renderQCM(donnees, _questions) {
         // Format multi-questions (plusieurs QCM dans une étape)
         if (donnees.multiQuestions && donnees.multiQuestions.length > 0) {
             this._qcmNavIndex = 0;
@@ -292,7 +292,7 @@ Object.assign(EleveConnaissances, {
 
                         return `
                             <div class="qcm-question-block${qIdx > 0 ? ' hidden' : ''}" data-question="${qIdx}">
-                                <div class="question-enonce">${this.escapeHtml(q.question || `Question ${qIdx + 1}`)}</div>
+                                <div class="question-enonce">${escapeHtml(q.question || `Question ${qIdx + 1}`)}</div>
                                 <div class="qcm-choices">
                                     ${shuffledChoices.map(({ choice, originalIdx }) => `
                                         <label class="qcm-choice">
@@ -300,7 +300,7 @@ Object.assign(EleveConnaissances, {
                                                    name="qcm_answer_${qIdx}"
                                                    value="${originalIdx}"
                                                    onchange="EleveConnaissances.saveAnswer('qcm_${qIdx}', '${originalIdx}')">
-                                            <span class="qcm-label">${this.escapeHtml(choice.texte || choice)}</span>
+                                            <span class="qcm-label">${escapeHtml(choice.texte || choice)}</span>
                                         </label>
                                     `).join('')}
                                 </div>
@@ -339,7 +339,7 @@ Object.assign(EleveConnaissances, {
 
         return `
             <div class="qcm-container">
-                ${question ? `<div class="question-enonce">${this.escapeHtml(question)}</div>` : ''}
+                ${question ? `<div class="question-enonce">${escapeHtml(question)}</div>` : ''}
                 <div class="qcm-choices">
                     ${shuffledChoices.map(({ choice, originalIdx }) => `
                         <label class="qcm-choice">
@@ -347,7 +347,7 @@ Object.assign(EleveConnaissances, {
                                    name="qcm_answer"
                                    value="${originalIdx}"
                                    onchange="EleveConnaissances.saveAnswer('qcm', ${multiple} ? this.parentElement : '${originalIdx}')">
-                            <span class="qcm-label">${this.escapeHtml(choice.texte || choice)}</span>
+                            <span class="qcm-label">${escapeHtml(choice.texte || choice)}</span>
                         </label>
                     `).join('')}
                 </div>
@@ -423,7 +423,7 @@ Object.assign(EleveConnaissances, {
 
         return `
             <div class="chronologie-container">
-                <p class="chrono-instruction">${this.escapeHtml(consigne || defaultInstruction)}</p>
+                <p class="chrono-instruction">${escapeHtml(consigne || defaultInstruction)}</p>
 
                 <!-- Frise chronologique avec champs de saisie -->
                 <div class="chrono-frise-wrapper">
@@ -437,7 +437,7 @@ Object.assign(EleveConnaissances, {
                                     <div class="chrono-point"></div>
                                     ${mode === 'evenement' ? `
                                         <!-- Mode: l'élève tape l'événement, la date est affichée -->
-                                        <div class="chrono-date-label chrono-given">${this.escapeHtml(String(evt.date))}</div>
+                                        <div class="chrono-date-label chrono-given">${escapeHtml(String(evt.date))}</div>
                                         <div class="chrono-input-zone">
                                             <input type="text"
                                                    class="chrono-input chrono-input-evenement"
@@ -458,7 +458,7 @@ Object.assign(EleveConnaissances, {
                                                    autocomplete="off"
                                                    oninput="EleveConnaissances.saveChronoAnswer(${idx}, 'date', this.value)">
                                         </div>
-                                        <div class="chrono-event-label chrono-given">${this.escapeHtml(evt.evenement)}</div>
+                                        <div class="chrono-event-label chrono-given">${escapeHtml(evt.evenement)}</div>
                                     `}
                                 </div>
                             `).join('')}
@@ -545,10 +545,10 @@ Object.assign(EleveConnaissances, {
                     ${shuffled.map((carte) => {
                         const imageUrl = this.normalizeImageUrl(carte.image_url);
                         const hasImage = imageUrl ? true : false;
-                        const imgStyle = hasImage ? `style="background-image: url('${this.escapeHtml(imageUrl)}');"` : '';
+                        const imgStyle = hasImage ? `style="background-image: url('${escapeHtml(imageUrl)}');"` : '';
                         return `
-                        <div class="timeline-card ${hasImage ? 'has-image' : ''}" draggable="true" data-original-index="${carte.originalIndex}" data-titre="${this.escapeHtml(carte.titre)}" ${imgStyle}>
-                            <span class="timeline-card-titre">${this.escapeHtml(carte.titre)}</span>
+                        <div class="timeline-card ${hasImage ? 'has-image' : ''}" draggable="true" data-original-index="${carte.originalIndex}" data-titre="${escapeHtml(carte.titre)}" ${imgStyle}>
+                            <span class="timeline-card-titre">${escapeHtml(carte.titre)}</span>
                         </div>
                     `}).join('')}
                 </div>
@@ -746,7 +746,7 @@ Object.assign(EleveConnaissances, {
                     <div class="mots-disponibles">
                         <span class="mots-label">Mots à placer :</span>
                         ${this.shuffleArray([...mots]).map(mot => `
-                            <span class="mot-disponible" draggable="true" data-mot="${this.escapeHtml(mot)}">${this.escapeHtml(mot)}</span>
+                            <span class="mot-disponible" draggable="true" data-mot="${escapeHtml(mot)}">${escapeHtml(mot)}</span>
                         `).join('')}
                     </div>
                 ` : ''}
@@ -841,7 +841,7 @@ Object.assign(EleveConnaissances, {
 
         return `
             <div class="association-container">
-                <p class="association-instruction">${this.escapeHtml(consigne)}</p>
+                <p class="association-instruction">${escapeHtml(consigne)}</p>
 
                 <!-- Grille (images ou termes courts) -->
                 <div class="association-grid" id="associationGrid">
@@ -850,8 +850,8 @@ Object.assign(EleveConnaissances, {
                              data-id="${el.id}" data-side="${gridSide}"
                              onclick="EleveConnaissances.selectAssociationItem(this, 'grid')">
                             ${el.type === 'image'
-                                ? `<img class="assoc-card-img" src="${this.escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
-                                : `<span class="assoc-card-text">${this.escapeHtml(el.texte)}</span>`}
+                                ? `<img class="assoc-card-img" src="${escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
+                                : `<span class="assoc-card-text">${escapeHtml(el.texte)}</span>`}
                             <span class="assoc-card-indicator"></span>
                             <span class="assoc-paired-label"></span>
                         </div>
@@ -867,8 +867,8 @@ Object.assign(EleveConnaissances, {
                              data-id="${el.id}" data-side="${chipSide}"
                              onclick="EleveConnaissances.selectAssociationItem(this, 'chip')">
                             ${el.type === 'image'
-                                ? `<img src="${this.escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
-                                : this.escapeHtml(el.texte)}
+                                ? `<img src="${escapeHtml(this.normalizeImageUrl(el.texte))}" alt="">`
+                                : escapeHtml(el.texte)}
                         </div>
                     `).join('')}
                 </div>
@@ -957,7 +957,7 @@ Object.assign(EleveConnaissances, {
         }
     },
 
-    unpairAssociationItem(element, zone, id) {
+    unpairAssociationItem(element, _zone, _id) {
         const pairNum = element.dataset.pairNum;
         if (!pairNum) return;
 
@@ -1058,7 +1058,7 @@ Object.assign(EleveConnaissances, {
         return `
             <div class="carte-container" id="carteContainer">
                 <div class="carte-header">
-                    <p class="carte-instruction">${this.escapeHtml(consigne)}</p>
+                    <p class="carte-instruction">${escapeHtml(consigne)}</p>
                     <button class="carte-fullscreen-btn" onclick="EleveConnaissances.toggleCarteFullscreen()" title="Agrandir">
                         <span class="fullscreen-icon">⛶</span>
                     </button>
@@ -1066,7 +1066,7 @@ Object.assign(EleveConnaissances, {
 
                 <!-- Image avec marqueurs numérotés -->
                 <div class="carte-image-wrapper-v2">
-                    <img src="${this.escapeHtml(imageUrl)}"
+                    <img src="${escapeHtml(imageUrl)}"
                          alt="Carte à compléter"
                          class="carte-image-v2">
                     <div class="carte-markers-layer-v2" id="carteMarkersLayer">
@@ -1114,7 +1114,7 @@ Object.assign(EleveConnaissances, {
     carteMarqueurs: [],
     carteActiveIndex: null,
 
-    openCartePopup(index, event) {
+    openCartePopup(index, _event) {
         // Bloquer l'ouverture si l'étape est déjà validée
         if (this.currentEtapeValidated) return;
 
@@ -1246,7 +1246,6 @@ Object.assign(EleveConnaissances, {
         if (!marker) return;
 
         const userAnswer = marker.getAttribute('data-user-answer') || '';
-        const correctAnswer = marker.getAttribute('data-correct-answer') || '';
         const isCorrect = marker.getAttribute('data-is-correct') === 'true';
         const hasAnswer = userAnswer.trim() !== '';
 
@@ -1255,14 +1254,14 @@ Object.assign(EleveConnaissances, {
         if (isCorrect) {
             bodyHTML = `
                 <div class="carte-correction-box correct">
-                    <span class="carte-correction-text">${this.escapeHtml(userAnswer)}</span>
+                    <span class="carte-correction-text">${escapeHtml(userAnswer)}</span>
                     <span class="carte-correction-icon">✓</span>
                 </div>
             `;
         } else {
             bodyHTML = `
                 <div class="carte-correction-box incorrect">
-                    <span class="carte-correction-text">${hasAnswer ? this.escapeHtml(userAnswer) : 'Non répondu'}</span>
+                    <span class="carte-correction-text">${hasAnswer ? escapeHtml(userAnswer) : 'Non répondu'}</span>
                     <span class="carte-correction-icon">✗</span>
                 </div>
             `;
@@ -1304,7 +1303,7 @@ Object.assign(EleveConnaissances, {
      *   mis à jour via evaluateFlashcard() après chaque carte.
      * @returns {string} HTML du renderer
      */
-    renderFlashcard(donnees, questions) {
+    renderFlashcard(donnees, _questions) {
         const consigne = donnees.consigne || '';
         const cartes = donnees.cartes || [];
 
@@ -1329,7 +1328,7 @@ Object.assign(EleveConnaissances, {
 
         return `
             <div class="flashcard-container">
-                ${consigne ? `<div class="flashcard-consigne">${this.escapeHtml(consigne)}</div>` : ''}
+                ${consigne ? `<div class="flashcard-consigne">${escapeHtml(consigne)}</div>` : ''}
                 <div class="flashcard-progress">
                     <span id="flashcardCounter">Carte 1 / ${cartes.length}</span>
                     <div class="flashcard-progress-bar">
@@ -1340,12 +1339,12 @@ Object.assign(EleveConnaissances, {
                     <div class="flashcard-card" id="flashcardCard" onclick="EleveConnaissances.flipFlashcard()">
                         <div class="flashcard-face flashcard-front">
                             <div class="flashcard-face-label">Recto</div>
-                            <div class="flashcard-face-content" id="flashcardFront">${this.escapeHtml(cartes[0].recto)}</div>
+                            <div class="flashcard-face-content" id="flashcardFront">${escapeHtml(cartes[0].recto)}</div>
                             <div class="flashcard-flip-hint" id="flashcardFlipHint">Cliquez pour retourner</div>
                         </div>
                         <div class="flashcard-face flashcard-back">
                             <div class="flashcard-face-label">Verso</div>
-                            <div class="flashcard-face-content" id="flashcardBack">${this.escapeHtml(cartes[0].verso)}</div>
+                            <div class="flashcard-face-content" id="flashcardBack">${escapeHtml(cartes[0].verso)}</div>
                         </div>
                     </div>
                 </div>
@@ -1502,7 +1501,7 @@ Object.assign(EleveConnaissances, {
      *   - `'question_ouverte_N'` → string (mode multi, N = index 0-based de la question)
      * @returns {string} HTML du renderer
      */
-    renderQuestionOuverte(donnees, questions) {
+    renderQuestionOuverte(donnees, _questions) {
         // Format multi-questions
         if (donnees.multiQuestions && donnees.multiQuestions.length > 0) {
             const totalQo = donnees.multiQuestions.length;
@@ -1514,7 +1513,7 @@ Object.assign(EleveConnaissances, {
                 <div class="qo-multi-container" ${totalQo > 1 ? `data-total-qo="${totalQo}"` : ''}>
                     ${donnees.multiQuestions.map((q, qIdx) => `
                         <div class="question-ouverte-container${totalQo > 1 && qIdx > 0 ? ' hidden' : ''}" data-qo-index="${qIdx}">
-                            <div class="question-ouverte-enonce">${this.escapeHtml(q.question)}</div>
+                            <div class="question-ouverte-enonce">${escapeHtml(q.question)}</div>
                             <div class="question-ouverte-input-wrapper">
                                 <input type="text"
                                        class="question-ouverte-input"
@@ -1559,7 +1558,7 @@ Object.assign(EleveConnaissances, {
 
         return `
             <div class="question-ouverte-container">
-                <div class="question-ouverte-enonce">${this.escapeHtml(question)}</div>
+                <div class="question-ouverte-enonce">${escapeHtml(question)}</div>
                 <div class="question-ouverte-input-wrapper">
                     <input type="text"
                            class="question-ouverte-input"
@@ -1580,7 +1579,7 @@ Object.assign(EleveConnaissances, {
         this.userAnswers[key] = value;
     },
 
-    extractFeedbackText(format, isCorrect, questionData, userAnswer, result = null) {
+    extractFeedbackText(format, isCorrect, questionData, userAnswer, _result = null) {
         switch (format) {
             case 'qcm':
                 if (isCorrect && questionData.feedback_correct) return questionData.feedback_correct;
@@ -1644,7 +1643,7 @@ Object.assign(EleveConnaissances, {
         feedbackEl.innerHTML = `
             <div class="feedback-header">
                 <span class="feedback-icon">${icon}</span>
-                <span class="feedback-message">${this.escapeHtml(messageText)}</span>
+                <span class="feedback-message">${escapeHtml(messageText)}</span>
             </div>
             <div class="feedback-score-line">
                 <span class="score-label">Score:</span>

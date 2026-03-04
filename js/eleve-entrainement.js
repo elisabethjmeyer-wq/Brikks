@@ -834,7 +834,6 @@ const EleveEntrainement = {
     },
 
     renderQCMStepSummaryButtons() {
-        const step = this.steps[this.currentStepIndex];
         if (this.currentStepIndex < this.steps.length - 1) {
             return `
                 <button class="btn btn-secondary" onclick="EleveEntrainement.restartCurrentStep()">Recommencer cette étape</button>
@@ -867,7 +866,7 @@ const EleveEntrainement = {
             <div class="qcm-item ${itemClass}" id="qcm-${question.id}">
                 <div class="qcm-item-header">
                     <div class="qcm-item-number">${qIndex + 1}</div>
-                    <div class="qcm-item-question">${this.escapeHtml(question.question)}</div>
+                    <div class="qcm-item-question">${escapeHtml(question.question)}</div>
                     <span class="qcm-item-status">
                         ${isVerified ? (isCorrect ? '✓' : (isAnswered ? '✗' : '⚠️')) : ''}
                     </span>
@@ -891,7 +890,7 @@ const EleveEntrainement = {
                                       (isVerified && selectedOriginalIndex === originalIndex && originalIndex !== question.correctIndex ? '✗' :
                                       (selectedOriginalIndex === originalIndex ? '●' : ''))}
                                 </div>
-                                <span class="qcm-option-text">${this.escapeHtml(option)}</span>
+                                <span class="qcm-option-text">${escapeHtml(option)}</span>
                             </div>
                         `;
                     }).join('')}
@@ -900,7 +899,7 @@ const EleveEntrainement = {
                     <div class="qcm-item-feedback-header">
                         ${isCorrect ? '✓ Bonne réponse !' : (isAnswered ? '✗ Mauvaise réponse' : '⚠️ Non répondu')}
                     </div>
-                    <div class="qcm-item-feedback-text">${this.escapeHtml(question.explanation || '')}</div>
+                    <div class="qcm-item-feedback-text">${escapeHtml(question.explanation || '')}</div>
                 </div>
             </div>
         `;
@@ -1291,14 +1290,6 @@ const EleveEntrainement = {
         } else {
             window.history.back();
         }
-    },
-
-    // ========== UTILS ==========
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 

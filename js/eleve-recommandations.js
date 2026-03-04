@@ -71,8 +71,6 @@ const EleveRecommandations = {
         // Déterminer la recommandation mise en avant
         const featured = this.recos.find(r => r.est_featured === 'TRUE' || r.est_featured === true);
         this.featuredReco = featured || this.recos[0] || null;
-
-        console.log('Recommandations chargées:', this.recos.length);
     },
 
     /**
@@ -234,13 +232,13 @@ const EleveRecommandations = {
         const catConfig = this.categories[category];
         const directImageUrl = this.getDirectImageUrl(reco.image_url);
         const imageHtml = directImageUrl
-            ? `<img src="${this.escapeHtml(directImageUrl)}" alt="">`
+            ? `<img src="${escapeHtml(directImageUrl)}" alt="">`
             : '';
 
         // Tags
         let tagsHtml = '';
         if (reco.discipline_id) {
-            tagsHtml = `<div class="reco-card-tags"><span class="reco-card-tag">${this.escapeHtml(reco.discipline_id)}</span></div>`;
+            tagsHtml = `<div class="reco-card-tags"><span class="reco-card-tag">${escapeHtml(reco.discipline_id)}</span></div>`;
         }
 
         return `
@@ -255,7 +253,7 @@ const EleveRecommandations = {
                 </div>
                 <div class="reco-card-info">
                     <div class="reco-card-date">${this.formatDate(reco.date_publication)}</div>
-                    <h3 class="reco-card-title">${this.escapeHtml(reco.titre)}</h3>
+                    <h3 class="reco-card-title">${escapeHtml(reco.titre)}</h3>
                     ${tagsHtml}
                 </div>
             </div>
@@ -519,15 +517,6 @@ const EleveRecommandations = {
         });
     },
 
-    /**
-     * Échappe le HTML
-     */
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
 
     /**
      * Convertit une URL d'image en URL directe (notamment pour Google Drive)

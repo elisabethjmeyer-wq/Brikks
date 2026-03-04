@@ -105,10 +105,10 @@ Object.assign(AdminBanquesExercices, {
                         <div class="banque-card-icon connaissances">📚</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
-                                ${this.escapeHtml(banque.titre || 'Sans titre')}
+                                ${escapeHtml(banque.titre || 'Sans titre')}
                             </div>
                             <div class="banque-card-meta">
-                                ${banque.description ? this.escapeHtml(banque.description) : 'Aucune description'}
+                                ${banque.description ? escapeHtml(banque.description) : 'Aucune description'}
                             </div>
                         </div>
                         <div class="banque-card-stats">
@@ -158,7 +158,7 @@ Object.assign(AdminBanquesExercices, {
                             <span class="drag-handle drag-handle-sm" title="Glisser pour réordonner">⋮⋮</span>
                             <div class="exercice-numero">${index + 1}</div>
                             <div class="exercice-info">
-                                <div class="exercice-title">${this.escapeHtml(entr.titre || 'Sans titre')}</div>
+                                <div class="exercice-title">${escapeHtml(entr.titre || 'Sans titre')}</div>
                             </div>
                             <div class="exercice-actions">
                                 <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editEntrainementConnModal('${entr.id}')" title="Modifier">✏️</button>
@@ -210,10 +210,10 @@ Object.assign(AdminBanquesExercices, {
                         <div class="banque-card-icon connaissances">📋</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
-                                ${this.escapeHtml(banque.titre || 'Sans titre')}
+                                ${escapeHtml(banque.titre || 'Sans titre')}
                             </div>
                             <div class="banque-card-meta">
-                                ${banque.description ? this.escapeHtml(banque.description) : 'Aucune description'}
+                                ${banque.description ? escapeHtml(banque.description) : 'Aucune description'}
                             </div>
                         </div>
                         <div class="banque-card-stats">
@@ -266,7 +266,7 @@ Object.assign(AdminBanquesExercices, {
                             <span class="drag-handle drag-handle-sm" title="Glisser pour réordonner">⋮⋮</span>
                             <div class="exercice-numero" style="background:var(--accent-blue-light);color:var(--accent-blue);font-size:11px;">${typeName.substring(0, 3).toUpperCase()}</div>
                             <div class="exercice-info">
-                                <div class="exercice-title">${this.escapeHtml(preview)}</div>
+                                <div class="exercice-title">${escapeHtml(preview)}</div>
                                 <div class="exercice-meta">${typeName}</div>
                             </div>
                             <div class="exercice-actions">
@@ -954,11 +954,11 @@ Object.assign(AdminBanquesExercices, {
                 <div class="wizard-form">
                     <div class="form-group">
                         <label>Titre de l'entraînement <span class="req">*</span></label>
-                        <input type="text" class="form-input" id="wizardTitre" value="${this.escapeHtml(e.titre || '')}" placeholder="Ex: Les grandes découvertes">
+                        <input type="text" class="form-input" id="wizardTitre" value="${escapeHtml(e.titre || '')}" placeholder="Ex: Les grandes découvertes">
                     </div>
                     <div class="form-group">
                         <label>Description <span class="optional">(optionnel)</span></label>
-                        <textarea class="form-textarea" id="wizardDescription" rows="2" placeholder="Description de l'entraînement...">${this.escapeHtml(e.description || '')}</textarea>
+                        <textarea class="form-textarea" id="wizardDescription" rows="2" placeholder="Description de l'entraînement...">${escapeHtml(e.description || '')}</textarea>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -1268,7 +1268,6 @@ Object.assign(AdminBanquesExercices, {
                 await this.saveWizardStepData(1);
             }
 
-            const format = this.formatsQuestions.find(f => f.code === formatCode);
             const ordre = this.wizardData.etapes.length + 1;
 
             const result = await this.callAPI('createEtapeConn', {
@@ -1412,7 +1411,7 @@ Object.assign(AdminBanquesExercices, {
         const banquesAvecQuestions = [...new Set(availableQuestions.map(q => q.banque_id))];
         const banquesOptions = banquesAvecQuestions.map(bId => {
             const banque = this.banquesQuestions.find(b => b.id === bId);
-            return banque ? `<option value="${bId}">${this.escapeHtml(banque.titre)}</option>` : '';
+            return banque ? `<option value="${bId}">${escapeHtml(banque.titre)}</option>` : '';
         }).join('');
 
         // Panel fermé par défaut (plus lisible quand il y en a beaucoup)
@@ -1453,7 +1452,7 @@ Object.assign(AdminBanquesExercices, {
                             <select class="form-select" onchange="AdminBanquesExercices.setEtapeBanqueSource('${etape.id}', this.value)">
                                 <option value="" ${!etape.banque_source_id ? 'selected' : ''}>Toutes les banques</option>
                                 ${this.banquesQuestions.map(b => `
-                                    <option value="${b.id}" ${String(etape.banque_source_id) === String(b.id) ? 'selected' : ''}>${this.escapeHtml(b.titre)}</option>
+                                    <option value="${b.id}" ${String(etape.banque_source_id) === String(b.id) ? 'selected' : ''}>${escapeHtml(b.titre)}</option>
                                 `).join('')}
                             </select>
                         </div>
@@ -1506,8 +1505,8 @@ Object.assign(AdminBanquesExercices, {
                     <input type="checkbox" ${selectedIds.includes(q.id) ? 'checked' : ''}
                         onchange="AdminBanquesExercices.toggleEtapeQuestion('${etapeId}', '${q.id}', this.checked)">
                     <div class="question-content">
-                        <span class="question-text">${this.escapeHtml(questionText.substring(0, 80))}${questionText.length > 80 ? '...' : ''}</span>
-                        <span class="question-meta">📚 ${this.escapeHtml(banqueNom)}</span>
+                        <span class="question-text">${escapeHtml(questionText.substring(0, 80))}${questionText.length > 80 ? '...' : ''}</span>
+                        <span class="question-meta">📚 ${escapeHtml(banqueNom)}</span>
                     </div>
                 </label>
             `;
@@ -1750,11 +1749,11 @@ Object.assign(AdminBanquesExercices, {
                         <h4>📚 Informations générales</h4>
                         <div class="summary-row">
                             <span class="label">Titre :</span>
-                            <span class="value">${this.escapeHtml(e.titre || 'Sans titre')}</span>
+                            <span class="value">${escapeHtml(e.titre || 'Sans titre')}</span>
                         </div>
                         <div class="summary-row">
                             <span class="label">Description :</span>
-                            <span class="value">${e.description ? this.escapeHtml(e.description) : '<em>Aucune</em>'}</span>
+                            <span class="value">${e.description ? escapeHtml(e.description) : '<em>Aucune</em>'}</span>
                         </div>
                         <div class="summary-row">
                             <span class="label">Durée :</span>

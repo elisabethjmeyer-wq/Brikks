@@ -66,7 +66,7 @@ Object.assign(AdminBanquesExercices, {
                 '<div class="wizard-header sf-wizard-header">' +
                     '<div class="wizard-title">' +
                         '<h2>' + (isEdit ? '&#9998; Modifier l\u2019exercice' : '&#10133; Nouvel exercice') + '</h2>' +
-                        '<span class="wizard-subtitle">Savoir-faire \u2022 ' + (isEdit ? this.escapeHtml(exercice.titre) : 'Cr\u00e9ez un exercice') + '</span>' +
+                        '<span class="wizard-subtitle">Savoir-faire \u2022 ' + (isEdit ? escapeHtml(exercice.titre) : 'Cr\u00e9ez un exercice') + '</span>' +
                     '</div>' +
                     '<div class="wizard-steps">' +
                         '<button class="wizard-step active" data-step="1" onclick="AdminBanquesExercices.goToSFWizardStep(1)">' +
@@ -354,7 +354,7 @@ Object.assign(AdminBanquesExercices, {
             '<div class="wizard-form">' +
                 '<div class="form-group">' +
                     '<label>Titre <span class="req">*</span></label>' +
-                    '<input type="text" class="form-input" id="sfwTitre" value="' + this.escapeHtml(defaultTitre) + '" placeholder="Ex: Exercice 1 - Les dates cl\u00e9s">' +
+                    '<input type="text" class="form-input" id="sfwTitre" value="' + escapeHtml(defaultTitre) + '" placeholder="Ex: Exercice 1 - Les dates cl\u00e9s">' +
                 '</div>' +
                 '<div class="form-row">' +
                     '<div class="form-group">' +
@@ -487,12 +487,12 @@ Object.assign(AdminBanquesExercices, {
                 '<span class="step-icon">\uD83D\uDCDD</span>' +
                 '<div>' +
                     '<h3>Contenu de l\u2019exercice</h3>' +
-                    '<p>Format : ' + this.escapeHtml(formatName) + '</p>' +
+                    '<p>Format : ' + escapeHtml(formatName) + '</p>' +
                 '</div>' +
             '</div>' +
             '<div class="form-group">' +
                 '<label>Consigne</label>' +
-                '<textarea class="form-textarea" id="sfwConsigneStep3" rows="2" placeholder="Ex : Pour chaque date, trouve le si\u00e8cle\u2026">' + this.escapeHtml(consigne) + '</textarea>' +
+                '<textarea class="form-textarea" id="sfwConsigneStep3" rows="2" placeholder="Ex : Pour chaque date, trouve le si\u00e8cle\u2026">' + escapeHtml(consigne) + '</textarea>' +
             '</div>' +
             builderHtml +
         '</div>';
@@ -695,7 +695,7 @@ Object.assign(AdminBanquesExercices, {
 
         var html = '';
         if (consigne) {
-            html += '<p class="tb-pv-consigne">' + this.escapeHtml(consigne) + '</p>';
+            html += '<p class="tb-pv-consigne">' + escapeHtml(consigne) + '</p>';
         }
         html += '<div class="mixte-blocks-preview">';
 
@@ -729,12 +729,12 @@ Object.assign(AdminBanquesExercices, {
         }
         case 'document': {
             if (block.titre) {
-                html += '<div class="comp-block-titre">' + this.escapeHtml(block.titre) + '</div>';
+                html += '<div class="comp-block-titre">' + escapeHtml(block.titre) + '</div>';
             }
             if (block.url) {
                 var embedUrl = this._getPreviewEmbedUrl(block.url);
                 if (embedUrl) {
-                    html += '<iframe src="' + this.escapeHtml(embedUrl) + '" class="comp-block-document" frameborder="0" allowfullscreen></iframe>';
+                    html += '<iframe src="' + escapeHtml(embedUrl) + '" class="comp-block-document" frameborder="0" allowfullscreen></iframe>';
                 }
             }
             if (block.legende) {
@@ -745,7 +745,7 @@ Object.assign(AdminBanquesExercices, {
         case 'image': {
             if (block.url) {
                 var imgSrc = this._convertToDirectImageUrl(block.url);
-                html += '<div class="comp-block-image"><img src="' + this.escapeHtml(imgSrc) + '" alt="Image"></div>';
+                html += '<div class="comp-block-image"><img src="' + escapeHtml(imgSrc) + '" alt="Image"></div>';
             }
             if (block.legende) {
                 html += '<div class="comp-block-legende">' + block.legende.replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>';
@@ -756,7 +756,7 @@ Object.assign(AdminBanquesExercices, {
             if (block.url) {
                 var vidUrl = this._getPreviewEmbedUrl(block.url);
                 if (vidUrl) {
-                    html += '<div class="comp-block-video"><iframe src="' + this.escapeHtml(vidUrl) + '" frameborder="0" allowfullscreen></iframe></div>';
+                    html += '<div class="comp-block-video"><iframe src="' + escapeHtml(vidUrl) + '" frameborder="0" allowfullscreen></iframe></div>';
                 }
             }
             if (block.legende) {
@@ -771,7 +771,7 @@ Object.assign(AdminBanquesExercices, {
         case 'question': {
             html += '<div class="comp-block-question">';
             if (block.question) {
-                html += '<p class="comp-block-question-label">' + this.escapeHtml(block.question) + '</p>';
+                html += '<p class="comp-block-question-label">' + escapeHtml(block.question) + '</p>';
             }
             html += '<input type="text" class="comp-block-question-input" disabled placeholder="R\u00e9ponse de l\u2019\u00e9l\u00e8ve\u2026">';
             html += '</div>';
@@ -1033,14 +1033,14 @@ Object.assign(AdminBanquesExercices, {
             '<div class="cw-summary">' +
                 '<div class="summary-card">' +
                     '<h4>\u2699\uFE0F Param\u00e8tres</h4>' +
-                    '<div class="summary-row"><span class="label">Titre</span><span class="value">' + this.escapeHtml(e.titre || '(vide)') + '</span></div>' +
-                    (e.consigne ? '<div class="summary-row"><span class="label">Consigne</span><span class="value">' + this.escapeHtml(e.consigne) + '</span></div>' : '') +
+                    '<div class="summary-row"><span class="label">Titre</span><span class="value">' + escapeHtml(e.titre || '(vide)') + '</span></div>' +
+                    (e.consigne ? '<div class="summary-row"><span class="label">Consigne</span><span class="value">' + escapeHtml(e.consigne) + '</span></div>' : '') +
                     '<div class="summary-row"><span class="label">Dur\u00e9e</span><span class="value">' + dureeMin + ' min</span></div>' +
                     '<div class="summary-row"><span class="label">Statut</span><span class="value status-badge ' + (e.statut || 'brouillon') + '">' + (e.statut === 'publie' ? 'Publi\u00e9' : 'Brouillon') + '</span></div>' +
                 '</div>' +
                 '<div class="summary-card">' +
                     '<h4>\uD83C\uDFAF Format & Contenu</h4>' +
-                    '<div class="summary-row"><span class="label">Format</span><span class="value">' + this.escapeHtml(formatName) + '</span></div>' +
+                    '<div class="summary-row"><span class="label">Format</span><span class="value">' + escapeHtml(formatName) + '</span></div>' +
                     contentSummary +
                 '</div>' +
             '</div>' +
