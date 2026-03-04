@@ -460,7 +460,7 @@ function createBlockEditorMixin(hostName) {
                 zone.addEventListener('drop', function(e) {
                     e.preventDefault();
                     zone.classList.remove('block-dropzone-active');
-                    var dropIndex = parseInt(zone.dataset.index);
+                    var dropIndex = parseInt(zone.dataset.index, 10);
                     var dragId = self._dragBlockId;
                     if (!dragId) return;
                     self._saveEditorsState();

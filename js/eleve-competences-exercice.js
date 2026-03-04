@@ -1105,9 +1105,12 @@ Object.assign(EleveCompetences, {
             statusClass = 'done';
         }
 
+        // Si la correction est en brouillon, ne pas montrer le corrigé ni les critères
+        const isBrouillon = progression.statut_correction === 'brouillon';
+
         // === COLONNE GAUCHE : Sujet / Corrigé (toggle tabs) ===
         const hasDoc = !!(this.getEmbedUrl(entrainement.document_url) || entrainement.document_contenu);
-        const correctionProf = progression.correction_prof;
+        const correctionProf = isBrouillon ? null : progression.correction_prof;
 
         // Corrigé = correction_prof du wizard correction (blocs, URL ou HTML)
         let corrigeContent = '';
@@ -1140,9 +1143,9 @@ Object.assign(EleveCompetences, {
             .filter(function(cr) { return String(cr.competence_id) === String(entrainement.competence_id); })
             .sort(function(a, b) { return (a.ordre || 0) - (b.ordre || 0); });
 
-        // Parser les critères validés par le prof
+        // Parser les critères validés par le prof (masqués si brouillon)
         var criteresValides = [];
-        if (progression.criteres_valides) {
+        if (!isBrouillon && progression.criteres_valides) {
             try {
                 criteresValides = JSON.parse(progression.criteres_valides);
                 if (!Array.isArray(criteresValides)) criteresValides = [];
