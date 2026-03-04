@@ -431,6 +431,7 @@ const AdminSuivi = {
                                     'soumis': { label: 'Soumis', class: 'status-pending' },
                                     'corrige': { label: 'Corrigé', class: 'status-done' },
                                     'valide': { label: 'Validé', class: 'status-done' },
+                                    'non_valide': { label: 'Non validé', class: 'status-failed' },
                                     'non_soumis': { label: 'Non soumis', class: 'status-declined' }
                                 };
                                 const status = statusConfig[t.statut] || { label: t.statut, class: '' };
@@ -480,6 +481,10 @@ const AdminSuivi = {
             .filter(t => t.statut === 'corrige')
             .sort((a, b) => new Date(b.date_correction || 0) - new Date(a.date_correction || 0))
             .slice(0, 10);
+        const notValidated = this.eleveTaches
+            .filter(t => t.statut === 'non_valide')
+            .sort((a, b) => new Date(b.date_correction || 0) - new Date(a.date_correction || 0))
+            .slice(0, 10);
         const validated = this.eleveTaches
             .filter(t => t.statut === 'valide')
             .sort((a, b) => new Date(b.date_correction || 0) - new Date(a.date_correction || 0))
@@ -505,6 +510,15 @@ const AdminSuivi = {
                     <h3>📋 Corrigées (en attente de validation)</h3>
                     <div class="corrections-list">
                         ${corrected.map(t => this.renderCorrectionCard(t, 'corrected')).join('')}
+                    </div>
+                </div>
+            ` : ''}
+
+            ${notValidated.length > 0 ? `
+                <div class="corrections-section">
+                    <h3>❌ Non validées</h3>
+                    <div class="corrections-list">
+                        ${notValidated.map(t => this.renderCorrectionCard(t, 'not_validated')).join('')}
                     </div>
                 </div>
             ` : ''}
@@ -566,11 +580,14 @@ const AdminSuivi = {
                         <div class="correction-type-content" id="correction-content-${tache.id}"></div>
                     </div>
                     <div class="correction-actions">
+                        <button class="btn btn-danger btn-sm" onclick="AdminSuivi.submitCorrection('${tache.id}', 'non_valide')">
+                            ❌ Non validé
+                        </button>
                         <button class="btn btn-primary btn-sm" onclick="AdminSuivi.submitCorrection('${tache.id}', 'corrige')">
                             📋 Corriger
                         </button>
                         <button class="btn btn-success btn-sm" onclick="AdminSuivi.submitCorrection('${tache.id}', 'valide')">
-                            ✅ Corriger et valider
+                            ✅ Valider
                         </button>
                     </div>
                 </div>
@@ -588,8 +605,29 @@ const AdminSuivi = {
                     📋 Corrigé le ${this.formatDate(tache.date_correction)}
                 </div>
                 <div class="correction-actions">
+                    <button class="btn btn-danger btn-sm" onclick="AdminSuivi.submitCorrection('${tache.id}', 'non_valide')">
+                        ❌ Non validé
+                    </button>
                     <button class="btn btn-success btn-sm" onclick="AdminSuivi.submitCorrection('${tache.id}', 'valide')">
                         ✅ Valider la compétence
+                    </button>
+                </div>
+            `;
+        } else if (state === 'not_validated') {
+            const remarqueHTML = existingRemarque
+                ? `<div class="correction-existing-remarque"><strong>Remarque :</strong> ${this.escapeHtml(existingRemarque)}</div>` : '';
+            const correctionHTML = existingCorrection
+                ? `<div class="correction-existing-link">📎 Corrigé personnalisé joint</div>` : '';
+
+            actionsHTML = `
+                ${remarqueHTML}
+                ${correctionHTML}
+                <div class="correction-done-info not-validated">
+                    ❌ Non validé le ${this.formatDate(tache.date_correction)}
+                </div>
+                <div class="correction-actions">
+                    <button class="btn btn-success btn-sm" onclick="AdminSuivi.submitCorrection('${tache.id}', 'valide')">
+                        ✅ Valider finalement
                     </button>
                 </div>
             `;

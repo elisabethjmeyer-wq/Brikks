@@ -628,6 +628,11 @@
     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
 }
 
+.correction-card.not_validated {
+    border-color: #fca5a5;
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
 .correction-card.validated {
     opacity: 0.7;
 }
@@ -665,6 +670,10 @@
     margin-top: 0.5rem;
     font-size: 0.8rem;
     color: #16a34a;
+}
+
+.correction-done-info.not-validated {
+    color: #dc2626;
 }
 
 /* Badges */
@@ -705,6 +714,11 @@
 .status-badge.status-done {
     background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
     color: #16a34a;
+}
+
+.status-badge.status-failed {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #dc2626;
 }
 
 /* Badge mode de rendu */
@@ -1051,6 +1065,16 @@
 
 .btn-success:hover {
     background: #15803d;
+}
+
+.btn-danger {
+    background: #dc2626;
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: #b91c1c;
 }
 
 /* Remarque existante dans les cartes corrigées/validées */
