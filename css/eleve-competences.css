@@ -1908,6 +1908,17 @@ body.comp-fullscreen-active {
     color: #6b7280;
 }
 
+/* Neutraliser le fond vert du corrigé dans le contexte évaluation */
+.comp-exercise-layout #compTabCorrige .comp-inplace-corrige {
+    background: transparent;
+    border-top: none;
+    padding: 0;
+}
+
+.comp-exercise-layout #compTabCorrige .comp-inplace-corrige h4 {
+    color: #374151;
+}
+
 /* ============================================
    EVAL REVIEW : critères lecture seule
    ============================================ */
