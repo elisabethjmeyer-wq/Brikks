@@ -8,7 +8,7 @@
  */
 function getCompetencesReferentiel(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('CompetencesReferentiel');
+  var sheet = ss.getSheetByName(SHEETS.CompetencesReferentiel);
 
   if (!sheet) {
     return { success: true, data: [] };
@@ -41,11 +41,11 @@ function getCompetencesReferentiel(data) {
  */
 function createCompetenceReferentiel(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('CompetencesReferentiel');
+  var sheet = ss.getSheetByName(SHEETS.CompetencesReferentiel);
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
-    sheet = ss.insertSheet('CompetencesReferentiel');
+    sheet = ss.insertSheet(SHEETS.CompetencesReferentiel);
     sheet.appendRow(['id', 'nom', 'description', 'consigne', 'ordre', 'visible']);
   }
 
@@ -68,7 +68,7 @@ function createCompetenceReferentiel(data) {
  */
 function updateCompetenceReferentiel(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('CompetencesReferentiel');
+  var sheet = ss.getSheetByName(SHEETS.CompetencesReferentiel);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -100,7 +100,7 @@ function updateCompetenceReferentiel(data) {
  */
 function deleteCompetenceReferentiel(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('CompetencesReferentiel');
+  var sheet = ss.getSheetByName(SHEETS.CompetencesReferentiel);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -131,7 +131,7 @@ function deleteCompetenceReferentiel(data) {
  */
 function getCriteresReussite(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('CriteresReussite');
+  var sheet = ss.getSheetByName(SHEETS.CriteresReussite);
 
   if (!sheet) {
     return { success: true, data: [] };
@@ -162,7 +162,7 @@ function getCriteresReussite(data) {
  */
 function getCriteresForCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('CriteresReussite');
+  var sheet = ss.getSheetByName(SHEETS.CriteresReussite);
 
   if (!sheet || !data.competence_id) {
     return { success: true, data: [] };
@@ -199,11 +199,11 @@ function getCriteresForCompetence(data) {
  */
 function createCritereReussite(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('CriteresReussite');
+  var sheet = ss.getSheetByName(SHEETS.CriteresReussite);
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
-    sheet = ss.insertSheet('CriteresReussite');
+    sheet = ss.insertSheet(SHEETS.CriteresReussite);
     sheet.appendRow(['id', 'competence_id', 'libelle', 'ordre']);
   }
 
@@ -224,7 +224,7 @@ function createCritereReussite(data) {
  */
 function updateCritereReussite(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('CriteresReussite');
+  var sheet = ss.getSheetByName(SHEETS.CriteresReussite);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -256,7 +256,7 @@ function updateCritereReussite(data) {
  */
 function deleteCritereReussite(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('CriteresReussite');
+  var sheet = ss.getSheetByName(SHEETS.CriteresReussite);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -289,7 +289,7 @@ function deleteCritereReussite(data) {
  */
 function getBanquesCompetences(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('BanquesCompetences');
+  var sheet = ss.getSheetByName(SHEETS.BanquesCompetences);
 
   if (!sheet) {
     return { success: true, data: [] };
@@ -329,11 +329,11 @@ function getBanquesCompetences(data) {
  */
 function createBanqueCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('BanquesCompetences');
+  var sheet = ss.getSheetByName(SHEETS.BanquesCompetences);
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
-    sheet = ss.insertSheet('BanquesCompetences');
+    sheet = ss.insertSheet(SHEETS.BanquesCompetences);
     sheet.appendRow(['id', 'competence_id', 'titre', 'description', 'ordre', 'statut', 'date_creation']);
   }
 
@@ -357,7 +357,7 @@ function createBanqueCompetence(data) {
  */
 function updateBanqueCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('BanquesCompetences');
+  var sheet = ss.getSheetByName(SHEETS.BanquesCompetences);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -390,7 +390,7 @@ function updateBanqueCompetence(data) {
  */
 function deleteBanqueCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('BanquesCompetences');
+  var sheet = ss.getSheetByName(SHEETS.BanquesCompetences);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -414,7 +414,7 @@ function deleteBanqueCompetence(data) {
   }
 
   // Cascade : supprimer les entraînements associés à cette banque
-  var entrSheet = ss.getSheetByName('EntrainementsCompetences');
+  var entrSheet = ss.getSheetByName(SHEETS.EntrainementsCompetences);
   if (entrSheet) {
     var entrData = entrSheet.getDataRange().getValues();
     var entrHeaders = entrData[0];
@@ -450,7 +450,7 @@ function deleteBanqueCompetence(data) {
  */
 function getEntrainementsCompetences(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EntrainementsCompetences);
 
   if (!sheet) {
     return { success: true, data: [] };
@@ -506,7 +506,7 @@ function getEntrainementsCompetences(data) {
  */
 function getEntrainementCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EntrainementsCompetences);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -542,11 +542,11 @@ function getEntrainementCompetence(data) {
  */
 function createEntrainementCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EntrainementsCompetences);
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
-    sheet = ss.insertSheet('EntrainementsCompetences');
+    sheet = ss.insertSheet(SHEETS.EntrainementsCompetences);
     sheet.appendRow([
       'id', 'titre', 'competence_id', 'banque_id', 'description', 'document_url',
       'document_contenu', 'document_legende', 'correction_commentee',
@@ -606,7 +606,7 @@ function createEntrainementCompetence(data) {
  */
 function updateEntrainementCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EntrainementsCompetences);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -656,7 +656,7 @@ function updateEntrainementCompetence(data) {
  */
 function deleteEntrainementCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EntrainementsCompetences);
 
   if (!sheet) {
     return { success: false, error: 'Feuille EntrainementsCompetences non trouvée' };
@@ -688,7 +688,7 @@ function deleteEntrainementCompetence(data) {
   }
 
   // Cascade : supprimer les progressions élèves pour cet entraînement
-  var eleveSheet = ss.getSheetByName('EleveEntrainementsCompetences');
+  var eleveSheet = ss.getSheetByName(SHEETS.EleveEntrainementsCompetences);
   if (eleveSheet) {
     var eleveData = eleveSheet.getDataRange().getValues();
     var eleveHeaders = eleveData[0];
@@ -725,7 +725,7 @@ function deleteEntrainementCompetence(data) {
  */
 function getEleveEntrainementCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EleveEntrainementsCompetences);
 
   if (!sheet) {
     return { success: true, data: null };
@@ -760,7 +760,7 @@ function getEleveEntrainementCompetence(data) {
  */
 function getEleveEntrainementsCompetences(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EleveEntrainementsCompetences);
 
   if (!sheet) {
     return { success: true, data: [] };
@@ -804,11 +804,11 @@ function getEleveEntrainementsCompetences(data) {
  */
 function startEleveEntrainementCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EleveEntrainementsCompetences);
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
-    sheet = ss.insertSheet('EleveEntrainementsCompetences');
+    sheet = ss.insertSheet(SHEETS.EleveEntrainementsCompetences);
     sheet.appendRow([
       'id', 'eleve_id', 'entrainement_id', 'mode', 'statut',
       'date_debut', 'date_fin', 'date_soumission', 'temps_passe',
@@ -912,7 +912,7 @@ function startEleveEntrainementCompetence(data) {
  */
 function finishEleveEntrainementCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EleveEntrainementsCompetences);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -983,7 +983,7 @@ function finishEleveEntrainementCompetence(data) {
  */
 function saveEnvoiCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EleveEntrainementsCompetences);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -1021,7 +1021,7 @@ function saveEnvoiCompetence(data) {
  */
 function validateEleveEntrainementCompetence(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EleveEntrainementsCompetences');
+  var sheet = ss.getSheetByName(SHEETS.EleveEntrainementsCompetences);
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
@@ -1105,7 +1105,7 @@ function updateBanquesCompetencesOrdre(data) {
     return { success: false, error: 'banques array requis' };
   }
 
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('BanquesCompetences');
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.BanquesCompetences);
   if (!sheet) return { success: false, error: 'Feuille BanquesCompetences non trouvée' };
 
   var allData = sheet.getDataRange().getValues();
@@ -1152,7 +1152,7 @@ function updateEntrainementsCompetencesOrdre(data) {
     return { success: false, error: 'entrainements array requis' };
   }
 
-  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('EntrainementsCompetences');
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEETS.EntrainementsCompetences);
   if (!sheet) return { success: false, error: 'Feuille EntrainementsCompetences non trouvée' };
 
   var allData = sheet.getDataRange().getValues();
@@ -1213,11 +1213,11 @@ function updateEleveTacheComplexe(data)    { return validateEleveEntrainementCom
  */
 function trackEleveConnexion(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EleveConnexions');
+  var sheet = ss.getSheetByName(SHEETS.EleveConnexions);
 
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
-    sheet = ss.insertSheet('EleveConnexions');
+    sheet = ss.insertSheet(SHEETS.EleveConnexions);
     sheet.appendRow(['id', 'eleve_id', 'page', 'action', 'timestamp', 'user_agent']);
   }
 
@@ -1242,7 +1242,7 @@ function trackEleveConnexion(data) {
  */
 function updateUserLastConnexion(userId) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('Utilisateurs');
+  var sheet = ss.getSheetByName(SHEETS.UTILISATEURS);
   if (!sheet) return;
 
   var allData = sheet.getDataRange().getValues();
@@ -1269,7 +1269,7 @@ function updateUserLastConnexion(userId) {
  */
 function getEleveConnexions(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('EleveConnexions');
+  var sheet = ss.getSheetByName(SHEETS.EleveConnexions);
 
   if (!sheet) {
     return { success: true, data: [] };
@@ -1312,7 +1312,7 @@ function getEleveStats(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
   // Stats de connexions
-  var connexionsSheet = ss.getSheetByName('EleveConnexions');
+  var connexionsSheet = ss.getSheetByName(SHEETS.EleveConnexions);
   var totalConnexions = 0;
   var pagesVisitees = {};
   var derniereConnexion = null;
@@ -1339,7 +1339,7 @@ function getEleveStats(data) {
   }
 
   // Stats des entraînements de compétences
-  var entrSheet = ss.getSheetByName('EleveEntrainementsCompetences');
+  var entrSheet = ss.getSheetByName(SHEETS.EleveEntrainementsCompetences);
   var entrStats = { total: 0, en_cours: 0, entraine: 0, soumis: 0, valide: 0 };
 
   if (entrSheet) {

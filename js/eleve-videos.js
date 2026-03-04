@@ -8,7 +8,7 @@ const EleveVideos = {
     featuredVideo: null,
 
     // Clé localStorage pour les vidéos vues
-    WATCHED_KEY: 'brikks_watched_videos',
+    WATCHED_KEY: CONFIG.STORAGE_KEYS.WATCHED_VIDEOS,
 
     /**
      * Initialise la page

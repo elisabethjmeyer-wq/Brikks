@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint js/ components/",
-    "lint:fix": "eslint js/ components/ --fix"
+    "lint:fix": "eslint js/ components/ --fix",
+    "build:gas": "node scripts/build-gas.js"
   },
   "repository": {
     "type": "git",

@@ -59,7 +59,6 @@
 
 /* Empty State */
 .empty-state {
-    text-align: center;
     padding: 60px 40px;
     color: var(--gray-400);
     background: white;
@@ -76,7 +75,6 @@
     font-size: 18px;
     font-weight: 600;
     color: var(--gray-600);
-    margin-bottom: 8px;
 }
 
 .empty-state p {
@@ -464,16 +462,6 @@
 
 /* ===== MODALS ===== */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
     opacity: 0;
     visibility: hidden;
     transition: all 0.2s;

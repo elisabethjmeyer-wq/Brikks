@@ -441,10 +441,6 @@
 }
 
 /* Empty state */
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-}
 
 .empty-icon {
     font-size: 48px;
@@ -456,11 +452,6 @@
     font-weight: 600;
     color: var(--gray-800);
     margin: 0 0 8px 0;
-}
-
-.empty-state p {
-    color: var(--gray-500);
-    margin: 0;
 }
 
 /* Pagination */
@@ -516,14 +507,8 @@
 
 /* ===== MODALS ===== */
 .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+    backdrop-filter: blur(4px);
     padding: 20px;
 }
 

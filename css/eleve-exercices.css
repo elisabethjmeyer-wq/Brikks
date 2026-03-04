@@ -907,7 +907,6 @@ textarea.answered {
    ============================================ */
 
 .empty-state {
-    text-align: center;
     padding: 4rem 2rem;
     background: white;
     border-radius: 16px;
@@ -934,7 +933,6 @@ textarea.answered {
 .empty-state h3 {
     font-size: 1.25rem;
     color: #374151;
-    margin-bottom: 0.5rem;
 }
 
 .empty-state p {

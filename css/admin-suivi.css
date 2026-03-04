@@ -840,27 +840,15 @@
 
 /* Empty State */
 .empty-state {
-    text-align: center;
     padding: 3rem 2rem;
-    color: #6b7280;
 }
 
 .empty-state.small {
     padding: 2rem;
 }
 
-.empty-state-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-}
-
 .empty-state h3 {
-    margin: 0 0 0.5rem 0;
     color: #374151;
-}
-
-.empty-state p {
-    margin: 0;
 }
 
 .empty-text {

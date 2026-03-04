@@ -330,21 +330,16 @@
     align-items: center;
     justify-content: center;
     padding: 80px 20px;
-    text-align: center;
     color: var(--gray-400);
     background: white;
     border-radius: var(--radius-lg);
 }
 
+
 .empty-icon {
     font-size: 50px;
     margin-bottom: 16px;
     opacity: 0.5;
-}
-
-.empty-state p {
-    font-size: 1rem;
-    margin: 0;
 }
 
 /* ===== MODAL ===== */
@@ -367,7 +362,6 @@
 
 .modal-overlay {
     position: absolute;
-    inset: 0;
     background: rgba(0, 0, 0, 0.85);
 }
 

@@ -28,7 +28,7 @@ const EleveCompetences = {
     exerciseStartTime: null,
 
     // Cache (5 min TTL)
-    CACHE_KEY: 'brikks_competences_eleve_cache',
+    CACHE_KEY: CONFIG.STORAGE_KEYS.CACHE_COMPETENCES,
     CACHE_TTL: 5 * 60 * 1000,
 
     // ==========================================

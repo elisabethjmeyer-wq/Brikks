@@ -448,21 +448,6 @@
 }
 
 /* ============================================
-   CHRONOLOGIE FORMAT - FRISE AVEC FLECHE
-   ============================================ */
-
-.chronologie-container {
-    padding: 1rem 0;
-}
-
-.chrono-instruction {
-    color: #374151;
-    margin-bottom: 2rem;
-    font-size: 1rem;
-    text-align: center;
-}
-
-/* ============================================
    TIMELINE FORMAT
    ============================================ */
 
@@ -597,18 +582,6 @@
     outline: none;
     border-style: solid;
     background: white;
-}
-
-.trou-input.correct {
-    border-color: #10b981;
-    background: #ecfdf5;
-    border-style: solid;
-}
-
-.trou-input.incorrect {
-    border-color: #ef4444;
-    background: #fef2f2;
-    border-style: solid;
 }
 
 /* ============================================
@@ -748,6 +721,7 @@
 .empty-state {
     padding: 2rem;
 }
+
 
 .format-no-data small {
     font-size: 0.9rem;
@@ -1040,24 +1014,8 @@
     vertical-align: middle;
 }
 
-/* Après validation - correct */
-.association-grid-card.correct,
-.association-chip.correct {
-    border-color: #10b981;
-    background: #d1fae5;
-    animation: feedback-correct 0.5s ease;
-}
-
 .association-grid-card.correct .assoc-card-indicator {
     background: #10b981;
-}
-
-/* Après validation - incorrect */
-.association-grid-card.incorrect,
-.association-chip.incorrect {
-    border-color: #ef4444;
-    background: #fee2e2;
-    animation: feedback-shake 0.4s ease;
 }
 
 .association-grid-card.incorrect .assoc-card-indicator {
@@ -1100,13 +1058,6 @@
     margin-top: 2rem;
 }
 
-.correction-assoc-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
 .correction-assoc-pair {
     position: relative;
     display: flex;
@@ -1136,20 +1087,6 @@
     background: #ef4444;
 }
 
-.correction-assoc-card {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 0.75rem;
-    border-radius: 8px;
-    min-height: 70px;
-    background: #f9fafb;
-    border: 2px solid #e5e7eb;
-    transition: all 0.3s ease;
-}
-
 .correction-assoc-card.has-image {
     background-size: contain;
     background-position: center;
@@ -1171,31 +1108,12 @@
     word-wrap: break-word;
 }
 
-.correction-assoc-card.text-only {
-    min-height: auto;
-    padding: 0.8rem;
-}
-
 .correction-assoc-text {
     font-size: 0.95rem;
     font-weight: 600;
     color: #374151;
     word-wrap: break-word;
     text-align: center;
-}
-
-.correction-assoc-label {
-    font-size: 0.85rem;
-    color: #6b7280;
-    margin-top: 0.5rem;
-    font-weight: 500;
-    word-wrap: break-word;
-    text-align: center;
-}
-
-.correction-assoc-card.text-only .correction-assoc-label {
-    color: #10b981;
-    font-weight: 600;
 }
 
 .correction-assoc-card.unpaired .correction-assoc-label {
@@ -1335,14 +1253,6 @@
 }
 
 .trou-input.incorrect, .chrono-input.incorrect, .question-ouverte-input.incorrect {
-    animation: feedback-shake 0.4s ease;
-}
-
-.timeline-card.correct {
-    animation: feedback-correct 0.5s ease;
-}
-
-.timeline-card.incorrect {
     animation: feedback-shake 0.4s ease;
 }
 
@@ -1582,10 +1492,6 @@
 /* ============================================
    CARTE CLIQUABLE
    ============================================ */
-
-.carte-container {
-    padding: 1rem;
-}
 
 .carte-instruction {
     font-size: 1rem;
@@ -3820,15 +3726,6 @@
     margin-bottom: 0.25rem;
 }
 
-/* Progression de mémorisation sur item */
-.entrainement-progress-bar {
-    height: 4px;
-    background: #e5e7eb;
-    border-radius: 2px;
-    margin-top: 0.5rem;
-    overflow: hidden;
-}
-
 .entrainement-progress-fill {
     height: 100%;
     border-radius: 2px;
@@ -4080,10 +3977,6 @@
 
 .exercice-item.memorise {
     border-left: 4px solid #10b981;
-}
-
-.exercice-item.memorise .exercice-numero {
-    background: #10b981;
 }
 
 .exercice-status.verrouille {
@@ -4859,12 +4752,6 @@
     background: #dcfce7;
     color: #16a34a;
     border: 2px solid #86efac;
-}
-
-.flashcard-btn-success:hover {
-    background: #bbf7d0;
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(22, 163, 74, 0.2);
 }
 
 /* Summary */
