@@ -1131,6 +1131,27 @@
     color: var(--accent-blue, #3b82f6);
 }
 
+.tb-header-remove {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: var(--gray-300);
+    cursor: pointer;
+    border-radius: 3px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+}
+
+.tb-header-remove:hover {
+    background: var(--accent-red-light, #fef2f2);
+    color: var(--accent-red, #ef4444);
+}
+
 /* Cellules */
 .tb-cell {
     padding: 4px;
@@ -1364,6 +1385,16 @@
 
 .tb-add-section-btn:hover {
     opacity: 0.9;
+}
+
+.tb-add-header-btn {
+    background: var(--gray-100) !important;
+    color: var(--gray-600) !important;
+    border-color: var(--gray-300) !important;
+}
+
+.tb-add-header-btn:hover {
+    background: var(--gray-200) !important;
 }
 
 /* ===== PREVIEW SECTION ===== */
