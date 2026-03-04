@@ -447,11 +447,12 @@ Object.assign(AdminBanquesExercices, {
         '</div>';
     },
 
-    _cwSwitchDocTab(tab) {
-        var constructionPanel = document.getElementById('cwConstructionPanel');
-        var previewPanel = document.getElementById('cwPreviewPanel');
-        var tabConstruction = document.getElementById('cwTabConstruction');
-        var tabPreview = document.getElementById('cwTabPreview');
+    _cwSwitchDocTab(tab, prefix) {
+        prefix = prefix || 'cw';
+        var constructionPanel = document.getElementById(prefix + 'ConstructionPanel');
+        var previewPanel = document.getElementById(prefix + 'PreviewPanel');
+        var tabConstruction = document.getElementById(prefix + 'TabConstruction');
+        var tabPreview = document.getElementById(prefix + 'TabPreview');
         if (!constructionPanel || !previewPanel) return;
 
         if (tab === 'preview') {
@@ -692,17 +693,21 @@ Object.assign(AdminBanquesExercices, {
                 '</div>' +
             '</div>' +
             '<div class="source-panel" id="cwCorrectionEditorPanel"' + (corrMode !== 'editor' ? ' style="display:none;"' : '') + '>' +
-                '<div class="cw-doc-layout">' +
-                    '<div class="cw-doc-editor">' +
-                        '<h4 class="cw-section-title">\u00C9diteur</h4>' +
-                        '<div id="cwCorrBlockEditorContainer" class="block-editor"></div>' +
-                        this._renderBlockAddBar() +
-                    '</div>' +
-                    '<div class="cw-doc-preview">' +
-                        '<h4 class="cw-section-title">\uD83D\uDC41 Aper\u00E7u \u00E9l\u00E8ve</h4>' +
-                        '<div id="cwCorrPreviewContainer" class="cw-preview-frame">' +
-                            '<div class="cw-preview-empty">Ajoutez du contenu pour voir l\u2019aper\u00E7u</div>' +
-                        '</div>' +
+                '<div class="tb-tabs">' +
+                    '<button type="button" class="tb-tab active" id="cwCorrTabConstruction" onclick="AdminBanquesExercices._cwSwitchDocTab(\'construction\', \'cwCorr\')">' +
+                        '<span class="tb-tab-icon">\u2699\uFE0F</span> Construction' +
+                    '</button>' +
+                    '<button type="button" class="tb-tab" id="cwCorrTabPreview" onclick="AdminBanquesExercices._cwSwitchDocTab(\'preview\', \'cwCorr\')">' +
+                        '<span class="tb-tab-icon">\uD83D\uDC41</span> Vue \u00E9l\u00E8ve' +
+                    '</button>' +
+                '</div>' +
+                '<div id="cwCorrConstructionPanel">' +
+                    '<div id="cwCorrBlockEditorContainer" class="block-editor"></div>' +
+                    this._renderBlockAddBar() +
+                '</div>' +
+                '<div id="cwCorrPreviewPanel" class="tb-preview-panel" style="display:none;">' +
+                    '<div id="cwCorrPreviewContainer" class="cw-preview-frame">' +
+                        '<div class="cw-preview-empty">Ajoutez du contenu pour voir l\u2019aper\u00E7u</div>' +
                     '</div>' +
                 '</div>' +
             '</div>' +
@@ -750,24 +755,14 @@ Object.assign(AdminBanquesExercices, {
             }
         }
 
-        // Intercepter _renderBlocks pour mettre à jour la preview
-        var self = this;
-        if (!this._origRenderBlocks) {
-            this._origRenderBlocks = this._renderBlocks.bind(this);
+        // Restaurer _renderBlocks si intercepté précédemment
+        if (this._origRenderBlocks) {
+            this._renderBlocks = this._origRenderBlocks;
+            this._origRenderBlocks = null;
         }
-        this._renderBlocks = function() {
-            self._origRenderBlocks();
-            self._schedulePreviewUpdate();
-        };
 
         // Initialiser le block editor
         this.initBlockEditor(blocks);
-
-        // Rafraîchir la preview
-        this._updateCompPreview();
-
-        // Observer les changements
-        this._setupCompPreviewObserver();
     },
 
     _cwToggleCorrectionMode(mode) {
