@@ -307,6 +307,11 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - ~~**saveResultatExercice silencieux**~~ : **CORRIGÉ (session 12)** — `eleve-exercices-results.js` ignorait les échecs API. Log ajouté.
 - ~~**Chaîne critères sans vérification**~~ : **CORRIGÉ (session 12)** — `admin-competences.js` ne vérifiait pas le succès de chaque delete/create/update de critère. Vérifie maintenant chaque opération.
 
+### Bugs régression session 11 (corrigés session 13)
+
+- ~~**Wizards admin cassés (self.escapeHtml)**~~ : **CORRIGÉ (session 13)** — la centralisation de `escapeHtml()` en global (session 11, Phase 1) n'avait pas été propagée à 3 fichiers d'extension (`comp-wizard`, `sf-wizard`, `builders`). 8 appels `self.escapeHtml(...)` lançaient un TypeError silencieux. Wizard compétences vide, wizard SF affichait l'étape 1 en double, prévisualisation exercices cassée.
+- ~~**CSS modal-overlay conflit de convention**~~ : **CORRIGÉ (session 13)** — `style.css` base utilisait `display: none` + `.active`, toutes les pages utilisent `display: flex` + `.hidden`. Aligné sur `.hidden`.
+
 ### Points structurels
 
 - **Sécurité** : mots de passe en clair dans Google Sheets, pas d'auth côté serveur, clé API exposée côté client. Acceptable pour ~50 élèves en environnement scolaire, mais à documenter.
