@@ -284,30 +284,32 @@ const AdminCorrections = {
         // Badges
         var badgesHtml = '<div class="card-badges">';
 
-        // Compétence en badge
         if (competenceNom) {
-            badgesHtml += '<span class="card-badge badge-competence">🎯 ' + this.escapeHtml(competenceNom) + '</span>';
+            badgesHtml += '<span class="card-badge badge-competence">' + this.escapeHtml(competenceNom) + '</span>';
         }
 
-        // Mode de rendu
         var modeLabel = this.getModeLabel(sub.mode_rendu);
         if (modeLabel) {
             var modeClass = sub.mode_rendu === 'papier' ? 'badge-papier' : 'badge-numerique';
             badgesHtml += '<span class="card-badge ' + modeClass + '">' + modeLabel + '</span>';
         }
 
-        // État d'envoi
         if (!isDone) {
             if (sub.date_envoi) {
                 badgesHtml += '<span class="card-badge badge-sent">📤 Envoyé</span>';
             } else if (sub.mode_rendu === 'papier') {
-                badgesHtml += '<span class="card-badge badge-waiting">📥 Dans le casier</span>';
+                badgesHtml += '<span class="card-badge badge-waiting">📥 Casier</span>';
             } else if (sub.mode_rendu === 'numerique') {
-                badgesHtml += '<span class="card-badge badge-waiting">⏳ Pas encore envoyé</span>';
+                badgesHtml += '<span class="card-badge badge-waiting">⏳ Pas envoyé</span>';
             }
         }
 
         badgesHtml += '</div>';
+
+        // Date relative
+        var dateRef = isDone ? sub.date_correction : sub.date_soumission;
+        var relativeDate = this.formatRelativeDate(dateRef);
+        var isUrgent = !isDone && this._isOlderThan(sub.date_soumission, 2);
 
         // Décision (onglet terminées)
         var decisionHtml = '';
@@ -317,24 +319,20 @@ const AdminCorrections = {
                 (isValide ? '✅ Validé' : '❌ Non validé') + '</span>';
         }
 
-        // Date relative
-        var dateRef = isDone ? sub.date_correction : sub.date_soumission;
-        var relativeDate = this.formatRelativeDate(dateRef);
-        var isUrgent = !isDone && this._isOlderThan(sub.date_soumission, 2);
-
         return '<div class="correction-card' + (isDone ? ' done' : '') + '" onclick="AdminCorrections.openModal(\'' + this.escapeHtml(subKey) + '\')">' +
             '<div class="card-stripe ' + stripeClass + '"></div>' +
             '<div class="card-body">' +
-                '<div class="card-header">' +
-                    '<div class="card-avatar">' + this.getInitials(eleveName) + '</div>' +
+                '<div class="card-avatar">' + this.getInitials(eleveName) + '</div>' +
+                '<div class="card-main">' +
                     '<div class="card-eleve">' + this.escapeHtml(eleveName) + '</div>' +
+                    '<div class="card-entrainement">' + this.escapeHtml(entrainementTitle) + '</div>' +
                 '</div>' +
-                '<div class="card-entrainement">' + this.escapeHtml(entrainementTitle) + '</div>' +
                 badgesHtml +
-                '<div class="card-meta">' +
+                '<div class="card-right">' +
                     '<span class="card-date' + (isUrgent ? ' urgent' : '') + '">' + relativeDate + '</span>' +
-                    (decisionHtml || '') +
+                    decisionHtml +
                 '</div>' +
+                '<span class="card-arrow">›</span>' +
             '</div>' +
         '</div>';
     },
