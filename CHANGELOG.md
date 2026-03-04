@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-03-04 — Page admin Corrections (nouvelle page dédiée)
+
+### Contexte
+La correction des entraînements de compétences se faisait dans un onglet de la page Suivi — interface limitée (formulaires inline, pas de vue élève, pas de critères de réussite). Besoin d'une page dédiée avec un vrai wizard de correction.
+
+### Modifications
+
+**Nouveaux fichiers :**
+- `admin/corrections.html` — page HTML
+- `js/admin-corrections.js` (~670 lignes) — module complet avec wizard 3 étapes
+- `css/admin-corrections.css` (~1060 lignes) — styles (modal, éditeur riche, vue élève, badges)
+
+**Fichiers modifiés :**
+- `components/admin-layout.js` — ajout entrée menu ✏️ Corrections (section Évaluations)
+- `js/admin-suivi.js` — suppression onglet Corrections + stat card "Copies à corriger"
+- `google-apps-script/Competences.gs` — ajout colonne `criteres_valides` dans `validateEleveEntrainementCompetence()`
+- `google-apps-script/TOUT-EN-UN.gs` — idem (synchronisation)
+- `.eslintrc.json` — ajout global `AdminCorrections`
+- `CLAUDE.md` — ajout vue fonctionnelle du module
+
+### Fonctionnalités
+- Grille de cartes avec badges d'état (mode rendu, envoi) et 2 onglets (à corriger / terminées)
+- Wizard 3 étapes : Informations → Correction → Bilan
+- Éditeur riche (contenteditable) avec toolbar complète (formatage, listes, couleur, image, vidéo)
+- Toggle Lien Google Doc / Texte riche (même pattern que le wizard entraînements)
+- Critères de réussite en dropdown repliable avec compteur live
+- Vue élève : aperçu de ce que verra l'élève (décision, critères, corrigé, remarque)
+- Chargement rapide via SheetsAPI (cache localStorage) au lieu de JSONP
+
+### Décisions prises
+- Lecture via SheetsAPI (6 appels en parallèle, cache 5 min) plutôt que JSONP pour la performance
+- Écriture via JSONP (`validateEleveEntrainementCompetence`) car c'est une action serveur qui modifie des données
+- Les styles de base des modales (`.modal-overlay`, `.modal`, etc.) sont dupliqués depuis `admin-competences.css` car il n'y a pas de fichier CSS global partagé pour les modales — dette technique existante
+- `criteres_valides` stocké en JSON string dans Google Sheets (array d'IDs de critères cochés)
+
+---
+
 ## 2026-02-27 — Popup de soumission avec choix de format de rendu et délais configurables
 
 ### Contexte

@@ -122,6 +122,37 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **État** : audité et nettoyé (session 9, popup session 10). Code propre, factorisé et maintenable.
 
+### Page admin Corrections — CRÉÉ SESSION 11
+
+**Page** : `admin/corrections.html`
+**Fichiers** : `js/admin-corrections.js` (~670 lignes), `css/admin-corrections.css` (~1060 lignes)
+**Backend** : `Competences.gs` > `validateEleveEntrainementCompetence()` (ajout colonne `criteres_valides`)
+
+**Ce que fait le module :**
+- Page dédiée à la correction des entraînements de compétences soumis par les élèves
+- Grille de cartes avec 2 onglets : « À corriger » (statut `soumis`) et « Terminées » (statut `valide` / `non_valide`)
+- Chaque carte affiche : avatar initiales, nom élève, titre entraînement, compétence, badges d'état (mode rendu papier/numérique, envoi)
+- Wizard modal 3 étapes :
+  1. **Informations** — fiche élève, date, temps, mode, compétence, exercice
+  2. **Correction** — toggle Lien/Texte (éditeur riche contenteditable avec toolbar Gras/Italique/Souligné/Listes/Couleur/Image/Vidéo), critères de réussite en dropdown repliable, remarque en dropdown, décision validé/non validé, bouton « Vue élève » pour prévisualiser ce que verra l'élève
+  3. **Bilan** — récapitulatif avant confirmation
+
+**Données sauvegardées** dans EleveEntrainementsCompetences :
+- `statut` : `valide` ou `non_valide`
+- `date_correction` : ISO timestamp
+- `remarque_prof` : texte libre
+- `correction_prof` : URL Google Doc ou HTML riche
+- `criteres_valides` : JSON array d'IDs de critères cochés
+
+**Appels API** (lecture) : `SheetsAPI.fetchAndParse()` × 6 (cache localStorage)
+**Appels API** (écriture) : `validateEleveEntrainementCompetence` (JSONP)
+
+**Menu** : entrée ✏️ Corrections dans la section « Évaluations » de `admin-layout.js`
+
+**Migration depuis Suivi** : l'onglet « Corrections » et la stat card « Copies à corriger » ont été supprimés de `admin-suivi.js` — tout passe par cette page dédiée.
+
+**État** : fonctionnel, créé en session 11.
+
 ## Architecture technique
 
 ### Stack
