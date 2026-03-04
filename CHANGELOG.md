@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-03-04 — Session 13 : Correction bugs wizards cassés par la session 11
+
+### Contexte
+Les wizards de création d'entraînements (compétences et savoir-faire) étaient cassés suite au nettoyage Phase 1 de la session 11. Un conflit CSS modal-overlay était aussi présent.
+
+### Corrections
+1. **`self.escapeHtml()` → `escapeHtml()`** : la suppression de `escapeHtml()` du module `AdminBanquesExercices` (session 11, Phase 1) n'avait pas été propagée à 3 fichiers d'extension. 8 appels `self.escapeHtml(...)` lançaient un `TypeError` silencieux :
+   - **Wizard compétences vide** : erreur dans `_renderCompWizardStep1()` → contenu jamais affiché
+   - **Wizard SF doublon étape 1/2** : erreur dans `_renderSFWizardStep2()` → HTML de l'étape 1 restait affiché
+   - **Prévisualisation exercices SF cassée** : erreur dans le builder de prévisualisation
+2. **CSS `modal-overlay`** : `style.css` utilisait `display: none` + `.active`, alors que toutes les pages utilisent `display: flex` + `.hidden`. Aligné sur la convention `.hidden`.
+
+### Fichiers modifiés
+`js/admin-banques-exercices-comp-wizard.js`, `js/admin-banques-exercices-sf-wizard.js`, `js/admin-banques-exercices-builders.js`, `css/style.css`
+
+---
+
 ## 2026-03-04 — Session 12 : Audit coordination frontend ↔ backend + corrections
 
 ### Contexte
