@@ -26,14 +26,21 @@
         </div>
     </header>
 
-    <!-- Toggle à corriger / terminées -->
-    <div class="corrections-toggle">
-        <button class="toggle-btn active" id="togglePending" onclick="AdminCorrections.showTab('pending')">
-            🔴 À corriger (<span id="pendingCount">0</span>)
-        </button>
-        <button class="toggle-btn" id="toggleDone" onclick="AdminCorrections.showTab('done')">
-            ✅ Terminées (<span id="doneCount">0</span>)
-        </button>
+    <!-- Barre onglets + recherche -->
+    <div class="corrections-toolbar">
+        <div class="segmented-control">
+            <div class="segmented-bg" id="segmentedBg"></div>
+            <button class="segment active" id="togglePending" onclick="AdminCorrections.showTab('pending')">
+                À corriger <span class="segment-badge" id="pendingCount">0</span>
+            </button>
+            <button class="segment" id="toggleDone" onclick="AdminCorrections.showTab('done')">
+                Terminées <span class="segment-badge badge-done" id="doneCount">0</span>
+            </button>
+        </div>
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Rechercher un élève..." oninput="AdminCorrections.onSearch(this.value)">
+        </div>
     </div>
 
     <!-- Loader -->

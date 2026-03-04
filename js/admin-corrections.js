@@ -27,6 +27,7 @@ const AdminCorrections = {
 
     _saving: false,
     _previewVisible: false,
+    _searchQuery: '',
 
     // ========== INITIALIZATION ==========
 
@@ -119,7 +120,8 @@ const AdminCorrections = {
         return this.submissions
             .filter(function(s) { return s.statut === 'soumis'; })
             .sort(function(a, b) {
-                return new Date(b.date_soumission || 0) - new Date(a.date_soumission || 0);
+                // Plus anciennes d'abord (urgentes en premier)
+                return new Date(a.date_soumission || 0) - new Date(b.date_soumission || 0);
             });
     },
 
@@ -182,18 +184,50 @@ const AdminCorrections = {
         return eleve.identifiant || 'Élève inconnu';
     },
 
+    formatRelativeDate(dateStr) {
+        if (!dateStr) return '';
+        var d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        var now = new Date();
+        var diffMs = now - d;
+        var diffMin = Math.floor(diffMs / 60000);
+        var diffH = Math.floor(diffMs / 3600000);
+        var diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMin < 1) return "À l'instant";
+        if (diffMin < 60) return 'Il y a ' + diffMin + ' min';
+        if (diffH < 24) return 'Il y a ' + diffH + 'h';
+        if (diffDays === 1) return 'Hier';
+        if (diffDays < 7) return 'Il y a ' + diffDays + ' jours';
+        return this.formatDate(dateStr);
+    },
+
+    _isOlderThan(dateStr, days) {
+        if (!dateStr) return false;
+        var d = new Date(dateStr);
+        if (isNaN(d.getTime())) return false;
+        return (new Date() - d) > days * 86400000;
+    },
+
     // ========== TABS ==========
 
     showTab(tab) {
         this.currentTab = tab;
         document.getElementById('togglePending').classList.toggle('active', tab === 'pending');
         document.getElementById('toggleDone').classList.toggle('active', tab === 'done');
+        var bg = document.getElementById('segmentedBg');
+        if (bg) bg.classList.toggle('right', tab === 'done');
         this.renderGrid();
     },
 
     updateCounts() {
         document.getElementById('pendingCount').textContent = this.getPendingSubmissions().length;
         document.getElementById('doneCount').textContent = this.getDoneSubmissions().length;
+    },
+
+    onSearch(query) {
+        this._searchQuery = (query || '').trim().toLowerCase();
+        this.renderGrid();
     },
 
     // ========== RENDER GRID ==========
@@ -203,18 +237,30 @@ const AdminCorrections = {
         var grid = document.getElementById('correctionsGrid');
         var empty = document.getElementById('emptyState');
 
+        // Filtre recherche par nom d'élève
+        var self = this;
+        if (this._searchQuery) {
+            items = items.filter(function(s) {
+                var eleve = self.getEleve(s.eleve_id);
+                var name = self.getEleveName(eleve).toLowerCase();
+                return name.indexOf(self._searchQuery) !== -1;
+            });
+        }
+
         if (items.length === 0) {
             grid.innerHTML = '';
-            document.getElementById('emptyIcon').textContent = this.currentTab === 'pending' ? '✅' : '📂';
-            document.getElementById('emptyMessage').textContent = this.currentTab === 'pending'
-                ? 'Aucune copie à corriger pour le moment !'
-                : 'Aucune correction terminée.';
+            var isSearch = this._searchQuery.length > 0;
+            document.getElementById('emptyIcon').textContent = isSearch ? '🔍' : (this.currentTab === 'pending' ? '✅' : '📂');
+            document.getElementById('emptyMessage').textContent = isSearch
+                ? 'Aucun résultat pour « ' + this._searchQuery + ' »'
+                : (this.currentTab === 'pending'
+                    ? 'Aucune copie à corriger pour le moment !'
+                    : 'Aucune correction terminée.');
             empty.classList.remove('hidden');
             return;
         }
 
         empty.classList.add('hidden');
-        var self = this;
         grid.innerHTML = items.map(function(sub) {
             return self.renderCard(sub);
         }).join('');
@@ -232,8 +278,16 @@ const AdminCorrections = {
 
         var subKey = sub.id || (sub.eleve_id + '_' + sub.entrainement_id);
 
-        // Badges de notification
+        // Couleur de la bande latérale
+        var stripeClass = isDone ? ('stripe-' + sub.statut) : 'stripe-pending';
+
+        // Badges
         var badgesHtml = '<div class="card-badges">';
+
+        // Compétence en badge
+        if (competenceNom) {
+            badgesHtml += '<span class="card-badge badge-competence">🎯 ' + this.escapeHtml(competenceNom) + '</span>';
+        }
 
         // Mode de rendu
         var modeLabel = this.getModeLabel(sub.mode_rendu);
@@ -243,12 +297,14 @@ const AdminCorrections = {
         }
 
         // État d'envoi
-        if (sub.date_envoi) {
-            badgesHtml += '<span class="card-badge badge-sent">📤 Envoyé</span>';
-        } else if (sub.mode_rendu === 'papier') {
-            badgesHtml += '<span class="card-badge badge-waiting">📥 Dans le casier</span>';
-        } else if (sub.mode_rendu === 'numerique' && !sub.date_envoi) {
-            badgesHtml += '<span class="card-badge badge-waiting">⏳ Pas encore envoyé</span>';
+        if (!isDone) {
+            if (sub.date_envoi) {
+                badgesHtml += '<span class="card-badge badge-sent">📤 Envoyé</span>';
+            } else if (sub.mode_rendu === 'papier') {
+                badgesHtml += '<span class="card-badge badge-waiting">📥 Dans le casier</span>';
+            } else if (sub.mode_rendu === 'numerique') {
+                badgesHtml += '<span class="card-badge badge-waiting">⏳ Pas encore envoyé</span>';
+            }
         }
 
         badgesHtml += '</div>';
@@ -261,19 +317,24 @@ const AdminCorrections = {
                 (isValide ? '✅ Validé' : '❌ Non validé') + '</span>';
         }
 
-        var dateStr = this.formatDate(sub.date_soumission);
+        // Date relative
+        var dateRef = isDone ? sub.date_correction : sub.date_soumission;
+        var relativeDate = this.formatRelativeDate(dateRef);
+        var isUrgent = !isDone && this._isOlderThan(sub.date_soumission, 2);
 
         return '<div class="correction-card' + (isDone ? ' done' : '') + '" onclick="AdminCorrections.openModal(\'' + this.escapeHtml(subKey) + '\')">' +
-            '<div class="card-header">' +
-                '<div class="card-avatar">' + this.getInitials(eleveName) + '</div>' +
-                '<div class="card-eleve">' + this.escapeHtml(eleveName) + '</div>' +
-            '</div>' +
-            '<div class="card-entrainement">' + this.escapeHtml(entrainementTitle) + '</div>' +
-            (competenceNom ? '<div class="card-competence">' + this.escapeHtml(competenceNom) + '</div>' : '') +
-            badgesHtml +
-            '<div class="card-meta">' +
-                '<span class="card-date">📅 ' + dateStr + '</span>' +
-                (decisionHtml || '') +
+            '<div class="card-stripe ' + stripeClass + '"></div>' +
+            '<div class="card-body">' +
+                '<div class="card-header">' +
+                    '<div class="card-avatar">' + this.getInitials(eleveName) + '</div>' +
+                    '<div class="card-eleve">' + this.escapeHtml(eleveName) + '</div>' +
+                '</div>' +
+                '<div class="card-entrainement">' + this.escapeHtml(entrainementTitle) + '</div>' +
+                badgesHtml +
+                '<div class="card-meta">' +
+                    '<span class="card-date' + (isUrgent ? ' urgent' : '') + '">' + relativeDate + '</span>' +
+                    (decisionHtml || '') +
+                '</div>' +
             '</div>' +
         '</div>';
     },
