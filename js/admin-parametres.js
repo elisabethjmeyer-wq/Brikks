@@ -656,9 +656,9 @@ const AdminParametres = {
             const menuItems = this.collectMenuState();
 
             // Envoyer les paramètres via JSONP
-            const paramsResult = await this.postToAppsScript('updateParametres', params);
+            await this.postToAppsScript('updateParametres', params);
             // Envoyer le menu via JSONP
-            const menuResult = await this.postToAppsScript('updateMenuConfig', menuItems);
+            await this.postToAppsScript('updateMenuConfig', menuItems);
             // Vider le cache pour que les nouvelles valeurs soient utilisées immédiatement
             SheetsAPI.clearCache();
             this.hasChanges = false;

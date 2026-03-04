@@ -139,7 +139,6 @@ Object.assign(EleveEntrainement, {
     },
 
     renderVraiFauxStepSummaryButtons() {
-        const step = this.steps[this.currentStepIndex];
         if (this.currentStepIndex < this.steps.length - 1) {
             return `
                 <button class="btn btn-secondary" onclick="EleveEntrainement.restartCurrentStep()">Recommencer cette étape</button>
@@ -165,10 +164,6 @@ Object.assign(EleveEntrainement, {
     },
 
     verifyVraiFaux() {
-        const step = this.steps[this.currentStepIndex];
-        const questions = step.questions || [{ id: 'q1', correctAnswer: step.correctAnswer }];
-        const stepAnswers = this.answers[this.currentStepIndex] || {};
-
         // Cette fonction n'est plus utilisée pour la vérification question par question
         // Elle pourrait être utilisée dans le mode correction si nécessaire
     },
@@ -445,7 +440,6 @@ Object.assign(EleveEntrainement, {
                         <div class="association-column association-left">
                             ${paires.map((p, index) => {
                                 const isConnected = stepAnswers.connections[index] !== undefined;
-                                const isCorrect = stepAnswers.connections[index] === index;
                                 const isActive = stepAnswers.activeLeft === index;
 
                                 return `
@@ -800,7 +794,6 @@ Object.assign(EleveEntrainement, {
     },
 
     renderTimelineEvent(event, displayIndex, isVerified, allEvents) {
-        const correctIndex = allEvents.findIndex(e => e.date === event.date && e.titre === event.titre);
         const isCorrectPosition = isVerified && this.isTimelinePositionCorrect(displayIndex, event.originalIndex, allEvents);
 
         let statusClass = '';
@@ -1119,8 +1112,6 @@ Object.assign(EleveEntrainement, {
     renderQuestionOuverteItem(question, index, stepAnswers, isVerified) {
         const answer = stepAnswers[question.id] || '';
         const keywordsFound = isVerified ? this.checkKeywords(answer, question.keywords || []) : [];
-        const hasAnswer = answer.trim().length > 0;
-
         return `
             <div class="question-ouverte-item ${isVerified ? 'verified' : ''}">
                 <div class="question-ouverte-header">
@@ -1342,7 +1333,6 @@ Object.assign(EleveEntrainement, {
 
     setupImageClickHandlers(step, currentQuestionIndex) {
         const zones = document.querySelectorAll('.image-cliquable-zone');
-        const currentQuestion = step.questions[currentQuestionIndex];
         const stepAnswers = this.answers[this.currentStepIndex] || {};
         const isVerified = this.results[this.currentStepIndex]?.verified || this.correctionMode;
 
@@ -1389,7 +1379,6 @@ Object.assign(EleveEntrainement, {
 
         // Trouver quelle question cette zone concerne
         let questionInfo = null;
-        let userAnswer = null;
         let isCorrect = false;
 
         for (let i = 0; i < step.questions.length; i++) {
@@ -1398,7 +1387,6 @@ Object.assign(EleveEntrainement, {
 
             if (q.correctZoneId === zoneId || answer === zoneId) {
                 questionInfo = q;
-                userAnswer = answer;
                 isCorrect = answer === q.correctZoneId;
                 break;
             }

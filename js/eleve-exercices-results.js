@@ -337,8 +337,6 @@ Object.assign(EleveExercices, {
             return html;
         };
 
-        const nextExercise = this.findNextExercise();
-
         let prochaineDateStr = '';
         if (validationResult.prochaineDispo) {
             prochaineDateStr = new Date(validationResult.prochaineDispo).toLocaleDateString('fr-FR', {
@@ -347,53 +345,6 @@ Object.assign(EleveExercices, {
                 month: 'long'
             });
         }
-
-        const correctionDetails = this.collectExerciseDetails();
-
-        const generateCorrectionHTML = () => {
-            if (correctionDetails.length === 0) {
-                return '<p class="correction-fallback">Correction non disponible.</p>';
-            }
-
-            let html = `
-                <div class="correction-table-wrapper">
-                    <table class="correction-table-display">
-                        <thead>
-                            <tr>
-                                <th class="col-question">Question</th>
-                                <th class="col-reponse">Ta réponse</th>
-                                <th class="col-attendue">Réponse attendue</th>
-                                <th class="col-status">Résultat</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-
-            correctionDetails.forEach((detail) => {
-                const isCorrect = detail.correct === true;
-                const isOpenQuestion = detail.isOpenQuestion === true;
-                const statusClass = isOpenQuestion ? 'open' : (isCorrect ? 'correct' : 'incorrect');
-                const statusIcon = isOpenQuestion ? '📝' : (isCorrect ? '✅' : '❌');
-                const userAnswer = detail.reponseUtilisateur || '';
-                const displayUserAnswer = userAnswer.trim() === '' ? '<span class="empty-answer">Non répondu</span>' : escapeHtml(userAnswer);
-
-                html += `
-                    <tr class="correction-row ${statusClass}">
-                        <td class="col-question">${escapeHtml(detail.question)}</td>
-                        <td class="col-reponse ${statusClass}">${displayUserAnswer}</td>
-                        <td class="col-attendue">${escapeHtml(detail.reponseAttendue)}</td>
-                        <td class="col-status"><span class="status-icon">${statusIcon}</span></td>
-                    </tr>
-                `;
-            });
-
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            return html;
-        };
 
         container.innerHTML = `
             <div class="result-view sf">

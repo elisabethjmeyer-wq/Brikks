@@ -273,10 +273,6 @@ const EleveLecons = {
             ? `<span class="lesson-tag">L${chapitre.numero_lecon}</span>`
             : '';
         const isCompleted = this.isChapterCompleted(chapitre.id);
-        const completedBadge = isCompleted
-            ? '<span class="chapter-completed-badge">✓</span>'
-            : '';
-
         return `
             <a href="chapitre.html?id=${chapitre.id}" class="chapter-card ${isCompleted ? 'completed' : ''}">
                 <span class="chapter-number ${isCompleted ? 'completed' : ''}">${isCompleted ? '✓' : numero}</span>

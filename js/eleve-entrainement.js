@@ -834,7 +834,6 @@ const EleveEntrainement = {
     },
 
     renderQCMStepSummaryButtons() {
-        const step = this.steps[this.currentStepIndex];
         if (this.currentStepIndex < this.steps.length - 1) {
             return `
                 <button class="btn btn-secondary" onclick="EleveEntrainement.restartCurrentStep()">Recommencer cette étape</button>

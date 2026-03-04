@@ -956,8 +956,6 @@ const EleveEvaluation = {
         const container = document.getElementById('exerciseContainer');
 
         const elements = step.elements || [];
-        const ordreCorrect = step.ordre_correct || elements.map((_, i) => i);
-
         if (!this.answers[this.currentStepIndex]) {
             this.answers[this.currentStepIndex] = {
                 order: this.shuffleArray([...elements.map((_, i) => i)])

@@ -227,8 +227,6 @@ const AdminEvaluations = {
 
     renderEvaluationCard(evaluation) {
         const chapitre = this.chapitres.find(c => c.id === evaluation.chapitre_id);
-        const chapterName = chapitre?.titre || 'Non défini';
-
         const typeClass = evaluation.type || 'connaissances';
         const statusClass = evaluation.statut || 'brouillon';
         const order = evaluation.ordre || this.getEvaluationOrder(evaluation);

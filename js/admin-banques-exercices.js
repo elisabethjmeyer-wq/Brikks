@@ -169,9 +169,7 @@ const AdminBanquesExercices = {
     // Normalise les types de questions (trim, lowercase, underscores, inférence si vide)
     normalizeQuestionsTypes() {
         if (!this.questionsConnaissances) return;
-        let fixed = 0;
         this.questionsConnaissances.forEach(q => {
-            const originalType = q.type;
             // Parse donnees si nécessaire
             if (q.donnees && typeof q.donnees === 'string') {
                 try { q.donnees = JSON.parse(q.donnees); } catch(e) { q.donnees = {}; }
@@ -183,12 +181,6 @@ const AdminBanquesExercices = {
             // Si type vide/absent, inférer depuis la structure de donnees
             if (!q.type && q.donnees && typeof q.donnees === 'object') {
                 q.type = this.inferQuestionType(q.donnees);
-                if (q.type) {
-                    fixed++;
-                }
-            }
-            if (originalType && q.type !== String(originalType).trim().toLowerCase().replace(/[\s-]+/g, '_')) {
-                fixed++;
             }
         });
     },

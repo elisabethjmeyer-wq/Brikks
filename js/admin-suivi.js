@@ -111,8 +111,6 @@ const AdminSuivi = {
         const filteredEleves = this.getFilteredEleves();
         const uniqueElevesConnected = [...new Set(filteredConnexions.map(c => c.eleve_id))].length;
         const totalVisits = filteredConnexions.length;
-        const pendingCorrections = this.eleveTaches.filter(t => t.statut === 'soumis').length;
-
         // Get inactive students (no connection in 7+ days)
         const inactiveStudents = this.getInactiveStudents();
 

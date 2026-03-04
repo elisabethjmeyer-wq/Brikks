@@ -340,13 +340,6 @@ const EleveMethodologie = {
         const status = this.getItemStatus(item.id);
         const isExpanded = this.expandedItems.has(item.id);
 
-        const statusIcons = {
-            'new': '',
-            'in-progress': '🔄',
-            'completed': '✓',
-            'empty': ''
-        };
-
         const percent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
 
         // Lien vers le parcours

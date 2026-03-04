@@ -261,8 +261,6 @@ const AdminCompetences = {
     // ========== CRITERES MANAGEMENT ==========
     renderCriteresList() {
         var container = document.getElementById('criteresList');
-        var self = this;
-
         if (this.criteresTemp.length === 0) {
             container.innerHTML =
                 '<div class="criteres-empty">' +

@@ -217,7 +217,6 @@ const AdminMethodologie = {
 
         const children = this.getChildren(item.id);
         const hasChildren = children.length > 0;
-        const isContent = this.isContent(item);
         const contentType = this.getContentTypeLabel(item);
         const descendantCount = this.countDescendants(item.id);
 
@@ -540,7 +539,6 @@ const AdminMethodologie = {
         const ressources = [];
 
         items.forEach(item => {
-            const index = parseInt(item.dataset.index);
             const type = item.querySelector('.ressource-type')?.value || 'document';
             const titre = item.querySelector('.ressource-titre')?.value?.trim() || '';
             const url = item.querySelector('.ressource-url')?.value?.trim() || '';
@@ -851,8 +849,6 @@ const AdminMethodologie = {
 
     async saveNewOrder(parentContainer) {
         const container = document.getElementById('categories-container');
-        const isRoot = parentContainer === container;
-
         // Récupérer les IDs dans le nouvel ordre
         const items = parentContainer.querySelectorAll(':scope > .tree-item');
         const orderedIds = Array.from(items).map(item => item.dataset.id);

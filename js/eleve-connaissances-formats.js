@@ -1246,7 +1246,6 @@ Object.assign(EleveConnaissances, {
         if (!marker) return;
 
         const userAnswer = marker.getAttribute('data-user-answer') || '';
-        const correctAnswer = marker.getAttribute('data-correct-answer') || '';
         const isCorrect = marker.getAttribute('data-is-correct') === 'true';
         const hasAnswer = userAnswer.trim() !== '';
 
@@ -1580,7 +1579,7 @@ Object.assign(EleveConnaissances, {
         this.userAnswers[key] = value;
     },
 
-    extractFeedbackText(format, isCorrect, questionData, userAnswer, result = null) {
+    extractFeedbackText(format, isCorrect, questionData, userAnswer, _result = null) {
         switch (format) {
             case 'qcm':
                 if (isCorrect && questionData.feedback_correct) return questionData.feedback_correct;

@@ -319,7 +319,7 @@ Object.assign(AdminBanquesExercices, {
         const titleEl = document.getElementById('questionModalTitle');
         const typeSelect = document.getElementById('questionType');
         const titreProfInput = document.getElementById('questionTitreProf');
-        const builderContainer = document.getElementById('questionBuilder');
+        document.getElementById('questionBuilder');
 
         titleEl.textContent = question ? 'Modifier la question' : 'Nouvelle question';
 
@@ -621,7 +621,6 @@ Object.assign(AdminBanquesExercices, {
                     if (existingText.includes('{') && existingGaps.length === 0) {
                         const regex = /\{([^}]+)\}/g;
                         let match;
-                        let wordIndex = 0;
                         const words = cleanText.split(/(\s+)/);
                         while ((match = regex.exec(existingText)) !== null) {
                             const word = match[1];
