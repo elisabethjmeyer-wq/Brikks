@@ -107,7 +107,7 @@ const AdminLayout = {
                     <button class="top-bar-btn" title="Prévisualiser le site élève" onclick="AdminLayout.openPreview()">
                         👁️
                     </button>
-                    <button class="top-bar-btn notification-btn" title="Notifications" onclick="AdminLayout.goToSuivi()">
+                    <button class="top-bar-btn notification-btn" title="Copies à corriger" onclick="AdminLayout.goToCorrections()">
                         🔔
                         <span class="notification-badge" id="header-notification-badge" style="display:none;">0</span>
                     </button>
@@ -258,10 +258,10 @@ const AdminLayout = {
     },
 
     /**
-     * Redirige vers la page Suivi
+     * Redirige vers la page Corrections
      */
-    goToSuivi() {
-        window.location.href = '/Brikks/admin/suivi.html';
+    goToCorrections() {
+        window.location.href = '/Brikks/admin/corrections.html';
     },
 
     /**
