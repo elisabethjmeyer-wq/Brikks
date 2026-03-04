@@ -1541,6 +1541,16 @@ const AdminBanquesExercices = {
         const backupTaches = [...this.tachesComplexes];
         const backupBanquesComp = [...this.banquesCompetences];
 
+        // Identifier la banque de l'élément supprimé (pour renuméroter)
+        let deletedBanqueId = null;
+        if (type === 'exercice') {
+            const exo = this.exercices.find(e => e.id === id);
+            if (exo) deletedBanqueId = exo.banque_id;
+        } else if (type === 'tacheComplexe') {
+            const tc = this.tachesComplexes.find(t => t.id === id);
+            if (tc) deletedBanqueId = tc.banque_id;
+        }
+
         // Remove from local data immediately
         if (type === 'banque') {
             this.banques = this.banques.filter(b => b.id !== id);
@@ -1548,10 +1558,18 @@ const AdminBanquesExercices = {
             this.exercices = this.exercices.filter(e => e.banque_id !== id);
         } else if (type === 'exercice') {
             this.exercices = this.exercices.filter(e => e.id !== id);
+            // Renuméroter les exercices restants de la même banque
+            if (deletedBanqueId) {
+                this._renumberExercicesSF(deletedBanqueId);
+            }
         } else if (type === 'format') {
             this.formats = this.formats.filter(f => f.id !== id);
         } else if (type === 'tacheComplexe') {
             this.tachesComplexes = this.tachesComplexes.filter(t => t.id !== id);
+            // Renuméroter les entraînements restants de la même banque
+            if (deletedBanqueId) {
+                this._renumberEntrainementsComp(deletedBanqueId);
+            }
         } else if (type === 'banqueCompetence') {
             this.banquesCompetences = this.banquesCompetences.filter(b => b.id !== id);
             // Also remove associated entrainements
@@ -1612,6 +1630,42 @@ const AdminBanquesExercices = {
             }
             console.error('Erreur suppression:', error);
             alert('Erreur lors de la suppression');
+        }
+    },
+
+    // ========== RENUMÉROTATION APRÈS SUPPRESSION ==========
+
+    /** Renuméroter les exercices SF d'une banque (local + backend) */
+    _renumberExercicesSF(banqueId) {
+        const siblings = this.exercices
+            .filter(e => e.banque_id === banqueId)
+            .sort((a, b) => (a.numero || 0) - (b.numero || 0));
+        const newOrder = [];
+        siblings.forEach((exo, idx) => {
+            exo.numero = idx + 1;
+            newOrder.push({ id: exo.id, numero: idx + 1 });
+        });
+        if (newOrder.length > 0) {
+            this.callAPI('updateExercicesOrdre', {
+                exercices: JSON.stringify(newOrder)
+            }).catch(err => console.error('Erreur renumérotation SF:', err));
+        }
+    },
+
+    /** Renuméroter les entraînements compétences d'une banque (local + backend) */
+    _renumberEntrainementsComp(banqueId) {
+        const siblings = this.tachesComplexes
+            .filter(t => t.banque_id === banqueId)
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const newOrder = [];
+        siblings.forEach((tc, idx) => {
+            tc.ordre = idx + 1;
+            newOrder.push({ id: tc.id, ordre: idx + 1 });
+        });
+        if (newOrder.length > 0) {
+            this.callAPI('updateEntrainementsCompetencesOrdre', {
+                entrainements: JSON.stringify(newOrder)
+            }).catch(err => console.error('Erreur renumérotation compétences:', err));
         }
     },
 
