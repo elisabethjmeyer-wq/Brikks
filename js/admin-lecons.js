@@ -55,12 +55,6 @@ const AdminLecons = {
         this.chapitres = chapitres || [];
         this.supports = supports || [];
 
-        console.log('Données chargées:', {
-            disciplines: this.disciplines.length,
-            themes: this.themes.length,
-            chapitres: this.chapitres.length,
-            supports: this.supports.length
-        });
     },
 
     /**

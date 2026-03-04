@@ -370,7 +370,7 @@ const EleveCompetences = {
                 <div class="comp-card" onclick="EleveCompetences.openBanque('${banque.id}')">
                     <div class="comp-card-left">
                         <div class="comp-card-info">
-                            <h3 class="comp-card-title">${this.escapeHtml(banque.titre || compNom)}</h3>
+                            <h3 class="comp-card-title">${escapeHtml(banque.titre || compNom)}</h3>
                             <div class="comp-card-meta">
                                 ${metaParts.join('<span class="comp-meta-sep">·</span>')}
                             </div>
@@ -493,7 +493,7 @@ const EleveCompetences = {
                 <div class="comp-exercise-item ${exStatus.cssClass}" onclick="EleveCompetences.handleExerciseClick('${entr.id}')">
                     <div class="comp-exercise-num">${index + 1}</div>
                     <div class="comp-exercise-info">
-                        <div class="comp-exercise-title">${this.escapeHtml(entr.titre)}</div>
+                        <div class="comp-exercise-title">${escapeHtml(entr.titre)}</div>
                         <div class="comp-exercise-meta">
                             <span>⏱ ${dureeMin} min</span>
                         </div>
@@ -509,19 +509,19 @@ const EleveCompetences = {
             <nav class="comp-breadcrumb">
                 <span class="comp-breadcrumb-link" onclick="EleveCompetences.backToList()">Compétences</span>
                 <span class="comp-breadcrumb-sep">›</span>
-                <span class="comp-breadcrumb-current">${this.escapeHtml(banque.titre || compNom)}</span>
+                <span class="comp-breadcrumb-current">${escapeHtml(banque.titre || compNom)}</span>
             </nav>
 
             <div class="comp-detail-card">
                 <div class="comp-detail-header">
                     <div class="comp-detail-title-section">
-                        <h2 class="comp-detail-title">${this.escapeHtml(banque.titre || compNom)}</h2>
+                        <h2 class="comp-detail-title">${escapeHtml(banque.titre || compNom)}</h2>
                     </div>
                 </div>
 
                 ${compDesc ? `
                     <div class="comp-detail-description">
-                        <p>${this.escapeHtml(compDesc)}</p>
+                        <p>${escapeHtml(compDesc)}</p>
                     </div>
                 ` : ''}
 
@@ -624,7 +624,7 @@ const EleveCompetences = {
         this.currentEntrainement = entr;
 
         this._showChoiceModal(entr, {
-            title: this.escapeHtml(entr.titre),
+            title: escapeHtml(entr.titre),
             question: 'Comment veux-tu faire cet exercice ?',
             option1: { label: "M'entraîner", desc: 'Travaille \u00E0 ton rythme. Tu verras le corrig\u00E9 comment\u00E9 \u00E0 la fin.', mode: 'entrainement' },
             option2: { label: 'Être évalué(e)', desc: 'Soumets ta production pour validation par le professeur.', mode: 'evalue' }
@@ -699,7 +699,7 @@ const EleveCompetences = {
             <div class="comp-modal">
                 <div class="comp-modal-body">
                     <div class="comp-choice-info">
-                        <h3>${this.escapeHtml(entr.titre)}</h3>
+                        <h3>${escapeHtml(entr.titre)}</h3>
                         <p>Tu avais commencé cet entraînement${savedTimeStr ? ' (' + savedTimeStr + ' restantes)' : ''}.</p>
                     </div>
 
@@ -749,7 +749,7 @@ const EleveCompetences = {
             <div class="comp-modal">
                 <div class="comp-modal-body">
                     <div class="comp-choice-info">
-                        <h3>${this.escapeHtml(entr.titre)}</h3>
+                        <h3>${escapeHtml(entr.titre)}</h3>
                         <p>Tu as déjà terminé cet entraînement.</p>
                     </div>
 
@@ -951,13 +951,6 @@ const EleveCompetences = {
     // ==========================================
     // HELPERS
     // ==========================================
-
-    escapeHtml(str) {
-        if (!str) return '';
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    },
 
     formatTime(seconds) {
         const mins = Math.floor(Math.abs(seconds) / 60);

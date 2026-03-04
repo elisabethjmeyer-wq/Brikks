@@ -58,7 +58,6 @@ const AdminMethodologie = {
                 this.progression = [];
             }
         } catch (e) {
-            console.log('[AdminMethodologie] PROGRESSION_METHODOLOGIE non disponible');
             this.progression = [];
         }
 
@@ -70,12 +69,9 @@ const AdminMethodologie = {
                 this.bexConfig = [];
             }
         } catch (e) {
-            console.log('[AdminMethodologie] BEX_CONFIG non disponible, fonctionnalité désactivée');
             this.bexConfig = [];
         }
 
-        console.log('Items méthodologie chargés:', this.items.length);
-        console.log('BEX config chargé:', this.bexConfig.length);
     },
 
     populateBexSelects() {
@@ -106,7 +102,6 @@ const AdminMethodologie = {
             compSelect.appendChild(option);
         });
 
-        console.log('Selects BEX remplis:', bexSavoirFaire.length, 'SF,', bexCompetences.length, 'Comp');
     },
 
     showContent() {
@@ -244,8 +239,8 @@ const AdminMethodologie = {
                         ` : '<span class="tree-toggle-placeholder"></span>'}
                         <span class="tree-item-icon ${item.couleur || ''}">${item.icon || typeIcon}</span>
                         <div class="tree-item-info">
-                            <span class="tree-item-title">${this.escapeHtml(item.titre)}</span>
-                            ${item.description ? `<span class="tree-item-desc">${this.escapeHtml(item.description).substring(0, 50)}${item.description.length > 50 ? '...' : ''}</span>` : ''}
+                            <span class="tree-item-title">${escapeHtml(item.titre)}</span>
+                            ${item.description ? `<span class="tree-item-desc">${escapeHtml(item.description).substring(0, 50)}${item.description.length > 50 ? '...' : ''}</span>` : ''}
                         </div>
                     </div>
                     <div class="tree-item-right">
@@ -314,7 +309,7 @@ const AdminMethodologie = {
         if (parentId) {
             const parent = this.items.find(i => i.id === parentId);
             if (parent) {
-                parentInfo.innerHTML = `<span class="parent-badge">Dans : ${parent.icon || '📁'} ${this.escapeHtml(parent.titre)}</span>`;
+                parentInfo.innerHTML = `<span class="parent-badge">Dans : ${parent.icon || '📁'} ${escapeHtml(parent.titre)}</span>`;
                 parentInfo.style.display = 'block';
             }
         } else {
@@ -381,7 +376,7 @@ const AdminMethodologie = {
         if (item.parent_id) {
             const parent = this.items.find(i => i.id === item.parent_id);
             if (parent) {
-                parentInfo.innerHTML = `<span class="parent-badge">Dans : ${parent.icon || '📁'} ${this.escapeHtml(parent.titre)}</span>`;
+                parentInfo.innerHTML = `<span class="parent-badge">Dans : ${parent.icon || '📁'} ${escapeHtml(parent.titre)}</span>`;
                 parentInfo.style.display = 'block';
             }
         } else {
@@ -513,9 +508,9 @@ const AdminMethodologie = {
                         `).join('')}
                     </select>
                     <input type="text" class="ressource-titre" data-index="${index}"
-                           placeholder="Titre" value="${this.escapeHtml(ressource.titre || '')}">
+                           placeholder="Titre" value="${escapeHtml(ressource.titre || '')}">
                     <input type="url" class="ressource-url" data-index="${index}"
-                           placeholder="URL" value="${this.escapeHtml(ressource.url || '')}">
+                           placeholder="URL" value="${escapeHtml(ressource.url || '')}">
                 </div>
                 <button type="button" class="ressource-remove" onclick="AdminMethodologie.removeRessource(${index})" title="Supprimer">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -602,8 +597,6 @@ const AdminMethodologie = {
 
     // ========== DELETE ==========
     confirmDelete(itemId) {
-        console.log('confirmDelete appelé avec itemId:', itemId);
-
         if (!itemId || itemId === 'undefined' || itemId === 'null') {
             console.error('ID item invalide:', itemId);
             alert('Erreur: ID de l\'élément invalide');
@@ -619,7 +612,6 @@ const AdminMethodologie = {
         const descendantCount = this.countDescendants(itemId);
 
         this.deletingItem = itemId;
-        console.log('deletingItem défini à:', this.deletingItem);
 
         document.getElementById('deleteTitle').textContent = 'Supprimer cet élément ?';
         document.getElementById('deleteText').textContent = descendantCount > 0
@@ -630,8 +622,6 @@ const AdminMethodologie = {
     },
 
     async executeDelete() {
-        console.log('executeDelete appelé, deletingItem:', this.deletingItem);
-
         if (!this.deletingItem || this.deletingItem === 'undefined') {
             console.error('deletingItem invalide:', this.deletingItem);
             alert('Erreur: Aucun élément sélectionné pour suppression');
@@ -643,7 +633,6 @@ const AdminMethodologie = {
         btn.innerHTML = '<span class="spinner">⏳</span> Suppression...';
 
         try {
-            console.log('Appel WebApp deleteMethodologie avec id:', this.deletingItem);
             await this.callWebApp('deleteMethodologie', { id: this.deletingItem });
 
             await this.loadData();
@@ -825,7 +814,7 @@ const AdminMethodologie = {
                 }
             });
 
-            item.addEventListener('dragleave', (e) => {
+            item.addEventListener('dragleave', (_e) => {
                 if (!this.reorderMode) return;
                 item.classList.remove('drag-over', 'drag-over-bottom');
             });
@@ -929,13 +918,6 @@ const AdminMethodologie = {
 
             document.body.appendChild(script);
         });
-    },
-
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 

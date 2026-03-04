@@ -105,7 +105,7 @@ Object.assign(EleveCompetences, {
         const notification = document.createElement('div');
         notification.id = 'compNotification';
         notification.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:10000;padding:12px 20px;border-radius:8px;background:' + bgColor + ';border:1px solid ' + borderColor + ';color:' + textColor + ';font-size:14px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:90vw;';
-        notification.innerHTML = '<span>' + this.escapeHtml(message) + '</span>' +
+        notification.innerHTML = '<span>' + escapeHtml(message) + '</span>' +
             '<button style="background:none;border:none;cursor:pointer;font-size:18px;color:' + textColor + ';padding:0 4px;" onclick="this.parentElement.remove()">\u2715</button>';
         document.body.appendChild(notification);
 
@@ -139,7 +139,7 @@ Object.assign(EleveCompetences, {
                     <div class="comp-document-toolbar">
                         <span class="comp-document-title">\u{1F4C4} Sujet</span>
                         ${entrainement.document_legende ? `
-                            <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
+                            <span class="comp-document-legende">${escapeHtml(entrainement.document_legende)}</span>
                         ` : ''}
                     </div>
                     <div class="comp-document-richtext" id="compDocWrapper">
@@ -155,10 +155,10 @@ Object.assign(EleveCompetences, {
             <div class="comp-document-toolbar">
                 <span class="comp-document-title">\u{1F4C4} Sujet</span>
                 ${entrainement.document_legende ? `
-                    <span class="comp-document-legende">${this.escapeHtml(entrainement.document_legende)}</span>
+                    <span class="comp-document-legende">${escapeHtml(entrainement.document_legende)}</span>
                 ` : ''}
                 <div class="comp-document-actions">
-                    <a href="${this.escapeHtml(entrainement.document_url || '')}" target="_blank" class="comp-doc-btn" title="Ouvrir dans un nouvel onglet">\u2197\uFE0F</a>
+                    <a href="${escapeHtml(entrainement.document_url || '')}" target="_blank" class="comp-doc-btn" title="Ouvrir dans un nouvel onglet">\u2197\uFE0F</a>
                 </div>
             </div>
             <div class="comp-document-frame-wrapper" id="compDocWrapper">
@@ -206,7 +206,7 @@ Object.assign(EleveCompetences, {
 
     /** Formate une légende : escapeHtml + *italic* → <em> */
     _formatLegende(text) {
-        return this.escapeHtml(text).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        return escapeHtml(text).replace(/\*([^*]+)\*/g, '<em>$1</em>');
     },
 
     /** Rendu d'un bloc unique côté élève. */
@@ -222,7 +222,7 @@ Object.assign(EleveCompetences, {
 
         case 'document': {
             var embedUrl = this.getEmbedUrl(block.url);
-            var titre = block.titre ? '<div class="comp-block-titre">' + this.escapeHtml(block.titre) + '</div>' : '';
+            var titre = block.titre ? '<div class="comp-block-titre">' + escapeHtml(block.titre) + '</div>' : '';
             var legende = block.legende ? '<div class="comp-block-legende">' + this._formatLegende(block.legende) + '</div>' : '';
             return titre +
                 '<div class="comp-block-document">' +
@@ -231,7 +231,7 @@ Object.assign(EleveCompetences, {
                     : '<p class="comp-no-document">Document non disponible.</p>') +
                 '</div>' +
                 legende +
-                (block.url ? '<div class="comp-block-doc-link"><a href="' + this.escapeHtml(block.url) + '" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet \u2197</a></div>' : '');
+                (block.url ? '<div class="comp-block-doc-link"><a href="' + escapeHtml(block.url) + '" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet \u2197</a></div>' : '');
         }
 
         case 'image': {
@@ -241,7 +241,7 @@ Object.assign(EleveCompetences, {
             if (driveMatch) imgUrl = 'https://lh3.googleusercontent.com/d/' + driveMatch[1];
             var imgLegende = block.legende ? '<figcaption class="comp-block-legende">' + this._formatLegende(block.legende) + '</figcaption>' : '';
             return '<figure class="comp-block-image">' +
-                '<img src="' + this.escapeHtml(imgUrl) + '" alt="' + this.escapeHtml(block.legende || 'Image') + '">' +
+                '<img src="' + escapeHtml(imgUrl) + '" alt="' + escapeHtml(block.legende || 'Image') + '">' +
                 imgLegende +
                 '</figure>';
         }
@@ -260,7 +260,7 @@ Object.assign(EleveCompetences, {
             return '<div class="comp-block-video">' +
                 (embedVid
                     ? '<iframe src="' + embedVid + '" allowfullscreen frameborder="0"></iframe>'
-                    : '<a href="' + this.escapeHtml(vidUrl) + '" target="_blank">Voir la vid\u00E9o</a>') +
+                    : '<a href="' + escapeHtml(vidUrl) + '" target="_blank">Voir la vid\u00E9o</a>') +
                 '</div>' + vidLegende;
         }
 
@@ -300,7 +300,7 @@ Object.assign(EleveCompetences, {
             html += `
                 <div class="comp-inplace-corrige">
                     <h4>Proposition de corrig\u00E9</h4>
-                    <div class="comp-inplace-corrige-text">${this.escapeHtml(data.proposition)}</div>
+                    <div class="comp-inplace-corrige-text">${escapeHtml(data.proposition)}</div>
                 </div>
             `;
         }
@@ -309,7 +309,7 @@ Object.assign(EleveCompetences, {
             html += `
                 <div class="comp-inplace-corrige">
                     <div class="comp-corrige-header">
-                        <a href="${this.escapeHtml(data.url)}" target="_blank" rel="noopener" class="comp-corrige-link" title="Ouvrir dans un nouvel onglet">\u2197\uFE0F</a>
+                        <a href="${escapeHtml(data.url)}" target="_blank" rel="noopener" class="comp-corrige-link" title="Ouvrir dans un nouvel onglet">\u2197\uFE0F</a>
                     </div>
                     <div class="comp-corrige-doc">
                         <iframe src="${embedUrl}" class="comp-corrige-iframe" allowfullscreen></iframe>
@@ -441,7 +441,7 @@ Object.assign(EleveCompetences, {
                         <label class="comp-sidebar-critere-item">
                             <input type="checkbox" class="comp-sidebar-critere-checkbox" id="critere-${i}">
                             <span class="comp-sidebar-critere-check"></span>
-                            <span class="comp-sidebar-critere-text">${this.escapeHtml(cr.libelle)}</span>
+                            <span class="comp-sidebar-critere-text">${escapeHtml(cr.libelle)}</span>
                         </label>
                     `).join('')}
                 </div>
@@ -474,7 +474,7 @@ Object.assign(EleveCompetences, {
                 <div class="comp-exercise-topbar">
                     <button class="comp-exercise-back" onclick="EleveCompetences.confirmLeaveExercise()">\u2190</button>
                     <div class="comp-exercise-topbar-info">
-                        <h1>${this.escapeHtml(entrainement.titre)}</h1>
+                        <h1>${escapeHtml(entrainement.titre)}</h1>
                         <div class="comp-exercise-topbar-meta">
                             <span class="comp-mode-badge ${mode}">${modeBadgeLabel}</span>
                         </div>
@@ -488,7 +488,7 @@ Object.assign(EleveCompetences, {
                 ${consigneText ? `
                     <div class="comp-consigne-box">
                         <div class="comp-consigne-label">CONSIGNE</div>
-                        <div class="comp-consigne-text">${this.escapeHtml(consigneText)}</div>
+                        <div class="comp-consigne-text">${escapeHtml(consigneText)}</div>
                     </div>
                 ` : ''}
 
@@ -569,7 +569,7 @@ Object.assign(EleveCompetences, {
                 <div class="comp-result-header evaluation">
                     <div class="comp-result-icon">\u23F1</div>
                     <h2>Temps \u00E9coul\u00E9</h2>
-                    <p class="comp-result-subtitle">${this.escapeHtml(entrainement.titre)}</p>
+                    <p class="comp-result-subtitle">${escapeHtml(entrainement.titre)}</p>
                 </div>
                 <div class="comp-result-message">
                     <p class="comp-result-note">${submitFailed
@@ -686,7 +686,7 @@ Object.assign(EleveCompetences, {
             delaiMailMinutes: parseInt(entr.delai_mail_minutes) || 30,
             delaiPapierJours: parseInt(entr.delai_papier_jours) || 1,
             joursNonCours: joursNonCours,
-            escapeHtml: this.escapeHtml,
+            escapeHtml: escapeHtml,
             onSubmit: function(modeRendu) {
                 self.finishEntrainement(modeRendu);
             },
@@ -884,7 +884,7 @@ Object.assign(EleveCompetences, {
                     <div class="comp-exercise-topbar">
                         <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">\u2190</button>
                         <div class="comp-exercise-topbar-info">
-                            <h1>${this.escapeHtml(entrainement.titre)}</h1>
+                            <h1>${escapeHtml(entrainement.titre)}</h1>
                             <div class="comp-exercise-topbar-meta">
                                 <span class="comp-mode-badge ${mode}">${modeBadgeLabel}</span>
                                 <span class="comp-review-badge">Relecture</span>
@@ -928,7 +928,7 @@ Object.assign(EleveCompetences, {
                 </button>
                 <div class="comp-message-view">
                     <div class="comp-message-icon">\u{1F4DD}</div>
-                    <h2>${this.escapeHtml(entrainement.titre)}</h2>
+                    <h2>${escapeHtml(entrainement.titre)}</h2>
                     <p class="comp-message-text">Le corrig\u00E9 comment\u00E9 n'est pas encore disponible pour cet exercice.</p>
                 </div>
             `;
@@ -946,7 +946,7 @@ Object.assign(EleveCompetences, {
             <div class="comp-corrige-view">
                 <div class="comp-corrige-header">
                     <h2>Corrig\u00E9 comment\u00E9</h2>
-                    <p class="comp-corrige-subtitle">${this.escapeHtml(entrainement.titre)}</p>
+                    <p class="comp-corrige-subtitle">${escapeHtml(entrainement.titre)}</p>
                 </div>
 
                 ${correctionContent}
@@ -1131,7 +1131,7 @@ Object.assign(EleveCompetences, {
                 <div class="comp-exercise-topbar">
                     <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">←</button>
                     <div class="comp-exercise-topbar-info">
-                        <h1>${this.escapeHtml(entrainement.titre)}</h1>
+                        <h1>${escapeHtml(entrainement.titre)}</h1>
                         <div class="comp-exercise-topbar-meta">
                             <span class="comp-mode-badge ${mode}">${modeBadgeLabel}</span>
                             <span class="comp-review-badge">Relecture</span>
@@ -1173,7 +1173,7 @@ Object.assign(EleveCompetences, {
         html += '<h4 class="comp-prof-feedback-title">Retour du professeur</h4>';
 
         if (remarque) {
-            html += '<div class="comp-prof-remarque">' + this.escapeHtml(remarque) + '</div>';
+            html += '<div class="comp-prof-remarque">' + escapeHtml(remarque) + '</div>';
         }
 
         if (correction) {
@@ -1239,7 +1239,7 @@ Object.assign(EleveCompetences, {
                 ${competenceNom ? `
                 <div class="comp-result-section">
                     <div class="comp-result-section-label">Comp\u00E9tence \u00E9valu\u00E9e</div>
-                    <div class="comp-result-section-value">${this.escapeHtml(competenceNom)}</div>
+                    <div class="comp-result-section-value">${escapeHtml(competenceNom)}</div>
                 </div>
                 ` : ''}
 
@@ -1320,7 +1320,7 @@ Object.assign(EleveCompetences, {
                 <div class="comp-exercise-topbar">
                     <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">\u2190</button>
                     <div class="comp-exercise-topbar-info">
-                        <h1>${this.escapeHtml(entrainement.titre)}</h1>
+                        <h1>${escapeHtml(entrainement.titre)}</h1>
                         <div class="comp-exercise-topbar-meta">
                             <span class="comp-mode-badge evalue">\u00C9valuation</span>
                         </div>

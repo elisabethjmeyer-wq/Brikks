@@ -120,7 +120,7 @@ const EleveConnaissances = {
                 ...data,
                 timestamp: Date.now()
             }));
-        } catch (e) {}
+        } catch (e) { /* storage full or unavailable, ignore */ }
     },
 
     applyData(data) {
@@ -356,7 +356,7 @@ const EleveConnaissances = {
                     <button class="banque-accordion-header" onclick="EleveConnaissances.toggleBanque('${banque.id}')">
                         <div class="banque-chevron">▶</div>
                         <div class="banque-info">
-                            <div class="banque-title">${this.escapeHtml(banque.titre)}</div>
+                            <div class="banque-title">${escapeHtml(banque.titre)}</div>
                             <div class="banque-meta">
                                 ${banqueStats.total} entraînement${banqueStats.total > 1 ? 's' : ''} • ${banqueBadge}
                             </div>
@@ -544,7 +544,7 @@ const EleveConnaissances = {
             // Construire les métadonnées : durée + description si disponible
             let metaText = `${dureeMinutes} min`;
             if (ent.description) {
-                metaText += ` • ${this.escapeHtml(ent.description)}`;
+                metaText += ` • ${escapeHtml(ent.description)}`;
             }
 
             return `
@@ -553,7 +553,7 @@ const EleveConnaissances = {
                      data-entrainement-id="${ent.id}">
                     <div class="exercice-numero">${index + 1}</div>
                     <div class="exercice-info">
-                        <div class="exercice-titre">${this.escapeHtml(ent.titre || 'Entraînement ' + (index + 1))}</div>
+                        <div class="exercice-titre">${escapeHtml(ent.titre || 'Entraînement ' + (index + 1))}</div>
                         <div class="exercice-meta">${metaText}</div>
                     </div>
                     <div class="exercice-status-area">
@@ -736,7 +736,7 @@ const EleveConnaissances = {
                     <div class="exercise-header connaissances">
                         <div class="exercise-header-left">
                             <div class="exercise-header-info">
-                                <h1>${banque ? this.escapeHtml(banque.titre) : ''} - ${this.escapeHtml(ent.titre)}</h1>
+                                <h1>${banque ? escapeHtml(banque.titre) : ''} - ${escapeHtml(ent.titre)}</h1>
                                 <div class="exercise-header-meta">Étape ${this.currentEtapeIndex + 1}/${etapes.length}</div>
                             </div>
                         </div>
@@ -763,7 +763,7 @@ const EleveConnaissances = {
 
                     <!-- Titre de l'étape -->
                     <div class="etape-header">
-                        <h2>${this.escapeHtml(currentEtape.titre || 'Étape ' + (this.currentEtapeIndex + 1))}</h2>
+                        <h2>${escapeHtml(currentEtape.titre || 'Étape ' + (this.currentEtapeIndex + 1))}</h2>
                         <span class="qcm-header-counter" id="qcmHeaderCounter"></span>
                         <span class="etape-format-badge">${this.getFormatLabel(currentEtape.format_code)}</span>
                     </div>

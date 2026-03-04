@@ -48,6 +48,7 @@
         "EleveVideos": "readonly",
         "EleveCompetences": "readonly",
         "SubmissionUtils": "readonly",
-        "AdminCorrections": "readonly"
+        "AdminCorrections": "readonly",
+        "escapeHtml": "readonly"
     }
 }

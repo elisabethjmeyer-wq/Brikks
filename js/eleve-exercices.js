@@ -231,7 +231,7 @@ const EleveExercices = {
                 resultats,
                 timestamp: Date.now()
             }));
-        } catch (e) {}
+        } catch (e) { /* storage full or unavailable, ignore */ }
     },
 
     async loadResultats() {
@@ -242,7 +242,7 @@ const EleveExercices = {
                 this.resultats = result.data;
                 this.saveResultatsToCache(this.resultats);
             }
-        } catch (e) {}
+        } catch (e) { /* background load, silence errors */ }
     },
 
     async refreshResultatsInBackground() {
@@ -253,7 +253,7 @@ const EleveExercices = {
                 this.resultats = result.data;
                 this.saveResultatsToCache(this.resultats);
             }
-        } catch (e) {}
+        } catch (e) { /* background refresh, silence errors */ }
     },
 
     // ========================================
@@ -278,7 +278,7 @@ const EleveExercices = {
                 stats,
                 timestamp: Date.now()
             }));
-        } catch (e) {}
+        } catch (e) { /* storage full or unavailable, ignore */ }
     },
 
     async loadHistoriqueSF() {
@@ -326,7 +326,7 @@ const EleveExercices = {
                 this.statsSFBanque = this.mergeStatsBanque(this.statsSFBanque, newStatsBanque);
                 this.saveHistoriqueSFBanqueToCache(this.statsSFBanque);
             }
-        } catch (e) {}
+        } catch (e) { /* background refresh, silence errors */ }
     },
 
     // mergeStatsBanque, computeStatsBanqueFromStatsExercice, getBanqueStatusSF,
@@ -351,7 +351,7 @@ const EleveExercices = {
                 banques, exercices, formats,
                 timestamp: Date.now()
             }));
-        } catch (e) {}
+        } catch (e) { /* storage full or unavailable, ignore */ }
     },
 
     applyData(banques, exercices, formats) {
@@ -375,7 +375,7 @@ const EleveExercices = {
             const formats = formatsResult.success ? formatsResult.data : [];
             this.saveToCache(banques, exercices, formats);
             this.applyData(banques, exercices, formats);
-        } catch (error) {}
+        } catch (error) { /* background refresh, silence errors */ }
     },
 
     async loadData() {
@@ -571,7 +571,7 @@ const EleveExercices = {
                     <button class="banque-accordion-header" onclick="EleveExercices.toggleBanque('${banque.id}')">
                         <div class="banque-chevron">▶</div>
                         <div class="banque-info">
-                            <div class="banque-title">${this.escapeHtml(banque.titre)}</div>
+                            <div class="banque-title">${escapeHtml(banque.titre)}</div>
                             <div class="banque-meta">
                                 <span class="banque-status-message">${banqueMeta}</span>
                             </div>
@@ -633,7 +633,7 @@ const EleveExercices = {
                      onclick="EleveExercices.startExercise('${exo.id}')"
                      data-exercice-id="${exo.id}">
                     <div class="exercice-info">
-                        <div class="exercice-titre">${this.escapeHtml(exo.titre || 'Exercice')}</div>
+                        <div class="exercice-titre">${escapeHtml(exo.titre || 'Exercice')}</div>
                         <div class="exercice-meta">${banqueStatus.joursDepuis || ''}j sans pratiquer</div>
                     </div>
                     <div class="exercice-status-area">
@@ -680,7 +680,7 @@ const EleveExercices = {
                  data-exercice-id="${exo.id}">
                 <div class="exercice-numero">${reps + 1}</div>
                 <div class="exercice-info">
-                    <div class="exercice-titre">${this.escapeHtml(exo.titre || 'Exercice')}</div>
+                    <div class="exercice-titre">${escapeHtml(exo.titre || 'Exercice')}</div>
                     <div class="exercice-meta">${dureeMinutes ? dureeMinutes + ' min' : ''}</div>
                 </div>
                 <div class="exercice-status-area">
@@ -763,7 +763,7 @@ const EleveExercices = {
                     <button class="banque-accordion-header" onclick="EleveExercices.toggleBanque('${banque.id}')">
                         <div class="banque-chevron">▶</div>
                         <div class="banque-info">
-                            <div class="banque-title">${this.escapeHtml(banque.titre)}</div>
+                            <div class="banque-title">${escapeHtml(banque.titre)}</div>
                             <div class="banque-meta">${total} exercice${total !== 1 ? 's' : ''}</div>
                         </div>
                         <div class="banque-progress">
@@ -845,7 +845,7 @@ const EleveExercices = {
                      onclick="EleveExercices.startExercise('${exo.id}')">
                     <div class="exercice-numero">${exo.numero || '?'}</div>
                     <div class="exercice-info">
-                        <div class="exercice-titre">${this.escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</div>
+                        <div class="exercice-titre">${escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</div>
                         <div class="exercice-meta">
                             ${format ? format.nom : 'Format inconnu'}
                             ${exo.duree ? ` • ${Math.floor(exo.duree / 60)} min` : ''}
@@ -1000,7 +1000,7 @@ const EleveExercices = {
                     <div class="exercise-header ${this.currentType}">
                         <div class="exercise-header-left">
                             <div class="exercise-header-info">
-                                <h1>${banque ? this.escapeHtml(banque.titre) : ''} - ${this.escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</h1>
+                                <h1>${banque ? escapeHtml(banque.titre) : ''} - ${escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</h1>
                                 <div class="exercise-header-meta">${format ? format.nom : ''}</div>
                             </div>
                         </div>
@@ -1013,7 +1013,7 @@ const EleveExercices = {
 
                     ${exo.consigne ? `
                         <div class="exercise-consigne">
-                            ${this.escapeHtml(exo.consigne)}
+                            ${escapeHtml(exo.consigne)}
                         </div>
                     ` : ''}
 
@@ -1177,12 +1177,6 @@ const EleveExercices = {
         return FORMAT_HANDLERS[typeUI] || null;
     },
 
-    escapeHtml(str) {
-        if (!str) return '';
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    },
 
     convertToDirectImageUrl(url) {
         if (!url) return url;

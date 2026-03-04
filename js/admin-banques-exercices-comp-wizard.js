@@ -49,7 +49,7 @@ Object.assign(AdminBanquesExercices, {
                 '<div class="wizard-header">' +
                     '<div class="wizard-title">' +
                         '<h2>' + (tache ? '&#9998; Modifier l\'entra\u00EEnement' : '&#10133; Nouvel entra\u00EEnement') + '</h2>' +
-                        '<span class="wizard-subtitle">Comp\u00E9tences \u2022 ' + (tache ? this.escapeHtml(tache.titre) : 'Cr\u00E9ez un exercice') + '</span>' +
+                        '<span class="wizard-subtitle">Comp\u00E9tences \u2022 ' + (tache ? escapeHtml(tache.titre) : 'Cr\u00E9ez un exercice') + '</span>' +
                     '</div>' +
                     '<div class="wizard-steps">' +
                         '<button class="wizard-step active" data-step="1" onclick="AdminBanquesExercices.goToCompWizardStep(1)">' +
@@ -358,7 +358,7 @@ Object.assign(AdminBanquesExercices, {
                 '</div>' +
                 '<div class="form-group">' +
                     '<label>Titre de l\u2019exercice <span class="req">*</span></label>' +
-                    '<input type="text" class="form-input" id="cwTitre" value="' + this.escapeHtml(e.titre || '') + '" placeholder="Ex: Journal de Catherine Pozzi">' +
+                    '<input type="text" class="form-input" id="cwTitre" value="' + escapeHtml(e.titre || '') + '" placeholder="Ex: Journal de Catherine Pozzi">' +
                     '<div class="form-help">Titre court identifiant le document utilis\u00E9</div>' +
                 '</div>' +
                 '<div class="form-row">' +
@@ -402,7 +402,7 @@ Object.assign(AdminBanquesExercices, {
             '</div>' +
             '<div class="form-group">' +
                 '<label>Consigne <span class="optional">(optionnel)</span></label>' +
-                '<textarea class="form-textarea" id="cwDescription" rows="2" placeholder="Consigne pour l\u2019\u00E9l\u00E8ve...">' + this.escapeHtml(e.description || '') + '</textarea>' +
+                '<textarea class="form-textarea" id="cwDescription" rows="2" placeholder="Consigne pour l\u2019\u00E9l\u00E8ve...">' + escapeHtml(e.description || '') + '</textarea>' +
             '</div>' +
             '<div class="tb-tabs">' +
                 '<button type="button" class="tb-tab active" id="cwTabConstruction" onclick="AdminBanquesExercices._cwSwitchDocTab(\'construction\')">' +
@@ -534,7 +534,7 @@ Object.assign(AdminBanquesExercices, {
         var consigne = consigneEl ? consigneEl.value.trim() : '';
         var html = '';
         if (consigne) {
-            html += '<p class="tb-pv-consigne">' + this.escapeHtml(consigne) + '</p>';
+            html += '<p class="tb-pv-consigne">' + escapeHtml(consigne) + '</p>';
         }
 
         // Utiliser le même rendu que le côté élève
@@ -564,7 +564,7 @@ Object.assign(AdminBanquesExercices, {
     _renderPreviewBlock(block) {
         switch (block.type) {
         case 'text': {
-            var txtLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
+            var txtLegende = block.legende ? '<div class="comp-block-legende">' + escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
             return '<div class="comp-block-text">' +
                 '<div class="comp-block-text-content">' + (block.content || '') + '</div>' +
                 txtLegende +
@@ -574,8 +574,8 @@ Object.assign(AdminBanquesExercices, {
         case 'document': {
             var url = block.url || '';
             var embedUrl = this._getPreviewEmbedUrl(url);
-            var titre = block.titre ? '<div class="comp-block-titre">' + this.escapeHtml(block.titre) + '</div>' : '';
-            var legende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
+            var titre = block.titre ? '<div class="comp-block-titre">' + escapeHtml(block.titre) + '</div>' : '';
+            var legende = block.legende ? '<div class="comp-block-legende">' + escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
             return titre +
                 '<div class="comp-block-document">' +
                 (embedUrl
@@ -589,12 +589,12 @@ Object.assign(AdminBanquesExercices, {
             var imgUrl = block.url || '';
             var driveMatch = imgUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
             if (driveMatch) imgUrl = 'https://lh3.googleusercontent.com/d/' + driveMatch[1];
-            var imgLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
+            var imgLegende = block.legende ? '<div class="comp-block-legende">' + escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
             if (!block.url) {
                 return '<div class="comp-block-image"><div class="cw-preview-placeholder">Saisissez l\u2019URL de l\u2019image</div></div>' + imgLegende;
             }
             return '<div class="comp-block-image">' +
-                '<img src="' + this.escapeHtml(imgUrl) + '" alt="' + this.escapeHtml(block.legende || 'Image') + '">' +
+                '<img src="' + escapeHtml(imgUrl) + '" alt="' + escapeHtml(block.legende || 'Image') + '">' +
                 '</div>' + imgLegende;
         }
 
@@ -608,14 +608,14 @@ Object.assign(AdminBanquesExercices, {
                 var driveVid = vidUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
                 if (driveVid) embedVid = 'https://drive.google.com/file/d/' + driveVid[1] + '/preview';
             }
-            var vidLegende = block.legende ? '<div class="comp-block-legende">' + this.escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
+            var vidLegende = block.legende ? '<div class="comp-block-legende">' + escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>') + '</div>' : '';
             if (!block.url) {
                 return '<div class="comp-block-video"><div class="cw-preview-placeholder">Saisissez l\u2019URL de la vid\u00E9o</div></div>' + vidLegende;
             }
             return '<div class="comp-block-video">' +
                 (embedVid
                     ? '<iframe src="' + embedVid + '" allowfullscreen frameborder="0"></iframe>'
-                    : '<a href="' + this.escapeHtml(vidUrl) + '" target="_blank">Voir la vid\u00E9o</a>') +
+                    : '<a href="' + escapeHtml(vidUrl) + '" target="_blank">Voir la vid\u00E9o</a>') +
                 '</div>' + vidLegende;
         }
 
@@ -688,7 +688,7 @@ Object.assign(AdminBanquesExercices, {
             '<div class="source-panel" id="cwCorrectionUrlPanel"' + (corrMode !== 'url' ? ' style="display:none;"' : '') + '>' +
                 '<div class="form-group">' +
                     '<label>Lien Google Doc du corrig\u00E9</label>' +
-                    '<input type="text" class="form-input" id="cwCorrectionUrl" value="' + this.escapeHtml(corrUrl) + '" placeholder="https://docs.google.com/document/d/...">' +
+                    '<input type="text" class="form-input" id="cwCorrectionUrl" value="' + escapeHtml(corrUrl) + '" placeholder="https://docs.google.com/document/d/...">' +
                     '<div class="form-help">Collez le lien de partage du Google Doc (doit \u00EAtre accessible en lecture)</div>' +
                 '</div>' +
             '</div>' +
@@ -834,9 +834,9 @@ Object.assign(AdminBanquesExercices, {
             '</div>' +
             '<div class="cw-summary">' +
                 '<div class="summary-card">' +
-                    '<div class="summary-row"><span class="label">Banque</span><span class="value">' + this.escapeHtml(banqueLabel) + '</span></div>' +
-                    '<div class="summary-row"><span class="label">Titre</span><span class="value">' + this.escapeHtml(e.titre || '(vide)') + '</span></div>' +
-                    (e.description ? '<div class="summary-row"><span class="label">Consigne</span><span class="value">' + this.escapeHtml(e.description) + '</span></div>' : '') +
+                    '<div class="summary-row"><span class="label">Banque</span><span class="value">' + escapeHtml(banqueLabel) + '</span></div>' +
+                    '<div class="summary-row"><span class="label">Titre</span><span class="value">' + escapeHtml(e.titre || '(vide)') + '</span></div>' +
+                    (e.description ? '<div class="summary-row"><span class="label">Consigne</span><span class="value">' + escapeHtml(e.description) + '</span></div>' : '') +
                     '<div class="summary-row"><span class="label">Dur\u00E9e</span><span class="value">' + dureeMin + ' min</span></div>' +
                     '<div class="summary-row"><span class="label">Blocs de contenu</span><span class="value">' + nbDocBlocks + '</span></div>' +
                     '<div class="summary-row"><span class="label">Corrig\u00E9</span><span class="value">' + corrLabel + '</span></div>' +

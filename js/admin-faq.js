@@ -50,7 +50,6 @@ const AdminFAQ = {
             return (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0);
         });
 
-        console.log('FAQ chargée:', this.categories.length, 'catégories,', this.questions.length, 'questions');
     },
 
     /**
@@ -132,7 +131,7 @@ const AdminFAQ = {
                 return `
                     <div class="filter-option" data-value="${cat.id}">
                         <span class="filter-icon">${cat.icone || '📁'}</span>
-                        <span class="filter-name">${this.escapeHtml(cat.nom)}</span>
+                        <span class="filter-name">${escapeHtml(cat.nom)}</span>
                         <span class="filter-count">${count}</span>
                     </div>
                 `;
@@ -224,7 +223,7 @@ const AdminFAQ = {
             const catColor = category.couleur || '#6366f1';
             return `
                 <span class="tag" style="background: ${this.hexToRgba(catColor, 0.15)}; color: ${catColor};">
-                    ${category.icone || '📁'} ${this.escapeHtml(category.nom)}
+                    ${category.icone || '📁'} ${escapeHtml(category.nom)}
                 </span>
             `;
         }).join('');
@@ -241,7 +240,7 @@ const AdminFAQ = {
                         <span></span>
                     </div>
                     <div class="question-content">
-                        <div class="question-text">${this.escapeHtml(q.question)}</div>
+                        <div class="question-text">${escapeHtml(q.question)}</div>
                         <div class="question-tags">
                             ${categoryTagsHtml}
                             ${typeTagHtml}
@@ -370,7 +369,7 @@ const AdminFAQ = {
 
         // Texte
         if (text && (type === 'texte' || type === 'mixte')) {
-            html += `<p>${this.escapeHtml(text).replace(/\n/g, '</p><p>')}</p>`;
+            html += `<p>${escapeHtml(text).replace(/\n/g, '</p><p>')}</p>`;
         }
 
         // Vidéo
@@ -526,7 +525,7 @@ const AdminFAQ = {
                      data-id="${cat.id}"
                      onclick="AdminFAQ.toggleCategorySelection('${cat.id}')">
                     <span class="cat-icon">${cat.icone || '📁'}</span>
-                    <span class="cat-name">${this.escapeHtml(cat.nom)}</span>
+                    <span class="cat-name">${escapeHtml(cat.nom)}</span>
                     <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
@@ -756,7 +755,7 @@ const AdminFAQ = {
                 <div class="category-item" data-id="${cat.id}">
                     <div class="category-info">
                         <div class="category-item-icon">${cat.icone || '📁'}</div>
-                        <div class="category-name">${this.escapeHtml(cat.nom)}</div>
+                        <div class="category-name">${escapeHtml(cat.nom)}</div>
                     </div>
                     <div class="category-count">${questionsCount} question${questionsCount > 1 ? 's' : ''}</div>
                     <div class="category-actions">
@@ -840,7 +839,7 @@ const AdminFAQ = {
 
         if (questionsCount > 0) {
             document.getElementById('deleteConfirmText').innerHTML = `
-                <strong>"${this.escapeHtml(category.nom)}"</strong><br><br>
+                <strong>"${escapeHtml(category.nom)}"</strong><br><br>
                 <span style="color: #ef4444;">Attention : ${questionsCount} question(s) utilisent cette catégorie.
                 Ces questions perdront cette catégorie.</span>
             `;
@@ -964,15 +963,6 @@ const AdminFAQ = {
         });
     },
 
-    /**
-     * Échappe le HTML
-     */
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 };
 
 // Export global

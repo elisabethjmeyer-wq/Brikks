@@ -60,7 +60,6 @@ const EleveMethodologieParcours = {
                 this.bexConfig = [];
             }
         } catch (e) {
-            console.log('[EleveMethodologieParcours] BEX_CONFIG non disponible, fonctionnalité désactivée');
             this.bexConfig = [];
         }
     },
@@ -379,10 +378,10 @@ const EleveMethodologieParcours = {
                     <a href="methodologie.html">Méthodologie</a>
                     ${path.slice(0, -1).map(item => `
                         <span class="separator">›</span>
-                        <a href="methodologie.html">${item.icon || ''} ${this.escapeHtml(item.titre)}</a>
+                        <a href="methodologie.html">${item.icon || ''} ${escapeHtml(item.titre)}</a>
                     `).join('')}
                     <span class="separator">›</span>
-                    <span class="current">${this.escapeHtml(this.currentItem.titre)}</span>
+                    <span class="current">${escapeHtml(this.currentItem.titre)}</span>
                 </nav>
             </div>
 
@@ -403,7 +402,7 @@ const EleveMethodologieParcours = {
                 <aside class="parcours-sidebar">
                     <div class="sidebar-card">
                         <div class="sidebar-header">
-                            <h3>${path[0]?.icon || '📚'} ${this.escapeHtml(path[0]?.titre || 'Navigation')}</h3>
+                            <h3>${path[0]?.icon || '📚'} ${escapeHtml(path[0]?.titre || 'Navigation')}</h3>
                         </div>
 
                         <div class="tree-menu">
@@ -491,7 +490,7 @@ const EleveMethodologieParcours = {
                 <a href="methodologie-parcours.html?item=${item.id}"
                    class="tree-menu-item depth-${depth} ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}">
                     <span class="tree-menu-status">${isCompleted ? '✓' : '○'}</span>
-                    <span class="tree-menu-title">${this.escapeHtml(item.titre)}</span>
+                    <span class="tree-menu-title">${escapeHtml(item.titre)}</span>
                 </a>
             `;
         }
@@ -501,7 +500,7 @@ const EleveMethodologieParcours = {
             <div class="tree-menu-group depth-${depth} ${shouldBeOpen ? 'open' : ''}">
                 <div class="tree-menu-folder">
                     <span class="tree-menu-icon">${item.icon || '📁'}</span>
-                    <span class="tree-menu-title">${this.escapeHtml(item.titre)}</span>
+                    <span class="tree-menu-title">${escapeHtml(item.titre)}</span>
                     <span class="tree-menu-toggle">${hasChildren ? '▶' : ''}</span>
                 </div>
                 ${hasChildren ? `
@@ -516,8 +515,8 @@ const EleveMethodologieParcours = {
     renderVideoSection(embedUrl) {
         return `
             <div class="video-section">
-                <h1 class="content-title">${this.currentItem.icon || '🎬'} ${this.escapeHtml(this.currentItem.titre)}</h1>
-                ${this.currentItem.description ? `<p class="content-description">${this.escapeHtml(this.currentItem.description)}</p>` : ''}
+                <h1 class="content-title">${this.currentItem.icon || '🎬'} ${escapeHtml(this.currentItem.titre)}</h1>
+                ${this.currentItem.description ? `<p class="content-description">${escapeHtml(this.currentItem.description)}</p>` : ''}
                 <div class="video-container">
                     <iframe src="${embedUrl}" allowfullscreen allow="autoplay; encrypted-media"></iframe>
                 </div>
@@ -528,8 +527,8 @@ const EleveMethodologieParcours = {
     renderPlaceholder() {
         return `
             <div class="video-section">
-                <h1 class="content-title">${this.currentItem.icon || '📄'} ${this.escapeHtml(this.currentItem.titre)}</h1>
-                ${this.currentItem.description ? `<p class="content-description">${this.escapeHtml(this.currentItem.description)}</p>` : ''}
+                <h1 class="content-title">${this.currentItem.icon || '📄'} ${escapeHtml(this.currentItem.titre)}</h1>
+                ${this.currentItem.description ? `<p class="content-description">${escapeHtml(this.currentItem.description)}</p>` : ''}
             </div>
         `;
     },
@@ -550,7 +549,7 @@ const EleveMethodologieParcours = {
                         <a href="${doc.url}" class="download-item" target="_blank" rel="noopener">
                             <div class="download-icon">${this.getFileIcon(doc.titre)}</div>
                             <div class="download-info">
-                                <div class="download-name">${this.escapeHtml(doc.titre)}</div>
+                                <div class="download-name">${escapeHtml(doc.titre)}</div>
                                 ${doc.taille ? `<div class="download-size">${doc.taille}</div>` : ''}
                             </div>
                             <button class="download-btn">↓</button>
@@ -596,8 +595,8 @@ const EleveMethodologieParcours = {
 
         return `
             <div class="fiche-section">
-                <h1 class="content-title">${this.currentItem.icon || '📄'} ${this.escapeHtml(this.currentItem.titre)}</h1>
-                ${this.currentItem.description ? `<p class="content-description">${this.escapeHtml(this.currentItem.description)}</p>` : ''}
+                <h1 class="content-title">${this.currentItem.icon || '📄'} ${escapeHtml(this.currentItem.titre)}</h1>
+                ${this.currentItem.description ? `<p class="content-description">${escapeHtml(this.currentItem.description)}</p>` : ''}
 
                 <div class="fiche-container">
                     ${isGoogleDoc || isPdf ? `
@@ -627,10 +626,10 @@ const EleveMethodologieParcours = {
                     ${ressources.map((ressource, index) => `
                         <button class="ressource-btn" onclick="EleveMethodologieParcours.openRessource(${index})">
                             <span class="ressource-btn-icon">${this.getRessourceIcon(ressource.type)}</span>
-                            <span class="ressource-btn-text">${this.escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type))}</span>
+                            <span class="ressource-btn-text">${escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type))}</span>
                             <span class="ressource-btn-actions">
                                 <span class="ressource-action view" title="Voir">👁️</span>
-                                <span class="ressource-action download" title="Télécharger" onclick="event.stopPropagation(); EleveMethodologieParcours.downloadFile('${ressource.url}', '${this.escapeHtml(ressource.titre || 'document')}');">⬇️</span>
+                                <span class="ressource-action download" title="Télécharger" onclick="event.stopPropagation(); EleveMethodologieParcours.downloadFile('${ressource.url}', '${escapeHtml(ressource.titre || 'document')}');">⬇️</span>
                             </span>
                         </button>
                     `).join('')}
@@ -658,7 +657,7 @@ const EleveMethodologieParcours = {
                 content = `<a href="${ressource.url}" target="_blank" class="popup-external-link">Ouvrir la vidéo ↗</a>`;
             }
         } else if (ressource.type === 'image') {
-            content = `<img src="${ressource.url}" alt="${this.escapeHtml(ressource.titre || 'Image')}" />`;
+            content = `<img src="${ressource.url}" alt="${escapeHtml(ressource.titre || 'Image')}" />`;
         } else if (ressource.type === 'document') {
             // Tenter d'embedder les PDFs et Google Docs
             if (ressource.url.includes('docs.google.com') || ressource.url.includes('drive.google.com')) {
@@ -677,7 +676,7 @@ const EleveMethodologieParcours = {
             content = `<a href="${ressource.url}" target="_blank" class="popup-external-link">Ouvrir le lien ↗</a>`;
         }
 
-        const titre = this.escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type));
+        const titre = escapeHtml(ressource.titre || this.getRessourceLabel(ressource.type));
         popup.innerHTML = `
             <div class="ressource-popup">
                 <div class="ressource-popup-header">
@@ -715,7 +714,7 @@ const EleveMethodologieParcours = {
                             <div class="training-link-icon">🔧</div>
                             <div class="training-link-info">
                                 <div class="training-link-label">BEX Savoir-faire</div>
-                                <div class="training-link-title">${this.escapeHtml(bexInfo.titre)}</div>
+                                <div class="training-link-title">${escapeHtml(bexInfo.titre)}</div>
                             </div>
                             <span class="training-link-arrow">→</span>
                         </a>
@@ -725,7 +724,7 @@ const EleveMethodologieParcours = {
                             <div class="training-link-icon">🎯</div>
                             <div class="training-link-info">
                                 <div class="training-link-label">BEX Compétences</div>
-                                <div class="training-link-title">${this.escapeHtml(compInfo.titre)}</div>
+                                <div class="training-link-title">${escapeHtml(compInfo.titre)}</div>
                             </div>
                             <span class="training-link-arrow">→</span>
                         </a>
@@ -743,7 +742,7 @@ const EleveMethodologieParcours = {
                         <span class="arrow">←</span>
                         <div>
                             <div class="label">Précédent</div>
-                            <div class="title">${this.escapeHtml(prevContent.titre)}</div>
+                            <div class="title">${escapeHtml(prevContent.titre)}</div>
                         </div>
                     </a>
                 ` : '<div class="nav-btn disabled"></div>'}
@@ -752,7 +751,7 @@ const EleveMethodologieParcours = {
                     <a href="methodologie-parcours.html?item=${nextContent.id}" class="nav-btn next">
                         <div>
                             <div class="label">Suivant</div>
-                            <div class="title">${this.escapeHtml(nextContent.titre)}</div>
+                            <div class="title">${escapeHtml(nextContent.titre)}</div>
                         </div>
                         <span class="arrow">→</span>
                     </a>
@@ -894,19 +893,13 @@ const EleveMethodologieParcours = {
             container.innerHTML = `
                 <div class="empty-state">
                     <span class="empty-icon">⚠️</span>
-                    <p>${this.escapeHtml(message)}</p>
+                    <p>${escapeHtml(message)}</p>
                     <a href="methodologie.html" style="margin-top: 16px; color: var(--primary);">← Retour à la méthodologie</a>
                 </div>
             `;
         }
     },
 
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 };
 
 window.EleveMethodologieParcours = EleveMethodologieParcours;

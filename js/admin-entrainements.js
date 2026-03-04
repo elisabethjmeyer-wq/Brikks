@@ -84,7 +84,7 @@ const AdminEntrainements = {
         select.innerHTML = '<option value="">📚 Toutes les matières</option>' +
             this.disciplines.map(d => {
                 const emoji = d.emoji || '📖';
-                return `<option value="${d.id}">${emoji} ${this.escapeHtml(d.nom || d.id)}</option>`;
+                return `<option value="${d.id}">${emoji} ${escapeHtml(d.nom || d.id)}</option>`;
             }).join('');
     },
 
@@ -296,10 +296,10 @@ const AdminEntrainements = {
         }
 
         select.innerHTML = '<option value="">Sélectionner une banque...</option>' +
-            banques.map(b => `<option value="${b.id}">${this.escapeHtml(b.titre || 'Sans titre')}</option>`).join('');
+            banques.map(b => `<option value="${b.id}">${escapeHtml(b.titre || 'Sans titre')}</option>`).join('');
     },
 
-    onBanqueChange(banqueId) {
+    onBanqueChange(_banqueId) {
         this.updateConnQuestionsAvailable();
     },
 
@@ -351,7 +351,7 @@ const AdminEntrainements = {
                 return `
                     <label class="element-checkbox">
                         <input type="checkbox" value="${q.id}">
-                        <span class="element-checkbox-label">${this.escapeHtml(preview)}</span>
+                        <span class="element-checkbox-label">${escapeHtml(preview)}</span>
                     </label>
                 `;
             }).join('');
@@ -545,8 +545,8 @@ const AdminEntrainements = {
                             <span class="entrainement-card-type ${typeClass}">${typeLabels[typeClass] || typeClass}</span>
                             <span class="entrainement-card-status ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
                         </div>
-                        <h3 class="entrainement-card-title">${this.escapeHtml(entrainement.titre || 'Sans titre')}</h3>
-                        <p class="entrainement-card-chapter">${disciplineName ? disciplineName + ' • ' : ''}${this.escapeHtml(chapterName)}</p>
+                        <h3 class="entrainement-card-title">${escapeHtml(entrainement.titre || 'Sans titre')}</h3>
+                        <p class="entrainement-card-chapter">${disciplineName ? disciplineName + ' • ' : ''}${escapeHtml(chapterName)}</p>
                     </div>
                 </div>
                 <div class="entrainement-card-body">
@@ -733,7 +733,7 @@ const AdminEntrainements = {
     populateDisciplines() {
         const select = document.getElementById('entrainementDiscipline');
         select.innerHTML = '<option value="">Selectionner...</option>' +
-            this.disciplines.map(d => `<option value="${d.id}">${this.escapeHtml(d.nom || d.id)}</option>`).join('');
+            this.disciplines.map(d => `<option value="${d.id}">${escapeHtml(d.nom || d.id)}</option>`).join('');
     },
 
     onDisciplineChange(disciplineId, callback) {
@@ -750,7 +750,7 @@ const AdminEntrainements = {
 
         const themes = this.themes.filter(t => t.discipline_id === disciplineId);
         themeSelect.innerHTML = '<option value="">Selectionner un theme...</option>' +
-            themes.map(t => `<option value="${t.id}">${this.escapeHtml(t.nom || t.id)}</option>`).join('');
+            themes.map(t => `<option value="${t.id}">${escapeHtml(t.nom || t.id)}</option>`).join('');
         themeSelect.disabled = false;
 
         chapitreSelect.innerHTML = '<option value="">Selectionner d\'abord un theme...</option>';
@@ -770,7 +770,7 @@ const AdminEntrainements = {
 
         const chapitres = this.chapitres.filter(c => c.theme_id === themeId);
         chapitreSelect.innerHTML = '<option value="">Selectionner un chapitre...</option>' +
-            chapitres.map(c => `<option value="${c.id}">${this.escapeHtml(c.titre || c.id)}</option>`).join('');
+            chapitres.map(c => `<option value="${c.id}">${escapeHtml(c.titre || c.id)}</option>`).join('');
         chapitreSelect.disabled = false;
 
         if (callback) setTimeout(callback, 0);
@@ -872,7 +872,7 @@ const AdminEntrainements = {
             container.innerHTML = available.map(q => `
                 <label class="element-checkbox">
                     <input type="checkbox" value="${q.id}">
-                    <span class="element-checkbox-label">${this.escapeHtml(q.contenu?.substring(0, 80) || 'Sans contenu')}${q.contenu?.length > 80 ? '...' : ''}</span>
+                    <span class="element-checkbox-label">${escapeHtml(q.contenu?.substring(0, 80) || 'Sans contenu')}${q.contenu?.length > 80 ? '...' : ''}</span>
                 </label>
             `).join('');
         }
@@ -1241,13 +1241,6 @@ const AdminEntrainements = {
         });
     },
 
-    // ========== UTILS ==========
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 };
 
 // Initialize

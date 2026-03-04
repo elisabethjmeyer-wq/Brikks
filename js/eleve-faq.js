@@ -46,8 +46,6 @@ const EleveFAQ = {
             }
             return (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0);
         });
-
-        console.log('FAQ chargée:', this.questions.length, 'questions');
     },
 
     /**
@@ -78,7 +76,7 @@ const EleveFAQ = {
         if (!filter) return;
 
         const options = this.categories.map(cat =>
-            `<option value="${cat.id}">${cat.icone || '📁'} ${this.escapeHtml(cat.nom)}</option>`
+            `<option value="${cat.id}">${cat.icone || '📁'} ${escapeHtml(cat.nom)}</option>`
         ).join('');
 
         filter.innerHTML = `<option value="all">Toutes les catégories</option>${options}`;
@@ -129,7 +127,7 @@ const EleveFAQ = {
                 const questionsHtml = questions.map(q => `
                     <div class="faq-item" data-id="${q.id}">
                         <div class="faq-item-header" onclick="EleveFAQ.toggleQuestion('${q.id}')">
-                            <div class="faq-item-question">${this.escapeHtml(q.question)}</div>
+                            <div class="faq-item-question">${escapeHtml(q.question)}</div>
                             <span class="faq-item-chevron">▼</span>
                         </div>
                         <div class="faq-item-answer">
@@ -142,7 +140,7 @@ const EleveFAQ = {
                     <div class="faq-category-section">
                         <div class="faq-category-header">
                             <span class="faq-category-icon">${catIcon}</span>
-                            <span class="faq-category-name">${this.escapeHtml(catName)}</span>
+                            <span class="faq-category-name">${escapeHtml(catName)}</span>
                             <span class="faq-category-count">${questions.length}</span>
                         </div>
                         <div class="faq-category-questions">
@@ -205,7 +203,7 @@ const EleveFAQ = {
 
         // Texte
         if (text && (type === 'texte' || type === 'mixte' || !type)) {
-            html += `<p>${this.escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
+            html += `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>`;
         }
 
         // Vidéo
@@ -271,15 +269,6 @@ const EleveFAQ = {
         });
     },
 
-    /**
-     * Échappe le HTML
-     */
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 };
 
 // Export global

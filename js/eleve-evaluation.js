@@ -517,7 +517,7 @@ const EleveEvaluation = {
             <div class="qcm-item" id="qcm-${question.id}">
                 <div class="qcm-item-header">
                     <div class="qcm-item-number">${qIndex + 1}</div>
-                    <div class="qcm-item-question">${this.escapeHtml(question.question)}</div>
+                    <div class="qcm-item-question">${escapeHtml(question.question)}</div>
                 </div>
                 <div class="qcm-options">
                     ${shuffledOrder.map((originalIndex) => {
@@ -530,7 +530,7 @@ const EleveEvaluation = {
                                 <div class="qcm-radio">
                                     ${selectedOriginalIndex === originalIndex ? '●' : ''}
                                 </div>
-                                <span class="qcm-option-text">${this.escapeHtml(option)}</span>
+                                <span class="qcm-option-text">${escapeHtml(option)}</span>
                             </div>
                         `;
                     }).join('')}
@@ -590,7 +590,7 @@ const EleveEvaluation = {
                                 <div class="vrai-faux-item">
                                     <div class="vrai-faux-question">
                                         <span class="vrai-faux-number">${qIndex + 1}</span>
-                                        <span class="vrai-faux-text">${this.escapeHtml(q.question)}</span>
+                                        <span class="vrai-faux-text">${escapeHtml(q.question)}</span>
                                     </div>
                                     <div class="vrai-faux-buttons">
                                         <button class="vrai-faux-btn vrai ${answer === true ? 'selected' : ''}"
@@ -673,7 +673,7 @@ const EleveEvaluation = {
                                 <div class="qcm-item" id="qcm-${q.id}">
                                     <div class="qcm-item-header">
                                         <div class="qcm-item-number">${qIndex + 1}</div>
-                                        <div class="qcm-item-question">${this.escapeHtml(q.question)}</div>
+                                        <div class="qcm-item-question">${escapeHtml(q.question)}</div>
                                         <span class="qcm-item-hint">Plusieurs reponses possibles</span>
                                     </div>
                                     <div class="qcm-options">
@@ -686,7 +686,7 @@ const EleveEvaluation = {
                                                     <div class="qcm-checkbox">
                                                         ${isSelected ? 'V' : ''}
                                                     </div>
-                                                    <span class="qcm-option-text">${this.escapeHtml(option)}</span>
+                                                    <span class="qcm-option-text">${escapeHtml(option)}</span>
                                                 </div>
                                             `;
                                         }).join('')}
@@ -754,7 +754,7 @@ const EleveEvaluation = {
         const container = document.getElementById('exerciseContainer');
         const stepAnswers = this.answers[this.currentStepIndex] || {};
 
-        let texteHtml = this.escapeHtml(step.texte || step.titre);
+        let texteHtml = escapeHtml(step.texte || step.titre);
         const trous = step.trous || [];
 
         trous.forEach((trou, index) => {
@@ -765,7 +765,7 @@ const EleveEvaluation = {
                     <input type="text"
                            class="trou-input"
                            id="trou_${index}"
-                           value="${this.escapeHtml(userAnswer)}"
+                           value="${escapeHtml(userAnswer)}"
                            placeholder="${trou.indice || '...'}"
                            onchange="EleveEvaluation.updateTrou(${index}, this.value)">
                 </span>
@@ -868,7 +868,7 @@ const EleveEvaluation = {
                                     <div class="association-item ${isActive ? 'active' : ''} ${isConnected ? 'connected' : ''}"
                                          data-index="${index}"
                                          onclick="EleveEvaluation.selectAssociationLeft(${index})">
-                                        ${this.escapeHtml(p.gauche)}
+                                        ${escapeHtml(p.gauche)}
                                     </div>
                                 `;
                             }).join('')}
@@ -882,7 +882,7 @@ const EleveEvaluation = {
                                     <div class="association-item ${isConnected ? 'connected' : ''}"
                                          data-original="${item.originalIndex}"
                                          onclick="EleveEvaluation.selectAssociationRight(${item.originalIndex})">
-                                        ${this.escapeHtml(item.text)}
+                                        ${escapeHtml(item.text)}
                                     </div>
                                 `;
                             }).join('')}
@@ -990,7 +990,7 @@ const EleveEvaluation = {
                             return `
                                 <div class="ordonner-item" data-index="${elementIndex}">
                                     <span class="ordonner-position">${position + 1}</span>
-                                    <span class="ordonner-text">${this.escapeHtml(typeof element === 'object' ? element.titre || element.text : element)}</span>
+                                    <span class="ordonner-text">${escapeHtml(typeof element === 'object' ? element.titre || element.text : element)}</span>
                                     <div class="ordonner-controls">
                                         <button class="ordonner-btn" onclick="EleveEvaluation.moveOrdonner(${position}, -1)" ${position === 0 ? 'disabled' : ''}>^</button>
                                         <button class="ordonner-btn" onclick="EleveEvaluation.moveOrdonner(${position}, 1)" ${position === currentOrder.length - 1 ? 'disabled' : ''}>v</button>
@@ -1066,7 +1066,7 @@ const EleveEvaluation = {
                                 <div class="question-ouverte-item">
                                     <div class="question-ouverte-header">
                                         <div class="question-ouverte-number">${index + 1}</div>
-                                        <div class="question-ouverte-text">${this.escapeHtml(q.question)}</div>
+                                        <div class="question-ouverte-text">${escapeHtml(q.question)}</div>
                                     </div>
 
                                     <div class="question-ouverte-answer">
@@ -1075,7 +1075,7 @@ const EleveEvaluation = {
                                             placeholder="Ecrivez votre reponse ici..."
                                             onchange="EleveEvaluation.setQuestionOuverteAnswer('${q.id}', this.value)"
                                             oninput="EleveEvaluation.setQuestionOuverteAnswer('${q.id}', this.value)"
-                                        >${this.escapeHtml(answer)}</textarea>
+                                        >${escapeHtml(answer)}</textarea>
 
                                         ${q.keywords ? `
                                             <div class="question-ouverte-hint">
@@ -1164,7 +1164,7 @@ const EleveEvaluation = {
 
                         <div class="image-cliquable-question">
                             <div class="image-cliquable-question-icon">?</div>
-                            <div class="image-cliquable-question-text">${this.escapeHtml(currentQuestion.question)}</div>
+                            <div class="image-cliquable-question-text">${escapeHtml(currentQuestion.question)}</div>
                         </div>
                     ` : `
                         <div class="image-cliquable-complete">
@@ -1176,11 +1176,11 @@ const EleveEvaluation = {
                         <img src="${step.imageUrl}" alt="${step.titre}" class="image-cliquable-img" id="clickableImage"
                              onerror="this.onerror=null; this.src='https://placehold.co/1200x600/f0f0f0/666666?text=Image+non+disponible';">
                         <div class="image-cliquable-zones" id="clickableZones">
-                            ${step.zones.map((zone, zIndex) => `
+                            ${step.zones.map((zone, _zIndex) => `
                                 <div class="image-cliquable-zone"
                                      data-zone-id="${zone.id}"
                                      style="left: ${zone.x}%; top: ${zone.y}%; width: ${zone.width}%; height: ${zone.height}%;"
-                                     title="${this.escapeHtml(zone.label)}">
+                                     title="${escapeHtml(zone.label)}">
                                 </div>
                             `).join('')}
                         </div>
@@ -1482,12 +1482,6 @@ const EleveEvaluation = {
             .trim();
     },
 
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 };
 
 window.EleveEvaluation = EleveEvaluation;

@@ -231,7 +231,7 @@ const EleveMethodologie = {
 
             <!-- Search -->
             <div class="search-bar">
-                <input type="text" id="search-input" placeholder="Rechercher un parcours..." value="${this.escapeHtml(this.searchQuery)}">
+                <input type="text" id="search-input" placeholder="Rechercher un parcours..." value="${escapeHtml(this.searchQuery)}">
             </div>
 
             <!-- Filters -->
@@ -298,7 +298,7 @@ const EleveMethodologie = {
 
         // Image ou icône
         const visual = item.image_url
-            ? `<img src="${item.image_url}" alt="${this.escapeHtml(item.titre)}" class="parcours-image">`
+            ? `<img src="${item.image_url}" alt="${escapeHtml(item.titre)}" class="parcours-image">`
             : `<div class="parcours-icon ${item.couleur || 'blue'}">${item.icon || '📚'}</div>`;
 
         return `
@@ -308,8 +308,8 @@ const EleveMethodologie = {
                     ${statusBadge}
                 </div>
                 <div class="parcours-card-body">
-                    <h3 class="parcours-title">${this.escapeHtml(item.titre)}</h3>
-                    ${item.description ? `<p class="parcours-desc">${this.escapeHtml(item.description)}</p>` : ''}
+                    <h3 class="parcours-title">${escapeHtml(item.titre)}</h3>
+                    ${item.description ? `<p class="parcours-desc">${escapeHtml(item.description)}</p>` : ''}
                     <div class="parcours-meta">
                         <span class="parcours-lessons">${progress.total} leçon${progress.total > 1 ? 's' : ''}</span>
                         ${item.duree_estimee ? `<span class="parcours-duration">${item.duree_estimee}</span>` : ''}
@@ -374,8 +374,8 @@ const EleveMethodologie = {
                     <a href="${href}" class="tree-item-content">
                         <span class="tree-item-icon ${item.couleur || ''}">${item.icon || (isContent ? '🎬' : '📁')}</span>
                         <div class="tree-item-info">
-                            <span class="tree-item-title">${this.escapeHtml(item.titre)}</span>
-                            ${item.description ? `<span class="tree-item-desc">${this.escapeHtml(item.description).substring(0, 60)}${item.description.length > 60 ? '...' : ''}</span>` : ''}
+                            <span class="tree-item-title">${escapeHtml(item.titre)}</span>
+                            ${item.description ? `<span class="tree-item-desc">${escapeHtml(item.description).substring(0, 60)}${item.description.length > 60 ? '...' : ''}</span>` : ''}
                         </div>
                     </a>
 
@@ -466,12 +466,6 @@ const EleveMethodologie = {
         }
     },
 
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 };
 
 window.EleveMethodologie = EleveMethodologie;

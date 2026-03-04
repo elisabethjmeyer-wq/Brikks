@@ -62,7 +62,6 @@ const AdminRecommandations = {
             this.selectionMode = 'auto';
         }
 
-        console.log('Recommandations chargées:', this.recos.length);
     },
 
     /**
@@ -115,7 +114,7 @@ const AdminRecommandations = {
             const typeIcon = this.typeIcons[featuredReco.type] || '📌';
             const imageUrl = this.getDirectImageUrl(featuredReco.image_url);
             const imageHtml = imageUrl
-                ? `<img src="${imageUrl}" alt="${this.escapeHtml(featuredReco.titre)}">`
+                ? `<img src="${imageUrl}" alt="${escapeHtml(featuredReco.titre)}">`
                 : `<span class="type-icon">${typeIcon}</span>`;
 
             content.innerHTML = `
@@ -123,7 +122,7 @@ const AdminRecommandations = {
                     ${imageHtml}
                 </div>
                 <div class="current-reco-info">
-                    <div class="current-reco-title">${this.escapeHtml(featuredReco.titre)}</div>
+                    <div class="current-reco-title">${escapeHtml(featuredReco.titre)}</div>
                     <div class="current-reco-type">
                         <span class="badge">${typeIcon} ${this.capitalizeFirst(featuredReco.type || 'autre')}</span>
                         <span>•</span>
@@ -183,7 +182,7 @@ const AdminRecommandations = {
                         <div class="reco-info">
                             <div class="reco-title">
                                 ${isFeatured ? '<span class="star">⭐</span>' : ''}
-                                ${this.escapeHtml(reco.titre)}
+                                ${escapeHtml(reco.titre)}
                             </div>
                             <div class="reco-meta">
                                 <span class="type-badge">${typeIcon} ${this.capitalizeFirst(reco.type || 'autre')}</span>
@@ -519,7 +518,7 @@ const AdminRecommandations = {
                         <input type="radio" name="recoMode" value="${reco.id}"
                                ${this.selectionMode === 'manual' && this.featuredRecoId === reco.id ? 'checked' : ''}>
                         <div class="select-item-info">
-                            <div class="select-item-title">${typeIcon} ${this.escapeHtml(reco.titre)}</div>
+                            <div class="select-item-title">${typeIcon} ${escapeHtml(reco.titre)}</div>
                             <div class="select-item-type">${this.capitalizeFirst(reco.type || 'autre')} • ${this.formatDate(reco.date_publication)}</div>
                         </div>
                     </label>
@@ -647,16 +646,6 @@ const AdminRecommandations = {
     capitalizeFirst(str) {
         if (!str) return '';
         return str.charAt(0).toUpperCase() + str.slice(1);
-    },
-
-    /**
-     * Échappe le HTML
-     */
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     },
 
     /**

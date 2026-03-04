@@ -45,7 +45,6 @@ const EleveEvaluations = {
             const evaluationsData = await SheetsAPI.getSheetData('EVALUATIONS');
             this.evaluations = SheetsAPI.parseSheetData(evaluationsData);
         } catch (e) {
-            console.log('Table EVALUATIONS not found');
             this.evaluations = [];
         }
 
@@ -55,7 +54,6 @@ const EleveEvaluations = {
             this.resultats = SheetsAPI.parseSheetData(resultatsData)
                 .filter(r => r.eleve_id === this.currentUserId);
         } catch (e) {
-            console.log('Table EVALUATION_RESULTATS not found');
             this.resultats = [];
         }
 
@@ -203,7 +201,7 @@ const EleveEvaluations = {
                 <div class="eval-card-icon ${config.color}">${config.icon}</div>
                 <div class="eval-card-content">
                     <div class="eval-card-title">
-                        ${this.escapeHtml(title)}
+                        ${escapeHtml(title)}
                         ${statusBadge}
                     </div>
                     <div class="eval-card-meta">
@@ -252,12 +250,6 @@ const EleveEvaluations = {
         }
     },
 
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
 };
 
 // Initialize

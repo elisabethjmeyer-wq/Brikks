@@ -375,13 +375,13 @@ Object.assign(EleveExercices, {
                 const statusClass = isOpenQuestion ? 'open' : (isCorrect ? 'correct' : 'incorrect');
                 const statusIcon = isOpenQuestion ? '📝' : (isCorrect ? '✅' : '❌');
                 const userAnswer = detail.reponseUtilisateur || '';
-                const displayUserAnswer = userAnswer.trim() === '' ? '<span class="empty-answer">Non répondu</span>' : this.escapeHtml(userAnswer);
+                const displayUserAnswer = userAnswer.trim() === '' ? '<span class="empty-answer">Non répondu</span>' : escapeHtml(userAnswer);
 
                 html += `
                     <tr class="correction-row ${statusClass}">
-                        <td class="col-question">${this.escapeHtml(detail.question)}</td>
+                        <td class="col-question">${escapeHtml(detail.question)}</td>
                         <td class="col-reponse ${statusClass}">${displayUserAnswer}</td>
-                        <td class="col-attendue">${this.escapeHtml(detail.reponseAttendue)}</td>
+                        <td class="col-attendue">${escapeHtml(detail.reponseAttendue)}</td>
                         <td class="col-status"><span class="status-icon">${statusIcon}</span></td>
                     </tr>
                 `;

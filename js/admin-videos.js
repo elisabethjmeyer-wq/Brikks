@@ -62,7 +62,6 @@ const AdminVideos = {
             this.selectionMode = 'auto';
         }
 
-        console.log('Vidéos chargées:', this.videos.length, this.videos.map(v => ({ id: v.id, titre: v.titre })));
     },
 
     /**
@@ -118,7 +117,7 @@ const AdminVideos = {
                     <div class="play-icon">▶</div>
                 </div>
                 <div class="current-video-info">
-                    <div class="current-video-title">${this.escapeHtml(featuredVideo.titre)}</div>
+                    <div class="current-video-title">${escapeHtml(featuredVideo.titre)}</div>
                     <div class="current-video-date">Ajoutée le ${this.formatDate(featuredVideo.date_publication)}</div>
                 </div>
                 <div class="current-video-actions">
@@ -180,12 +179,12 @@ const AdminVideos = {
                         <div class="video-info">
                             <div class="video-title">
                                 ${isFeatured ? '<span class="star">⭐</span>' : ''}
-                                ${this.escapeHtml(video.titre)}
+                                ${escapeHtml(video.titre)}
                                 ${hasMessage ? '<span class="video-has-message">📝 Message</span>' : ''}
                             </div>
                             <div class="video-meta">
                                 <span>${this.formatDate(video.date_publication)}</span>
-                                ${video.tags ? `<span>•</span><span>${this.escapeHtml(video.tags)}</span>` : ''}
+                                ${video.tags ? `<span>•</span><span>${escapeHtml(video.tags)}</span>` : ''}
                             </div>
                         </div>
                         <div class="video-actions">
@@ -387,7 +386,7 @@ const AdminVideos = {
      */
     textToHtml(text) {
         if (!text) return '';
-        return this.escapeHtml(text).replace(/\n/g, '<br>');
+        return escapeHtml(text).replace(/\n/g, '<br>');
     },
 
     /**
@@ -512,8 +511,6 @@ const AdminVideos = {
      * Ouvre le modal de confirmation de suppression
      */
     confirmDelete(videoId) {
-        console.log('confirmDelete appelé avec videoId:', videoId);
-
         if (!videoId || videoId === 'undefined' || videoId === 'null') {
             console.error('ID vidéo invalide:', videoId);
             alert('Erreur: ID de la vidéo invalide');
@@ -527,7 +524,6 @@ const AdminVideos = {
         }
 
         this.deletingVideoId = videoId;
-        console.log('deletingVideoId défini à:', this.deletingVideoId);
 
         document.getElementById('deleteConfirmText').textContent =
             `Voulez-vous vraiment supprimer "${video.titre}" ?`;
@@ -546,8 +542,6 @@ const AdminVideos = {
      * Supprime une vidéo
      */
     async deleteVideo() {
-        console.log('deleteVideo appelé, deletingVideoId:', this.deletingVideoId);
-
         if (!this.deletingVideoId || this.deletingVideoId === 'undefined') {
             console.error('deletingVideoId invalide:', this.deletingVideoId);
             alert('Erreur: Aucune vidéo sélectionnée pour suppression');
@@ -559,7 +553,6 @@ const AdminVideos = {
         deleteBtn.textContent = 'Suppression...';
 
         try {
-            console.log('Appel WebApp deleteVideo avec id:', this.deletingVideoId);
             await this.callWebApp('deleteVideo', { id: this.deletingVideoId });
 
             // Vider le cache pour que les modifications soient visibles immédiatement
@@ -633,7 +626,7 @@ const AdminVideos = {
                     <input type="radio" name="videoMode" value="${video.id}"
                            ${this.selectionMode === 'manual' && this.featuredVideoId === video.id ? 'checked' : ''}>
                     <div class="select-item-info">
-                        <div class="select-item-title">${this.escapeHtml(video.titre)}</div>
+                        <div class="select-item-title">${escapeHtml(video.titre)}</div>
                         <div class="select-item-date">${this.formatDate(video.date_publication)}</div>
                     </div>
                 </label>
@@ -775,19 +768,9 @@ const AdminVideos = {
      */
     formatDescription(text) {
         if (!text) return '';
-        return this.escapeHtml(text)
+        return escapeHtml(text)
             .replace(/\n/g, '<br>')
             .replace(/^•/gm, '•');
-    },
-
-    /**
-     * Échappe le HTML
-     */
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };
 

@@ -57,13 +57,6 @@ const EleveLecons = {
             (c.statut || '').toLowerCase() === 'publie'
         );
         this.progression = progression || [];
-
-        console.log('Données chargées (élève):', {
-            disciplines: this.disciplines.length,
-            themes: this.themes.length,
-            chapitres: this.chapitres.length,
-            progression: this.progression.length
-        });
     },
 
     /**

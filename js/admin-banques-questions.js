@@ -232,7 +232,7 @@ const AdminBanquesQuestions = {
             return `
                 <div class="banque-card" data-id="${b.id}">
                     <div class="banque-info">
-                        <div class="banque-title">${this.escapeHtml(b.titre)}</div>
+                        <div class="banque-title">${escapeHtml(b.titre)}</div>
                         <div class="banque-meta">
                             <span>📝 ${questionsCount} question${questionsCount > 1 ? 's' : ''}</span>
                             ${theme ? `<span>📚 ${theme.nom}</span>` : ''}
@@ -271,7 +271,7 @@ const AdminBanquesQuestions = {
                 <div class="question-item" data-id="${q.id}">
                     <div class="question-content">
                         <span class="question-type-badge ${q.type}">${this.getTypeLabel(q.type)}</span>
-                        <div class="question-text">${this.escapeHtml(displayText)}</div>
+                        <div class="question-text">${escapeHtml(displayText)}</div>
                     </div>
                     <div class="question-actions">
                         <button class="btn-icon btn-edit-question" title="Modifier">✏️</button>
@@ -499,7 +499,7 @@ const AdminBanquesQuestions = {
             try { options = JSON.parse(options); } catch (e) { options = []; }
         }
         if (typeof reponse === 'string') {
-            try { reponse = JSON.parse(reponse); } catch (e) { }
+            try { reponse = JSON.parse(reponse); } catch (e) { /* parse error expected, keep as string */ }
         }
 
         switch (type) {
@@ -507,7 +507,7 @@ const AdminBanquesQuestions = {
                 document.getElementById('qcmQuestion').value = question.question || '';
                 document.getElementById('qcmOptions').innerHTML = '';
                 if (Array.isArray(options)) {
-                    options.forEach((opt, i) => {
+                    options.forEach((opt, _i) => {
                         this.addQcmOption(opt, opt === reponse);
                     });
                 }
@@ -699,7 +699,7 @@ const AdminBanquesQuestions = {
         div.className = 'qcm-option';
         div.innerHTML = `
             <input type="radio" name="${name}" ${isCorrect ? 'checked' : ''}>
-            <input type="text" class="form-input" value="${this.escapeHtml(text)}" placeholder="Option ${index + 1}">
+            <input type="text" class="form-input" value="${escapeHtml(text)}" placeholder="Option ${index + 1}">
             <button type="button" class="btn-remove">×</button>
         `;
         container.appendChild(div);
@@ -713,9 +713,9 @@ const AdminBanquesQuestions = {
         const div = document.createElement('div');
         div.className = 'chrono-pair';
         div.innerHTML = `
-            <input type="text" class="form-input chrono-date" value="${this.escapeHtml(date)}" placeholder="Date (ex: 1492)">
+            <input type="text" class="form-input chrono-date" value="${escapeHtml(date)}" placeholder="Date (ex: 1492)">
             <span>↔</span>
-            <input type="text" class="form-input chrono-event" value="${this.escapeHtml(evenement)}" placeholder="Événement">
+            <input type="text" class="form-input chrono-event" value="${escapeHtml(evenement)}" placeholder="Événement">
             <button type="button" class="btn-remove">×</button>
         `;
         container.appendChild(div);
@@ -727,7 +727,7 @@ const AdminBanquesQuestions = {
         div.className = 'timeline-event';
         div.innerHTML = `
             <span class="drag-handle">⋮⋮</span>
-            <input type="text" class="form-input" value="${this.escapeHtml(text)}" placeholder="Événement">
+            <input type="text" class="form-input" value="${escapeHtml(text)}" placeholder="Événement">
             <button type="button" class="btn-remove">×</button>
         `;
         container.appendChild(div);
@@ -738,9 +738,9 @@ const AdminBanquesQuestions = {
         const div = document.createElement('div');
         div.className = 'assoc-pair';
         div.innerHTML = `
-            <input type="text" class="form-input assoc-gauche" value="${this.escapeHtml(gauche)}" placeholder="Élément gauche">
+            <input type="text" class="form-input assoc-gauche" value="${escapeHtml(gauche)}" placeholder="Élément gauche">
             <span>↔</span>
-            <input type="text" class="form-input assoc-droite" value="${this.escapeHtml(droite)}" placeholder="Élément droit">
+            <input type="text" class="form-input assoc-droite" value="${escapeHtml(droite)}" placeholder="Élément droit">
             <button type="button" class="btn-remove">×</button>
         `;
         container.appendChild(div);
@@ -823,7 +823,7 @@ const AdminBanquesQuestions = {
         container.innerHTML = this.carteBuilder.marqueurs.map((m, i) => `
             <div class="carte-marker-preview"
                  style="left: ${m.x}%; top: ${m.y}%;"
-                 title="Marqueur ${i + 1}: ${this.escapeHtml(m.reponse)}">
+                 title="Marqueur ${i + 1}: ${escapeHtml(m.reponse)}">
                 ${i + 1}
             </div>
         `).join('');
@@ -866,9 +866,9 @@ const AdminBanquesQuestions = {
                 <span class="marqueur-num">${i + 1}</span>
                 <div class="marqueur-coords">X: ${m.x}% Y: ${m.y}%</div>
                 <input type="text" class="form-input marqueur-reponse" data-index="${i}"
-                       value="${this.escapeHtml(m.reponse)}" placeholder="Réponse principale...">
+                       value="${escapeHtml(m.reponse)}" placeholder="Réponse principale...">
                 <input type="text" class="form-input marqueur-alternatives" data-index="${i}"
-                       value="${this.escapeHtml((m.reponses_acceptees || []).join(', '))}"
+                       value="${escapeHtml((m.reponses_acceptees || []).join(', '))}"
                        placeholder="Réponses alternatives (séparées par virgule)">
                 <button type="button" class="btn-icon danger" onclick="AdminBanquesQuestions.removeCarteMarqueur(${i})">×</button>
             </div>
@@ -948,13 +948,6 @@ const AdminBanquesQuestions = {
     },
 
     // ========== HELPERS ==========
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
-
     getTypeLabel(type) {
         const labels = {
             'qcm': 'QCM',

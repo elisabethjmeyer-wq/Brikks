@@ -499,7 +499,7 @@ Object.assign(EleveConnaissances, {
      * Affiche un carousel multi-question pour les formats:
      * texte_trou, association, chronologie, timeline, carte
      */
-    renderMultiFormat(format, donnees, questions) {
+    renderMultiFormat(format, donnees, _questions) {
         const multiQ = donnees.multiQuestions;
         this._multiFormatState = {
             format: format,
@@ -868,14 +868,14 @@ Object.assign(EleveConnaissances, {
                     const studentText = getChipText(chipId);
                     if (isCorrect) {
                         label.className = 'assoc-paired-label assoc-label-success';
-                        label.innerHTML = `<span class="assoc-answer-ok">✓ ${this.escapeHtml(correctText)}</span>`;
+                        label.innerHTML = `<span class="assoc-answer-ok">✓ ${escapeHtml(correctText)}</span>`;
                     } else {
                         label.className = 'assoc-paired-label assoc-label-error';
-                        label.innerHTML = `<span class="assoc-answer-wrong">✗ ${this.escapeHtml(studentText)}</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+                        label.innerHTML = `<span class="assoc-answer-wrong">✗ ${escapeHtml(studentText)}</span><span class="assoc-answer-right">→ ${escapeHtml(correctText)}</span>`;
                     }
                 } else {
                     label.className = 'assoc-paired-label assoc-label-error';
-                    label.innerHTML = `<span class="assoc-answer-wrong">✗ Non répondu</span><span class="assoc-answer-right">→ ${this.escapeHtml(correctText)}</span>`;
+                    label.innerHTML = `<span class="assoc-answer-wrong">✗ Non répondu</span><span class="assoc-answer-right">→ ${escapeHtml(correctText)}</span>`;
                 }
             });
         }

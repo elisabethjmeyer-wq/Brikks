@@ -69,11 +69,6 @@ const AdminUtilisateurs = {
             this.groupesMap[g.id] = g.nom || g.id;
         });
 
-        console.log('Données chargées:', {
-            users: this.users.length,
-            classes: this.classes.length,
-            groupes: this.groupes.length
-        });
     },
 
     /**

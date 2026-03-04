@@ -37,12 +37,6 @@ const AdminSuivi = {
             this.eleveTaches = eleveTaches || [];
             this.tachesComplexes = tachesComplexes || [];
 
-            console.log('[AdminSuivi] Données chargées:', {
-                eleves: this.eleves.length,
-                connexions: this.connexions.length,
-                eleveTaches: this.eleveTaches.length,
-                tachesComplexes: this.tachesComplexes.length
-            });
         } catch (error) {
             console.error('Erreur chargement données suivi:', error);
         }
@@ -56,7 +50,6 @@ const AdminSuivi = {
             return await SheetsAPI.fetchAndParse(sheetName);
         } catch (error) {
             // La feuille n'existe pas encore (sera créée au premier tracking)
-            console.log(`[AdminSuivi] Feuille ${sheetName} non trouvée (normal si pas encore de données)`);
             return [];
         }
     },
@@ -294,7 +287,7 @@ const AdminSuivi = {
                                 <td>
                                     <div class="student-cell">
                                         <div class="student-avatar small">${this.getInitials(s.name)}</div>
-                                        <span>${this.escapeHtml(s.name)}</span>
+                                        <span>${escapeHtml(s.name)}</span>
                                     </div>
                                 </td>
                                 <td>${s.classe || '-'}</td>
@@ -344,7 +337,7 @@ const AdminSuivi = {
                     <div>
                         <h1>
                             <div class="student-avatar large">${this.getInitials(studentName)}</div>
-                            ${this.escapeHtml(studentName)}
+                            ${escapeHtml(studentName)}
                         </h1>
                         <p class="page-subtitle">${student.classe_id || 'Classe non définie'} • Dernière connexion : ${stats.lastConnection ? this.formatRelativeTime(stats.lastConnection) : 'Jamais'}</p>
                     </div>
@@ -441,7 +434,7 @@ const AdminSuivi = {
                                 return `
                                     <div class="training-item">
                                         <div class="training-info">
-                                            <div class="training-name">${tache ? this.escapeHtml(tache.titre) : 'Tâche inconnue'}</div>
+                                            <div class="training-name">${tache ? escapeHtml(tache.titre) : 'Tâche inconnue'}</div>
                                             <div class="training-meta">
                                                 <span class="mode-badge ${t.mode === 'points_bonus' ? 'bonus' : 'training'}">
                                                     ${t.mode === 'points_bonus' ? '⭐ Points bonus' : '📚 Entraînement'}
@@ -551,7 +544,7 @@ const AdminSuivi = {
                     <div class="correction-form-field">
                         <label>Remarque pour l'élève (optionnel)</label>
                         <textarea class="correction-remarque" id="remarque-${tache.id}" rows="2"
-                            placeholder="Ex: Bonne analyse du doc 1, mais attention à croiser les sources...">${this.escapeHtml(existingRemarque)}</textarea>
+                            placeholder="Ex: Bonne analyse du doc 1, mais attention à croiser les sources...">${escapeHtml(existingRemarque)}</textarea>
                     </div>
                     <div class="correction-form-field">
                         <label>Corrigé personnalisé (optionnel)</label>
@@ -580,7 +573,7 @@ const AdminSuivi = {
             `;
         } else if (state === 'corrected') {
             const remarqueHTML = existingRemarque
-                ? `<div class="correction-existing-remarque"><strong>Remarque :</strong> ${this.escapeHtml(existingRemarque)}</div>` : '';
+                ? `<div class="correction-existing-remarque"><strong>Remarque :</strong> ${escapeHtml(existingRemarque)}</div>` : '';
             const correctionHTML = existingCorrection
                 ? `<div class="correction-existing-link">📎 Corrigé personnalisé joint</div>` : '';
 
@@ -601,7 +594,7 @@ const AdminSuivi = {
             `;
         } else if (state === 'not_validated') {
             const remarqueHTML = existingRemarque
-                ? `<div class="correction-existing-remarque"><strong>Remarque :</strong> ${this.escapeHtml(existingRemarque)}</div>` : '';
+                ? `<div class="correction-existing-remarque"><strong>Remarque :</strong> ${escapeHtml(existingRemarque)}</div>` : '';
             const correctionHTML = existingCorrection
                 ? `<div class="correction-existing-link">📎 Corrigé personnalisé joint</div>` : '';
 
@@ -619,7 +612,7 @@ const AdminSuivi = {
             `;
         } else {
             const remarqueHTML = existingRemarque
-                ? `<div class="correction-existing-remarque"><strong>Remarque :</strong> ${this.escapeHtml(existingRemarque)}</div>` : '';
+                ? `<div class="correction-existing-remarque"><strong>Remarque :</strong> ${escapeHtml(existingRemarque)}</div>` : '';
 
             actionsHTML = `
                 ${remarqueHTML}
@@ -635,8 +628,8 @@ const AdminSuivi = {
                     <div class="correction-eleve">
                         <div class="student-avatar">${this.getInitials(eleveName)}</div>
                         <div>
-                            <div class="student-name">${this.escapeHtml(eleveName)}</div>
-                            <div class="correction-tache">${this.escapeHtml(tacheName)}</div>
+                            <div class="student-name">${escapeHtml(eleveName)}</div>
+                            <div class="correction-tache">${escapeHtml(tacheName)}</div>
                         </div>
                     </div>
                     <span class="mode-badge ${tache.mode === 'points_bonus' ? 'bonus' : 'training'}">
@@ -766,7 +759,7 @@ const AdminSuivi = {
             <div class="activity-item" onclick="AdminSuivi.showStudentDetail('${activity.eleve_id}')">
                 <span class="activity-icon">${icon}</span>
                 <div class="activity-content">
-                    <span class="activity-student">${this.escapeHtml(eleveName)}</span>
+                    <span class="activity-student">${escapeHtml(eleveName)}</span>
                     <span class="activity-action">${action}</span>
                 </div>
                 <span class="activity-time">${this.formatRelativeTime(activity.timestamp)}</span>
@@ -1077,13 +1070,6 @@ const AdminSuivi = {
             return `${hours}h${mins % 60}`;
         }
         return `${mins} min`;
-    },
-
-    escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     },
 
     callAPI(action, params = {}) {

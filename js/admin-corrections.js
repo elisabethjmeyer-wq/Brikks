@@ -156,13 +156,6 @@ const AdminCorrections = {
         return min + ' min' + (sec > 0 ? ' ' + sec + 's' : '');
     },
 
-    escapeHtml(text) {
-        if (!text) return '';
-        var div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    },
-
     getInitials(name) {
         if (!name) return '?';
         var parts = name.trim().split(/\s+/);
@@ -285,7 +278,7 @@ const AdminCorrections = {
         var badgesHtml = '<div class="card-badges">';
 
         if (competenceNom) {
-            badgesHtml += '<span class="card-badge badge-competence">' + this.escapeHtml(competenceNom) + '</span>';
+            badgesHtml += '<span class="card-badge badge-competence">' + escapeHtml(competenceNom) + '</span>';
         }
 
         var modeLabel = this.getModeLabel(sub.mode_rendu);
@@ -319,13 +312,13 @@ const AdminCorrections = {
                 (isValide ? '✅ Validé' : '❌ Non validé') + '</span>';
         }
 
-        return '<div class="correction-card' + (isDone ? ' done' : '') + '" onclick="AdminCorrections.openModal(\'' + this.escapeHtml(subKey) + '\')">' +
+        return '<div class="correction-card' + (isDone ? ' done' : '') + '" onclick="AdminCorrections.openModal(\'' + escapeHtml(subKey) + '\')">' +
             '<div class="card-stripe ' + stripeClass + '"></div>' +
             '<div class="card-body">' +
                 '<div class="card-avatar">' + this.getInitials(eleveName) + '</div>' +
                 '<div class="card-main">' +
-                    '<div class="card-eleve">' + this.escapeHtml(eleveName) + '</div>' +
-                    '<div class="card-entrainement">' + this.escapeHtml(entrainementTitle) + '</div>' +
+                    '<div class="card-eleve">' + escapeHtml(eleveName) + '</div>' +
+                    '<div class="card-entrainement">' + escapeHtml(entrainementTitle) + '</div>' +
                 '</div>' +
                 badgesHtml +
                 '<div class="card-right">' +
@@ -449,7 +442,7 @@ const AdminCorrections = {
         return '<div class="info-item">' +
             '<span class="info-icon">' + icon + '</span>' +
             '<div><div class="info-label">' + label + '</div>' +
-            '<div class="info-value">' + this.escapeHtml(value) + '</div></div>' +
+            '<div class="info-value">' + escapeHtml(value) + '</div></div>' +
         '</div>';
     },
 
@@ -482,7 +475,7 @@ const AdminCorrections = {
         html += '<div class="source-panel" id="correctionUrlPanel"' + (wd.correctionType === 'html' ? ' style="display:none"' : '') + '>';
         html += '<div class="form-group">';
         html += '<label>Lien Google Doc du corrigé</label>';
-        html += '<input type="text" class="corrige-url-input" id="correctionUrlInput" placeholder="https://docs.google.com/document/d/..." value="' + this.escapeHtml(wd.correctionType === 'url' ? wd.correctionValue : '') + '">';
+        html += '<input type="text" class="corrige-url-input" id="correctionUrlInput" placeholder="https://docs.google.com/document/d/..." value="' + escapeHtml(wd.correctionType === 'url' ? wd.correctionValue : '') + '">';
         html += '<div class="form-help">Collez le lien de partage du Google Doc (doit être accessible en lecture)</div>';
         html += '</div>';
         html += '</div>';
@@ -507,7 +500,7 @@ const AdminCorrections = {
                 var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
                 html += '<div class="critere-check' + (checked ? ' checked' : '') + '" onclick="AdminCorrections.toggleCritere(\'' + c.id + '\', this)">';
                 html += '<input type="checkbox" id="critere_' + c.id + '"' + (checked ? ' checked' : '') + '>';
-                html += '<label for="critere_' + c.id + '">' + AdminCorrections.escapeHtml(c.libelle) + '</label>';
+                html += '<label for="critere_' + c.id + '">' + escapeHtml(c.libelle) + '</label>';
                 html += '</div>';
             });
             html += '</div></div></div>';
@@ -521,7 +514,7 @@ const AdminCorrections = {
         html += '<span class="toggle-icon">▼</span>';
         html += '</div>';
         html += '<div class="correction-section-body' + (hasRemarque ? '' : ' hidden') + '">';
-        html += '<textarea class="remarque-textarea" id="remarqueTextarea" placeholder="Bon travail sur la chronologie, mais pense à croiser les documents sources...">' + this.escapeHtml(wd.remarque) + '</textarea>';
+        html += '<textarea class="remarque-textarea" id="remarqueTextarea" placeholder="Bon travail sur la chronologie, mais pense à croiser les documents sources...">' + escapeHtml(wd.remarque) + '</textarea>';
         html += '</div></div>';
 
         // Décision
@@ -728,7 +721,7 @@ const AdminCorrections = {
             criteres.forEach(function(c) {
                 var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
                 html += '<div class="preview-critere ' + (checked ? 'ok' : 'ko') + '">';
-                html += (checked ? '✅' : '❌') + ' ' + AdminCorrections.escapeHtml(c.libelle);
+                html += (checked ? '✅' : '❌') + ' ' + escapeHtml(c.libelle);
                 html += '</div>';
             });
             html += '</div>';
@@ -739,7 +732,7 @@ const AdminCorrections = {
             html += '<div class="preview-section">';
             html += '<div class="preview-section-title">Corrigé commenté</div>';
             if (wd.correctionType === 'url') {
-                html += '<iframe src="' + AdminCorrections.escapeHtml(wd.correctionValue) + '" style="width:100%;height:300px;border:1px solid #e5e7eb;border-radius:8px" sandbox="allow-same-origin allow-scripts"></iframe>';
+                html += '<iframe src="' + escapeHtml(wd.correctionValue) + '" style="width:100%;height:300px;border:1px solid #e5e7eb;border-radius:8px" sandbox="allow-same-origin allow-scripts"></iframe>';
             } else {
                 html += '<div class="preview-content">' + wd.correctionValue + '</div>';
             }
@@ -750,7 +743,7 @@ const AdminCorrections = {
         if (wd.remarque) {
             html += '<div class="preview-section">';
             html += '<div class="preview-section-title">Remarque de la prof</div>';
-            html += '<div class="preview-remarque">' + this.escapeHtml(wd.remarque) + '</div>';
+            html += '<div class="preview-remarque">' + escapeHtml(wd.remarque) + '</div>';
             html += '</div>';
         }
 
@@ -833,12 +826,12 @@ const AdminCorrections = {
 
         html += '<div class="bilan-section">';
         html += '<h4>Élève</h4>';
-        html += '<div class="bilan-value">' + this.escapeHtml(this.getEleveName(eleve)) + '</div>';
+        html += '<div class="bilan-value">' + escapeHtml(this.getEleveName(eleve)) + '</div>';
         html += '</div>';
 
         html += '<div class="bilan-section">';
         html += '<h4>Entraînement</h4>';
-        html += '<div class="bilan-value">' + this.escapeHtml(entrainement ? entrainement.titre : 'Inconnu') + '</div>';
+        html += '<div class="bilan-value">' + escapeHtml(entrainement ? entrainement.titre : 'Inconnu') + '</div>';
         html += '</div>';
 
         // Décision
@@ -857,7 +850,7 @@ const AdminCorrections = {
             criteres.forEach(function(c) {
                 var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
                 html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
-                html += (checked ? '✅' : '❌') + ' ' + AdminCorrections.escapeHtml(c.libelle);
+                html += (checked ? '✅' : '❌') + ' ' + escapeHtml(c.libelle);
                 html += '</div>';
             });
             html += '</div></div>';
@@ -867,7 +860,7 @@ const AdminCorrections = {
         if (wd.remarque) {
             html += '<div class="bilan-section">';
             html += '<h4>Remarque</h4>';
-            html += '<div class="bilan-remarque">' + this.escapeHtml(wd.remarque) + '</div>';
+            html += '<div class="bilan-remarque">' + escapeHtml(wd.remarque) + '</div>';
             html += '</div>';
         }
 
@@ -958,7 +951,7 @@ const AdminCorrections = {
     showError(message) {
         document.getElementById('loader').innerHTML =
             '<div style="text-align: center; color: #ef4444;">' +
-                '<p>' + this.escapeHtml(message) + '</p>' +
+                '<p>' + escapeHtml(message) + '</p>' +
                 '<button class="btn btn-primary" onclick="location.reload()">Réessayer</button>' +
             '</div>';
     },

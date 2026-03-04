@@ -36,10 +36,10 @@ Object.assign(AdminBanquesExercices, {
                         <div class="banque-card-icon connaissances">&#128994;</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
-                                ${this.escapeHtml(banque.titre || 'Sans titre')}
+                                ${escapeHtml(banque.titre || 'Sans titre')}
                             </div>
                             <div class="banque-card-meta">
-                                ${banque.description ? this.escapeHtml(banque.description) : 'Aucune description'}
+                                ${banque.description ? escapeHtml(banque.description) : 'Aucune description'}
                             </div>
                         </div>
                         <div class="banque-card-stats">
@@ -69,7 +69,7 @@ Object.assign(AdminBanquesExercices, {
         }).join('');
     },
 
-    renderQuestionsConnaissances(questions, banqueId) {
+    renderQuestionsConnaissances(questions, _banqueId) {
         if (questions.length === 0) {
             return '<div class="exercices-empty">Aucune question dans cette banque</div>';
         }
@@ -84,7 +84,7 @@ Object.assign(AdminBanquesExercices, {
                         <div class="exercice-item" data-id="${q.id}">
                             <div class="exercice-numero">${typeName.charAt(0)}</div>
                             <div class="exercice-info">
-                                <div class="exercice-title">${this.escapeHtml(preview)}</div>
+                                <div class="exercice-title">${escapeHtml(preview)}</div>
                                 <div class="exercice-meta">${typeName}</div>
                             </div>
                             <div class="exercice-actions">
@@ -370,7 +370,7 @@ Object.assign(AdminBanquesExercices, {
                 html = `
                     <div class="form-group">
                         <label>Question</label>
-                        <textarea id="qcmQuestion" class="form-textarea" rows="3">${this.escapeHtml(data.question || '')}</textarea>
+                        <textarea id="qcmQuestion" class="form-textarea" rows="3">${escapeHtml(data.question || '')}</textarea>
                     </div>
                     <div class="form-group">
                         <label>Options de réponse</label>
@@ -380,10 +380,10 @@ Object.assign(AdminBanquesExercices, {
                                 <div class="qcm-option-row" style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
                                     <div style="display: flex; gap: 8px; align-items: center;">
                                         <input type="checkbox" class="qcm-correct-checkbox" ${correctAnswers.includes(i) ? 'checked' : ''} title="Cocher si bonne réponse">
-                                        <input type="text" class="form-input qcm-option-text" placeholder="Option ${i + 1}" value="${this.escapeHtml(opt)}" style="flex: 1;">
+                                        <input type="text" class="form-input qcm-option-text" placeholder="Option ${i + 1}" value="${escapeHtml(opt)}" style="flex: 1;">
                                         <button type="button" class="btn-icon danger" onclick="this.closest('.qcm-option-row').remove()" title="Supprimer">×</button>
                                     </div>
-                                    <input type="text" class="form-input qcm-option-feedback" placeholder="Feedback si cette option est choisie (optionnel)" value="${this.escapeHtml(existingFeedbacks[i] || '')}" style="margin-top: 6px; font-size: 0.85em;">
+                                    <input type="text" class="form-input qcm-option-feedback" placeholder="Feedback si cette option est choisie (optionnel)" value="${escapeHtml(existingFeedbacks[i] || '')}" style="margin-top: 6px; font-size: 0.85em;">
                                 </div>
                             `).join('') : `
                                 <div class="qcm-option-row" style="margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e5e7eb;">
@@ -413,7 +413,7 @@ Object.assign(AdminBanquesExercices, {
                 html = `
                     <div class="form-group">
                         <label>Question</label>
-                        <textarea id="vfQuestion" class="form-textarea" rows="3">${this.escapeHtml(data.question || '')}</textarea>
+                        <textarea id="vfQuestion" class="form-textarea" rows="3">${escapeHtml(data.question || '')}</textarea>
                     </div>
                     <div class="form-group">
                         <label>Réponse correcte</label>
@@ -431,11 +431,11 @@ Object.assign(AdminBanquesExercices, {
                     <div id="vfFeedbackSection" style="display: ${data.feedback_vrai || data.feedback_faux ? 'block' : 'none'};">
                         <div class="form-group">
                             <label>Feedback si l'élève répond "Vrai"</label>
-                            <textarea id="vfFeedbackVrai" class="form-textarea" rows="2" placeholder="Bravo ! ou Explication si faux...">${this.escapeHtml(data.feedback_vrai || '')}</textarea>
+                            <textarea id="vfFeedbackVrai" class="form-textarea" rows="2" placeholder="Bravo ! ou Explication si faux...">${escapeHtml(data.feedback_vrai || '')}</textarea>
                         </div>
                         <div class="form-group">
                             <label>Feedback si l'élève répond "Faux"</label>
-                            <textarea id="vfFeedbackFaux" class="form-textarea" rows="2" placeholder="Bravo ! ou Explication si faux...">${this.escapeHtml(data.feedback_faux || '')}</textarea>
+                            <textarea id="vfFeedbackFaux" class="form-textarea" rows="2" placeholder="Bravo ! ou Explication si faux...">${escapeHtml(data.feedback_faux || '')}</textarea>
                         </div>
                     </div>
                 `;
@@ -448,7 +448,7 @@ Object.assign(AdminBanquesExercices, {
                 html = `
                     <div class="form-group">
                         <label>Consigne</label>
-                        <input type="text" id="chronoConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Complétez la frise chronologique')}">
+                        <input type="text" id="chronoConsigne" class="form-input" value="${escapeHtml(data.consigne || 'Complétez la frise chronologique')}">
                     </div>
                     <div class="form-group">
                         <label>Que doit trouver l'élève ?</label>
@@ -521,7 +521,7 @@ Object.assign(AdminBanquesExercices, {
                 html = `
                     <div class="form-group">
                         <label>Consigne</label>
-                        <input type="text" id="timelineConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Remettez les événements dans l\'ordre chronologique')}">
+                        <input type="text" id="timelineConsigne" class="form-input" value="${escapeHtml(data.consigne || 'Remettez les événements dans l\'ordre chronologique')}">
                     </div>
                     <div class="form-group">
                         <label>Aperçu des cartes (ordre correct)</label>
@@ -555,13 +555,13 @@ Object.assign(AdminBanquesExercices, {
                 html = `
                     <div class="form-group">
                         <label>Consigne</label>
-                        <input type="text" id="assocConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Associez les éléments')}">
+                        <input type="text" id="assocConsigne" class="form-input" value="${escapeHtml(data.consigne || 'Associez les éléments')}">
                     </div>
                     <div class="form-group">
                         <label>Paires à associer</label>
                         <p class="form-help">Pour chaque élément, choisissez texte ou image (URL Google Drive partagée).</p>
                         <div id="assocPaires">
-                            ${pairesAssoc.map((p, i) => this.renderAssocPairRow(p)).join('')}
+                            ${pairesAssoc.map((p, _i) => this.renderAssocPairRow(p)).join('')}
                         </div>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="AdminBanquesExercices.addAssocPair()">+ Ajouter une paire</button>
                     </div>
@@ -582,7 +582,7 @@ Object.assign(AdminBanquesExercices, {
                 html = `
                     <div class="form-group">
                         <label>1. Saisissez votre texte</label>
-                        <textarea id="texteATrousInput" class="form-textarea" rows="4" placeholder="Saisissez le texte complet ici, puis cliquez sur les mots à cacher ci-dessous." oninput="AdminBanquesExercices.updateTexteATrousPreview()">${this.escapeHtml(cleanText)}</textarea>
+                        <textarea id="texteATrousInput" class="form-textarea" rows="4" placeholder="Saisissez le texte complet ici, puis cliquez sur les mots à cacher ci-dessous." oninput="AdminBanquesExercices.updateTexteATrousPreview()">${escapeHtml(cleanText)}</textarea>
                     </div>
                     <div class="form-group">
                         <label>2. Cliquez sur les mots à transformer en trous</label>
@@ -649,11 +649,11 @@ Object.assign(AdminBanquesExercices, {
                 html = `
                     <div class="form-group">
                         <label>Consigne</label>
-                        <input type="text" id="carteConsigneConn" class="form-input" value="${this.escapeHtml(data.consigne || 'Localisez les éléments sur la carte')}">
+                        <input type="text" id="carteConsigneConn" class="form-input" value="${escapeHtml(data.consigne || 'Localisez les éléments sur la carte')}">
                     </div>
                     <div class="form-group">
                         <label>URL de l'image</label>
-                        <input type="text" id="carteImageUrlConn" class="form-input" placeholder="https://..." value="${this.escapeHtml(data.image_url || '')}" onchange="AdminBanquesExercices.updateCartePreviewConn(this.value)">
+                        <input type="text" id="carteImageUrlConn" class="form-input" placeholder="https://..." value="${escapeHtml(data.image_url || '')}" onchange="AdminBanquesExercices.updateCartePreviewConn(this.value)">
                         <small style="color: var(--gray-500);">URL de l'image (carte, schéma, document...)</small>
                     </div>
                     <div class="form-group">
@@ -663,7 +663,7 @@ Object.assign(AdminBanquesExercices, {
                                 ${data.image_url ? '' : 'Entrez une URL d\'image ci-dessus'}
                             </div>
                             <div id="cartePreviewWrapperConn" style="display: ${data.image_url ? 'block' : 'none'}; position: relative; cursor: crosshair;">
-                                <img id="cartePreviewImageConn" src="${this.escapeHtml(data.image_url || '')}" style="display: block; max-width: 100%; height: auto;" onclick="AdminBanquesExercices.onCarteClickConn(event)">
+                                <img id="cartePreviewImageConn" src="${escapeHtml(data.image_url || '')}" style="display: block; max-width: 100%; height: auto;" onclick="AdminBanquesExercices.onCarteClickConn(event)">
                                 <div id="cartePreviewMarkersConn" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
                             </div>
                         </div>
@@ -705,7 +705,7 @@ Object.assign(AdminBanquesExercices, {
                 html = `
                     <div class="form-group">
                         <label>Question / Énoncé</label>
-                        <textarea id="questionOuverteEnonce" class="form-textarea" rows="3" placeholder="Posez votre question ici...">${this.escapeHtml(data.question || data.enonce || '')}</textarea>
+                        <textarea id="questionOuverteEnonce" class="form-textarea" rows="3" placeholder="Posez votre question ici...">${escapeHtml(data.question || data.enonce || '')}</textarea>
                     </div>
                     <div class="form-group">
                         <label>Réponses acceptées</label>
@@ -713,7 +713,7 @@ Object.assign(AdminBanquesExercices, {
                         <div id="questionOuverteReponsesList">
                             ${reponsesAcceptees.length > 0 ? reponsesAcceptees.map((rep, i) => `
                                 <div class="reponse-row" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
-                                    <input type="text" class="form-input question-ouverte-reponse" placeholder="Réponse acceptée ${i + 1}" value="${this.escapeHtml(rep)}">
+                                    <input type="text" class="form-input question-ouverte-reponse" placeholder="Réponse acceptée ${i + 1}" value="${escapeHtml(rep)}">
                                     <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" title="Supprimer">×</button>
                                 </div>
                             `).join('') : `
@@ -750,7 +750,7 @@ Object.assign(AdminBanquesExercices, {
                 html = `
                     <div class="form-group">
                         <label>Consigne</label>
-                        <input type="text" id="flashcardConsigne" class="form-input" value="${this.escapeHtml(data.consigne || 'Retournez chaque carte et évaluez-vous')}">
+                        <input type="text" id="flashcardConsigne" class="form-input" value="${escapeHtml(data.consigne || 'Retournez chaque carte et évaluez-vous')}">
                     </div>
                     <div class="form-group">
                         <label>Cartes</label>
@@ -795,8 +795,8 @@ Object.assign(AdminBanquesExercices, {
             <div class="chrono-event-block" style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
                 <div class="chrono-event-row" style="display: flex; gap: 8px; align-items: center;">
                     <span class="chrono-event-num" style="background: var(--primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${i + 1}</span>
-                    <input type="text" class="form-input chrono-date" placeholder="Date (ex: 1789)" value="${this.escapeHtml(p.date || '')}" style="width: 100px;" oninput="AdminBanquesExercices.updateChronoPreview()">
-                    <input type="text" class="form-input chrono-event" placeholder="Événement" value="${this.escapeHtml(p.evenement || '')}" oninput="AdminBanquesExercices.updateChronoPreview()">
+                    <input type="text" class="form-input chrono-date" placeholder="Date (ex: 1789)" value="${escapeHtml(p.date || '')}" style="width: 100px;" oninput="AdminBanquesExercices.updateChronoPreview()">
+                    <input type="text" class="form-input chrono-event" placeholder="Événement" value="${escapeHtml(p.evenement || '')}" oninput="AdminBanquesExercices.updateChronoPreview()">
                     <button type="button" class="btn-icon" onclick="AdminBanquesExercices.toggleChronoAlternatives(this)" title="Réponses alternatives" style="color: ${hasAlternatives ? 'var(--primary)' : 'var(--gray-400)'};">
                         <span style="font-size: 1.2rem;">±</span>
                     </button>
@@ -807,7 +807,7 @@ Object.assign(AdminBanquesExercices, {
                     <div class="chrono-alt-list">
                         ${reponsesAcceptees.map((alt, j) => `
                             <div class="chrono-alt-row" style="display: flex; gap: 4px; margin-bottom: 4px;">
-                                <input type="text" class="form-input chrono-alt-input" placeholder="Alternative ${j + 1}" value="${this.escapeHtml(alt)}" style="flex: 1; font-size: 0.85rem;">
+                                <input type="text" class="form-input chrono-alt-input" placeholder="Alternative ${j + 1}" value="${escapeHtml(alt)}" style="flex: 1; font-size: 0.85rem;">
                                 <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()" style="font-size: 0.8rem;">×</button>
                             </div>
                         `).join('')}
@@ -946,8 +946,8 @@ Object.assign(AdminBanquesExercices, {
             return `
                 <div class="chrono-frise-marker" style="left: ${spacing * (i + 1)}%;">
                     <div class="chrono-marker-dot">${i + 1}</div>
-                    <div class="chrono-marker-date ${dateClass}">${isDateHidden ? '???' : this.escapeHtml(e.date)}</div>
-                    <div class="chrono-marker-event ${eventClass}">${!isDateHidden ? '???' : this.escapeHtml(e.event)}</div>
+                    <div class="chrono-marker-date ${dateClass}">${isDateHidden ? '???' : escapeHtml(e.date)}</div>
+                    <div class="chrono-marker-event ${eventClass}">${!isDateHidden ? '???' : escapeHtml(e.event)}</div>
                 </div>
             `;
         }).join('');
@@ -984,8 +984,8 @@ Object.assign(AdminBanquesExercices, {
                     <button type="button" class="btn-icon danger" onclick="this.closest('.timeline-card-form').remove(); AdminBanquesExercices.updateTimelinePreview(); AdminBanquesExercices.updateTimelineNumbers();" title="Supprimer">×</button>
                 </div>
                 <div class="timeline-card-form-body" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <input type="text" class="form-input timeline-titre" placeholder="Titre de l'événement" value="${this.escapeHtml(c.titre || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
-                    <input type="text" class="form-input timeline-image" placeholder="Image de fond (URL Google Drive partagée, optionnel)" value="${this.escapeHtml(c.image_url || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
+                    <input type="text" class="form-input timeline-titre" placeholder="Titre de l'événement" value="${escapeHtml(c.titre || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
+                    <input type="text" class="form-input timeline-image" placeholder="Image de fond (URL Google Drive partagée, optionnel)" value="${escapeHtml(c.image_url || '')}" oninput="AdminBanquesExercices.updateTimelinePreview()">
                 </div>
             </div>
         `;
@@ -1033,12 +1033,12 @@ Object.assign(AdminBanquesExercices, {
 
         container.innerHTML = cartes.map((c, i) => {
             const imageUrl = this.normalizeImageUrl(c.image_url);
-            const bgStyle = imageUrl ? `background-image: url('${this.escapeHtml(imageUrl)}'); background-size: cover; background-position: center;` : '';
+            const bgStyle = imageUrl ? `background-image: url('${escapeHtml(imageUrl)}'); background-size: cover; background-position: center;` : '';
             const hasImage = imageUrl ? 'has-image' : '';
             return `
                 <div class="timeline-card ${hasImage}" draggable="true" data-index="${i}" style="${bgStyle}">
                     <span class="timeline-card-num">${c.num}</span>
-                    <span class="timeline-card-text">${this.escapeHtml(c.titre)}</span>
+                    <span class="timeline-card-text">${escapeHtml(c.titre)}</span>
                 </div>
             `;
         }).join('');
@@ -1130,8 +1130,8 @@ Object.assign(AdminBanquesExercices, {
                         <option value="text" ${t1 === 'text' ? 'selected' : ''}>Texte</option>
                         <option value="image" ${t1 === 'image' ? 'selected' : ''}>Image</option>
                     </select>
-                    <input type="text" class="form-input assoc-left" placeholder="${t1 === 'image' ? 'URL Google Drive partagée' : 'Texte élément 1'}" value="${this.escapeHtml(e1)}">
-                    ${t1 === 'image' && e1 ? `<img src="${this.escapeHtml(this.normalizeImageUrl(e1))}" style="max-height: 60px; border-radius: 6px; object-fit: cover;" onerror="this.style.display='none'">` : ''}
+                    <input type="text" class="form-input assoc-left" placeholder="${t1 === 'image' ? 'URL Google Drive partagée' : 'Texte élément 1'}" value="${escapeHtml(e1)}">
+                    ${t1 === 'image' && e1 ? `<img src="${escapeHtml(this.normalizeImageUrl(e1))}" style="max-height: 60px; border-radius: 6px; object-fit: cover;" onerror="this.style.display='none'">` : ''}
                 </div>
                 <span style="padding: 8px; margin-top: 22px;">↔</span>
                 <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
@@ -1139,8 +1139,8 @@ Object.assign(AdminBanquesExercices, {
                         <option value="text" ${t2 === 'text' ? 'selected' : ''}>Texte</option>
                         <option value="image" ${t2 === 'image' ? 'selected' : ''}>Image</option>
                     </select>
-                    <input type="text" class="form-input assoc-right" placeholder="${t2 === 'image' ? 'URL Google Drive partagée' : 'Texte élément 2'}" value="${this.escapeHtml(e2)}">
-                    ${t2 === 'image' && e2 ? `<img src="${this.escapeHtml(this.normalizeImageUrl(e2))}" style="max-height: 60px; border-radius: 6px; object-fit: cover;" onerror="this.style.display='none'">` : ''}
+                    <input type="text" class="form-input assoc-right" placeholder="${t2 === 'image' ? 'URL Google Drive partagée' : 'Texte élément 2'}" value="${escapeHtml(e2)}">
+                    ${t2 === 'image' && e2 ? `<img src="${escapeHtml(this.normalizeImageUrl(e2))}" style="max-height: 60px; border-radius: 6px; object-fit: cover;" onerror="this.style.display='none'">` : ''}
                 </div>
                 <button type="button" class="btn btn-sm" style="margin-top: 22px;" onclick="this.closest('.pair-row').remove()">X</button>
             </div>
@@ -1180,8 +1180,8 @@ Object.assign(AdminBanquesExercices, {
                     <span style="font-weight: 600; font-size: 0.9em;">Carte ${index + 1}</span>
                     <button type="button" class="btn-icon danger" onclick="this.closest('.flashcard-form-item').remove()" title="Supprimer">×</button>
                 </div>
-                <input type="text" class="form-input flashcard-recto" placeholder="Recto (question / indice)" value="${this.escapeHtml(c.recto || '')}" style="margin-bottom: 6px;">
-                <input type="text" class="form-input flashcard-verso" placeholder="Verso (réponse)" value="${this.escapeHtml(c.verso || '')}">
+                <input type="text" class="form-input flashcard-recto" placeholder="Recto (question / indice)" value="${escapeHtml(c.recto || '')}" style="margin-bottom: 6px;">
+                <input type="text" class="form-input flashcard-verso" placeholder="Verso (réponse)" value="${escapeHtml(c.verso || '')}">
             </div>
         `;
     },
@@ -1236,7 +1236,7 @@ Object.assign(AdminBanquesExercices, {
             }
             const isGap = this.texteATrousGaps.find(g => g.wordIndex === idx);
             const className = isGap ? 'texte-trou-word selected' : 'texte-trou-word';
-            return `<span class="${className}" data-index="${idx}" onclick="AdminBanquesExercices.toggleTexteATrouWord(${idx})">${this.escapeHtml(token)}</span>`;
+            return `<span class="${className}" data-index="${idx}" onclick="AdminBanquesExercices.toggleTexteATrouWord(${idx})">${escapeHtml(token)}</span>`;
         }).join('');
 
         this.updateTexteATrousGapsList();
@@ -1282,7 +1282,7 @@ Object.assign(AdminBanquesExercices, {
             <div class="texte-trou-gap-item" data-word-index="${gap.wordIndex}">
                 <div class="gap-header">
                     <span class="gap-num">${i + 1}</span>
-                    <span class="gap-word">${this.escapeHtml(gap.reponse)}</span>
+                    <span class="gap-word">${escapeHtml(gap.reponse)}</span>
                 </div>
                 <div class="gap-alternatives">
                     <input type="text" class="form-input" placeholder="Réponses alternatives (séparées par des virgules)"
@@ -1420,7 +1420,7 @@ Object.assign(AdminBanquesExercices, {
                         border-radius: 50%; display: flex; align-items: center; justify-content: center;
                         font-size: 0.75rem; font-weight: 700; color: white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
                         pointer-events: auto; cursor: pointer;"
-                 title="Marqueur ${i + 1}: ${this.escapeHtml(m.reponse)}">
+                 title="Marqueur ${i + 1}: ${escapeHtml(m.reponse)}">
                 ${i + 1}
             </div>
         `).join('');
@@ -1469,9 +1469,9 @@ Object.assign(AdminBanquesExercices, {
                   `).join('')}
                 </div>
                 <input type="text" class="form-input" placeholder="Réponse principale"
-                       value="${this.escapeHtml(m.reponse)}" onchange="AdminBanquesExercices.updateMarqueurReponseConn(${i}, this.value)" style="flex: 2;">
+                       value="${escapeHtml(m.reponse)}" onchange="AdminBanquesExercices.updateMarqueurReponseConn(${i}, this.value)" style="flex: 2;">
                 <input type="text" class="form-input" placeholder="Alternatives (virgule)"
-                       value="${this.escapeHtml((m.reponses_acceptees || []).join(', '))}"
+                       value="${escapeHtml((m.reponses_acceptees || []).join(', '))}"
                        onchange="AdminBanquesExercices.updateMarqueurAlternativesConn(${i}, this.value)" style="flex: 2; font-size: 0.85rem;">
                 <button type="button" class="btn btn-sm" onclick="AdminBanquesExercices.removeCarteMarqueurConn(${i})" style="color: #dc2626;">X</button>
             </div>
@@ -1524,7 +1524,7 @@ Object.assign(AdminBanquesExercices, {
                 const options = [];
                 const reponsesCorrectes = [];
                 const feedbacksOptions = [];
-                optionRows.forEach((row, idx) => {
+                optionRows.forEach((row, _idx) => {
                     const text = row.querySelector('.qcm-option-text')?.value?.trim();
                     if (text) {
                         options.push(text);
@@ -1777,11 +1777,11 @@ Object.assign(AdminBanquesExercices, {
                         <div class="banque-card-icon competences">&#128995;</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
-                                ${this.escapeHtml(banque.titre || compNom)}
+                                ${escapeHtml(banque.titre || compNom)}
                             </div>
                             <div class="banque-card-meta">
-                                Competence : ${this.escapeHtml(compNom)}
-                                ${banque.description ? ' · ' + this.escapeHtml(banque.description) : ''}
+                                Competence : ${escapeHtml(compNom)}
+                                ${banque.description ? ' · ' + escapeHtml(banque.description) : ''}
                             </div>
                         </div>
                         <div class="banque-card-stats">
@@ -1825,7 +1825,7 @@ Object.assign(AdminBanquesExercices, {
                             <span class="drag-handle drag-handle-sm" title="Glisser pour réordonner">⋮⋮</span>
                             <div class="exercice-numero">${tache.ordre || '?'}</div>
                             <div class="exercice-info">
-                                <div class="exercice-title">${this.escapeHtml(tache.titre || 'Sans titre')}</div>
+                                <div class="exercice-title">${escapeHtml(tache.titre || 'Sans titre')}</div>
                                 <div class="exercice-meta">
                                     ${dureeMin} min
                                     ${hasCorrige ? ' · &#9989; corrige' : ' · &#9888; sans corrige'}
@@ -2427,7 +2427,7 @@ Object.assign(AdminBanquesExercices, {
 
         select.innerHTML = '<option value="">-- Choisir une competence --</option>' +
             allComps.map(comp =>
-                `<option value="${comp.id}">${this.escapeHtml(comp.nom)}</option>`
+                `<option value="${comp.id}">${escapeHtml(comp.nom)}</option>`
             ).join('');
     },
 
@@ -2442,7 +2442,7 @@ Object.assign(AdminBanquesExercices, {
             banques.map(b => {
                 const comp = this.competencesReferentiel.find(c => c.id === b.competence_id);
                 const label = b.titre || (comp ? comp.nom : '(sans titre)');
-                return `<option value="${b.id}">${this.escapeHtml(label)}</option>`;
+                return `<option value="${b.id}">${escapeHtml(label)}</option>`;
             }).join('');
     },
 

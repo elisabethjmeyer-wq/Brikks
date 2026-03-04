@@ -23,36 +23,21 @@ const EleveEmploiDuTemps = {
     async getAgendaForStudent() {
         // Récupérer le groupe de l'élève depuis la session
         const sessionData = sessionStorage.getItem(CONFIG.STORAGE_KEYS.USER);
-        console.log('[EmploiDuTemps] Session storage raw:', sessionData);
-
         const currentUser = sessionData ? JSON.parse(sessionData) : null;
-        console.log('[EmploiDuTemps] Current user:', currentUser);
-        console.log('[EmploiDuTemps] User groupe:', currentUser?.groupe);
 
         if (!currentUser || !currentUser.groupe) {
-            console.log('[EmploiDuTemps] Pas de groupe trouvé pour l\'utilisateur');
             return { url: '', groupe: '', reason: 'no_group' };
         }
 
         const studentGroup = currentUser.groupe;
-        console.log('[EmploiDuTemps] Groupe élève:', studentGroup);
 
         // Chercher l'agenda correspondant dans AGENDAS
         try {
-            console.log('[EmploiDuTemps] Fetching AGENDAS...');
             const agendas = await SheetsAPI.fetchAndParse('AGENDAS');
-            console.log('[EmploiDuTemps] AGENDAS data:', agendas);
 
             const agenda = agendas.find(a => {
-                console.log('[EmploiDuTemps] Comparaison:', {
-                    'agenda.groupe': a.groupe,
-                    'studentGroup': studentGroup,
-                    'match': a.groupe === studentGroup
-                });
                 return a.groupe === studentGroup || a.group === studentGroup;
             });
-
-            console.log('[EmploiDuTemps] Agenda trouvé:', agenda);
 
             if (agenda) {
                 return {
@@ -121,9 +106,6 @@ const EleveEmploiDuTemps = {
 
         if (result.url) {
             const embedUrl = this.convertToEmbedUrl(result.url);
-            console.log('[EmploiDuTemps] URL originale:', result.url);
-            console.log('[EmploiDuTemps] URL embed:', embedUrl);
-
             content.innerHTML = `
                 <div class="calendar-header">
                     <h3>📅 Calendrier de ta classe</h3>
