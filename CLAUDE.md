@@ -100,7 +100,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **Rétro-compatibilité** : les anciens noms d'API (getTachesComplexes, etc.) sont des aliases dans Code.gs et Competences.gs
 
-**Legacy** : `eleve-exercices-competences.js` (785 lignes) — ancien module "tâches complexes" étendu sur `EleveExercices`. Utilise l'ancienne terminologie (`tache_id`, `points_bonus`, `correction_url`), l'ancien modèle de données (pas de banques). Non utilisé par la nouvelle page `entrainements-comp.html`. À supprimer quand confirmé non chargé ailleurs.
+**Legacy** : `eleve-exercices-competences.js` — **SUPPRIMÉ** (confirmé non chargé, session 11). Remplacé par `eleve-competences.js` + `eleve-competences-exercice.js`.
 
 **Problèmes corrigés (session 9)** :
 - ~~Pas de `beforeunload` en mode évalué~~ → `_addBeforeUnload()` / `_removeBeforeUnload()` ajoutés
@@ -186,7 +186,7 @@ js/eleve-exercices-sf.js            # Logique métier SF (435 lignes) : répéti
 js/eleve-exercices-formats.js       # Rendus HTML + corrections + resets (863 lignes)
 js/eleve-exercices-validation.js    # Validation des réponses + comparaison normalisée (288 lignes)
 js/eleve-exercices-results.js       # Résultats, stats locales, écran SF, célébration (635 lignes)
-js/eleve-exercices-competences.js   # Compétences / tâches complexes (785 lignes, non audité)
+js/eleve-exercices-competences.js   # SUPPRIMÉ (remplacé par eleve-competences*.js)
 css/eleve-exercices.css             # Styles exercices élève
 ```
 
@@ -305,5 +305,5 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - ~~**SHEETS constant obsolète**~~ : **CORRIGÉ (session 9)** — `TachesComplexes` → `EntrainementsCompetences`, `EleveTachesComplexes` → `EleveEntrainementsCompetences` dans Code.gs et TOUT-EN-UN.gs.
 - **Module savoir-faire** : seuil de 5 étapes — vérifier l'alignement frontend/backend. Les fichiers sont très gros (~54k + ~64k lignes).
 - **Code admin connaissances** : audité et nettoyé. Reste : CSS du wizard avec ~7 sélecteurs `.etape-*` dupliqués (fonctionnel mais fragile), `getQuestionPreview()` dupliqué dans 3 fichiers différents (à extraire dans un helper partagé un jour)
-- **Module exercices élève SF** : audité et restructuré (session 4). Le sous-module compétences (`eleve-exercices-competences.js`, 785 lignes) n'est pas encore audité.
+- **Module exercices élève SF** : audité et restructuré (session 4). L'ancien sous-module compétences (`eleve-exercices-competences.js`) a été supprimé — remplacé par `eleve-competences.js` + `eleve-competences-exercice.js`.
 - **Tests** : aucun test automatisé (pas de framework de test configuré)
