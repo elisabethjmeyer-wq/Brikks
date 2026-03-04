@@ -186,37 +186,7 @@
     flex: 1;
 }
 
-.comp-card-status-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    font-weight: 700;
-    flex-shrink: 0;
-}
-
-.comp-card-status-icon.not-started {
-    background: #f3f4f6;
-    color: #9ca3af;
-}
-
-.comp-card-status-icon.in-progress {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.comp-card-status-icon.validated {
-    background: #dcfce7;
-    color: #16a34a;
-}
-
-.comp-card-status-icon.submitted {
-    background: #f3e8ff;
-    color: #7c3aed;
-}
+/* Icône de statut sur carte banque supprimée — plus de badge sur les cartes */
 
 .comp-card-info {
     min-width: 0;
@@ -250,32 +220,7 @@
     flex-shrink: 0;
 }
 
-.comp-card-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.comp-card-badge.not-started {
-    background: #f3f4f6;
-    color: #6b7280;
-}
-
-.comp-card-badge.in-progress {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.comp-card-badge.validated {
-    background: #dcfce7;
-    color: #16a34a;
-}
-
-.comp-card-badge.submitted {
-    background: #f3e8ff;
-    color: #7c3aed;
-}
+/* Badge carte banque supprimé — info dans le sous-titre */
 
 .comp-card-chevron {
     font-size: 1.5rem;
@@ -399,29 +344,7 @@
     margin: 0;
 }
 
-.comp-detail-badge {
-    display: inline-block;
-    width: fit-content;
-    padding: 0.2rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.comp-detail-badge.not-started {
-    background: #f3f4f6;
-    color: #6b7280;
-}
-
-.comp-detail-badge.in-progress {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.comp-detail-badge.validated {
-    background: #dcfce7;
-    color: #16a34a;
-}
+/* Badge détail banque supprimé — info dans les sous-titres des meta parts */
 
 .comp-detail-description {
     color: #6b7280;
@@ -664,31 +587,65 @@
     border-radius: 9999px;
     font-size: 0.7rem;
     font-weight: 600;
+    text-align: center;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.3;
 }
 
-.comp-exercise-badge.not-started {
-    background: #f3f4f6;
-    color: #6b7280;
-}
+/* Pas commencé : aucun badge affiché (label vide) */
 
 .comp-exercise-badge.in-progress {
-    background: #fef3c7;
-    color: #d97706;
-}
-
-.comp-exercise-badge.trained {
     background: #dbeafe;
     color: #2563eb;
 }
 
-.comp-exercise-badge.submitted {
-    background: #f3e8ff;
-    color: #7c3aed;
+.comp-exercise-badge.in-progress-eval {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.comp-exercise-badge.trained {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.comp-exercise-badge.submitted-pending {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.comp-exercise-badge.submitted-sent {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.comp-exercise-badge.submitted-expired {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.comp-exercise-badge.corrected {
+    background: #dbeafe;
+    color: #2563eb;
 }
 
 .comp-exercise-badge.validated {
     background: #dcfce7;
     color: #16a34a;
+}
+
+.comp-exercise-badge.declined {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.comp-exercise-badge-sub {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 500;
+    opacity: 0.85;
 }
 
 /* ============================================
@@ -1836,28 +1793,7 @@ body.comp-fullscreen-active {
     }
 }
 
-/* ============================================
-   TAGS MODE SUR LES CARTES EXERCICES
-   ============================================ */
-
-.comp-exercise-mode-tag {
-    display: inline-block;
-    padding: 0.1rem 0.5rem;
-    border-radius: 9999px;
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-}
-
-.comp-exercise-mode-tag.mode-entrainement {
-    background: #dbeafe;
-    color: #2563eb;
-}
-
-.comp-exercise-mode-tag.mode-evalue {
-    background: #fef2f2;
-    color: #dc2626;
-}
+/* Tags mode supprimés — fusionnés dans les badges exercices */
 
 /* ============================================
    VUE RELECTURE (après complétion)
