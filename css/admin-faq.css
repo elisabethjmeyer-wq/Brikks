@@ -732,14 +732,8 @@
    Modals
    ============================================ */
 .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+    backdrop-filter: blur(4px);
     padding: 20px;
 }
 
@@ -1128,26 +1122,17 @@
 .empty-state {
     background: white;
     border-radius: var(--radius-lg);
-    padding: 60px 20px;
-    text-align: center;
     box-shadow: var(--shadow);
-}
-
-.empty-icon {
-    margin-bottom: 16px;
 }
 
 .empty-state h3 {
     font-size: 18px;
     font-weight: 700;
-    color: var(--gray-700);
     margin: 0 0 8px 0;
 }
 
 .empty-state p {
     font-size: 14px;
-    color: var(--gray-500);
-    margin: 0;
 }
 
 /* ============================================

@@ -399,19 +399,11 @@
 
 /* ========== Empty state ========== */
 .empty-state {
-    text-align: center;
     padding: 4rem 1rem;
-    color: #9ca3af;
 }
 
 .empty-state-icon {
-    font-size: 3rem;
     margin-bottom: 0.75rem;
-}
-
-.empty-state p {
-    font-size: 1rem;
-    margin: 0;
 }
 
 /* ========== Loader ========== */
@@ -430,13 +422,7 @@
 
 /* ========== Modal base (overlay + panel) ========== */
 .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
     padding: 1rem;
 }
 

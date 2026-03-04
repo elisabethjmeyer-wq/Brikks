@@ -445,10 +445,6 @@
 }
 
 /* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-}
 
 .empty-icon {
     font-size: 48px;
@@ -464,21 +460,11 @@
 
 .empty-state p {
     color: var(--text-secondary);
-    margin: 0;
 }
 
 /* Modal Styles */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
     padding: 20px;
 }
 

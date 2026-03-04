@@ -453,13 +453,8 @@
    Modal Styles
    ============================================ */
 .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+    background: rgba(0, 0, 0, 0.6);
     padding: 20px;
     backdrop-filter: blur(4px);
 }
@@ -647,8 +642,6 @@
    Empty State
    ============================================ */
 .empty-state {
-    text-align: center;
-    padding: 60px 20px;
     background: white;
     border-radius: 16px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -663,13 +656,10 @@
     font-size: 18px;
     font-weight: 700;
     color: var(--gray-800, #1f2937);
-    margin-bottom: 8px;
 }
 
 .empty-state p {
-    color: var(--gray-500, #6b7280);
     font-size: 14px;
-    margin: 0;
 }
 
 /* ============================================

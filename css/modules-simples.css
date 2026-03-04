@@ -125,7 +125,6 @@
 /* Empty state */
 .module-content .empty-state {
     padding: 80px 40px;
-    text-align: center;
 }
 
 .module-content .empty-state .icon {
@@ -136,13 +135,10 @@
 .module-content .empty-state h3 {
     font-size: 18px;
     font-weight: 600;
-    color: var(--gray-700);
-    margin-bottom: 8px;
 }
 
 .module-content .empty-state p {
     font-size: 14px;
-    color: var(--gray-500);
 }
 
 /* Help Tip */
@@ -255,7 +251,6 @@
 /* Empty state dans flipbook-card */
 .flipbook-card .empty-state {
     padding: 80px 40px;
-    text-align: center;
 }
 
 .flipbook-card .empty-state .icon {
@@ -266,13 +261,10 @@
 .flipbook-card .empty-state h3 {
     font-size: 18px;
     font-weight: 600;
-    color: var(--gray-700);
-    margin-bottom: 8px;
 }
 
 .flipbook-card .empty-state p {
     font-size: 14px;
-    color: var(--gray-500);
 }
 
 /* Error state */

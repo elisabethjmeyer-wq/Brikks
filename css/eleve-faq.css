@@ -262,8 +262,6 @@
 .empty-state {
     background: white;
     border-radius: var(--radius-lg);
-    padding: 60px 20px;
-    text-align: center;
     box-shadow: var(--shadow);
 }
 
@@ -276,13 +274,10 @@
     font-size: 18px;
     font-weight: 600;
     color: var(--gray-800);
-    margin: 0 0 8px 0;
 }
 
 .empty-state p {
-    color: var(--gray-500);
     font-size: 14px;
-    margin: 0;
 }
 
 /* ===== CTA CARD ===== */

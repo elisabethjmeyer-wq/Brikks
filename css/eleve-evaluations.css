@@ -225,7 +225,6 @@
     background: white;
     border-radius: var(--radius-lg);
     padding: 48px 24px;
-    text-align: center;
     box-shadow: var(--shadow);
 }
 
@@ -238,13 +237,10 @@
     font-size: 18px;
     font-weight: 700;
     color: var(--gray-800);
-    margin: 0 0 8px 0;
 }
 
 .empty-state p {
     font-size: 14px;
-    color: var(--gray-500);
-    margin: 0;
 }
 
 /* ===== LOADER ===== */

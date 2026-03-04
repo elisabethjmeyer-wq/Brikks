@@ -541,7 +541,6 @@
 
 /* ===== EMPTY STATE ===== */
 .empty-state {
-    text-align: center;
     padding: 48px 32px;
     background: var(--gray-50);
     border: 2px dashed var(--gray-200);
@@ -557,7 +556,6 @@
 .empty-state h3 {
     font-size: 16px;
     font-weight: 600;
-    color: var(--gray-700);
     margin: 0 0 6px 0;
 }
 
@@ -601,16 +599,7 @@
 
 /* ===== MODAL ===== */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.5);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
     padding: 20px;
 }
 
