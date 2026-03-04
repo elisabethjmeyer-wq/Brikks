@@ -417,7 +417,7 @@ Object.assign(AdminBanquesExercices, {
                 this._renderBlockAddBar() +
             '</div>' +
             '<div id="cwPreviewPanel" class="tb-preview-panel" style="display:none;">' +
-                '<div id="cwPreviewContainer">' +
+                '<div id="cwPreviewContainer" class="cw-preview-frame">' +
                     '<div class="cw-preview-empty">Ajoutez du contenu pour voir l\u2019aper\u00E7u</div>' +
                 '</div>' +
             '</div>' +
