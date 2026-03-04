@@ -1844,6 +1844,9 @@ Object.assign(AdminBanquesExercices, {
     },
 
     _hasCorrectionCommentee(tache) {
+        // Nouveau format : éditeur de texte riche (correction_contenu)
+        if (tache.correction_contenu && tache.correction_contenu.trim().length > 0) return true;
+        // Ancien format : URL Google Doc (correction_commentee)
         if (!tache.correction_commentee) return false;
         const url = this._extractCorrectionUrl(tache.correction_commentee);
         return url && url.trim().length > 0;
