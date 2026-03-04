@@ -302,14 +302,14 @@ h3 { font-size: 1.25rem; }
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
 }
 
-.modal-overlay.active {
-    display: flex;
+.modal-overlay.hidden {
+    display: none;
 }
 
 /* ===== LAYOUT ADMIN ===== */

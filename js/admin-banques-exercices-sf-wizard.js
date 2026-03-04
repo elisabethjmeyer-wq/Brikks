@@ -376,7 +376,6 @@ Object.assign(AdminBanquesExercices, {
     // ========== ÉTAPE 2 : FORMAT ==========
 
     _renderSFWizardStep2: function() {
-        var self = this;
         var selectedFormatId = this.sfWizardData.formatId;
         var isEditing = this.sfWizardData.isEditing;
 
@@ -422,8 +421,8 @@ Object.assign(AdminBanquesExercices, {
                     : 'onclick="AdminBanquesExercices._selectSFFormat(\'' + format.id + '\', \'' + typeUI + '\')"') +
                 '>' +
                 '<span class="sf-format-icon">' + icon + '</span>' +
-                '<span class="sf-format-name">' + self.escapeHtml(displayName) + '</span>' +
-                '<span class="sf-format-desc">' + self.escapeHtml(format.description || '') + '</span>' +
+                '<span class="sf-format-name">' + escapeHtml(displayName) + '</span>' +
+                '<span class="sf-format-desc">' + escapeHtml(format.description || '') + '</span>' +
                 (isSelected ? '<span class="sf-format-check">\u2713</span>' : '') +
             '</button>';
         });

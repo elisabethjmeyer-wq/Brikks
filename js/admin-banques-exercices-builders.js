@@ -646,27 +646,27 @@ Object.assign(AdminBanquesExercices, {
                     html += block.content || '';
                     if (block.legende) html += `<div class="block-legende">${block.legende.replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
                 } else if (block.type === 'document' || block.type === 'image') {
-                    if (block.titre) html += `<div class="block-titre">${self.escapeHtml(block.titre)}</div>`;
+                    if (block.titre) html += `<div class="block-titre">${escapeHtml(block.titre)}</div>`;
                     if (block.url) {
                         const imgSrc = self._convertToDirectImageUrl(block.url);
-                        html += `<img src="${self.escapeHtml(imgSrc)}" alt="">`;
+                        html += `<img src="${escapeHtml(imgSrc)}" alt="">`;
                     }
                     if (block.legende) html += `<div class="block-legende">${block.legende.replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
                 } else if (block.type === 'video') {
                     if (block.url) {
                         const embedUrl = self._getPreviewEmbedUrl(block.url);
-                        if (embedUrl) html += `<iframe src="${self.escapeHtml(embedUrl)}"></iframe>`;
+                        if (embedUrl) html += `<iframe src="${escapeHtml(embedUrl)}"></iframe>`;
                     }
                     if (block.legende) html += `<div class="block-legende">${block.legende.replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>`;
                 } else if (block.type === 'tableau') {
                     const cols = block.colonnes || [];
                     const rows = block.lignes || [];
-                    html += `<table><thead><tr>${cols.map(c => `<th>${self.escapeHtml(c || '')}</th>`).join('')}</tr></thead><tbody>`;
+                    html += `<table><thead><tr>${cols.map(c => `<th>${escapeHtml(c || '')}</th>`).join('')}</tr></thead><tbody>`;
                     rows.forEach(ligne => {
                         html += '<tr>';
                         (ligne.cells || []).forEach(cell => {
                             if (cell.type === 'donnee') {
-                                html += `<td class="cell-donnee">${self.escapeHtml(cell.valeur || '')}</td>`;
+                                html += `<td class="cell-donnee">${escapeHtml(cell.valeur || '')}</td>`;
                             } else {
                                 html += '<td class="cell-editable"><input type="text" placeholder="..."></td>';
                             }
