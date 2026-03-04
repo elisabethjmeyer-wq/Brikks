@@ -36,9 +36,9 @@ const AdminLayout = {
             items: [
                 { icon: '📋', label: 'Évaluations', href: '/Brikks/admin/evaluations.html', id: 'evaluations' },
                 { icon: '🟣', label: 'Compétences', href: '/Brikks/admin/competences.html', id: 'competences' },
-                { icon: '✏️', label: 'Corrections', href: '/Brikks/admin/corrections.html', id: 'corrections' },
+                { icon: '✏️', label: 'Corrections', href: '/Brikks/admin/corrections.html', id: 'corrections', badge: true },
                 { icon: '📊', label: 'Notes', href: '/Brikks/admin/notes.html', id: 'notes' },
-                { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi', badge: true }
+                { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi' }
             ]
         },
         {
@@ -107,7 +107,7 @@ const AdminLayout = {
                     <button class="top-bar-btn" title="Prévisualiser le site élève" onclick="AdminLayout.openPreview()">
                         👁️
                     </button>
-                    <button class="top-bar-btn notification-btn" title="Notifications" onclick="AdminLayout.goToSuivi()">
+                    <button class="top-bar-btn notification-btn" title="Copies à corriger" onclick="AdminLayout.goToCorrections()">
                         🔔
                         <span class="notification-badge" id="header-notification-badge" style="display:none;">0</span>
                     </button>
@@ -258,10 +258,10 @@ const AdminLayout = {
     },
 
     /**
-     * Redirige vers la page Suivi
+     * Redirige vers la page Corrections
      */
-    goToSuivi() {
-        window.location.href = '/Brikks/admin/suivi.html';
+    goToCorrections() {
+        window.location.href = '/Brikks/admin/corrections.html';
     },
 
     /**
@@ -279,8 +279,8 @@ const AdminLayout = {
             }
         }
 
-        // Badge dans le menu Suivi
-        const menuBadge = document.getElementById('badge-suivi');
+        // Badge dans le menu Corrections
+        const menuBadge = document.getElementById('badge-corrections');
         if (menuBadge) {
             if (count > 0) {
                 menuBadge.textContent = count > 99 ? '99+' : count;
