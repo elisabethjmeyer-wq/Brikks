@@ -512,8 +512,9 @@ const EleveCompetences = {
             // Entraîné → popup Se ré-entraîner / Consulter correction
             this._showRetrainOrReviewModal(entr, prog);
         } else if (prog.statut === 'non_soumis') {
-            // Refusé → proposer de recommencer (choix mode)
-            this.openChoiceModal(entrainementId);
+            // Refusé → bascule définitive en entraînement (pas de retour en évaluation)
+            this.currentEntrainement = entr;
+            this.startEntrainement('entrainement');
         } else if (prog.statut === 'soumis') {
             this.showExerciseReview(entr, prog);
         } else if (prog.statut === 'corrige') {
