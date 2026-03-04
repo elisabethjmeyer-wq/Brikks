@@ -107,10 +107,18 @@ const AdminLayout = {
                     <button class="top-bar-btn" title="Prévisualiser le site élève" onclick="AdminLayout.openPreview()">
                         👁️
                     </button>
-                    <button class="top-bar-btn notification-btn" title="Copies à corriger" onclick="AdminLayout.goToCorrections()">
-                        🔔
-                        <span class="notification-badge" id="header-notification-badge" style="display:none;">0</span>
-                    </button>
+                    <div class="notification-wrapper" id="notification-wrapper">
+                        <button class="top-bar-btn notification-btn" title="Copies à corriger" onclick="AdminLayout.toggleNotificationDropdown(event)">
+                            🔔
+                            <span class="notification-badge" id="header-notification-badge" style="display:none;">0</span>
+                        </button>
+                        <div class="notification-dropdown" id="notification-dropdown" style="display:none;">
+                            <div class="notification-dropdown-header">Notifications</div>
+                            <div class="notification-dropdown-body" id="notification-dropdown-body">
+                                Aucune notification
+                            </div>
+                        </div>
+                    </div>
                     <div class="top-bar-user" onclick="AdminLayout.toggleUserMenu()">
                         <div class="top-bar-user-avatar" id="user-avatar">--</div>
                         <div class="top-bar-user-info">
@@ -179,6 +187,11 @@ const AdminLayout = {
 
         // Vérifier les notifications (copies à corriger, etc.)
         this.checkPendingActivities();
+
+        // Si on est sur la page corrections, marquer comme vu
+        if (pageId === 'corrections') {
+            this._onCorrectionsPage = true;
+        }
     },
 
     /**
@@ -237,12 +250,18 @@ const AdminLayout = {
         if (this._eventsInitialized) return;
         this._eventsInitialized = true;
 
-        // Fermer le menu utilisateur si clic ailleurs
+        // Fermer le menu utilisateur et le dropdown notifications si clic ailleurs
         document.addEventListener('click', (e) => {
             const userMenu = document.querySelector('.top-bar-user');
             const dropdown = document.getElementById('user-dropdown');
             if (userMenu && dropdown && !userMenu.contains(e.target)) {
                 dropdown.classList.remove('show');
+            }
+
+            var notifWrapper = document.getElementById('notification-wrapper');
+            var notifDropdown = document.getElementById('notification-dropdown');
+            if (notifWrapper && notifDropdown && !notifWrapper.contains(e.target)) {
+                notifDropdown.style.display = 'none';
             }
         });
     },
@@ -262,6 +281,59 @@ const AdminLayout = {
      */
     goToCorrections() {
         window.location.href = '/Brikks/admin/corrections.html';
+    },
+
+    /**
+     * Toggle le dropdown de notifications
+     */
+    toggleNotificationDropdown(e) {
+        if (e) e.stopPropagation();
+        var dropdown = document.getElementById('notification-dropdown');
+        if (!dropdown) return;
+
+        var isVisible = dropdown.style.display !== 'none';
+        if (isVisible) {
+            dropdown.style.display = 'none';
+        } else {
+            dropdown.style.display = 'block';
+            // Marquer comme vu → cacher les badges
+            this._markNotificationsAsSeen();
+        }
+    },
+
+    /**
+     * Marque les notifications comme vues (localStorage)
+     */
+    _markNotificationsAsSeen() {
+        var count = this._pendingCount || 0;
+        try {
+            localStorage.setItem('brikks_notif_seen_count', String(count));
+        } catch (_e) { /* ignore */ }
+        // Cacher les badges
+        var headerBadge = document.getElementById('header-notification-badge');
+        if (headerBadge) headerBadge.style.display = 'none';
+        var menuBadge = document.getElementById('badge-corrections');
+        if (menuBadge) menuBadge.style.display = 'none';
+    },
+
+    /**
+     * Construit le contenu du dropdown de notifications
+     */
+    _renderNotificationDropdown(pendingSubmissions) {
+        var body = document.getElementById('notification-dropdown-body');
+        if (!body) return;
+
+        if (!pendingSubmissions || pendingSubmissions.length === 0) {
+            body.innerHTML = '<div class="notification-empty">Aucune copie à corriger</div>';
+            return;
+        }
+
+        var count = pendingSubmissions.length;
+        var html = '<a href="/Brikks/admin/corrections.html" class="notification-item">';
+        html += '<span class="notification-item-icon">✏️</span>';
+        html += '<span class="notification-item-text">' + count + ' copie' + (count > 1 ? 's' : '') + ' à corriger</span>';
+        html += '</a>';
+        body.innerHTML = html;
     },
 
     /**
@@ -296,12 +368,31 @@ const AdminLayout = {
      */
     async checkPendingActivities() {
         try {
-            // Récupérer les tâches complexes en attente de correction
-            const result = await this.callAPI('getEleveTachesComplexes', {});
+            var result = await this.callAPI('getEleveTachesComplexes', {});
             if (result.success && result.data) {
-                // Compter les copies en attente de correction (statut = soumis)
-                const pendingCount = result.data.filter(t => t.statut === 'soumis').length;
-                this.updateNotificationBadges(pendingCount);
+                var pending = result.data.filter(function(t) { return t.statut === 'soumis'; });
+                var count = pending.length;
+                this._pendingCount = count;
+
+                // Construire le contenu du dropdown
+                this._renderNotificationDropdown(pending);
+
+                // Si on est sur la page corrections, marquer comme vu automatiquement
+                if (this._onCorrectionsPage) {
+                    try { localStorage.setItem('brikks_notif_seen_count', String(count)); } catch (_e) { /* ignore */ }
+                    this.updateNotificationBadges(0);
+                } else {
+                    // Vérifier si l'utilisateur a déjà vu ce nombre
+                    var seenCount = 0;
+                    try { seenCount = parseInt(localStorage.getItem('brikks_notif_seen_count') || '0', 10); } catch (_e) { /* ignore */ }
+
+                    // Afficher les badges seulement si nouvelles soumissions depuis la dernière consultation
+                    if (count > seenCount) {
+                        this.updateNotificationBadges(count);
+                    } else {
+                        this.updateNotificationBadges(0);
+                    }
+                }
             }
         } catch (error) {
             console.error('Erreur vérification activités:', error);
