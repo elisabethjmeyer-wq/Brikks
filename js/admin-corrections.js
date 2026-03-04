@@ -41,23 +41,23 @@ const AdminCorrections = {
         }
     },
 
-    // ========== DATA LOADING ==========
+    // ========== DATA LOADING (SheetsAPI — cache localStorage) ==========
 
     async loadData() {
         var results = await Promise.all([
-            this.callAPI('getEleveEntrainementsCompetences', {}),
-            this.callAPI('getEntrainementsCompetences', {}),
-            this.callAPI('getBanquesCompetences', {}),
-            this.callAPI('getCompetencesReferentiel', {}),
-            this.callAPI('getCriteresReussite', {}),
+            SheetsAPI.fetchAndParse('EleveEntrainementsCompetences'),
+            SheetsAPI.fetchAndParse('EntrainementsCompetences'),
+            SheetsAPI.fetchAndParse('BanquesCompetences'),
+            SheetsAPI.fetchAndParse('CompetencesReferentiel'),
+            SheetsAPI.fetchAndParse('CriteresReussite'),
             SheetsAPI.fetchAndParse('UTILISATEURS')
         ]);
 
-        if (results[0].success) this.submissions = results[0].data || [];
-        if (results[1].success) this.entrainements = results[1].data || [];
-        if (results[2].success) this.banques = results[2].data || [];
-        if (results[3].success) this.competences = results[3].data || [];
-        if (results[4].success) this.criteres = results[4].data || [];
+        this.submissions = results[0] || [];
+        this.entrainements = results[1] || [];
+        this.banques = results[2] || [];
+        this.competences = results[3] || [];
+        this.criteres = results[4] || [];
         this.utilisateurs = results[5] || [];
     },
 
@@ -94,10 +94,6 @@ const AdminCorrections = {
         return this.entrainements.find(function(e) { return String(e.id) === String(entrainementId); });
     },
 
-    getBanque(banqueId) {
-        return this.banques.find(function(b) { return String(b.id) === String(banqueId); });
-    },
-
     getCompetence(competenceId) {
         return this.competences.find(function(c) { return String(c.id) === String(competenceId); });
     },
@@ -106,6 +102,18 @@ const AdminCorrections = {
         return this.criteres
             .filter(function(c) { return String(c.competence_id) === String(competenceId); })
             .sort(function(a, b) { return (a.ordre || 0) - (b.ordre || 0); });
+    },
+
+    getCompetenceForEntrainement(entrainement) {
+        if (!entrainement) return null;
+        // Via banque
+        if (entrainement.banque_id) {
+            var banque = this.banques.find(function(b) { return String(b.id) === String(entrainement.banque_id); });
+            if (banque && banque.competence_id) return this.getCompetence(banque.competence_id);
+        }
+        // Via entrainement direct
+        if (entrainement.competence_id) return this.getCompetence(entrainement.competence_id);
+        return null;
     },
 
     getPendingSubmissions() {
@@ -117,7 +125,6 @@ const AdminCorrections = {
     },
 
     getDoneSubmissions() {
-        var self = this;
         return this.submissions
             .filter(function(s) { return s.statut === 'valide' || s.statut === 'non_valide'; })
             .sort(function(a, b) {
@@ -155,10 +162,25 @@ const AdminCorrections = {
         return div.innerHTML;
     },
 
+    getInitials(name) {
+        if (!name) return '?';
+        var parts = name.trim().split(/\s+/);
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return parts[0].substring(0, 2).toUpperCase();
+    },
+
     getModeLabel(mode) {
         if (mode === 'papier') return '📄 Papier';
         if (mode === 'numerique') return '💻 Numérique';
-        return '—';
+        return '';
+    },
+
+    getEleveName(eleve) {
+        if (!eleve) return 'Élève inconnu';
+        var prenom = eleve.prenom || '';
+        var nom = eleve.nom || '';
+        if (prenom && nom) return prenom + ' ' + nom;
+        return eleve.identifiant || 'Élève inconnu';
     },
 
     // ========== TABS ==========
@@ -181,12 +203,12 @@ const AdminCorrections = {
         var items = this.currentTab === 'pending' ? this.getPendingSubmissions() : this.getDoneSubmissions();
         var grid = document.getElementById('correctionsGrid');
         var empty = document.getElementById('emptyState');
-        var emptyMsg = document.getElementById('emptyMessage');
 
         if (items.length === 0) {
             grid.innerHTML = '';
-            emptyMsg.textContent = this.currentTab === 'pending'
-                ? 'Aucune copie à corriger pour le moment.'
+            document.getElementById('emptyIcon').textContent = this.currentTab === 'pending' ? '✅' : '📂';
+            document.getElementById('emptyMessage').textContent = this.currentTab === 'pending'
+                ? 'Aucune copie à corriger pour le moment !'
                 : 'Aucune correction terminée.';
             empty.classList.remove('hidden');
             return;
@@ -202,13 +224,14 @@ const AdminCorrections = {
     renderCard(sub) {
         var eleve = this.getEleve(sub.eleve_id);
         var entrainement = this.getEntrainement(sub.entrainement_id);
-        var competence = entrainement ? this.getCompetence(entrainement.competence_id) : null;
+        var competence = this.getCompetenceForEntrainement(entrainement);
 
-        var eleveName = eleve ? (eleve.nom + ' ' + (eleve.prenom || '').charAt(0) + '.') : 'Élève inconnu';
+        var eleveName = this.getEleveName(eleve);
         var entrainementTitle = entrainement ? entrainement.titre : 'Entraînement inconnu';
         var competenceNom = competence ? competence.nom : '';
-        var dateStr = this.formatDate(sub.date_soumission);
         var isDone = sub.statut === 'valide' || sub.statut === 'non_valide';
+
+        var subKey = sub.id || (sub.eleve_id + '_' + sub.entrainement_id);
 
         var decisionHtml = '';
         if (isDone) {
@@ -217,13 +240,19 @@ const AdminCorrections = {
                 (isValide ? '✅ Validé' : '❌ Non validé') + '</span>';
         }
 
-        return '<div class="correction-card' + (isDone ? ' done' : '') + '" onclick="AdminCorrections.openModal(\'' + this.escapeHtml(sub.id || (sub.eleve_id + '_' + sub.entrainement_id)) + '\')">' +
-            '<div class="card-eleve">' + this.escapeHtml(eleveName) + '</div>' +
+        var modeLabel = this.getModeLabel(sub.mode_rendu);
+        var dateStr = this.formatDate(sub.date_soumission);
+
+        return '<div class="correction-card' + (isDone ? ' done' : '') + '" onclick="AdminCorrections.openModal(\'' + this.escapeHtml(subKey) + '\')">' +
+            '<div class="card-header">' +
+                '<div class="card-avatar">' + this.getInitials(eleveName) + '</div>' +
+                '<div class="card-eleve">' + this.escapeHtml(eleveName) + '</div>' +
+            '</div>' +
             '<div class="card-entrainement">' + this.escapeHtml(entrainementTitle) + '</div>' +
             (competenceNom ? '<div class="card-competence">' + this.escapeHtml(competenceNom) + '</div>' : '') +
             '<div class="card-meta">' +
-                '<span class="card-mode">' + this.getModeLabel(sub.mode_rendu) + '</span>' +
-                (decisionHtml || '<span class="card-date">' + dateStr + '</span>') +
+                (modeLabel ? '<span class="card-mode">' + modeLabel + '</span>' : '<span class="card-date">📅 ' + dateStr + '</span>') +
+                (decisionHtml || '<span class="card-date">📅 ' + dateStr + '</span>') +
             '</div>' +
         '</div>';
     },
@@ -231,7 +260,6 @@ const AdminCorrections = {
     // ========== MODAL / WIZARD ==========
 
     openModal(subId) {
-        // Trouver la soumission par id ou par eleve_id_entrainement_id
         var sub = this.submissions.find(function(s) {
             return String(s.id) === String(subId) ||
                    (s.eleve_id + '_' + s.entrainement_id) === subId;
@@ -246,14 +274,14 @@ const AdminCorrections = {
         if (sub.criteres_valides) {
             try {
                 existingCriteres = JSON.parse(sub.criteres_valides);
-            } catch (e) { /* ignore */ }
+            } catch (_e) { /* ignore */ }
         }
 
         this.wizardData = {
-            criteresValides: existingCriteres,
+            criteresValides: Array.isArray(existingCriteres) ? existingCriteres.map(String) : [],
             decision: (sub.statut === 'valide' || sub.statut === 'non_valide') ? sub.statut : null,
             remarque: sub.remarque_prof || '',
-            correctionType: sub.correction_prof ? (sub.correction_prof.startsWith('http') ? 'url' : 'html') : null,
+            correctionType: sub.correction_prof ? (String(sub.correction_prof).startsWith('http') ? 'url' : 'html') : null,
             correctionValue: sub.correction_prof || ''
         };
 
@@ -272,8 +300,7 @@ const AdminCorrections = {
         var sub = this.currentSubmission;
         var eleve = this.getEleve(sub.eleve_id);
         var entrainement = this.getEntrainement(sub.entrainement_id);
-        var title = (eleve ? eleve.prenom + ' ' + eleve.nom : 'Élève') +
-                    ' — ' + (entrainement ? entrainement.titre : 'Entraînement');
+        var title = this.getEleveName(eleve) + ' — ' + (entrainement ? entrainement.titre : 'Entraînement');
         document.getElementById('correctionModalTitle').textContent = title;
     },
 
@@ -284,9 +311,8 @@ const AdminCorrections = {
     },
 
     updateWizardIndicators() {
-        var steps = document.querySelectorAll('.wizard-step');
         var self = this;
-        steps.forEach(function(el) {
+        document.querySelectorAll('.wizard-step').forEach(function(el) {
             var stepNum = parseInt(el.dataset.step);
             el.classList.remove('active', 'completed');
             if (stepNum === self.currentStep) {
@@ -321,16 +347,28 @@ const AdminCorrections = {
         var entrainement = this.getEntrainement(sub.entrainement_id);
 
         var html = '<div class="info-grid">';
-        html += this._infoItem('👤', 'Élève', eleve ? (eleve.prenom + ' ' + eleve.nom) : 'Inconnu');
+        html += this._infoItem('👤', 'Élève', this.getEleveName(eleve));
         html += this._infoItem('📅', 'Soumis le', this.formatDateLong(sub.date_soumission));
         html += this._infoItem('⏱', 'Temps passé', this.formatTime(sub.temps_passe));
-        html += this._infoItem('📄', 'Mode', this.getModeLabel(sub.mode_rendu));
+        html += this._infoItem('📄', 'Mode de rendu', this.getModeLabel(sub.mode_rendu) || '—');
         html += '</div>';
 
         // Document de l'entraînement
         if (entrainement) {
             var docUrl = entrainement.document_url;
             var docContenu = entrainement.document_contenu;
+
+            // Parser le contenu si c'est du JSON
+            if (docContenu && typeof docContenu === 'string') {
+                try {
+                    var parsed = JSON.parse(docContenu);
+                    if (parsed && typeof parsed === 'object' && parsed.content) {
+                        docContenu = parsed.content;
+                    } else if (typeof parsed === 'string') {
+                        docContenu = parsed;
+                    }
+                } catch (_e) { /* déjà du HTML, on garde tel quel */ }
+            }
 
             if (docUrl || docContenu) {
                 html += '<div class="document-section">';
@@ -367,16 +405,17 @@ const AdminCorrections = {
     renderStep2() {
         var sub = this.currentSubmission;
         var entrainement = this.getEntrainement(sub.entrainement_id);
-        var competenceId = entrainement ? entrainement.competence_id : null;
+        var competence = this.getCompetenceForEntrainement(entrainement);
+        var competenceId = competence ? competence.id : null;
         var criteres = competenceId ? this.getCriteresByCompetence(competenceId) : [];
         var wd = this.wizardData;
 
         var html = '';
 
-        // Critères de réussite (toujours visible)
+        // Critères de réussite
         if (criteres.length > 0) {
             html += '<div class="correction-section">';
-            html += '<h4 style="margin: 0 0 0.75rem; font-size: 0.9rem; font-weight: 600; color: #374151;">Critères de réussite (' + criteres.length + ')</h4>';
+            html += '<h4>Critères de réussite (' + criteres.length + ')</h4>';
             html += '<div class="criteres-correction-list">';
             criteres.forEach(function(c) {
                 var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
@@ -449,11 +488,11 @@ const AdminCorrections = {
     },
 
     setCorrectionType(type) {
+        var oldType = this.wizardData.correctionType;
         this.wizardData.correctionType = type;
-        if (this.wizardData.correctionType !== type) {
+        if (oldType !== type) {
             this.wizardData.correctionValue = '';
         }
-        // Re-render la section corrigé
         this.renderStep();
     },
 
@@ -490,16 +529,17 @@ const AdminCorrections = {
         var sub = this.currentSubmission;
         var eleve = this.getEleve(sub.eleve_id);
         var entrainement = this.getEntrainement(sub.entrainement_id);
-        var competenceId = entrainement ? entrainement.competence_id : null;
+        var competence = this.getCompetenceForEntrainement(entrainement);
+        var competenceId = competence ? competence.id : null;
         var criteres = competenceId ? this.getCriteresByCompetence(competenceId) : [];
         var wd = this.wizardData;
 
         var html = '';
 
-        // Infos élève
+        // Infos
         html += '<div class="bilan-section">';
         html += '<h4>Élève</h4>';
-        html += '<div class="bilan-value">' + this.escapeHtml(eleve ? (eleve.prenom + ' ' + eleve.nom) : 'Inconnu') + '</div>';
+        html += '<div class="bilan-value">' + this.escapeHtml(this.getEleveName(eleve)) + '</div>';
         html += '</div>';
 
         html += '<div class="bilan-section">';
@@ -555,7 +595,7 @@ const AdminCorrections = {
                 '<button class="btn btn-secondary" onclick="AdminCorrections.goToStep(2)">← Modifier</button>' +
             '</div>' +
             '<div class="footer-right">' +
-                '<button class="btn-confirm" id="confirmBtn" onclick="AdminCorrections.confirmCorrection()">✅ Confirmer</button>' +
+                '<button class="btn-confirm" id="confirmBtn" onclick="AdminCorrections.confirmCorrection()">✅ Confirmer la correction</button>' +
             '</div>';
     },
 
@@ -594,10 +634,13 @@ const AdminCorrections = {
                 sub.criteres_valides = JSON.stringify(wd.criteresValides);
                 sub.date_correction = new Date().toISOString();
 
+                // Invalider le cache SheetsAPI
+                try { localStorage.removeItem('brikks_sheets_EleveEntrainementsCompetences'); } catch (_e) { /* ignore */ }
+
                 this.closeModal();
                 this.updateCounts();
                 this.renderGrid();
-                this.showNotification('Correction enregistrée avec succès !', 'success');
+                this.showNotification('Correction enregistrée !', 'success');
             } else {
                 this.showNotification('Erreur : ' + (result.error || 'Échec de la sauvegarde'), 'error');
             }
@@ -608,7 +651,7 @@ const AdminCorrections = {
             this._saving = false;
             if (btn) {
                 btn.disabled = false;
-                btn.textContent = '✅ Confirmer';
+                btn.textContent = '✅ Confirmer la correction';
             }
         }
     },
