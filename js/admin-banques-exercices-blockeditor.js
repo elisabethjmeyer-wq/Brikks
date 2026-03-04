@@ -154,6 +154,13 @@ Object.assign(AdminBanquesExercices, {
             return group;
         }
         var block = Object.assign({ id: id }, raw);
+        // Tableau : recréer la ligne header si showHeader !== false
+        if (block.type === 'tableau' && block.showHeader !== false) {
+            var hasHdr = (block.lignes || []).some(function(r) { return r.header; });
+            if (!hasHdr) {
+                block.lignes = [{ header: true }].concat(block.lignes || []);
+            }
+        }
         return block;
     },
 
@@ -171,27 +178,30 @@ Object.assign(AdminBanquesExercices, {
             return g;
         }
         if (block.type === 'tableau') {
-            return {
+            var hasHdr = (block.lignes || []).some(function(r) { return r.header; });
+            var tableOut = {
                 type: 'tableau',
                 colonnes: block.colonnes || [],
                 lignes: (block.lignes || []).filter(function(ligne) {
-                    return !ligne.header; // L'en-tête est sérialisé dans colonnes
+                    return !ligne.header;
                 }).map(function(ligne) {
                     if (ligne.section) {
                         return { section: true, text: ligne.text || '' };
                     }
                     return { cells: (ligne.cells || []).map(function(cell) {
-                        var out = { valeur: cell.valeur, type: cell.type };
+                        var c = { valeur: cell.valeur, type: cell.type };
                         if (cell.type === 'reponse') {
-                            out.correction = cell.correction || 'souple';
+                            c.correction = cell.correction || 'souple';
                             if (cell.alternatives && cell.alternatives.length > 0) {
-                                out.alternatives = cell.alternatives;
+                                c.alternatives = cell.alternatives;
                             }
                         }
-                        return out;
+                        return c;
                     })};
                 })
             };
+            if (!hasHdr) tableOut.showHeader = false;
+            return tableOut;
         }
         if (block.type === 'question') {
             var qout = { type: 'question', question: block.question || '', reponse: block.reponse || '' };
@@ -727,12 +737,7 @@ Object.assign(AdminBanquesExercices, {
         var cols = block.colonnes || [];
         var rows = block.lignes || [];
 
-        // Migration : insérer la ligne d'en-tête si absente
         var hasHeader = rows.some(function(r) { return r.header; });
-        if (!hasHeader) {
-            rows.unshift({ header: true });
-            block.lignes = rows;
-        }
 
         var tbodyHtml = '';
         for (var ri = 0; ri < rows.length; ri++) {
@@ -742,12 +747,11 @@ Object.assign(AdminBanquesExercices, {
                 (ri < rows.length - 1 ? '<button type="button" class="tb-move-btn" onclick="AdminBanquesExercices._blockTableMoveRow(\'' + bid + '\',' + ri + ',1)" title="Descendre">\u25BC</button>' : '') +
                 '</span>';
 
-            // Ligne d'en-tête (colonnes)
+            // Ligne d'en-tête (colonnes) — toujours en position 0, pas de déplacement
             if (rows[ri].header) {
                 tbodyHtml += '<tr data-row="' + ri + '" class="tb-header-row">';
                 for (var ci = 0; ci < cols.length; ci++) {
                     tbodyHtml += '<td class="tb-header-cell">' +
-                        (ci === 0 ? moveButtons : '') +
                         '<input type="text" class="tb-col-title" value="' + this.escapeHtml(cols[ci] || '') + '" ' +
                         'placeholder="Colonne ' + (ci + 1) + '" data-col="' + ci + '" data-block="' + bid + '">' +
                         (cols.length > 1
@@ -757,6 +761,9 @@ Object.assign(AdminBanquesExercices, {
                 }
                 tbodyHtml += '<td class="tb-actions-col">' +
                     '<button type="button" class="tb-add-col" onclick="AdminBanquesExercices._blockTableAddCol(\'' + bid + '\')" title="Ajouter une colonne">+</button>' +
+                    (rows.length > 1
+                        ? '<button type="button" class="tb-header-remove" onclick="AdminBanquesExercices._blockTableRemoveRow(\'' + bid + '\',' + ri + ')" title="Supprimer l\'en-t\u00eate">&times;</button>'
+                        : '') +
                     '</td></tr>';
                 continue;
             }
@@ -810,6 +817,9 @@ Object.assign(AdminBanquesExercices, {
             '<tbody>' + tbodyHtml + '</tbody>' +
             '</table></div>' +
             '<div class="tb-add-buttons">' +
+            (!hasHeader
+                ? '<button type="button" class="btn btn-secondary btn-sm tb-add-header-btn" onclick="AdminBanquesExercices._blockTableAddHeader(\'' + bid + '\')">+ En-t\u00eate</button>'
+                : '') +
             '<button type="button" class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices._blockTableAddRow(\'' + bid + '\')">+ Ligne</button>' +
             '<button type="button" class="btn btn-secondary btn-sm tb-add-section-btn" onclick="AdminBanquesExercices._blockTableAddSection(\'' + bid + '\')">+ Section</button>' +
             '</div></div>';
@@ -866,7 +876,7 @@ Object.assign(AdminBanquesExercices, {
         if (!block || block.type !== 'tableau') return;
         block.colonnes.push('');
         block.lignes.forEach(function(ligne) {
-            if (ligne.section) return;
+            if (ligne.section || ligne.header) return;
             ligne.cells.push({ valeur: '', type: 'reponse', correction: 'souple', alternatives: [] });
         });
         this._renderBlocks();
@@ -879,7 +889,7 @@ Object.assign(AdminBanquesExercices, {
         if (block.colonnes.length <= 1) return;
         block.colonnes.splice(colIndex, 1);
         block.lignes.forEach(function(ligne) {
-            if (ligne.section) return;
+            if (ligne.section || ligne.header) return;
             ligne.cells.splice(colIndex, 1);
         });
         this._renderBlocks();
@@ -900,11 +910,8 @@ Object.assign(AdminBanquesExercices, {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
-        // Ne pas supprimer la ligne d'en-tête
-        if (block.lignes[rowIndex] && block.lignes[rowIndex].header) return;
-        // Garder au moins 1 ligne de données (hors en-tête)
-        var dataRows = block.lignes.filter(function(r) { return !r.header; });
-        if (dataRows.length <= 1) return;
+        // Garder au moins 1 ligne (tous types confondus)
+        if (block.lignes.length <= 1) return;
         block.lignes.splice(rowIndex, 1);
         this._renderBlocks();
     },
@@ -917,15 +924,29 @@ Object.assign(AdminBanquesExercices, {
         this._renderBlocks();
     },
 
+    _blockTableAddHeader(blockId) {
+        this._saveEditorsState();
+        var block = this._getBlockById(blockId);
+        if (!block || block.type !== 'tableau') return;
+        // Ne pas ajouter si déjà présent
+        if (block.lignes.some(function(r) { return r.header; })) return;
+        block.lignes.unshift({ header: true });
+        this._renderBlocks();
+    },
+
     _blockTableMoveRow(blockId, rowIndex, direction) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
         var newIndex = rowIndex + direction;
         if (newIndex < 0 || newIndex >= block.lignes.length) return;
-        var temp = block.lignes[rowIndex];
-        block.lignes[rowIndex] = block.lignes[newIndex];
-        block.lignes[newIndex] = temp;
+        // Le header doit rester en position 0
+        var row = block.lignes[rowIndex];
+        var target = block.lignes[newIndex];
+        if (row.header && direction > 0) return;
+        if (target.header && direction < 0) return;
+        block.lignes[rowIndex] = target;
+        block.lignes[newIndex] = row;
         this._renderBlocks();
     },
 

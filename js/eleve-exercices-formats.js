@@ -441,13 +441,10 @@ Object.assign(EleveExercices, {
         const cols = block.colonnes || [];
         const lignes = block.lignes || [];
         const tableIdx = this._mixteBlockTableauCounter++;
+        const showHeader = block.showHeader !== false;
 
         // Stocker le tableau pour la validation
         this._mixteBlockTableaux.push({ cols, lignes, tableIdx });
-
-        const headerHTML = cols.map(c =>
-            `<th>${this.escapeHtml(c || '')}</th>`
-        ).join('');
 
         const colCount = cols.length;
         const bodyHTML = lignes.map((ligne, ri) => {
@@ -465,10 +462,18 @@ Object.assign(EleveExercices, {
             }).join('')}</tr>`;
         }).join('');
 
+        let theadHTML = '';
+        if (showHeader) {
+            const headerHTML = cols.map(c =>
+                `<th>${this.escapeHtml(c || '')}</th>`
+            ).join('');
+            theadHTML = `<thead><tr>${headerHTML}</tr></thead>`;
+        }
+
         return `
             <div class="mixte-block-tableau">
                 <table class="mixte-table">
-                    <thead><tr>${headerHTML}</tr></thead>
+                    ${theadHTML}
                     <tbody>${bodyHTML}</tbody>
                 </table>
             </div>

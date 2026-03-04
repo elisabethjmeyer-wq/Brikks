@@ -804,13 +804,19 @@ Object.assign(AdminBanquesExercices, {
         var rows = block.lignes || [];
         if (cols.length === 0) return '<p style="color:#999;">Tableau vide</p>';
 
-        var html = '<table class="tb-preview-table"><thead><tr>';
-        cols.forEach(function(c) {
-            html += '<th>' + AdminBanquesExercices.escapeHtml(c || '...') + '</th>';
-        });
-        html += '</tr></thead><tbody>';
+        var hasHeader = rows.some(function(r) { return r.header; });
+        var html = '<table class="tb-preview-table">';
+        if (hasHeader) {
+            html += '<thead><tr>';
+            cols.forEach(function(c) {
+                html += '<th>' + AdminBanquesExercices.escapeHtml(c || '...') + '</th>';
+            });
+            html += '</tr></thead>';
+        }
+        html += '<tbody>';
         var colCount = cols.length;
         rows.forEach(function(ligne) {
+            if (ligne.header) return;
             if (ligne.section) {
                 html += '<tr><td colspan="' + colCount + '" class="tb-pv-section">' + AdminBanquesExercices.escapeHtml(ligne.text || '') + '</td></tr>';
                 return;
