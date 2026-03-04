@@ -8527,6 +8527,17 @@ function validateEleveEntrainementCompetence(data) {
     return { success: false, error: 'Feuille non trouvée' };
   }
 
+  // Migration progressive : ajouter les colonnes manquantes
+  var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var colsToAdd = ['remarque_prof', 'correction_prof'];
+  for (var c = 0; c < colsToAdd.length; c++) {
+    if (currentHeaders.indexOf(colsToAdd[c]) === -1) {
+      var nextCol = sheet.getLastColumn() + 1;
+      sheet.getRange(1, nextCol).setValue(colsToAdd[c]);
+      currentHeaders.push(colsToAdd[c]);
+    }
+  }
+
   var allData = sheet.getDataRange().getValues();
   var headers = allData[0];
   var idCol = headers.indexOf('id');
@@ -8534,6 +8545,8 @@ function validateEleveEntrainementCompetence(data) {
   var entrainementIdCol = headers.indexOf('entrainement_id');
   var statutCol = headers.indexOf('statut');
   var dateCorrectionCol = headers.indexOf('date_correction');
+  var remarqueProfCol = headers.indexOf('remarque_prof');
+  var correctionProfCol = headers.indexOf('correction_prof');
 
   for (var i = 1; i < allData.length; i++) {
     var match = false;
@@ -8553,6 +8566,14 @@ function validateEleveEntrainementCompetence(data) {
       sheet.getRange(i + 1, statutCol + 1).setValue(newStatut);
       if (dateCorrectionCol !== -1) {
         sheet.getRange(i + 1, dateCorrectionCol + 1).setValue(new Date().toISOString());
+      }
+      // Remarque prof (texte court)
+      if (remarqueProfCol !== -1 && data.remarque_prof !== undefined) {
+        sheet.getRange(i + 1, remarqueProfCol + 1).setValue(data.remarque_prof);
+      }
+      // Correction personnalisée (URL ou HTML)
+      if (correctionProfCol !== -1 && data.correction_prof !== undefined) {
+        sheet.getRange(i + 1, correctionProfCol + 1).setValue(data.correction_prof);
       }
       return { success: true };
     }
