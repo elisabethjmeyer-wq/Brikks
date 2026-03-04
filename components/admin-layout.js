@@ -36,6 +36,7 @@ const AdminLayout = {
             items: [
                 { icon: '📋', label: 'Évaluations', href: '/Brikks/admin/evaluations.html', id: 'evaluations' },
                 { icon: '🟣', label: 'Compétences', href: '/Brikks/admin/competences.html', id: 'competences' },
+                { icon: '✏️', label: 'Corrections', href: '/Brikks/admin/corrections.html', id: 'corrections' },
                 { icon: '📊', label: 'Notes', href: '/Brikks/admin/notes.html', id: 'notes' },
                 { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi', badge: true }
             ]

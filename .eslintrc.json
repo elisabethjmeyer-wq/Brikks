@@ -47,6 +47,7 @@
         "EleveRecommandations": "readonly",
         "EleveVideos": "readonly",
         "EleveCompetences": "readonly",
-        "SubmissionUtils": "readonly"
+        "SubmissionUtils": "readonly",
+        "AdminCorrections": "readonly"
     }
 }
