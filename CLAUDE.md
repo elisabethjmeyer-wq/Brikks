@@ -131,10 +131,14 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - **Lecture directe** : certaines pages lisent Google Sheets API v4 via `sheets.js` (cache localStorage)
 - **Déploiement** : GitHub Pages, avec préfixe `/Brikks/` dans les routes (voir `config.js`)
 - **Linting** : ESLint configuré — lancer `npm run lint` avant de pousser des changements
+- **Build GAS** : `npm run build:gas` concatène les 12 fichiers `.gs` en `TOUT-EN-UN.gs` (Code.gs en premier, puis alphabétique)
 - **Pattern modules** : chaque module est un objet singleton `const ModuleName = { ... }` (pas de classes). Les gros modules sont découpés via `Object.assign(ModuleName, { ... })` dans des fichiers séparés (-formats, -validation, etc.)
 
+### Fonctions globales
+- **`escapeHtml(str)`** : fonction globale définie dans `app.js` (hors de l'objet `App`). Échappe les caractères HTML via DOM. Utilisée dans tous les modules — ne pas redéfinir en local.
+
 ### Fichiers clés à connaître
-- **`js/config.js`** : configuration centrale — liste de toutes les tables Google Sheets (`CONFIG.SHEETS`), URL de l'API, routes. C'est le schéma de la "base de données".
+- **`js/config.js`** : configuration centrale — tables Google Sheets (`CONFIG.SHEETS`), URL API, routes, seuils de mémorisation (`CONFIG.SEUIL_*`), clés localStorage (`CONFIG.STORAGE_KEYS`). C'est le schéma de la "base de données".
 - **`google-apps-script/Code.gs`** : routeur backend — toutes les actions API y sont routées via un switch/case
 - **`components/admin-layout.js`** et **`components/eleve-layout.js`** : sidebar, header, navigation
 - **`README.md`** : ⚠️ **OBSOLÈTE** — contient des informations dépassées, ne pas s'y fier
@@ -252,8 +256,10 @@ Toujours utiliser les noms canoniques. La fonction `normalizeFormat()` dans util
 ### Constantes de mémorisation
 | Module | Étapes | Constante backend | Constante frontend |
 |--------|--------|-------------------|-------------------|
-| **Connaissances** | 7 | `ETAPE_MAX = 7` (Entrainements.gs) | `SEUIL_ETAPES: 7` (EleveConnaissances) |
-| **Savoir-faire** | 5 | Système par banque (Exercices.gs) | `SEUIL_REPETITIONS: 5` (EleveExercices) |
+| **Connaissances** | 7 | `ETAPE_MAX = 7` (Entrainements.gs) | `CONFIG.SEUIL_CONNAISSANCES` → `SEUIL_ETAPES` (EleveConnaissances) |
+| **Savoir-faire** | 5 | Système par banque (Exercices.gs) | `CONFIG.SEUIL_SAVOIR_FAIRE` → `SEUIL_REPETITIONS` (EleveExercices) |
+
+Les seuils sont centralisés dans `config.js`. Les modules les lisent via `CONFIG.SEUIL_*`.
 
 Le backend incrémente `prog.etape` après succès → c'est le **prochain** niveau à tenter.
 Pour afficher le nombre de niveaux **validés** : `Math.max(0, prog.etape - 1)`.
@@ -288,8 +294,8 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - ~~**Erreur silencieuse de sauvegarde**~~ : **CORRIGÉ (session 6)** — bandeau rouge affiché si la sauvegarde échoue.
 - ~~**Validation dupliquée**~~ : **CORRIGÉ (session 6)** — `validateCurrentEtape()` délègue maintenant aux `run*Validation()` pour 5 formats (texte_trou, timeline, chrono, carte, association). Les 3 formats restants (vrai_faux, qcm, question_ouverte) n'avaient pas de duplication.
 - ~~**Parsing JSON `donnees` dupliqué 4x**~~ : **CORRIGÉ (session 6)** — `parseJSONField()` utilisé partout.
-- **CSS chaotique (5 669 lignes)** : ~250 lignes de classes mortes (ancien système badges/progress), 13+ conflits de sélecteurs dupliqués (`.correction-section`, `.unsupported-format`, `.correction-assoc-grid`, etc.), 4 blocs `@media 768px` séparés, 3 systèmes de carrousel CSS qui coexistent. Nettoyage nécessaire mais **requiert des tests visuels** après chaque modification. Fichier : `css/eleve-connaissances.css`.
-- **`SEUIL_ETAPES` hardcodé côté frontend** : le backend renvoie `etape_max` dans ses réponses mais le frontend l'ignore et utilise sa propre constante `SEUIL_ETAPES: 7`. Si le backend change, il faut modifier les deux côtés manuellement.
+- **CSS chaotique (5 586 lignes)** : 17 doublons exacts supprimés (session 11). Reste : ~250 lignes de classes mortes (ancien système badges/progress), conflits de sélecteurs entre sections (`.correction-section`, `.unsupported-format`, `.qcm-feedback`), 4 blocs `@media 768px` séparés, 3 systèmes de carrousel CSS qui coexistent. Nettoyage supplémentaire **requiert des tests visuels**. Fichier : `css/eleve-connaissances.css`.
+- ~~**`SEUIL_ETAPES` hardcodé côté frontend**~~ : **CORRIGÉ (session 11)** — les seuils sont maintenant centralisés dans `CONFIG.SEUIL_CONNAISSANCES` et `CONFIG.SEUIL_SAVOIR_FAIRE` dans `config.js`.
 - ~~**Listener leak**~~ : **CORRIGÉ (session 6)** — listener stocké dans `_popoverClickHandler` et nettoyé dans `cleanupEventListeners()`.
 
 ### Points structurels
