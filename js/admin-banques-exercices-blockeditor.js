@@ -1,119 +1,19 @@
 /**
  * Block Editor pour les entraînements de compétences et exercices SF document_mixte.
- * Extension de AdminBanquesExercices via Object.assign.
+ * Extension de AdminBanquesExercices via le mixin partagé createBlockEditorMixin().
  *
- * Types de blocs : text, document, image, video, tableau
- * Groupement côte à côte par drag & drop, ratio configurable.
- * Stockage : JSON array dans document_contenu / donnees.blocks.
+ * Le mixin fournit : text, document, image, video, group.
+ * Ce fichier ajoute : tableau, question (spécifiques aux banques d'exercices).
  */
+
+// Monter le mixin partagé (text, document, image, video, group, drag & drop, rich text editor)
+Object.assign(AdminBanquesExercices, createBlockEditorMixin('AdminBanquesExercices'));
+
+// Ajouter les types de blocs spécifiques (tableau, question) + override _createBlock
 Object.assign(AdminBanquesExercices, {
 
-    // ========== ÉTAT DU BLOCK EDITOR ==========
-
-    /** @type {Array} Liste de blocs [{type, id, ...}, {type:'group', children:[...]}] */
-    _blocks: [],
-
-    /** @type {number} Compteur auto-incrémenté pour IDs uniques */
-    _blockIdCounter: 0,
-
-    /** @type {string|null} ID du bloc en cours de drag */
-    _dragBlockId: null,
-
-    /** @type {string} ID du container du block editor (configurable pour le wizard) */
-    _blockEditorContainerId: 'blockEditorContainer',
-
-    // ========== API PUBLIQUE ==========
-
-    /**
-     * Initialise le block editor (vide ou depuis des blocs existants).
-     * @param {Array|null} blocks — blocs JSON existants, ou null pour un éditeur vide
-     */
-    initBlockEditor(blocks) {
-        this._blocks = [];
-        this._blockIdCounter = 0;
-        if (Array.isArray(blocks) && blocks.length > 0) {
-            this._blocks = blocks.map(b => this._hydrateBlock(b));
-        }
-        this._renderBlocks();
-    },
-
-    /**
-     * Ajoute un nouveau bloc à la fin.
-     * @param {string} type — 'text', 'document', 'image', 'video'
-     */
-    addBlock(type) {
-        this._saveEditorsState();
-        var block = this._createBlock(type);
-        this._blocks.push(block);
-        this._renderBlocks();
-        // Scroll au nouveau bloc et focus
-        setTimeout(function() {
-            var el = document.getElementById('block-' + block.id);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                var editor = el.querySelector('.rt-editor');
-                if (editor) editor.focus();
-                var input = el.querySelector('input[type="text"]');
-                if (input) input.focus();
-            }
-        }, 50);
-    },
-
-    /**
-     * Supprime un bloc par ID (y compris au sein d'un groupe).
-     */
-    removeBlock(blockId) {
-        // Sauvegarder le contenu des éditeurs avant suppression
-        this._saveEditorsState();
-        this._blocks = this._blocks.filter(function(b) {
-            if (b.id === blockId) return false;
-            // Si c'est un groupe, filtrer l'enfant
-            if (b.type === 'group' && b.children) {
-                b.children = b.children.filter(function(c) { return c.id !== blockId; });
-                // Si un seul enfant reste, dégrouper
-                if (b.children.length <= 1) {
-                    return false; // sera traité après
-                }
-            }
-            return true;
-        });
-        // Dégrouper les groupes avec 1 enfant
-        var newBlocks = [];
-        for (var i = 0; i < this._blocks.length; i++) {
-            var b = this._blocks[i];
-            if (b.type === 'group' && b.children && b.children.length === 1) {
-                newBlocks.push(b.children[0]);
-            } else {
-                newBlocks.push(b);
-            }
-        }
-        this._blocks = newBlocks;
-        this._renderBlocks();
-    },
-
-    /**
-     * Sérialise les blocs en JSON (pour sauvegarde).
-     * @returns {string} JSON string ou '' si vide
-     */
-    getBlocksJSON() {
-        this._saveEditorsState();
-        var clean = this._blocks.map(function(b) { return AdminBanquesExercices._serializeBlock(b); });
-        // Filtrer les blocs vides
-        clean = clean.filter(function(b) {
-            if (b.type === 'text') return b.content && b.content.trim() !== '';
-            if (b.type === 'document' || b.type === 'image' || b.type === 'video') return b.url && b.url.trim() !== '';
-            if (b.type === 'tableau') return b.colonnes && b.colonnes.length > 0 && b.lignes && b.lignes.filter(function(r) { return !r.header; }).length > 0;
-            if (b.type === 'group') return b.children && b.children.length > 0;
-            if (b.type === 'question') return b.question && b.question.trim() !== '';
-            return false;
-        });
-        if (clean.length === 0) return '';
-        return JSON.stringify(clean);
-    },
-
-    // ========== CRÉATION DE BLOCS ==========
-
-    _createBlock(type) {
+    // Override _createBlock pour ajouter tableau et question
+    _createBlock: function(type) {
         var id = 'blk_' + (++this._blockIdCounter);
         switch (type) {
         case 'text':
@@ -127,11 +27,14 @@ Object.assign(AdminBanquesExercices, {
         case 'tableau':
             return {
                 id: id, type: 'tableau',
-                colonnes: ['Colonne 1', 'Colonne 2'],
-                lignes: [{ cells: [
-                    { valeur: '', type: 'donnee' },
-                    { valeur: '', type: 'reponse', correction: 'souple', alternatives: [] }
-                ]}]
+                colonnes: ['', ''],
+                lignes: [
+                    { header: true },
+                    { cells: [
+                        { valeur: '', type: 'donnee', correction: 'souple', alternatives: [] },
+                        { valeur: '', type: 'reponse', correction: 'souple', alternatives: [] }
+                    ]}
+                ]
             };
         case 'question':
             return { id: id, type: 'question', question: '', reponse: '', correction: 'souple', alternatives: [] };
@@ -140,599 +43,10 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
-    /** Hydrate un bloc JSON (ajoute un ID interne s'il n'en a pas). */
-    _hydrateBlock(raw) {
-        var id = 'blk_' + (++this._blockIdCounter);
-        if (raw.type === 'group') {
-            var self = this;
-            var group = {
-                id: id,
-                type: 'group',
-                ratio: raw.ratio || '50-50',
-                children: (raw.children || []).map(function(c) { return self._hydrateBlock(c); })
-            };
-            return group;
-        }
-        var block = Object.assign({ id: id }, raw);
-        // Tableau : recréer la ligne header si showHeader !== false
-        if (block.type === 'tableau' && block.showHeader !== false) {
-            var hasHdr = (block.lignes || []).some(function(r) { return r.header; });
-            if (!hasHdr) {
-                block.lignes = [{ header: true }].concat(block.lignes || []);
-            }
-        }
-        return block;
-    },
-
-    /** Sérialise un bloc (enlève l'ID interne). */
-    _serializeBlock(block) {
-        if (block.type === 'group') {
-            var g = {
-                type: 'group',
-                layout: 'side-by-side',
-                children: (block.children || []).map(function(c) {
-                    return AdminBanquesExercices._serializeBlock(c);
-                })
-            };
-            if (block.ratio && block.ratio !== '50-50') g.ratio = block.ratio;
-            return g;
-        }
-        if (block.type === 'tableau') {
-            var hasHdr = (block.lignes || []).some(function(r) { return r.header; });
-            var tableOut = {
-                type: 'tableau',
-                colonnes: block.colonnes || [],
-                lignes: (block.lignes || []).filter(function(ligne) {
-                    return !ligne.header;
-                }).map(function(ligne) {
-                    if (ligne.section) {
-                        return { section: true, text: ligne.text || '' };
-                    }
-                    return { cells: (ligne.cells || []).map(function(cell) {
-                        var c = { valeur: cell.valeur, type: cell.type };
-                        if (cell.type === 'reponse') {
-                            c.correction = cell.correction || 'souple';
-                            if (cell.alternatives && cell.alternatives.length > 0) {
-                                c.alternatives = cell.alternatives;
-                            }
-                        }
-                        return c;
-                    })};
-                })
-            };
-            if (!hasHdr) tableOut.showHeader = false;
-            return tableOut;
-        }
-        if (block.type === 'question') {
-            var qout = { type: 'question', question: block.question || '', reponse: block.reponse || '' };
-            qout.correction = block.correction || 'souple';
-            if (block.alternatives && block.alternatives.length > 0) {
-                qout.alternatives = block.alternatives;
-            }
-            return qout;
-        }
-        var out = { type: block.type };
-        if (block.type === 'text') {
-            out.content = block.content || '';
-        } else {
-            out.url = block.url || '';
-            if (block.titre) out.titre = block.titre;
-        }
-        if (block.legende) out.legende = block.legende;
-        return out;
-    },
-
-    // ========== RENDU ==========
-
-    _renderBlocks() {
-        var container = document.getElementById(this._blockEditorContainerId);
-        if (!container) return;
-
-        if (this._blocks.length === 0) {
-            container.innerHTML = '<div class="block-empty">Aucun contenu. Ajoutez des blocs ci-dessous.</div>';
-            return;
-        }
-
-        var html = '';
-        for (var i = 0; i < this._blocks.length; i++) {
-            // Zone de drop entre les blocs
-            html += '<div class="block-dropzone" data-index="' + i + '"></div>';
-            html += this._renderBlock(this._blocks[i]);
-        }
-        // Zone de drop finale
-        html += '<div class="block-dropzone" data-index="' + this._blocks.length + '"></div>';
-        container.innerHTML = html;
-
-        // Initialiser les éditeurs riches dans les blocs texte
-        this._initBlockEditors();
-        // Initialiser le drag & drop
-        this._initBlockDragDrop();
-    },
-
-    _renderBlock(block) {
-        if (block.type === 'group') {
-            return this._renderGroup(block);
-        }
-
-        var typeLabels = { text: 'Texte', document: 'Document', image: 'Image', video: 'Video', tableau: 'Tableau', question: 'Question' };
-        var typeIcons = {
-            text: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
-            document: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
-            image: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
-            video: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>',
-            tableau: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>',
-            question: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
-        };
-
-        var html = '<div class="block-item" id="block-' + block.id + '" data-block-id="' + block.id + '" draggable="true">';
-        html += '<div class="block-header">';
-        html += '<span class="block-drag-handle" title="Glisser pour deplacer">&#10495;</span>';
-        html += '<span class="block-type-badge">' + (typeIcons[block.type] || '') + ' ' + (typeLabels[block.type] || block.type) + '</span>';
-        html += '<button type="button" class="block-delete-btn" onclick="AdminBanquesExercices.removeBlock(\'' + block.id + '\')" title="Supprimer ce bloc">';
-        html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
-        html += '</button>';
-        html += '</div>';
-        html += '<div class="block-body">';
-        html += this._renderBlockBody(block);
-        html += '</div>';
-        html += '</div>';
-        return html;
-    },
-
-    _renderBlockBody(block) {
-        switch (block.type) {
-        case 'text':
-            return '<div class="block-editor-container" id="block-editor-ctn-' + block.id + '"></div>' +
-                '<div class="block-field">' +
-                '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
-                '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + escapeHtml(block.legende || '') + '" placeholder="Ex: Extrait du *trait\u00e9 de Versailles*, 1919">' +
-                '</div>';
-
-        case 'document':
-            return '<div class="block-field">' +
-                '<label>URL du document</label>' +
-                '<input type="text" class="form-input block-input" id="block-url-' + block.id + '" ' +
-                'value="' + escapeHtml(block.url || '') + '" ' +
-                'placeholder="Lien Google Drive, PDF, page web...">' +
-                '</div>' +
-                '<div class="block-field">' +
-                '<label>Titre <span class="optional">(optionnel)</span></label>' +
-                '<input type="text" class="form-input block-input" id="block-titre-' + block.id + '" ' +
-                'value="' + escapeHtml(block.titre || '') + '" placeholder="Ex: Source 1 - Discours de Robespierre">' +
-                '</div>' +
-                '<div class="block-field">' +
-                '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
-                '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + escapeHtml(block.legende || '') + '" placeholder="Ex: *Archives nationales*, 1793">' +
-                '</div>';
-
-        case 'image':
-            var preview = '';
-            if (block.url) {
-                var imgSrc = this._convertToDirectImageUrl(block.url);
-                preview = '<div class="block-image-preview"><img src="' + escapeHtml(imgSrc) + '" alt="Apercu"></div>';
-            }
-            return '<div class="block-field">' +
-                '<label>URL de l\'image</label>' +
-                '<input type="text" class="form-input block-input" id="block-url-' + block.id + '" ' +
-                'value="' + escapeHtml(block.url || '') + '" ' +
-                'placeholder="Lien Google Drive, lien direct..." ' +
-                'onchange="AdminBanquesExercices._onImageUrlChange(\'' + block.id + '\')">' +
-                '</div>' +
-                '<div id="block-preview-' + block.id + '">' + preview + '</div>' +
-                '<div class="block-field">' +
-                '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
-                '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + escapeHtml(block.legende || '') + '" placeholder="Ex: Carte de l\'*Empire romain*, IIe si\u00e8cle">' +
-                '</div>';
-
-        case 'video':
-            return '<div class="block-field">' +
-                '<label>URL de la video</label>' +
-                '<input type="text" class="form-input block-input" id="block-url-' + block.id + '" ' +
-                'value="' + escapeHtml(block.url || '') + '" ' +
-                'placeholder="Lien YouTube ou Google Drive...">' +
-                '</div>' +
-                '<div class="block-field">' +
-                '<label>L\u00e9gende <span class="optional">(optionnel \u2014 *texte* pour italique)</span></label>' +
-                '<input type="text" class="form-input block-input" id="block-legende-' + block.id + '" ' +
-                'value="' + escapeHtml(block.legende || '') + '" placeholder="Ex: Contexte historique de la *R\u00e9volution*">' +
-                '</div>';
-
-        case 'tableau':
-            return this._renderBlockTableau(block);
-
-        case 'question':
-            return this._renderBlockQuestion(block);
-
-        default:
-            return '<p>Type de bloc inconnu: ' + block.type + '</p>';
-        }
-    },
-
-    _renderGroup(group) {
-        var ratio = group.ratio || '50-50';
-        var ratioOptions = [
-            { value: '50-50', label: '50 / 50' },
-            { value: '40-60', label: '40 / 60' },
-            { value: '60-40', label: '60 / 40' },
-            { value: '33-67', label: '33 / 67' },
-            { value: '67-33', label: '67 / 33' }
-        ];
-        var ratioSelect = '<select class="block-ratio-select" onchange="AdminBanquesExercices._setGroupRatio(\'' + group.id + '\', this.value)">';
-        for (var r = 0; r < ratioOptions.length; r++) {
-            ratioSelect += '<option value="' + ratioOptions[r].value + '"' +
-                (ratio === ratioOptions[r].value ? ' selected' : '') + '>' +
-                ratioOptions[r].label + '</option>';
-        }
-        ratioSelect += '</select>';
-
-        var html = '<div class="block-group" id="block-' + group.id + '" data-block-id="' + group.id + '">';
-        html += '<div class="block-group-header">';
-        html += '<span class="block-type-badge">&#8596; C\u00f4te \u00e0 c\u00f4te</span>';
-        html += ratioSelect;
-        html += '<button type="button" class="block-degroup-btn" onclick="AdminBanquesExercices._degroupBlock(\'' + group.id + '\')" title="D\u00e9grouper">';
-        html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-        html += '</button>';
-        html += '</div>';
-
-        // Appliquer le ratio comme style flex
-        var parts = ratio.split('-');
-        var leftFlex = parseInt(parts[0]) || 50;
-        var rightFlex = parseInt(parts[1]) || 50;
-
-        html += '<div class="block-group-children">';
-        for (var i = 0; i < group.children.length; i++) {
-            var flex = i === 0 ? leftFlex : rightFlex;
-            html += '<div class="block-group-child" data-block-id="' + group.children[i].id + '" style="flex:' + flex + '">';
-            html += this._renderBlock(group.children[i]);
-            html += '</div>';
-        }
-        html += '</div>';
-        html += '</div>';
-        return html;
-    },
-
-    // ========== ÉDITEURS RICHES DANS LES BLOCS TEXTE ==========
-
-    _initBlockEditors() {
-        var self = this;
-        function initBlock(block) {
-            if (block.type === 'text') {
-                self._initSingleBlockEditor(block);
-            }
-            if (block.type === 'tableau') {
-                self._initBlockTableauListeners(block);
-            }
-            if (block.type === 'group' && block.children) {
-                block.children.forEach(initBlock);
-            }
-        }
-        this._blocks.forEach(initBlock);
-    },
-
-    _initSingleBlockEditor(block) {
-        var containerId = 'block-editor-ctn-' + block.id;
-        var editorId = 'block-editor-' + block.id;
-        this.createRichTextEditor(containerId, editorId, {
-            placeholder: 'Saisissez le texte...',
-            media: false,
-            headings: false
-        });
-        // Restaurer le contenu si existant
-        var editor = document.getElementById(editorId);
-        if (editor && block.content) {
-            editor.innerHTML = block.content;
-        }
-    },
-
-    // ========== SAUVEGARDE ÉTAT DES ÉDITEURS ==========
-
-    /** Lit le DOM et met à jour this._blocks avec les valeurs courantes. */
-    _saveEditorsState() {
-        var self = this;
-        function saveBlock(block) {
-            if (block.type === 'text') {
-                var editor = document.getElementById('block-editor-' + block.id);
-                if (editor) {
-                    var html = editor.innerHTML.trim();
-                    block.content = (!html || html === '<br>' || html === '<div><br></div>') ? '' : html;
-                }
-                var txtLegendeInput = document.getElementById('block-legende-' + block.id);
-                if (txtLegendeInput) block.legende = txtLegendeInput.value.trim();
-            } else if (block.type === 'tableau') {
-                self._saveBlockTableauState(block);
-            } else if (block.type === 'question') {
-                self._saveBlockQuestionState(block);
-            } else if (block.type === 'group') {
-                if (block.children) block.children.forEach(saveBlock);
-            } else {
-                var urlInput = document.getElementById('block-url-' + block.id);
-                if (urlInput) block.url = urlInput.value.trim();
-                var titreInput = document.getElementById('block-titre-' + block.id);
-                if (titreInput) block.titre = titreInput.value.trim();
-                var legendeInput = document.getElementById('block-legende-' + block.id);
-                if (legendeInput) block.legende = legendeInput.value.trim();
-            }
-        }
-        this._blocks.forEach(saveBlock);
-    },
-
-    // ========== APERÇU IMAGE ==========
-
-    _onImageUrlChange(blockId) {
-        var input = document.getElementById('block-url-' + blockId);
-        var previewContainer = document.getElementById('block-preview-' + blockId);
-        if (!input || !previewContainer) return;
-        var url = input.value.trim();
-        if (url) {
-            var imgSrc = this._convertToDirectImageUrl(url);
-            previewContainer.innerHTML = '<div class="block-image-preview"><img src="' + escapeHtml(imgSrc) + '" alt="Apercu"></div>';
-        } else {
-            previewContainer.innerHTML = '';
-        }
-    },
-
-    // ========== DRAG & DROP ==========
-
-    _initBlockDragDrop() {
-        var container = document.getElementById(this._blockEditorContainerId);
-        if (!container) return;
-
-        var self = this;
-
-        // Rendre les blocs draggable via la poignée
-        container.querySelectorAll('.block-item[draggable="true"]').forEach(function(el) {
-            el.addEventListener('dragstart', function(e) {
-                // Sauvegarder l'état des éditeurs AVANT le drag
-                // (le navigateur peut modifier les contenteditable pendant le drag)
-                self._saveEditorsState();
-                var blockId = el.dataset.blockId;
-                self._dragBlockId = blockId;
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', blockId);
-                el.classList.add('block-dragging');
-                // Afficher les zones de drop
-                setTimeout(function() {
-                    container.classList.add('block-editor-dragging');
-                }, 0);
-            });
-
-            el.addEventListener('dragend', function() {
-                el.classList.remove('block-dragging');
-                container.classList.remove('block-editor-dragging');
-                self._dragBlockId = null;
-                // Nettoyer les indicateurs
-                container.querySelectorAll('.block-dropzone-active, .block-drop-left, .block-drop-right').forEach(function(z) {
-                    z.classList.remove('block-dropzone-active', 'block-drop-left', 'block-drop-right');
-                });
-            });
-        });
-
-        // Zones de drop entre blocs (insertion empilée)
-        container.querySelectorAll('.block-dropzone').forEach(function(zone) {
-            zone.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                zone.classList.add('block-dropzone-active');
-            });
-            zone.addEventListener('dragleave', function() {
-                zone.classList.remove('block-dropzone-active');
-            });
-            zone.addEventListener('drop', function(e) {
-                e.preventDefault();
-                zone.classList.remove('block-dropzone-active');
-                var dropIndex = parseInt(zone.dataset.index);
-                var dragId = self._dragBlockId;
-                if (!dragId) return;
-                self._saveEditorsState();
-                self._moveBlockToIndex(dragId, dropIndex);
-            });
-        });
-
-        // Zones de drop côte à côte (survol d'un autre bloc)
-        container.querySelectorAll('.block-item[draggable="true"]').forEach(function(targetEl) {
-            var targetId = targetEl.dataset.blockId;
-
-            targetEl.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                if (targetId === self._dragBlockId) return;
-
-                // Vérifier si le bloc cible est déjà dans un groupe
-                var targetBlock = self._findBlock(targetId);
-                if (!targetBlock) return;
-
-                // Déterminer si on survole la gauche ou la droite
-                var rect = targetEl.getBoundingClientRect();
-                var midX = rect.left + rect.width / 2;
-                if (e.clientX < midX) {
-                    targetEl.classList.add('block-drop-left');
-                    targetEl.classList.remove('block-drop-right');
-                } else {
-                    targetEl.classList.add('block-drop-right');
-                    targetEl.classList.remove('block-drop-left');
-                }
-            });
-
-            targetEl.addEventListener('dragleave', function() {
-                targetEl.classList.remove('block-drop-left', 'block-drop-right');
-            });
-
-            targetEl.addEventListener('drop', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var dragId = self._dragBlockId;
-                if (!dragId || dragId === targetId) return;
-
-                targetEl.classList.remove('block-drop-left', 'block-drop-right');
-
-                self._saveEditorsState();
-
-                // Déterminer la position (gauche ou droite)
-                var rect = targetEl.getBoundingClientRect();
-                var midX = rect.left + rect.width / 2;
-                var dropLeft = e.clientX < midX;
-
-                self._groupBlocks(dragId, targetId, dropLeft);
-            });
-        });
-    },
-
-    // ========== OPÉRATIONS SUR LES BLOCS ==========
-
-    /** Trouve un bloc par ID (y compris dans les groupes). */
-    _findBlock(blockId) {
-        for (var i = 0; i < this._blocks.length; i++) {
-            if (this._blocks[i].id === blockId) return this._blocks[i];
-            if (this._blocks[i].type === 'group' && this._blocks[i].children) {
-                for (var j = 0; j < this._blocks[i].children.length; j++) {
-                    if (this._blocks[i].children[j].id === blockId) return this._blocks[i].children[j];
-                }
-            }
-        }
-        return null;
-    },
-
-    /** Extrait un bloc de sa position actuelle (top level ou dans un groupe). Retourne le bloc. */
-    _extractBlock(blockId) {
-        var block = null;
-        // Chercher au top level
-        for (var i = 0; i < this._blocks.length; i++) {
-            if (this._blocks[i].id === blockId) {
-                block = this._blocks.splice(i, 1)[0];
-                break;
-            }
-            // Chercher dans un groupe
-            if (this._blocks[i].type === 'group' && this._blocks[i].children) {
-                for (var j = 0; j < this._blocks[i].children.length; j++) {
-                    if (this._blocks[i].children[j].id === blockId) {
-                        block = this._blocks[i].children.splice(j, 1)[0];
-                        // Si le groupe n'a plus qu'un enfant, le dégrouper
-                        if (this._blocks[i].children.length <= 1) {
-                            var remaining = this._blocks[i].children[0] || null;
-                            if (remaining) {
-                                this._blocks.splice(i, 1, remaining);
-                            } else {
-                                this._blocks.splice(i, 1);
-                            }
-                        }
-                        break;
-                    }
-                }
-                if (block) break;
-            }
-        }
-        return block;
-    },
-
-    /** Déplace un bloc à l'index indiqué (insertion empilée). */
-    _moveBlockToIndex(blockId, targetIndex) {
-        var block = this._extractBlock(blockId);
-        if (!block) return;
-
-        // Ajuster l'index après extraction
-        if (targetIndex > this._blocks.length) targetIndex = this._blocks.length;
-        this._blocks.splice(targetIndex, 0, block);
-        this._renderBlocks();
-    },
-
-    /** Groupe deux blocs côte à côte. */
-    _groupBlocks(dragId, targetId, dropLeft) {
-        // Vérifier que la cible n'est pas déjà un groupe (max 2 éléments)
-        var targetBlock = this._findBlock(targetId);
-        if (!targetBlock || targetBlock.type === 'group') return;
-
-        // Vérifier que le drag n'est pas un groupe
-        var dragBlock = this._findBlock(dragId);
-        if (!dragBlock || dragBlock.type === 'group') return;
-
-        // Extraire le bloc drag
-        var extracted = this._extractBlock(dragId);
-        if (!extracted) return;
-
-        // Trouver l'index de la cible
-        var targetIndex = -1;
-        for (var i = 0; i < this._blocks.length; i++) {
-            if (this._blocks[i].id === targetId) {
-                targetIndex = i;
-                break;
-            }
-            // La cible peut être dans un groupe existant — dans ce cas on ne groupe pas
-            if (this._blocks[i].type === 'group' && this._blocks[i].children) {
-                for (var j = 0; j < this._blocks[i].children.length; j++) {
-                    if (this._blocks[i].children[j].id === targetId) {
-                        // La cible est déjà dans un groupe, on insère à côté
-                        if (this._blocks[i].children.length < 2) {
-                            if (dropLeft) {
-                                this._blocks[i].children.splice(j, 0, extracted);
-                            } else {
-                                this._blocks[i].children.splice(j + 1, 0, extracted);
-                            }
-                            this._renderBlocks();
-                            return;
-                        }
-                        // Groupe plein, juste insérer au-dessus
-                        this._blocks.splice(i, 0, extracted);
-                        this._renderBlocks();
-                        return;
-                    }
-                }
-            }
-        }
-
-        if (targetIndex === -1) {
-            // Cible non trouvée, remettre le bloc
-            this._blocks.push(extracted);
-            this._renderBlocks();
-            return;
-        }
-
-        // Créer un groupe
-        var target = this._blocks[targetIndex];
-        var groupId = 'blk_' + (++this._blockIdCounter);
-        var group = {
-            id: groupId,
-            type: 'group',
-            ratio: '50-50',
-            children: dropLeft ? [extracted, target] : [target, extracted]
-        };
-
-        this._blocks.splice(targetIndex, 1, group);
-        this._renderBlocks();
-    },
-
-    // ========== GROUPES : RATIO + DÉGROUPER ==========
-
-    _setGroupRatio(groupId, ratio) {
-        this._saveEditorsState();
-        var group = this._findBlock(groupId);
-        if (group && group.type === 'group') {
-            group.ratio = ratio;
-            this._renderBlocks();
-        }
-    },
-
-    _degroupBlock(groupId) {
-        this._saveEditorsState();
-        var idx = -1;
-        for (var i = 0; i < this._blocks.length; i++) {
-            if (this._blocks[i].id === groupId) { idx = i; break; }
-        }
-        if (idx === -1) return;
-        var group = this._blocks[idx];
-        if (!group || group.type !== 'group') return;
-        // Remplacer le groupe par ses enfants
-        var args = [idx, 1].concat(group.children || []);
-        Array.prototype.splice.apply(this._blocks, args);
-        this._renderBlocks();
-    },
-
     // ========== BLOC TABLEAU (mini table-builder intégré) ==========
 
     /** Rend le contenu d'un bloc tableau */
-    _renderBlockTableau(block) {
+    _renderBlockTableau: function(block) {
         var bid = block.id;
         var cols = block.colonnes || [];
         var rows = block.lignes || [];
@@ -826,15 +140,13 @@ Object.assign(AdminBanquesExercices, {
     },
 
     /** Sauve l'état DOM d'un bloc tableau */
-    _saveBlockTableauState(block) {
+    _saveBlockTableauState: function(block) {
         var table = document.getElementById('blockTable-' + block.id);
         if (!table) return;
-        // Lire les valeurs de toutes les lignes (en-tête, sections, données)
         var trs = table.querySelectorAll('tbody tr[data-row]');
         trs.forEach(function(tr) {
             var ri = parseInt(tr.dataset.row);
             if (isNaN(ri) || ri >= block.lignes.length) return;
-            // Ligne d'en-tête (colonnes)
             if (block.lignes[ri].header) {
                 var headerInputs = tr.querySelectorAll('.tb-col-title');
                 headerInputs.forEach(function(input, i) {
@@ -842,13 +154,11 @@ Object.assign(AdminBanquesExercices, {
                 });
                 return;
             }
-            // Ligne section
             if (block.lignes[ri].section) {
                 var secInput = tr.querySelector('.tb-section-input');
                 if (secInput) block.lignes[ri].text = secInput.value || '';
                 return;
             }
-            // Ligne normale
             var inputs = tr.querySelectorAll('.tb-cell-input');
             inputs.forEach(function(input) {
                 var ci = parseInt(input.dataset.col);
@@ -860,17 +170,13 @@ Object.assign(AdminBanquesExercices, {
     },
 
     /** Initialise les listeners du tableau intégré */
-    _initBlockTableauListeners(_block) {
-        // Rien de spécial à initialiser (tout est en onclick inline)
+    _initBlockTableauListeners: function(_block) {
+        // Rien de spécial (tout est en onclick inline)
     },
 
     // --- Actions tableau intégré ---
 
-    _getBlockById(blockId) {
-        return this._findBlock(blockId);
-    },
-
-    _blockTableAddCol(blockId) {
+    _blockTableAddCol: function(blockId) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
@@ -882,7 +188,7 @@ Object.assign(AdminBanquesExercices, {
         this._renderBlocks();
     },
 
-    _blockTableRemoveCol(blockId, colIndex) {
+    _blockTableRemoveCol: function(blockId, colIndex) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
@@ -895,7 +201,7 @@ Object.assign(AdminBanquesExercices, {
         this._renderBlocks();
     },
 
-    _blockTableAddRow(blockId) {
+    _blockTableAddRow: function(blockId) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
@@ -906,17 +212,16 @@ Object.assign(AdminBanquesExercices, {
         this._renderBlocks();
     },
 
-    _blockTableRemoveRow(blockId, rowIndex) {
+    _blockTableRemoveRow: function(blockId, rowIndex) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
-        // Garder au moins 1 ligne (tous types confondus)
         if (block.lignes.length <= 1) return;
         block.lignes.splice(rowIndex, 1);
         this._renderBlocks();
     },
 
-    _blockTableAddSection(blockId) {
+    _blockTableAddSection: function(blockId) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
@@ -924,23 +229,21 @@ Object.assign(AdminBanquesExercices, {
         this._renderBlocks();
     },
 
-    _blockTableAddHeader(blockId) {
+    _blockTableAddHeader: function(blockId) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
-        // Ne pas ajouter si déjà présent
         if (block.lignes.some(function(r) { return r.header; })) return;
         block.lignes.unshift({ header: true });
         this._renderBlocks();
     },
 
-    _blockTableMoveRow(blockId, rowIndex, direction) {
+    _blockTableMoveRow: function(blockId, rowIndex, direction) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
         var newIndex = rowIndex + direction;
         if (newIndex < 0 || newIndex >= block.lignes.length) return;
-        // Le header doit rester en position 0
         var row = block.lignes[rowIndex];
         var target = block.lignes[newIndex];
         if (row.header && direction > 0) return;
@@ -950,14 +253,13 @@ Object.assign(AdminBanquesExercices, {
         this._renderBlocks();
     },
 
-    _blockTableSelectCell(blockId, rowIndex, colIndex) {
+    _blockTableSelectCell: function(blockId, rowIndex, colIndex) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'tableau') return;
         var cell = block.lignes[rowIndex] && block.lignes[rowIndex].cells[colIndex];
         if (!cell) return;
 
-        // Fermer un éventuel popover précédent
         this._closeCellPopover();
 
         var colName = block.colonnes[colIndex] || 'Colonne ' + (colIndex + 1);
@@ -1014,7 +316,6 @@ Object.assign(AdminBanquesExercices, {
 
         popoverHTML += '</div></div>';
 
-        // Positionner le popover
         var clickedBadge = document.querySelector('#blockTable-' + bid + ' .tb-cell-badge[onclick*="' + rowIndex + ',' + colIndex + '"]');
         var clickedTd = clickedBadge ? clickedBadge.closest('td') : null;
         if (!clickedTd) return;
@@ -1048,7 +349,7 @@ Object.assign(AdminBanquesExercices, {
         }, 50);
     },
 
-    _closeBlockTablePopover() {
+    _closeBlockTablePopover: function() {
         var wrapper = document.getElementById('tbPopoverWrapper');
         if (wrapper) wrapper.remove();
         if (this._blockTablePopoverHandler) {
@@ -1057,7 +358,7 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
-    _blockTableSetCellType(blockId, row, col, type) {
+    _blockTableSetCellType: function(blockId, row, col, type) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block) return;
@@ -1071,7 +372,7 @@ Object.assign(AdminBanquesExercices, {
         this._blockTableSelectCell(blockId, row, col);
     },
 
-    _blockTableSetCorrection(blockId, row, col, mode) {
+    _blockTableSetCorrection: function(blockId, row, col, mode) {
         var block = this._getBlockById(blockId);
         if (!block) return;
         block.lignes[row].cells[col].correction = mode;
@@ -1079,7 +380,7 @@ Object.assign(AdminBanquesExercices, {
         if (hint) hint.textContent = mode === 'souple' ? 'Tol\u00e8re accents, majuscules, ponctuation' : 'La r\u00e9ponse doit \u00eatre exacte';
     },
 
-    _blockTableAddAlt(blockId, row, col) {
+    _blockTableAddAlt: function(blockId, row, col) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block) return;
@@ -1094,7 +395,7 @@ Object.assign(AdminBanquesExercices, {
         }, 50);
     },
 
-    _blockTableRemoveAlt(blockId, row, col, altIndex) {
+    _blockTableRemoveAlt: function(blockId, row, col, altIndex) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block) return;
@@ -1103,7 +404,7 @@ Object.assign(AdminBanquesExercices, {
         this._blockTableSelectCell(blockId, row, col);
     },
 
-    _blockTableUpdateAlt(blockId, row, col, altIndex, value) {
+    _blockTableUpdateAlt: function(blockId, row, col, altIndex, value) {
         var block = this._getBlockById(blockId);
         if (!block) return;
         block.lignes[row].cells[col].alternatives[altIndex] = value;
@@ -1112,7 +413,7 @@ Object.assign(AdminBanquesExercices, {
     // ========== BLOC QUESTION (mini question ouverte intégrée) ==========
 
     /** Rend le contenu d'un bloc question */
-    _renderBlockQuestion(block) {
+    _renderBlockQuestion: function(block) {
         var bid = block.id;
         var isSouple = block.correction !== 'stricte';
         var alts = block.alternatives || [];
@@ -1155,14 +456,13 @@ Object.assign(AdminBanquesExercices, {
     },
 
     /** Sauvegarde l'état DOM d'un bloc question */
-    _saveBlockQuestionState(block) {
+    _saveBlockQuestionState: function(block) {
         var qInput = document.getElementById('block-q-question-' + block.id);
         if (qInput) block.question = qInput.value.trim();
         var rInput = document.getElementById('block-q-reponse-' + block.id);
         if (rInput) block.reponse = rInput.value.trim();
         var cSelect = document.getElementById('block-q-correction-' + block.id);
         if (cSelect) block.correction = cSelect.value;
-        // Alternatives
         var altsContainer = document.getElementById('block-q-alts-' + block.id);
         if (altsContainer) {
             var altInputs = altsContainer.querySelectorAll('.block-q-alt-input');
@@ -1170,14 +470,13 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
-    _blockQuestionAddAlt(blockId) {
+    _blockQuestionAddAlt: function(blockId) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'question') return;
         if (!block.alternatives) block.alternatives = [];
         block.alternatives.push('');
         this._renderBlocks();
-        // Focus le nouveau champ
         setTimeout(function() {
             var container = document.getElementById('block-q-alts-' + blockId);
             if (container) {
@@ -1187,73 +486,11 @@ Object.assign(AdminBanquesExercices, {
         }, 50);
     },
 
-    _blockQuestionRemoveAlt(blockId, altIndex) {
+    _blockQuestionRemoveAlt: function(blockId, altIndex) {
         this._saveEditorsState();
         var block = this._getBlockById(blockId);
         if (!block || block.type !== 'question') return;
         block.alternatives.splice(altIndex, 1);
         this._renderBlocks();
-    },
-
-    // ========== FALLBACK MOBILE : FLÈCHES + BOUTON GROUPER ==========
-
-    moveBlockUp(blockId) {
-        this._saveEditorsState();
-        var idx = this._blocks.findIndex(function(b) { return b.id === blockId; });
-        if (idx <= 0) return;
-        var temp = this._blocks[idx];
-        this._blocks[idx] = this._blocks[idx - 1];
-        this._blocks[idx - 1] = temp;
-        this._renderBlocks();
-    },
-
-    moveBlockDown(blockId) {
-        this._saveEditorsState();
-        var idx = this._blocks.findIndex(function(b) { return b.id === blockId; });
-        if (idx === -1 || idx >= this._blocks.length - 1) return;
-        var temp = this._blocks[idx];
-        this._blocks[idx] = this._blocks[idx + 1];
-        this._blocks[idx + 1] = temp;
-        this._renderBlocks();
-    },
-
-    // ========== RÉTRO-COMPATIBILITÉ ==========
-
-    /**
-     * Convertit les anciennes données (document_url / document_contenu HTML)
-     * en tableau de blocs.
-     */
-    convertLegacyToBlocks(tache) {
-        var blocks = [];
-
-        // Essayer de parser document_contenu comme JSON (nouveau format)
-        if (tache.document_contenu) {
-            try {
-                var parsed = JSON.parse(tache.document_contenu);
-                if (Array.isArray(parsed)) {
-                    return parsed; // Déjà au nouveau format
-                }
-            } catch (e) {
-                // C'est du HTML brut (ancien format) → un bloc texte
-                blocks.push({ type: 'text', content: tache.document_contenu });
-            }
-        }
-
-        // Ancien format URL
-        if (tache.document_url && blocks.length === 0) {
-            blocks.push({
-                type: 'document',
-                url: tache.document_url,
-                legende: tache.document_legende || ''
-            });
-        }
-
-        // Si on a un contenu texte ET une légende séparée (ancien format avec légende)
-        if (blocks.length > 0 && blocks[0].type === 'text' && tache.document_legende) {
-            // Ajouter la légende comme info supplémentaire (pas idéal mais pas de perte)
-            blocks[0].content += '<p><em>' + escapeHtml(tache.document_legende) + '</em></p>';
-        }
-
-        return blocks;
     }
 });
