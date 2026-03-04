@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-03-04 — Session 11 : Audit et nettoyage global du codebase
+
+### Contexte
+Audit complet du codebase pour dédupliquer, centraliser et réduire la dette technique. Travail en 4 phases.
+
+### Phase 1 — Quick wins JS
+- **`escapeHtml()` centralisé** : 26 copies identiques → 1 fonction globale dans `app.js`, ~300 appels `this.escapeHtml()` remplacés dans 38 fichiers.
+- **`console.log` supprimés** : 56 statements de debug dans 20 fichiers (gardé uniquement `logger.js`)
+- **ESLint** : 70 warnings → 7 (faux positifs globals). 24 params préfixés `_`, 28 variables mortes supprimées, 11 catch vides commentés.
+- **`components/components.js` supprimé** : fichier orphelin de 159 lignes, jamais chargé.
+
+### Phase 2 — CSS
+- **`.empty-state` et `.modal-overlay` centralisés** dans `style.css`, redondances supprimées dans 23 + 15 fichiers.
+- **17 blocs CSS exactement dupliqués** supprimés dans `eleve-connaissances.css` (-83 lignes).
+- Fusion media queries reportée (responsive overrides intentionnels).
+
+### Phase 3 — Centralisation JS
+- **Seuils mémorisation** : `CONFIG.SEUIL_CONNAISSANCES` (7) et `CONFIG.SEUIL_SAVOIR_FAIRE` (5) dans `config.js`.
+- **Clés localStorage** : 10 clés dans `CONFIG.STORAGE_KEYS`.
+
+### Phase 4 — Backend GAS
+- **Competences.gs** : 38 noms de feuilles en dur → constantes `SHEETS.*`.
+- **Script `npm run build:gas`** : auto-génère `TOUT-EN-UN.gs` (12 fichiers concaténés).
+
+### Fichiers créés
+- `scripts/build-gas.js`, `PLAN.md`
+
+### Fichiers supprimés
+- `components/components.js`
+
+### Décisions prises
+- Pas de restructuration (architecture saine)
+- `btn-primary` non centralisé (gradients différents = design intentionnel)
+- Pattern `.hidden` vs `.active` pour modals : les deux coexistent
+
+---
+
 ## 2026-02-27 — Popup de soumission avec choix de format de rendu et délais configurables
 
 ### Contexte
