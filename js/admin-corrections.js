@@ -345,42 +345,16 @@ const AdminCorrections = {
         var sub = this.currentSubmission;
         var eleve = this.getEleve(sub.eleve_id);
         var entrainement = this.getEntrainement(sub.entrainement_id);
+        var competence = this.getCompetenceForEntrainement(entrainement);
 
         var html = '<div class="info-grid">';
         html += this._infoItem('👤', 'Élève', this.getEleveName(eleve));
         html += this._infoItem('📅', 'Soumis le', this.formatDateLong(sub.date_soumission));
         html += this._infoItem('⏱', 'Temps passé', this.formatTime(sub.temps_passe));
         html += this._infoItem('📄', 'Mode de rendu', this.getModeLabel(sub.mode_rendu) || '—');
+        html += this._infoItem('🎯', 'Compétence', competence ? competence.nom : '—');
+        html += this._infoItem('📝', 'Exercice', entrainement ? entrainement.titre : '—');
         html += '</div>';
-
-        // Document de l'entraînement
-        if (entrainement) {
-            var docUrl = entrainement.document_url;
-            var docContenu = entrainement.document_contenu;
-
-            // Parser le contenu si c'est du JSON
-            if (docContenu && typeof docContenu === 'string') {
-                try {
-                    var parsed = JSON.parse(docContenu);
-                    if (parsed && typeof parsed === 'object' && parsed.content) {
-                        docContenu = parsed.content;
-                    } else if (typeof parsed === 'string') {
-                        docContenu = parsed;
-                    }
-                } catch (_e) { /* déjà du HTML, on garde tel quel */ }
-            }
-
-            if (docUrl || docContenu) {
-                html += '<div class="document-section">';
-                html += '<h4>📝 Document de l\'exercice</h4>';
-                if (docUrl) {
-                    html += '<iframe class="document-frame" src="' + this.escapeHtml(docUrl) + '" sandbox="allow-same-origin allow-scripts"></iframe>';
-                } else if (docContenu) {
-                    html += '<div class="document-html">' + docContenu + '</div>';
-                }
-                html += '</div>';
-            }
-        }
 
         return html;
     },
@@ -412,10 +386,16 @@ const AdminCorrections = {
 
         var html = '';
 
-        // Critères de réussite
+        // Critères de réussite (dropdown repliable)
         if (criteres.length > 0) {
+            var checkedCount = wd.criteresValides.length;
+            var hasCriteres = checkedCount > 0;
             html += '<div class="correction-section">';
-            html += '<h4>Critères de réussite (' + criteres.length + ')</h4>';
+            html += '<div class="correction-section-header' + (hasCriteres ? ' expanded' : '') + '" onclick="AdminCorrections.toggleSection(this)">';
+            html += '<h4>✅ Critères de réussite (' + checkedCount + '/' + criteres.length + ')</h4>';
+            html += '<span class="toggle-icon">▼</span>';
+            html += '</div>';
+            html += '<div class="correction-section-body' + (hasCriteres ? '' : ' hidden') + '">';
             html += '<div class="criteres-correction-list">';
             criteres.forEach(function(c) {
                 var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
@@ -424,7 +404,7 @@ const AdminCorrections = {
                 html += '<label for="critere_' + c.id + '">' + AdminCorrections.escapeHtml(c.libelle) + '</label>';
                 html += '</div>';
             });
-            html += '</div></div>';
+            html += '</div></div></div>';
         }
 
         // Corrigé personnalisé (repliable)
