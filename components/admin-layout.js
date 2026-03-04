@@ -36,9 +36,9 @@ const AdminLayout = {
             items: [
                 { icon: '📋', label: 'Évaluations', href: '/Brikks/admin/evaluations.html', id: 'evaluations' },
                 { icon: '🟣', label: 'Compétences', href: '/Brikks/admin/competences.html', id: 'competences' },
-                { icon: '✏️', label: 'Corrections', href: '/Brikks/admin/corrections.html', id: 'corrections' },
+                { icon: '✏️', label: 'Corrections', href: '/Brikks/admin/corrections.html', id: 'corrections', badge: true },
                 { icon: '📊', label: 'Notes', href: '/Brikks/admin/notes.html', id: 'notes' },
-                { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi', badge: true }
+                { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi' }
             ]
         },
         {
@@ -279,8 +279,8 @@ const AdminLayout = {
             }
         }
 
-        // Badge dans le menu Suivi
-        const menuBadge = document.getElementById('badge-suivi');
+        // Badge dans le menu Corrections
+        const menuBadge = document.getElementById('badge-corrections');
         if (menuBadge) {
             if (count > 0) {
                 menuBadge.textContent = count > 99 ? '99+' : count;
