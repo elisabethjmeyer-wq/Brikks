@@ -2087,10 +2087,20 @@ Object.assign(AdminBanquesExercices, {
         const oldEtapes = this.etapesConn;
         const oldEtapeQuestions = this.etapeQuestionsConn;
 
+        // Identifier la banque pour renuméroter après
+        const deleted = this.entrainementsConn.find(e => e.id === id);
+        const deletedBanqueId = deleted ? deleted.banque_id : null;
+
         const etapeIds = this.etapesConn.filter(e => e.entrainement_id === id).map(e => e.id);
         this.entrainementsConn = this.entrainementsConn.filter(e => e.id !== id);
         this.etapesConn = this.etapesConn.filter(e => e.entrainement_id !== id);
         this.etapeQuestionsConn = (this.etapeQuestionsConn || []).filter(eq => !etapeIds.includes(eq.etape_id));
+
+        // Renuméroter les entraînements restants de la même banque
+        if (deletedBanqueId) {
+            this._renumberEntrainementsConn(deletedBanqueId);
+        }
+
         this.saveToCache();
         this.renderBanques();
 
@@ -2115,6 +2125,23 @@ Object.assign(AdminBanquesExercices, {
             this.saveToCache();
             this.renderBanques();
             this.showNotification('Erreur lors de la suppression. Vérifiez votre connexion.', 'error');
+        }
+    },
+
+    /** Renuméroter les entraînements connaissances d'une banque (local + backend) */
+    _renumberEntrainementsConn(banqueId) {
+        const siblings = this.entrainementsConn
+            .filter(e => e.banque_id === banqueId)
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const newOrder = [];
+        siblings.forEach((entr, idx) => {
+            entr.ordre = idx + 1;
+            newOrder.push({ id: entr.id, ordre: idx + 1 });
+        });
+        if (newOrder.length > 0) {
+            this.callAPI('updateEntrainementsConnOrdre', {
+                entrainements: JSON.stringify(newOrder)
+            }).catch(err => console.error('Erreur renumérotation connaissances:', err));
         }
     },
 });

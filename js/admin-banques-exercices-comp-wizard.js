@@ -208,15 +208,20 @@ Object.assign(AdminBanquesExercices, {
             var banqueId = document.getElementById('cwBanqueId');
             var description = document.getElementById('cwDescription');
             var duree = document.getElementById('cwDuree');
-            var ordre = document.getElementById('cwOrdre');
             var statut = document.getElementById('cwStatut');
 
             e.titre = titre ? titre.value.trim() : (e.titre || '');
             e.banque_id = banqueId ? banqueId.value : (e.banque_id || '');
             e.description = description ? description.value.trim() : (e.description || '');
             e.duree = duree ? (parseInt(duree.value) || 30) * 60 : (e.duree || 1800);
-            e.ordre = ordre ? parseInt(ordre.value) || 1 : (e.ordre || 1);
             e.statut = statut ? statut.value : (e.statut || 'brouillon');
+
+            // Ordre automatique : si nouvel entraînement, placer à la fin
+            if (!e.ordre) {
+                var bId = e.banque_id;
+                var existing = (this.tachesComplexes || []).filter(function(t) { return t.banque_id === bId; });
+                e.ordre = existing.length + 1;
+            }
 
             var delaiMail = document.getElementById('cwDelaiMail');
             var delaiPapier = document.getElementById('cwDelaiPapier');
@@ -335,13 +340,6 @@ Object.assign(AdminBanquesExercices, {
 
         var isLocked = !!(this.compWizardData.banqueId || e.banque_id);
 
-        // Calculer l'ordre par défaut
-        var ordre = e.ordre || 1;
-        if (!e.ordre && banqueId) {
-            var existing = (this.tachesComplexes || []).filter(function(t) { return t.banque_id === banqueId; });
-            ordre = existing.length + 1;
-        }
-
         return '<div class="wizard-step-content">' +
             '<div class="step-header">' +
                 '<span class="step-icon">\u2699\uFE0F</span>' +
@@ -370,10 +368,6 @@ Object.assign(AdminBanquesExercices, {
                     '<div class="form-group">' +
                         '<label>Dur\u00E9e indicative (min)</label>' +
                         '<input type="number" class="form-input" id="cwDuree" value="' + dureeMin + '" min="1" max="999">' +
-                    '</div>' +
-                    '<div class="form-group">' +
-                        '<label>Ordre d\u2019affichage</label>' +
-                        '<input type="number" class="form-input" id="cwOrdre" value="' + ordre + '" min="1">' +
                     '</div>' +
                     '<div class="form-group">' +
                         '<label>Statut</label>' +
