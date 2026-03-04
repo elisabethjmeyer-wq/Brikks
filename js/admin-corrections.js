@@ -26,6 +26,7 @@ const AdminCorrections = {
     },
 
     _saving: false,
+    _previewVisible: false,
 
     // ========== INITIALIZATION ==========
 
@@ -106,12 +107,10 @@ const AdminCorrections = {
 
     getCompetenceForEntrainement(entrainement) {
         if (!entrainement) return null;
-        // Via banque
         if (entrainement.banque_id) {
             var banque = this.banques.find(function(b) { return String(b.id) === String(entrainement.banque_id); });
             if (banque && banque.competence_id) return this.getCompetence(banque.competence_id);
         }
-        // Via entrainement direct
         if (entrainement.competence_id) return this.getCompetence(entrainement.competence_id);
         return null;
     },
@@ -233,6 +232,28 @@ const AdminCorrections = {
 
         var subKey = sub.id || (sub.eleve_id + '_' + sub.entrainement_id);
 
+        // Badges de notification
+        var badgesHtml = '<div class="card-badges">';
+
+        // Mode de rendu
+        var modeLabel = this.getModeLabel(sub.mode_rendu);
+        if (modeLabel) {
+            var modeClass = sub.mode_rendu === 'papier' ? 'badge-papier' : 'badge-numerique';
+            badgesHtml += '<span class="card-badge ' + modeClass + '">' + modeLabel + '</span>';
+        }
+
+        // État d'envoi
+        if (sub.date_envoi) {
+            badgesHtml += '<span class="card-badge badge-sent">📤 Envoyé</span>';
+        } else if (sub.mode_rendu === 'papier') {
+            badgesHtml += '<span class="card-badge badge-waiting">📥 Dans le casier</span>';
+        } else if (sub.mode_rendu === 'numerique' && !sub.date_envoi) {
+            badgesHtml += '<span class="card-badge badge-waiting">⏳ Pas encore envoyé</span>';
+        }
+
+        badgesHtml += '</div>';
+
+        // Décision (onglet terminées)
         var decisionHtml = '';
         if (isDone) {
             var isValide = sub.statut === 'valide';
@@ -240,7 +261,6 @@ const AdminCorrections = {
                 (isValide ? '✅ Validé' : '❌ Non validé') + '</span>';
         }
 
-        var modeLabel = this.getModeLabel(sub.mode_rendu);
         var dateStr = this.formatDate(sub.date_soumission);
 
         return '<div class="correction-card' + (isDone ? ' done' : '') + '" onclick="AdminCorrections.openModal(\'' + this.escapeHtml(subKey) + '\')">' +
@@ -250,9 +270,10 @@ const AdminCorrections = {
             '</div>' +
             '<div class="card-entrainement">' + this.escapeHtml(entrainementTitle) + '</div>' +
             (competenceNom ? '<div class="card-competence">' + this.escapeHtml(competenceNom) + '</div>' : '') +
+            badgesHtml +
             '<div class="card-meta">' +
-                (modeLabel ? '<span class="card-mode">' + modeLabel + '</span>' : '<span class="card-date">📅 ' + dateStr + '</span>') +
-                (decisionHtml || '<span class="card-date">📅 ' + dateStr + '</span>') +
+                '<span class="card-date">📅 ' + dateStr + '</span>' +
+                (decisionHtml || '') +
             '</div>' +
         '</div>';
     },
@@ -268,8 +289,8 @@ const AdminCorrections = {
 
         this.currentSubmission = sub;
         this.currentStep = 1;
+        this._previewVisible = false;
 
-        // Pré-remplir si correction déjà faite
         var existingCriteres = [];
         if (sub.criteres_valides) {
             try {
@@ -305,7 +326,12 @@ const AdminCorrections = {
     },
 
     goToStep(step) {
+        // Sauvegarder le contenu de l'éditeur avant de quitter l'étape 2
+        if (this.currentStep === 2) {
+            this._saveEditorContent();
+        }
         this.currentStep = step;
+        this._previewVisible = false;
         this.renderStep();
         this.updateWizardIndicators();
     },
@@ -333,6 +359,7 @@ const AdminCorrections = {
         } else if (this.currentStep === 2) {
             body.innerHTML = this.renderStep2();
             footer.innerHTML = this.renderFooter2();
+            this._initEditor();
         } else if (this.currentStep === 3) {
             body.innerHTML = this.renderStep3();
             footer.innerHTML = this.renderFooter3();
@@ -374,7 +401,7 @@ const AdminCorrections = {
             '</div>';
     },
 
-    // ========== ÉTAPE 2 — CORRECTION ==========
+    // ========== ÉTAPE 2 — CORRECTION (éditeur riche + critères + vue élève) ==========
 
     renderStep2() {
         var sub = this.currentSubmission;
@@ -386,11 +413,31 @@ const AdminCorrections = {
 
         var html = '';
 
-        // Critères de réussite (dropdown repliable)
+        // Toggle Lien / Texte
+        html += '<div class="source-toggle" id="correctionToggle">';
+        html += '<button type="button" class="source-toggle-btn' + (wd.correctionType !== 'html' ? ' active' : '') + '" data-mode="url" onclick="AdminCorrections.switchCorrectionMode(\'url\')">Lien</button>';
+        html += '<button type="button" class="source-toggle-btn' + (wd.correctionType === 'html' ? ' active' : '') + '" data-mode="html" onclick="AdminCorrections.switchCorrectionMode(\'html\')">Texte</button>';
+        html += '</div>';
+
+        // Panel URL
+        html += '<div class="source-panel" id="correctionUrlPanel"' + (wd.correctionType === 'html' ? ' style="display:none"' : '') + '>';
+        html += '<div class="form-group">';
+        html += '<label>Lien Google Doc du corrigé</label>';
+        html += '<input type="text" class="corrige-url-input" id="correctionUrlInput" placeholder="https://docs.google.com/document/d/..." value="' + this.escapeHtml(wd.correctionType === 'url' ? wd.correctionValue : '') + '">';
+        html += '<div class="form-help">Collez le lien de partage du Google Doc (doit être accessible en lecture)</div>';
+        html += '</div>';
+        html += '</div>';
+
+        // Panel Texte (éditeur riche)
+        html += '<div class="source-panel" id="correctionHtmlPanel"' + (wd.correctionType !== 'html' ? ' style="display:none"' : '') + '>';
+        html += '<div id="correctionEditorContainer"></div>';
+        html += '</div>';
+
+        // Critères de réussite (dropdown)
         if (criteres.length > 0) {
             var checkedCount = wd.criteresValides.length;
             var hasCriteres = checkedCount > 0;
-            html += '<div class="correction-section">';
+            html += '<div class="correction-section" style="margin-top: 1rem">';
             html += '<div class="correction-section-header' + (hasCriteres ? ' expanded' : '') + '" onclick="AdminCorrections.toggleSection(this)">';
             html += '<h4>✅ Critères de réussite (' + checkedCount + '/' + criteres.length + ')</h4>';
             html += '<span class="toggle-icon">▼</span>';
@@ -407,26 +454,7 @@ const AdminCorrections = {
             html += '</div></div></div>';
         }
 
-        // Corrigé personnalisé (repliable)
-        var hasCorrige = wd.correctionType !== null;
-        html += '<div class="correction-section">';
-        html += '<div class="correction-section-header' + (hasCorrige ? ' expanded' : '') + '" onclick="AdminCorrections.toggleSection(this)">';
-        html += '<h4>📎 Corrigé personnalisé (optionnel)</h4>';
-        html += '<span class="toggle-icon">▼</span>';
-        html += '</div>';
-        html += '<div class="correction-section-body' + (hasCorrige ? '' : ' hidden') + '">';
-        html += '<div class="corrige-toggle">';
-        html += '<button class="corrige-toggle-btn' + (wd.correctionType === 'url' ? ' active' : '') + '" onclick="AdminCorrections.setCorrectionType(\'url\')">Lien Google Doc</button>';
-        html += '<button class="corrige-toggle-btn' + (wd.correctionType === 'html' ? ' active' : '') + '" onclick="AdminCorrections.setCorrectionType(\'html\')">Texte</button>';
-        html += '</div>';
-        if (wd.correctionType === 'url') {
-            html += '<input type="url" class="corrige-url-input" placeholder="https://docs.google.com/..." value="' + this.escapeHtml(wd.correctionValue) + '" oninput="AdminCorrections.wizardData.correctionValue = this.value">';
-        } else if (wd.correctionType === 'html') {
-            html += '<textarea class="corrige-editor" placeholder="Tapez votre corrigé ici..." oninput="AdminCorrections.wizardData.correctionValue = this.value">' + this.escapeHtml(wd.correctionValue) + '</textarea>';
-        }
-        html += '</div></div>';
-
-        // Remarque (repliable)
+        // Remarque (dropdown)
         var hasRemarque = wd.remarque.length > 0;
         html += '<div class="correction-section">';
         html += '<div class="correction-section-header' + (hasRemarque ? ' expanded' : '') + '" onclick="AdminCorrections.toggleSection(this)">';
@@ -434,7 +462,7 @@ const AdminCorrections = {
         html += '<span class="toggle-icon">▼</span>';
         html += '</div>';
         html += '<div class="correction-section-body' + (hasRemarque ? '' : ' hidden') + '">';
-        html += '<textarea class="remarque-textarea" placeholder="Bon travail sur la chronologie, mais pense à croiser les documents sources..." oninput="AdminCorrections.wizardData.remarque = this.value">' + this.escapeHtml(wd.remarque) + '</textarea>';
+        html += '<textarea class="remarque-textarea" id="remarqueTextarea" placeholder="Bon travail sur la chronologie, mais pense à croiser les documents sources...">' + this.escapeHtml(wd.remarque) + '</textarea>';
         html += '</div></div>';
 
         // Décision
@@ -448,6 +476,235 @@ const AdminCorrections = {
         return html;
     },
 
+    // ========== ÉDITEUR RICHE ==========
+
+    _initEditor() {
+        var container = document.getElementById('correctionEditorContainer');
+        if (!container) return;
+
+        var toolbarHtml = '<div class="rt-toolbar">';
+
+        // Gras / Italique / Souligné
+        toolbarHtml += '<div class="rt-group">';
+        toolbarHtml += '<button type="button" class="rt-btn" data-cmd="bold" title="Gras"><b>G</b></button>';
+        toolbarHtml += '<button type="button" class="rt-btn" data-cmd="italic" title="Italique"><i>I</i></button>';
+        toolbarHtml += '<button type="button" class="rt-btn" data-cmd="underline" title="Souligné"><u>S</u></button>';
+        toolbarHtml += '</div>';
+
+        // Listes
+        toolbarHtml += '<div class="rt-group">';
+        toolbarHtml += '<button type="button" class="rt-btn" data-cmd="insertUnorderedList" title="Liste à puces">•</button>';
+        toolbarHtml += '<button type="button" class="rt-btn" data-cmd="insertOrderedList" title="Liste numérotée">1.</button>';
+        toolbarHtml += '</div>';
+
+        // Couleur
+        toolbarHtml += '<div class="rt-group">';
+        toolbarHtml += '<input type="color" class="rt-color" id="correctionColor" value="#000000" title="Couleur du texte">';
+        toolbarHtml += '</div>';
+
+        // Média
+        toolbarHtml += '<div class="rt-group">';
+        toolbarHtml += '<button type="button" class="rt-btn rt-btn-label" data-media="image" title="Insérer une image">Image</button>';
+        toolbarHtml += '<button type="button" class="rt-btn rt-btn-label" data-media="video" title="Insérer une vidéo">Vidéo</button>';
+        toolbarHtml += '</div>';
+
+        toolbarHtml += '</div>';
+
+        var editorHtml = '<div class="rt-editor" id="correctionEditor" contenteditable="true" data-placeholder="Saisissez le corrigé commenté..."></div>';
+
+        container.innerHTML = toolbarHtml + editorHtml;
+
+        var editor = document.getElementById('correctionEditor');
+        var toolbar = container.querySelector('.rt-toolbar');
+
+        // Charger le contenu existant
+        if (this.wizardData.correctionType === 'html' && this.wizardData.correctionValue) {
+            editor.innerHTML = this.wizardData.correctionValue;
+        }
+
+        // Commandes de formatage
+        toolbar.querySelectorAll('.rt-btn[data-cmd]').forEach(function(btn) {
+            btn.onmousedown = function(e) { e.preventDefault(); };
+            btn.onclick = function() {
+                editor.focus();
+                document.execCommand(btn.dataset.cmd, false, null);
+            };
+        });
+
+        // Insertion média
+        var self = this;
+        toolbar.querySelectorAll('.rt-btn[data-media]').forEach(function(btn) {
+            btn.onmousedown = function(e) { e.preventDefault(); };
+            btn.onclick = function() {
+                self._insertMedia(editor, btn.dataset.media);
+            };
+        });
+
+        // Couleur
+        var colorInput = document.getElementById('correctionColor');
+        if (colorInput) {
+            colorInput.oninput = function() {
+                editor.focus();
+                document.execCommand('foreColor', false, colorInput.value);
+            };
+        }
+    },
+
+    _insertMedia(editor, type) {
+        var hint = type === 'image'
+            ? 'Collez le lien de l\'image :\n(Google Drive, lien direct...)'
+            : 'Collez le lien de la vidéo :\n(YouTube, Google Drive...)';
+        var url = prompt(hint, '');
+        if (!url || !url.trim()) return;
+
+        var src = url.trim();
+        var html = '';
+
+        if (type === 'image') {
+            // Convertir les liens Google Drive en lien direct
+            var driveMatch = src.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            var imgSrc = driveMatch
+                ? 'https://drive.google.com/uc?export=view&id=' + driveMatch[1]
+                : src;
+            html = '<div class="rt-media-wrapper"><img src="' + imgSrc + '" alt="Image" style="max-width:100%"></div>';
+        } else {
+            // Convertir YouTube en embed
+            var ytMatch = src.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+            if (ytMatch) {
+                html = '<div class="rt-media-wrapper"><iframe src="https://www.youtube.com/embed/' + ytMatch[1] + '" width="100%" height="315" frameborder="0" allowfullscreen></iframe></div>';
+            } else {
+                html = '<div class="rt-media-wrapper"><a href="' + src + '" target="_blank">' + src + '</a></div>';
+            }
+        }
+
+        editor.focus();
+        document.execCommand('insertHTML', false, html + '<p><br></p>');
+    },
+
+    _getEditorContent() {
+        var editor = document.getElementById('correctionEditor');
+        if (!editor) return '';
+        var html = editor.innerHTML.trim();
+        if (!html || html === '<br>' || html === '<div><br></div>') return '';
+        return html;
+    },
+
+    _saveEditorContent() {
+        // Sauvegarder le contenu de l'éditeur dans wizardData
+        var toggle = document.getElementById('correctionToggle');
+        if (!toggle) return;
+        var activeBtn = toggle.querySelector('.source-toggle-btn.active');
+        var mode = activeBtn ? activeBtn.dataset.mode : 'url';
+
+        if (mode === 'html') {
+            this.wizardData.correctionType = 'html';
+            this.wizardData.correctionValue = this._getEditorContent();
+        } else {
+            var urlInput = document.getElementById('correctionUrlInput');
+            var val = urlInput ? urlInput.value.trim() : '';
+            this.wizardData.correctionType = val ? 'url' : null;
+            this.wizardData.correctionValue = val;
+        }
+
+        // Remarque
+        var remarqueEl = document.getElementById('remarqueTextarea');
+        if (remarqueEl) this.wizardData.remarque = remarqueEl.value.trim();
+    },
+
+    switchCorrectionMode(mode) {
+        var toggle = document.getElementById('correctionToggle');
+        toggle.querySelectorAll('.source-toggle-btn').forEach(function(btn) {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+        var urlPanel = document.getElementById('correctionUrlPanel');
+        var htmlPanel = document.getElementById('correctionHtmlPanel');
+        if (urlPanel) urlPanel.style.display = mode === 'url' ? '' : 'none';
+        if (htmlPanel) htmlPanel.style.display = mode === 'html' ? '' : 'none';
+    },
+
+    // ========== VUE ÉLÈVE ==========
+
+    togglePreview() {
+        this._previewVisible = !this._previewVisible;
+        var previewZone = document.getElementById('elevePreviewZone');
+        var previewBtn = document.getElementById('previewToggleBtn');
+
+        if (this._previewVisible) {
+            this._saveEditorContent();
+            previewZone.innerHTML = this._buildElevePreview();
+            previewZone.style.display = 'block';
+            previewBtn.textContent = '✏️ Retour édition';
+        } else {
+            previewZone.style.display = 'none';
+            previewBtn.textContent = '👁 Vue élève';
+        }
+    },
+
+    _buildElevePreview() {
+        var wd = this.wizardData;
+        var sub = this.currentSubmission;
+        var entrainement = this.getEntrainement(sub.entrainement_id);
+        var competence = this.getCompetenceForEntrainement(entrainement);
+        var competenceId = competence ? competence.id : null;
+        var criteres = competenceId ? this.getCriteresByCompetence(competenceId) : [];
+
+        var html = '<div class="eleve-preview">';
+        html += '<div class="eleve-preview-header">';
+        html += '<span class="preview-label">Aperçu — ce que verra l\'élève</span>';
+        html += '</div>';
+        html += '<div class="eleve-preview-body">';
+
+        // Décision
+        if (wd.decision) {
+            var isValide = wd.decision === 'valide';
+            html += '<div class="preview-decision ' + wd.decision + '">';
+            html += isValide ? '✅ Compétence validée' : '❌ Compétence non validée';
+            html += '</div>';
+        }
+
+        // Critères
+        if (criteres.length > 0) {
+            html += '<div class="preview-section">';
+            html += '<div class="preview-section-title">Critères de réussite</div>';
+            criteres.forEach(function(c) {
+                var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
+                html += '<div class="preview-critere ' + (checked ? 'ok' : 'ko') + '">';
+                html += (checked ? '✅' : '❌') + ' ' + AdminCorrections.escapeHtml(c.libelle);
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+
+        // Corrigé
+        if (wd.correctionValue) {
+            html += '<div class="preview-section">';
+            html += '<div class="preview-section-title">Corrigé commenté</div>';
+            if (wd.correctionType === 'url') {
+                html += '<iframe src="' + AdminCorrections.escapeHtml(wd.correctionValue) + '" style="width:100%;height:300px;border:1px solid #e5e7eb;border-radius:8px" sandbox="allow-same-origin allow-scripts"></iframe>';
+            } else {
+                html += '<div class="preview-content">' + wd.correctionValue + '</div>';
+            }
+            html += '</div>';
+        }
+
+        // Remarque
+        if (wd.remarque) {
+            html += '<div class="preview-section">';
+            html += '<div class="preview-section-title">Remarque de la prof</div>';
+            html += '<div class="preview-remarque">' + this.escapeHtml(wd.remarque) + '</div>';
+            html += '</div>';
+        }
+
+        if (!wd.decision && !wd.correctionValue && !wd.remarque && wd.criteresValides.length === 0) {
+            html += '<div style="text-align:center;color:#9ca3af;padding:2rem">Rien à afficher pour le moment. Remplissez la correction ci-dessus.</div>';
+        }
+
+        html += '</div></div>';
+        return html;
+    },
+
+    // ========== ACTIONS ÉTAPE 2 ==========
+
     toggleCritere(critereId, el) {
         var idx = this.wizardData.criteresValides.indexOf(String(critereId));
         if (idx === -1) {
@@ -459,21 +716,18 @@ const AdminCorrections = {
             el.classList.remove('checked');
             el.querySelector('input').checked = false;
         }
+        // Mettre à jour le compteur dans le header
+        var headerH4 = el.closest('.correction-section').querySelector('.correction-section-header h4');
+        if (headerH4) {
+            var total = el.closest('.criteres-correction-list').children.length;
+            headerH4.textContent = '✅ Critères de réussite (' + this.wizardData.criteresValides.length + '/' + total + ')';
+        }
     },
 
     toggleSection(header) {
         header.classList.toggle('expanded');
         var body = header.nextElementSibling;
         body.classList.toggle('hidden');
-    },
-
-    setCorrectionType(type) {
-        var oldType = this.wizardData.correctionType;
-        this.wizardData.correctionType = type;
-        if (oldType !== type) {
-            this.wizardData.correctionValue = '';
-        }
-        this.renderStep();
     },
 
     setDecision(decision) {
@@ -489,6 +743,7 @@ const AdminCorrections = {
     renderFooter2() {
         return '<div class="footer-left">' +
                 '<button class="btn btn-secondary" onclick="AdminCorrections.goToStep(1)">← Précédent</button>' +
+                '<button class="btn btn-secondary" id="previewToggleBtn" onclick="AdminCorrections.togglePreview()">👁 Vue élève</button>' +
             '</div>' +
             '<div class="footer-right">' +
                 '<button class="btn btn-primary" onclick="AdminCorrections.validateStep2()">Suivant →</button>' +
@@ -496,6 +751,7 @@ const AdminCorrections = {
     },
 
     validateStep2() {
+        this._saveEditorContent();
         if (!this.wizardData.decision) {
             this.showNotification('Veuillez choisir une décision (validé ou non validé).', 'error');
             return;
@@ -516,7 +772,6 @@ const AdminCorrections = {
 
         var html = '';
 
-        // Infos
         html += '<div class="bilan-section">';
         html += '<h4>Élève</h4>';
         html += '<div class="bilan-value">' + this.escapeHtml(this.getEleveName(eleve)) + '</div>';
@@ -558,11 +813,11 @@ const AdminCorrections = {
         }
 
         // Corrigé
-        if (wd.correctionType && wd.correctionValue) {
+        if (wd.correctionValue) {
             html += '<div class="bilan-section">';
             html += '<h4>Corrigé personnalisé</h4>';
             html += '<div class="bilan-value">' +
-                (wd.correctionType === 'url' ? '🔗 Lien Google Doc' : '📝 Texte saisi') +
+                (wd.correctionType === 'url' ? '🔗 Lien Google Doc' : '📝 Texte riche saisi') +
                 '</div>';
             html += '</div>';
         }
@@ -607,14 +862,12 @@ const AdminCorrections = {
             var result = await this.callAPI('validateEleveEntrainementCompetence', params);
 
             if (result.success) {
-                // Mettre à jour la soumission localement
                 sub.statut = wd.decision;
                 sub.remarque_prof = wd.remarque;
                 sub.correction_prof = wd.correctionValue;
                 sub.criteres_valides = JSON.stringify(wd.criteresValides);
                 sub.date_correction = new Date().toISOString();
 
-                // Invalider le cache SheetsAPI
                 try { localStorage.removeItem('brikks_sheets_EleveEntrainementsCompetences'); } catch (_e) { /* ignore */ }
 
                 this.closeModal();
