@@ -1080,77 +1080,108 @@ Object.assign(EleveCompetences, {
     _renderEvalReview(container, entrainement, progression, mode, modeBadgeLabel) {
         const statut = progression.statut;
 
-        // Message principal selon le statut
+        // Message statut (validé / non validé / corrigé)
         let statusIcon, statusTitle, statusMessage, statusClass;
 
         if (statut === 'valide') {
-            statusIcon = '✅';
-            statusTitle = 'Compétence validée';
-            statusMessage = 'Ta production a été corrigée et validée par le professeur.';
+            statusIcon = '\u2705';
+            statusTitle = 'Comp\u00E9tence valid\u00E9e';
+            statusMessage = 'Ta production a \u00E9t\u00E9 corrig\u00E9e et valid\u00E9e par le professeur.';
             statusClass = 'validated';
         } else if (statut === 'non_valide') {
-            statusIcon = '❌';
-            statusTitle = 'Compétence non validée';
-            statusMessage = 'Ta production a été corrigée mais la compétence n\'est pas encore validée. Tu peux recommencer un entraînement.';
+            statusIcon = '\u274C';
+            statusTitle = 'Comp\u00E9tence non valid\u00E9e';
+            statusMessage = 'Ta production a \u00E9t\u00E9 corrig\u00E9e mais la comp\u00E9tence n\'est pas encore valid\u00E9e. Tu peux recommencer un entra\u00EEnement.';
             statusClass = 'not-validated';
         } else if (statut === 'corrige') {
-            statusIcon = '📋';
-            statusTitle = 'Production corrigée';
-            statusMessage = 'Ta production a été corrigée par le professeur. La validation est en attente.';
+            statusIcon = '\uD83D\uDCCB';
+            statusTitle = 'Production corrig\u00E9e';
+            statusMessage = 'Ta production a \u00E9t\u00E9 corrig\u00E9e par le professeur. La validation est en attente.';
             statusClass = 'corrected';
         } else {
-            statusIcon = '✓';
-            statusTitle = 'Terminé';
+            statusIcon = '\u2713';
+            statusTitle = 'Termin\u00E9';
             statusMessage = '';
             statusClass = 'done';
         }
 
-        // Feedback du prof (remarque + corrigé personnalisé)
-        const feedbackHTML = this._buildFeedbackHTML(progression);
+        // === COLONNE GAUCHE : Sujet / Corrigé (toggle tabs) ===
+        const hasDoc = !!(this.getEmbedUrl(entrainement.document_url) || entrainement.document_contenu);
+        const correctionProf = progression.correction_prof;
 
-        // En mode évaluation, seul le retour du prof s'affiche (pas le sujet/corrigé par défaut)
-        const hasFeedback = !!(progression.remarque_prof || progression.correction_prof);
-
-        // Document (sujet) + corrigé général — uniquement si pas de feedback prof personnalisé
-        let reviewLayoutHTML = '';
-        if (!hasFeedback) {
-            const correctionContent = this._buildCorrectionHTML(entrainement.correction_commentee, entrainement.correction_contenu);
-            const hasDoc = !!(this.getEmbedUrl(entrainement.document_url) || entrainement.document_contenu);
-
-            const tabsHTML = hasDoc ? `
-                <div class="comp-review-tabs">
-                    <button class="comp-review-tab active" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">📄 Sujet</button>
-                    <button class="comp-review-tab" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">📝 Corrigé</button>
-                </div>
-            ` : '';
-
-            const sujetHTML = hasDoc ? `
-                <div class="comp-review-tab-content active" id="compTabSujet">
-                    ${this._buildDocumentHTML(entrainement)}
-                </div>
-            ` : '';
-
-            const corrigeHTML = `
-                <div class="comp-review-tab-content${hasDoc ? '' : ' active'}" id="compTabCorrige">
-                    ${correctionContent}
-                </div>
-            `;
-
-            reviewLayoutHTML = `
-                <div class="comp-review-layout">
-                    <div class="comp-document-section" id="compDocSection">
-                        ${tabsHTML}
-                        ${sujetHTML}
-                        ${corrigeHTML}
-                    </div>
-                </div>
-            `;
+        // Corrigé = correction_prof du wizard correction (blocs, URL ou HTML)
+        let corrigeContent = '';
+        if (correctionProf) {
+            corrigeContent = this._buildCorrectionProfHTML(correctionProf);
         }
+
+        const hasTabs = hasDoc;
+        const tabsHTML = hasTabs ? `
+            <div class="comp-review-tabs">
+                <button class="comp-review-tab active" data-tab="sujet" onclick="EleveCompetences.switchReviewTab('sujet')">\uD83D\uDCC4 Sujet</button>
+                <button class="comp-review-tab" data-tab="corrige" onclick="EleveCompetences.switchReviewTab('corrige')">\uD83D\uDCDD Corrig\u00E9</button>
+            </div>
+        ` : '';
+
+        const sujetHTML = hasTabs ? `
+            <div class="comp-review-tab-content active" id="compTabSujet">
+                ${this._buildDocumentHTML(entrainement)}
+            </div>
+        ` : '';
+
+        const corrigeHTML = `
+            <div class="comp-review-tab-content${hasTabs ? '' : ' active'}" id="compTabCorrige">
+                ${corrigeContent || '<div class="comp-inplace-corrige comp-corrige-empty"><p>Le corrig\u00E9 n\'est pas encore disponible.</p></div>'}
+            </div>
+        `;
+
+        // === COLONNE DROITE : Critères + statut ===
+        const criteresComp = this.criteres
+            .filter(function(cr) { return String(cr.competence_id) === String(entrainement.competence_id); })
+            .sort(function(a, b) { return (a.ordre || 0) - (b.ordre || 0); });
+
+        // Parser les critères validés par le prof
+        var criteresValides = [];
+        if (progression.criteres_valides) {
+            try {
+                criteresValides = JSON.parse(progression.criteres_valides);
+                if (!Array.isArray(criteresValides)) criteresValides = [];
+            } catch (e) { criteresValides = []; }
+        }
+
+        const nbValides = criteresValides.length;
+        const nbTotal = criteresComp.length;
+
+        const criteresHTML = nbTotal > 0 ? `
+            <div class="comp-sidebar-criteres comp-sidebar-criteres-readonly">
+                <h4>Crit\u00E8res de r\u00E9ussite</h4>
+                <p class="comp-sidebar-criteres-hint">${nbValides} / ${nbTotal} crit\u00E8re${nbTotal > 1 ? 's' : ''} valid\u00E9${nbValides > 1 ? 's' : ''}</p>
+                <div class="comp-sidebar-criteres-list">
+                    ${criteresComp.map(function(cr) {
+        var isValid = criteresValides.indexOf(String(cr.id)) !== -1;
+        return '<div class="comp-sidebar-critere-item ' + (isValid ? 'critere-valid' : 'critere-invalid') + '">' +
+                            '<span class="comp-sidebar-critere-icon">' + (isValid ? '\u2705' : '\u274C') + '</span>' +
+                            '<span class="comp-sidebar-critere-text">' + escapeHtml(cr.libelle) + '</span>' +
+                        '</div>';
+    }).join('')}
+                </div>
+            </div>
+        ` : '';
+
+        const statusHTML = `
+            <div class="comp-eval-status-card ${statusClass}">
+                <span class="comp-eval-status-icon">${statusIcon}</span>
+                <div class="comp-eval-status-text">
+                    <h3>${statusTitle}</h3>
+                    ${statusMessage ? '<p>' + statusMessage + '</p>' : ''}
+                </div>
+            </div>
+        `;
 
         container.innerHTML = `
             <div class="comp-exercise-view">
                 <div class="comp-exercise-topbar">
-                    <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">←</button>
+                    <button class="comp-exercise-back" onclick="EleveCompetences.backToDetail()">\u2190</button>
                     <div class="comp-exercise-topbar-info">
                         <h1>${escapeHtml(entrainement.titre)}</h1>
                         <div class="comp-exercise-topbar-meta">
@@ -1160,73 +1191,58 @@ Object.assign(EleveCompetences, {
                     </div>
                 </div>
 
-                <div class="comp-eval-status ${statusClass}">
-                    <span class="comp-eval-status-icon">${statusIcon}</span>
-                    <div class="comp-eval-status-text">
-                        <h3>${statusTitle}</h3>
-                        ${statusMessage ? '<p>' + statusMessage + '</p>' : ''}
+                <div class="comp-exercise-layout">
+                    <div class="comp-document-section" id="compDocSection">
+                        ${tabsHTML}
+                        ${sujetHTML}
+                        ${corrigeHTML}
+                    </div>
+
+                    <div class="comp-sidebar-section">
+                        ${criteresHTML}
+                        ${statusHTML}
                     </div>
                 </div>
-
-                ${feedbackHTML}
-
-                ${reviewLayoutHTML}
             </div>
         `;
     },
 
     /**
-     * Construit le HTML du feedback prof (remarque + corrigé personnalisé)
+     * Construit le HTML du corrigé prof (correction_prof du wizard correction).
+     * Gère : blocs JSON, URL, ou HTML brut.
      */
-    _buildFeedbackHTML(progression) {
-        const remarque = progression.remarque_prof;
-        const correction = progression.correction_prof;
+    _buildCorrectionProfHTML(correction) {
+        if (!correction) return '';
 
-        if (!remarque && !correction) return '';
-
-        let html = '<div class="comp-prof-feedback">';
-        html += '<h4 class="comp-prof-feedback-title">Retour du professeur</h4>';
-
-        if (remarque) {
-            html += '<div class="comp-prof-remarque">' + escapeHtml(remarque) + '</div>';
-        }
-
-        if (correction) {
-            // Déterminer le type de contenu : URL, blocs JSON, ou HTML riche
-            var isUrl = correction.indexOf('http') === 0;
-            if (isUrl) {
-                // Embed URL (Google Doc, Loom, etc.)
-                var embedUrl = this.getEmbedUrl(correction) || correction;
-                var isLoom = correction.indexOf('loom.com') !== -1;
-                if (isLoom) {
-                    html += '<div class="comp-prof-correction-embed">';
-                    html += '<div style="position:relative;padding-bottom:56.25%;height:0;">';
-                    html += '<iframe src="' + embedUrl + '" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe>';
-                    html += '</div></div>';
-                } else {
-                    html += '<div class="comp-prof-correction-embed">';
-                    html += '<iframe src="' + embedUrl + '" class="comp-prof-correction-iframe"></iframe>';
-                    html += '</div>';
-                }
-            } else {
-                // Tenter de parser comme JSON (format blocs du block editor)
-                var parsed = null;
-                try {
-                    parsed = JSON.parse(correction);
-                } catch (e) { /* pas du JSON */ }
-
-                if (Array.isArray(parsed)) {
-                    html += this._renderCorrectionBlocks(parsed);
-                } else {
-                    // HTML riche (ancien format)
-                    html += '<div class="comp-prof-correction-html">' + correction + '</div>';
-                }
+        // URL ?
+        if (correction.indexOf('http') === 0) {
+            var embedUrl = this.getEmbedUrl(correction) || correction;
+            var isLoom = correction.indexOf('loom.com') !== -1;
+            if (isLoom) {
+                return '<div class="comp-inplace-corrige">' +
+                    '<div style="position:relative;padding-bottom:56.25%;height:0;">' +
+                    '<iframe src="' + embedUrl + '" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe>' +
+                    '</div></div>';
             }
+            return '<div class="comp-inplace-corrige">' +
+                '<div class="comp-corrige-doc">' +
+                '<iframe src="' + embedUrl + '" class="comp-corrige-iframe" allowfullscreen></iframe>' +
+                '</div></div>';
         }
 
-        html += '</div>';
-        return html;
+        // Blocs JSON ?
+        try {
+            var blocks = JSON.parse(correction);
+            if (Array.isArray(blocks)) {
+                return this._renderCorrectionBlocks(blocks);
+            }
+        } catch (e) { /* pas du JSON */ }
+
+        // HTML brut (ancien format)
+        return '<div class="comp-inplace-corrige"><div class="comp-inplace-corrige-text comp-richtext-content">' + correction + '</div></div>';
     },
+
+    // _buildFeedbackHTML supprimé — remplacé par _buildCorrectionProfHTML + layout 2 colonnes
 
     _renderSoumisView(container, entrainement, progression) {
         const delivery = SubmissionUtils.getDeliveryInfo(entrainement.id);

@@ -1857,6 +1857,88 @@ body.comp-fullscreen-active {
 }
 
 /* ============================================
+   EVAL REVIEW : status card dans la sidebar
+   ============================================ */
+
+.comp-eval-status-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.comp-eval-status-card.validated {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.comp-eval-status-card.corrected {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+}
+
+.comp-eval-status-card.not-validated {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+.comp-eval-status-card.done {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+}
+
+.comp-eval-status-card .comp-eval-status-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.comp-eval-status-card .comp-eval-status-text h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.comp-eval-status-card .comp-eval-status-text p {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+/* ============================================
+   EVAL REVIEW : critères lecture seule
+   ============================================ */
+
+.comp-sidebar-criteres-readonly .comp-sidebar-critere-item {
+    cursor: default;
+    user-select: auto;
+}
+
+.comp-sidebar-criteres-readonly .comp-sidebar-critere-item:hover {
+    background: inherit;
+    border-color: inherit;
+}
+
+.comp-sidebar-critere-item.critere-valid {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.comp-sidebar-critere-item.critere-invalid {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.comp-sidebar-critere-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+/* ============================================
    FEEDBACK PROF (remarque + corrigé personnalisé)
    ============================================ */
 
