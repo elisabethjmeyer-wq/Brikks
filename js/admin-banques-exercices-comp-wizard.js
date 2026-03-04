@@ -3,7 +3,7 @@
  * Extension de AdminBanquesExercices via Object.assign.
  *
  * 4 étapes :
- *   1. Paramètres (banque, titre, consigne, durée, ordre, statut)
+ *   1. Paramètres (banque, titre, durée, statut)
  *   2. Document (block editor + preview live côté élève)
  *   3. Corrigé (block editor + preview / lien Google Doc)
  *   4. Résumé de validation
@@ -206,13 +206,11 @@ Object.assign(AdminBanquesExercices, {
         case 1: {
             var titre = document.getElementById('cwTitre');
             var banqueId = document.getElementById('cwBanqueId');
-            var description = document.getElementById('cwDescription');
             var duree = document.getElementById('cwDuree');
             var statut = document.getElementById('cwStatut');
 
             e.titre = titre ? titre.value.trim() : (e.titre || '');
             e.banque_id = banqueId ? banqueId.value : (e.banque_id || '');
-            e.description = description ? description.value.trim() : (e.description || '');
             e.duree = duree ? (parseInt(duree.value) || 30) * 60 : (e.duree || 1800);
             e.statut = statut ? statut.value : (e.statut || 'brouillon');
 
@@ -236,6 +234,9 @@ Object.assign(AdminBanquesExercices, {
             break;
         }
         case 2: {
+            // Sauvegarder la consigne (déplacée de l'étape 1)
+            var descStep2 = document.getElementById('cwDescription');
+            e.description = descStep2 ? descStep2.value.trim() : (e.description || '');
             // Sauvegarder les blocs du block editor (document)
             this._saveEditorsState();
             var json = this.getBlocksJSON();
@@ -360,10 +361,6 @@ Object.assign(AdminBanquesExercices, {
                     '<input type="text" class="form-input" id="cwTitre" value="' + this.escapeHtml(e.titre || '') + '" placeholder="Ex: Journal de Catherine Pozzi">' +
                     '<div class="form-help">Titre court identifiant le document utilis\u00E9</div>' +
                 '</div>' +
-                '<div class="form-group">' +
-                    '<label>Consigne <span class="optional">(optionnel)</span></label>' +
-                    '<textarea class="form-textarea" id="cwDescription" rows="2" placeholder="Consigne pour l\u2019\u00E9l\u00E8ve...">' + this.escapeHtml(e.description || '') + '</textarea>' +
-                '</div>' +
                 '<div class="form-row">' +
                     '<div class="form-group">' +
                         '<label>Dur\u00E9e indicative (min)</label>' +
@@ -394,6 +391,7 @@ Object.assign(AdminBanquesExercices, {
     // ========== ÉTAPE 2 : DOCUMENT + PREVIEW ==========
 
     _renderCompWizardStep2() {
+        var e = this.compWizardData.entrainement || {};
         return '<div class="wizard-step-content">' +
             '<div class="step-header">' +
                 '<span class="step-icon">\uD83D\uDCC4</span>' +
@@ -402,17 +400,25 @@ Object.assign(AdminBanquesExercices, {
                     '<p>Construisez le contenu que l\u2019\u00E9l\u00E8ve verra (texte, documents, images, vid\u00E9os)</p>' +
                 '</div>' +
             '</div>' +
-            '<div class="cw-doc-layout">' +
-                '<div class="cw-doc-editor">' +
-                    '<h4 class="cw-section-title">\u00C9diteur</h4>' +
-                    '<div id="cwBlockEditorContainer" class="block-editor"></div>' +
-                    this._renderBlockAddBar() +
-                '</div>' +
-                '<div class="cw-doc-preview">' +
-                    '<h4 class="cw-section-title">\uD83D\uDC41 Aper\u00E7u \u00E9l\u00E8ve</h4>' +
-                    '<div id="cwPreviewContainer" class="cw-preview-frame">' +
-                        '<div class="cw-preview-empty">Ajoutez du contenu pour voir l\u2019aper\u00E7u</div>' +
-                    '</div>' +
+            '<div class="form-group">' +
+                '<label>Consigne <span class="optional">(optionnel)</span></label>' +
+                '<textarea class="form-textarea" id="cwDescription" rows="2" placeholder="Consigne pour l\u2019\u00E9l\u00E8ve...">' + this.escapeHtml(e.description || '') + '</textarea>' +
+            '</div>' +
+            '<div class="tb-tabs">' +
+                '<button type="button" class="tb-tab active" id="cwTabConstruction" onclick="AdminBanquesExercices._cwSwitchDocTab(\'construction\')">' +
+                    '<span class="tb-tab-icon">\u2699\uFE0F</span> Construction' +
+                '</button>' +
+                '<button type="button" class="tb-tab" id="cwTabPreview" onclick="AdminBanquesExercices._cwSwitchDocTab(\'preview\')">' +
+                    '<span class="tb-tab-icon">\uD83D\uDC41</span> Vue \u00E9l\u00E8ve' +
+                '</button>' +
+            '</div>' +
+            '<div id="cwConstructionPanel">' +
+                '<div id="cwBlockEditorContainer" class="block-editor"></div>' +
+                this._renderBlockAddBar() +
+            '</div>' +
+            '<div id="cwPreviewPanel" class="tb-preview-panel" style="display:none;">' +
+                '<div id="cwPreviewContainer">' +
+                    '<div class="cw-preview-empty">Ajoutez du contenu pour voir l\u2019aper\u00E7u</div>' +
                 '</div>' +
             '</div>' +
         '</div>';
@@ -441,6 +447,28 @@ Object.assign(AdminBanquesExercices, {
         '</div>';
     },
 
+    _cwSwitchDocTab(tab) {
+        var constructionPanel = document.getElementById('cwConstructionPanel');
+        var previewPanel = document.getElementById('cwPreviewPanel');
+        var tabConstruction = document.getElementById('cwTabConstruction');
+        var tabPreview = document.getElementById('cwTabPreview');
+        if (!constructionPanel || !previewPanel) return;
+
+        if (tab === 'preview') {
+            this._saveEditorsState();
+            this._updateCompPreview();
+            constructionPanel.style.display = 'none';
+            previewPanel.style.display = '';
+            if (tabConstruction) tabConstruction.classList.remove('active');
+            if (tabPreview) tabPreview.classList.add('active');
+        } else {
+            constructionPanel.style.display = '';
+            previewPanel.style.display = 'none';
+            if (tabConstruction) tabConstruction.classList.add('active');
+            if (tabPreview) tabPreview.classList.remove('active');
+        }
+    },
+
     _initCompWizardStep2() {
         // Rediriger le block editor vers le container du wizard
         this._blockEditorContainerId = 'cwBlockEditorContainer';
@@ -464,49 +492,16 @@ Object.assign(AdminBanquesExercices, {
             if (blocks.length === 0) blocks = null;
         }
 
-        // Intercepter _renderBlocks pour mettre à jour la preview après chaque re-rendu
-        // (ne le faire qu'une fois pour éviter l'empilement si l'utilisateur revient à l'étape 2)
-        var self = this;
-        if (!this._origRenderBlocks) {
-            this._origRenderBlocks = this._renderBlocks.bind(this);
+        // Restaurer _renderBlocks si intercepté précédemment
+        if (this._origRenderBlocks) {
+            this._renderBlocks = this._origRenderBlocks;
+            this._origRenderBlocks = null;
         }
-        this._renderBlocks = function() {
-            self._origRenderBlocks();
-            self._schedulePreviewUpdate();
-        };
 
         // Initialiser le block editor
         this.initBlockEditor(blocks);
-
-        // Rafraîchir la preview
-        this._updateCompPreview();
-
-        // Observer les changements du block editor pour mettre à jour la preview
-        this._setupCompPreviewObserver();
     },
 
-    _schedulePreviewUpdate() {
-        var self = this;
-        if (this._previewDebounce) clearTimeout(this._previewDebounce);
-        this._previewDebounce = setTimeout(function() {
-            self._updateCompPreview();
-        }, 300);
-    },
-
-    _setupCompPreviewObserver() {
-        var container = document.getElementById(this._blockEditorContainerId);
-        if (!container) return;
-
-        var self = this;
-
-        // Observer les changements de contenu (input dans les champs, frappe dans les éditeurs)
-        container.addEventListener('input', function() {
-            self._schedulePreviewUpdate();
-        });
-        container.addEventListener('change', function() {
-            self._schedulePreviewUpdate();
-        });
-    },
 
     _updateCompPreview() {
         var previewContainer = document.getElementById(this._cwPreviewContainerId);
@@ -533,14 +528,24 @@ Object.assign(AdminBanquesExercices, {
             return;
         }
 
+        // Consigne
+        var consigneEl = document.getElementById('cwDescription');
+        var consigne = consigneEl ? consigneEl.value.trim() : '';
+        var html = '';
+        if (consigne) {
+            html += '<p class="tb-pv-consigne">' + this.escapeHtml(consigne) + '</p>';
+        }
+
         // Utiliser le même rendu que le côté élève
-        var html = '<div class="comp-blocks-container">';
+        html += '<div class="comp-blocks-container">';
         var self = this;
         blocks.forEach(function(block) {
             if (block.type === 'group') {
                 html += '<div class="comp-blocks-group">';
-                (block.children || []).forEach(function(child) {
-                    html += '<div class="comp-blocks-group-child">';
+                var ratios = (block.ratio || '50-50').split('-').map(Number);
+                (block.children || []).forEach(function(child, idx) {
+                    var flex = ratios[idx] || 50;
+                    html += '<div class="comp-blocks-group-child" style="flex:' + flex + '">';
                     html += self._renderPreviewBlock(child);
                     html += '</div>';
                 });
