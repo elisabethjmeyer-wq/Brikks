@@ -162,7 +162,8 @@ const EleveEvaluations = {
         } else if (evaluation.status === 'upcoming' && evaluation.date_ouverture) {
             metaItems.push(`📅 Ouvre le ${this.formatDate(evaluation.date_ouverture)}`);
         }
-        metaItems.push(`⏱️ ${evaluation.duree_estimee || evaluation.duree || 15} min`);
+        const duree = parseInt(evaluation.duree) || parseInt(evaluation.duree_estimee) || 0;
+        if (duree > 0) metaItems.push(`⏱️ ${duree} min`);
 
         // Build action/status
         let actionHtml = '';
