@@ -22,63 +22,19 @@
 <body>
 
 <div id="evaluation-page">
-    <!-- Header Evaluation -->
-    <header class="evaluation-header">
-        <div class="evaluation-header-inner">
-            <div class="evaluation-header-left">
-                <button class="btn-back" onclick="EleveEvaluation.quit()" title="Quitter">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-                <div class="evaluation-header-title">
-                    <h1 id="evaluationTitle">Chargement...</h1>
-                    <p id="evaluationSubtitle"></p>
-                </div>
-            </div>
-            <div class="evaluation-header-right">
-                <div class="evaluation-stakes" id="evaluationStakes">
-                    <span class="stakes-icon">V</span>
-                    <span class="stakes-value" id="stakesValue">0</span>
-                    <span class="stakes-label">points en jeu</span>
-                </div>
-                <span class="type-badge" id="typeBadge">Evaluation</span>
-                <div class="timer" id="timer">
-                    <span>T</span>
-                    <span id="timerValue">0:00</span>
-                </div>
-            </div>
-        </div>
-    </header>
-
     <!-- Loader -->
     <div class="loader-container" id="loader">
         <div class="loader"></div>
-        <p>Chargement de l'evaluation...</p>
+        <p>Chargement de l'évaluation...</p>
     </div>
 
     <!-- Main Content -->
     <main class="evaluation-main" id="evaluationContent" style="display: none;">
-        <!-- Progress Section -->
-        <div class="progress-section" id="progressSection" style="display: none;">
-            <div class="progress-header">
-                <h2>Progression</h2>
-                <span id="progressText">Question 1/1</span>
-            </div>
-            <div class="progress-steps" id="progressSteps">
-                <!-- Filled dynamically -->
-            </div>
-        </div>
+        <!-- Exercise Container (rempli dynamiquement par renderExerciseView) -->
+        <div id="exerciseContainer"></div>
 
-        <!-- Exercise Container -->
-        <div class="exercise-container" id="exerciseContainer">
-            <!-- Filled dynamically by exercise engine -->
-        </div>
-
-        <!-- Result Container (hidden by default) -->
-        <div class="result-container" id="resultContainer" style="display: none;">
-            <!-- Filled dynamically -->
-        </div>
+        <!-- Result Container (visible après soumission) -->
+        <div id="resultContainer" style="display: none;"></div>
     </main>
 </div>
 

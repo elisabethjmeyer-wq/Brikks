@@ -139,8 +139,8 @@ const EleveEvaluation = {
 
     /**
      * Rendu de la vue exercice dans le conteneur de l'évaluation.
-     * Utilise le layout évaluation (header, progress) mais délègue
-     * le contenu de l'étape à EleveConnaissances.renderEtapeContent().
+     * Réutilise le même layout que les entraînements (exercise-card)
+     * et délègue le contenu à EleveConnaissances.renderEtapeContent().
      */
     renderExerciseView() {
         const EC = EleveConnaissances;
@@ -155,10 +155,30 @@ const EleveEvaluation = {
             .filter(eq => String(eq.etape_id) === String(currentEtape.id))
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
+        const typeLabel = this.getTypeLabel(this.evaluation.type);
         const container = document.getElementById('exerciseContainer');
         container.innerHTML = `
             <div class="exercise-view eval-exercise-view">
+                <button class="exercise-back-btn" onclick="EleveEvaluation.quit()">
+                    ← Quitter l'évaluation
+                </button>
+
                 <div class="exercise-card">
+                    <!-- Bandeau avec titre, type, points et timer -->
+                    <div class="exercise-header connaissances">
+                        <div class="exercise-header-left">
+                            <div class="exercise-header-info">
+                                <h1>${escapeHtml(this.evaluation.titre)}</h1>
+                                <div class="exercise-header-meta">
+                                    ${escapeHtml(typeLabel)} · ${this.evaluation.briques} pt${this.evaluation.briques > 1 ? 's' : ''} en jeu · Étape ${EC.currentEtapeIndex + 1}/${etapes.length}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="exercise-timer" id="exerciseTimer">
+                            <span id="timerDisplay">${this.formatTime(this.remainingTime)}</span>
+                        </div>
+                    </div>
+
                     <!-- Barre de progression des étapes -->
                     <div class="etapes-navigation">
                         <div class="etapes-progress">
@@ -203,6 +223,9 @@ const EleveEvaluation = {
                 </div>
             </div>
         `;
+
+        // Synchroniser l'affichage du timer avec le nouvel élément
+        this.updateTimerDisplay();
 
         // Gérer le multi-questions (carrousel QCM, V/F, etc.)
         const qcmMulti = document.querySelector('.qcm-multi');
@@ -296,13 +319,9 @@ const EleveEvaluation = {
             this.remainingTime--;
             this.updateTimerDisplay();
 
-            const timerEl = document.querySelector('.timer');
-            if (this.remainingTime <= 60 && this.remainingTime > 30) {
-                timerEl?.classList.add('warning');
-                timerEl?.classList.remove('danger');
-            } else if (this.remainingTime <= 30) {
-                timerEl?.classList.remove('warning');
-                timerEl?.classList.add('danger');
+            const timerEl = document.getElementById('exerciseTimer');
+            if (timerEl && this.remainingTime <= 60) {
+                timerEl.classList.add('warning');
             }
         } else {
             this.onTimeExpired();
@@ -310,12 +329,13 @@ const EleveEvaluation = {
     },
 
     updateTimerDisplay() {
+        const timeStr = this.formatTime(this.remainingTime);
+        // Mettre à jour le timer dans le header évaluation (si encore visible)
         const timerValueEl = document.getElementById('timerValue');
-        if (timerValueEl) {
-            const minutes = Math.floor(this.remainingTime / 60);
-            const seconds = this.remainingTime % 60;
-            timerValueEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
+        if (timerValueEl) timerValueEl.textContent = timeStr;
+        // Mettre à jour le timer dans le bandeau exercise-header
+        const timerDisplay = document.getElementById('timerDisplay');
+        if (timerDisplay) timerDisplay.textContent = timeStr;
     },
 
     onTimeExpired() {
@@ -343,20 +363,7 @@ const EleveEvaluation = {
 
     // ========== RENDU PRINCIPAL ==========
     render() {
-        this.renderHeader();
-        // Le rendu des étapes est fait par renderExerciseView via EleveConnaissances
         this.renderExerciseView();
-    },
-
-    renderHeader() {
-        document.getElementById('evaluationTitle').textContent = this.evaluation.titre;
-        document.getElementById('evaluationSubtitle').textContent = this.evaluation.chapitre_nom || '';
-
-        document.getElementById('stakesValue').textContent = this.evaluation.briques;
-
-        const badge = document.getElementById('typeBadge');
-        badge.textContent = this.getTypeLabel(this.evaluation.type);
-        badge.className = `type-badge ${this.evaluation.type}`;
     },
 
     getTypeLabel(type) {
@@ -463,8 +470,7 @@ const EleveEvaluation = {
     },
 
     showResults(globalResult) {
-        document.getElementById('exerciseContainer').innerHTML = '';
-        document.getElementById('progressSection').style.display = 'none';
+        document.getElementById('exerciseContainer').style.display = 'none';
 
         const resultContainer = document.getElementById('resultContainer');
         resultContainer.style.display = 'block';
