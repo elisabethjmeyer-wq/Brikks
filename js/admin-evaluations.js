@@ -677,6 +677,9 @@ const AdminEvaluations = {
             c.classList.toggle('selected', c.dataset.type === type);
             c.querySelector('input').checked = c.dataset.type === type;
         });
+        // Show/hide categorie field (only for bonus)
+        const catGroup = document.getElementById('evalCategorieGroup');
+        if (catGroup) catGroup.style.display = type === 'bonus' ? '' : 'none';
         // Update stepper visibility (step 3 depends on type)
         this._updateWizardStepper();
     },
@@ -743,14 +746,12 @@ const AdminEvaluations = {
                                 <option value="terminee" ${d.statut === 'terminee' ? 'selected' : ''}>Terminée</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label>Catégorie</label>
+                        <div class="form-group" id="evalCategorieGroup" style="${d.type === 'bonus' ? '' : 'display:none'}">
+                            <label>Catégorie de points</label>
                             <select class="form-select" id="evalCategorie">
-                                <option value="" ${!d.categorie ? 'selected' : ''}>Même que le type</option>
-                                <option value="connaissances" ${d.categorie === 'connaissances' ? 'selected' : ''}>Connaissances</option>
+                                <option value="connaissances" ${d.categorie === 'connaissances' || !d.categorie ? 'selected' : ''}>Connaissances</option>
                                 <option value="savoir-faire" ${d.categorie === 'savoir-faire' ? 'selected' : ''}>Savoir-faire</option>
                                 <option value="competences" ${d.categorie === 'competences' ? 'selected' : ''}>Compétences</option>
-                                <option value="bonus" ${d.categorie === 'bonus' ? 'selected' : ''}>Bonus</option>
                             </select>
                         </div>
                     </div>
@@ -998,7 +999,7 @@ const AdminEvaluations = {
                 this.wizardData.briques = parseInt(document.getElementById('evalBriques')?.value) || 3;
                 this.wizardData.matiere = document.getElementById('evalMatiere')?.value || 'FR';
                 this.wizardData.statut = document.getElementById('evalStatut')?.value || 'brouillon';
-                this.wizardData.categorie = document.getElementById('evalCategorie')?.value || '';
+                this.wizardData.categorie = this.wizardData.type === 'bonus' ? (document.getElementById('evalCategorie')?.value || 'connaissances') : '';
 
                 if (this.wizardData.type === 'connaissances') {
                     this.wizardData.seuil = parseInt(document.getElementById('evalSeuil')?.value) || 80;
