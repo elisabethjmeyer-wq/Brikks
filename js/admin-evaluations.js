@@ -25,6 +25,9 @@ const AdminEvaluations = {
     banquesSF: [],
     exercicesSF: [],
 
+    // Progression evaluation data
+    progressionsEvaluation: [],
+
     // Wizard state
     wizardStep: 1,
     wizardData: {},
@@ -138,6 +141,14 @@ const AdminEvaluations = {
             this.resultats = SheetsAPI.parseSheetData(resultatsData);
         } catch (_e) {
             this.resultats = [];
+        }
+
+        // Load progression evaluation
+        try {
+            const progEvalData = await SheetsAPI.getSheetData('PROGRESSION_EVALUATION');
+            this.progressionsEvaluation = SheetsAPI.parseSheetData(progEvalData);
+        } catch (_e) {
+            this.progressionsEvaluation = [];
         }
     },
 
@@ -851,74 +862,58 @@ const AdminEvaluations = {
     _renderStep3() {
         const type = this.wizardData.type;
 
-        if (type === 'connaissances') {
-            return this._renderStep3Conn();
-        } else if (type === 'savoir-faire') {
-            return this._renderStep3SF();
+        if (type === 'connaissances' || type === 'savoir-faire') {
+            return this._renderStep3Auto();
         }
 
         return '';
     },
 
-    _renderStep3Conn() {
-        const d = this.wizardData;
-        const entrainements = this.entrainementsConn.filter(e => e.statut !== 'evaluation');
-        const banques = [...this.banquesExercicesConn].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
+    _renderStep3Auto() {
+        const type = this.wizardData.type;
+        const banques = type === 'connaissances'
+            ? [...this.banquesExercicesConn].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999))
+            : [...this.banquesSF].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
 
-        // Find selected banque from entrainement
-        let selectedBanqueId = d._selectedBanqueConn || '';
-        if (!selectedBanqueId && d.entrainement_conn_id) {
-            const linked = entrainements.find(e => e.id === d.entrainement_conn_id);
-            if (linked) selectedBanqueId = linked.banque_exercice_id;
-        }
-
-        const banqueOptions = banques.map(b =>
-            `<option value="${b.id}" ${b.id === selectedBanqueId ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
+        const banquesList = banques.map((b, i) =>
+            `<div class="attribution-banque-item">
+                <span class="attribution-banque-order">${i + 1}</span>
+                <span>${escapeHtml(b.titre || 'Sans titre')}</span>
+            </div>`
         ).join('');
-
-        // Entrainements for selected banque
-        let entrainementOptions = '<option value="">-- Sélectionnez d\'abord une banque --</option>';
-        if (selectedBanqueId) {
-            const banqueEntrs = entrainements
-                .filter(e => e.banque_exercice_id === selectedBanqueId)
-                .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
-            entrainementOptions = '<option value="">Sélectionner...</option>' +
-                banqueEntrs.map(e =>
-                    `<option value="${e.id}" ${e.id === d.entrainement_conn_id ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')} ${e.statut === 'publie' ? '(Publié)' : '(Brouillon)'}</option>`
-                ).join('');
-        }
 
         return `
             <div class="eval-wizard-step-content">
                 <div class="step-header">
-                    <h3>Sujet de l'évaluation</h3>
-                    <p>Sélectionnez l'entraînement à utiliser comme sujet</p>
+                    <h3>Attribution des sujets</h3>
+                    <p>Les sujets seront attribués automatiquement selon la progression de chaque élève</p>
                 </div>
                 <div class="wizard-form">
-                    <div class="form-group">
-                        <label>Banque d'exercices</label>
-                        <select class="form-select" id="evalBanqueConn" onchange="AdminEvaluations._onBanqueConnChange(this.value)">
-                            <option value="">Sélectionner une banque...</option>
-                            ${banqueOptions}
-                        </select>
+                    <div class="attribution-auto-info">
+                        <div class="attribution-auto-icon">👥</div>
+                        <div class="attribution-auto-text">
+                            <strong>Attribution automatique</strong>
+                            <p>Chaque élève recevra un sujet de sa prochaine banque non validée.
+                            Après création, utilisez le bouton <strong>👥 Attribuer</strong> sur la carte
+                            de l'évaluation pour visualiser et ajuster les attributions.</p>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Entraînement</label>
-                        <select class="form-select" id="evalEntrainementConn" onchange="AdminEvaluations._onEntrainementConnChange(this.value)">
-                            ${entrainementOptions}
-                        </select>
+                    <div class="attribution-banques-preview">
+                        <label>Ordre des banques (${banques.length})</label>
+                        ${banquesList}
                     </div>
                 </div>
             </div>
         `;
     },
 
+    // Legacy methods kept for backward compatibility with existing evaluations
     _onBanqueConnChange(banqueId) {
         this.wizardData._selectedBanqueConn = banqueId;
-        this.wizardData.entrainement_conn_id = ''; // Reset selection
-        document.getElementById('evalEntrainementConnId').value = '';
+        this.wizardData.entrainement_conn_id = '';
 
         const select = document.getElementById('evalEntrainementConn');
+        if (!select) return;
         if (!banqueId) {
             select.innerHTML = '<option value="">-- Sélectionnez d\'abord une banque --</option>';
             return;
@@ -936,7 +931,8 @@ const AdminEvaluations = {
 
     _onEntrainementConnChange(entrId) {
         this.wizardData.entrainement_conn_id = entrId;
-        document.getElementById('evalEntrainementConnId').value = entrId;
+        const el = document.getElementById('evalEntrainementConnId');
+        if (el) el.value = entrId;
     },
 
     _renderStep3SF() {
@@ -1464,33 +1460,136 @@ const AdminEvaluations = {
     },
 
     // ========== ATTRIBUTION MODAL ==========
-    openAttributionModal(evaluationId) {
+    async openAttributionModal(evaluationId) {
         const modal = document.getElementById('attributionModal');
         document.getElementById('attributionEvaluationId').value = evaluationId;
 
         const evaluation = this.evaluations.find(e => e.id === evaluationId);
         if (!evaluation) return;
 
-        const tbody = document.getElementById('attributionTableBody');
-        tbody.innerHTML = this.eleves.map(eleve => `
-            <tr>
-                <td>${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</td>
-                <td>${eleve.classe_id || '-'}</td>
-                <td><span class="progress-badge not-started">Non commencé</span></td>
-                <td>
-                    <select class="subject-select" data-eleve="${eleve.id}">
-                        <option value="">Aléatoire</option>
-                        <option value="sujet_1">Sujet 1</option>
-                        <option value="sujet_2">Sujet 2</option>
-                    </select>
-                </td>
-                <td>
-                    <button class="btn btn-icon" title="Voir détails">👁️</button>
-                </td>
-            </tr>
-        `).join('');
-
+        // Show modal with loading state
         modal.classList.remove('hidden');
+        document.getElementById('attributionLoading').style.display = '';
+        document.getElementById('attributionTable').style.display = 'none';
+
+        const type = evaluation.type;
+        const isConn = type === 'connaissances';
+
+        // Show/hide entrainement column for connaissances
+        document.getElementById('attributionEntrainementHeader').style.display = isConn ? '' : 'none';
+
+        // Get banques sorted by ordre
+        const banques = isConn
+            ? [...this.banquesExercicesConn].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999))
+            : [...this.banquesSF].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
+
+        if (banques.length === 0) {
+            document.getElementById('attributionLoading').innerHTML = 'Aucune banque disponible pour ce type.';
+            return;
+        }
+
+        // Load existing attributions
+        let existingAttributions = [];
+        try {
+            const attrResult = await this.callAPI('getAttributionsSujets', { evaluation_id: evaluationId });
+            if (attrResult.success) existingAttributions = attrResult.data || [];
+        } catch (_e) { /* ignore */ }
+
+        // Build rows
+        const tbody = document.getElementById('attributionTableBody');
+        tbody.innerHTML = this.eleves.map(eleve => {
+            // Find progression for this student
+            const prog = this.progressionsEvaluation.find(p =>
+                String(p.eleve_id).trim() === String(eleve.id).trim() &&
+                String(p.type).trim() === type
+            );
+
+            // Determine auto banque (next one after last validated)
+            const lastValidatedId = prog ? String(prog.derniere_banque_validee_id).trim() : '';
+            let autoBanqueIndex = 0; // default: first banque
+            if (lastValidatedId) {
+                const lastIdx = banques.findIndex(b => String(b.id).trim() === lastValidatedId);
+                if (lastIdx >= 0 && lastIdx < banques.length - 1) {
+                    autoBanqueIndex = lastIdx + 1;
+                } else if (lastIdx === banques.length - 1) {
+                    autoBanqueIndex = lastIdx; // already at last banque
+                }
+            }
+
+            const autoBanque = banques[autoBanqueIndex];
+            const autoBanqueName = autoBanque ? escapeHtml(autoBanque.titre || 'Sans titre') : '-';
+
+            // Check existing attribution
+            const existing = existingAttributions.find(a =>
+                String(a.eleve_id).trim() === String(eleve.id).trim()
+            );
+            const existingBanqueId = existing ? String(existing.banque_id).trim() : '';
+            const existingEntrainementId = existing ? String(existing.entrainement_id || '').trim() : '';
+            const isManual = existing && String(existing.source).trim() === 'manuel';
+
+            // Build banque dropdown — only validated banques + current auto banque
+            const allowedBanques = banques.filter((_b, idx) => idx <= autoBanqueIndex);
+            const banqueOptions = `<option value="">Auto (${escapeHtml(autoBanque?.titre || '')})</option>` +
+                allowedBanques.map(b => {
+                    const selected = isManual && existingBanqueId === String(b.id).trim() ? 'selected' : '';
+                    return `<option value="${b.id}" ${selected}>${escapeHtml(b.titre || 'Sans titre')}</option>`;
+                }).join('');
+
+            // Entrainement column (connaissances only)
+            let entrainementCell = '';
+            if (isConn) {
+                const selectedBanqueId = isManual && existingBanqueId ? existingBanqueId : (autoBanque ? autoBanque.id : '');
+                entrainementCell = `<td>
+                    <select class="form-select attribution-entrainement-select" data-eleve="${eleve.id}">
+                        ${this._buildEntrainementOptions(selectedBanqueId, existingEntrainementId)}
+                    </select>
+                </td>`;
+            }
+
+            return `
+                <tr data-eleve-id="${eleve.id}" data-auto-banque="${autoBanque ? autoBanque.id : ''}">
+                    <td>${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</td>
+                    <td><span class="attribution-auto-badge">${autoBanqueName}</span></td>
+                    <td>
+                        <select class="form-select attribution-banque-select" data-eleve="${eleve.id}"
+                            onchange="AdminEvaluations._onAttributionBanqueChange('${eleve.id}', this.value)">
+                            ${banqueOptions}
+                        </select>
+                    </td>
+                    ${entrainementCell}
+                </tr>`;
+        }).join('');
+
+        // Hide loading, show table
+        document.getElementById('attributionLoading').style.display = 'none';
+        document.getElementById('attributionTable').style.display = '';
+    },
+
+    _buildEntrainementOptions(banqueId, selectedId) {
+        if (!banqueId) return '<option value="">-</option>';
+        const entrainements = this.entrainementsConn
+            .filter(e => String(e.banque_exercice_id).trim() === String(banqueId).trim() && e.statut !== 'evaluation')
+            .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
+
+        if (entrainements.length === 0) return '<option value="">Aucun entraînement</option>';
+
+        return '<option value="">Aléatoire</option>' +
+            entrainements.map(e => {
+                const selected = String(e.id).trim() === String(selectedId).trim() ? 'selected' : '';
+                return `<option value="${e.id}" ${selected}>${escapeHtml(e.titre || 'Sans titre')}</option>`;
+            }).join('');
+    },
+
+    _onAttributionBanqueChange(eleveId, banqueId) {
+        // Update entrainement dropdown if connaissances
+        const entrSelect = document.querySelector(`.attribution-entrainement-select[data-eleve="${eleveId}"]`);
+        if (!entrSelect) return;
+
+        const row = entrSelect.closest('tr');
+        const autoBanqueId = row.dataset.autoBanque;
+        const effectiveBanqueId = banqueId || autoBanqueId;
+
+        entrSelect.innerHTML = this._buildEntrainementOptions(effectiveBanqueId, '');
     },
 
     closeAttributionModal() {
@@ -1498,8 +1597,62 @@ const AdminEvaluations = {
     },
 
     async saveAttributions() {
-        this.showNotification('Fonctionnalité en cours de développement');
-        this.closeAttributionModal();
+        const evaluationId = document.getElementById('attributionEvaluationId').value;
+        if (!evaluationId) return;
+
+        const evaluation = this.evaluations.find(e => e.id === evaluationId);
+        if (!evaluation) return;
+
+        const isConn = evaluation.type === 'connaissances';
+        const rows = document.querySelectorAll('#attributionTableBody tr');
+        const attributions = [];
+
+        rows.forEach(row => {
+            const eleveId = row.dataset.eleveId;
+            const autoBanqueId = row.dataset.autoBanque;
+            const banqueSelect = row.querySelector('.attribution-banque-select');
+            const overrideBanqueId = banqueSelect ? banqueSelect.value : '';
+
+            const effectiveBanqueId = overrideBanqueId || autoBanqueId;
+            const source = overrideBanqueId ? 'manuel' : 'auto';
+
+            let entrainementId = '';
+            if (isConn) {
+                const entrSelect = row.querySelector('.attribution-entrainement-select');
+                entrainementId = entrSelect ? entrSelect.value : '';
+            }
+
+            attributions.push({
+                eleve_id: eleveId,
+                banque_id: effectiveBanqueId,
+                entrainement_id: entrainementId,
+                source: source
+            });
+        });
+
+        const saveBtn = document.getElementById('saveAttributionBtn');
+        try {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Enregistrement...';
+
+            const result = await this.callAPI('saveAttributionsSujets', {
+                evaluation_id: evaluationId,
+                attributions: JSON.stringify(attributions)
+            });
+
+            if (result.success) {
+                this.closeAttributionModal();
+                this.showNotification('Attributions enregistrées');
+            } else {
+                this.showNotification('Erreur: ' + (result.error || 'Erreur inconnue'), 'error');
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde attributions:', error);
+            this.showNotification('Erreur lors de la sauvegarde', 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Enregistrer les attributions';
+        }
     },
 
     // ========== DELETE ==========

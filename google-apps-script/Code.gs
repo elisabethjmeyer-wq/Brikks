@@ -86,7 +86,10 @@ const SHEETS = {
   CriteresReussite: 'CriteresReussite',
   BanquesCompetences: 'BanquesCompetences',
   EntrainementsCompetences: 'EntrainementsCompetences',
-  EleveEntrainementsCompetences: 'EleveEntrainementsCompetences'
+  EleveEntrainementsCompetences: 'EleveEntrainementsCompetences',
+  // Progression évaluations & attribution sujets
+  PROGRESSION_EVALUATION: 'PROGRESSION_EVALUATION',
+  ATTRIBUTION_SUJETS: 'ATTRIBUTION_SUJETS'
 };
 
 // ========================================
@@ -392,6 +395,9 @@ function handleRequest(e) {
       case 'getEvaluation':
         result = getEvaluation(request);
         break;
+      case 'getEvaluationForEleve':
+        result = getEvaluationForEleve(request);
+        break;
       case 'createEvaluation':
         result = createEvaluation(request);
         break;
@@ -409,6 +415,20 @@ function handleRequest(e) {
         break;
       case 'getEleveEvaluations':
         result = getEleveEvaluations(request);
+        break;
+
+      // PROGRESSION EVALUATION & ATTRIBUTION SUJETS
+      case 'getProgressionEvaluation':
+        result = getProgressionEvaluation(request);
+        break;
+      case 'getAttributionsSujets':
+        result = getAttributionsSujets(request);
+        break;
+      case 'saveAttributionsSujets':
+        result = saveAttributionsSujets(request);
+        break;
+      case 'getAttributionSujetEleve':
+        result = getAttributionSujetEleve(request);
         break;
 
       // PARAMETRES NOTES & SOMMATIVES

@@ -52,7 +52,14 @@ const EleveEvaluation = {
     // ========== CHARGEMENT DONNEES ==========
     async loadEvaluation(evalId) {
         try {
-            const response = await this.callAPI('getEvaluation', { id: evalId });
+            // Use getEvaluationForEleve to get personalized subject based on attribution
+            const eleveId = this._getCurrentUserId();
+            let response;
+            if (eleveId) {
+                response = await this.callAPI('getEvaluationForEleve', { id: evalId, eleve_id: eleveId });
+            } else {
+                response = await this.callAPI('getEvaluation', { id: evalId });
+            }
 
             if (!response.success || !response.data) {
                 throw new Error(response.error || 'Evaluation non trouvee');
