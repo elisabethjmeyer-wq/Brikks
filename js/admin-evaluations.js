@@ -169,14 +169,9 @@ const AdminEvaluations = {
 
     // ========== EVENT LISTENERS ==========
     setupEventListeners() {
-        // Add button
-        document.getElementById('addEvaluationBtn').addEventListener('click', () => {
-            if (this.currentType === 'sommatives') {
-                this.openSommativeModal();
-            } else {
-                this.openModal();
-            }
-        });
+        // Add buttons (filters bar + empty state)
+        document.getElementById('addEvaluationBtn').addEventListener('click', () => this._handleAddClick());
+        document.getElementById('addEvaluationBtnEmpty').addEventListener('click', () => this._handleAddClick());
 
         // Tab clicks
         document.querySelectorAll('.eval-tab').forEach(tab => {
@@ -265,6 +260,14 @@ const AdminEvaluations = {
         window.location.href = '/Brikks/admin/corrections.html';
     },
 
+    _handleAddClick() {
+        if (this.currentType === 'sommatives') {
+            this.openSommativeModal();
+        } else {
+            this.openModal();
+        }
+    },
+
     // ========== TABS ==========
     switchTab(type) {
         this.currentType = type;
@@ -277,15 +280,25 @@ const AdminEvaluations = {
             }
         });
 
-        // Update add button text
-        const addBtn = document.getElementById('addEvaluationBtn');
-        if (type === 'sommatives') {
-            addBtn.innerHTML = '<span>➕</span> Nouvelle sommative';
-        } else {
-            addBtn.innerHTML = '<span>➕</span> Nouvelle évaluation';
-        }
+        // Update add button texts
+        this._updateAddButtonLabels(type);
 
         this.renderEvaluations();
+    },
+
+    _updateAddButtonLabels(type) {
+        const typeLabels = {
+            'connaissances': 'connaissance',
+            'savoir-faire': 'savoir-faire',
+            'competences': 'compétence',
+            'bonus': 'bonus',
+            'sommatives': 'sommative'
+        };
+        const label = typeLabels[type] || 'évaluation';
+        const btnText = document.getElementById('addEvaluationBtnText');
+        const btnEmptyText = document.getElementById('addEvaluationBtnEmptyText');
+        if (btnText) btnText.textContent = `Nouvelle ${label}`;
+        if (btnEmptyText) btnEmptyText.textContent = `Créer une ${label}`;
     },
 
     updateCounts() {
@@ -551,17 +564,21 @@ const AdminEvaluations = {
     // ========== EVALUATION MODAL (WIZARD) ==========
     openModal(evaluation = null) {
         const title = document.getElementById('evaluationModalTitle');
+        const isEdit = !!evaluation;
 
-        if (evaluation) {
+        if (isEdit) {
             title.textContent = 'Modifier l\'évaluation';
             document.getElementById('editEvaluationId').value = evaluation.id;
             document.getElementById('evalEntrainementConnId').value = evaluation.entrainement_conn_id || '';
             this.wizardData = { ...evaluation };
+            this._wizardSkipType = false;
+            this.wizardStep = 1;
         } else {
-            title.textContent = 'Créer une évaluation';
+            const defaultType = this.currentType !== 'sommatives' ? this.currentType : 'connaissances';
+            const typeLabels = { 'connaissances': 'connaissance', 'savoir-faire': 'savoir-faire', 'competences': 'compétence', 'bonus': 'bonus' };
+            title.textContent = `Nouvelle ${typeLabels[defaultType] || 'évaluation'}`;
             document.getElementById('editEvaluationId').value = '';
             document.getElementById('evalEntrainementConnId').value = '';
-            const defaultType = this.currentType !== 'sommatives' ? this.currentType : 'connaissances';
             this.wizardData = {
                 type: defaultType,
                 matiere: this.currentMatiere !== 'all' ? this.currentMatiere : 'FR',
@@ -569,9 +586,11 @@ const AdminEvaluations = {
                 statut: 'brouillon',
                 seuil: 80
             };
+            // Skip step 1 in creation — type is implicit from active tab
+            this._wizardSkipType = true;
+            this.wizardStep = 2;
         }
 
-        this.wizardStep = 1;
         this._renderWizardStep();
         document.getElementById('evaluationModal').classList.remove('hidden');
     },
@@ -583,6 +602,10 @@ const AdminEvaluations = {
     },
 
     // ========== WIZARD NAVIGATION ==========
+
+    _getMinStep() {
+        return this._wizardSkipType ? 2 : 1;
+    },
 
     _getMaxStep() {
         const type = this.wizardData.type;
@@ -607,31 +630,35 @@ const AdminEvaluations = {
     },
 
     wizardPrev() {
-        if (this.wizardStep <= 1) return;
+        const minStep = this._getMinStep();
+        if (this.wizardStep <= minStep) return;
         this._collectWizardStepData();
         this.wizardStep--;
         this._renderWizardStep();
     },
 
     _updateWizardStepper() {
+        const minStep = this._getMinStep();
         const maxStep = this._getMaxStep();
 
         document.querySelectorAll('.eval-wizard-step').forEach(el => {
             const step = parseInt(el.dataset.step);
             el.classList.toggle('active', step === this.wizardStep);
-            el.classList.toggle('completed', step < this.wizardStep);
-            // Hide step 3 if not applicable
-            el.style.display = step <= maxStep ? '' : 'none';
+            el.classList.toggle('completed', step < this.wizardStep && step >= minStep);
+            // Hide steps outside range
+            el.style.display = (step >= minStep && step <= maxStep) ? '' : 'none';
         });
-        // Hide connectors to hidden steps
+        // Hide connectors for hidden steps
         document.querySelectorAll('.eval-step-connector').forEach((el, i) => {
-            el.style.display = (i + 2) <= maxStep ? '' : 'none';
+            const fromStep = i + 1;
+            const toStep = i + 2;
+            el.style.display = (fromStep >= minStep && toStep <= maxStep) ? '' : 'none';
         });
 
         // Navigation buttons
         const prevBtn = document.getElementById('evalWizardPrevBtn');
         const nextBtn = document.getElementById('evalWizardNextBtn');
-        prevBtn.style.display = this.wizardStep > 1 ? '' : 'none';
+        prevBtn.style.display = this.wizardStep > minStep ? '' : 'none';
         nextBtn.textContent = this.wizardStep >= maxStep ? 'Enregistrer' : 'Suivant →';
     },
 

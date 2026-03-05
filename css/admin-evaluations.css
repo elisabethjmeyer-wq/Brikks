@@ -64,17 +64,21 @@
 /* ===== MATIÈRE TOGGLE ===== */
 .matiere-toggle {
     display: flex;
-    gap: 2px;
-    background: var(--gray-100);
-    border-radius: 8px;
-    padding: 3px;
+    gap: 4px;
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 6px;
+    box-shadow: var(--shadow);
 }
 
 .matiere-btn {
-    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
     border: none;
-    background: none;
-    border-radius: 6px;
+    background: transparent;
+    border-radius: var(--radius);
     font-size: 13px;
     font-weight: 500;
     color: var(--gray-500);
@@ -84,13 +88,29 @@
 }
 
 .matiere-btn:hover {
+    background: var(--gray-50);
     color: var(--gray-700);
 }
 
 .matiere-btn.active {
-    background: white;
-    color: var(--gray-900);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background: var(--accent-purple-light);
+    color: var(--accent-purple);
+    font-weight: 600;
+}
+
+.matiere-btn.active[data-matiere="FR"] {
+    background: var(--accent-blue-light);
+    color: var(--accent-blue);
+}
+
+.matiere-btn.active[data-matiere="HG-EMC"] {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+.matiere-btn-icon {
+    font-size: 14px;
+    line-height: 1;
 }
 
 /* ===== CORRECTIONS BANNER ===== */
@@ -700,6 +720,10 @@
 .empty-state p {
     font-size: 14px;
     color: var(--gray-500);
+}
+
+.empty-state-btn {
+    margin-top: 20px;
 }
 
 /* ===== LOADER ===== */
