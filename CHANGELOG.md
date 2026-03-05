@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-03-05 — Session 17 : Refonte visuelle page évaluation élève
+
+### Problèmes corrigés
+
+1. **Header noir/jaune incohérent** : la page d'évaluation avait un header custom (`evaluation-header`) avec un gradient noir, des accents jaunes et une police monospace pour le timer — un design complètement étranger au reste du site.
+
+2. **Modal de confirmation cassée** : les styles `.modal-footer` et `.modal-small` n'étaient définis dans aucun CSS chargé par la page. Les boutons (`.btn-primary`) avaient `width: 100%` (style du login), ce qui les rendait pleine largeur dans le popup.
+
+3. **Layout sans repères** : pas de bouton "Quitter" visible (seulement une croix SVG discrète dans le header noir), pas de continuité visuelle avec les entraînements.
+
+### Modifications
+
+1. **Remplacement du header** par le bandeau `exercise-header.connaissances` (bleu, identique aux entraînements) contenant : titre de l'évaluation, type + points en jeu, timer.
+
+2. **Ajout d'un bouton « ← Quitter l'évaluation »** en haut (même style que « ← Retour aux entraînements »).
+
+3. **Correction de la modal** : ajout des styles `.modal-footer` (boutons côte à côte) et override de `.btn-primary` en `width: auto` dans le contexte `#confirmModal`.
+
+4. **Nettoyage HTML** : suppression du header custom, du `progressSection` redondant, simplification de la structure.
+
+5. **CSS réduit** de ~400 lignes à ~220 lignes (suppression de tout le design custom header/badges/timer).
+
+### Fichiers modifiés
+- `js/eleve-evaluation.js` : `renderExerciseView()` réécrit, `renderHeader()` supprimé, `updateTimerDisplay()` simplifié
+- `eleve/evaluation.html` : HTML simplifié (header + progressSection supprimés)
+- `css/eleve-evaluation.css` : réécrit (header supprimé, modal-footer ajouté, résultats conservés)
+
+### Décisions
+- Le mode plein écran (sans sidebar) est conservé — logique pour une évaluation chronométrée
+- Le design réutilise les classes existantes (`exercise-header`, `exercise-card`, `exercise-timer`) au lieu d'un design system séparé
+
+---
+
 ## 2026-03-05 — Session 16 (suite 2) : Phase 4 Page notes élève
 
 ### Modifications

@@ -183,6 +183,34 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **État** : créé (session 16). Fonctionnel.
 
+### Évaluation élève (passage d'évaluation) — REFONDU SESSION 17
+
+**Page** : `eleve/evaluation.html`
+**Fichiers** : `js/eleve-evaluation.js` (~550 lignes), `css/eleve-evaluation.css` (~220 lignes)
+**Backend** : `Evaluations.gs` (lecture évaluations + sauvegarde résultats)
+
+**Ce que fait le module :**
+- L'élève passe une évaluation chronométrée (connaissances, savoir-faire, compétences, bonus)
+- Réutilise le moteur d'entraînement `EleveConnaissances` (étapes, formats, validation)
+- Timer compte à rebours avec alerte visuelle en dessous de 60s
+- Modal de confirmation pour quitter (avec les boutons Annuler / Confirmer)
+- Écran de résultat après soumission (points gagnés/perdus, seuil, détails)
+
+**Layout** : plein écran sans sidebar (logique pour une évaluation chronométrée). Utilise le même design que les entraînements :
+- Bandeau `exercise-header.connaissances` (bleu) avec titre, type, points en jeu, timer
+- Barre de progression des étapes (dots)
+- Bouton « ← Quitter l'évaluation » en haut
+
+**Refonte visuelle (session 17)** :
+- ~~Header noir/jaune custom~~ → bandeau bleu `exercise-header` identique aux entraînements
+- ~~Modal sans styles (`.modal-footer`, `.modal-small` manquants)~~ → styles ajoutés dans `eleve-evaluation.css`
+- ~~`.btn-primary` width:100% dans la modal~~ → corrigé avec `width: auto` dans le contexte modal
+- CSS réduit de ~400 lignes à ~220 lignes (suppression de tout le design system custom)
+
+**Appels API** : mêmes que EleveConnaissances (via override), + `saveEvaluationResult`
+
+**État** : refondu visuellement (session 17). Cohérent avec le reste du site.
+
 ## Architecture technique
 
 ### Stack
