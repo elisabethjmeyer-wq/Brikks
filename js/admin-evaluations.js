@@ -17,6 +17,10 @@ const AdminEvaluations = {
     eleves: [],
     correctionsCount: 0,
 
+    // Connaissances data (for entrainement selection)
+    banquesExercicesConn: [],
+    entrainementsConn: [],
+
     // Current tab type
     currentType: 'connaissances',
 
@@ -70,7 +74,14 @@ const AdminEvaluations = {
             elevesData,
             sommativesData,
             resultatsSommativesData,
-            eleveCompetencesData
+            eleveCompetencesData,
+            banquesExercicesConnData,
+            entrainementsConnData,
+            etapesConnData,
+            etapeQuestionsConnData,
+            banquesQuestionsData,
+            questionsConnaissancesData,
+            formatsQuestionsData
         ] = await Promise.all([
             SheetsAPI.getSheetData('DISCIPLINES'),
             SheetsAPI.getSheetData('THEMES'),
@@ -80,7 +91,14 @@ const AdminEvaluations = {
             SheetsAPI.getSheetData('UTILISATEURS').catch(() => []),
             SheetsAPI.getSheetData('NOTES_SOMMATIVES').catch(() => []),
             SheetsAPI.getSheetData('RESULTATS_SOMMATIVES').catch(() => []),
-            SheetsAPI.getSheetData('EleveEntrainementsCompetences').catch(() => [])
+            SheetsAPI.getSheetData('EleveEntrainementsCompetences').catch(() => []),
+            SheetsAPI.getSheetData('BANQUES_EXERCICES_CONN').catch(() => []),
+            SheetsAPI.getSheetData('ENTRAINEMENTS_CONN').catch(() => []),
+            SheetsAPI.getSheetData('ETAPES_CONN').catch(() => []),
+            SheetsAPI.getSheetData('ETAPE_QUESTIONS_CONN').catch(() => []),
+            SheetsAPI.getSheetData('BANQUES_QUESTIONS').catch(() => []),
+            SheetsAPI.getSheetData('QUESTIONS_CONNAISSANCES').catch(() => []),
+            SheetsAPI.getSheetData('FORMATS_QUESTIONS').catch(() => [])
         ]);
 
         this.disciplines = SheetsAPI.parseSheetData(disciplinesData);
@@ -95,6 +113,21 @@ const AdminEvaluations = {
         // Count corrections needed (competences with statut 'soumis')
         const eleveCompetences = SheetsAPI.parseSheetData(eleveCompetencesData);
         this.correctionsCount = eleveCompetences.filter(ec => ec.statut === 'soumis').length;
+
+        // Connaissances data (for banque selector + wizard)
+        this.banquesExercicesConn = SheetsAPI.parseSheetData(banquesExercicesConnData);
+        this.entrainementsConn = SheetsAPI.parseSheetData(entrainementsConnData);
+
+        // Populate AdminBanquesExercices data (needed by the wizard)
+        if (typeof AdminBanquesExercices !== 'undefined') {
+            AdminBanquesExercices.banquesExercicesConn = this.banquesExercicesConn;
+            AdminBanquesExercices.entrainementsConn = this.entrainementsConn;
+            AdminBanquesExercices.etapesConn = SheetsAPI.parseSheetData(etapesConnData);
+            AdminBanquesExercices.etapeQuestionsConn = SheetsAPI.parseSheetData(etapeQuestionsConnData);
+            AdminBanquesExercices.banquesQuestions = SheetsAPI.parseSheetData(banquesQuestionsData);
+            AdminBanquesExercices.questionsConnaissances = SheetsAPI.parseSheetData(questionsConnaissancesData);
+            AdminBanquesExercices.formatsQuestions = SheetsAPI.parseSheetData(formatsQuestionsData);
+        }
 
         // Load evaluations
         try {
@@ -193,6 +226,11 @@ const AdminEvaluations = {
         document.getElementById('closeEvaluationModal').addEventListener('click', () => this.closeModal());
         document.getElementById('cancelEvaluationBtn').addEventListener('click', () => this.closeModal());
         document.getElementById('saveEvaluationBtn').addEventListener('click', () => this.saveEvaluation());
+
+        // Source questions radio buttons
+        document.querySelectorAll('input[name="sourceQuestions"]').forEach(radio => {
+            radio.addEventListener('change', (e) => this.onSourceChange(e.target.value));
+        });
 
         // Type selection in modal
         document.querySelectorAll('.type-card').forEach(card => {
@@ -556,6 +594,12 @@ const AdminEvaluations = {
             if (evaluation.type === 'connaissances') {
                 document.getElementById('evalSeuil').value = evaluation.seuil || 80;
                 document.getElementById('evalChapitre').value = evaluation.chapitre_id || '';
+                // Restore source and entrainement link
+                const source = evaluation.source_questions || 'banque';
+                const sourceRadio = document.querySelector(`input[name="sourceQuestions"][value="${source}"]`);
+                if (sourceRadio) sourceRadio.checked = true;
+                document.getElementById('evalEntrainementConnId').value = evaluation.entrainement_conn_id || '';
+                this.onSourceChange(source);
             }
             if (evaluation.type === 'savoir-faire') {
                 document.getElementById('evalMethodologie').value = evaluation.methodologie_id || '';
@@ -584,6 +628,13 @@ const AdminEvaluations = {
             document.getElementById('evalMethodologieTC').value = '';
             document.getElementById('evalCriteres').value = '';
             document.getElementById('matiereHelp').style.display = 'none';
+
+            // Reset source questions
+            const banqueRadio = document.querySelector('input[name="sourceQuestions"][value="banque"]');
+            if (banqueRadio) banqueRadio.checked = true;
+            document.getElementById('evalEntrainementConnId').value = '';
+            document.getElementById('banqueSourceContainer').style.display = 'none';
+            document.getElementById('personnaliseContainer').style.display = 'none';
 
             // Reset type selector to current tab
             document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
@@ -643,6 +694,150 @@ const AdminEvaluations = {
         }
     },
 
+    // ========== SOURCE QUESTIONS (CONNAISSANCES) ==========
+
+    onSourceChange(source) {
+        const banqueContainer = document.getElementById('banqueSourceContainer');
+        const personnaliseContainer = document.getElementById('personnaliseContainer');
+
+        if (source === 'banque') {
+            banqueContainer.style.display = 'block';
+            personnaliseContainer.style.display = 'none';
+            this._renderEntrainementSelector();
+        } else if (source === 'personnalise') {
+            banqueContainer.style.display = 'none';
+            personnaliseContainer.style.display = 'block';
+            this._renderPersonnaliseContent();
+        }
+    },
+
+    _renderEntrainementSelector() {
+        const container = document.getElementById('entrainementSelector');
+        // Filter out entrainements with statut 'evaluation' — only show real published/brouillon ones
+        const entrainements = this.entrainementsConn.filter(e => e.statut !== 'evaluation');
+        const banques = this.banquesExercicesConn;
+        const selectedId = document.getElementById('evalEntrainementConnId').value;
+
+        if (banques.length === 0) {
+            container.innerHTML = '<div class="form-help">Aucune banque d\'exercices disponible. Créez-en dans Banques d\'exercices.</div>';
+            return;
+        }
+
+        const sorted = [...banques].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
+
+        container.innerHTML = `
+            <div class="entrainement-selector">
+                ${sorted.map(banque => {
+                    const banqueEntrainements = entrainements.filter(e => e.banque_exercice_id === banque.id);
+                    if (banqueEntrainements.length === 0) return '';
+
+                    const sortedEntr = [...banqueEntrainements].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
+
+                    return `
+                        <div class="selector-banque">
+                            <div class="selector-banque-title">${escapeHtml(banque.titre || 'Sans titre')}</div>
+                            <div class="selector-entrainements">
+                                ${sortedEntr.map(entr => `
+                                    <label class="selector-entrainement ${selectedId === entr.id ? 'selected' : ''}">
+                                        <input type="radio" name="selectedEntrainement" value="${entr.id}"
+                                            ${selectedId === entr.id ? 'checked' : ''}
+                                            onchange="AdminEvaluations.selectEntrainement('${entr.id}')">
+                                        <span class="selector-entrainement-info">
+                                            <span class="selector-entrainement-title">${escapeHtml(entr.titre || 'Sans titre')}</span>
+                                            <span class="selector-entrainement-meta">
+                                                ${entr.statut === 'publie' ? '<span class="badge-mini green">Publié</span>' : '<span class="badge-mini grey">Brouillon</span>'}
+                                            </span>
+                                        </span>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
+    selectEntrainement(id) {
+        document.getElementById('evalEntrainementConnId').value = id;
+        // Update visual selection
+        document.querySelectorAll('.selector-entrainement').forEach(el => {
+            el.classList.toggle('selected', el.querySelector('input').value === id);
+        });
+    },
+
+    _renderPersonnaliseContent() {
+        const container = document.getElementById('personnaliseContent');
+        const selectedId = document.getElementById('evalEntrainementConnId').value;
+
+        // Check if we already have a linked evaluation-type entrainement
+        if (selectedId) {
+            const linked = this.entrainementsConn.find(e => e.id === selectedId && e.statut === 'evaluation');
+            if (linked) {
+                container.innerHTML = `
+                    <div class="personnalise-linked">
+                        <div class="personnalise-linked-info">
+                            <span class="personnalise-linked-icon">✅</span>
+                            <span>Entraînement personnalisé : <strong>${escapeHtml(linked.titre || 'Sans titre')}</strong></span>
+                        </div>
+                        <button class="btn btn-sm btn-secondary" onclick="AdminEvaluations.openCustomWizard('${linked.id}')">Modifier</button>
+                    </div>
+                `;
+                return;
+            }
+        }
+
+        container.innerHTML = `
+            <div class="personnalise-create">
+                <p class="form-help">Créez un entraînement sur mesure pour cette évaluation.</p>
+                <button class="btn btn-primary" onclick="AdminEvaluations.openCustomWizard()">
+                    + Créer l'entraînement
+                </button>
+            </div>
+        `;
+    },
+
+    openCustomWizard(existingEntrainementId) {
+        if (typeof AdminBanquesExercices === 'undefined') {
+            this.showNotification('Module banques d\'exercices non chargé', 'error');
+            return;
+        }
+
+        // Set up callback — when the wizard finishes, it will call this
+        AdminBanquesExercices._evalWizardCallback = (entrainement) => {
+            // Store the entrainement ID
+            document.getElementById('evalEntrainementConnId').value = entrainement.id;
+
+            // Also update local data
+            const idx = this.entrainementsConn.findIndex(e => e.id === entrainement.id);
+            if (idx >= 0) {
+                Object.assign(this.entrainementsConn[idx], entrainement);
+            } else {
+                this.entrainementsConn.push(entrainement);
+            }
+
+            // Set source to personnalise and refresh UI
+            const personnaliseRadio = document.querySelector('input[name="sourceQuestions"][value="personnalise"]');
+            if (personnaliseRadio) personnaliseRadio.checked = true;
+            this.onSourceChange('personnalise');
+        };
+
+        // Find or create the entrainement
+        let entrainement = null;
+        if (existingEntrainementId) {
+            entrainement = AdminBanquesExercices.entrainementsConn.find(e => e.id === existingEntrainementId);
+        }
+
+        // We need a banqueId for the wizard — use the first banque or create a virtual one
+        const banqueId = entrainement?.banque_exercice_id || (this.banquesExercicesConn[0]?.id || '');
+
+        // Hide the evaluation modal temporarily
+        document.getElementById('evaluationModal').classList.add('hidden');
+
+        // Open the wizard
+        AdminBanquesExercices.openEntrainementWizard(entrainement, banqueId);
+    },
+
     // ========== SAVE EVALUATION ==========
     async saveEvaluation() {
         const id = document.getElementById('editEvaluationId').value;
@@ -674,6 +869,8 @@ const AdminEvaluations = {
         if (type === 'connaissances') {
             data.seuil = parseInt(document.getElementById('evalSeuil').value) || 80;
             data.chapitre_id = document.getElementById('evalChapitre').value;
+            data.source_questions = document.querySelector('input[name="sourceQuestions"]:checked')?.value || 'banque';
+            data.entrainement_conn_id = document.getElementById('evalEntrainementConnId').value || '';
         }
         if (type === 'savoir-faire') {
             data.methodologie_id = document.getElementById('evalMethodologie').value;

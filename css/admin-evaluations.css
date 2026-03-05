@@ -1165,3 +1165,126 @@
         display: none;
     }
 }
+
+/* ===== ENTRAINEMENT SELECTOR (source questions) ===== */
+
+.entrainement-selector {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    background: var(--gray-50);
+}
+
+.selector-banque {
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.selector-banque:last-child {
+    border-bottom: none;
+}
+
+.selector-banque-title {
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--gray-700);
+    background: var(--gray-100);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.selector-entrainements {
+    padding: 4px 0;
+}
+
+.selector-entrainement {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-left: 3px solid transparent;
+}
+
+.selector-entrainement:hover {
+    background: var(--gray-100);
+}
+
+.selector-entrainement.selected {
+    background: var(--accent-blue-light);
+    border-left-color: var(--accent-blue);
+}
+
+.selector-entrainement input[type="radio"] {
+    flex-shrink: 0;
+}
+
+.selector-entrainement-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.selector-entrainement-title {
+    font-size: 14px;
+    color: var(--gray-800);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.badge-mini {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.badge-mini.green {
+    background: var(--accent-green-light);
+    color: var(--accent-green);
+}
+
+.badge-mini.grey {
+    background: var(--gray-100);
+    color: var(--gray-500);
+}
+
+/* Personnalisé section */
+.personnalise-create {
+    text-align: center;
+    padding: 16px;
+    border: 2px dashed var(--gray-300);
+    border-radius: 8px;
+    background: var(--gray-50);
+}
+
+.personnalise-create .btn {
+    margin-top: 8px;
+}
+
+.personnalise-linked {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--accent-green-light);
+    border-radius: 8px;
+    border: 1px solid var(--accent-green);
+}
+
+.personnalise-linked-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.personnalise-linked-icon {
+    font-size: 18px;
+}
