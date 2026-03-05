@@ -871,9 +871,13 @@ const AdminEvaluations = {
 
     _renderStep3Auto() {
         const type = this.wizardData.type;
-        const banques = type === 'connaissances'
-            ? [...this.banquesExercicesConn].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999))
-            : [...this.banquesSF].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
+        const matiere = this.wizardData.matiere || this.currentMatiere;
+        const allBanques = type === 'connaissances'
+            ? [...this.banquesExercicesConn]
+            : [...this.banquesSF];
+        const banques = allBanques
+            .filter(b => !b.matiere || b.matiere === matiere)
+            .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
 
         const banquesList = banques.map((b, i) =>
             `<div class="attribution-banque-item">
@@ -1473,15 +1477,17 @@ const AdminEvaluations = {
         document.getElementById('attributionTable').style.display = 'none';
 
         const type = evaluation.type;
+        const matiere = evaluation.matiere || this.currentMatiere;
         const isConn = type === 'connaissances';
 
         // Show/hide entrainement column for connaissances
         document.getElementById('attributionEntrainementHeader').style.display = isConn ? '' : 'none';
 
-        // Get banques sorted by ordre
-        const banques = isConn
-            ? [...this.banquesExercicesConn].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999))
-            : [...this.banquesSF].sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
+        // Get banques sorted by ordre, filtered by matière
+        const allBanques = isConn ? [...this.banquesExercicesConn] : [...this.banquesSF];
+        const banques = allBanques
+            .filter(b => !b.matiere || b.matiere === matiere)
+            .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
 
         if (banques.length === 0) {
             document.getElementById('attributionLoading').innerHTML = 'Aucune banque disponible pour ce type.';
@@ -1501,7 +1507,8 @@ const AdminEvaluations = {
             // Find progression for this student
             const prog = this.progressionsEvaluation.find(p =>
                 String(p.eleve_id).trim() === String(eleve.id).trim() &&
-                String(p.type).trim() === type
+                String(p.type).trim() === type &&
+                (!p.matiere || String(p.matiere).trim() === matiere)
             );
 
             // Determine auto banque (next one after last validated)

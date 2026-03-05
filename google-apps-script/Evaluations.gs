@@ -722,6 +722,7 @@ function updateProgressionFromResult_(ss, evaluationId, eleveId) {
 
     if (!evaluation) return;
     var type = String(evaluation.type).trim();
+    var matiere = String(evaluation.matiere || '').trim();
     if (type !== 'connaissances' && type !== 'savoir-faire') return;
 
     // 2. Trouver l'attribution de sujet pour cet eleve
@@ -746,7 +747,7 @@ function updateProgressionFromResult_(ss, evaluationId, eleveId) {
     if (!attribution || !attribution.banque_id) return;
 
     // 3. Mettre a jour la progression
-    updateProgressionEvaluation_(eleveId, type, String(attribution.banque_id).trim());
+    updateProgressionEvaluation_(eleveId, type, matiere, String(attribution.banque_id).trim());
   } catch (e) {
     // Ne pas bloquer la sauvegarde du resultat si la progression echoue
     Logger.log('Erreur updateProgressionFromResult_: ' + e.message);
@@ -1402,28 +1403,31 @@ function getProgressionEvaluation(data) {
  * Appelé quand is_validated=true lors de saveEvaluationResult
  * @param {string} eleveId
  * @param {string} type - 'connaissances' ou 'savoir-faire'
+ * @param {string} matiere - 'FR' ou 'HG-EMC'
  * @param {string} banqueId - ID de la banque validée
  */
-function updateProgressionEvaluation_(eleveId, type, banqueId) {
+function updateProgressionEvaluation_(eleveId, type, matiere, banqueId) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName(SHEETS.PROGRESSION_EVALUATION);
 
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.PROGRESSION_EVALUATION);
-    sheet.appendRow(['id', 'eleve_id', 'type', 'derniere_banque_validee_id', 'date_validation']);
+    sheet.appendRow(['id', 'eleve_id', 'type', 'matiere', 'derniere_banque_validee_id', 'date_validation']);
   }
 
   var allData = sheet.getDataRange().getValues();
   var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
   var eleveIdCol = headers.indexOf('eleve_id');
   var typeCol = headers.indexOf('type');
+  var matiereCol = headers.indexOf('matiere');
   var banqueCol = headers.indexOf('derniere_banque_validee_id');
   var dateCol = headers.indexOf('date_validation');
   var existingRow = -1;
 
   for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][eleveIdCol]).trim() === String(eleveId).trim() &&
-        String(allData[i][typeCol]).trim() === String(type).trim()) {
+        String(allData[i][typeCol]).trim() === String(type).trim() &&
+        (matiereCol < 0 || String(allData[i][matiereCol]).trim() === String(matiere).trim())) {
       existingRow = i + 1;
       break;
     }
@@ -1436,7 +1440,7 @@ function updateProgressionEvaluation_(eleveId, type, banqueId) {
     if (dateCol >= 0) sheet.getRange(existingRow, dateCol + 1).setValue(now);
   } else {
     var id = 'progeval_' + new Date().getTime();
-    sheet.appendRow([id, eleveId, type, banqueId, now]);
+    sheet.appendRow([id, eleveId, type, matiere || '', banqueId, now]);
   }
 }
 

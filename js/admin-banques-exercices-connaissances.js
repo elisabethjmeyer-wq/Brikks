@@ -1948,12 +1948,21 @@ Object.assign(AdminBanquesExercices, {
                             <label>Description</label>
                             <textarea class="form-textarea" id="banqueExConnDescription" rows="2" placeholder="Description optionnelle..."></textarea>
                         </div>
-                        <div class="form-group">
-                            <label>Statut</label>
-                            <select class="form-select" id="banqueExConnStatut">
-                                <option value="brouillon">Brouillon</option>
-                                <option value="publie">Publié</option>
-                            </select>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Matière <span class="req">*</span></label>
+                                <select class="form-select" id="banqueExConnMatiere">
+                                    <option value="FR">Français</option>
+                                    <option value="HG-EMC">Histoire-Géo / EMC</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Statut</label>
+                                <select class="form-select" id="banqueExConnStatut">
+                                    <option value="brouillon">Brouillon</option>
+                                    <option value="publie">Publié</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -1971,12 +1980,14 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('editBanqueExConnId').value = banque.id;
             document.getElementById('banqueExConnTitre').value = banque.titre || '';
             document.getElementById('banqueExConnDescription').value = banque.description || '';
+            document.getElementById('banqueExConnMatiere').value = banque.matiere || 'FR';
             document.getElementById('banqueExConnStatut').value = banque.statut || 'brouillon';
         } else {
             title.textContent = 'Nouvelle banque d\'exercices';
             document.getElementById('editBanqueExConnId').value = '';
             document.getElementById('banqueExConnTitre').value = '';
             document.getElementById('banqueExConnDescription').value = '';
+            document.getElementById('banqueExConnMatiere').value = 'FR';
             document.getElementById('banqueExConnStatut').value = 'brouillon';
         }
 
@@ -1995,6 +2006,7 @@ Object.assign(AdminBanquesExercices, {
         const id = document.getElementById('editBanqueExConnId').value;
         const titre = document.getElementById('banqueExConnTitre').value.trim();
         const description = document.getElementById('banqueExConnDescription').value.trim();
+        const matiere = document.getElementById('banqueExConnMatiere').value;
         const statut = document.getElementById('banqueExConnStatut').value;
 
         if (!titre) {
@@ -2003,7 +2015,7 @@ Object.assign(AdminBanquesExercices, {
             return;
         }
 
-        const data = { titre, description, statut };
+        const data = { titre, description, matiere, statut };
 
         try {
             let result;

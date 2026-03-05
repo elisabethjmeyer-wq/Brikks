@@ -313,7 +313,7 @@ function getBanquesExercicesConn() {
   if (!sheet) {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     sheet = ss.insertSheet(SHEETS.BANQUES_EXERCICES_CONN);
-    sheet.appendRow(['id', 'titre', 'description', 'type', 'statut', 'ordre', 'date_creation']);
+    sheet.appendRow(['id', 'titre', 'description', 'type', 'statut', 'ordre', 'date_creation', 'matiere']);
   }
 
   const data = sheet.getDataRange().getValues();
@@ -352,7 +352,8 @@ function createBanqueExercicesConn(data) {
     data.type || 'lecon',
     data.statut || 'brouillon',
     data.ordre || 1,
-    new Date().toISOString().split('T')[0]
+    new Date().toISOString().split('T')[0],
+    data.matiere || ''
   ]);
 
   return { success: true, id: id, message: 'Banque créée' };
@@ -367,7 +368,7 @@ function updateBanqueExercicesConn(data) {
     return { success: false, error: 'id requis' };
   }
 
-  return updateRowById_(SHEETS.BANQUES_EXERCICES_CONN, data, ['titre', 'description', 'type', 'statut', 'ordre'], 'Banque');
+  return updateRowById_(SHEETS.BANQUES_EXERCICES_CONN, data, ['titre', 'description', 'type', 'statut', 'ordre', 'matiere'], 'Banque');
 }
 
 /**
