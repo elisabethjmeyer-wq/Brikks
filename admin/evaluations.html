@@ -25,6 +25,12 @@
             <p>Créez et gérez vos évaluations par type</p>
         </div>
         <div class="header-actions">
+            <!-- Matière toggle -->
+            <div class="matiere-toggle" id="matiereToggle">
+                <button class="matiere-btn active" data-matiere="all">Toutes</button>
+                <button class="matiere-btn" data-matiere="FR">🇫🇷 FR</button>
+                <button class="matiere-btn" data-matiere="HG-EMC">🌍 HG</button>
+            </div>
             <button class="btn btn-primary" id="addEvaluationBtn">
                 <span>➕</span>
                 Nouvelle évaluation
@@ -32,13 +38,22 @@
         </div>
     </header>
 
+    <!-- Corrections banner -->
+    <div class="corrections-banner" id="correctionsBanner" style="display: none;">
+        <div class="corrections-banner-left">
+            <span class="corrections-icon">📝</span>
+            <span><strong id="correctionsCount">0</strong> copie(s) à corriger</span>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="AdminEvaluations.goToCorrections()">Voir les corrections →</button>
+    </div>
+
     <!-- Loader -->
     <div class="loader-container" id="loader">
         <div class="loader"></div>
         <p>Chargement des evaluations...</p>
     </div>
 
-    <!-- Contenu principal -->
+    <!-- Contenu principal (liste des évaluations) -->
     <div id="evaluations-content" style="display: none;">
         <!-- Tabs -->
         <div class="eval-tabs">
@@ -61,6 +76,11 @@
                 <span class="tab-icon">⭐</span>
                 Bonus
                 <span class="tab-count" id="countBonus">0</span>
+            </button>
+            <button class="eval-tab blue" data-type="sommatives">
+                <span class="tab-icon">📝</span>
+                Sommatives
+                <span class="tab-count" id="countSommatives">0</span>
             </button>
         </div>
 
@@ -88,9 +108,49 @@
 
         <!-- Empty state -->
         <div class="empty-state" id="emptyState" style="display: none;">
-            <div class="empty-icon">?</div>
+            <div class="empty-icon">📋</div>
             <h3>Aucune évaluation trouvée</h3>
             <p>Créez une nouvelle évaluation pour ce type.</p>
+        </div>
+    </div>
+
+    <!-- Saisie des résultats (full page view, hidden by default) -->
+    <div id="saisie-content" style="display: none;">
+        <div class="saisie-header">
+            <button class="btn btn-secondary btn-back" id="saisieBackBtn">← Retour</button>
+            <div class="saisie-title-area">
+                <h2 id="saisieTitle">Saisie des résultats</h2>
+                <p id="saisieSubtitle" class="saisie-subtitle"></p>
+            </div>
+        </div>
+
+        <!-- Saisie table -->
+        <div class="saisie-table-container">
+            <table class="saisie-table">
+                <thead>
+                    <tr id="saisieTableHead">
+                        <th class="col-eleve">Élève</th>
+                        <th class="col-mode">Mode</th>
+                        <th class="col-score">Score</th>
+                        <th class="col-validations">Points</th>
+                        <th class="col-source">Source</th>
+                        <th class="col-remarque">Remarque</th>
+                        <th class="col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="saisieTableBody">
+                    <!-- Generated dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Save bar for saisie -->
+        <div class="saisie-save-bar" id="saisieSaveBar" style="display: none;">
+            <span class="save-bar-text">Modifications non enregistrées</span>
+            <div class="save-bar-actions">
+                <button class="btn btn-secondary" onclick="AdminEvaluations.cancelSaisie()">Annuler</button>
+                <button class="btn btn-primary" id="saisieSaveBtn" onclick="AdminEvaluations.saveSaisie()">Enregistrer</button>
+            </div>
         </div>
     </div>
 </div>
@@ -146,10 +206,22 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Validations (briques) <span class="req">*</span></label>
-                    <input type="number" class="form-input" id="evalBriques" value="3" min="1" max="10">
-                    <div class="form-help">Nombre de points mis en jeu</div>
+                    <label>Points mis en jeu <span class="req">*</span></label>
+                    <input type="number" class="form-input" id="evalBriques" value="3" min="1" max="50">
+                    <div class="form-help">Nombre de points attribuables</div>
                 </div>
+                <div class="form-group">
+                    <label>Matière <span class="req">*</span></label>
+                    <select class="form-select" id="evalMatiere">
+                        <option value="FR">🇫🇷 Français</option>
+                        <option value="HG-EMC">🌍 Histoire-Géographie-EMC</option>
+                        <option value="Les deux">🔗 Les deux matières</option>
+                    </select>
+                    <div class="form-help" id="matiereHelp" style="display: none;">Les points comptent 100% dans chaque matière</div>
+                </div>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
                     <label>Statut</label>
                     <select class="form-select" id="evalStatut">
@@ -158,6 +230,17 @@
                         <option value="publiee">Publiée</option>
                         <option value="terminee">Terminée</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Catégorie</label>
+                    <select class="form-select" id="evalCategorie">
+                        <option value="">Même que le type</option>
+                        <option value="connaissances">Connaissances</option>
+                        <option value="savoir-faire">Savoir-faire</option>
+                        <option value="competences">Compétences</option>
+                        <option value="bonus">Bonus</option>
+                    </select>
+                    <div class="form-help">Catégorie pour le calcul de la note de progression</div>
                 </div>
             </div>
 
@@ -263,6 +346,65 @@
     </div>
 </div>
 
+<!-- Modal: Sommative -->
+<div class="modal-overlay hidden" id="sommativeModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="sommativeModalTitle">Nouvelle évaluation sommative</h2>
+            <button class="modal-close" id="closeSommativeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editSommativeId">
+
+            <div class="form-group">
+                <label>Titre <span class="req">*</span></label>
+                <input type="text" class="form-input" id="somTitre" placeholder="Ex: Contrôle chapitre 3">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Matière <span class="req">*</span></label>
+                    <select class="form-select" id="somMatiere">
+                        <option value="FR">🇫🇷 Français</option>
+                        <option value="HG-EMC">🌍 Histoire-Géographie-EMC</option>
+                        <option value="Les deux">🔗 Les deux matières</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Barème</label>
+                    <div class="input-with-suffix">
+                        <input type="number" class="form-input" id="somBareme" value="20" min="1" max="100">
+                        <span class="input-suffix-text">pts</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Coefficient</label>
+                    <input type="number" class="form-input" id="somCoefficient" value="1" min="0.5" max="10" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" class="form-input" id="somDate">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Semestre</label>
+                <select class="form-select" id="somSemestre">
+                    <option value="1">Semestre 1</option>
+                    <option value="2">Semestre 2</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancelSommativeBtn">Annuler</button>
+            <button class="btn btn-primary" id="saveSommativeBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Attribution sujets aux eleves -->
 <div class="modal-overlay hidden" id="attributionModal">
     <div class="modal modal-large">
@@ -307,6 +449,7 @@
             <p>Etes-vous sur de vouloir supprimer cette evaluation ?</p>
             <p class="delete-warning">Cette action supprimera aussi tous les resultats associes.</p>
             <input type="hidden" id="deleteEvaluationId">
+            <input type="hidden" id="deleteEvaluationType">
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelDeleteBtn">Annuler</button>
@@ -314,6 +457,9 @@
         </div>
     </div>
 </div>
+
+<!-- Notification -->
+<div class="notification" id="notification"></div>
 
 <!-- Scripts -->
 <script src="../js/config.js"></script>
