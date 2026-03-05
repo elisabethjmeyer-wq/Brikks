@@ -96,7 +96,10 @@ const SHEETS = {
   CriteresReussite: 'CriteresReussite',
   BanquesCompetences: 'BanquesCompetences',
   EntrainementsCompetences: 'EntrainementsCompetences',
-  EleveEntrainementsCompetences: 'EleveEntrainementsCompetences'
+  EleveEntrainementsCompetences: 'EleveEntrainementsCompetences',
+  // Progression évaluations & attribution sujets
+  PROGRESSION_EVALUATION: 'PROGRESSION_EVALUATION',
+  ATTRIBUTION_SUJETS: 'ATTRIBUTION_SUJETS'
 };
 
 // ========================================
@@ -402,6 +405,9 @@ function handleRequest(e) {
       case 'getEvaluation':
         result = getEvaluation(request);
         break;
+      case 'getEvaluationForEleve':
+        result = getEvaluationForEleve(request);
+        break;
       case 'createEvaluation':
         result = createEvaluation(request);
         break;
@@ -419,6 +425,20 @@ function handleRequest(e) {
         break;
       case 'getEleveEvaluations':
         result = getEleveEvaluations(request);
+        break;
+
+      // PROGRESSION EVALUATION & ATTRIBUTION SUJETS
+      case 'getProgressionEvaluation':
+        result = getProgressionEvaluation(request);
+        break;
+      case 'getAttributionsSujets':
+        result = getAttributionsSujets(request);
+        break;
+      case 'saveAttributionsSujets':
+        result = saveAttributionsSujets(request);
+        break;
+      case 'getAttributionSujetEleve':
+        result = getAttributionSujetEleve(request);
         break;
 
       // PARAMETRES NOTES & SOMMATIVES
@@ -4763,6 +4783,303 @@ function getEvaluation(data) {
 }
 
 /**
+ * Recupere une evaluation avec les questions personnalisees pour un eleve
+ * Utilise l'attribution de sujet pour charger les bonnes questions
+ * @param {Object} data - { id, eleve_id }
+ */
+function getEvaluationForEleve(data) {
+  if (!data.id || !data.eleve_id) {
+    return { success: false, error: 'id et eleve_id requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // 1. Recuperer l'evaluation
+  var evalSheet = ss.getSheetByName(SHEETS.EVALUATIONS);
+  if (!evalSheet) {
+    return { success: false, error: 'Sheet EVALUATIONS non trouve' };
+  }
+
+  var evalData = evalSheet.getDataRange().getValues();
+  var evalHeaders = evalData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  var evaluation = null;
+  for (var i = 1; i < evalData.length; i++) {
+    var row = evalData[i];
+    var idCol = evalHeaders.indexOf('id');
+    if (idCol >= 0 && String(row[idCol]).trim() === String(data.id).trim()) {
+      evaluation = {};
+      evalHeaders.forEach(function(header, index) {
+        evaluation[header] = row[index];
+      });
+      break;
+    }
+  }
+
+  if (!evaluation) {
+    return { success: false, error: 'Evaluation non trouvee: ' + data.id };
+  }
+
+  var type = String(evaluation.type).trim();
+
+  // 2. Si pas connaissances/SF, fallback sur getEvaluation classique
+  if (type !== 'connaissances' && type !== 'savoir-faire') {
+    return getEvaluation(data);
+  }
+
+  // 3. Chercher l'attribution pour cet eleve
+  var attrSheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
+  var attribution = null;
+
+  if (attrSheet) {
+    var attrData = attrSheet.getDataRange().getValues();
+    if (attrData.length >= 2) {
+      var attrHeaders = attrData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      for (var j = 1; j < attrData.length; j++) {
+        var attr = {};
+        attrHeaders.forEach(function(header, index) {
+          attr[header] = attrData[j][index];
+        });
+        if (String(attr.evaluation_id).trim() === String(data.id).trim() &&
+            String(attr.eleve_id).trim() === String(data.eleve_id).trim()) {
+          attribution = attr;
+          break;
+        }
+      }
+    }
+  }
+
+  // Si pas d'attribution, fallback sur getEvaluation classique
+  if (!attribution || !attribution.banque_id) {
+    return getEvaluation(data);
+  }
+
+  var banqueId = String(attribution.banque_id).trim();
+  var entrainementId = attribution.entrainement_id ? String(attribution.entrainement_id).trim() : '';
+  var questions = [];
+
+  // 4. Charger les questions selon le type
+  if (type === 'connaissances') {
+    questions = loadConnQuestionsForEval_(ss, banqueId, entrainementId);
+  } else if (type === 'savoir-faire') {
+    questions = loadSFQuestionsForEval_(ss, banqueId);
+  }
+
+  evaluation.questions = questions;
+  evaluation.attribution = {
+    banque_id: banqueId,
+    entrainement_id: entrainementId,
+    source: String(attribution.source || 'auto').trim()
+  };
+
+  return { success: true, data: evaluation };
+}
+
+/**
+ * Charge les questions d'un entrainement connaissances pour une evaluation
+ * @param {Spreadsheet} ss
+ * @param {string} banqueId
+ * @param {string} entrainementId - si vide, prend un entrainement aleatoire de la banque
+ */
+function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
+  // 1. Trouver l'entrainement
+  var entrSheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
+  if (!entrSheet) return [];
+
+  var entrData = entrSheet.getDataRange().getValues();
+  if (entrData.length < 2) return [];
+  var entrHeaders = entrData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  var banqueEntrs = [];
+  for (var i = 1; i < entrData.length; i++) {
+    var e = {};
+    entrHeaders.forEach(function(h, idx) { e[h] = entrData[i][idx]; });
+    if (String(e.banque_exercice_id).trim() === banqueId && e.id) {
+      banqueEntrs.push(e);
+    }
+  }
+
+  if (banqueEntrs.length === 0) return [];
+
+  var entrainement;
+  if (entrainementId) {
+    entrainement = banqueEntrs.find(function(e) { return String(e.id).trim() === entrainementId; });
+  }
+  if (!entrainement) {
+    // Aleatoire parmi les entrainements de la banque
+    entrainement = banqueEntrs[Math.floor(Math.random() * banqueEntrs.length)];
+  }
+
+  // 2. Trouver les etapes de cet entrainement
+  var etapesSheet = ss.getSheetByName(SHEETS.ETAPES_CONN);
+  if (!etapesSheet) return [];
+
+  var etapesData = etapesSheet.getDataRange().getValues();
+  if (etapesData.length < 2) return [];
+  var etapesHeaders = etapesData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  var etapes = [];
+  for (var ei = 1; ei < etapesData.length; ei++) {
+    var etape = {};
+    etapesHeaders.forEach(function(h, idx) { etape[h] = etapesData[ei][idx]; });
+    if (String(etape.entrainement_id).trim() === String(entrainement.id).trim()) {
+      etapes.push(etape);
+    }
+  }
+  etapes.sort(function(a, b) { return (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0); });
+
+  // 3. Trouver les liens etape-questions
+  var eqSheet = ss.getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
+  if (!eqSheet) return [];
+
+  var eqData = eqSheet.getDataRange().getValues();
+  if (eqData.length < 2) return [];
+  var eqHeaders = eqData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  var etapeIds = etapes.map(function(et) { return String(et.id).trim(); });
+  var questionLinks = [];
+  for (var qi = 1; qi < eqData.length; qi++) {
+    var ql = {};
+    eqHeaders.forEach(function(h, idx) { ql[h] = eqData[qi][idx]; });
+    if (etapeIds.indexOf(String(ql.etape_id).trim()) >= 0) {
+      questionLinks.push(ql);
+    }
+  }
+
+  // 4. Charger les questions connaissances
+  var qSheet = ss.getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
+  if (!qSheet) return [];
+
+  var qData = qSheet.getDataRange().getValues();
+  if (qData.length < 2) return [];
+  var qHeaders = qData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  var questionsMap = {};
+  for (var qj = 1; qj < qData.length; qj++) {
+    var q = {};
+    qHeaders.forEach(function(h, idx) { q[h] = qData[qj][idx]; });
+    if (q.id) questionsMap[String(q.id).trim()] = q;
+  }
+
+  // 5. Charger les formats
+  var fSheet = ss.getSheetByName(SHEETS.FORMATS_QUESTIONS);
+  var formatsMap = {};
+  if (fSheet) {
+    var fData = fSheet.getDataRange().getValues();
+    if (fData.length >= 2) {
+      var fHeaders = fData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      for (var fi = 1; fi < fData.length; fi++) {
+        var f = {};
+        fHeaders.forEach(function(h, idx) { f[h] = fData[fi][idx]; });
+        if (f.id) formatsMap[String(f.id).trim()] = f;
+        if (f.code) formatsMap[String(f.code).trim()] = f;
+      }
+    }
+  }
+
+  // 6. Assembler les questions dans le format evaluation
+  var questions = [];
+  var ordre = 1;
+
+  etapes.forEach(function(etape) {
+    var etapeQuestions = questionLinks
+      .filter(function(ql) { return String(ql.etape_id).trim() === String(etape.id).trim(); })
+      .sort(function(a, b) { return (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0); });
+
+    etapeQuestions.forEach(function(eq) {
+      var question = questionsMap[String(eq.question_id).trim()];
+      if (!question) return;
+
+      var donnees = {};
+      if (question.donnees) {
+        try { donnees = JSON.parse(question.donnees); } catch (_e) { donnees = {}; }
+      }
+
+      var formatCode = String(etape.format_code || question.type || '').trim();
+      var format = formatsMap[formatCode] || { code: formatCode, type_base: formatCode };
+
+      questions.push({
+        id: question.id,
+        enonce: question.enonce || question.question || '',
+        explication: question.explication || question.correction || '',
+        donnees: donnees,
+        format: format,
+        format_id: format.id || '',
+        ordre: ordre++,
+        points: 1
+      });
+    });
+  });
+
+  return questions;
+}
+
+/**
+ * Charge les questions d'un exercice SF pour une evaluation
+ * Pour le SF, un exercice aleatoire est choisi dans la banque
+ * @param {Spreadsheet} ss
+ * @param {string} banqueId
+ */
+function loadSFQuestionsForEval_(ss, banqueId) {
+  // 1. Trouver les exercices de la banque
+  var exSheet = ss.getSheetByName(SHEETS.EXERCICES);
+  if (!exSheet) return [];
+
+  var exData = exSheet.getDataRange().getValues();
+  if (exData.length < 2) return [];
+  var exHeaders = exData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  var exercices = [];
+  for (var i = 1; i < exData.length; i++) {
+    var ex = {};
+    exHeaders.forEach(function(h, idx) { ex[h] = exData[i][idx]; });
+    if (String(ex.banque_id).trim() === banqueId && ex.id) {
+      exercices.push(ex);
+    }
+  }
+
+  if (exercices.length === 0) return [];
+
+  // Choisir un exercice aleatoire
+  var exercice = exercices[Math.floor(Math.random() * exercices.length)];
+
+  // 2. Charger le format
+  var fSheet = ss.getSheetByName(SHEETS.FORMATS_EXERCICES);
+  var format = {};
+  if (fSheet && exercice.format_id) {
+    var fData = fSheet.getDataRange().getValues();
+    if (fData.length >= 2) {
+      var fHeaders = fData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      for (var fi = 1; fi < fData.length; fi++) {
+        var f = {};
+        fHeaders.forEach(function(h, idx) { f[h] = fData[fi][idx]; });
+        if (String(f.id).trim() === String(exercice.format_id).trim()) {
+          format = f;
+          break;
+        }
+      }
+    }
+  }
+
+  // 3. Assembler dans le format evaluation
+  var donnees = {};
+  if (exercice.donnees) {
+    try { donnees = JSON.parse(exercice.donnees); } catch (_e) { donnees = {}; }
+  }
+
+  return [{
+    id: exercice.id,
+    enonce: exercice.titre || exercice.enonce || '',
+    explication: exercice.correction || '',
+    donnees: donnees,
+    format: format,
+    format_id: format.id || exercice.format_id || '',
+    ordre: 1,
+    points: 1
+  }];
+}
+
+/**
  * Cree une nouvelle evaluation
  * @param {Object} data - { type, titre, chapitre_id, briques, seuil, duree, ... }
  */
@@ -4932,6 +5249,13 @@ function saveEvaluationResult(data) {
     // Mettre à jour la date de passage
     var dateCol = headers.indexOf('date_passage');
     if (dateCol >= 0) sheet.getRange(existingRow, dateCol + 1).setValue(new Date().toISOString());
+
+    // Mettre a jour la progression evaluation si valide
+    var isValidUpdate = data.is_validated === true || data.is_validated === 'true';
+    if (isValidUpdate) {
+      updateProgressionFromResult_(ss, data.evaluation_id, data.eleve_id);
+    }
+
     return { success: true, id: String(allData[existingRow - 1][0]), message: 'Resultat mis a jour' };
   }
 
@@ -4959,7 +5283,72 @@ function saveEvaluationResult(data) {
 
   sheet.appendRow(newRow);
 
+  // Mettre a jour la progression evaluation si valide
+  var isValid = data.is_validated === true || data.is_validated === 'true';
+  if (isValid) {
+    updateProgressionFromResult_(ss, data.evaluation_id, data.eleve_id);
+  }
+
   return { success: true, id: id, message: 'Resultat sauvegarde' };
+}
+
+/**
+ * Met a jour la progression evaluation apres validation d'un resultat
+ * Cherche l'attribution de l'eleve pour trouver la banque validée
+ * @param {Spreadsheet} ss
+ * @param {string} evaluationId
+ * @param {string} eleveId
+ */
+function updateProgressionFromResult_(ss, evaluationId, eleveId) {
+  try {
+    // 1. Trouver le type de l'evaluation
+    var evalSheet = ss.getSheetByName(SHEETS.EVALUATIONS);
+    if (!evalSheet) return;
+
+    var evalData = evalSheet.getDataRange().getValues();
+    var evalHeaders = evalData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    var evaluation = null;
+
+    for (var i = 1; i < evalData.length; i++) {
+      var item = {};
+      evalHeaders.forEach(function(header, index) { item[header] = evalData[i][index]; });
+      if (String(item.id).trim() === String(evaluationId).trim()) {
+        evaluation = item;
+        break;
+      }
+    }
+
+    if (!evaluation) return;
+    var type = String(evaluation.type).trim();
+    if (type !== 'connaissances' && type !== 'savoir-faire') return;
+
+    // 2. Trouver l'attribution de sujet pour cet eleve
+    var attrSheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
+    if (!attrSheet) return;
+
+    var attrData = attrSheet.getDataRange().getValues();
+    if (attrData.length < 2) return;
+    var attrHeaders = attrData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+    var attribution = null;
+    for (var j = 1; j < attrData.length; j++) {
+      var attr = {};
+      attrHeaders.forEach(function(header, index) { attr[header] = attrData[j][index]; });
+      if (String(attr.evaluation_id).trim() === String(evaluationId).trim() &&
+          String(attr.eleve_id).trim() === String(eleveId).trim()) {
+        attribution = attr;
+        break;
+      }
+    }
+
+    if (!attribution || !attribution.banque_id) return;
+
+    // 3. Mettre a jour la progression
+    updateProgressionEvaluation_(eleveId, type, String(attribution.banque_id).trim());
+  } catch (e) {
+    // Ne pas bloquer la sauvegarde du resultat si la progression echoue
+    Logger.log('Erreur updateProgressionFromResult_: ' + e.message);
+  }
 }
 
 /**
@@ -5563,6 +5952,228 @@ function saveObjectifEleve(data) {
   var newRow = [id, data.eleve_id, data.matiere, data.semestre, data.objectif_note || 0];
   sheet.appendRow(newRow);
   return { success: true, id: id, message: 'Objectif sauvegarde' };
+}
+
+// ========================================
+// PROGRESSION EVALUATION
+// Table : PROGRESSION_EVALUATION
+// Colonnes : id, eleve_id, type, derniere_banque_validee_id, date_validation
+// ========================================
+
+/**
+ * Recupere la progression evaluation de tous les eleves (ou un seul)
+ * @param {Object} data - { eleve_id?, type? }
+ */
+function getProgressionEvaluation(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.PROGRESSION_EVALUATION);
+  if (!sheet) {
+    return { success: true, data: [] };
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  if (allData.length < 2) {
+    return { success: true, data: [] };
+  }
+
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var result = [];
+
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
+    var item = {};
+    headers.forEach(function(header, index) {
+      item[header] = row[index];
+    });
+
+    if (data.eleve_id && String(item.eleve_id).trim() !== String(data.eleve_id).trim()) continue;
+    if (data.type && String(item.type).trim() !== String(data.type).trim()) continue;
+
+    if (item.id) result.push(item);
+  }
+
+  return { success: true, data: result };
+}
+
+/**
+ * Avance la progression evaluation d'un eleve apres validation
+ * Appelé quand is_validated=true lors de saveEvaluationResult
+ * @param {string} eleveId
+ * @param {string} type - 'connaissances' ou 'savoir-faire'
+ * @param {string} banqueId - ID de la banque validée
+ */
+function updateProgressionEvaluation_(eleveId, type, banqueId) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.PROGRESSION_EVALUATION);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.PROGRESSION_EVALUATION);
+    sheet.appendRow(['id', 'eleve_id', 'type', 'derniere_banque_validee_id', 'date_validation']);
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var typeCol = headers.indexOf('type');
+  var banqueCol = headers.indexOf('derniere_banque_validee_id');
+  var dateCol = headers.indexOf('date_validation');
+  var existingRow = -1;
+
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][eleveIdCol]).trim() === String(eleveId).trim() &&
+        String(allData[i][typeCol]).trim() === String(type).trim()) {
+      existingRow = i + 1;
+      break;
+    }
+  }
+
+  var now = new Date().toISOString();
+
+  if (existingRow > 0) {
+    if (banqueCol >= 0) sheet.getRange(existingRow, banqueCol + 1).setValue(banqueId);
+    if (dateCol >= 0) sheet.getRange(existingRow, dateCol + 1).setValue(now);
+  } else {
+    var id = 'progeval_' + new Date().getTime();
+    sheet.appendRow([id, eleveId, type, banqueId, now]);
+  }
+}
+
+// ========================================
+// ATTRIBUTION SUJETS
+// Table : ATTRIBUTION_SUJETS
+// Colonnes : id, evaluation_id, eleve_id, banque_id, entrainement_id, source
+// ========================================
+
+/**
+ * Recupere les attributions pour une evaluation
+ * @param {Object} data - { evaluation_id }
+ */
+function getAttributionsSujets(data) {
+  if (!data.evaluation_id) {
+    return { success: false, error: 'evaluation_id requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
+  if (!sheet) {
+    return { success: true, data: [] };
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  if (allData.length < 2) {
+    return { success: true, data: [] };
+  }
+
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var result = [];
+
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
+    var item = {};
+    headers.forEach(function(header, index) {
+      item[header] = row[index];
+    });
+
+    if (String(item.evaluation_id).trim() === String(data.evaluation_id).trim() && item.id) {
+      result.push(item);
+    }
+  }
+
+  return { success: true, data: result };
+}
+
+/**
+ * Sauvegarde les attributions de sujets pour une evaluation
+ * Remplace toutes les attributions existantes pour cette evaluation
+ * @param {Object} data - { evaluation_id, attributions: JSON string of [{eleve_id, banque_id, entrainement_id, source}] }
+ */
+function saveAttributionsSujets(data) {
+  if (!data.evaluation_id || !data.attributions) {
+    return { success: false, error: 'evaluation_id et attributions requis' };
+  }
+
+  var attributions;
+  try {
+    attributions = typeof data.attributions === 'string' ? JSON.parse(data.attributions) : data.attributions;
+  } catch (e) {
+    return { success: false, error: 'Format attributions invalide' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEETS.ATTRIBUTION_SUJETS);
+    sheet.appendRow(['id', 'evaluation_id', 'eleve_id', 'banque_id', 'entrainement_id', 'source']);
+  }
+
+  // Supprimer les attributions existantes pour cette evaluation
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var evalIdCol = headers.indexOf('evaluation_id');
+
+  // Parcourir de bas en haut pour supprimer sans décalage
+  for (var i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][evalIdCol]).trim() === String(data.evaluation_id).trim()) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+
+  // Inserer les nouvelles attributions
+  var timestamp = new Date().getTime();
+  for (var j = 0; j < attributions.length; j++) {
+    var attr = attributions[j];
+    var id = 'attr_' + timestamp + '_' + j;
+    sheet.appendRow([
+      id,
+      data.evaluation_id,
+      attr.eleve_id || '',
+      attr.banque_id || '',
+      attr.entrainement_id || '',
+      attr.source || 'auto'
+    ]);
+  }
+
+  return { success: true, message: attributions.length + ' attributions sauvegardees' };
+}
+
+/**
+ * Recupere l'attribution de sujet pour un eleve specifique sur une evaluation
+ * Utilise par le frontend eleve pour savoir quel sujet passer
+ * @param {Object} data - { evaluation_id, eleve_id }
+ */
+function getAttributionSujetEleve(data) {
+  if (!data.evaluation_id || !data.eleve_id) {
+    return { success: false, error: 'evaluation_id et eleve_id requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
+  if (!sheet) {
+    return { success: true, data: null };
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  if (allData.length < 2) {
+    return { success: true, data: null };
+  }
+
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
+    var item = {};
+    headers.forEach(function(header, index) {
+      item[header] = row[index];
+    });
+
+    if (String(item.evaluation_id).trim() === String(data.evaluation_id).trim() &&
+        String(item.eleve_id).trim() === String(data.eleve_id).trim()) {
+      return { success: true, data: item };
+    }
+  }
+
+  return { success: true, data: null };
 }
 
 // ================================================================

@@ -257,16 +257,15 @@
         </div>
         <div class="modal-body">
             <input type="hidden" id="attributionEvaluationId">
-            <p class="modal-intro">Attribuez un sujet a chaque eleve pour cette evaluation.</p>
-
-            <table class="attribution-table">
+            <p class="modal-intro">Chaque élève reçoit automatiquement un sujet selon sa progression. Vous pouvez ajuster manuellement si besoin.</p>
+            <div id="attributionLoading" style="text-align:center;padding:2rem;">Chargement des progressions...</div>
+            <table class="attribution-table" id="attributionTable" style="display:none;">
                 <thead>
                     <tr>
-                        <th>Eleve</th>
-                        <th>Classe</th>
-                        <th>Progression</th>
-                        <th>Sujet</th>
-                        <th>Actions</th>
+                        <th>Élève</th>
+                        <th>Banque (auto)</th>
+                        <th>Override banque</th>
+                        <th id="attributionEntrainementHeader" style="display:none;">Entraînement</th>
                     </tr>
                 </thead>
                 <tbody id="attributionTableBody">
