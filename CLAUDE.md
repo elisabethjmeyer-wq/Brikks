@@ -360,6 +360,41 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - ~~**Notifications trop rapides**~~ : **CORRIGÉ (session 15)** — durée augmentée (4s success, 6s error) + animation de sortie `slideOut`.
 - ~~**Code.gs : action POST non lue**~~ : **CORRIGÉ (session 15)** — `handleRequest` ne lisait `action` que depuis `e.parameter` (query params). Si un futur appel POST envoie l'action dans le body, elle était ignorée. Maintenant : `params.action || data.action`.
 
+### Évaluations & Notes admin — PHASE 2 EN COURS
+
+**Pages** : `admin/evaluations.html`, `admin/parametrage-eval.html`, `admin/tableau-bord.html` (placeholder)
+**Fichiers** : `js/admin-evaluations.js` (~670 lignes), `js/admin-parametrage-eval.js` (~430 lignes), `css/admin-evaluations.css`, `css/admin-parametrage-eval.css`
+**Backend** : `Evaluations.gs` (~990 lignes)
+
+**Ce que fait le module :**
+- **Page Évaluations** : gestion des évaluations de progression (4 types : connaissances, savoir-faire, compétences, bonus) + sommatives (5ème onglet)
+- Toggle matière (FR / HG-EMC / Toutes) pour filtrer les évaluations par matière
+- Chaque évaluation a un champ `matiere` (FR, HG-EMC, Les deux) — les "Les deux" comptent 100% dans chaque matière
+- Onglet **Sommatives** : CRUD évaluations sommatives (note /barème, coefficient, date, semestre)
+- **Saisie des résultats** : vue pleine page avec tableau des élèves, colonnes score, points, mode (papier/numérique), source (auto/manuel), remarque
+- **Saisie des notes sommatives** : vue similaire avec note /barème et remarque
+- **Bandeau corrections** : compte les copies à corriger (EleveEntrainementsCompetences avec statut='soumis')
+- **Page Paramétrage** : 2 onglets — Notes de progression (semestres, config par matière) et Référentiel compétences (CRUD avec filtre matière)
+
+**Tables backend (Phase 1)** :
+- `PARAMETRES_NOTES` : id, matiere, semestre, note_depart, budget_estime, coefficient_progression, date_debut, date_fin
+- `NOTES_SOMMATIVES` : id, titre, matiere, bareme, coefficient, date, semestre
+- `RESULTATS_SOMMATIVES` : id, sommative_id, eleve_id, note, statut, remarque_texte, remarque_media, date_saisie
+- `OBJECTIFS_ELEVES` : id, eleve_id, matiere, semestre, objectif_note
+- `EVALUATION_RESULTATS` : ajout colonnes mode, source, remarque_texte, remarque_media, statut (upsert)
+
+**Appels API (évaluations)** : `createEvaluation`, `updateEvaluation`, `deleteEvaluation`, `saveEvaluationResult`, `getEvaluationResults`
+**Appels API (sommatives)** : `createNoteSommative`, `updateNoteSommative`, `deleteNoteSommative`, `saveResultatSommative`, `getResultatsSommatives`
+**Appels API (paramétrage)** : `saveParametresNotes`, `getParametresNotes`, `saveObjectifEleve`, `getObjectifsEleves`
+
+**Sidebar admin** (4 items) : Évaluations, Tableau de bord, Paramétrage, Suivi
+
+**Phases restantes** :
+- Phase 3 : Tableau de bord (calcul des notes, vue classe, fiche élève)
+- Phase 4 : Pages élève + enrichissement Suivi
+
+**État** : Phase 1 complète (backend + paramétrage + sidebar). Phase 2 complète (matière, sommatives, saisie, corrections banner).
+
 ### Points structurels
 
 - **Sécurité** : mots de passe en clair dans Google Sheets, pas d'auth côté serveur, clé API exposée côté client. Acceptable pour ~50 élèves en environnement scolaire, mais à documenter.

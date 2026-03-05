@@ -1,19 +1,27 @@
 /**
  * Admin Evaluations - Gestion des evaluations
+ * Phase 2 : matière toggle, sommatives, saisie des résultats, corrections banner
  */
 
 const AdminEvaluations = {
     // Data
     evaluations: [],
+    sommatives: [],
+    resultats: [],
+    resultatsSommatives: [],
     chapitres: [],
     themes: [],
     disciplines: [],
     methodologies: [],
     bexConfig: [],
     eleves: [],
+    correctionsCount: 0,
 
     // Current tab type
     currentType: 'connaissances',
+
+    // Current matière filter
+    currentMatiere: 'all',
 
     // Filters
     filters: {
@@ -22,12 +30,18 @@ const AdminEvaluations = {
         chapitre: ''
     },
 
+    // Saisie state
+    saisieEvaluation: null,
+    saisieChanges: {},
+    saisieSommative: null,
+
     // Type colors
     typeColors: {
         'connaissances': 'green',
         'savoir-faire': 'orange',
         'competences': 'purple',
-        'bonus': 'yellow'
+        'bonus': 'yellow',
+        'sommatives': 'blue'
     },
 
     // ========== INITIALIZATION ==========
@@ -38,6 +52,7 @@ const AdminEvaluations = {
             this.populateFilters();
             this.updateCounts();
             this.renderEvaluations();
+            this.updateCorrectionsBanner();
             this.showContent();
         } catch (error) {
             console.error('Erreur initialisation:', error);
@@ -46,24 +61,26 @@ const AdminEvaluations = {
     },
 
     async loadData() {
-        // Note: EVALUATIONS table needs to be created in Google Sheets
-        // Columns: id, type, titre, description, chapitre_id, statut, briques, seuil,
-        //          methodologie_id, criteres, date_creation, date_publication
-
         const [
             disciplinesData,
             themesData,
             chapitresData,
             methodologiesData,
             bexConfigData,
-            elevesData
+            elevesData,
+            sommativesData,
+            resultatsSommativesData,
+            eleveCompetencesData
         ] = await Promise.all([
             SheetsAPI.getSheetData('DISCIPLINES'),
             SheetsAPI.getSheetData('THEMES'),
             SheetsAPI.getSheetData('CHAPITRES'),
             SheetsAPI.getSheetData('METHODOLOGIE').catch(() => []),
             SheetsAPI.getSheetData('BEX_CONFIG').catch(() => []),
-            SheetsAPI.getSheetData('UTILISATEURS').catch(() => [])
+            SheetsAPI.getSheetData('UTILISATEURS').catch(() => []),
+            SheetsAPI.getSheetData('NOTES_SOMMATIVES').catch(() => []),
+            SheetsAPI.getSheetData('RESULTATS_SOMMATIVES').catch(() => []),
+            SheetsAPI.getSheetData('EleveEntrainementsCompetences').catch(() => [])
         ]);
 
         this.disciplines = SheetsAPI.parseSheetData(disciplinesData);
@@ -72,13 +89,27 @@ const AdminEvaluations = {
         this.methodologies = SheetsAPI.parseSheetData(methodologiesData);
         this.bexConfig = SheetsAPI.parseSheetData(bexConfigData);
         this.eleves = SheetsAPI.parseSheetData(elevesData).filter(u => u.role === 'eleve');
+        this.sommatives = SheetsAPI.parseSheetData(sommativesData);
+        this.resultatsSommatives = SheetsAPI.parseSheetData(resultatsSommativesData);
 
-        // Try to load evaluations (may not exist yet)
+        // Count corrections needed (competences with statut 'soumis')
+        const eleveCompetences = SheetsAPI.parseSheetData(eleveCompetencesData);
+        this.correctionsCount = eleveCompetences.filter(ec => ec.statut === 'soumis').length;
+
+        // Load evaluations
         try {
             const evaluationsData = await SheetsAPI.getSheetData('EVALUATIONS');
             this.evaluations = SheetsAPI.parseSheetData(evaluationsData);
-        } catch (e) {
+        } catch (_e) {
             this.evaluations = [];
+        }
+
+        // Load evaluation results
+        try {
+            const resultatsData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+            this.resultats = SheetsAPI.parseSheetData(resultatsData);
+        } catch (_e) {
+            this.resultats = [];
         }
     },
 
@@ -92,15 +123,29 @@ const AdminEvaluations = {
             <div class="empty-state">
                 <div class="empty-icon">!</div>
                 <h3>Erreur</h3>
-                <p>${message}</p>
+                <p>${escapeHtml(message)}</p>
             </div>
         `;
+    },
+
+    // ========== NOTIFICATIONS ==========
+    showNotification(message, type) {
+        const el = document.getElementById('notification');
+        el.textContent = message;
+        el.className = 'notification notification-' + (type || 'success') + ' show';
+        setTimeout(() => { el.classList.remove('show'); }, type === 'error' ? 6000 : 4000);
     },
 
     // ========== EVENT LISTENERS ==========
     setupEventListeners() {
         // Add button
-        document.getElementById('addEvaluationBtn').addEventListener('click', () => this.openModal());
+        document.getElementById('addEvaluationBtn').addEventListener('click', () => {
+            if (this.currentType === 'sommatives') {
+                this.openSommativeModal();
+            } else {
+                this.openModal();
+            }
+        });
 
         // Tab clicks
         document.querySelectorAll('.eval-tab').forEach(tab => {
@@ -108,6 +153,22 @@ const AdminEvaluations = {
                 const type = e.currentTarget.dataset.type;
                 this.switchTab(type);
             });
+        });
+
+        // Matière toggle
+        document.querySelectorAll('.matiere-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.matiere-btn').forEach(b => b.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                this.currentMatiere = e.currentTarget.dataset.matiere;
+                this.updateCounts();
+                this.renderEvaluations();
+            });
+        });
+
+        // Matière select in modal — show help for "Les deux"
+        document.getElementById('evalMatiere').addEventListener('change', (e) => {
+            document.getElementById('matiereHelp').style.display = e.target.value === 'Les deux' ? 'block' : 'none';
         });
 
         // Search
@@ -143,6 +204,11 @@ const AdminEvaluations = {
             });
         });
 
+        // Sommative modal
+        document.getElementById('closeSommativeModal').addEventListener('click', () => this.closeSommativeModal());
+        document.getElementById('cancelSommativeBtn').addEventListener('click', () => this.closeSommativeModal());
+        document.getElementById('saveSommativeBtn').addEventListener('click', () => this.saveSommative());
+
         // Attribution modal
         document.getElementById('closeAttributionModal').addEventListener('click', () => this.closeAttributionModal());
         document.getElementById('cancelAttributionBtn').addEventListener('click', () => this.closeAttributionModal());
@@ -154,13 +220,32 @@ const AdminEvaluations = {
         document.getElementById('confirmDeleteBtn').addEventListener('click', () => this.deleteEvaluation());
 
         // Modal overlays
-        ['evaluationModal', 'attributionModal', 'deleteModal'].forEach(id => {
+        ['evaluationModal', 'attributionModal', 'deleteModal', 'sommativeModal'].forEach(id => {
             document.getElementById(id).addEventListener('click', (e) => {
                 if (e.target.classList.contains('modal-overlay')) {
                     document.getElementById(id).classList.add('hidden');
                 }
             });
         });
+
+        // Saisie back button
+        document.getElementById('saisieBackBtn').addEventListener('click', () => this.closeSaisie());
+    },
+
+    // ========== CORRECTIONS BANNER ==========
+    updateCorrectionsBanner() {
+        const banner = document.getElementById('correctionsBanner');
+        const countEl = document.getElementById('correctionsCount');
+        if (this.correctionsCount > 0) {
+            countEl.textContent = this.correctionsCount;
+            banner.style.display = 'flex';
+        } else {
+            banner.style.display = 'none';
+        }
+    },
+
+    goToCorrections() {
+        window.location.href = '/Brikks/admin/corrections.html';
     },
 
     // ========== TABS ==========
@@ -175,21 +260,51 @@ const AdminEvaluations = {
             }
         });
 
+        // Update add button text
+        const addBtn = document.getElementById('addEvaluationBtn');
+        if (type === 'sommatives') {
+            addBtn.innerHTML = '<span>➕</span> Nouvelle sommative';
+        } else {
+            addBtn.innerHTML = '<span>➕</span> Nouvelle évaluation';
+        }
+
         this.renderEvaluations();
     },
 
     updateCounts() {
         const types = ['connaissances', 'savoir-faire', 'competences', 'bonus'];
         types.forEach(type => {
-            const count = this.evaluations.filter(e => e.type === type).length;
-            const countEl = document.getElementById(`count${this.capitalizeFirst(type.replace('-', ''))}`);
+            const count = this._filterByMatiere(this.evaluations.filter(e => e.type === type)).length;
+            const countEl = document.getElementById(`count${this._capitalizeType(type)}`);
             if (countEl) countEl.textContent = count;
+        });
+
+        // Sommatives count
+        const somCount = this._filterSommativesByMatiere(this.sommatives).length;
+        const somCountEl = document.getElementById('countSommatives');
+        if (somCountEl) somCountEl.textContent = somCount;
+    },
+
+    _capitalizeType(str) {
+        if (str === 'savoir-faire') return 'SavoirFaire';
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    },
+
+    // ========== MATIÈRE FILTER ==========
+    _filterByMatiere(list) {
+        if (this.currentMatiere === 'all') return list;
+        return list.filter(e => {
+            const m = e.matiere || '';
+            return m === this.currentMatiere || m === 'Les deux';
         });
     },
 
-    capitalizeFirst(str) {
-        if (!str) return '';
-        return str.charAt(0).toUpperCase() + str.slice(1).replace('Faire', 'Faire');
+    _filterSommativesByMatiere(list) {
+        if (this.currentMatiere === 'all') return list;
+        return list.filter(s => {
+            const m = s.matiere || '';
+            return m === this.currentMatiere || m === 'Les deux';
+        });
     },
 
     // ========== FILTERS ==========
@@ -201,10 +316,15 @@ const AdminEvaluations = {
 
     // ========== RENDER ==========
     renderEvaluations() {
+        if (this.currentType === 'sommatives') {
+            this._renderSommatives();
+            return;
+        }
+
         const container = document.getElementById('evaluationsList');
         const emptyState = document.getElementById('emptyState');
 
-        // Filter by current type and other filters
+        // Filter by current type, matière and other filters
         let filtered = this.evaluations.filter(e => {
             if (e.type !== this.currentType) return false;
             if (this.filters.search) {
@@ -215,6 +335,8 @@ const AdminEvaluations = {
             if (this.filters.chapitre && e.chapitre_id !== this.filters.chapitre) return false;
             return true;
         });
+
+        filtered = this._filterByMatiere(filtered);
 
         if (filtered.length === 0) {
             container.innerHTML = '';
@@ -229,9 +351,9 @@ const AdminEvaluations = {
         const chapitre = this.chapitres.find(c => c.id === evaluation.chapitre_id);
         const typeClass = evaluation.type || 'connaissances';
         const statusClass = evaluation.statut || 'brouillon';
-        const order = evaluation.ordre || this.getEvaluationOrder(evaluation);
+        const order = evaluation.ordre || this._getEvaluationOrder(evaluation);
 
-        // Status labels with emoji
+        // Status labels
         const statusLabels = {
             'brouillon': '📝 Brouillon',
             'planifiee': '📅 Planifiée',
@@ -239,7 +361,7 @@ const AdminEvaluations = {
             'terminee': '✅ Terminée'
         };
 
-        // Type icons for order badge
+        // Order badge
         const typeIcons = {
             'connaissances': order,
             'savoir-faire': `B${order}`,
@@ -247,138 +369,190 @@ const AdminEvaluations = {
             'bonus': '⭐'
         };
 
+        // Matière badge
+        const matiere = evaluation.matiere || '';
+        let matiereBadge = '';
+        if (matiere === 'FR') {
+            matiereBadge = '<span class="matiere-badge fr">🇫🇷 FR</span>';
+        } else if (matiere === 'HG-EMC') {
+            matiereBadge = '<span class="matiere-badge hg">🌍 HG</span>';
+        } else if (matiere === 'Les deux') {
+            matiereBadge = '<span class="matiere-badge both">🔗 FR+HG</span>';
+        }
+
+        // Results stats
+        const evalResults = this.resultats.filter(r =>
+            String(r.evaluation_id).trim() === String(evaluation.id).trim()
+        );
+        const totalEleves = this.eleves.length || 25;
+        const saisis = evalResults.length;
+        const validated = evalResults.filter(r => r.is_validated === true || r.is_validated === 'true').length;
+
         // Type-specific meta info
         let metaItems = [];
-        let statsHtml = '';
-        let extraButtons = '';
-
         if (evaluation.type === 'connaissances') {
             metaItems = [
-                `📅 ${evaluation.date_creation || 'Non planifié'}`,
-                `🎯 ${evaluation.briques || 2} briques`,
+                `🎯 ${evaluation.briques || 2} pts`,
                 `📊 Seuil: ${evaluation.seuil || 80}%`
             ];
-            if (chapitre) {
-                extraButtons = `<a href="#" class="link-badge" onclick="return false;">📚 Voir le cours</a>`;
-            }
-            // Progress stats (mock data)
-            const validated = evaluation.validated || 0;
-            const total = this.eleves.length || 25;
-            const percent = total > 0 ? Math.round((validated / total) * 100) : 0;
-            statsHtml = `
-                <div class="eval-card-stats">
-                    <div class="eval-stat">
-                        <div class="eval-stat-value">${validated}/${total}</div>
-                        <div class="eval-stat-label">Validés</div>
-                    </div>
-                    <div class="progress-mini">
-                        <div class="progress-mini-fill" style="width: ${percent}%"></div>
-                    </div>
-                </div>
-            `;
+            if (chapitre) metaItems.push(`📚 ${escapeHtml(chapitre.titre || chapitre.id)}`);
         } else if (evaluation.type === 'savoir-faire') {
-            const methodo = this.bexConfig.find(b => b.id === evaluation.methodologie_id);
             metaItems = [
-                `📅 ${evaluation.date_creation || 'Depuis le ...'}`,
-                `🎯 ${evaluation.briques || '1-2'} briques`,
-                `📄 ${evaluation.sujets_count || 0} sujets`
+                `🎯 ${evaluation.briques || 2} pts`
             ];
-            if (methodo) {
-                extraButtons = `<a href="#" class="link-badge" onclick="return false;">🧠 Méthodologie</a>`;
-            }
-            const unlocked = evaluation.unlocked || 0;
-            const total = this.eleves.length || 25;
-            statsHtml = `
-                <div class="eval-card-stats">
-                    <div class="eval-stat">
-                        <div class="eval-stat-value">${unlocked}/${total}</div>
-                        <div class="eval-stat-label">Débloqué</div>
-                    </div>
-                </div>
-            `;
         } else if (evaluation.type === 'competences') {
             metaItems = [
-                `📅 ${evaluation.date_creation || 'Non planifié'}`,
-                `🎯 ${evaluation.competences_count || 0} compétences`
+                `🎯 ${evaluation.briques || 2} pts`
             ];
-            const briques = evaluation.briques_attribuees || 0;
-            statsHtml = `
-                <div class="eval-card-stats">
-                    <div class="eval-stat">
-                        <div class="eval-stat-value">${briques}</div>
-                        <div class="eval-stat-label">Briques attribuées</div>
-                    </div>
-                </div>
-            `;
         } else if (evaluation.type === 'bonus') {
             metaItems = [
-                `🎯 ${evaluation.briques || 5} briques max`,
-                `📊 ${evaluation.validation_rule || '3 validations = 1 brique'}`
+                `🎯 ${evaluation.briques || 5} pts max`
             ];
-            const validations = evaluation.validations_count || 0;
-            statsHtml = `
-                <div class="eval-card-stats">
-                    <div class="eval-stat">
-                        <div class="eval-stat-value">${validations}</div>
-                        <div class="eval-stat-label">Validations</div>
-                    </div>
-                </div>
-            `;
         }
+
+        const statsHtml = `
+            <div class="eval-card-stats">
+                <div class="eval-stat">
+                    <div class="eval-stat-value">${saisis}/${totalEleves}</div>
+                    <div class="eval-stat-label">Saisis</div>
+                </div>
+                ${validated > 0 ? `
+                <div class="eval-stat">
+                    <div class="eval-stat-value">${validated}</div>
+                    <div class="eval-stat-label">Validés</div>
+                </div>` : ''}
+            </div>
+        `;
+
+        const canSaisir = statusClass === 'publiee' || statusClass === 'terminee';
 
         return `
             <div class="eval-card ${typeClass}" data-id="${evaluation.id}">
                 <div class="eval-card-main">
-                    <div class="eval-card-order ${typeClass}">${typeIcons[typeClass]}</div>
+                    <div class="eval-card-order ${typeClass}">${typeIcons[typeClass] || order}</div>
                     <div class="eval-card-content">
                         <div class="eval-card-title">
                             ${escapeHtml(evaluation.titre || 'Sans titre')}
+                            ${matiereBadge}
                             <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
                         </div>
                         <div class="eval-card-meta">
                             ${metaItems.map(item => `<span>${item}</span>`).join('')}
-                            ${extraButtons}
                         </div>
                     </div>
                     ${statsHtml}
                     <div class="eval-card-actions">
+                        ${canSaisir ? `<button class="btn-icon" onclick="AdminEvaluations.openSaisie('${evaluation.id}')" title="Saisir résultats">📝</button>` : ''}
                         ${evaluation.type === 'connaissances' || evaluation.type === 'savoir-faire' ?
                             `<button class="btn-icon" onclick="AdminEvaluations.openAttributionModal('${evaluation.id}')" title="Attribuer sujets">👥</button>` : ''}
                         <button class="btn-icon" onclick="AdminEvaluations.editEvaluation('${evaluation.id}')" title="Modifier">✏️</button>
-                        ${statusClass === 'publiee' ? `<button class="btn-icon" title="Saisir résultats">📝</button>` : ''}
-                        <button class="btn-icon danger" onclick="AdminEvaluations.confirmDelete('${evaluation.id}')" title="Supprimer">🗑️</button>
+                        <button class="btn-icon danger" onclick="AdminEvaluations.confirmDelete('${evaluation.id}', 'evaluation')" title="Supprimer">🗑️</button>
                     </div>
                 </div>
             </div>
         `;
     },
 
-    getEvaluationOrder(evaluation) {
+    _getEvaluationOrder(evaluation) {
         const sameType = this.evaluations.filter(e => e.type === evaluation.type);
         const index = sameType.findIndex(e => e.id === evaluation.id);
         return index >= 0 ? index + 1 : 1;
     },
 
-    // ========== MODAL ==========
+    // ========== SOMMATIVES RENDER ==========
+    _renderSommatives() {
+        const container = document.getElementById('evaluationsList');
+        const emptyState = document.getElementById('emptyState');
+
+        let filtered = this._filterSommativesByMatiere(this.sommatives);
+
+        if (this.filters.search) {
+            filtered = filtered.filter(s => {
+                const searchIn = `${s.titre || ''}`.toLowerCase();
+                return searchIn.includes(this.filters.search);
+            });
+        }
+
+        if (filtered.length === 0) {
+            container.innerHTML = '';
+            emptyState.style.display = 'block';
+        } else {
+            emptyState.style.display = 'none';
+            container.innerHTML = filtered.map(s => this._renderSommativeCard(s)).join('');
+        }
+    },
+
+    _renderSommativeCard(sommative) {
+        const matiere = sommative.matiere || 'FR';
+        let matiereBadge = '';
+        if (matiere === 'FR') {
+            matiereBadge = '<span class="matiere-badge fr">🇫🇷 FR</span>';
+        } else if (matiere === 'HG-EMC') {
+            matiereBadge = '<span class="matiere-badge hg">🌍 HG</span>';
+        } else if (matiere === 'Les deux') {
+            matiereBadge = '<span class="matiere-badge both">🔗 FR+HG</span>';
+        }
+
+        // Count results
+        const somResults = this.resultatsSommatives.filter(r =>
+            String(r.sommative_id).trim() === String(sommative.id).trim()
+        );
+        const saisis = somResults.filter(r => r.note !== '' && r.note !== undefined).length;
+        const totalEleves = this.eleves.length || 25;
+
+        return `
+            <div class="eval-card sommatives" data-id="${sommative.id}">
+                <div class="eval-card-main">
+                    <div class="eval-card-order sommatives">/${sommative.bareme || 20}</div>
+                    <div class="eval-card-content">
+                        <div class="eval-card-title">
+                            ${escapeHtml(sommative.titre || 'Sans titre')}
+                            ${matiereBadge}
+                            ${sommative.date ? `<span class="date-badge">📅 ${sommative.date}</span>` : ''}
+                        </div>
+                        <div class="eval-card-meta">
+                            <span>📊 Coef. ${sommative.coefficient || 1}</span>
+                            <span>📅 S${sommative.semestre || 1}</span>
+                        </div>
+                    </div>
+                    <div class="eval-card-stats">
+                        <div class="eval-stat">
+                            <div class="eval-stat-value">${saisis}/${totalEleves}</div>
+                            <div class="eval-stat-label">Notes saisies</div>
+                        </div>
+                    </div>
+                    <div class="eval-card-actions">
+                        <button class="btn-icon" onclick="AdminEvaluations.openSaisieSommative('${sommative.id}')" title="Saisir notes">📝</button>
+                        <button class="btn-icon" onclick="AdminEvaluations.editSommative('${sommative.id}')" title="Modifier">✏️</button>
+                        <button class="btn-icon danger" onclick="AdminEvaluations.confirmDelete('${sommative.id}', 'sommative')" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    // ========== EVALUATION MODAL ==========
     openModal(evaluation = null) {
         const modal = document.getElementById('evaluationModal');
         const title = document.getElementById('evaluationModalTitle');
         const typeSelector = document.getElementById('typeSelector');
 
         // Populate selects
-        this.populateChapitreSelect();
-        this.populateMethodologieSelects();
+        this._populateChapitreSelect();
+        this._populateMethodologieSelects();
 
         if (evaluation) {
-            title.textContent = 'Modifier l\'evaluation';
+            title.textContent = 'Modifier l\'évaluation';
             typeSelector.style.display = 'none';
             document.getElementById('editEvaluationId').value = evaluation.id;
             document.getElementById('evalTitre').value = evaluation.titre || '';
             document.getElementById('evalBriques').value = evaluation.briques || 3;
+            document.getElementById('evalMatiere').value = evaluation.matiere || 'FR';
             document.getElementById('evalStatut').value = evaluation.statut || 'brouillon';
+            document.getElementById('evalCategorie').value = evaluation.categorie || '';
             document.getElementById('evalDescription').value = evaluation.description || '';
+            document.getElementById('matiereHelp').style.display = evaluation.matiere === 'Les deux' ? 'block' : 'none';
 
-            // Type-specific
             if (evaluation.type === 'connaissances') {
                 document.getElementById('evalSeuil').value = evaluation.seuil || 80;
                 document.getElementById('evalChapitre').value = evaluation.chapitre_id || '';
@@ -395,25 +569,31 @@ const AdminEvaluations = {
 
             this.onTypeChange(evaluation.type);
         } else {
-            title.textContent = 'Creer une evaluation';
+            title.textContent = 'Créer une évaluation';
             typeSelector.style.display = 'block';
             document.getElementById('editEvaluationId').value = '';
             document.getElementById('evalTitre').value = '';
             document.getElementById('evalBriques').value = 3;
+            document.getElementById('evalMatiere').value = this.currentMatiere !== 'all' ? this.currentMatiere : 'FR';
             document.getElementById('evalStatut').value = 'brouillon';
+            document.getElementById('evalCategorie').value = '';
             document.getElementById('evalDescription').value = '';
             document.getElementById('evalSeuil').value = 80;
             document.getElementById('evalChapitre').value = '';
             document.getElementById('evalMethodologie').value = '';
             document.getElementById('evalMethodologieTC').value = '';
             document.getElementById('evalCriteres').value = '';
+            document.getElementById('matiereHelp').style.display = 'none';
 
-            // Reset type selector
+            // Reset type selector to current tab
             document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
-            document.querySelector('.type-card[data-type="connaissances"]').classList.add('selected');
-            document.querySelector('input[name="evalType"][value="connaissances"]').checked = true;
-
-            this.onTypeChange('connaissances');
+            const defaultType = this.currentType !== 'sommatives' ? this.currentType : 'connaissances';
+            const defaultCard = document.querySelector(`.type-card[data-type="${defaultType}"]`);
+            if (defaultCard) {
+                defaultCard.classList.add('selected');
+                defaultCard.querySelector('input').checked = true;
+            }
+            this.onTypeChange(defaultType);
         }
 
         modal.classList.remove('hidden');
@@ -423,13 +603,13 @@ const AdminEvaluations = {
         document.getElementById('evaluationModal').classList.add('hidden');
     },
 
-    populateChapitreSelect() {
+    _populateChapitreSelect() {
         const select = document.getElementById('evalChapitre');
         select.innerHTML = '<option value="">Selectionner...</option>' +
             this.chapitres.map(c => `<option value="${c.id}">${escapeHtml(c.titre || c.id)}</option>`).join('');
     },
 
-    populateMethodologieSelects() {
+    _populateMethodologieSelects() {
         const savoirFaire = this.bexConfig.filter(b => b.type === 'savoir-faire');
         const competences = this.bexConfig.filter(b => b.type === 'competences');
 
@@ -443,12 +623,10 @@ const AdminEvaluations = {
     },
 
     onTypeChange(type) {
-        // Hide all type-specific fields
         document.querySelectorAll('.type-fields').forEach(el => {
             el.style.display = 'none';
         });
 
-        // Show relevant fields
         switch (type) {
             case 'connaissances':
                 document.getElementById('connaissancesFields').style.display = 'block';
@@ -465,18 +643,20 @@ const AdminEvaluations = {
         }
     },
 
-    // ========== SAVE ==========
+    // ========== SAVE EVALUATION ==========
     async saveEvaluation() {
         const id = document.getElementById('editEvaluationId').value;
         const type = id ? this.evaluations.find(e => e.id === id)?.type :
             document.querySelector('input[name="evalType"]:checked')?.value;
         const titre = document.getElementById('evalTitre').value.trim();
         const briques = parseInt(document.getElementById('evalBriques').value) || 3;
+        const matiere = document.getElementById('evalMatiere').value;
         const statut = document.getElementById('evalStatut').value;
+        const categorie = document.getElementById('evalCategorie').value;
         const description = document.getElementById('evalDescription').value.trim();
 
         if (!titre) {
-            alert('Veuillez saisir un titre');
+            this.showNotification('Veuillez saisir un titre', 'error');
             return;
         }
 
@@ -484,12 +664,13 @@ const AdminEvaluations = {
             type,
             titre,
             briques,
+            matiere,
             statut,
+            categorie: categorie || type,
             description,
             date_creation: new Date().toISOString().split('T')[0]
         };
 
-        // Type-specific data
         if (type === 'connaissances') {
             data.seuil = parseInt(document.getElementById('evalSeuil').value) || 80;
             data.chapitre_id = document.getElementById('evalChapitre').value;
@@ -518,19 +699,354 @@ const AdminEvaluations = {
 
             if (result.success) {
                 this.closeModal();
+                SheetsAPI.clearCache();
                 await this.loadData();
                 this.updateCounts();
                 this.renderEvaluations();
+                this.showNotification(id ? 'Évaluation modifiée' : 'Évaluation créée');
             } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                this.showNotification('Erreur: ' + (result.error || 'Erreur inconnue'), 'error');
             }
         } catch (error) {
             console.error('Erreur sauvegarde:', error);
-            // For now, simulate success since table might not exist
-            alert('Note: La table EVALUATIONS doit etre creee dans Google Sheets.\nColonnes: id, type, titre, description, chapitre_id, statut, briques, seuil, methodologie_id, criteres, date_creation');
+            this.showNotification('Erreur lors de la sauvegarde', 'error');
         } finally {
             document.getElementById('saveEvaluationBtn').disabled = false;
             document.getElementById('saveEvaluationBtn').textContent = 'Enregistrer';
+        }
+    },
+
+    // ========== SOMMATIVE MODAL ==========
+    openSommativeModal(sommative = null) {
+        const modal = document.getElementById('sommativeModal');
+        const title = document.getElementById('sommativeModalTitle');
+
+        if (sommative) {
+            title.textContent = 'Modifier la sommative';
+            document.getElementById('editSommativeId').value = sommative.id;
+            document.getElementById('somTitre').value = sommative.titre || '';
+            document.getElementById('somMatiere').value = sommative.matiere || 'FR';
+            document.getElementById('somBareme').value = sommative.bareme || 20;
+            document.getElementById('somCoefficient').value = sommative.coefficient || 1;
+            document.getElementById('somDate').value = sommative.date || '';
+            document.getElementById('somSemestre').value = sommative.semestre || '1';
+        } else {
+            title.textContent = 'Nouvelle évaluation sommative';
+            document.getElementById('editSommativeId').value = '';
+            document.getElementById('somTitre').value = '';
+            document.getElementById('somMatiere').value = this.currentMatiere !== 'all' ? this.currentMatiere : 'FR';
+            document.getElementById('somBareme').value = 20;
+            document.getElementById('somCoefficient').value = 1;
+            document.getElementById('somDate').value = '';
+            document.getElementById('somSemestre').value = '1';
+        }
+
+        modal.classList.remove('hidden');
+    },
+
+    closeSommativeModal() {
+        document.getElementById('sommativeModal').classList.add('hidden');
+    },
+
+    editSommative(id) {
+        const sommative = this.sommatives.find(s => s.id === id);
+        if (sommative) this.openSommativeModal(sommative);
+    },
+
+    async saveSommative() {
+        const id = document.getElementById('editSommativeId').value;
+        const titre = document.getElementById('somTitre').value.trim();
+
+        if (!titre) {
+            this.showNotification('Veuillez saisir un titre', 'error');
+            return;
+        }
+
+        const data = {
+            titre,
+            matiere: document.getElementById('somMatiere').value,
+            bareme: parseInt(document.getElementById('somBareme').value) || 20,
+            coefficient: parseFloat(document.getElementById('somCoefficient').value) || 1,
+            date: document.getElementById('somDate').value,
+            semestre: document.getElementById('somSemestre').value
+        };
+
+        try {
+            const saveBtn = document.getElementById('saveSommativeBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Enregistrement...';
+
+            let result;
+            if (id) {
+                data.id = id;
+                result = await this.callAPI('updateNoteSommative', data);
+            } else {
+                result = await this.callAPI('createNoteSommative', data);
+            }
+
+            if (result.success) {
+                this.closeSommativeModal();
+                SheetsAPI.clearCache();
+                await this.loadData();
+                this.updateCounts();
+                this.renderEvaluations();
+                this.showNotification(id ? 'Sommative modifiée' : 'Sommative créée');
+            } else {
+                this.showNotification('Erreur: ' + (result.error || 'Erreur inconnue'), 'error');
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde sommative:', error);
+            this.showNotification('Erreur lors de la sauvegarde', 'error');
+        } finally {
+            const saveBtn = document.getElementById('saveSommativeBtn');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Enregistrer';
+        }
+    },
+
+    // ========== SAISIE DES RÉSULTATS (progression) ==========
+    openSaisie(evaluationId) {
+        const evaluation = this.evaluations.find(e => e.id === evaluationId);
+        if (!evaluation) return;
+
+        this.saisieEvaluation = evaluation;
+        this.saisieSommative = null;
+        this.saisieChanges = {};
+
+        // Get existing results for this evaluation
+        const evalResults = this.resultats.filter(r =>
+            String(r.evaluation_id).trim() === String(evaluationId).trim()
+        );
+        const resultsMap = {};
+        evalResults.forEach(r => { resultsMap[String(r.eleve_id).trim()] = r; });
+
+        // Update header
+        document.getElementById('saisieTitle').textContent = escapeHtml(evaluation.titre || 'Sans titre');
+
+        const matLabel = evaluation.matiere === 'FR' ? '🇫🇷 Français' :
+            evaluation.matiere === 'HG-EMC' ? '🌍 HG-EMC' :
+            evaluation.matiere === 'Les deux' ? '🔗 Les deux matières' : '';
+        document.getElementById('saisieSubtitle').textContent =
+            `${this._capitalizeType(evaluation.type)} · ${matLabel} · ${evaluation.briques || 0} pts`;
+
+        // Update table headers for progression eval
+        document.getElementById('saisieTableHead').innerHTML = `
+            <th class="col-eleve">Élève</th>
+            <th class="col-mode">Mode</th>
+            <th class="col-score">Score (%)</th>
+            <th class="col-validations">Points</th>
+            <th class="col-source">Source</th>
+            <th class="col-remarque">Remarque</th>
+            <th class="col-actions">Actions</th>
+        `;
+
+        // Render student rows
+        const tbody = document.getElementById('saisieTableBody');
+        tbody.innerHTML = this.eleves.map(eleve => {
+            const r = resultsMap[String(eleve.id).trim()] || {};
+            const score = r.score !== undefined && r.score !== '' ? r.score : '';
+            const validations = r.validations !== undefined && r.validations !== '' ? r.validations : '';
+            const mode = r.mode || 'numerique';
+            const source = r.source || 'auto';
+            const remarque = r.remarque_texte || '';
+
+            return `
+                <tr data-eleve-id="${eleve.id}">
+                    <td class="col-eleve">
+                        <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
+                    </td>
+                    <td class="col-mode">
+                        <select class="saisie-select mode-select" data-field="mode" onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'mode', this.value)">
+                            <option value="numerique" ${mode === 'numerique' ? 'selected' : ''}>💻 Numérique</option>
+                            <option value="papier" ${mode === 'papier' ? 'selected' : ''}>📄 Papier</option>
+                        </select>
+                    </td>
+                    <td class="col-score">
+                        <input type="number" class="saisie-input" value="${score}" min="0" max="100"
+                            placeholder="—"
+                            onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'score', this.value)">
+                    </td>
+                    <td class="col-validations">
+                        <input type="number" class="saisie-input" value="${validations}" min="0" max="${evaluation.briques || 10}"
+                            placeholder="—"
+                            onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'validations', this.value)">
+                    </td>
+                    <td class="col-source">
+                        <select class="saisie-select source-select" data-field="source" onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'source', this.value)">
+                            <option value="auto" ${source === 'auto' ? 'selected' : ''}>Auto</option>
+                            <option value="manuel" ${source === 'manuel' ? 'selected' : ''}>Manuel</option>
+                        </select>
+                    </td>
+                    <td class="col-remarque">
+                        <input type="text" class="saisie-input remarque-input" value="${escapeHtml(remarque)}"
+                            placeholder="Remarque..."
+                            onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'remarque_texte', this.value)">
+                    </td>
+                    <td class="col-actions">
+                        ${r.id ? '<span class="saisie-saved">✓</span>' : ''}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Show saisie view, hide list
+        document.getElementById('evaluations-content').style.display = 'none';
+        document.getElementById('saisie-content').style.display = 'block';
+    },
+
+    // ========== SAISIE DES RÉSULTATS (sommative) ==========
+    openSaisieSommative(sommativeId) {
+        const sommative = this.sommatives.find(s => s.id === sommativeId);
+        if (!sommative) return;
+
+        this.saisieSommative = sommative;
+        this.saisieEvaluation = null;
+        this.saisieChanges = {};
+
+        // Get existing results
+        const somResults = this.resultatsSommatives.filter(r =>
+            String(r.sommative_id).trim() === String(sommativeId).trim()
+        );
+        const resultsMap = {};
+        somResults.forEach(r => { resultsMap[String(r.eleve_id).trim()] = r; });
+
+        // Update header
+        document.getElementById('saisieTitle').textContent = escapeHtml(sommative.titre || 'Sans titre');
+        document.getElementById('saisieSubtitle').textContent =
+            `Sommative · /${sommative.bareme || 20} · Coef. ${sommative.coefficient || 1}`;
+
+        // Update table headers for sommative
+        document.getElementById('saisieTableHead').innerHTML = `
+            <th class="col-eleve">Élève</th>
+            <th class="col-note">Note /${sommative.bareme || 20}</th>
+            <th class="col-remarque">Remarque</th>
+            <th class="col-actions">Actions</th>
+        `;
+
+        // Render student rows
+        const bareme = sommative.bareme || 20;
+        const tbody = document.getElementById('saisieTableBody');
+        tbody.innerHTML = this.eleves.map(eleve => {
+            const r = resultsMap[String(eleve.id).trim()] || {};
+            const note = r.note !== undefined && r.note !== '' ? r.note : '';
+            const remarque = r.remarque_texte || '';
+
+            return `
+                <tr data-eleve-id="${eleve.id}">
+                    <td class="col-eleve">
+                        <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
+                    </td>
+                    <td class="col-note">
+                        <input type="number" class="saisie-input note-input" value="${note}" min="0" max="${bareme}" step="0.5"
+                            placeholder="—"
+                            onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'note', this.value)">
+                    </td>
+                    <td class="col-remarque">
+                        <input type="text" class="saisie-input remarque-input" value="${escapeHtml(remarque)}"
+                            placeholder="Remarque..."
+                            onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'remarque_texte', this.value)">
+                    </td>
+                    <td class="col-actions">
+                        ${r.id ? '<span class="saisie-saved">✓</span>' : ''}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Show saisie view
+        document.getElementById('evaluations-content').style.display = 'none';
+        document.getElementById('saisie-content').style.display = 'block';
+    },
+
+    onSaisieChange(eleveId, field, value) {
+        if (!this.saisieChanges[eleveId]) {
+            this.saisieChanges[eleveId] = {};
+        }
+        this.saisieChanges[eleveId][field] = value;
+
+        // Show save bar
+        document.getElementById('saisieSaveBar').style.display = 'flex';
+    },
+
+    cancelSaisie() {
+        this.saisieChanges = {};
+        document.getElementById('saisieSaveBar').style.display = 'none';
+        this.closeSaisie();
+    },
+
+    closeSaisie() {
+        document.getElementById('saisie-content').style.display = 'none';
+        document.getElementById('evaluations-content').style.display = 'block';
+        document.getElementById('saisieSaveBar').style.display = 'none';
+        this.saisieEvaluation = null;
+        this.saisieSommative = null;
+        this.saisieChanges = {};
+    },
+
+    async saveSaisie() {
+        const changedIds = Object.keys(this.saisieChanges);
+        if (changedIds.length === 0) {
+            this.showNotification('Aucune modification à enregistrer');
+            return;
+        }
+
+        const saveBtn = document.getElementById('saisieSaveBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Enregistrement...';
+
+        let errors = 0;
+
+        try {
+            for (const eleveId of changedIds) {
+                const changes = this.saisieChanges[eleveId];
+                let result;
+
+                if (this.saisieEvaluation) {
+                    // Progression evaluation result
+                    result = await this.callAPI('saveEvaluationResult', {
+                        evaluation_id: this.saisieEvaluation.id,
+                        eleve_id: eleveId,
+                        ...changes,
+                        is_validated: changes.score !== undefined ? parseInt(changes.score) >= (this.saisieEvaluation.seuil || 80) : undefined
+                    });
+                } else if (this.saisieSommative) {
+                    // Sommative result
+                    result = await this.callAPI('saveResultatSommative', {
+                        sommative_id: this.saisieSommative.id,
+                        eleve_id: eleveId,
+                        ...changes
+                    });
+                }
+
+                if (!result || !result.success) {
+                    errors++;
+                    console.error('Erreur sauvegarde pour élève', eleveId, result);
+                }
+            }
+
+            if (errors === 0) {
+                this.showNotification(`${changedIds.length} résultat(s) enregistré(s)`);
+                this.saisieChanges = {};
+                document.getElementById('saisieSaveBar').style.display = 'none';
+
+                // Reload data and re-open saisie
+                SheetsAPI.clearCache();
+                await this.loadData();
+
+                if (this.saisieEvaluation) {
+                    this.openSaisie(this.saisieEvaluation.id);
+                } else if (this.saisieSommative) {
+                    this.openSaisieSommative(this.saisieSommative.id);
+                }
+            } else {
+                this.showNotification(`${errors} erreur(s) lors de la sauvegarde`, 'error');
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde saisie:', error);
+            this.showNotification('Erreur lors de la sauvegarde', 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Enregistrer';
         }
     },
 
@@ -542,22 +1058,21 @@ const AdminEvaluations = {
         const evaluation = this.evaluations.find(e => e.id === evaluationId);
         if (!evaluation) return;
 
-        // Render students table
         const tbody = document.getElementById('attributionTableBody');
         tbody.innerHTML = this.eleves.map(eleve => `
             <tr>
                 <td>${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</td>
                 <td>${eleve.classe_id || '-'}</td>
-                <td><span class="progress-badge not-started">Non commence</span></td>
+                <td><span class="progress-badge not-started">Non commencé</span></td>
                 <td>
                     <select class="subject-select" data-eleve="${eleve.id}">
-                        <option value="">Aleatoire</option>
+                        <option value="">Aléatoire</option>
                         <option value="sujet_1">Sujet 1</option>
                         <option value="sujet_2">Sujet 2</option>
                     </select>
                 </td>
                 <td>
-                    <button class="btn btn-icon" title="Voir details">V</button>
+                    <button class="btn btn-icon" title="Voir détails">👁️</button>
                 </td>
             </tr>
         `).join('');
@@ -570,21 +1085,19 @@ const AdminEvaluations = {
     },
 
     async saveAttributions() {
-        // TODO: Implement attribution saving
-        alert('Fonctionnalite en cours de developpement');
+        this.showNotification('Fonctionnalité en cours de développement');
         this.closeAttributionModal();
     },
 
     // ========== DELETE ==========
     editEvaluation(id) {
         const evaluation = this.evaluations.find(e => e.id === id);
-        if (evaluation) {
-            this.openModal(evaluation);
-        }
+        if (evaluation) this.openModal(evaluation);
     },
 
-    confirmDelete(id) {
+    confirmDelete(id, type) {
         document.getElementById('deleteEvaluationId').value = id;
+        document.getElementById('deleteEvaluationType').value = type || 'evaluation';
         document.getElementById('deleteModal').classList.remove('hidden');
     },
 
@@ -594,24 +1107,32 @@ const AdminEvaluations = {
 
     async deleteEvaluation() {
         const id = document.getElementById('deleteEvaluationId').value;
+        const type = document.getElementById('deleteEvaluationType').value;
 
         try {
             document.getElementById('confirmDeleteBtn').disabled = true;
             document.getElementById('confirmDeleteBtn').textContent = 'Suppression...';
 
-            const result = await this.callAPI('deleteEvaluation', { id });
+            let result;
+            if (type === 'sommative') {
+                result = await this.callAPI('deleteNoteSommative', { id });
+            } else {
+                result = await this.callAPI('deleteEvaluation', { id });
+            }
 
             if (result.success) {
                 this.closeDeleteModal();
+                SheetsAPI.clearCache();
                 await this.loadData();
                 this.updateCounts();
                 this.renderEvaluations();
+                this.showNotification('Supprimé avec succès');
             } else {
-                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+                this.showNotification('Erreur: ' + (result.error || 'Erreur inconnue'), 'error');
             }
         } catch (error) {
             console.error('Erreur suppression:', error);
-            alert('Erreur lors de la suppression');
+            this.showNotification('Erreur lors de la suppression', 'error');
         } finally {
             document.getElementById('confirmDeleteBtn').disabled = false;
             document.getElementById('confirmDeleteBtn').textContent = 'Supprimer';
@@ -656,7 +1177,6 @@ const AdminEvaluations = {
             }, 30000);
         });
     },
-
 };
 
 // Initialize

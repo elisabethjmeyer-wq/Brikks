@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-03-05 — Session 16 : Phase 2 Évaluations (matière, sommatives, saisie)
+
+### Contexte
+Continuation du module Évaluations & Notes. Phase 1 (backend + paramétrage + sidebar) était terminée. Phase 2 enrichit la page Évaluations existante.
+
+### Modifications
+
+1. **Toggle matière** (`admin/evaluations.html`, `js/admin-evaluations.js`) : boutons FR / HG-EMC / Toutes dans le header. Filtre les évaluations et sommatives par matière. Les évaluations "Les deux" apparaissent dans les deux filtres.
+
+2. **Champ matière dans le modal** : nouveau select (FR / HG-EMC / Les deux) avec aide contextuelle "Les points comptent 100% dans chaque matière".
+
+3. **Onglet Sommatives** (5ème onglet) : CRUD complet pour les évaluations sommatives (note /barème, coefficient, date, semestre). Modal de création/modification dédié. Cartes avec compteur notes saisies/total.
+
+4. **Bandeau corrections** : affiche le nombre de copies à corriger (EleveEntrainementsCompetences statut='soumis') avec lien vers la page corrections.
+
+5. **Saisie des résultats** (vue pleine page) : clic sur 📝 d'une évaluation → tableau avec tous les élèves. Pour les évaluations de progression : colonnes mode (papier/numérique), score, points, source (auto/manuel), remarque. Pour les sommatives : note /barème et remarque. Barre de sauvegarde fixe en bas.
+
+6. **Champ catégorie** dans le modal évaluation : permet de spécifier la catégorie pour le calcul de la note de progression (par défaut = même que le type).
+
+### Fichiers modifiés
+- `admin/evaluations.html` — restructuré avec matière toggle, sommatives tab, saisie view, sommative modal
+- `js/admin-evaluations.js` — réécrit (~670 lignes) avec matière filter, sommatives CRUD, saisie view, corrections banner
+- `css/admin-evaluations.css` — réécrit avec styles pour matière toggle, badges, saisie table, sommative cards, notifications
+- `.eslintrc.json` — ajout global `AdminEvaluations`
+- `CLAUDE.md` — ajout documentation module Évaluations & Notes admin
+
+### Décisions
+- Sommatives dans un 5ème onglet (pas mélangées avec les 4 types de progression)
+- Saisie en vue pleine page (pas en modal) pour avoir de la place pour le tableau
+- Mode papier/numérique par élève par évaluation (dans EVALUATION_RESULTATS)
+
+---
+
 ## 2026-03-04 — Session 15 : Corrections bugs affichage corrigé + wizard
 
 ### Contexte
