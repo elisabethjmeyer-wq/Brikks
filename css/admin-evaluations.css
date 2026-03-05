@@ -1166,125 +1166,130 @@
     }
 }
 
-/* ===== ENTRAINEMENT SELECTOR (source questions) ===== */
+/* ===== EVALUATION WIZARD ===== */
 
-.entrainement-selector {
-    max-height: 300px;
+.modal-wizard-eval {
+    max-width: 640px;
+    width: 95vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-wizard-eval .modal-body {
+    flex: 1;
     overflow-y: auto;
-    border: 1px solid var(--gray-200);
-    border-radius: 8px;
+    padding: 24px;
+}
+
+.eval-wizard-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 24px;
+    gap: 0;
+    border-bottom: 1px solid var(--gray-200);
     background: var(--gray-50);
 }
 
-.selector-banque {
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.selector-banque:last-child {
-    border-bottom: none;
-}
-
-.selector-banque-title {
-    padding: 10px 14px;
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--gray-700);
-    background: var(--gray-100);
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.selector-entrainements {
-    padding: 4px 0;
-}
-
-.selector-entrainement {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 14px;
-    cursor: pointer;
-    transition: background 0.15s;
-    border-left: 3px solid transparent;
-}
-
-.selector-entrainement:hover {
-    background: var(--gray-100);
-}
-
-.selector-entrainement.selected {
-    background: var(--accent-blue-light);
-    border-left-color: var(--accent-blue);
-}
-
-.selector-entrainement input[type="radio"] {
-    flex-shrink: 0;
-}
-
-.selector-entrainement-info {
+.eval-wizard-step {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
-    min-width: 0;
+    padding: 6px 14px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 20px;
+    transition: all 0.2s;
+    color: var(--gray-400);
 }
 
-.selector-entrainement-title {
-    font-size: 14px;
-    color: var(--gray-800);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.eval-wizard-step.active {
+    background: var(--accent-blue);
+    color: white;
 }
 
-.badge-mini {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 500;
-    flex-shrink: 0;
-}
-
-.badge-mini.green {
-    background: var(--accent-green-light);
+.eval-wizard-step.completed {
     color: var(--accent-green);
 }
 
-.badge-mini.grey {
-    background: var(--gray-100);
+.eval-step-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    border: 2px solid currentColor;
+}
+
+.eval-wizard-step.active .eval-step-number {
+    border-color: white;
+    background: rgba(255,255,255,0.2);
+}
+
+.eval-wizard-step.completed .eval-step-number {
+    border-color: var(--accent-green);
+}
+
+.eval-step-label {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.eval-step-connector {
+    width: 32px;
+    height: 2px;
+    background: var(--gray-300);
+    margin: 0 4px;
+}
+
+/* Wizard step content */
+.eval-wizard-step-content {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.eval-wizard-step-content .step-header {
+    margin-bottom: 20px;
+}
+
+.eval-wizard-step-content .step-header h3 {
+    margin: 0 0 4px;
+    font-size: 18px;
+}
+
+.eval-wizard-step-content .step-header p {
+    margin: 0;
     color: var(--gray-500);
-}
-
-/* Personnalisé section */
-.personnalise-create {
-    text-align: center;
-    padding: 16px;
-    border: 2px dashed var(--gray-300);
-    border-radius: 8px;
-    background: var(--gray-50);
-}
-
-.personnalise-create .btn {
-    margin-top: 8px;
-}
-
-.personnalise-linked {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 14px;
-    background: var(--accent-green-light);
-    border-radius: 8px;
-    border: 1px solid var(--accent-green);
-}
-
-.personnalise-linked-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
     font-size: 14px;
 }
 
-.personnalise-linked-icon {
-    font-size: 18px;
+/* Type cards in wizard */
+.eval-wizard-step-content .type-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.eval-wizard-step-content .type-cards.disabled .type-card {
+    cursor: default;
+}
+
+/* Wizard form fields */
+.wizard-form .form-group {
+    margin-bottom: 16px;
+}
+
+.wizard-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
 }
