@@ -270,17 +270,9 @@ const AdminEvaluations = {
         this.renderEvaluations();
     },
 
-    _updateAddButtonLabels(type) {
-        const typeLabels = {
-            'connaissances': 'évaluation',
-            'savoir-faire': 'évaluation',
-            'competences': 'évaluation',
-            'bonus': 'évaluation',
-            'sommatives': 'sommative'
-        };
-        const label = typeLabels[type] || 'évaluation';
+    _updateAddButtonLabels() {
         const btnText = document.getElementById('addEvaluationBtnText');
-        if (btnText) btnText.textContent = `Nouvelle ${label}`;
+        if (btnText) btnText.textContent = 'Nouvelle évaluation';
     },
 
     updateCounts() {
@@ -538,7 +530,7 @@ const AdminEvaluations = {
             this.wizardStep = 1;
         } else {
             const defaultType = this.currentType !== 'sommatives' ? this.currentType : 'connaissances';
-            const typeLabels = { 'connaissances': 'connaissance', 'savoir-faire': 'savoir-faire', 'competences': 'compétence', 'bonus': 'bonus' };
+            const typeLabels = { 'connaissances': 'évaluation de connaissances', 'savoir-faire': 'évaluation de savoir-faire', 'competences': 'évaluation de compétences', 'bonus': 'évaluation bonus' };
             title.textContent = `Nouvelle ${typeLabels[defaultType] || 'évaluation'}`;
             document.getElementById('editEvaluationId').value = '';
             document.getElementById('evalEntrainementConnId').value = '';
