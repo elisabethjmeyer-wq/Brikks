@@ -272,10 +272,10 @@ const AdminEvaluations = {
 
     _updateAddButtonLabels(type) {
         const typeLabels = {
-            'connaissances': 'connaissance',
-            'savoir-faire': 'savoir-faire',
-            'competences': 'compétence',
-            'bonus': 'bonus',
+            'connaissances': 'évaluation',
+            'savoir-faire': 'évaluation',
+            'competences': 'évaluation',
+            'bonus': 'évaluation',
             'sommatives': 'sommative'
         };
         const label = typeLabels[type] || 'évaluation';

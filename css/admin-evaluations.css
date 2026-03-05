@@ -327,11 +327,13 @@
 }
 
 .btn-compact {
-    padding: 8px 18px;
-    font-size: 13px;
+    padding: 8px 20px;
+    font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
     width: auto;
+    border: 2px solid transparent;
+    box-sizing: border-box;
 }
 
 /* ===== EVALUATIONS LIST ===== */
