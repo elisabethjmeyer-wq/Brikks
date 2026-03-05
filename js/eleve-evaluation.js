@@ -562,11 +562,11 @@ const EleveEvaluation = {
             document.getElementById('confirmModalBtn').textContent = 'Quitter quand même';
             document.getElementById('confirmModalBtn').onclick = () => {
                 this.closeConfirmModal();
-                window.history.back();
+                window.location.href = 'evaluations.html';
             };
             modal.classList.remove('hidden');
         } else {
-            window.history.back();
+            window.location.href = 'evaluations.html';
         }
     },
 
