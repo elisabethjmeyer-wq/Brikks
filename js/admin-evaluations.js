@@ -709,7 +709,7 @@ const AdminEvaluations = {
         if (type === 'connaissances') {
             typeSpecificHTML = this._renderConnFields(d);
         } else if (type === 'savoir-faire') {
-            typeSpecificHTML = ''; // No extra fields for SF beyond the cascade in step 3
+            typeSpecificHTML = this._renderDefaultFields(d);
         } else if (type === 'competences') {
             typeSpecificHTML = this._renderCompFields(d);
         } else if (type === 'bonus') {
@@ -727,40 +727,23 @@ const AdminEvaluations = {
                         <label>Titre <span class="req">*</span></label>
                         <input type="text" class="form-input" id="evalTitre" value="${escapeHtml(d.titre || '')}" placeholder="Ex: Evaluation chapitre 1">
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Points mis en jeu <span class="req">*</span></label>
-                            <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
-                        </div>
-                        <div class="form-group" id="evalMatiereGroup" style="${d.type !== 'bonus' ? 'display:none' : ''}">
-                            <label>Matière <span class="req">*</span></label>
-                            <select class="form-select" id="evalMatiere">
-                                <option value="FR" ${d.matiere === 'FR' || !d.matiere ? 'selected' : ''}>🇫🇷 Français</option>
-                                <option value="HG-EMC" ${d.matiere === 'HG-EMC' ? 'selected' : ''}>🌍 HG-EMC</option>
-                                <option value="Les deux" ${d.matiere === 'Les deux' ? 'selected' : ''} ${d.type !== 'bonus' ? 'hidden' : ''}>🔗 Les deux</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Statut</label>
-                            <select class="form-select" id="evalStatut">
-                                <option value="brouillon" ${d.statut === 'brouillon' || !d.statut ? 'selected' : ''}>Brouillon</option>
-                                <option value="planifiee" ${d.statut === 'planifiee' ? 'selected' : ''}>Planifiée</option>
-                                <option value="publiee" ${d.statut === 'publiee' ? 'selected' : ''}>Publiée</option>
-                                <option value="terminee" ${d.statut === 'terminee' ? 'selected' : ''}>Terminée</option>
-                            </select>
-                        </div>
-                        <div class="form-group" id="evalCategorieGroup" style="${d.type === 'bonus' ? '' : 'display:none'}">
-                            <label>Catégorie de points</label>
-                            <select class="form-select" id="evalCategorie">
-                                <option value="connaissances" ${d.categorie === 'connaissances' || !d.categorie ? 'selected' : ''}>Connaissances</option>
-                                <option value="savoir-faire" ${d.categorie === 'savoir-faire' ? 'selected' : ''}>Savoir-faire</option>
-                                <option value="competences" ${d.categorie === 'competences' ? 'selected' : ''}>Compétences</option>
-                            </select>
-                        </div>
-                    </div>
                     ${typeSpecificHTML}
+                    <div class="form-group" id="evalMatiereGroup" style="${d.type !== 'bonus' ? 'display:none' : ''}">
+                        <label>Matière <span class="req">*</span></label>
+                        <select class="form-select" id="evalMatiere">
+                            <option value="FR" ${d.matiere === 'FR' || !d.matiere ? 'selected' : ''}>🇫🇷 Français</option>
+                            <option value="HG-EMC" ${d.matiere === 'HG-EMC' ? 'selected' : ''}>🌍 HG-EMC</option>
+                            <option value="Les deux" ${d.matiere === 'Les deux' ? 'selected' : ''} ${d.type !== 'bonus' ? 'hidden' : ''}>🔗 Les deux</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="evalCategorieGroup" style="${d.type === 'bonus' ? '' : 'display:none'}">
+                        <label>Catégorie de points</label>
+                        <select class="form-select" id="evalCategorie">
+                            <option value="connaissances" ${d.categorie === 'connaissances' || !d.categorie ? 'selected' : ''}>Connaissances</option>
+                            <option value="savoir-faire" ${d.categorie === 'savoir-faire' ? 'selected' : ''}>Savoir-faire</option>
+                            <option value="competences" ${d.categorie === 'competences' ? 'selected' : ''}>Compétences</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         `;
@@ -774,10 +757,16 @@ const AdminEvaluations = {
         return `
             <div class="form-row">
                 <div class="form-group">
+                    <label>Points mis en jeu <span class="req">*</span></label>
+                    <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
+                </div>
+                <div class="form-group">
                     <label>Seuil de réussite (%) <span class="req">*</span></label>
                     <input type="number" class="form-input" id="evalSeuil" value="${d.seuil || 80}" min="0" max="100">
                     <div class="form-help">Score minimum pour valider</div>
                 </div>
+            </div>
+            <div class="form-row">
                 <div class="form-group">
                     <label>Chapitre lié</label>
                     <select class="form-select" id="evalChapitre">
@@ -785,6 +774,32 @@ const AdminEvaluations = {
                         ${chapitreOptions}
                     </select>
                 </div>
+                ${this._renderStatutSelect(d)}
+            </div>
+        `;
+    },
+
+    _renderStatutSelect(d) {
+        return `
+                <div class="form-group">
+                    <label>Statut</label>
+                    <select class="form-select" id="evalStatut">
+                        <option value="brouillon" ${d.statut === 'brouillon' || !d.statut ? 'selected' : ''}>Brouillon</option>
+                        <option value="planifiee" ${d.statut === 'planifiee' ? 'selected' : ''}>Planifiée</option>
+                        <option value="publiee" ${d.statut === 'publiee' ? 'selected' : ''}>Publiée</option>
+                        <option value="terminee" ${d.statut === 'terminee' ? 'selected' : ''}>Terminée</option>
+                    </select>
+                </div>`;
+    },
+
+    _renderDefaultFields(d) {
+        return `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Points mis en jeu <span class="req">*</span></label>
+                    <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
+                </div>
+                ${this._renderStatutSelect(d)}
             </div>
         `;
     },
@@ -795,18 +810,35 @@ const AdminEvaluations = {
         ).join('');
 
         return `
-            <div class="form-group">
-                <label>Méthodologie liée</label>
-                <select class="form-select" id="evalMethodologieTC">
-                    <option value="">Sélectionner...</option>
-                    ${compOptions}
-                </select>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Points mis en jeu <span class="req">*</span></label>
+                    <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
+                </div>
+                <div class="form-group">
+                    <label>Méthodologie liée</label>
+                    <select class="form-select" id="evalMethodologieTC">
+                        <option value="">Sélectionner...</option>
+                        ${compOptions}
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"></div>
+                ${this._renderStatutSelect(d)}
             </div>
         `;
     },
 
     _renderBonusFields(d) {
         return `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Points mis en jeu <span class="req">*</span></label>
+                    <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
+                </div>
+                ${this._renderStatutSelect(d)}
+            </div>
             <div class="form-group">
                 <label>Critères de validation</label>
                 <textarea class="form-textarea" id="evalCriteres" rows="3" placeholder="Décrivez les critères...">${escapeHtml(d.criteres || '')}</textarea>
