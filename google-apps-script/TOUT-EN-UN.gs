@@ -4785,7 +4785,8 @@ function getEvaluation(data) {
 
 /**
  * Recupere une evaluation avec les questions personnalisees pour un eleve
- * Utilise l'attribution de sujet pour charger les bonnes questions
+ * Utilise l'attribution de sujet si elle existe, sinon calcule automatiquement
+ * la prochaine banque non validee selon la progression
  * @param {Object} data - { id, eleve_id }
  */
 function getEvaluationForEleve(data) {
@@ -4822,16 +4823,20 @@ function getEvaluationForEleve(data) {
   }
 
   var type = String(evaluation.type).trim();
+  var matiere = String(evaluation.matiere || '').trim();
 
   // 2. Si pas connaissances/SF, fallback sur getEvaluation classique
   if (type !== 'connaissances' && type !== 'savoir-faire') {
     return getEvaluation(data);
   }
 
-  // 3. Chercher l'attribution pour cet eleve
-  var attrSheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
-  var attribution = null;
+  // 3. Determiner la banque : attribution manuelle ou auto-calcul
+  var banqueId = '';
+  var entrainementId = '';
+  var source = 'auto';
 
+  // 3a. Chercher une attribution existante
+  var attrSheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
   if (attrSheet) {
     var attrData = attrSheet.getDataRange().getValues();
     if (attrData.length >= 2) {
@@ -4843,37 +4848,118 @@ function getEvaluationForEleve(data) {
         });
         if (String(attr.evaluation_id).trim() === String(data.id).trim() &&
             String(attr.eleve_id).trim() === String(data.eleve_id).trim()) {
-          attribution = attr;
+          banqueId = String(attr.banque_id || '').trim();
+          entrainementId = String(attr.entrainement_id || '').trim();
+          source = String(attr.source || 'auto').trim();
           break;
         }
       }
     }
   }
 
-  // Si pas d'attribution, fallback sur getEvaluation classique
-  if (!attribution || !attribution.banque_id) {
-    return getEvaluation(data);
+  // 3b. Si pas d'attribution, calculer automatiquement la prochaine banque
+  if (!banqueId) {
+    banqueId = computeNextBanque_(ss, type, matiere, String(data.eleve_id).trim());
   }
 
-  var banqueId = String(attribution.banque_id).trim();
-  var entrainementId = attribution.entrainement_id ? String(attribution.entrainement_id).trim() : '';
-  var questions = [];
+  if (!banqueId) {
+    return { success: false, error: 'Aucune banque disponible pour cette matière' };
+  }
 
   // 4. Charger les questions selon le type
+  var result;
   if (type === 'connaissances') {
-    questions = loadConnQuestionsForEval_(ss, banqueId, entrainementId);
-  } else if (type === 'savoir-faire') {
-    questions = loadSFQuestionsForEval_(ss, banqueId);
+    result = loadConnQuestionsForEval_(ss, banqueId, entrainementId);
+  } else {
+    result = loadSFQuestionsForEval_(ss, banqueId);
   }
 
-  evaluation.questions = questions;
+  evaluation.questions = result.questions || [];
+  evaluation.duree = result.duree || evaluation.duree || 15;
   evaluation.attribution = {
     banque_id: banqueId,
     entrainement_id: entrainementId,
-    source: String(attribution.source || 'auto').trim()
+    source: source
   };
 
   return { success: true, data: evaluation };
+}
+
+/**
+ * Calcule la prochaine banque non validee pour un eleve
+ * Lit la progression, trouve la derniere banque validee, retourne la suivante
+ * @param {Spreadsheet} ss
+ * @param {string} type - 'connaissances' ou 'savoir-faire'
+ * @param {string} matiere - 'FR' ou 'HG-EMC'
+ * @param {string} eleveId
+ * @returns {string} banqueId ou '' si aucune trouvee
+ */
+function computeNextBanque_(ss, type, matiere, eleveId) {
+  // 1. Charger les banques de ce type et matiere, triees par ordre
+  var isConn = type === 'connaissances';
+  var sheetName = isConn ? SHEETS.BANQUES_EXERCICES_CONN : SHEETS.BANQUES_EXERCICES;
+  var banqueSheet = ss.getSheetByName(sheetName);
+  if (!banqueSheet) return '';
+
+  var bData = banqueSheet.getDataRange().getValues();
+  if (bData.length < 2) return '';
+  var bHeaders = bData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  var banques = [];
+  for (var i = 1; i < bData.length; i++) {
+    var b = {};
+    bHeaders.forEach(function(h, idx) { b[h] = bData[i][idx]; });
+    if (!b.id) continue;
+    // Filtrer par matiere si renseignee
+    if (matiere && b.matiere && String(b.matiere).trim() !== matiere) continue;
+    // Pour SF, filtrer par type
+    if (!isConn && String(b.type || '').trim() !== 'savoir-faire') continue;
+    banques.push(b);
+  }
+
+  banques.sort(function(a, b) { return (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999); });
+  if (banques.length === 0) return '';
+
+  // 2. Chercher la progression de cet eleve
+  var progSheet = ss.getSheetByName(SHEETS.PROGRESSION_EVALUATION);
+  var lastValidatedId = '';
+
+  if (progSheet) {
+    var pData = progSheet.getDataRange().getValues();
+    if (pData.length >= 2) {
+      var pHeaders = pData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      for (var pi = 1; pi < pData.length; pi++) {
+        var p = {};
+        pHeaders.forEach(function(h, idx) { p[h] = pData[pi][idx]; });
+        if (String(p.eleve_id).trim() === eleveId &&
+            String(p.type).trim() === type &&
+            (!p.matiere || String(p.matiere).trim() === matiere)) {
+          lastValidatedId = String(p.derniere_banque_validee_id || '').trim();
+          break;
+        }
+      }
+    }
+  }
+
+  // 3. Trouver la prochaine banque
+  if (!lastValidatedId) {
+    return String(banques[0].id).trim();
+  }
+
+  var lastIdx = -1;
+  for (var bi = 0; bi < banques.length; bi++) {
+    if (String(banques[bi].id).trim() === lastValidatedId) {
+      lastIdx = bi;
+      break;
+    }
+  }
+
+  if (lastIdx >= 0 && lastIdx < banques.length - 1) {
+    return String(banques[lastIdx + 1].id).trim();
+  }
+
+  // Toutes les banques validees → rester sur la derniere
+  return String(banques[banques.length - 1].id).trim();
 }
 
 /**
@@ -4881,14 +4967,17 @@ function getEvaluationForEleve(data) {
  * @param {Spreadsheet} ss
  * @param {string} banqueId
  * @param {string} entrainementId - si vide, prend un entrainement aleatoire de la banque
+ * @returns {{ questions: Array, duree: number }}
  */
 function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
+  var empty = { questions: [], duree: 15 };
+
   // 1. Trouver l'entrainement
   var entrSheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
-  if (!entrSheet) return [];
+  if (!entrSheet) return empty;
 
   var entrData = entrSheet.getDataRange().getValues();
-  if (entrData.length < 2) return [];
+  if (entrData.length < 2) return empty;
   var entrHeaders = entrData[0].map(function(h) { return String(h).toLowerCase().trim(); });
 
   var banqueEntrs = [];
@@ -4900,7 +4989,7 @@ function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
     }
   }
 
-  if (banqueEntrs.length === 0) return [];
+  if (banqueEntrs.length === 0) return empty;
 
   var entrainement;
   if (entrainementId) {
@@ -4913,10 +5002,10 @@ function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
 
   // 2. Trouver les etapes de cet entrainement
   var etapesSheet = ss.getSheetByName(SHEETS.ETAPES_CONN);
-  if (!etapesSheet) return [];
+  if (!etapesSheet) return empty;
 
   var etapesData = etapesSheet.getDataRange().getValues();
-  if (etapesData.length < 2) return [];
+  if (etapesData.length < 2) return empty;
   var etapesHeaders = etapesData[0].map(function(h) { return String(h).toLowerCase().trim(); });
 
   var etapes = [];
@@ -4931,10 +5020,10 @@ function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
 
   // 3. Trouver les liens etape-questions
   var eqSheet = ss.getSheetByName(SHEETS.ETAPE_QUESTIONS_CONN);
-  if (!eqSheet) return [];
+  if (!eqSheet) return empty;
 
   var eqData = eqSheet.getDataRange().getValues();
-  if (eqData.length < 2) return [];
+  if (eqData.length < 2) return empty;
   var eqHeaders = eqData[0].map(function(h) { return String(h).toLowerCase().trim(); });
 
   var etapeIds = etapes.map(function(et) { return String(et.id).trim(); });
@@ -4949,10 +5038,10 @@ function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
 
   // 4. Charger les questions connaissances
   var qSheet = ss.getSheetByName(SHEETS.QUESTIONS_CONNAISSANCES);
-  if (!qSheet) return [];
+  if (!qSheet) return empty;
 
   var qData = qSheet.getDataRange().getValues();
-  if (qData.length < 2) return [];
+  if (qData.length < 2) return empty;
   var qHeaders = qData[0].map(function(h) { return String(h).toLowerCase().trim(); });
 
   var questionsMap = {};
@@ -5012,7 +5101,8 @@ function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
     });
   });
 
-  return questions;
+  var duree = parseInt(entrainement.duree) || 15;
+  return { questions: questions, duree: duree };
 }
 
 /**
@@ -5020,14 +5110,17 @@ function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
  * Pour le SF, un exercice aleatoire est choisi dans la banque
  * @param {Spreadsheet} ss
  * @param {string} banqueId
+ * @returns {{ questions: Array, duree: number }}
  */
 function loadSFQuestionsForEval_(ss, banqueId) {
+  var empty = { questions: [], duree: 15 };
+
   // 1. Trouver les exercices de la banque
   var exSheet = ss.getSheetByName(SHEETS.EXERCICES);
-  if (!exSheet) return [];
+  if (!exSheet) return empty;
 
   var exData = exSheet.getDataRange().getValues();
-  if (exData.length < 2) return [];
+  if (exData.length < 2) return empty;
   var exHeaders = exData[0].map(function(h) { return String(h).toLowerCase().trim(); });
 
   var exercices = [];
@@ -5039,7 +5132,7 @@ function loadSFQuestionsForEval_(ss, banqueId) {
     }
   }
 
-  if (exercices.length === 0) return [];
+  if (exercices.length === 0) return empty;
 
   // Choisir un exercice aleatoire
   var exercice = exercices[Math.floor(Math.random() * exercices.length)];
@@ -5068,16 +5161,21 @@ function loadSFQuestionsForEval_(ss, banqueId) {
     try { donnees = JSON.parse(exercice.donnees); } catch (_e) { donnees = {}; }
   }
 
-  return [{
-    id: exercice.id,
-    enonce: exercice.titre || exercice.enonce || '',
-    explication: exercice.correction || '',
-    donnees: donnees,
-    format: format,
-    format_id: format.id || exercice.format_id || '',
-    ordre: 1,
-    points: 1
-  }];
+  var duree = parseInt(exercice.duree) || 15;
+
+  return {
+    questions: [{
+      id: exercice.id,
+      enonce: exercice.titre || exercice.enonce || '',
+      explication: exercice.correction || '',
+      donnees: donnees,
+      format: format,
+      format_id: format.id || exercice.format_id || '',
+      ordre: 1,
+      points: 1
+    }],
+    duree: duree
+  };
 }
 
 /**
