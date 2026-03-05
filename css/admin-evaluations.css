@@ -628,8 +628,22 @@
     width: 80px;
 }
 
-.remarque-input {
-    width: 160px;
+.source-badge {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.source-badge.auto {
+    background: var(--accent-green-light, #ecfdf5);
+    color: var(--accent-green, #059669);
+}
+
+.source-badge.manuel {
+    background: var(--accent-orange-light, #fff7ed);
+    color: var(--accent-orange, #d97706);
 }
 
 .saisie-select {
@@ -649,16 +663,6 @@
 
 .mode-select {
     min-width: 120px;
-}
-
-.source-select {
-    min-width: 80px;
-}
-
-.saisie-saved {
-    color: var(--accent-green);
-    font-weight: 600;
-    font-size: 16px;
 }
 
 /* Saisie save bar */
@@ -1170,10 +1174,6 @@
 
     .saisie-table-container {
         margin-bottom: 100px;
-    }
-
-    .col-remarque {
-        display: none;
     }
 }
 
