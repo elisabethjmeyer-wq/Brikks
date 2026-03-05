@@ -68,7 +68,12 @@ const CONFIG = {
         CriteresReussite: 'CriteresReussite',
         BanquesCompetences: 'BanquesCompetences',
         EntrainementsCompetences: 'EntrainementsCompetences',
-        EleveEntrainementsCompetences: 'EleveEntrainementsCompetences'
+        EleveEntrainementsCompetences: 'EleveEntrainementsCompetences',
+        // Notes & évaluations
+        PARAMETRES_NOTES: 'PARAMETRES_NOTES',
+        OBJECTIFS_ELEVES: 'OBJECTIFS_ELEVES',
+        NOTES_SOMMATIVES: 'NOTES_SOMMATIVES',
+        RESULTATS_SOMMATIVES: 'RESULTATS_SOMMATIVES'
     },
 
     // URLs de redirection (avec préfixe GitHub Pages)

@@ -75,6 +75,11 @@ const SHEETS = {
   PROGRESSION_MEMORISATION: 'PROGRESSION_MEMORISATION',
   // Historique des pratiques savoir-faire (pour calcul automatisation)
   HISTORIQUE_PRATIQUES_SF: 'HISTORIQUE_PRATIQUES_SF',
+  // Notes & évaluations
+  PARAMETRES_NOTES: 'PARAMETRES_NOTES',
+  OBJECTIFS_ELEVES: 'OBJECTIFS_ELEVES',
+  NOTES_SOMMATIVES: 'NOTES_SOMMATIVES',
+  RESULTATS_SOMMATIVES: 'RESULTATS_SOMMATIVES',
   // Suivi et compétences
   EleveConnexions: 'EleveConnexions',
   CompetencesReferentiel: 'CompetencesReferentiel',
@@ -404,6 +409,38 @@ function handleRequest(e) {
         break;
       case 'getEleveEvaluations':
         result = getEleveEvaluations(request);
+        break;
+
+      // PARAMETRES NOTES & SOMMATIVES
+      case 'getParametresNotes':
+        result = getParametresNotes(request);
+        break;
+      case 'saveParametresNotes':
+        result = saveParametresNotes(request);
+        break;
+      case 'getNotesSommatives':
+        result = getNotesSommatives(request);
+        break;
+      case 'createNoteSommative':
+        result = createNoteSommative(request);
+        break;
+      case 'updateNoteSommative':
+        result = updateNoteSommative(request);
+        break;
+      case 'deleteNoteSommative':
+        result = deleteNoteSommative(request);
+        break;
+      case 'getResultatsSommatives':
+        result = getResultatsSommatives(request);
+        break;
+      case 'saveResultatSommative':
+        result = saveResultatSommative(request);
+        break;
+      case 'getObjectifsEleves':
+        result = getObjectifsEleves(request);
+        break;
+      case 'saveObjectifEleve':
+        result = saveObjectifEleve(request);
         break;
 
       // BANQUES D'EXERCICES
