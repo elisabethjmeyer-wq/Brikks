@@ -377,7 +377,7 @@ const EleveEvaluation = {
     },
 
     // ========== FIN D'ÉVALUATION ==========
-    finishEvaluation() {
+    async finishEvaluation() {
         if (this.isSubmitting) return;
         this.isSubmitting = true;
 
@@ -393,8 +393,8 @@ const EleveEvaluation = {
         // Calculer le score global depuis les résultats d'EleveConnaissances
         const globalResult = this.calculateGlobalResult();
 
-        // Sauvegarder les résultats
-        this.saveResults(globalResult);
+        // Sauvegarder les résultats (await pour garantir la sauvegarde)
+        await this.saveResults(globalResult);
 
         // Afficher les résultats
         this.showResults(globalResult);
@@ -433,11 +433,12 @@ const EleveEvaluation = {
 
     _getCurrentUserId() {
         try {
-            if (typeof Auth !== 'undefined' && Auth.user) return Auth.user.id;
+            if (typeof Auth !== 'undefined' && Auth.getCurrentUser) {
+                const user = Auth.getCurrentUser();
+                if (user && user.id) return user.id;
+            }
             const sessionUser = sessionStorage.getItem('brikks_user');
             if (sessionUser) return JSON.parse(sessionUser).id;
-            const localSession = localStorage.getItem('brikks_session');
-            if (localSession) return JSON.parse(localSession).id;
             return null;
         } catch (e) {
             console.error('Erreur récupération utilisateur:', e);
@@ -452,6 +453,17 @@ const EleveEvaluation = {
                 console.error('Impossible de sauvegarder : aucun utilisateur connecté');
                 return;
             }
+
+            // Résumé compact des étapes (sans les données brutes des questions
+            // qui rendraient l'URL JSONP trop longue)
+            const detailsCompact = EleveConnaissances.etapesResults.map(r => r ? {
+                i: r.etapeIndex,
+                f: r.format,
+                c: r.correct,
+                t: r.total,
+                p: r.pourcentage
+            } : null);
+
             const result = await this.callAPI('saveEvaluationResult', {
                 evaluation_id: this.evaluation.id,
                 eleve_id: eleveId,
@@ -459,14 +471,25 @@ const EleveEvaluation = {
                 validations: globalResult.pointsEarned,
                 is_validated: globalResult.isValidated,
                 temps_passe: globalResult.elapsedTime,
-                details: JSON.stringify(EleveConnaissances.etapesResults)
+                details: JSON.stringify(detailsCompact)
             });
             if (!result.success) {
                 console.error('Erreur sauvegarde résultats:', result.error);
+                this._showSaveError();
             }
         } catch (error) {
             console.error('Erreur sauvegarde résultats:', error);
+            this._showSaveError();
         }
+    },
+
+    _showSaveError() {
+        const container = document.getElementById('resultContainer');
+        if (!container) return;
+        const banner = document.createElement('div');
+        banner.style.cssText = 'background:#fee;color:#c00;padding:12px 16px;border-radius:8px;margin:12px 0;text-align:center;font-weight:500;';
+        banner.textContent = 'Erreur lors de la sauvegarde du résultat. Signale-le à ton professeur.';
+        container.prepend(banner);
     },
 
     showResults(globalResult) {
