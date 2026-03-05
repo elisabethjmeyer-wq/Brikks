@@ -28,13 +28,9 @@
             <!-- Matière toggle -->
             <div class="matiere-toggle" id="matiereToggle">
                 <button class="matiere-btn active" data-matiere="all">Toutes</button>
-                <button class="matiere-btn" data-matiere="FR">🇫🇷 FR</button>
-                <button class="matiere-btn" data-matiere="HG-EMC">🌍 HG</button>
+                <button class="matiere-btn" data-matiere="FR"><span class="matiere-btn-icon">🇫🇷</span> Français</button>
+                <button class="matiere-btn" data-matiere="HG-EMC"><span class="matiere-btn-icon">🌍</span> HG-EMC</button>
             </div>
-            <button class="btn btn-primary" id="addEvaluationBtn">
-                <span>➕</span>
-                Nouvelle évaluation
-            </button>
         </div>
     </header>
 
@@ -99,6 +95,10 @@
             <select class="filter-select" id="filterChapitre">
                 <option value="">📚 Tous les chapitres</option>
             </select>
+            <button class="btn btn-primary" id="addEvaluationBtn">
+                <span>➕</span>
+                <span id="addEvaluationBtnText">Nouvelle évaluation</span>
+            </button>
         </div>
 
         <!-- Evaluations List -->
@@ -111,6 +111,10 @@
             <div class="empty-icon">📋</div>
             <h3>Aucune évaluation trouvée</h3>
             <p>Créez une nouvelle évaluation pour ce type.</p>
+            <button class="btn btn-primary empty-state-btn" id="addEvaluationBtnEmpty">
+                <span>➕</span>
+                <span id="addEvaluationBtnEmptyText">Créer une évaluation</span>
+            </button>
         </div>
     </div>
 
