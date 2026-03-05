@@ -33,7 +33,7 @@ const AdminEvaluations = {
     currentType: 'connaissances',
 
     // Current matière filter
-    currentMatiere: 'all',
+    currentMatiere: 'FR',
 
     // Filters
     filters: {
@@ -296,7 +296,6 @@ const AdminEvaluations = {
 
     // ========== MATIÈRE FILTER ==========
     _filterByMatiere(list) {
-        if (this.currentMatiere === 'all') return list;
         return list.filter(e => {
             const m = e.matiere || '';
             return m === this.currentMatiere || m === 'Les deux';
@@ -304,7 +303,6 @@ const AdminEvaluations = {
     },
 
     _filterSommativesByMatiere(list) {
-        if (this.currentMatiere === 'all') return list;
         return list.filter(s => {
             const m = s.matiere || '';
             return m === this.currentMatiere || m === 'Les deux';
@@ -536,7 +534,7 @@ const AdminEvaluations = {
             document.getElementById('evalEntrainementConnId').value = '';
             this.wizardData = {
                 type: defaultType,
-                matiere: this.currentMatiere !== 'all' ? this.currentMatiere : 'FR',
+                matiere: this.currentMatiere,
                 briques: 3,
                 statut: 'brouillon',
                 seuil: 80
@@ -683,7 +681,7 @@ const AdminEvaluations = {
         // Show/hide matiere field (bonus always, others only if toggle=all)
         const matGroup = document.getElementById('evalMatiereGroup');
         if (matGroup) {
-            matGroup.style.display = (type === 'bonus' || this.currentMatiere === 'all') ? '' : 'none';
+            matGroup.style.display = type === 'bonus' ? '' : 'none';
             const lesDeux = matGroup.querySelector('option[value="Les deux"]');
             if (lesDeux) lesDeux.hidden = type !== 'bonus';
         }
@@ -734,7 +732,7 @@ const AdminEvaluations = {
                             <label>Points mis en jeu <span class="req">*</span></label>
                             <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
                         </div>
-                        <div class="form-group" id="evalMatiereGroup" style="${d.type !== 'bonus' && this.currentMatiere !== 'all' ? 'display:none' : ''}">
+                        <div class="form-group" id="evalMatiereGroup" style="${d.type !== 'bonus' ? 'display:none' : ''}">
                             <label>Matière <span class="req">*</span></label>
                             <select class="form-select" id="evalMatiere">
                                 <option value="FR" ${d.matiere === 'FR' || !d.matiere ? 'selected' : ''}>🇫🇷 Français</option>
@@ -1117,7 +1115,7 @@ const AdminEvaluations = {
             title.textContent = 'Nouvelle évaluation sommative';
             document.getElementById('editSommativeId').value = '';
             document.getElementById('somTitre').value = '';
-            document.getElementById('somMatiere').value = this.currentMatiere !== 'all' ? this.currentMatiere : 'FR';
+            document.getElementById('somMatiere').value = this.currentMatiere;
             document.getElementById('somBareme').value = 20;
             document.getElementById('somCoefficient').value = 1;
             document.getElementById('somDate').value = '';
