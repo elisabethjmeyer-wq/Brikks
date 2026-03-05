@@ -125,8 +125,11 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>Ordre d'affichage</label>
-                    <input type="number" class="form-input" id="banqueOrdre" value="1" min="1">
+                    <label>Matière <span class="req">*</span></label>
+                    <select class="form-select" id="banqueMatiere">
+                        <option value="FR">Français</option>
+                        <option value="HG-EMC">Histoire-Géo / EMC</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Statut</label>
@@ -135,6 +138,11 @@
                         <option value="publie">Publie</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="form-group" style="display:none;">
+                <label>Ordre d'affichage</label>
+                <input type="number" class="form-input" id="banqueOrdre" value="1" min="1">
             </div>
         </div>
         <div class="modal-footer">

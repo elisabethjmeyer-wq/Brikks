@@ -948,6 +948,7 @@ const AdminBanquesExercices = {
             document.getElementById('editBanqueId').value = banque.id;
             document.getElementById('banqueTitre').value = banque.titre || '';
             document.getElementById('banqueDescription').value = banque.description || '';
+            document.getElementById('banqueMatiere').value = banque.matiere || 'FR';
             document.getElementById('banqueStatut').value = banque.statut || 'brouillon';
 
             // Select type
@@ -963,6 +964,7 @@ const AdminBanquesExercices = {
             document.getElementById('editBanqueId').value = '';
             document.getElementById('banqueTitre').value = '';
             document.getElementById('banqueDescription').value = '';
+            document.getElementById('banqueMatiere').value = 'FR';
             document.getElementById('banqueStatut').value = 'brouillon';
 
             // Select current type
@@ -1004,7 +1006,8 @@ const AdminBanquesExercices = {
             return;
         }
 
-        const data = { type, titre, description, ordre, statut };
+        const matiere = document.getElementById('banqueMatiere').value;
+        const data = { type, titre, description, ordre, statut, matiere };
 
         // OPTIMISTIC UI: Update immediately, sync in background
         const tempId = id || 'temp_' + Date.now();

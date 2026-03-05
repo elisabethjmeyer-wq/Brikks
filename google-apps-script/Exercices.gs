@@ -162,7 +162,7 @@ function updateBanqueExercices(data) {
     return { success: false, error: 'Banque non trouvée' };
   }
 
-  const updates = ['type', 'titre', 'description', 'ordre', 'statut'];
+  const updates = ['type', 'titre', 'description', 'ordre', 'statut', 'matiere'];
   updates.forEach(col => {
     if (data[col] !== undefined) {
       const colIndex = headers.indexOf(col);
