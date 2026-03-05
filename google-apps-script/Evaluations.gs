@@ -275,13 +275,24 @@ function getEvaluationForEleve(data) {
     result = loadSFQuestionsForEval_(ss, banqueId);
   }
 
-  evaluation.questions = result.questions || [];
   evaluation.duree = result.duree || evaluation.duree || 15;
   evaluation.attribution = {
     banque_id: banqueId,
     entrainement_id: entrainementId,
     source: source
   };
+
+  // Pour connaissances : retourner les donnees structurees par etape
+  // (meme format que le module d'entrainement)
+  if (type === 'connaissances') {
+    evaluation.etapes = result.etapes || [];
+    evaluation.etapeQuestions = result.etapeQuestions || [];
+    evaluation.questionsConnaissances = result.questions || [];
+    evaluation.entrainementData = result.entrainement || {};
+  } else {
+    // SF : garder le format plat
+    evaluation.questions = result.questions || [];
+  }
 
   return { success: true, data: evaluation };
 }
@@ -364,14 +375,16 @@ function computeNextBanque_(ss, type, matiere, eleveId) {
 }
 
 /**
- * Charge les questions d'un entrainement connaissances pour une evaluation
+ * Charge les donnees d'un entrainement connaissances pour une evaluation.
+ * Retourne les etapes, liens etape-questions et questions dans le meme format
+ * que le module d'entrainement (EleveConnaissances) pour reutiliser le moteur de rendu.
  * @param {Spreadsheet} ss
  * @param {string} banqueId
  * @param {string} entrainementId - si vide, prend un entrainement aleatoire de la banque
- * @returns {{ questions: Array, duree: number }}
+ * @returns {{ etapes: Array, etapeQuestions: Array, questions: Array, duree: number, entrainement: Object }}
  */
 function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
-  var empty = { questions: [], duree: 15 };
+  var empty = { etapes: [], etapeQuestions: [], questions: [], duree: 15, entrainement: {} };
 
   // 1. Trouver l'entrainement
   var entrSheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_CONN);
@@ -397,7 +410,6 @@ function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
     entrainement = banqueEntrs.find(function(e) { return String(e.id).trim() === entrainementId; });
   }
   if (!entrainement) {
-    // Aleatoire parmi les entrainements de la banque
     entrainement = banqueEntrs[Math.floor(Math.random() * banqueEntrs.length)];
   }
 
@@ -428,12 +440,12 @@ function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
   var eqHeaders = eqData[0].map(function(h) { return String(h).toLowerCase().trim(); });
 
   var etapeIds = etapes.map(function(et) { return String(et.id).trim(); });
-  var questionLinks = [];
+  var etapeQuestions = [];
   for (var qi = 1; qi < eqData.length; qi++) {
     var ql = {};
     eqHeaders.forEach(function(h, idx) { ql[h] = eqData[qi][idx]; });
     if (etapeIds.indexOf(String(ql.etape_id).trim()) >= 0) {
-      questionLinks.push(ql);
+      etapeQuestions.push(ql);
     }
   }
 
@@ -445,65 +457,34 @@ function loadConnQuestionsForEval_(ss, banqueId, entrainementId) {
   if (qData.length < 2) return empty;
   var qHeaders = qData[0].map(function(h) { return String(h).toLowerCase().trim(); });
 
-  var questionsMap = {};
+  // Collecter les IDs de questions necessaires
+  var neededQuestionIds = {};
+  etapeQuestions.forEach(function(eq) {
+    neededQuestionIds[String(eq.question_id).trim()] = true;
+  });
+
+  var questions = [];
   for (var qj = 1; qj < qData.length; qj++) {
     var q = {};
     qHeaders.forEach(function(h, idx) { q[h] = qData[qj][idx]; });
-    if (q.id) questionsMap[String(q.id).trim()] = q;
-  }
-
-  // 5. Charger les formats
-  var fSheet = ss.getSheetByName(SHEETS.FORMATS_QUESTIONS);
-  var formatsMap = {};
-  if (fSheet) {
-    var fData = fSheet.getDataRange().getValues();
-    if (fData.length >= 2) {
-      var fHeaders = fData[0].map(function(h) { return String(h).toLowerCase().trim(); });
-      for (var fi = 1; fi < fData.length; fi++) {
-        var f = {};
-        fHeaders.forEach(function(h, idx) { f[h] = fData[fi][idx]; });
-        if (f.id) formatsMap[String(f.id).trim()] = f;
-        if (f.code) formatsMap[String(f.code).trim()] = f;
-      }
+    if (q.id && neededQuestionIds[String(q.id).trim()]) {
+      questions.push(q);
     }
   }
 
-  // 6. Assembler les questions dans le format evaluation
-  var questions = [];
-  var ordre = 1;
-
-  etapes.forEach(function(etape) {
-    var etapeQuestions = questionLinks
-      .filter(function(ql) { return String(ql.etape_id).trim() === String(etape.id).trim(); })
-      .sort(function(a, b) { return (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0); });
-
-    etapeQuestions.forEach(function(eq) {
-      var question = questionsMap[String(eq.question_id).trim()];
-      if (!question) return;
-
-      var donnees = {};
-      if (question.donnees) {
-        try { donnees = JSON.parse(question.donnees); } catch (_e) { donnees = {}; }
-      }
-
-      var formatCode = String(etape.format_code || question.type || '').trim();
-      var format = formatsMap[formatCode] || { code: formatCode, type_base: formatCode };
-
-      questions.push({
-        id: question.id,
-        enonce: question.enonce || question.question || '',
-        explication: question.explication || question.correction || '',
-        donnees: donnees,
-        format: format,
-        format_id: format.id || '',
-        ordre: ordre++,
-        points: 1
-      });
-    });
-  });
-
   var duree = parseInt(entrainement.duree) || 15;
-  return { questions: questions, duree: duree };
+  return {
+    etapes: etapes,
+    etapeQuestions: etapeQuestions,
+    questions: questions,
+    duree: duree,
+    entrainement: {
+      id: entrainement.id,
+      titre: entrainement.titre || '',
+      duree: duree,
+      seuil: parseInt(entrainement.seuil) || 80
+    }
+  };
 }
 
 /**

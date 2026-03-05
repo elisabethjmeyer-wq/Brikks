@@ -14,7 +14,9 @@
     <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/eleve-layout.css">
-    <link rel="stylesheet" href="../css/eleve-entrainement.css">
+    <link rel="stylesheet" href="../css/eleve-exercices.css">
+    <link rel="stylesheet" href="../css/eleve-connaissances.css">
+    <link rel="stylesheet" href="../css/feedback-minimal.css">
     <link rel="stylesheet" href="../css/eleve-evaluation.css">
 </head>
 <body>
@@ -100,6 +102,15 @@
 <!-- Scripts -->
 <script src="../js/config.js"></script>
 <script src="../js/sheets.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/logger.js"></script>
+<!-- Module d'entraînement connaissances (moteur de rendu réutilisé) -->
+<script src="../js/eleve-connaissances.js"></script>
+<script src="../js/eleve-connaissances-utils.js"></script>
+<script src="../js/eleve-connaissances-formats.js"></script>
+<script src="../js/eleve-connaissances-validation.js"></script>
+<script src="../js/eleve-connaissances-results.js"></script>
+<!-- Pilote évaluation -->
 <script src="../js/eleve-evaluation.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
