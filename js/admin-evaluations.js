@@ -680,6 +680,13 @@ const AdminEvaluations = {
         // Show/hide categorie field (only for bonus)
         const catGroup = document.getElementById('evalCategorieGroup');
         if (catGroup) catGroup.style.display = type === 'bonus' ? '' : 'none';
+        // Show/hide matiere field (bonus always, others only if toggle=all)
+        const matGroup = document.getElementById('evalMatiereGroup');
+        if (matGroup) {
+            matGroup.style.display = (type === 'bonus' || this.currentMatiere === 'all') ? '' : 'none';
+            const lesDeux = matGroup.querySelector('option[value="Les deux"]');
+            if (lesDeux) lesDeux.hidden = type !== 'bonus';
+        }
         // Update stepper visibility (step 3 depends on type)
         this._updateWizardStepper();
     },
@@ -727,12 +734,12 @@ const AdminEvaluations = {
                             <label>Points mis en jeu <span class="req">*</span></label>
                             <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="evalMatiereGroup" style="${d.type !== 'bonus' && this.currentMatiere !== 'all' ? 'display:none' : ''}">
                             <label>Matière <span class="req">*</span></label>
                             <select class="form-select" id="evalMatiere">
                                 <option value="FR" ${d.matiere === 'FR' || !d.matiere ? 'selected' : ''}>🇫🇷 Français</option>
                                 <option value="HG-EMC" ${d.matiere === 'HG-EMC' ? 'selected' : ''}>🌍 HG-EMC</option>
-                                <option value="Les deux" ${d.matiere === 'Les deux' ? 'selected' : ''}>🔗 Les deux</option>
+                                <option value="Les deux" ${d.matiere === 'Les deux' ? 'selected' : ''} ${d.type !== 'bonus' ? 'hidden' : ''}>🔗 Les deux</option>
                             </select>
                         </div>
                     </div>
@@ -997,7 +1004,8 @@ const AdminEvaluations = {
                 }
                 this.wizardData.titre = titre;
                 this.wizardData.briques = parseInt(document.getElementById('evalBriques')?.value) || 3;
-                this.wizardData.matiere = document.getElementById('evalMatiere')?.value || 'FR';
+                const matiereVisible = document.getElementById('evalMatiereGroup')?.style.display !== 'none';
+                this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
                 this.wizardData.statut = document.getElementById('evalStatut')?.value || 'brouillon';
                 this.wizardData.categorie = this.wizardData.type === 'bonus' ? (document.getElementById('evalCategorie')?.value || 'connaissances') : '';
 
