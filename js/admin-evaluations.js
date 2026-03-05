@@ -73,12 +73,16 @@ const AdminEvaluations = {
     },
 
     async loadData() {
+        const safeGet = (name) => SheetsAPI.getSheetData(name).catch(err => {
+            console.warn(`[Evaluations] Echec chargement ${name}:`, err);
+            return [];
+        });
+
         const [
             disciplinesData,
             themesData,
             chapitresData,
             methodologiesData,
-            bexConfigData,
             elevesData,
             sommativesData,
             resultatsSommativesData,
@@ -88,26 +92,24 @@ const AdminEvaluations = {
             banquesExercicesData,
             exercicesData
         ] = await Promise.all([
-            SheetsAPI.getSheetData('DISCIPLINES'),
-            SheetsAPI.getSheetData('THEMES'),
-            SheetsAPI.getSheetData('CHAPITRES'),
-            SheetsAPI.getSheetData('METHODOLOGIE').catch(() => []),
-            SheetsAPI.getSheetData('BEX_CONFIG').catch(() => []),
-            SheetsAPI.getSheetData('UTILISATEURS').catch(() => []),
-            SheetsAPI.getSheetData('NOTES_SOMMATIVES').catch(() => []),
-            SheetsAPI.getSheetData('RESULTATS_SOMMATIVES').catch(() => []),
-            SheetsAPI.getSheetData('EleveEntrainementsCompetences').catch(() => []),
-            SheetsAPI.getSheetData('BANQUES_EXERCICES_CONN').catch(() => []),
-            SheetsAPI.getSheetData('ENTRAINEMENTS_CONN').catch(() => []),
-            SheetsAPI.getSheetData('BANQUES_EXERCICES').catch(() => []),
-            SheetsAPI.getSheetData('EXERCICES').catch(() => [])
+            safeGet('DISCIPLINES'),
+            safeGet('THEMES'),
+            safeGet('CHAPITRES'),
+            safeGet('METHODOLOGIE'),
+            safeGet('UTILISATEURS'),
+            safeGet('NOTES_SOMMATIVES'),
+            safeGet('RESULTATS_SOMMATIVES'),
+            safeGet('EleveEntrainementsCompetences'),
+            safeGet('BANQUES_EXERCICES_CONN'),
+            safeGet('ENTRAINEMENTS_CONN'),
+            safeGet('BANQUES_EXERCICES'),
+            safeGet('EXERCICES')
         ]);
 
         this.disciplines = SheetsAPI.parseSheetData(disciplinesData);
         this.themes = SheetsAPI.parseSheetData(themesData);
         this.chapitres = SheetsAPI.parseSheetData(chapitresData);
         this.methodologies = SheetsAPI.parseSheetData(methodologiesData);
-        this.bexConfig = SheetsAPI.parseSheetData(bexConfigData);
         this.eleves = SheetsAPI.parseSheetData(elevesData).filter(u => u.role === 'eleve');
         this.sommatives = SheetsAPI.parseSheetData(sommativesData);
         this.resultatsSommatives = SheetsAPI.parseSheetData(resultatsSommativesData);
@@ -800,7 +802,7 @@ const AdminEvaluations = {
     },
 
     _renderCompFields(d) {
-        const compOptions = this.bexConfig.filter(b => b.type === 'competences').map(m =>
+        const compOptions = (this.bexConfig || []).filter(b => b.type === 'competences').map(m =>
             `<option value="${m.id}" ${d.methodologie_id === m.id ? 'selected' : ''}>${escapeHtml(m.titre || m.id)}</option>`
         ).join('');
 
