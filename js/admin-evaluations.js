@@ -349,7 +349,6 @@ const AdminEvaluations = {
     },
 
     renderEvaluationCard(evaluation) {
-        const chapitre = this.chapitres.find(c => c.id === evaluation.chapitre_id);
         const typeClass = evaluation.type || 'connaissances';
         const statusClass = evaluation.statut || 'brouillon';
         const order = evaluation.ordre || this._getEvaluationOrder(evaluation);
@@ -396,7 +395,6 @@ const AdminEvaluations = {
                 `🎯 ${evaluation.briques || 2} pts`,
                 `📊 Seuil: ${evaluation.seuil || 80}%`
             ];
-            if (chapitre) metaItems.push(`📚 ${escapeHtml(chapitre.titre || chapitre.id)}`);
         } else if (evaluation.type === 'savoir-faire') {
             metaItems = [
                 `🎯 ${evaluation.briques || 2} pts`
@@ -761,10 +759,6 @@ const AdminEvaluations = {
     },
 
     _renderConnFields(d) {
-        const chapitreOptions = this.chapitres.map(c =>
-            `<option value="${c.id}" ${d.chapitre_id === c.id ? 'selected' : ''}>${escapeHtml(c.titre || c.id)}</option>`
-        ).join('');
-
         return `
             <div class="form-row">
                 <div class="form-group">
@@ -778,13 +772,7 @@ const AdminEvaluations = {
                 </div>
             </div>
             <div class="form-row">
-                <div class="form-group">
-                    <label>Chapitre lié</label>
-                    <select class="form-select" id="evalChapitre">
-                        <option value="">Sélectionner...</option>
-                        ${chapitreOptions}
-                    </select>
-                </div>
+                <div class="form-group"></div>
                 ${this._renderStatutSelect(d)}
             </div>
         `;
@@ -1041,7 +1029,6 @@ const AdminEvaluations = {
 
                 if (this.wizardData.type === 'connaissances') {
                     this.wizardData.seuil = parseInt(document.getElementById('evalSeuil')?.value) || 80;
-                    this.wizardData.chapitre_id = document.getElementById('evalChapitre')?.value || '';
                 }
                 if (this.wizardData.type === 'competences') {
                     this.wizardData.methodologie_id = document.getElementById('evalMethodologieTC')?.value || '';
@@ -1083,12 +1070,7 @@ const AdminEvaluations = {
 
         if (d.type === 'connaissances') {
             data.seuil = d.seuil || 80;
-            data.chapitre_id = d.chapitre_id || '';
             data.source_questions = 'banque';
-            data.entrainement_conn_id = d.entrainement_conn_id || document.getElementById('evalEntrainementConnId').value || '';
-        }
-        if (d.type === 'savoir-faire') {
-            data.exercice_sf_id = d.exercice_sf_id || '';
         }
         if (d.type === 'competences') {
             data.methodologie_id = d.methodologie_id || '';
