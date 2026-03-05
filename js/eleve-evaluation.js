@@ -88,13 +88,16 @@ const EleveEvaluation = {
             // Convertir les questions en steps
             this.steps = this.convertQuestionsToSteps(data.questions || []);
 
+            if (this.steps.length === 0) {
+                throw new Error('Aucune question disponible pour cette évaluation');
+            }
+
             this.answers = {};
             this.results = {};
 
         } catch (error) {
             console.error('Erreur chargement evaluation:', error);
-            console.warn('Fallback sur donnees mock');
-            this.loadMockData();
+            throw error;
         }
     },
 
