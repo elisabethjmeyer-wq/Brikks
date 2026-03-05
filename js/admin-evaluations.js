@@ -1071,6 +1071,18 @@ const AdminEvaluations = {
         if (d.type === 'connaissances') {
             data.seuil = d.seuil || 80;
             data.source_questions = 'banque';
+            // Copier la durée depuis l'entraînement lié
+            if (d.entrainement_conn_id) {
+                const entr = this.entrainementsConn.find(e => e.id === d.entrainement_conn_id);
+                if (entr && entr.duree) data.duree = parseInt(entr.duree);
+            }
+        }
+        if (d.type === 'savoir-faire') {
+            // Copier la durée depuis l'exercice SF lié
+            if (d.exercice_sf_id) {
+                const exo = this.exercicesSF.find(e => e.id === d.exercice_sf_id);
+                if (exo && exo.duree) data.duree = parseInt(exo.duree);
+            }
         }
         if (d.type === 'competences') {
             data.methodologie_id = d.methodologie_id || '';
