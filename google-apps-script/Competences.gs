@@ -1,6 +1,6 @@
 // ========================================
 // REFERENTIEL COMPETENCES
-// Colonnes : id, nom, description, consigne, ordre, visible
+// Colonnes : id, nom, description, consigne, ordre, visible, matiere
 // ========================================
 
 /**
@@ -46,7 +46,7 @@ function createCompetenceReferentiel(data) {
   // Créer la feuille si elle n'existe pas
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.CompetencesReferentiel);
-    sheet.appendRow(['id', 'nom', 'description', 'consigne', 'ordre', 'visible']);
+    sheet.appendRow(['id', 'nom', 'description', 'consigne', 'ordre', 'visible', 'matiere']);
   }
 
   var id = 'comp_' + new Date().getTime();
@@ -56,7 +56,8 @@ function createCompetenceReferentiel(data) {
     data.description || '',
     data.consigne || '',
     data.ordre || 1,
-    data.visible !== undefined ? data.visible : true
+    data.visible !== undefined ? data.visible : true,
+    data.matiere || 'Transversal'
   ];
 
   sheet.appendRow(rowData);

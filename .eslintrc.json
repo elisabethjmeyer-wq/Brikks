@@ -50,6 +50,8 @@
         "SubmissionUtils": "readonly",
         "AdminCorrections": "readonly",
         "createBlockEditorMixin": "readonly",
-        "escapeHtml": "readonly"
+        "escapeHtml": "readonly",
+        "AdminParametrageEval": "readonly",
+        "AdminTableauBord": "readonly"
     }
 }

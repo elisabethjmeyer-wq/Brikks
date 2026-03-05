@@ -34,10 +34,9 @@ const AdminLayout = {
         {
             section: '📊 Évaluations',
             items: [
-                { icon: '📋', label: 'Évaluations', href: '/Brikks/admin/evaluations.html', id: 'evaluations' },
-                { icon: '🟣', label: 'Compétences', href: '/Brikks/admin/competences.html', id: 'competences' },
-                { icon: '✏️', label: 'Corrections', href: '/Brikks/admin/corrections.html', id: 'corrections', badge: true },
-                { icon: '📊', label: 'Notes', href: '/Brikks/admin/notes.html', id: 'notes' },
+                { icon: '📝', label: 'Évaluations', href: '/Brikks/admin/evaluations.html', id: 'evaluations', badge: true },
+                { icon: '📈', label: 'Tableau de bord', href: '/Brikks/admin/tableau-bord.html', id: 'tableau-bord' },
+                { icon: '⚙️', label: 'Paramétrage', href: '/Brikks/admin/parametrage-eval.html', id: 'parametrage-eval' },
                 { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi' }
             ]
         },
@@ -188,8 +187,8 @@ const AdminLayout = {
         // Vérifier les notifications (copies à corriger, etc.)
         this.checkPendingActivities();
 
-        // Si on est sur la page corrections, marquer comme vu
-        if (pageId === 'corrections') {
+        // Si on est sur la page évaluations (qui inclut les corrections), marquer comme vu
+        if (pageId === 'evaluations' || pageId === 'corrections') {
             this._onCorrectionsPage = true;
         }
     },
@@ -280,7 +279,7 @@ const AdminLayout = {
      * Redirige vers la page Corrections
      */
     goToCorrections() {
-        window.location.href = '/Brikks/admin/corrections.html';
+        window.location.href = '/Brikks/admin/evaluations.html';
     },
 
     /**
@@ -312,7 +311,7 @@ const AdminLayout = {
         // Cacher les badges
         var headerBadge = document.getElementById('header-notification-badge');
         if (headerBadge) headerBadge.style.display = 'none';
-        var menuBadge = document.getElementById('badge-corrections');
+        var menuBadge = document.getElementById('badge-evaluations');
         if (menuBadge) menuBadge.style.display = 'none';
     },
 
@@ -329,7 +328,7 @@ const AdminLayout = {
         }
 
         var count = pendingSubmissions.length;
-        var html = '<a href="/Brikks/admin/corrections.html" class="notification-item">';
+        var html = '<a href="/Brikks/admin/evaluations.html" class="notification-item">';
         html += '<span class="notification-item-icon">✏️</span>';
         html += '<span class="notification-item-text">' + count + ' copie' + (count > 1 ? 's' : '') + ' à corriger</span>';
         html += '</a>';
@@ -351,8 +350,8 @@ const AdminLayout = {
             }
         }
 
-        // Badge dans le menu Corrections
-        const menuBadge = document.getElementById('badge-corrections');
+        // Badge dans le menu Évaluations (copies à corriger)
+        const menuBadge = document.getElementById('badge-evaluations');
         if (menuBadge) {
             if (count > 0) {
                 menuBadge.textContent = count > 99 ? '99+' : count;

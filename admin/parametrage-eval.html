@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Brikks - Paramétrage évaluations et notes">
+    <title>Paramétrage - Administration - Brikks</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-parametrage-eval.css">
+</head>
+<body>
+
+<div id="parametrage-eval-page">
+    <!-- Page Header -->
+    <header class="page-header">
+        <div class="page-header-left">
+            <h1><span class="header-icon">⚙️</span> Paramétrage</h1>
+            <p class="page-subtitle">Configuration des notes et du référentiel de compétences</p>
+        </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="param-tabs">
+        <button class="param-tab active" data-tab="notes" id="tabNotes">
+            📊 Notes de progression
+        </button>
+        <button class="param-tab" data-tab="referentiel" id="tabReferentiel">
+            🎯 Référentiel compétences
+        </button>
+    </div>
+
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des paramètres...</p>
+    </div>
+
+    <!-- Tab: Notes de progression -->
+    <div class="tab-content" id="tab-notes" style="display: none;">
+        <!-- Semestres -->
+        <div class="param-section">
+            <h2 class="section-title">📅 Semestres</h2>
+            <div class="semester-grid">
+                <div class="semester-card">
+                    <h3>Semestre 1</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Début</label>
+                            <input type="date" class="form-input" id="sem1Debut">
+                        </div>
+                        <div class="form-group">
+                            <label>Fin</label>
+                            <input type="date" class="form-input" id="sem1Fin">
+                        </div>
+                    </div>
+                </div>
+                <div class="semester-card">
+                    <h3>Semestre 2</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Début</label>
+                            <input type="date" class="form-input" id="sem2Debut">
+                        </div>
+                        <div class="form-group">
+                            <label>Fin</label>
+                            <input type="date" class="form-input" id="sem2Fin">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matière : Français -->
+        <div class="param-section">
+            <h2 class="section-title">🇫🇷 Français</h2>
+            <div class="matiere-config">
+                <div class="form-row three-cols">
+                    <div class="form-group">
+                        <label>Note de départ</label>
+                        <div class="input-suffix">
+                            <input type="number" class="form-input" id="frNoteDepart" min="0" max="20" step="0.5" value="8">
+                            <span class="suffix">/20</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Budget estimé</label>
+                        <div class="input-suffix">
+                            <input type="number" class="form-input" id="frBudget" min="1" max="500" value="100">
+                            <span class="suffix">pts</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Coefficient</label>
+                        <input type="number" class="form-input" id="frCoefficient" min="1" max="10" value="3">
+                    </div>
+                </div>
+                <p class="form-hint">Formule : Note de départ + (points acquis / budget) × 19.5 + bonus</p>
+            </div>
+        </div>
+
+        <!-- Matière : HG-EMC -->
+        <div class="param-section">
+            <h2 class="section-title">🌍 Histoire-Géographie-EMC</h2>
+            <div class="matiere-config">
+                <div class="form-row three-cols">
+                    <div class="form-group">
+                        <label>Note de départ</label>
+                        <div class="input-suffix">
+                            <input type="number" class="form-input" id="hgNoteDepart" min="0" max="20" step="0.5" value="8">
+                            <span class="suffix">/20</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Budget estimé</label>
+                        <div class="input-suffix">
+                            <input type="number" class="form-input" id="hgBudget" min="1" max="500" value="100">
+                            <span class="suffix">pts</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Coefficient</label>
+                        <input type="number" class="form-input" id="hgCoefficient" min="1" max="10" value="3">
+                    </div>
+                </div>
+                <p class="form-hint">Formule : Note de départ + (points acquis / budget) × 19.5 + bonus</p>
+            </div>
+        </div>
+
+        <!-- Save bar -->
+        <div class="save-bar" id="notesSaveBar" style="display: none;">
+            <span class="save-bar-text">Modifications non enregistrées</span>
+            <div class="save-bar-actions">
+                <button class="btn btn-secondary" onclick="AdminParametrageEval.cancelNotesChanges()">Annuler</button>
+                <button class="btn btn-primary" onclick="AdminParametrageEval.saveNotesConfig()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Référentiel compétences -->
+    <div class="tab-content" id="tab-referentiel" style="display: none;">
+        <!-- Filtre par matière -->
+        <div class="referentiel-toolbar">
+            <div class="matiere-filter">
+                <button class="filter-btn active" data-matiere="all">Toutes</button>
+                <button class="filter-btn" data-matiere="FR">🇫🇷 FR</button>
+                <button class="filter-btn" data-matiere="HG-EMC">🌍 HG-EMC</button>
+                <button class="filter-btn" data-matiere="Transversal">🔗 Transversal</button>
+            </div>
+            <button class="btn btn-primary" id="addCompetenceBtn">
+                + Ajouter une compétence
+            </button>
+        </div>
+
+        <!-- Info banner -->
+        <div class="info-banner">
+            <span class="info-icon">ℹ️</span>
+            <p>Une compétence est acquise après <strong>3 validations</strong> (entraînements évalués ou tâches complexes). Les critères de réussite doivent tous être validés.</p>
+        </div>
+
+        <!-- Liste des compétences -->
+        <div class="competences-list" id="referentielList">
+            <!-- Généré dynamiquement -->
+        </div>
+
+        <!-- Empty state -->
+        <div class="empty-state" id="referentielEmpty" style="display: none;">
+            <div class="empty-icon">🎯</div>
+            <h3>Aucune compétence</h3>
+            <p>Ajoutez votre première compétence au référentiel.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter/Modifier Compétence -->
+<div class="modal-overlay hidden" id="competenceModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="compModalTitle">Ajouter une compétence</h3>
+            <button class="modal-close" onclick="AdminParametrageEval.closeCompModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editCompetenceId">
+
+            <div class="form-group">
+                <label for="compNom">Nom de la compétence *</label>
+                <input type="text" id="compNom" class="form-input" placeholder="Ex: Présenter un document">
+            </div>
+
+            <div class="form-group">
+                <label for="compMatiere">Matière *</label>
+                <select id="compMatiere" class="form-select">
+                    <option value="Transversal">🔗 Transversal (les deux matières)</option>
+                    <option value="FR">🇫🇷 Français</option>
+                    <option value="HG-EMC">🌍 Histoire-Géographie-EMC</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="compDescription">Description (optionnel)</label>
+                <textarea id="compDescription" class="form-input" rows="2" placeholder="Description de la compétence..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="compConsigne">Consigne ouverte (optionnel)</label>
+                <textarea id="compConsigne" class="form-input" rows="2" placeholder="Consigne affichée aux élèves..."></textarea>
+            </div>
+
+            <!-- Critères de réussite -->
+            <div class="form-group">
+                <label>Critères de réussite</label>
+                <p class="form-hint">Critères binaires (oui/non) que l'élève doit tous valider.</p>
+                <div id="criteresList" class="criteres-edit-list">
+                    <!-- Généré dynamiquement -->
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="AdminParametrageEval.addCritereField()">
+                    + Ajouter un critère
+                </button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminParametrageEval.closeCompModal()">Annuler</button>
+            <button class="btn btn-primary" id="compSaveBtn" onclick="AdminParametrageEval.saveCompetence()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmation Suppression -->
+<div class="modal-overlay hidden" id="deleteModal">
+    <div class="modal modal-small">
+        <div class="modal-header">
+            <h3>Confirmer la suppression</h3>
+            <button class="modal-close" onclick="AdminParametrageEval.closeDeleteModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <p>Êtes-vous sûr de vouloir supprimer cette compétence et tous ses critères ?</p>
+            <input type="hidden" id="deleteId">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminParametrageEval.closeDeleteModal()">Annuler</button>
+            <button class="btn btn-danger" onclick="AdminParametrageEval.confirmDelete()">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="../js/config.js"></script>
+<script src="../js/sheets.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/app.js"></script>
+<script src="../components/admin-layout.js"></script>
+<script src="../js/admin-parametrage-eval.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        AdminLayout.init('parametrage-eval', 'Paramétrage');
+        AdminParametrageEval.init();
+    });
+</script>
+
+</body>
+</html>
