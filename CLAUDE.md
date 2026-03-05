@@ -389,11 +389,15 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 
 **Sidebar admin** (4 items) : Évaluations, Tableau de bord, Paramétrage, Suivi
 
-**Phases restantes** :
-- Phase 3 : Tableau de bord (calcul des notes, vue classe, fiche élève)
-- Phase 4 : Pages élève + enrichissement Suivi
+**Tableau de bord** (`admin/tableau-bord.html`, `js/admin-tableau-bord.js`, `css/admin-tableau-bord.css`) :
+- Moteur de calcul : note de progression (`noteDepart + (pts/budget) × 19.5 + bonus`, cap 20)
+- Points agrégés depuis EVALUATION_RESULTATS par catégorie et matière
+- Moyenne pondérée : `(prog × coefProg + Σ(som × coef)) / Σ(coefs)`
+- Vue classe triable + panneau détail élève (slide-in) + toggle semestre S1/S2
 
-**État** : Phase 1 complète (backend + paramétrage + sidebar). Phase 2 complète (matière, sommatives, saisie, corrections banner).
+**Phase restante** : Phase 4 (pages élève + enrichissement Suivi)
+
+**État** : Phases 1-3 complètes.
 
 ### Points structurels
 
