@@ -4,6 +4,54 @@
 
 ---
 
+## 2026-03-05 — Session 16 (suite 2) : Phase 4 Page notes élève
+
+### Modifications
+
+1. **Page "Mes notes" élève** (`eleve/notes.html`, `js/eleve-notes.js`, `css/eleve-notes.css`) :
+   - Toggle matière FR / HG-EMC
+   - Note de progression avec barre de progression et formule détaillée
+   - Points par catégorie (connaissances, savoir-faire, compétences, bonus) avec barres colorées
+   - Moyenne pondérée avec détail progression + sommatives
+   - Liste des évaluations sommatives avec notes et coefficients
+   - Objectif personnel (saisie + sauvegarde via API)
+   - Même moteur de calcul que le tableau de bord admin
+
+### Fichiers créés
+- `js/eleve-notes.js` (~290 lignes)
+- `css/eleve-notes.css` (~280 lignes)
+- `eleve/notes.html` (réécrit depuis placeholder)
+
+### Fichiers modifiés
+- `.eslintrc.json` (ajout global `EleveNotes`)
+
+---
+
+## 2026-03-05 — Session 16 (suite) : Phase 3 Tableau de bord
+
+### Modifications
+
+1. **Moteur de calcul des notes** (`js/admin-tableau-bord.js`) :
+   - Note de progression : `noteDepart + (pointsSansBonus / budget) × 19.5 + bonus`, plafonnée à 20
+   - Points agrégés par catégorie depuis EVALUATION_RESULTATS
+   - Moyenne pondérée : `(progression × coefProg + Σ(sommative×coef)) / Σ(coefs)`
+   - Évaluations "Les deux" comptent 100% dans chaque matière
+
+2. **Vue classe** : tableau triable avec Prog. FR, Prog. HG, Moy. FR, Moy. HG. Code couleur par niveau.
+
+3. **Cartes résumé** : moyennes classe FR/HG, nb élèves, nb évaluations.
+
+4. **Toggle semestre** (S1/S2).
+
+5. **Panneau détail élève** (slide-in) : formule détaillée, points par catégorie, sommatives, moyenne.
+
+### Fichiers créés
+- `js/admin-tableau-bord.js` (~300 lignes)
+- `css/admin-tableau-bord.css` (~400 lignes)
+- `admin/tableau-bord.html` (réécrit)
+
+---
+
 ## 2026-03-05 — Session 16 : Phase 2 Évaluations (matière, sommatives, saisie)
 
 ### Contexte

@@ -13,22 +13,143 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-tableau-bord.css">
 </head>
 <body>
 
 <div id="tableau-bord-page">
+    <!-- Page Header -->
     <header class="page-header">
         <div class="page-header-left">
             <h1><span class="header-icon">📈</span> Tableau de bord</h1>
-            <p style="color: #64748b; font-size: 0.9rem; margin-top: 4px;">Vue d'ensemble des notes et de la progression</p>
+            <p class="page-subtitle">Vue d'ensemble des notes et de la progression</p>
+        </div>
+        <div class="page-header-right">
+            <div class="semestre-toggle" id="semestreToggle">
+                <button class="sem-btn active" data-semestre="1">S1</button>
+                <button class="sem-btn" data-semestre="2">S2</button>
+            </div>
         </div>
     </header>
 
-    <div style="text-align: center; padding: 80px 24px; color: #94a3b8;">
-        <div style="font-size: 3rem; margin-bottom: 16px;">📈</div>
-        <h2 style="color: #475569; margin-bottom: 8px;">Tableau de bord — Phase 3</h2>
-        <p>Cette page affichera les moyennes de la classe, les notes de progression et les fiches individuelles des élèves.</p>
-        <p style="margin-top: 8px; font-size: 0.85rem;">Commencez par configurer les paramètres dans <a href="parametrage-eval.html" style="color: #6366f1;">Paramétrage</a>.</p>
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+        <p>Chargement des données...</p>
+    </div>
+
+    <!-- Content -->
+    <div id="tdb-content" style="display: none;">
+
+        <!-- Summary cards -->
+        <div class="summary-cards">
+            <div class="summary-card fr">
+                <div class="summary-label">🇫🇷 Moyenne FR</div>
+                <div class="summary-value" id="moyenneFR">—</div>
+                <div class="summary-detail" id="detailFR"></div>
+            </div>
+            <div class="summary-card hg">
+                <div class="summary-label">🌍 Moyenne HG-EMC</div>
+                <div class="summary-value" id="moyenneHG">—</div>
+                <div class="summary-detail" id="detailHG"></div>
+            </div>
+            <div class="summary-card neutral">
+                <div class="summary-label">👥 Élèves</div>
+                <div class="summary-value" id="nbEleves">0</div>
+                <div class="summary-detail" id="detailEleves"></div>
+            </div>
+            <div class="summary-card neutral">
+                <div class="summary-label">📋 Évaluations</div>
+                <div class="summary-value" id="nbEvals">0</div>
+                <div class="summary-detail" id="detailEvals"></div>
+            </div>
+        </div>
+
+        <!-- Class table -->
+        <div class="class-table-container">
+            <div class="class-table-header">
+                <h2>Notes par élève</h2>
+                <div class="table-actions">
+                    <input type="text" class="search-input" id="searchEleve" placeholder="🔍 Rechercher un élève...">
+                </div>
+            </div>
+            <div class="table-scroll">
+                <table class="class-table" id="classTable">
+                    <thead>
+                        <tr>
+                            <th class="col-name sortable" data-sort="name">Élève ↕</th>
+                            <th class="col-prog sortable" data-sort="progFR">Prog. FR ↕</th>
+                            <th class="col-prog sortable" data-sort="progHG">Prog. HG ↕</th>
+                            <th class="col-moy sortable" data-sort="moyFR">Moy. FR ↕</th>
+                            <th class="col-moy sortable" data-sort="moyHG">Moy. HG ↕</th>
+                            <th class="col-detail"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="classTableBody">
+                        <!-- Generated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Student detail panel -->
+        <div class="detail-overlay hidden" id="detailOverlay">
+            <div class="detail-panel" id="detailPanel">
+                <div class="detail-panel-header">
+                    <h3 id="detailPanelName">Nom Élève</h3>
+                    <button class="btn-close-detail" onclick="AdminTableauBord.closeDetail()">✕</button>
+                </div>
+                <div class="detail-panel-body">
+                    <!-- FR section -->
+                    <div class="detail-matiere-section">
+                        <div class="detail-matiere-header fr">
+                            <span>🇫🇷 Français</span>
+                            <span class="detail-note-big" id="detailMoyFR">—/20</span>
+                        </div>
+
+                        <div class="detail-block">
+                            <div class="detail-block-title">Note de progression</div>
+                            <div class="detail-note-row">
+                                <span class="detail-note-value" id="detailProgFR">—</span>
+                                <span class="detail-formula" id="detailFormulaFR"></span>
+                            </div>
+                            <div class="detail-categories" id="detailCatsFR"></div>
+                        </div>
+
+                        <div class="detail-block">
+                            <div class="detail-block-title">Notes sommatives</div>
+                            <div class="detail-sommatives-list" id="detailSomFR">
+                                <span class="detail-empty">Aucune sommative</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HG section -->
+                    <div class="detail-matiere-section">
+                        <div class="detail-matiere-header hg">
+                            <span>🌍 Histoire-Géographie-EMC</span>
+                            <span class="detail-note-big" id="detailMoyHG">—/20</span>
+                        </div>
+
+                        <div class="detail-block">
+                            <div class="detail-block-title">Note de progression</div>
+                            <div class="detail-note-row">
+                                <span class="detail-note-value" id="detailProgHG">—</span>
+                                <span class="detail-formula" id="detailFormulaHG"></span>
+                            </div>
+                            <div class="detail-categories" id="detailCatsHG"></div>
+                        </div>
+
+                        <div class="detail-block">
+                            <div class="detail-block-title">Notes sommatives</div>
+                            <div class="detail-sommatives-list" id="detailSomHG">
+                                <span class="detail-empty">Aucune sommative</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -38,6 +159,7 @@
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/admin-layout.js"></script>
+<script src="../js/admin-tableau-bord.js"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

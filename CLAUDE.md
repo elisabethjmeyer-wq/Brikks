@@ -160,6 +160,29 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **État** : créé et audité (session 14). Code propre et maintenable.
 
+### Notes élève — CRÉÉ SESSION 16
+
+**Page** : `eleve/notes.html`
+**Fichiers** : `js/eleve-notes.js` (~290 lignes), `css/eleve-notes.css` (~280 lignes)
+**Backend** : lecture seule via `SheetsAPI` (6 tables) + `saveObjectifEleve` (JSONP)
+
+**Ce que fait le module :**
+- L'élève voit ses notes pour une matière (toggle FR / HG-EMC)
+- Note de progression avec barre visuelle et formule détaillée
+- Points par catégorie (connaissances, savoir-faire, compétences, bonus) en barres colorées
+- Liste des évaluations sommatives avec notes et coefficients
+- Moyenne pondérée : `(progression × coefProg + Σ(sommative × coef)) / Σ(coefs)`
+- Objectif personnel saisissable et sauvegardé via API
+
+**Calculs** : identiques au tableau de bord admin (`admin-tableau-bord.js`), appliqués au seul élève connecté.
+
+**Appels API** (chargement, 6 en parallèle) :
+`EVALUATIONS`, `EVALUATION_RESULTATS`, `NOTES_SOMMATIVES`, `RESULTATS_SOMMATIVES`, `PARAMETRES_NOTES`, `OBJECTIFS_ELEVES`
+
+**Appels API** (écriture) : `saveObjectifEleve` (JSONP)
+
+**État** : créé (session 16). Fonctionnel.
+
 ## Architecture technique
 
 ### Stack
@@ -389,11 +412,15 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 
 **Sidebar admin** (4 items) : Évaluations, Tableau de bord, Paramétrage, Suivi
 
-**Phases restantes** :
-- Phase 3 : Tableau de bord (calcul des notes, vue classe, fiche élève)
-- Phase 4 : Pages élève + enrichissement Suivi
+**Tableau de bord** (`admin/tableau-bord.html`, `js/admin-tableau-bord.js`, `css/admin-tableau-bord.css`) :
+- Moteur de calcul : note de progression (`noteDepart + (pts/budget) × 19.5 + bonus`, cap 20)
+- Points agrégés depuis EVALUATION_RESULTATS par catégorie et matière
+- Moyenne pondérée : `(prog × coefProg + Σ(som × coef)) / Σ(coefs)`
+- Vue classe triable + panneau détail élève (slide-in) + toggle semestre S1/S2
 
-**État** : Phase 1 complète (backend + paramétrage + sidebar). Phase 2 complète (matière, sommatives, saisie, corrections banner).
+**Phase restante** : Phase 4 (pages élève + enrichissement Suivi)
+
+**État** : Phases 1-3 complètes.
 
 ### Points structurels
 
