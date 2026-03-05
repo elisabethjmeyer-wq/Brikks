@@ -160,6 +160,29 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **État** : créé et audité (session 14). Code propre et maintenable.
 
+### Notes élève — CRÉÉ SESSION 16
+
+**Page** : `eleve/notes.html`
+**Fichiers** : `js/eleve-notes.js` (~290 lignes), `css/eleve-notes.css` (~280 lignes)
+**Backend** : lecture seule via `SheetsAPI` (6 tables) + `saveObjectifEleve` (JSONP)
+
+**Ce que fait le module :**
+- L'élève voit ses notes pour une matière (toggle FR / HG-EMC)
+- Note de progression avec barre visuelle et formule détaillée
+- Points par catégorie (connaissances, savoir-faire, compétences, bonus) en barres colorées
+- Liste des évaluations sommatives avec notes et coefficients
+- Moyenne pondérée : `(progression × coefProg + Σ(sommative × coef)) / Σ(coefs)`
+- Objectif personnel saisissable et sauvegardé via API
+
+**Calculs** : identiques au tableau de bord admin (`admin-tableau-bord.js`), appliqués au seul élève connecté.
+
+**Appels API** (chargement, 6 en parallèle) :
+`EVALUATIONS`, `EVALUATION_RESULTATS`, `NOTES_SOMMATIVES`, `RESULTATS_SOMMATIVES`, `PARAMETRES_NOTES`, `OBJECTIFS_ELEVES`
+
+**Appels API** (écriture) : `saveObjectifEleve` (JSONP)
+
+**État** : créé (session 16). Fonctionnel.
+
 ## Architecture technique
 
 ### Stack

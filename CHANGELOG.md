@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-03-05 — Session 16 (suite 2) : Phase 4 Page notes élève
+
+### Modifications
+
+1. **Page "Mes notes" élève** (`eleve/notes.html`, `js/eleve-notes.js`, `css/eleve-notes.css`) :
+   - Toggle matière FR / HG-EMC
+   - Note de progression avec barre de progression et formule détaillée
+   - Points par catégorie (connaissances, savoir-faire, compétences, bonus) avec barres colorées
+   - Moyenne pondérée avec détail progression + sommatives
+   - Liste des évaluations sommatives avec notes et coefficients
+   - Objectif personnel (saisie + sauvegarde via API)
+   - Même moteur de calcul que le tableau de bord admin
+
+### Fichiers créés
+- `js/eleve-notes.js` (~290 lignes)
+- `css/eleve-notes.css` (~280 lignes)
+- `eleve/notes.html` (réécrit depuis placeholder)
+
+### Fichiers modifiés
+- `.eslintrc.json` (ajout global `EleveNotes`)
+
+---
+
 ## 2026-03-05 — Session 16 (suite) : Phase 3 Tableau de bord
 
 ### Modifications

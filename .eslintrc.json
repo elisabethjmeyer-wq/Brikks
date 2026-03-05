@@ -53,6 +53,7 @@
         "escapeHtml": "readonly",
         "AdminParametrageEval": "readonly",
         "AdminTableauBord": "readonly",
-        "AdminEvaluations": "readonly"
+        "AdminEvaluations": "readonly",
+        "EleveNotes": "readonly"
     }
 }
