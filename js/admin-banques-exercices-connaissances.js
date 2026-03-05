@@ -95,7 +95,7 @@ Object.assign(AdminBanquesExercices, {
         });
 
         return sorted.map(banque => {
-            const entrainements = this.entrainementsConn.filter(e => e.banque_exercice_id === banque.id && e.statut !== 'evaluation');
+            const entrainements = this.entrainementsConn.filter(e => e.banque_exercice_id === banque.id);
             const publies = entrainements.filter(e => e.statut === 'publie').length;
 
             return `
@@ -661,8 +661,8 @@ Object.assign(AdminBanquesExercices, {
             <div class="modal modal-wizard">
                 <div class="wizard-header">
                     <div class="wizard-title">
-                        <h2>${this._evalWizardCallback ? (entrainement ? '✏️ Modifier l\'évaluation' : '➕ Nouvelle évaluation') : (entrainement ? '✏️ Modifier l\'entraînement' : '➕ Nouvel entraînement')}</h2>
-                        <span class="wizard-subtitle">${this._evalWizardCallback ? 'Évaluation' : 'Connaissances'} • ${entrainement ? entrainement.titre : (this._evalWizardCallback ? 'Créez une évaluation personnalisée' : 'Créez une série d\'exercices')}</span>
+                        <h2>${entrainement ? '✏️ Modifier l\'entraînement' : '➕ Nouvel entraînement'}</h2>
+                        <span class="wizard-subtitle">Connaissances • ${entrainement ? entrainement.titre : 'Créez une série d\'exercices'}</span>
                     </div>
                     <div class="wizard-steps">
                         <button class="wizard-step active" data-step="1" onclick="AdminBanquesExercices.goToWizardStep(1)">
@@ -708,14 +708,6 @@ Object.assign(AdminBanquesExercices, {
     closeEntrainementWizard() {
         const modal = document.getElementById('entrainementWizardModal');
         if (modal) modal.remove();
-
-        // If closing from evaluation mode (without finalizing), re-show eval modal
-        if (this._evalWizardCallback) {
-            this._evalWizardCallback = null;
-            const evalModal = document.getElementById('evaluationModal');
-            if (evalModal) evalModal.classList.remove('hidden');
-        }
-
         this.wizardData = { entrainement: null, banqueId: null, currentStep: 1, etapes: [], isEditing: false };
     },
 
@@ -825,7 +817,7 @@ Object.assign(AdminBanquesExercices, {
                 }
 
                 const statut = document.getElementById('wizardStatut')?.value;
-                if (!['brouillon', 'publie', 'evaluation'].includes(statut)) {
+                if (!['brouillon', 'publie'].includes(statut)) {
                     this.showNotification('Statut invalide', 'warning');
                     return false;
                 }
@@ -880,7 +872,7 @@ Object.assign(AdminBanquesExercices, {
                     description: document.getElementById('wizardDescription').value.trim(),
                     duree: parseInt(document.getElementById('wizardDuree').value) || 15,
                     seuil: parseInt(document.getElementById('wizardSeuil').value) || 80,
-                    statut: this._evalWizardCallback ? 'evaluation' : document.getElementById('wizardStatut').value,
+                    statut: document.getElementById('wizardStatut').value,
                     banque_exercice_id: this.wizardData.banqueId
                 };
 
@@ -984,12 +976,11 @@ Object.assign(AdminBanquesExercices, {
                             <input type="number" class="form-input" id="wizardSeuil" value="${e.seuil || 80}" min="0" max="100">
                         </div>
                     </div>
-                    <div class="form-group" ${this._evalWizardCallback ? 'style="display:none;"' : ''}>
+                    <div class="form-group">
                         <label>Statut</label>
                         <select class="form-select" id="wizardStatut">
-                            <option value="brouillon" ${e.statut !== 'publie' && e.statut !== 'evaluation' ? 'selected' : ''}>Brouillon</option>
+                            <option value="brouillon" ${e.statut !== 'publie' ? 'selected' : ''}>Brouillon</option>
                             <option value="publie" ${e.statut === 'publie' ? 'selected' : ''}>Publié</option>
-                            ${this._evalWizardCallback ? '<option value="evaluation" selected>Évaluation</option>' : ''}
                         </select>
                     </div>
                 </div>
@@ -1889,22 +1880,12 @@ Object.assign(AdminBanquesExercices, {
 
             this.saveToCache();
 
-            // Fermer le wizard
+            // Fermer le wizard et rafraîchir l'affichage
             this.closeEntrainementWizard();
+            this.renderBanques();
 
-            // If called from evaluation mode, call back instead of rendering banques
-            if (this._evalWizardCallback && this.wizardData.entrainement) {
-                const callback = this._evalWizardCallback;
-                this._evalWizardCallback = null;
-                // Re-show evaluation modal
-                const evalModal = document.getElementById('evaluationModal');
-                if (evalModal) evalModal.classList.remove('hidden');
-                callback(this.wizardData.entrainement);
-                this.showNotification('Entraînement d\'évaluation sauvegardé !', 'success');
-            } else {
-                this.renderBanques();
-                this.showNotification('Entraînement sauvegardé avec succès !', 'success');
-            }
+            // Afficher un message de succès
+            this.showNotification('Entraînement sauvegardé avec succès !', 'success');
         } catch (error) {
             console.error('Erreur finalisation entraînement:', error);
             this.showNotification('Erreur lors de la sauvegarde. Vérifiez votre connexion et réessayez.', 'error');

@@ -14,7 +14,6 @@
     <!-- Styles -->
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/admin-evaluations.css">
-    <link rel="stylesheet" href="../css/admin-banques-exercices.css">
 </head>
 <body>
 
@@ -156,209 +155,44 @@
     </div>
 </div>
 
-<!-- Modal: Creer/Modifier evaluation -->
+<!-- Modal: Wizard Creer/Modifier evaluation -->
 <div class="modal-overlay hidden" id="evaluationModal">
-    <div class="modal modal-large">
+    <div class="modal modal-wizard-eval">
         <div class="modal-header">
             <h2 id="evaluationModalTitle">Créer une évaluation</h2>
             <button class="modal-close" id="closeEvaluationModal">&times;</button>
         </div>
-        <div class="modal-body">
-            <input type="hidden" id="editEvaluationId">
 
-            <!-- Type selector (for create only) -->
-            <div class="form-group" id="typeSelector">
-                <label>Type d'évaluation <span class="req">*</span></label>
-                <div class="type-cards">
-                    <label class="type-card green selected" data-type="connaissances">
-                        <input type="radio" name="evalType" value="connaissances" checked>
-                        <span class="type-icon">🟢</span>
-                        <span class="type-name">Connaissances</span>
-                        <span class="type-desc">QCM, quiz sur les leçons</span>
-                    </label>
-                    <label class="type-card orange" data-type="savoir-faire">
-                        <input type="radio" name="evalType" value="savoir-faire">
-                        <span class="type-icon">🟠</span>
-                        <span class="type-name">Savoir-faire</span>
-                        <span class="type-desc">Exercices méthodologiques</span>
-                    </label>
-                    <label class="type-card purple" data-type="competences">
-                        <input type="radio" name="evalType" value="competences">
-                        <span class="type-icon">🟣</span>
-                        <span class="type-name">Compétences</span>
-                        <span class="type-desc">Tâches complexes</span>
-                    </label>
-                    <label class="type-card yellow" data-type="bonus">
-                        <input type="radio" name="evalType" value="bonus">
-                        <span class="type-icon">⭐</span>
-                        <span class="type-name">Bonus</span>
-                        <span class="type-desc">Évaluations spéciales</span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Common fields -->
-            <div class="form-section">Informations générales</div>
-
-            <div class="form-group">
-                <label>Titre <span class="req">*</span></label>
-                <input type="text" class="form-input" id="evalTitre" placeholder="Ex: Evaluation chapitre 1">
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Points mis en jeu <span class="req">*</span></label>
-                    <input type="number" class="form-input" id="evalBriques" value="3" min="1" max="50">
-                    <div class="form-help">Nombre de points attribuables</div>
-                </div>
-                <div class="form-group">
-                    <label>Matière <span class="req">*</span></label>
-                    <select class="form-select" id="evalMatiere">
-                        <option value="FR">🇫🇷 Français</option>
-                        <option value="HG-EMC">🌍 Histoire-Géographie-EMC</option>
-                        <option value="Les deux">🔗 Les deux matières</option>
-                    </select>
-                    <div class="form-help" id="matiereHelp" style="display: none;">Les points comptent 100% dans chaque matière</div>
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Statut</label>
-                    <select class="form-select" id="evalStatut">
-                        <option value="brouillon">Brouillon</option>
-                        <option value="planifiee">Planifiée</option>
-                        <option value="publiee">Publiée</option>
-                        <option value="terminee">Terminée</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Catégorie</label>
-                    <select class="form-select" id="evalCategorie">
-                        <option value="">Même que le type</option>
-                        <option value="connaissances">Connaissances</option>
-                        <option value="savoir-faire">Savoir-faire</option>
-                        <option value="competences">Compétences</option>
-                        <option value="bonus">Bonus</option>
-                    </select>
-                    <div class="form-help">Catégorie pour le calcul de la note de progression</div>
-                </div>
-            </div>
-
-            <!-- Type-specific fields -->
-            <div id="connaissancesFields" class="type-fields">
-                <div class="form-section">Paramètres Connaissances</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Seuil de réussite (%) <span class="req">*</span></label>
-                        <input type="number" class="form-input" id="evalSeuil" value="80" min="0" max="100">
-                        <div class="form-help">Score minimum pour valider</div>
-                    </div>
-                    <div class="form-group">
-                        <label>Chapitre lié</label>
-                        <select class="form-select" id="evalChapitre">
-                            <option value="">Sélectionner...</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Source des questions</label>
-                    <div class="radio-group">
-                        <label class="radio-item">
-                            <input type="radio" name="sourceQuestions" value="banque" checked>
-                            <span>Banque d'exercices</span>
-                        </label>
-                        <label class="radio-item">
-                            <input type="radio" name="sourceQuestions" value="personnalise">
-                            <span>Personnalisé</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Banque d'exercices selector -->
-                <div class="form-group" id="banqueSourceContainer" style="display: none;">
-                    <label>Entraînement lié</label>
-                    <div id="entrainementSelector">
-                        <!-- Populated dynamically -->
-                    </div>
-                    <input type="hidden" id="evalEntrainementConnId">
-                </div>
-
-                <!-- Personnalisé: wizard trigger -->
-                <div class="form-group" id="personnaliseContainer" style="display: none;">
-                    <div id="personnaliseContent">
-                        <!-- Populated dynamically -->
-                    </div>
-                </div>
-            </div>
-
-            <div id="savoirFaireFields" class="type-fields" style="display: none;">
-                <div class="form-section">Paramètres Savoir-faire (BEX)</div>
-                <div class="form-group">
-                    <label>Méthodologie liée</label>
-                    <select class="form-select" id="evalMethodologie">
-                        <option value="">Sélectionner...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Sujets disponibles</label>
-                    <div class="form-help">Sélectionner parmi les exercices d'entraînement avec tag "peut tomber en éval"</div>
-                    <div class="subjects-checkboxes" id="subjectsCheckboxes">
-                        <!-- Generated dynamically -->
-                    </div>
-                </div>
-            </div>
-
-            <div id="competencesFields" class="type-fields" style="display: none;">
-                <div class="form-section">Paramètres Compétences (TC)</div>
-                <div class="form-group">
-                    <label>Méthodologie liée</label>
-                    <select class="form-select" id="evalMethodologieTC">
-                        <option value="">Sélectionner...</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Compétences évaluées</label>
-                    <div class="competences-select" id="competencesSelect">
-                        <!-- Tags/checkboxes for competences -->
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Source du sujet</label>
-                    <div class="radio-group">
-                        <label class="radio-item">
-                            <input type="radio" name="sourceSujet" value="externe">
-                            <span>Externe (PDF/image)</span>
-                        </label>
-                        <label class="radio-item">
-                            <input type="radio" name="sourceSujet" value="banque">
-                            <span>Banque de sujets</span>
-                        </label>
-                        <label class="radio-item">
-                            <input type="radio" name="sourceSujet" value="creer">
-                            <span>Créer un sujet</span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div id="bonusFields" class="type-fields" style="display: none;">
-                <div class="form-section">Paramètres Bonus</div>
-                <div class="form-group">
-                    <label>Description des critères</label>
-                    <textarea class="form-textarea" id="evalCriteres" rows="3" placeholder="Décrivez les critères de validation..."></textarea>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Description / Consignes</label>
-                <textarea class="form-textarea" id="evalDescription" rows="2" placeholder="Instructions pour les élèves..."></textarea>
-            </div>
-
+        <!-- Wizard stepper -->
+        <div class="eval-wizard-stepper">
+            <button class="eval-wizard-step active" data-step="1">
+                <span class="eval-step-number">1</span>
+                <span class="eval-step-label">Type</span>
+            </button>
+            <div class="eval-step-connector"></div>
+            <button class="eval-wizard-step" data-step="2">
+                <span class="eval-step-number">2</span>
+                <span class="eval-step-label">Paramètres</span>
+            </button>
+            <div class="eval-step-connector"></div>
+            <button class="eval-wizard-step" data-step="3">
+                <span class="eval-step-number">3</span>
+                <span class="eval-step-label">Sujet</span>
+            </button>
         </div>
+
+        <div class="modal-body" id="evalWizardContent">
+            <!-- Wizard content rendered dynamically -->
+        </div>
+
+        <input type="hidden" id="editEvaluationId">
+        <input type="hidden" id="evalEntrainementConnId">
+
         <div class="modal-footer">
+            <button class="btn btn-secondary" id="evalWizardPrevBtn" style="display:none;">← Précédent</button>
+            <div style="flex:1;"></div>
             <button class="btn btn-secondary" id="cancelEvaluationBtn">Annuler</button>
-            <button class="btn btn-primary" id="saveEvaluationBtn">Enregistrer</button>
+            <button class="btn btn-primary" id="evalWizardNextBtn">Suivant →</button>
         </div>
     </div>
 </div>
@@ -484,8 +318,6 @@
 <script src="../js/auth.js"></script>
 <script src="../js/app.js"></script>
 <script src="../components/admin-layout.js"></script>
-<script src="../js/admin-banques-exercices.js"></script>
-<script src="../js/admin-banques-exercices-connaissances.js"></script>
 <script src="../js/admin-evaluations.js"></script>
 
 <script>
