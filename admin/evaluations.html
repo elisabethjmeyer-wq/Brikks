@@ -80,24 +80,17 @@
             </button>
         </div>
 
-        <!-- Filters -->
-        <div class="filters-bar">
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Rechercher une évaluation...">
-            </div>
+        <!-- Action bar -->
+        <div class="eval-action-bar">
             <select class="filter-select" id="filterStatut">
-                <option value="">📊 Tous les statuts</option>
-                <option value="brouillon">📝 Brouillon</option>
-                <option value="planifiee">📅 Planifiée</option>
-                <option value="publiee">🟢 En cours</option>
-                <option value="terminee">✅ Terminée</option>
+                <option value="">Tous les statuts</option>
+                <option value="brouillon">Brouillon</option>
+                <option value="planifiee">Planifiée</option>
+                <option value="publiee">En cours</option>
+                <option value="terminee">Terminée</option>
             </select>
-            <select class="filter-select" id="filterChapitre">
-                <option value="">📚 Tous les chapitres</option>
-            </select>
-            <button class="btn btn-primary" id="addEvaluationBtn">
-                <span>➕</span>
-                <span id="addEvaluationBtnText">Nouvelle évaluation</span>
+            <button class="btn btn-primary btn-compact" id="addEvaluationBtn">
+                + <span id="addEvaluationBtnText">Nouvelle connaissance</span>
             </button>
         </div>
 
@@ -109,12 +102,8 @@
         <!-- Empty state -->
         <div class="empty-state" id="emptyState" style="display: none;">
             <div class="empty-icon">📋</div>
-            <h3>Aucune évaluation trouvée</h3>
-            <p>Créez une nouvelle évaluation pour ce type.</p>
-            <button class="btn btn-primary empty-state-btn" id="addEvaluationBtnEmpty">
-                <span>➕</span>
-                <span id="addEvaluationBtnEmptyText">Créer une évaluation</span>
-            </button>
+            <h3 id="emptyStateTitle">Aucune évaluation trouvée</h3>
+            <p id="emptyStateText">Cliquez sur le bouton ci-dessus pour en créer une.</p>
         </div>
     </div>
 

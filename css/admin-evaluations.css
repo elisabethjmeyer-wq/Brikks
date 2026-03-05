@@ -219,7 +219,7 @@
 .eval-tabs {
     display: flex;
     gap: 6px;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
     background: white;
     border-radius: var(--radius-lg);
     padding: 8px;
@@ -296,53 +296,36 @@
     background: rgba(0,0,0,0.1);
 }
 
-/* ===== FILTERS ===== */
-.filters-bar {
-    background: white;
-    border-radius: var(--radius-lg);
-    padding: 16px 20px;
-    box-shadow: var(--shadow);
-    margin-bottom: 24px;
+/* ===== ACTION BAR ===== */
+.eval-action-bar {
     display: flex;
-    gap: 16px;
     align-items: center;
-    flex-wrap: wrap;
-}
-
-.search-box {
-    flex: 1;
-    min-width: 200px;
-}
-
-.search-box input {
-    width: 100%;
-    padding: 10px 16px;
-    border: 2px solid var(--gray-200);
-    border-radius: var(--radius);
-    font-size: 14px;
-    font-family: inherit;
-    box-sizing: border-box;
-}
-
-.search-box input:focus {
-    outline: none;
-    border-color: var(--primary, #6366f1);
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 12px;
 }
 
 .filter-select {
-    padding: 10px 16px;
+    padding: 8px 14px;
     border: 2px solid var(--gray-200);
     border-radius: var(--radius);
-    font-size: 14px;
+    font-size: 13px;
     font-family: inherit;
     background: white;
     cursor: pointer;
-    min-width: 150px;
+    color: var(--gray-600);
 }
 
 .filter-select:focus {
     outline: none;
     border-color: var(--primary, #6366f1);
+}
+
+.btn-compact {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 /* ===== EVALUATIONS LIST ===== */
@@ -720,10 +703,6 @@
 .empty-state p {
     font-size: 14px;
     color: var(--gray-500);
-}
-
-.empty-state-btn {
-    margin-top: 20px;
 }
 
 /* ===== LOADER ===== */

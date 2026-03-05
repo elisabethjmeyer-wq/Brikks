@@ -37,9 +37,7 @@ const AdminEvaluations = {
 
     // Filters
     filters: {
-        search: '',
-        statut: '',
-        chapitre: ''
+        statut: ''
     },
 
     // Saisie state
@@ -61,7 +59,6 @@ const AdminEvaluations = {
         try {
             await this.loadData();
             this.setupEventListeners();
-            this.populateFilters();
             this.updateCounts();
             this.renderEvaluations();
             this.updateCorrectionsBanner();
@@ -169,9 +166,8 @@ const AdminEvaluations = {
 
     // ========== EVENT LISTENERS ==========
     setupEventListeners() {
-        // Add buttons (filters bar + empty state)
+        // Add button
         document.getElementById('addEvaluationBtn').addEventListener('click', () => this._handleAddClick());
-        document.getElementById('addEvaluationBtnEmpty').addEventListener('click', () => this._handleAddClick());
 
         // Tab clicks
         document.querySelectorAll('.eval-tab').forEach(tab => {
@@ -192,21 +188,9 @@ const AdminEvaluations = {
             });
         });
 
-        // Search
-        document.getElementById('searchInput').addEventListener('input', (e) => {
-            this.filters.search = e.target.value.toLowerCase();
-            this.renderEvaluations();
-        });
-
         // Filter statut
         document.getElementById('filterStatut').addEventListener('change', (e) => {
             this.filters.statut = e.target.value;
-            this.renderEvaluations();
-        });
-
-        // Filter chapitre
-        document.getElementById('filterChapitre').addEventListener('change', (e) => {
-            this.filters.chapitre = e.target.value;
             this.renderEvaluations();
         });
 
@@ -296,9 +280,7 @@ const AdminEvaluations = {
         };
         const label = typeLabels[type] || 'évaluation';
         const btnText = document.getElementById('addEvaluationBtnText');
-        const btnEmptyText = document.getElementById('addEvaluationBtnEmptyText');
         if (btnText) btnText.textContent = `Nouvelle ${label}`;
-        if (btnEmptyText) btnEmptyText.textContent = `Créer une ${label}`;
     },
 
     updateCounts() {
@@ -337,13 +319,6 @@ const AdminEvaluations = {
         });
     },
 
-    // ========== FILTERS ==========
-    populateFilters() {
-        const chapitreSelect = document.getElementById('filterChapitre');
-        chapitreSelect.innerHTML = '<option value="">Tous les chapitres</option>' +
-            this.chapitres.map(c => `<option value="${c.id}">${escapeHtml(c.titre || c.id)}</option>`).join('');
-    },
-
     // ========== RENDER ==========
     renderEvaluations() {
         if (this.currentType === 'sommatives') {
@@ -354,15 +329,10 @@ const AdminEvaluations = {
         const container = document.getElementById('evaluationsList');
         const emptyState = document.getElementById('emptyState');
 
-        // Filter by current type, matière and other filters
+        // Filter by current type, matière and statut
         let filtered = this.evaluations.filter(e => {
             if (e.type !== this.currentType) return false;
-            if (this.filters.search) {
-                const searchIn = `${e.titre || ''} ${e.description || ''}`.toLowerCase();
-                if (!searchIn.includes(this.filters.search)) return false;
-            }
             if (this.filters.statut && e.statut !== this.filters.statut) return false;
-            if (this.filters.chapitre && e.chapitre_id !== this.filters.chapitre) return false;
             return true;
         });
 
@@ -494,14 +464,7 @@ const AdminEvaluations = {
         const container = document.getElementById('evaluationsList');
         const emptyState = document.getElementById('emptyState');
 
-        let filtered = this._filterSommativesByMatiere(this.sommatives);
-
-        if (this.filters.search) {
-            filtered = filtered.filter(s => {
-                const searchIn = `${s.titre || ''}`.toLowerCase();
-                return searchIn.includes(this.filters.search);
-            });
-        }
+        const filtered = this._filterSommativesByMatiere(this.sommatives);
 
         if (filtered.length === 0) {
             container.innerHTML = '';
