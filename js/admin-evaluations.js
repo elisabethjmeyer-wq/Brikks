@@ -1239,58 +1239,37 @@ const AdminEvaluations = {
         // Update table headers for progression eval
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
-            <th class="col-mode">Mode</th>
             <th class="col-score">Score (%)</th>
             <th class="col-validations">Points</th>
             <th class="col-source">Source</th>
-            <th class="col-remarque">Remarque</th>
-            <th class="col-actions">Actions</th>
         `;
 
         // Render student rows
+        const maxPts = evaluation.briques || 10;
         const tbody = document.getElementById('saisieTableBody');
         tbody.innerHTML = this.eleves.map(eleve => {
             const r = resultsMap[String(eleve.id).trim()] || {};
             const score = r.score !== undefined && r.score !== '' ? r.score : '';
             const validations = r.validations !== undefined && r.validations !== '' ? r.validations : '';
-            const mode = r.mode || 'numerique';
-            const source = r.source || 'auto';
-            const remarque = r.remarque_texte || '';
+            const isAuto = r.source === 'auto' || (!r.source && r.id);
 
             return `
                 <tr data-eleve-id="${eleve.id}">
                     <td class="col-eleve">
                         <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
                     </td>
-                    <td class="col-mode">
-                        <select class="saisie-select mode-select" data-field="mode" onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'mode', this.value)">
-                            <option value="numerique" ${mode === 'numerique' ? 'selected' : ''}>💻 Numérique</option>
-                            <option value="papier" ${mode === 'papier' ? 'selected' : ''}>📄 Papier</option>
-                        </select>
-                    </td>
                     <td class="col-score">
                         <input type="number" class="saisie-input" value="${score}" min="0" max="100"
                             placeholder="—"
-                            onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'score', this.value)">
+                            onchange="AdminEvaluations.onSaisieScoreChange('${eleve.id}', this.value, ${maxPts}, ${evaluation.seuil || 80})">
                     </td>
                     <td class="col-validations">
-                        <input type="number" class="saisie-input" value="${validations}" min="0" max="${evaluation.briques || 10}"
+                        <input type="number" class="saisie-input" value="${validations}" min="0" max="${maxPts}"
                             placeholder="—"
                             onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'validations', this.value)">
                     </td>
                     <td class="col-source">
-                        <select class="saisie-select source-select" data-field="source" onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'source', this.value)">
-                            <option value="auto" ${source === 'auto' ? 'selected' : ''}>Auto</option>
-                            <option value="manuel" ${source === 'manuel' ? 'selected' : ''}>Manuel</option>
-                        </select>
-                    </td>
-                    <td class="col-remarque">
-                        <input type="text" class="saisie-input remarque-input" value="${escapeHtml(remarque)}"
-                            placeholder="Remarque..."
-                            onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'remarque_texte', this.value)">
-                    </td>
-                    <td class="col-actions">
-                        ${r.id ? '<span class="saisie-saved">✓</span>' : ''}
+                        <span class="source-badge ${isAuto && r.id ? 'auto' : r.id ? 'manuel' : ''}">${r.id ? (isAuto ? '🤖 Auto' : '✏️ Manuel') : ''}</span>
                     </td>
                 </tr>
             `;
@@ -1370,9 +1349,40 @@ const AdminEvaluations = {
             this.saisieChanges[eleveId] = {};
         }
         this.saisieChanges[eleveId][field] = value;
+        // Saisie manuelle → marquer la source comme 'manuel'
+        this.saisieChanges[eleveId].source = 'manuel';
+
+        // Mettre à jour le badge source visuellement
+        const row = document.querySelector(`tr[data-eleve-id="${eleveId}"]`);
+        if (row) {
+            const badge = row.querySelector('.source-badge');
+            if (badge) {
+                badge.className = 'source-badge manuel';
+                badge.textContent = '✏️ Manuel';
+            }
+        }
 
         // Show save bar
         document.getElementById('saisieSaveBar').style.display = 'flex';
+    },
+
+    /**
+     * Changement de score : calcule auto les points (seuil atteint → max pts, sinon 0)
+     */
+    onSaisieScoreChange(eleveId, scoreValue, maxPts, seuil) {
+        const score = parseInt(scoreValue);
+        this.onSaisieChange(eleveId, 'score', scoreValue);
+
+        if (!isNaN(score)) {
+            const points = score >= seuil ? maxPts : 0;
+            this.saisieChanges[eleveId].validations = points;
+            // Mettre à jour le champ points dans le DOM
+            const row = document.querySelector(`tr[data-eleve-id="${eleveId}"]`);
+            if (row) {
+                const ptsInput = row.querySelector('.col-validations input');
+                if (ptsInput) ptsInput.value = points;
+            }
+        }
     },
 
     cancelSaisie() {
