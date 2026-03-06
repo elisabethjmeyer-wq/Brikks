@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Brikks - Mes evaluations">
-    <title>Mes evaluations - Brikks</title>
+    <meta name="description" content="Brikks - Mes évaluations">
+    <title>Mes évaluations - Brikks</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,32 +18,21 @@
 <body>
 
 <div id="evaluations-page">
-    <!-- Page Header -->
-    <header class="page-header">
-        <div>
-            <h1>📋 Mes évaluations</h1>
-            <p>Retrouve ici les évaluations numériques à passer.<br>Pour voir tes résultats et ta progression, consulte <a href="notes.html">📊 Mes notes</a>.</p>
-        </div>
-    </header>
-
     <!-- Loader -->
     <div class="loader-container" id="loader">
         <div class="loader"></div>
-        <p>Chargement des evaluations...</p>
+        <p>Chargement des évaluations...</p>
     </div>
 
     <!-- Contenu principal -->
     <div id="evaluations-content" style="display: none;">
-        <!-- Evaluations List -->
+        <header class="page-header">
+            <h1>📋 Mes évaluations</h1>
+            <p>Passe tes évaluations et suis ta progression. Pour voir tes notes, consulte <a href="notes.html">📊 Mes notes</a>.</p>
+        </header>
+
         <div class="eval-list" id="evaluationsList">
             <!-- Generated dynamically -->
-        </div>
-
-        <!-- Empty state -->
-        <div class="empty-state" id="emptyState" style="display: none;">
-            <div class="empty-icon">✅</div>
-            <h3>Aucune évaluation à passer</h3>
-            <p>Tu as tout passé ! Consulte tes résultats dans "Mes notes".</p>
         </div>
     </div>
 </div>
@@ -58,7 +47,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', async function() {
-        await EleveLayout.init('evaluations', 'Mes evaluations');
+        await EleveLayout.init('evaluations', 'Mes évaluations');
     });
 </script>
 

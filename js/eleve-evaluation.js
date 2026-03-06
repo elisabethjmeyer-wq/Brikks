@@ -25,6 +25,7 @@ const EleveEvaluation = {
 
             await this.loadEvaluation(evalId);
             this.setupConnaissancesModule();
+            this._addBeforeUnload();
             this.startTimer();
             this.render();
             this.showContent();
@@ -126,9 +127,9 @@ const EleveEvaluation = {
             self.onTimeExpired();
         };
 
-        // Remplacer backToList
+        // Désactiver backToList — l'élève ne peut pas quitter pendant l'évaluation
         EC.backToList = function() {
-            self.quit();
+            // Bloquer la navigation — l'évaluation doit être terminée
         };
 
         // Remplacer renderEntrainementView pour utiliser le layout évaluation
@@ -159,10 +160,6 @@ const EleveEvaluation = {
         const container = document.getElementById('exerciseContainer');
         container.innerHTML = `
             <div class="exercise-view eval-exercise-view">
-                <button class="exercise-back-btn" onclick="EleveEvaluation.quit()">
-                    ← Quitter l'évaluation
-                </button>
-
                 <div class="exercise-card">
                     <!-- Bandeau avec titre, type, points et timer -->
                     <div class="exercise-header connaissances">
@@ -170,7 +167,7 @@ const EleveEvaluation = {
                             <div class="exercise-header-info">
                                 <h1>${escapeHtml(this.evaluation.titre)}</h1>
                                 <div class="exercise-header-meta">
-                                    ${escapeHtml(typeLabel)} · ${this.evaluation.briques} pt${this.evaluation.briques > 1 ? 's' : ''} en jeu · Étape ${EC.currentEtapeIndex + 1}/${etapes.length}
+                                    ${escapeHtml(typeLabel)} · ${this.evaluation.briques} pt${this.evaluation.briques > 1 ? 's' : ''} en jeu · Seuil : ${this.evaluation.type === 'savoir-faire' ? '100%' : this.evaluation.seuil + '%'} · Étape ${EC.currentEtapeIndex + 1}/${etapes.length}
                                 </div>
                             </div>
                         </div>
@@ -393,13 +390,75 @@ const EleveEvaluation = {
         // Calculer le score global depuis les résultats d'EleveConnaissances
         const globalResult = this.calculateGlobalResult();
 
-        // Sauvegarder les résultats (await pour garantir la sauvegarde)
+        // Compiler les résultats détaillés pour la correction
+        const detailedResults = EC.compileResults();
+        globalResult.detailedResults = detailedResults;
+
+        // Afficher un écran d'attente pendant la sauvegarde
+        this._showSaving();
+
+        // Sauvegarder les résultats — bloquant
         const saveOk = await this.saveResults(globalResult);
 
-        // Afficher les résultats (puis le bandeau d'erreur si échec sauvegarde)
-        this.showResults(globalResult);
-        if (!saveOk) {
-            this._showSaveError();
+        if (saveOk) {
+            this.showResults(globalResult);
+        } else {
+            this._showSaveFailure(globalResult);
+        }
+    },
+
+    /** Écran d'attente pendant la sauvegarde */
+    _showSaving() {
+        document.getElementById('exerciseContainer').style.display = 'none';
+        const resultContainer = document.getElementById('resultContainer');
+        resultContainer.style.display = 'block';
+        resultContainer.innerHTML = `
+            <div class="evaluation-result">
+                <div class="evaluation-result-header">
+                    <div class="loader" style="margin: 0 auto 16px;"></div>
+                    <h2>Enregistrement en cours...</h2>
+                    <p>Ne ferme pas cette page.</p>
+                </div>
+            </div>
+        `;
+    },
+
+    /** Écran d'échec de sauvegarde avec bouton retry */
+    _showSaveFailure(globalResult) {
+        const resultContainer = document.getElementById('resultContainer');
+        resultContainer.innerHTML = `
+            <div class="evaluation-result">
+                <div class="evaluation-result-header failed">
+                    <div class="evaluation-result-icon">⚠️</div>
+                    <h2>Erreur d'enregistrement</h2>
+                    <p>Tes résultats n'ont pas pu être enregistrés.<br>
+                    <small style="color:#666">${escapeHtml(this._saveDebug || 'Erreur inconnue')}</small></p>
+                </div>
+                <div class="result-actions" style="margin-top: 24px;">
+                    <button class="btn btn-primary" id="retryBtn" onclick="EleveEvaluation._retrySave()">
+                        Réessayer
+                    </button>
+                </div>
+                <p style="text-align:center; margin-top:16px; color:#94a3b8; font-size:13px;">
+                    Si le problème persiste, contacte ta professeure.<br>
+                    Score : ${globalResult.score}% — ${globalResult.correct}/${globalResult.total} bonnes réponses
+                </p>
+            </div>
+        `;
+        // Stocker le résultat pour le retry
+        this._pendingResult = globalResult;
+    },
+
+    /** Retry de sauvegarde */
+    async _retrySave() {
+        const btn = document.getElementById('retryBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement...'; }
+
+        const saveOk = await this.saveResults(this._pendingResult);
+        if (saveOk) {
+            this.showResults(this._pendingResult);
+        } else {
+            this._showSaveFailure(this._pendingResult);
         }
     },
 
@@ -498,28 +557,26 @@ const EleveEvaluation = {
         }
     },
 
-    _showSaveError() {
-        const container = document.getElementById('resultContainer');
-        if (!container) return;
-        const banner = document.createElement('div');
-        banner.style.cssText = 'background:#fee2e2;color:#dc2626;padding:12px 16px;border-radius:8px;margin:16px auto;max-width:600px;text-align:center;font-weight:500;font-size:14px;';
-        banner.innerHTML = 'La sauvegarde du résultat a échoué.<br><small style="color:#666">' +
-            escapeHtml(this._saveDebug || 'Erreur inconnue') + '</small>';
-        container.appendChild(banner);
-    },
-
     showResults(globalResult) {
+        this._removeBeforeUnload();
         document.getElementById('exerciseContainer').style.display = 'none';
 
         const resultContainer = document.getElementById('resultContainer');
         resultContainer.style.display = 'block';
 
         const headerClass = globalResult.isValidated ? 'validated' : 'failed';
-        const icon = globalResult.isValidated ? ':)' : ':(';
+        const icon = globalResult.isValidated ? '✅' : '❌';
         const message = globalResult.isValidated ? 'Évaluation validée !' : 'Évaluation non validée';
         const subMessage = globalResult.isValidated
             ? `Tu as gagné ${globalResult.pointsEarned} point${globalResult.pointsEarned > 1 ? 's' : ''} !`
             : 'Tu pourras repasser cette évaluation avec de nouvelles questions.';
+
+        // Correction détaillée via EleveConnaissances
+        const EC = EleveConnaissances;
+        let correctionHtml = '';
+        if (globalResult.detailedResults && typeof EC.generateErrorDetails === 'function') {
+            correctionHtml = EC.generateErrorDetails(globalResult.detailedResults);
+        }
 
         resultContainer.innerHTML = `
             <div class="evaluation-result">
@@ -529,23 +586,11 @@ const EleveEvaluation = {
                     <p>${subMessage}</p>
                 </div>
 
-                <div class="validation-result">
-                    <div class="validation-item">
-                        <div class="validation-item-value ${globalResult.isValidated ? 'earned' : 'lost'}">${globalResult.pointsEarned}</div>
-                        <div class="validation-item-label">Points obtenus</div>
-                    </div>
-                    <div class="validation-item">
-                        <div class="validation-item-value">${this.evaluation.briques}</div>
-                        <div class="validation-item-label">Points en jeu</div>
-                    </div>
-                </div>
-
                 <div class="score-details">
-                    <h3>Détails du score</h3>
                     <div class="score-breakdown">
                         <div class="score-item">
                             <div class="score-item-value">${globalResult.score}%</div>
-                            <div class="score-item-label">Score obtenu</div>
+                            <div class="score-item-label">Score</div>
                         </div>
                         <div class="score-item">
                             <div class="score-item-value">${globalResult.correct}/${globalResult.total}</div>
@@ -554,6 +599,10 @@ const EleveEvaluation = {
                         <div class="score-item">
                             <div class="score-item-value">${this.formatTime(globalResult.elapsedTime)}</div>
                             <div class="score-item-label">Temps</div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-item-value ${globalResult.isValidated ? 'earned' : 'lost'}">${globalResult.pointsEarned}/${this.evaluation.briques}</div>
+                            <div class="score-item-label">Points</div>
                         </div>
                     </div>
 
@@ -566,17 +615,16 @@ const EleveEvaluation = {
                                 : `Tu devais obtenir au moins ${this.evaluation.seuil}% pour valider`}</span>
                         </div>
                     </div>
-
-                    ${this.evaluation.type === 'savoir-faire' && !globalResult.isValidated ? `
-                        <div class="savoir-faire-warning">
-                            <div class="savoir-faire-warning-title">
-                                <span>!</span> Savoir-faire non validé
-                            </div>
-                            <p>Pour valider un savoir-faire, tu dois répondre correctement à toutes les questions sans aucune erreur.
-                            Tu pourras repasser cette évaluation avec un nouveau sujet tiré au sort.</p>
-                        </div>
-                    ` : ''}
                 </div>
+
+                ${correctionHtml ? `
+                <div class="eval-correction-section">
+                    <h3>Correction détaillée</h3>
+                    <div class="eval-correction-content">
+                        ${correctionHtml}
+                    </div>
+                </div>
+                ` : ''}
 
                 <div class="result-actions">
                     <button class="btn btn-primary" onclick="window.location.href='evaluations.html'">
@@ -585,27 +633,24 @@ const EleveEvaluation = {
                 </div>
             </div>
         `;
+
     },
 
     // ========== NAVIGATION ==========
-    quit() {
-        // Vérifier si l'élève a commencé à répondre
-        const hasAnswers = EleveConnaissances.etapesResults.length > 0 ||
-            Object.keys(EleveConnaissances.userAnswers || {}).length > 0;
+    _beforeUnloadHandler: null,
 
-        if (hasAnswers) {
-            const modal = document.getElementById('confirmModal');
-            document.getElementById('confirmModalTitle').textContent = 'Quitter l\'évaluation';
-            document.getElementById('confirmModalMessage').textContent =
-                'Attention ! Si vous quittez, votre progression sera perdue et l\'évaluation sera considérée comme non terminée.';
-            document.getElementById('confirmModalBtn').textContent = 'Quitter quand même';
-            document.getElementById('confirmModalBtn').onclick = () => {
-                this.closeConfirmModal();
-                window.location.href = 'evaluations.html';
-            };
-            modal.classList.remove('hidden');
-        } else {
-            window.location.href = 'evaluations.html';
+    _addBeforeUnload() {
+        this._beforeUnloadHandler = (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+        };
+        window.addEventListener('beforeunload', this._beforeUnloadHandler);
+    },
+
+    _removeBeforeUnload() {
+        if (this._beforeUnloadHandler) {
+            window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+            this._beforeUnloadHandler = null;
         }
     },
 

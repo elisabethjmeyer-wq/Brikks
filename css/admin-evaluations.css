@@ -301,6 +301,51 @@
     background: rgba(0,0,0,0.1);
 }
 
+/* ===== BUDGET INDICATOR ===== */
+.budget-indicator {
+    background: white;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));
+    border: 1px solid var(--gray-200);
+}
+.budget-bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.budget-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+.budget-values {
+    font-weight: 600;
+    color: var(--gray-800);
+}
+.budget-bar {
+    height: 8px;
+    background: var(--gray-100);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.budget-bar-fill {
+    height: 100%;
+    background: var(--accent-green);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+.budget-bar-fill.high {
+    background: var(--accent-orange, #f59e0b);
+}
+.budget-bar-fill.over {
+    background: var(--accent-red, #ef4444);
+}
+
 /* ===== ACTION BAR ===== */
 .eval-action-bar {
     display: flex;
@@ -489,6 +534,18 @@
     color: #7c3aed;
 }
 
+/* Semestre tag */
+.sem-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #eef2ff;
+    color: #6366f1;
+}
+
 /* Date badge */
 .date-badge {
     font-size: 12px;
@@ -629,11 +686,38 @@
 .col-resultat { width: 100px; }
 .col-date-passage { width: 120px; font-size: 12px; color: var(--gray-500); white-space: nowrap; }
 .col-duree { width: 70px; font-size: 13px; text-align: center; }
-.col-detail { width: 50px; text-align: center; }
+.col-sujet { min-width: 160px; max-width: 260px; }
 
-.detail-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+/* Sujet attribué */
+.sujet-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.sujet-banque {
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--gray-700);
+}
+.sujet-entr {
+    font-size: 12px;
+    color: var(--gray-500);
+    background: var(--gray-100);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+.sujet-source {
+    font-size: 11px;
+}
+.sujet-none {
+    color: var(--gray-400);
+    font-size: 13px;
+}
+
+/* Row without result */
+.saisie-table tr.no-result td {
+    opacity: 0.7;
 }
 
 .resultat-select {

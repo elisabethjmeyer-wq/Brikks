@@ -323,7 +323,8 @@ function computeNextBanque_(ss, type, matiere, eleveId) {
     bHeaders.forEach(function(h, idx) { b[h] = bData[i][idx]; });
     if (!b.id) continue;
     // Filtrer par matiere si renseignee
-    if (matiere && b.matiere && String(b.matiere).trim() !== matiere) continue;
+    // "Les deux" accepte toutes les banques (FR et HG-EMC)
+    if (matiere && matiere !== 'Les deux' && b.matiere && String(b.matiere).trim() !== matiere) continue;
     // Pour SF, filtrer par type
     if (!isConn && String(b.type || '').trim() !== 'savoir-faire') continue;
     banques.push(b);
@@ -345,7 +346,7 @@ function computeNextBanque_(ss, type, matiere, eleveId) {
         pHeaders.forEach(function(h, idx) { p[h] = pData[pi][idx]; });
         if (String(p.eleve_id).trim() === eleveId &&
             String(p.type).trim() === type &&
-            (!p.matiere || String(p.matiere).trim() === matiere)) {
+            (!p.matiere || matiere === 'Les deux' || String(p.matiere).trim() === matiere)) {
           lastValidatedId = String(p.derniere_banque_validee_id || '').trim();
           break;
         }

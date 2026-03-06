@@ -27,6 +27,7 @@ const AdminEvaluations = {
 
     // Progression evaluation data
     progressionsEvaluation: [],
+    parametresNotes: [],
 
     // Wizard state
     wizardStep: 1,
@@ -149,6 +150,14 @@ const AdminEvaluations = {
             this.progressionsEvaluation = SheetsAPI.parseSheetData(progEvalData);
         } catch (_e) {
             this.progressionsEvaluation = [];
+        }
+
+        // Load notes parameters (for semester detection)
+        try {
+            const paramNotesData = await SheetsAPI.getSheetData('PARAMETRES_NOTES');
+            this.parametresNotes = SheetsAPI.parseSheetData(paramNotesData);
+        } catch (_e) {
+            this.parametresNotes = [];
         }
     },
 
@@ -324,6 +333,7 @@ const AdminEvaluations = {
     renderEvaluations() {
         if (this.currentType === 'sommatives') {
             this._renderSommatives();
+            this._updateBudgetIndicator();
             return;
         }
 
@@ -346,6 +356,8 @@ const AdminEvaluations = {
             emptyState.style.display = 'none';
             container.innerHTML = filtered.map(e => this.renderEvaluationCard(e)).join('');
         }
+
+        this._updateBudgetIndicator();
     },
 
     renderEvaluationCard(evaluation) {
@@ -449,6 +461,7 @@ const AdminEvaluations = {
                         <div class="eval-card-title">
                             ${escapeHtml(evaluation.titre || 'Sans titre')}
                             ${matiereBadge}
+                            ${(() => { const sem = this._getSemestreTag(evaluation); return sem ? `<span class="sem-tag">${sem}</span>` : ''; })()}
                             <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
                         </div>
                         <div class="eval-card-meta">
@@ -472,6 +485,76 @@ const AdminEvaluations = {
         const sameType = this.evaluations.filter(e => e.type === evaluation.type);
         const index = sameType.findIndex(e => e.id === evaluation.id);
         return index >= 0 ? index + 1 : 1;
+    },
+
+    /**
+     * Détermine le semestre d'une évaluation à partir de sa date
+     * et des plages de dates dans PARAMETRES_NOTES.
+     */
+    _getSemestreTag(ev) {
+        const dateStr = ev.date_ouverture || ev.date_debut || '';
+        let evalDate;
+        if (dateStr) {
+            evalDate = new Date(dateStr);
+            if (isNaN(evalDate.getTime())) evalDate = new Date();
+        } else {
+            evalDate = new Date(); // Fallback: date du jour
+        }
+
+        for (const p of this.parametresNotes) {
+            const debut = p.date_debut ? new Date(p.date_debut) : null;
+            const fin = p.date_fin ? new Date(p.date_fin) : null;
+            if (debut && fin && evalDate >= debut && evalDate <= fin) {
+                return 'S' + p.semestre;
+            }
+        }
+        return '';
+    },
+
+    _updateBudgetIndicator() {
+        const indicator = document.getElementById('budgetIndicator');
+        if (!indicator) return;
+
+        // Find current semester based on today
+        const today = new Date();
+        let currentSemestre = '1';
+        for (const p of this.parametresNotes) {
+            if (String(p.matiere).trim() !== this.currentMatiere) continue;
+            const debut = p.date_debut ? new Date(p.date_debut) : null;
+            const fin = p.date_fin ? new Date(p.date_fin) : null;
+            if (debut && fin && today >= debut && today <= fin) {
+                currentSemestre = String(p.semestre);
+                break;
+            }
+        }
+
+        // Get budget for current matière + semester
+        const params = this.parametresNotes.find(p =>
+            String(p.matiere).trim() === this.currentMatiere &&
+            String(p.semestre).trim() === currentSemestre
+        );
+        const budget = parseFloat(params?.budget_estime) || 100;
+
+        // Sum points (briques) for non-bonus evals in current matière + semester
+        const evalsForMatiere = this._filterByMatiere(
+            this.evaluations.filter(e => e.type !== 'bonus')
+        );
+        let totalPoints = 0;
+        for (const ev of evalsForMatiere) {
+            const sem = this._getSemestreTag(ev);
+            if (sem === 'S' + currentSemestre) {
+                totalPoints += parseInt(ev.briques) || 0;
+            }
+        }
+
+        // Update display
+        const pct = Math.min(100, Math.round((totalPoints / budget) * 100));
+        document.getElementById('budgetValues').textContent = `${totalPoints} / ${budget} pts (S${currentSemestre})`;
+        const fill = document.getElementById('budgetBarFill');
+        fill.style.width = pct + '%';
+        fill.className = 'budget-bar-fill' + (pct > 100 ? ' over' : pct >= 80 ? ' high' : '');
+
+        indicator.style.display = '';
     },
 
     _formatDateShort(dateStr) {
@@ -677,27 +760,29 @@ const AdminEvaluations = {
                     <p>Configurez les détails de l'évaluation</p>
                 </div>
                 <div class="wizard-form">
-                    <div class="form-group">
+                    <div class="form-group full-width">
                         <label>Titre <span class="req">*</span></label>
                         <input type="text" class="form-input" id="evalTitre" value="${escapeHtml(d.titre || '')}" placeholder="Ex: Evaluation chapitre 1">
                     </div>
-                    <div class="form-group">
-                        <label>Mode de passation</label>
-                        <select class="form-select" id="evalModePassation">
-                            <option value="numerique" ${d.mode_passation === 'numerique' || !d.mode_passation ? 'selected' : ''}>💻 Numérique</option>
-                            <option value="papier" ${d.mode_passation === 'papier' ? 'selected' : ''}>📄 Papier</option>
-                        </select>
-                        <div class="form-help">Papier : pas de bouton « Commencer » côté élève</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Matière <span class="req">*</span></label>
+                            <select class="form-select" id="evalMatiere">
+                                <option value="FR" ${d.matiere === 'FR' || !d.matiere ? 'selected' : ''}>🇫🇷 Français</option>
+                                <option value="HG-EMC" ${d.matiere === 'HG-EMC' ? 'selected' : ''}>🌍 HG-EMC</option>
+                                <option value="Les deux" ${d.matiere === 'Les deux' ? 'selected' : ''}>🔗 Les deux</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Mode de passation</label>
+                            <select class="form-select" id="evalModePassation">
+                                <option value="numerique" ${d.mode_passation === 'numerique' || !d.mode_passation ? 'selected' : ''}>💻 Numérique</option>
+                                <option value="papier" ${d.mode_passation === 'papier' ? 'selected' : ''}>📄 Papier</option>
+                            </select>
+                            <div class="form-help">Papier : pas de bouton « Commencer » côté élève</div>
+                        </div>
                     </div>
                     ${typeSpecificHTML}
-                    <div class="form-group" id="evalMatiereGroup" style="${d.type !== 'bonus' ? 'display:none' : ''}">
-                        <label>Matière <span class="req">*</span></label>
-                        <select class="form-select" id="evalMatiere">
-                            <option value="FR" ${d.matiere === 'FR' || !d.matiere ? 'selected' : ''}>🇫🇷 Français</option>
-                            <option value="HG-EMC" ${d.matiere === 'HG-EMC' ? 'selected' : ''}>🌍 HG-EMC</option>
-                            <option value="Les deux" ${d.matiere === 'Les deux' ? 'selected' : ''} ${d.type !== 'bonus' ? 'hidden' : ''}>🔗 Les deux</option>
-                        </select>
-                    </div>
                     <div class="form-group" id="evalCategorieGroup" style="${d.type === 'bonus' ? '' : 'display:none'}">
                         <label>Catégorie de points</label>
                         <select class="form-select" id="evalCategorie">
@@ -725,7 +810,10 @@ const AdminEvaluations = {
                 </div>
             </div>
             <div class="form-row">
-                <div class="form-group"></div>
+                <div class="form-group">
+                    <label>Durée (minutes)</label>
+                    <input type="number" class="form-input" id="evalDuree" value="${d.duree || ''}" min="1" max="120" placeholder="Auto si lié à un entraînement">
+                </div>
                 ${this._renderStatutSelect(d)}
             </div>
         `;
@@ -819,6 +907,13 @@ const AdminEvaluations = {
                     <label>Points mis en jeu <span class="req">*</span></label>
                     <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
                 </div>
+                <div class="form-group">
+                    <label>Durée (minutes)</label>
+                    <input type="number" class="form-input" id="evalDuree" value="${d.duree || ''}" min="1" max="120" placeholder="Auto si lié à un exercice">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"></div>
                 ${this._renderStatutSelect(d)}
             </div>
         `;
@@ -1051,6 +1146,10 @@ const AdminEvaluations = {
                     this.wizardData.statut = document.getElementById('evalStatut')?.value || 'brouillon';
                 }
 
+                // Durée manuelle (tous types sauf bonus)
+                const dureeVal = document.getElementById('evalDuree')?.value;
+                if (dureeVal) this.wizardData.duree = parseInt(dureeVal);
+
                 if (this.wizardData.type === 'connaissances') {
                     this.wizardData.seuil = parseInt(document.getElementById('evalSeuil')?.value) || 80;
                 }
@@ -1095,21 +1194,20 @@ const AdminEvaluations = {
             mode_passation: d.mode_passation || 'numerique'
         };
 
+        // Durée : priorité manuelle > auto depuis contenu lié
+        if (d.duree) {
+            data.duree = d.duree;
+        } else if (d.type === 'connaissances' && d.entrainement_conn_id) {
+            const entr = this.entrainementsConn.find(e => e.id === d.entrainement_conn_id);
+            if (entr && entr.duree) data.duree = parseInt(entr.duree);
+        } else if (d.type === 'savoir-faire' && d.exercice_sf_id) {
+            const exo = this.exercicesSF.find(e => e.id === d.exercice_sf_id);
+            if (exo && exo.duree) data.duree = parseInt(exo.duree);
+        }
+
         if (d.type === 'connaissances') {
             data.seuil = d.seuil || 80;
             data.source_questions = 'banque';
-            // Copier la durée depuis l'entraînement lié
-            if (d.entrainement_conn_id) {
-                const entr = this.entrainementsConn.find(e => e.id === d.entrainement_conn_id);
-                if (entr && entr.duree) data.duree = parseInt(entr.duree);
-            }
-        }
-        if (d.type === 'savoir-faire') {
-            // Copier la durée depuis l'exercice SF lié
-            if (d.exercice_sf_id) {
-                const exo = this.exercicesSF.find(e => e.id === d.exercice_sf_id);
-                if (exo && exo.duree) data.duree = parseInt(exo.duree);
-            }
         }
         if (d.type === 'competences') {
             data.methodologie_id = d.methodologie_id || '';
@@ -1239,7 +1337,7 @@ const AdminEvaluations = {
     },
 
     // ========== SAISIE DES RÉSULTATS (progression) ==========
-    openSaisie(evaluationId) {
+    async openSaisie(evaluationId) {
         const evaluation = this.evaluations.find(e => e.id === evaluationId);
         if (!evaluation) return;
 
@@ -1247,12 +1345,25 @@ const AdminEvaluations = {
         this.saisieSommative = null;
         this.saisieChanges = {};
 
+        // Show saisie view immediately with loading state
+        document.getElementById('evaluations-content').style.display = 'none';
+        document.getElementById('saisie-content').style.display = 'block';
+
         // Get existing results for this evaluation
         const evalResults = this.resultats.filter(r =>
             String(r.evaluation_id).trim() === String(evaluationId).trim()
         );
         const resultsMap = {};
         evalResults.forEach(r => { resultsMap[String(r.eleve_id).trim()] = r; });
+
+        // Load attributions for this evaluation (banque/exercise per student)
+        let attributionsMap = {};
+        try {
+            const attrResult = await this.callAPI('getAttributionsSujets', { evaluation_id: evaluationId });
+            if (attrResult.success && attrResult.data) {
+                attrResult.data.forEach(a => { attributionsMap[String(a.eleve_id).trim()] = a; });
+            }
+        } catch (_e) { /* ignore - attributions are informational */ }
 
         // Update header
         document.getElementById('saisieTitle').textContent = escapeHtml(evaluation.titre || 'Sans titre');
@@ -1268,14 +1379,18 @@ const AdminEvaluations = {
         }
         document.getElementById('saisieSubtitle').textContent = subtitleParts.join(' · ');
 
+        // Determine if we show sujet column (connaissances or savoir-faire)
+        const showSujet = evaluation.type === 'connaissances' || evaluation.type === 'savoir-faire';
+        const isConn = evaluation.type === 'connaissances';
+
         // Update table headers for progression eval
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
+            ${showSujet ? '<th class="col-sujet">Sujet attribué</th>' : ''}
             <th class="col-score">Score (%)</th>
             <th class="col-resultat">Résultat</th>
             <th class="col-date-passage">Date</th>
             <th class="col-duree">Durée</th>
-            <th class="col-detail">Détail</th>
         `;
 
         // Render student rows
@@ -1294,6 +1409,37 @@ const AdminEvaluations = {
             // Durée formatée
             const duree = r.temps_passe ? this._formatDuree(r.temps_passe) : '';
 
+            // Sujet attribué (banque + entrainement)
+            let sujetCell = '';
+            if (showSujet) {
+                const attr = attributionsMap[String(eleve.id).trim()];
+                let sujetHTML = '<span class="sujet-none">—</span>';
+                if (attr) {
+                    const banqueId = String(attr.banque_id || '').trim();
+                    let banqueName = '';
+                    if (isConn) {
+                        const banque = this.banquesExercicesConn.find(b => String(b.id).trim() === banqueId);
+                        banqueName = banque ? (banque.titre || 'Sans titre') : '';
+                    } else {
+                        const banque = this.banquesSF.find(b => String(b.id).trim() === banqueId);
+                        banqueName = banque ? (banque.titre || 'Sans titre') : '';
+                    }
+                    const entrId = String(attr.entrainement_id || '').trim();
+                    let entrName = '';
+                    if (isConn && entrId) {
+                        const entr = this.entrainementsConn.find(e => String(e.id).trim() === entrId);
+                        entrName = entr ? (entr.titre || '') : '';
+                    }
+                    const sourceLabel = attr.source === 'manuel' ? '✏️' : '🤖';
+                    sujetHTML = `<div class="sujet-info">
+                        <span class="sujet-banque">${escapeHtml(banqueName)}</span>
+                        ${entrName ? `<span class="sujet-entr">${escapeHtml(entrName)}</span>` : ''}
+                        <span class="sujet-source">${sourceLabel}</span>
+                    </div>`;
+                }
+                sujetCell = `<td class="col-sujet">${sujetHTML}</td>`;
+            }
+
             // Build résultat select options
             let resultatOptions = '<option value="">—</option>';
             for (let i = 0; i <= maxPts; i++) {
@@ -1306,11 +1452,12 @@ const AdminEvaluations = {
             resultatOptions += `<option value="absent" ${absSelected}>ABS</option>`;
 
             return `
-                <tr data-eleve-id="${eleve.id}">
+                <tr data-eleve-id="${eleve.id}" class="${r.id ? '' : 'no-result'}">
                     <td class="col-eleve">
                         <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
                         ${sourceBadge}
                     </td>
+                    ${sujetCell}
                     <td class="col-score">
                         <input type="number" class="saisie-input" value="${score}" min="0" max="100"
                             placeholder="—"
@@ -1324,16 +1471,9 @@ const AdminEvaluations = {
                     </td>
                     <td class="col-date-passage">${datePassage}</td>
                     <td class="col-duree">${duree}</td>
-                    <td class="col-detail">
-                        <button class="btn-icon detail-btn" disabled title="Bientôt disponible">🔍</button>
-                    </td>
                 </tr>
             `;
         }).join('');
-
-        // Show saisie view, hide list
-        document.getElementById('evaluations-content').style.display = 'none';
-        document.getElementById('saisie-content').style.display = 'block';
     },
 
     _formatDuree(seconds) {

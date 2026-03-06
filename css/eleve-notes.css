@@ -26,6 +26,15 @@
     to { transform: rotate(360deg); }
 }
 
+/* ===== FILTERS ROW ===== */
+.notes-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
 /* ===== MATIÈRE TABS ===== */
 .matiere-tabs {
     display: flex;
@@ -33,7 +42,39 @@
     background: #f3f4f6;
     border-radius: 10px;
     padding: 3px;
-    margin-bottom: 20px;
+    flex: 1;
+}
+
+/* ===== SEMESTRE TABS ===== */
+.semestre-tabs {
+    display: flex;
+    gap: 2px;
+    background: #f3f4f6;
+    border-radius: 10px;
+    padding: 3px;
+}
+
+.sem-btn {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.sem-btn:hover {
+    color: #374151;
+}
+
+.sem-btn.active {
+    background: white;
+    color: #6366f1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .matiere-tab {
@@ -114,6 +155,17 @@
     color: #9ca3af;
     font-family: monospace;
     margin-bottom: 16px;
+}
+
+.bonus-excedent {
+    font-size: 12px;
+    font-weight: 600;
+    color: #eab308;
+    background: #fef9c3;
+    padding: 6px 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    text-align: center;
 }
 
 /* Progress bar */
