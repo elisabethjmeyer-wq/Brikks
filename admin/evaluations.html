@@ -116,23 +116,19 @@
             </div>
         </div>
 
-        <!-- Saisie table -->
-        <div class="saisie-table-container">
+        <!-- Loader affiché pendant le chargement des attributions -->
+        <div id="saisieLoader" style="text-align:center; padding:40px; display:none;">
+            <div class="loader"></div>
+            <p style="margin-top:12px; color:#64748b;">Chargement des données...</p>
+        </div>
+
+        <!-- Saisie table (thead généré dynamiquement par openSaisie/openSaisieSommative) -->
+        <div class="saisie-table-container" id="saisieTableContainer">
             <table class="saisie-table">
                 <thead>
-                    <tr id="saisieTableHead">
-                        <th class="col-eleve">Élève</th>
-                        <th class="col-mode">Mode</th>
-                        <th class="col-score">Score</th>
-                        <th class="col-validations">Points</th>
-                        <th class="col-source">Source</th>
-                        <th class="col-remarque">Remarque</th>
-                        <th class="col-actions">Actions</th>
-                    </tr>
+                    <tr id="saisieTableHead"></tr>
                 </thead>
-                <tbody id="saisieTableBody">
-                    <!-- Generated dynamically -->
-                </tbody>
+                <tbody id="saisieTableBody"></tbody>
             </table>
         </div>
 

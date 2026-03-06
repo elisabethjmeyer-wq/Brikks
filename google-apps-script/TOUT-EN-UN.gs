@@ -5183,6 +5183,19 @@ function createEvaluation(data) {
     return { success: false, error: 'titre et type requis' };
   }
 
+  // Migration progressive : ajouter les colonnes manquantes
+  var lastCol = sheet.getLastColumn();
+  var headerRow = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
+  var requiredCols = ['date_ouverture', 'date_fermeture', 'mode_passation'];
+  requiredCols.forEach(function(col) {
+    if (headerNames.indexOf(col) < 0) {
+      lastCol++;
+      sheet.getRange(1, lastCol).setValue(col);
+      headerNames.push(col);
+    }
+  });
+
   const id = 'eval_' + new Date().getTime();
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0];
