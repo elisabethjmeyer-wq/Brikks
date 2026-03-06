@@ -183,33 +183,36 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **État** : créé (session 16). Fonctionnel.
 
-### Évaluation élève (passage d'évaluation) — REFONDU SESSION 17
+### Évaluation élève (passage d'évaluation) — REFONDU SESSION 17, SF AJOUTÉ SESSION 20
 
 **Page** : `eleve/evaluation.html`
-**Fichiers** : `js/eleve-evaluation.js` (~550 lignes), `css/eleve-evaluation.css` (~220 lignes)
+**Fichiers** : `js/eleve-evaluation.js` (~620 lignes), `css/eleve-evaluation.css` (~220 lignes)
 **Backend** : `Evaluations.gs` (lecture évaluations + sauvegarde résultats)
 
 **Ce que fait le module :**
 - L'élève passe une évaluation chronométrée (connaissances, savoir-faire, compétences, bonus)
-- Réutilise le moteur d'entraînement `EleveConnaissances` (étapes, formats, validation)
+- **Connaissances** : piloté via `EleveConnaissances` (étapes, formats QCM/VF/etc., validation)
+- **Savoir-faire** : piloté via `EleveExercices` (exercice unique, formats tableau/carte/document/etc.)
 - Timer compte à rebours avec alerte visuelle en dessous de 60s
 - Modal de confirmation pour quitter (avec les boutons Annuler / Confirmer)
-- Écran de résultat après soumission (points gagnés/perdus, seuil, détails)
+- Écran de résultat après soumission (points gagnés/perdus, seuil, correction détaillée)
 
-**Layout** : plein écran sans sidebar (logique pour une évaluation chronométrée). Utilise le même design que les entraînements :
-- Bandeau `exercise-header.connaissances` (bleu) avec titre, type, points en jeu, timer
-- Barre de progression des étapes (dots)
-- Bouton « ← Quitter l'évaluation » en haut
+**Bifurcation par type (session 20)** :
+- `init()` détecte le type et appelle `setupConnaissancesModule()` ou `setupSFModule()`
+- `setupSFModule()` injecte l'exercice dans `EleveExercices`, utilise ses `FORMAT_HANDLERS`
+- `renderSFExerciseView()` : rendu SF avec bandeau orange, timer, bouton Terminer
+- `_finishSF()` : validation via le handler SF, capture du HTML corrigé
+- SF seuil = 100% (zéro erreur), résultat sauvegardé avec `banque_id` pour la progression
 
-**Refonte visuelle (session 17)** :
-- ~~Header noir/jaune custom~~ → bandeau bleu `exercise-header` identique aux entraînements
-- ~~Modal sans styles (`.modal-footer`, `.modal-small` manquants)~~ → styles ajoutés dans `eleve-evaluation.css`
-- ~~`.btn-primary` width:100% dans la modal~~ → corrigé avec `width: auto` dans le contexte modal
-- CSS réduit de ~400 lignes à ~220 lignes (suppression de tout le design system custom)
+**Layout** : plein écran sans sidebar. Design cohérent avec les entraînements :
+- Bandeau `exercise-header.connaissances` (bleu) ou `.savoir-faire` (orange) selon le type
+- Barre de progression des étapes (connaissances) ou exercice unique (SF)
 
-**Appels API** : mêmes que EleveConnaissances (via override), + `saveEvaluationResult`
+**Scripts chargés** : `eleve-connaissances*.js` (5 fichiers) + `eleve-exercices*.js` (3 fichiers : base, formats, validation)
 
-**État** : refondu visuellement (session 17). Cohérent avec le reste du site.
+**Appels API** : mêmes que EleveConnaissances/EleveExercices (via override), + `saveEvaluationResult`
+
+**État** : connaissances refondu (session 17), SF ajouté (session 20). Fonctionnel.
 
 ## Architecture technique
 
@@ -343,6 +346,21 @@ Toujours utiliser les noms canoniques. La fonction `normalizeFormat()` dans util
 | `carte` | — |
 | `question_ouverte` | — |
 | `flashcard` | — |
+
+### Convention de durée (session 20)
+
+**Règle : `duree` est TOUJOURS stockée en minutes** (dans les Google Sheets et dans les objets JS côté frontend).
+
+| Module | Stockage | Default | Timer interne |
+|--------|----------|---------|---------------|
+| Connaissances | minutes | 15 | `ent.duree * 60` |
+| Savoir-faire | minutes | 10 | `exo.duree * 60` dans `startTimer()` |
+| Compétences | minutes | 30 | `(entrainement.duree || 30) * 60` |
+| Évaluation | minutes | 15 | `dureeMinutes * 60` (unifié tous types) |
+
+- **Saisie admin** : l'utilisatrice entre des minutes, stockées telles quelles
+- **Timer** : la conversion `× 60` se fait **une seule fois**, au moment de lancer le compte à rebours
+- **Migration** : `migrateDureeToMinutes` (action API) convertit les anciennes valeurs en secondes (> 120) vers des minutes
 
 ### Constantes de mémorisation
 | Module | Étapes | Constante backend | Constante frontend |
