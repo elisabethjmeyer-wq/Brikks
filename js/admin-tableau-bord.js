@@ -118,6 +118,29 @@ const AdminTableauBord = {
     },
 
     // ========== GRADE CALCULATION ==========
+
+    /**
+     * Détermine le semestre d'une évaluation à partir de sa date
+     * et des plages de dates dans PARAMETRES_NOTES.
+     * Fallback : semestre en cours.
+     */
+    _getSemestreForEval(ev) {
+        const dateStr = ev.date_ouverture || ev.date_debut || '';
+        if (!dateStr) return this.currentSemestre;
+
+        const evalDate = new Date(dateStr);
+        if (isNaN(evalDate.getTime())) return this.currentSemestre;
+
+        for (const p of this.parametresNotes) {
+            const debut = p.date_debut ? new Date(p.date_debut) : null;
+            const fin = p.date_fin ? new Date(p.date_fin) : null;
+            if (debut && fin && evalDate >= debut && evalDate <= fin) {
+                return String(p.semestre);
+            }
+        }
+        return this.currentSemestre;
+    },
+
     /**
      * Get parameters for a matière/semestre
      */
@@ -136,13 +159,14 @@ const AdminTableauBord = {
      * Calculate points acquired by a student for a matière
      * Returns: { connaissances, savoirFaire, competences, bonus, total }
      */
-    _calculatePoints(eleveId, matiere) {
+    _calculatePoints(eleveId, matiere, semestre) {
         const cats = { connaissances: 0, 'savoir-faire': 0, competences: 0, bonus: 0 };
 
-        // Get all evaluations matching this matière
+        // Get all evaluations matching this matière AND semestre
         const matchingEvals = this.evaluations.filter(ev => {
             const m = ev.matiere || '';
-            return m === matiere || m === 'Les deux';
+            if (m !== matiere && m !== 'Les deux') return false;
+            return this._getSemestreForEval(ev) === String(semestre);
         });
 
         // For each evaluation, find this student's result
@@ -171,7 +195,7 @@ const AdminTableauBord = {
      */
     _calculateNoteProgression(eleveId, matiere, semestre) {
         const params = this._getParams(matiere, semestre);
-        const points = this._calculatePoints(eleveId, matiere);
+        const points = this._calculatePoints(eleveId, matiere, semestre);
 
         const pointsSansBonus = points.connaissances + points['savoir-faire'] + points.competences;
         const noteBase = params.noteDepart + (pointsSansBonus / params.budget) * 19.5;

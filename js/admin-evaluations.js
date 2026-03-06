@@ -27,6 +27,7 @@ const AdminEvaluations = {
 
     // Progression evaluation data
     progressionsEvaluation: [],
+    parametresNotes: [],
 
     // Wizard state
     wizardStep: 1,
@@ -149,6 +150,14 @@ const AdminEvaluations = {
             this.progressionsEvaluation = SheetsAPI.parseSheetData(progEvalData);
         } catch (_e) {
             this.progressionsEvaluation = [];
+        }
+
+        // Load notes parameters (for semester detection)
+        try {
+            const paramNotesData = await SheetsAPI.getSheetData('PARAMETRES_NOTES');
+            this.parametresNotes = SheetsAPI.parseSheetData(paramNotesData);
+        } catch (_e) {
+            this.parametresNotes = [];
         }
     },
 
@@ -449,6 +458,7 @@ const AdminEvaluations = {
                         <div class="eval-card-title">
                             ${escapeHtml(evaluation.titre || 'Sans titre')}
                             ${matiereBadge}
+                            ${(() => { const sem = this._getSemestreTag(evaluation); return sem ? `<span class="sem-tag">${sem}</span>` : ''; })()}
                             <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
                         </div>
                         <div class="eval-card-meta">
@@ -472,6 +482,30 @@ const AdminEvaluations = {
         const sameType = this.evaluations.filter(e => e.type === evaluation.type);
         const index = sameType.findIndex(e => e.id === evaluation.id);
         return index >= 0 ? index + 1 : 1;
+    },
+
+    /**
+     * Détermine le semestre d'une évaluation à partir de sa date
+     * et des plages de dates dans PARAMETRES_NOTES.
+     */
+    _getSemestreTag(ev) {
+        const dateStr = ev.date_ouverture || ev.date_debut || '';
+        let evalDate;
+        if (dateStr) {
+            evalDate = new Date(dateStr);
+            if (isNaN(evalDate.getTime())) evalDate = new Date();
+        } else {
+            evalDate = new Date(); // Fallback: date du jour
+        }
+
+        for (const p of this.parametresNotes) {
+            const debut = p.date_debut ? new Date(p.date_debut) : null;
+            const fin = p.date_fin ? new Date(p.date_fin) : null;
+            if (debut && fin && evalDate >= debut && evalDate <= fin) {
+                return 'S' + p.semestre;
+            }
+        }
+        return '';
     },
 
     _formatDateShort(dateStr) {

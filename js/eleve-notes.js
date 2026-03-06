@@ -16,7 +16,7 @@ const EleveNotes = {
 
     // State
     currentMatiere: 'FR',
-    currentSemestre: '1',
+    currentSemestre: null, // Auto-détecté depuis les dates de paramétrage
 
     // ========== INITIALIZATION ==========
     async init() {
@@ -28,6 +28,7 @@ const EleveNotes = {
             }
 
             await this._loadData();
+            this._detectCurrentSemestre();
             this._setupEventListeners();
             this._render();
             this._showContent();
@@ -89,6 +90,53 @@ const EleveNotes = {
         `;
     },
 
+    /**
+     * Détecte le semestre en cours à partir des dates de PARAMETRES_NOTES.
+     * Fallback : semestre 1 si aucune date ne correspond.
+     */
+    _detectCurrentSemestre() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (const p of this.parametresNotes) {
+            const debut = p.date_debut ? new Date(p.date_debut) : null;
+            const fin = p.date_fin ? new Date(p.date_fin) : null;
+            if (debut && fin && today >= debut && today <= fin) {
+                this.currentSemestre = String(p.semestre);
+                break;
+            }
+        }
+        // Fallback
+        if (!this.currentSemestre) this.currentSemestre = '1';
+
+        // Activer le bon bouton S1/S2
+        document.querySelectorAll('.sem-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.semestre === this.currentSemestre);
+        });
+    },
+
+    /**
+     * Détermine le semestre d'une évaluation à partir de sa date.
+     * Utilise date_ouverture ou date_debut de l'évaluation.
+     * Fallback : semestre en cours.
+     */
+    _getSemestreForEval(ev) {
+        const dateStr = ev.date_ouverture || ev.date_debut || '';
+        if (!dateStr) return this.currentSemestre;
+
+        const evalDate = new Date(dateStr);
+        if (isNaN(evalDate.getTime())) return this.currentSemestre;
+
+        for (const p of this.parametresNotes) {
+            const debut = p.date_debut ? new Date(p.date_debut) : null;
+            const fin = p.date_fin ? new Date(p.date_fin) : null;
+            if (debut && fin && evalDate >= debut && evalDate <= fin) {
+                return String(p.semestre);
+            }
+        }
+        return this.currentSemestre;
+    },
+
     // ========== EVENT LISTENERS ==========
     _setupEventListeners() {
         document.querySelectorAll('.matiere-tab').forEach(tab => {
@@ -96,6 +144,15 @@ const EleveNotes = {
                 document.querySelectorAll('.matiere-tab').forEach(t => t.classList.remove('active'));
                 e.currentTarget.classList.add('active');
                 this.currentMatiere = e.currentTarget.dataset.matiere;
+                this._render();
+            });
+        });
+
+        document.querySelectorAll('.sem-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.sem-btn').forEach(b => b.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                this.currentSemestre = e.currentTarget.dataset.semestre;
                 this._render();
             });
         });
@@ -113,13 +170,15 @@ const EleveNotes = {
         };
     },
 
-    _calculatePoints(matiere) {
+    _calculatePoints(matiere, semestre) {
         const eleveId = this.currentUser.id;
         const cats = { connaissances: 0, 'savoir-faire': 0, competences: 0, bonus: 0 };
 
         const matchingEvals = this.evaluations.filter(ev => {
             const m = ev.matiere || '';
-            return m === matiere || m === 'Les deux';
+            if (m !== matiere && m !== 'Les deux') return false;
+            // Filtrer par semestre
+            return this._getSemestreForEval(ev) === String(semestre);
         });
 
         matchingEvals.forEach(ev => {
@@ -142,7 +201,7 @@ const EleveNotes = {
 
     _calculateProgression(matiere, semestre) {
         const params = this._getParams(matiere, semestre);
-        const points = this._calculatePoints(matiere);
+        const points = this._calculatePoints(matiere, semestre);
 
         const ptsSansBonus = points.connaissances + points['savoir-faire'] + points.competences;
         const noteBase = params.noteDepart + (ptsSansBonus / params.budget) * 19.5;
