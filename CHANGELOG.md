@@ -4,6 +4,36 @@
 
 ---
 
+## 2026-03-06 — Session 19 : Améliorations évaluations (Phase D)
+
+### Modifications
+
+1. **Wizard admin revu (D1)** :
+   - Matière toujours visible (plus masquée pour non-bonus), couplée avec Mode passation sur la même ligne
+   - Champ Durée ajouté pour connaissances et savoir-faire (avec placeholder "Auto si lié à un entraînement")
+   - Durée manuelle prioritaire sur la durée auto-détectée depuis le contenu lié
+   - Collecte du champ `evalDuree` dans `_collectWizardStepData()`
+
+2. **Tableau de saisie enrichi (D2)** :
+   - Colonne "Sujet attribué" ajoutée pour connaissances et savoir-faire (nom de banque + entraînement)
+   - Chargement des attributions via `getAttributionsSujets` à l'ouverture de la saisie
+   - Badge source (🤖 auto / ✏️ manuel) affiché avec le sujet
+   - Lignes sans résultat visuellement distinguées (opacité réduite)
+   - Colonne "Détail" supprimée (non fonctionnelle)
+
+3. **Indicateur budget (D3)** :
+   - Barre de progression "Points distribués : X / Y pts (S1/S2)" affichée sous les onglets
+   - Calcul automatique : somme des briques des évals non-bonus pour la matière/semestre courant vs budget_estime
+   - Couleurs : vert (< 80%), orange (80-100%), rouge (> 100%)
+
+### Fichiers modifiés
+- `js/admin-evaluations.js` : wizard durée, saisie avec attributions, budget indicator
+- `css/admin-evaluations.css` : styles sujet, budget indicator, no-result rows
+- `admin/evaluations.html` : budget indicator HTML
+- `google-apps-script/TOUT-EN-UN.gs` : rebuild
+
+---
+
 ## 2026-03-06 — Session 18 : Mode de passation papier/numérique + programmation temporelle
 
 ### Modifications
