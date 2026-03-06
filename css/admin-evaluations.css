@@ -624,6 +624,22 @@
     width: 70px;
 }
 
+/* Saisie column widths */
+.col-score { width: 80px; }
+.col-resultat { width: 100px; }
+.col-date-passage { width: 120px; font-size: 12px; color: var(--gray-500); white-space: nowrap; }
+.col-duree { width: 70px; font-size: 13px; text-align: center; }
+.col-detail { width: 50px; text-align: center; }
+
+.detail-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.resultat-select {
+    min-width: 70px;
+}
+
 .note-input {
     width: 80px;
 }
@@ -829,6 +845,18 @@
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+}
+
+/* ===== AUTO STATUT DISPLAY ===== */
+.statut-auto-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.statut-auto-display .form-help {
+    margin-top: 0;
+    font-style: italic;
 }
 
 /* ===== TYPE CARDS ===== */

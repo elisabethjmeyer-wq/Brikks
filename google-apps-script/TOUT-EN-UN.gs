@@ -1,7 +1,7 @@
 // ================================================================
 // FICHIER AUTO-GÉNÉRÉ — ne pas modifier directement
 // Généré par : npm run build:gas
-// Date : 2026-03-05
+// Date : 2026-03-06
 // ================================================================
 
 // ================================================================
@@ -5222,7 +5222,7 @@ function updateEvaluation(data) {
     return { success: false, error: 'Evaluation non trouvee' };
   }
 
-  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id'];
+  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id'];
   updates.forEach(col => {
     if (data[col] !== undefined) {
       const colIndex = headers.indexOf(col);
@@ -5315,7 +5315,7 @@ function saveEvaluationResult(data) {
 
   if (existingRow > 0) {
     // Mise à jour du résultat existant
-    var updatableFields = ['score', 'validations', 'is_validated', 'temps_passe', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut'];
+    var updatableFields = ['score', 'validations', 'is_validated', 'temps_passe', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut', 'statut_resultat'];
     updatableFields.forEach(function(field) {
       if (data[field] !== undefined) {
         var colIdx = headers.indexOf(field);

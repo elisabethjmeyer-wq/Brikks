@@ -350,7 +350,10 @@ const AdminEvaluations = {
 
     renderEvaluationCard(evaluation) {
         const typeClass = evaluation.type || 'connaissances';
-        const statusClass = evaluation.statut || 'brouillon';
+        // Auto-compute status from dates if set
+        const statusClass = (evaluation.date_ouverture || evaluation.date_fermeture)
+            ? this._computeAutoStatut(evaluation.date_ouverture, evaluation.date_fermeture)
+            : (evaluation.statut || 'brouillon');
         const order = evaluation.ordre || this._getEvaluationOrder(evaluation);
 
         // Status labels
@@ -409,6 +412,14 @@ const AdminEvaluations = {
             ];
         }
 
+        // Add date info if present
+        if (evaluation.date_ouverture) {
+            metaItems.push(`📅 Ouverture: ${this._formatDateShort(evaluation.date_ouverture)}`);
+        }
+        if (evaluation.date_fermeture) {
+            metaItems.push(`🔒 Fermeture: ${this._formatDateShort(evaluation.date_fermeture)}`);
+        }
+
         const statsHtml = `
             <div class="eval-card-stats">
                 <div class="eval-stat">
@@ -456,6 +467,14 @@ const AdminEvaluations = {
         const sameType = this.evaluations.filter(e => e.type === evaluation.type);
         const index = sameType.findIndex(e => e.id === evaluation.id);
         return index >= 0 ? index + 1 : 1;
+    },
+
+    _formatDateShort(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(' ', ' à ');
+        } catch { return dateStr; }
     },
 
     // ========== SOMMATIVES RENDER ==========
@@ -528,31 +547,30 @@ const AdminEvaluations = {
         const title = document.getElementById('evaluationModalTitle');
         const isEdit = !!evaluation;
 
+        // Type is always determined by current tab (no step 1)
+        const type = isEdit ? evaluation.type : (this.currentType !== 'sommatives' ? this.currentType : 'connaissances');
+        const typeLabels = { 'connaissances': 'connaissances', 'savoir-faire': 'savoir-faire', 'competences': 'compétences', 'bonus': 'bonus' };
+
         if (isEdit) {
-            title.textContent = 'Modifier l\'évaluation';
+            title.textContent = `Modifier l'évaluation de ${typeLabels[type] || type}`;
             document.getElementById('editEvaluationId').value = evaluation.id;
             document.getElementById('evalEntrainementConnId').value = evaluation.entrainement_conn_id || '';
             this.wizardData = { ...evaluation };
-            this._wizardSkipType = false;
-            this.wizardStep = 1;
         } else {
-            const defaultType = this.currentType !== 'sommatives' ? this.currentType : 'connaissances';
-            const typeLabels = { 'connaissances': 'évaluation de connaissances', 'savoir-faire': 'évaluation de savoir-faire', 'competences': 'évaluation de compétences', 'bonus': 'évaluation bonus' };
-            title.textContent = `Nouvelle ${typeLabels[defaultType] || 'évaluation'}`;
+            title.textContent = `Nouvelle évaluation de ${typeLabels[type] || type}`;
             document.getElementById('editEvaluationId').value = '';
             document.getElementById('evalEntrainementConnId').value = '';
             this.wizardData = {
-                type: defaultType,
+                type: type,
                 matiere: this.currentMatiere,
                 briques: 3,
                 statut: 'brouillon',
                 seuil: 80
             };
-            // Skip step 1 in creation — type is implicit from active tab
-            this._wizardSkipType = true;
-            this.wizardStep = 2;
         }
 
+        // Always start at step 1 (Paramètres) — no type selection step
+        this.wizardStep = 1;
         this._renderWizardStep();
         document.getElementById('evaluationModal').classList.remove('hidden');
     },
@@ -564,15 +582,11 @@ const AdminEvaluations = {
     },
 
     // ========== WIZARD NAVIGATION ==========
-
-    _getMinStep() {
-        return this._wizardSkipType ? 2 : 1;
-    },
+    // Wizard now has 2 steps max: 1=Paramètres, 2=Sujet (conn/SF only)
 
     _getMaxStep() {
         const type = this.wizardData.type;
-        // Step 3 (Sujet) only for connaissances and savoir-faire
-        return (type === 'connaissances' || type === 'savoir-faire') ? 3 : 2;
+        return (type === 'connaissances' || type === 'savoir-faire') ? 2 : 1;
     },
 
     wizardNext() {
@@ -592,35 +606,31 @@ const AdminEvaluations = {
     },
 
     wizardPrev() {
-        const minStep = this._getMinStep();
-        if (this.wizardStep <= minStep) return;
+        if (this.wizardStep <= 1) return;
         this._collectWizardStepData();
         this.wizardStep--;
         this._renderWizardStep();
     },
 
     _updateWizardStepper() {
-        const minStep = this._getMinStep();
         const maxStep = this._getMaxStep();
 
         document.querySelectorAll('.eval-wizard-step').forEach(el => {
             const step = parseInt(el.dataset.step);
             el.classList.toggle('active', step === this.wizardStep);
-            el.classList.toggle('completed', step < this.wizardStep && step >= minStep);
-            // Hide steps outside range
-            el.style.display = (step >= minStep && step <= maxStep) ? '' : 'none';
+            el.classList.toggle('completed', step < this.wizardStep);
+            el.style.display = step <= maxStep ? '' : 'none';
         });
         // Hide connectors for hidden steps
         document.querySelectorAll('.eval-step-connector').forEach((el, i) => {
-            const fromStep = i + 1;
             const toStep = i + 2;
-            el.style.display = (fromStep >= minStep && toStep <= maxStep) ? '' : 'none';
+            el.style.display = toStep <= maxStep ? '' : 'none';
         });
 
         // Navigation buttons
         const prevBtn = document.getElementById('evalWizardPrevBtn');
         const nextBtn = document.getElementById('evalWizardNextBtn');
-        prevBtn.style.display = this.wizardStep > minStep ? '' : 'none';
+        prevBtn.style.display = this.wizardStep > 1 ? '' : 'none';
         nextBtn.textContent = this.wizardStep >= maxStep ? 'Enregistrer' : 'Suivant →';
     },
 
@@ -630,85 +640,15 @@ const AdminEvaluations = {
 
         switch (this.wizardStep) {
             case 1:
-                content.innerHTML = this._renderStep1();
-                this._initStep1();
-                break;
-            case 2:
                 content.innerHTML = this._renderStep2();
                 break;
-            case 3:
+            case 2:
                 content.innerHTML = this._renderStep3();
                 break;
         }
     },
 
-    // ========== STEP 1: TYPE ==========
-
-    _renderStep1() {
-        const d = this.wizardData;
-        const isEdit = !!d.id;
-        const selectedType = d.type || this.currentType;
-
-        return `
-            <div class="eval-wizard-step-content">
-                <div class="step-header">
-                    <h3>Type d'évaluation</h3>
-                    <p>Choisissez le type d'évaluation à créer</p>
-                </div>
-                <div class="type-cards ${isEdit ? 'disabled' : ''}">
-                    ${this._renderTypeCard('connaissances', '🟢', 'Connaissances', 'QCM, quiz sur les leçons', selectedType)}
-                    ${this._renderTypeCard('savoir-faire', '🟠', 'Savoir-faire', 'Exercices méthodologiques', selectedType)}
-                    ${this._renderTypeCard('competences', '🟣', 'Compétences', 'Tâches complexes', selectedType)}
-                    ${this._renderTypeCard('bonus', '⭐', 'Bonus', 'Évaluations spéciales', selectedType)}
-                </div>
-            </div>
-        `;
-    },
-
-    _renderTypeCard(type, icon, name, desc, selectedType) {
-        const colorClass = { 'connaissances': 'green', 'savoir-faire': 'orange', 'competences': 'purple', 'bonus': 'yellow' }[type] || '';
-        const selected = type === selectedType ? 'selected' : '';
-        return `
-            <label class="type-card ${colorClass} ${selected}" data-type="${type}" onclick="AdminEvaluations._selectType('${type}')">
-                <input type="radio" name="evalType" value="${type}" ${selected ? 'checked' : ''}>
-                <span class="type-icon">${icon}</span>
-                <span class="type-name">${name}</span>
-                <span class="type-desc">${desc}</span>
-            </label>
-        `;
-    },
-
-    _selectType(type) {
-        this.wizardData.type = type;
-        document.querySelectorAll('.type-card').forEach(c => {
-            c.classList.toggle('selected', c.dataset.type === type);
-            c.querySelector('input').checked = c.dataset.type === type;
-        });
-        // Show/hide categorie field (only for bonus)
-        const catGroup = document.getElementById('evalCategorieGroup');
-        if (catGroup) catGroup.style.display = type === 'bonus' ? '' : 'none';
-        // Show/hide matiere field (bonus always, others only if toggle=all)
-        const matGroup = document.getElementById('evalMatiereGroup');
-        if (matGroup) {
-            matGroup.style.display = type === 'bonus' ? '' : 'none';
-            const lesDeux = matGroup.querySelector('option[value="Les deux"]');
-            if (lesDeux) lesDeux.hidden = type !== 'bonus';
-        }
-        // Update stepper visibility (step 3 depends on type)
-        this._updateWizardStepper();
-    },
-
-    _initStep1() {
-        // If editing, disable type change
-        if (this.wizardData.id) {
-            document.querySelectorAll('.type-card').forEach(c => {
-                c.style.pointerEvents = 'none';
-                c.style.opacity = c.classList.contains('selected') ? '1' : '0.4';
-            });
-        }
-    },
-
-    // ========== STEP 2: PARAMÈTRES ==========
+    // ========== STEP 1: PARAMÈTRES ==========
 
     _renderStep2() {
         const d = this.wizardData;
@@ -779,16 +719,84 @@ const AdminEvaluations = {
     },
 
     _renderStatutSelect(d) {
+        const hasDates = d.date_ouverture || d.date_fermeture;
+        const statutAuto = hasDates ? this._computeAutoStatut(d.date_ouverture, d.date_fermeture) : '';
+        // If dates are set, show computed status; otherwise manual select
+        const isAutoMode = hasDates;
+
         return `
                 <div class="form-group">
                     <label>Statut</label>
-                    <select class="form-select" id="evalStatut">
-                        <option value="brouillon" ${d.statut === 'brouillon' || !d.statut ? 'selected' : ''}>Brouillon</option>
-                        <option value="planifiee" ${d.statut === 'planifiee' ? 'selected' : ''}>Planifiée</option>
-                        <option value="publiee" ${d.statut === 'publiee' ? 'selected' : ''}>Publiée</option>
-                        <option value="terminee" ${d.statut === 'terminee' ? 'selected' : ''}>Terminée</option>
-                    </select>
+                    ${isAutoMode ? `
+                        <div class="statut-auto-display">
+                            <span class="status-badge ${statutAuto}">${this._getStatutLabel(statutAuto)}</span>
+                            <span class="form-help">Calculé automatiquement depuis les dates</span>
+                        </div>
+                        <input type="hidden" id="evalStatut" value="${statutAuto}">
+                    ` : `
+                        <select class="form-select" id="evalStatut">
+                            <option value="brouillon" ${d.statut === 'brouillon' || !d.statut ? 'selected' : ''}>Brouillon</option>
+                            <option value="publiee" ${d.statut === 'publiee' ? 'selected' : ''}>Publiée</option>
+                            <option value="terminee" ${d.statut === 'terminee' ? 'selected' : ''}>Terminée</option>
+                        </select>
+                    `}
+                </div>
+                <div class="form-section">Programmation (optionnel)</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date d'ouverture</label>
+                        <input type="datetime-local" class="form-input" id="evalDateOuverture" value="${d.date_ouverture || ''}"
+                            onchange="AdminEvaluations._onDatesChange()">
+                        <div class="form-help">Visible pour les élèves à partir de cette date</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Date de fermeture</label>
+                        <input type="datetime-local" class="form-input" id="evalDateFermeture" value="${d.date_fermeture || ''}"
+                            onchange="AdminEvaluations._onDatesChange()">
+                        <div class="form-help">L'élève ne pourra plus passer l'évaluation après</div>
+                    </div>
                 </div>`;
+    },
+
+    /**
+     * Compute auto status from dates
+     */
+    _computeAutoStatut(dateOuverture, dateFermeture) {
+        const now = new Date();
+        if (dateOuverture) {
+            const ouv = new Date(dateOuverture);
+            if (ouv > now) return 'planifiee';
+        }
+        if (dateFermeture) {
+            const ferm = new Date(dateFermeture);
+            if (ferm < now) return 'terminee';
+        }
+        // Between ouverture and fermeture (or only ouverture set and passed)
+        if (dateOuverture || dateFermeture) return 'publiee';
+        return 'brouillon';
+    },
+
+    _getStatutLabel(statut) {
+        const labels = {
+            'brouillon': '📝 Brouillon',
+            'planifiee': '📅 Planifiée',
+            'publiee': '🟢 En cours',
+            'terminee': '✅ Terminée'
+        };
+        return labels[statut] || statut;
+    },
+
+    /**
+     * Called when date fields change — re-render the statut display
+     */
+    _onDatesChange() {
+        const dateOuverture = document.getElementById('evalDateOuverture')?.value || '';
+        const dateFermeture = document.getElementById('evalDateFermeture')?.value || '';
+        this.wizardData.date_ouverture = dateOuverture;
+        this.wizardData.date_fermeture = dateFermeture;
+
+        // Re-render step to update statut display
+        this._renderWizardStep();
     },
 
     _renderDefaultFields(d) {
@@ -1006,15 +1014,7 @@ const AdminEvaluations = {
     _collectWizardStepData() {
         switch (this.wizardStep) {
             case 1: {
-                const type = document.querySelector('input[name="evalType"]:checked')?.value;
-                if (!type) {
-                    this.showNotification('Sélectionnez un type d\'évaluation', 'error');
-                    return false;
-                }
-                this.wizardData.type = type;
-                return true;
-            }
-            case 2: {
+                // Step 1 = Paramètres
                 const titre = document.getElementById('evalTitre')?.value.trim();
                 if (!titre) {
                     this.showNotification('Le titre est requis', 'error');
@@ -1024,8 +1024,18 @@ const AdminEvaluations = {
                 this.wizardData.briques = parseInt(document.getElementById('evalBriques')?.value) || 3;
                 const matiereVisible = document.getElementById('evalMatiereGroup')?.style.display !== 'none';
                 this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
-                this.wizardData.statut = document.getElementById('evalStatut')?.value || 'brouillon';
                 this.wizardData.categorie = this.wizardData.type === 'bonus' ? (document.getElementById('evalCategorie')?.value || 'connaissances') : '';
+
+                // Dates
+                this.wizardData.date_ouverture = document.getElementById('evalDateOuverture')?.value || '';
+                this.wizardData.date_fermeture = document.getElementById('evalDateFermeture')?.value || '';
+
+                // Statut: auto from dates, or manual
+                if (this.wizardData.date_ouverture || this.wizardData.date_fermeture) {
+                    this.wizardData.statut = this._computeAutoStatut(this.wizardData.date_ouverture, this.wizardData.date_fermeture);
+                } else {
+                    this.wizardData.statut = document.getElementById('evalStatut')?.value || 'brouillon';
+                }
 
                 if (this.wizardData.type === 'connaissances') {
                     this.wizardData.seuil = parseInt(document.getElementById('evalSeuil')?.value) || 80;
@@ -1038,8 +1048,8 @@ const AdminEvaluations = {
                 }
                 return true;
             }
-            case 3:
-                // Data already collected via onchange handlers
+            case 2:
+                // Step 2 = Sujet — data already collected via onchange handlers
                 return true;
         }
         return true;
@@ -1065,7 +1075,9 @@ const AdminEvaluations = {
             matiere: d.matiere || 'FR',
             statut: d.statut || 'brouillon',
             categorie: d.categorie || d.type,
-            date_creation: new Date().toISOString().split('T')[0]
+            date_creation: new Date().toISOString().split('T')[0],
+            date_ouverture: d.date_ouverture || '',
+            date_fermeture: d.date_fermeture || ''
         };
 
         if (d.type === 'connaissances') {
@@ -1233,15 +1245,22 @@ const AdminEvaluations = {
         const matLabel = evaluation.matiere === 'FR' ? '🇫🇷 Français' :
             evaluation.matiere === 'HG-EMC' ? '🌍 HG-EMC' :
             evaluation.matiere === 'Les deux' ? '🔗 Les deux matières' : '';
-        document.getElementById('saisieSubtitle').textContent =
-            `${this._capitalizeType(evaluation.type)} · ${matLabel} · ${evaluation.briques || 0} pts`;
+
+        // Subtitle with date info
+        let subtitleParts = [`${this._capitalizeType(evaluation.type)} · ${matLabel} · ${evaluation.briques || 0} pts`];
+        if (evaluation.date_ouverture) {
+            subtitleParts.push(`📅 ${this._formatDateShort(evaluation.date_ouverture)}`);
+        }
+        document.getElementById('saisieSubtitle').textContent = subtitleParts.join(' · ');
 
         // Update table headers for progression eval
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
             <th class="col-score">Score (%)</th>
-            <th class="col-validations">Points</th>
-            <th class="col-source">Source</th>
+            <th class="col-resultat">Résultat</th>
+            <th class="col-date-passage">Date</th>
+            <th class="col-duree">Durée</th>
+            <th class="col-detail">Détail</th>
         `;
 
         // Render student rows
@@ -1252,24 +1271,46 @@ const AdminEvaluations = {
             const score = r.score !== undefined && r.score !== '' ? r.score : '';
             const validations = r.validations !== undefined && r.validations !== '' ? r.validations : '';
             const isAuto = r.source === 'auto' || (!r.source && r.id);
+            const sourceBadge = r.id ? (isAuto ? '<span class="source-badge auto">🤖</span>' : '<span class="source-badge manuel">✏️</span>') : '';
+
+            // Date passage
+            const datePassage = r.date_passage ? this._formatDateShort(r.date_passage) : '';
+
+            // Durée formatée
+            const duree = r.temps_passe ? this._formatDuree(r.temps_passe) : '';
+
+            // Build résultat select options
+            let resultatOptions = '<option value="">—</option>';
+            for (let i = 0; i <= maxPts; i++) {
+                const selected = String(validations) === String(i) ? 'selected' : '';
+                resultatOptions += `<option value="${i}" ${selected}>${i}</option>`;
+            }
+            const nrSelected = validations === 'non_rendu' ? 'selected' : '';
+            const absSelected = validations === 'absent' ? 'selected' : '';
+            resultatOptions += `<option value="non_rendu" ${nrSelected}>NR</option>`;
+            resultatOptions += `<option value="absent" ${absSelected}>ABS</option>`;
 
             return `
                 <tr data-eleve-id="${eleve.id}">
                     <td class="col-eleve">
                         <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
+                        ${sourceBadge}
                     </td>
                     <td class="col-score">
                         <input type="number" class="saisie-input" value="${score}" min="0" max="100"
                             placeholder="—"
                             onchange="AdminEvaluations.onSaisieScoreChange('${eleve.id}', this.value, ${maxPts}, ${evaluation.seuil || 80})">
                     </td>
-                    <td class="col-validations">
-                        <input type="number" class="saisie-input" value="${validations}" min="0" max="${maxPts}"
-                            placeholder="—"
+                    <td class="col-resultat">
+                        <select class="saisie-select resultat-select"
                             onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'validations', this.value)">
+                            ${resultatOptions}
+                        </select>
                     </td>
-                    <td class="col-source">
-                        <span class="source-badge ${isAuto && r.id ? 'auto' : r.id ? 'manuel' : ''}">${r.id ? (isAuto ? '🤖 Auto' : '✏️ Manuel') : ''}</span>
+                    <td class="col-date-passage">${datePassage}</td>
+                    <td class="col-duree">${duree}</td>
+                    <td class="col-detail">
+                        <button class="btn-icon detail-btn" disabled title="Bientôt disponible">🔍</button>
                     </td>
                 </tr>
             `;
@@ -1278,6 +1319,14 @@ const AdminEvaluations = {
         // Show saisie view, hide list
         document.getElementById('evaluations-content').style.display = 'none';
         document.getElementById('saisie-content').style.display = 'block';
+    },
+
+    _formatDuree(seconds) {
+        const s = parseInt(seconds) || 0;
+        if (s <= 0) return '';
+        const min = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${min}:${String(sec).padStart(2, '0')}`;
     },
 
     // ========== SAISIE DES RÉSULTATS (sommative) ==========
@@ -1376,11 +1425,11 @@ const AdminEvaluations = {
         if (!isNaN(score)) {
             const points = score >= seuil ? maxPts : 0;
             this.saisieChanges[eleveId].validations = points;
-            // Mettre à jour le champ points dans le DOM
+            // Mettre à jour le select résultat dans le DOM
             const row = document.querySelector(`tr[data-eleve-id="${eleveId}"]`);
             if (row) {
-                const ptsInput = row.querySelector('.col-validations input');
-                if (ptsInput) ptsInput.value = points;
+                const select = row.querySelector('.resultat-select');
+                if (select) select.value = String(points);
             }
         }
     },
@@ -1419,12 +1468,19 @@ const AdminEvaluations = {
                 let result;
 
                 if (this.saisieEvaluation) {
+                    // Handle NR/ABS special values
+                    const validations = changes.validations;
+                    const isSpecial = validations === 'non_rendu' || validations === 'absent';
+                    const numericValidations = isSpecial ? 0 : validations;
+
                     // Progression evaluation result
                     result = await this.callAPI('saveEvaluationResult', {
                         evaluation_id: this.saisieEvaluation.id,
                         eleve_id: eleveId,
                         ...changes,
-                        is_validated: changes.score !== undefined ? parseInt(changes.score) >= (this.saisieEvaluation.seuil || 80) : undefined
+                        validations: numericValidations,
+                        statut_resultat: isSpecial ? validations : '',
+                        is_validated: isSpecial ? false : (changes.score !== undefined ? parseInt(changes.score) >= (this.saisieEvaluation.seuil || 80) : undefined)
                     });
                 } else if (this.saisieSommative) {
                     // Sommative result
