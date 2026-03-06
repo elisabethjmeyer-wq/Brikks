@@ -201,6 +201,9 @@ const EleveEvaluations = {
         const duree = parseInt(evaluation.duree) || parseInt(evaluation.duree_estimee) || 0;
         if (duree > 0) metaItems.push(`⏱️ ${duree} min`);
 
+        const isPapier = evaluation.mode_passation === 'papier';
+        if (isPapier) metaItems.push('📄 Papier');
+
         // Build action/status
         let actionHtml = '';
         let statusBadge = '';
@@ -213,19 +216,23 @@ const EleveEvaluations = {
         switch (evaluation.status) {
             case 'retry':
                 statusBadge = '<span class="status-badge retry">⚠️ À repasser</span>';
-                actionHtml = `
-                    <div class="eval-card-actions">
-                        <a href="evaluation.html?id=${evaluation.id}" class="btn btn-warning">▶️ Repasser</a>
-                    </div>
-                `;
+                if (!isPapier) {
+                    actionHtml = `
+                        <div class="eval-card-actions">
+                            <a href="evaluation.html?id=${evaluation.id}" class="btn btn-warning">▶️ Repasser</a>
+                        </div>
+                    `;
+                }
                 break;
 
             case 'available':
-                actionHtml = `
-                    <div class="eval-card-actions">
-                        <a href="evaluation.html?id=${evaluation.id}" class="btn btn-primary">▶️ Commencer</a>
-                    </div>
-                `;
+                if (!isPapier) {
+                    actionHtml = `
+                        <div class="eval-card-actions">
+                            <a href="evaluation.html?id=${evaluation.id}" class="btn btn-primary">▶️ Commencer</a>
+                        </div>
+                    `;
+                }
                 break;
 
             case 'upcoming':

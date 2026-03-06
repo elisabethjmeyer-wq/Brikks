@@ -623,7 +623,7 @@ function updateEvaluation(data) {
     return { success: false, error: 'Evaluation non trouvee' };
   }
 
-  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id'];
+  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id', 'mode_passation'];
   updates.forEach(col => {
     if (data[col] !== undefined) {
       const colIndex = headers.indexOf(col);

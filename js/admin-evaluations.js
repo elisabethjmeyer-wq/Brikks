@@ -412,6 +412,11 @@ const AdminEvaluations = {
             ];
         }
 
+        // Add mode de passation info
+        if (evaluation.mode_passation === 'papier') {
+            metaItems.push('📄 Papier');
+        }
+
         // Add date info if present
         if (evaluation.date_ouverture) {
             metaItems.push(`📅 Ouverture: ${this._formatDateShort(evaluation.date_ouverture)}`);
@@ -675,6 +680,14 @@ const AdminEvaluations = {
                     <div class="form-group">
                         <label>Titre <span class="req">*</span></label>
                         <input type="text" class="form-input" id="evalTitre" value="${escapeHtml(d.titre || '')}" placeholder="Ex: Evaluation chapitre 1">
+                    </div>
+                    <div class="form-group">
+                        <label>Mode de passation</label>
+                        <select class="form-select" id="evalModePassation">
+                            <option value="numerique" ${d.mode_passation === 'numerique' || !d.mode_passation ? 'selected' : ''}>💻 Numérique</option>
+                            <option value="papier" ${d.mode_passation === 'papier' ? 'selected' : ''}>📄 Papier</option>
+                        </select>
+                        <div class="form-help">Papier : pas de bouton « Commencer » côté élève</div>
                     </div>
                     ${typeSpecificHTML}
                     <div class="form-group" id="evalMatiereGroup" style="${d.type !== 'bonus' ? 'display:none' : ''}">
@@ -1022,6 +1035,7 @@ const AdminEvaluations = {
                 }
                 this.wizardData.titre = titre;
                 this.wizardData.briques = parseInt(document.getElementById('evalBriques')?.value) || 3;
+                this.wizardData.mode_passation = document.getElementById('evalModePassation')?.value || 'numerique';
                 const matiereVisible = document.getElementById('evalMatiereGroup')?.style.display !== 'none';
                 this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
                 this.wizardData.categorie = this.wizardData.type === 'bonus' ? (document.getElementById('evalCategorie')?.value || 'connaissances') : '';
@@ -1077,7 +1091,8 @@ const AdminEvaluations = {
             categorie: d.categorie || d.type,
             date_creation: new Date().toISOString().split('T')[0],
             date_ouverture: d.date_ouverture || '',
-            date_fermeture: d.date_fermeture || ''
+            date_fermeture: d.date_fermeture || '',
+            mode_passation: d.mode_passation || 'numerique'
         };
 
         if (d.type === 'connaissances') {
