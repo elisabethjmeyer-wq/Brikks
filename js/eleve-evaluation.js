@@ -740,6 +740,10 @@ const EleveEvaluation = {
                 this._saveDebug = 'API erreur: ' + (result.error || JSON.stringify(result));
                 return false;
             }
+            // Invalider le cache pour que la page liste affiche le résultat frais
+            if (typeof SheetsAPI !== 'undefined' && SheetsAPI.clearCacheFor) {
+                SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+            }
             return true;
         } catch (error) {
             console.error('[EVAL SAVE] Exception:', error);
