@@ -4875,9 +4875,18 @@ function getEvaluationForEleve(data) {
   }
 
   evaluation.duree = result.duree || evaluation.duree || 15;
+
+  // Retourner l'ID de l'exercice effectivement choisi (peut différer si aléatoire)
+  var actualEntrainementId = entrainementId;
+  if (type === 'connaissances' && result.entrainement && result.entrainement.id) {
+    actualEntrainementId = String(result.entrainement.id).trim();
+  } else if (type === 'savoir-faire' && result.questions && result.questions.length > 0) {
+    actualEntrainementId = String(result.questions[0].id || '').trim();
+  }
+
   evaluation.attribution = {
     banque_id: banqueId,
-    entrainement_id: entrainementId,
+    entrainement_id: actualEntrainementId,
     source: source
   };
 
@@ -5296,7 +5305,17 @@ function saveEvaluationResult(data) {
   // Creer la sheet si elle n'existe pas
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.EVALUATION_RESULTATS);
-    sheet.appendRow(['id', 'evaluation_id', 'eleve_id', 'score', 'validations', 'is_validated', 'temps_passe', 'date_passage', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut']);
+    sheet.appendRow(['id', 'evaluation_id', 'eleve_id', 'score', 'validations', 'is_validated', 'temps_passe', 'date_passage', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut', 'banque_id', 'entrainement_id']);
+  }
+
+  // Migration progressive : ajouter les colonnes banque_id et entrainement_id si absentes
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
+  if (headerNames.indexOf('banque_id') < 0) {
+    sheet.getRange(1, sheet.getLastColumn() + 1).setValue('banque_id');
+  }
+  if (headerNames.indexOf('entrainement_id') < 0) {
+    sheet.getRange(1, sheet.getLastColumn() + 1).setValue('entrainement_id');
   }
 
   // Vérifier si un résultat existe déjà pour cet élève/évaluation (mise à jour)
@@ -5316,7 +5335,7 @@ function saveEvaluationResult(data) {
 
   if (existingRow > 0) {
     // Mise à jour du résultat existant
-    var updatableFields = ['score', 'validations', 'is_validated', 'temps_passe', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut', 'statut_resultat'];
+    var updatableFields = ['score', 'validations', 'is_validated', 'temps_passe', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut', 'statut_resultat', 'banque_id', 'entrainement_id'];
     updatableFields.forEach(function(field) {
       if (data[field] !== undefined) {
         var colIdx = headers.indexOf(field);
@@ -5334,7 +5353,7 @@ function saveEvaluationResult(data) {
     // Mettre a jour la progression evaluation si valide
     var isValidUpdate = data.is_validated === true || data.is_validated === 'true';
     if (isValidUpdate) {
-      updateProgressionFromResult_(ss, data.evaluation_id, data.eleve_id);
+      updateProgressionFromResult_(ss, data.evaluation_id, data.eleve_id, data.banque_id || '');
     }
 
     return { success: true, id: String(allData[existingRow - 1][0]), message: 'Resultat mis a jour' };
@@ -5359,6 +5378,8 @@ function saveEvaluationResult(data) {
     if (col === 'remarque_texte') return data.remarque_texte || '';
     if (col === 'remarque_media') return data.remarque_media || '';
     if (col === 'statut') return data.statut || '';
+    if (col === 'banque_id') return data.banque_id || '';
+    if (col === 'entrainement_id') return data.entrainement_id || '';
     return data[col] !== undefined ? data[col] : '';
   });
 
@@ -5367,7 +5388,7 @@ function saveEvaluationResult(data) {
   // Mettre a jour la progression evaluation si valide
   var isValid = data.is_validated === true || data.is_validated === 'true';
   if (isValid) {
-    updateProgressionFromResult_(ss, data.evaluation_id, data.eleve_id);
+    updateProgressionFromResult_(ss, data.evaluation_id, data.eleve_id, data.banque_id || '');
   }
 
   return { success: true, id: id, message: 'Resultat sauvegarde' };
@@ -5375,12 +5396,13 @@ function saveEvaluationResult(data) {
 
 /**
  * Met a jour la progression evaluation apres validation d'un resultat
- * Cherche l'attribution de l'eleve pour trouver la banque validée
+ * Utilise la banque_id passee en parametre (depuis le resultat), ou cherche dans ATTRIBUTION_SUJETS en fallback
  * @param {Spreadsheet} ss
  * @param {string} evaluationId
  * @param {string} eleveId
+ * @param {string} banqueIdFromResult - banque_id provenant du resultat (prioritaire)
  */
-function updateProgressionFromResult_(ss, evaluationId, eleveId) {
+function updateProgressionFromResult_(ss, evaluationId, eleveId, banqueIdFromResult) {
   try {
     // 1. Trouver le type de l'evaluation
     var evalSheet = ss.getSheetByName(SHEETS.EVALUATIONS);
@@ -5404,29 +5426,32 @@ function updateProgressionFromResult_(ss, evaluationId, eleveId) {
     var matiere = String(evaluation.matiere || '').trim();
     if (type !== 'connaissances' && type !== 'savoir-faire') return;
 
-    // 2. Trouver l'attribution de sujet pour cet eleve
-    var attrSheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
-    if (!attrSheet) return;
+    // 2. Determiner la banque : priorite au parametre, sinon fallback sur ATTRIBUTION_SUJETS
+    var banqueId = banqueIdFromResult ? String(banqueIdFromResult).trim() : '';
 
-    var attrData = attrSheet.getDataRange().getValues();
-    if (attrData.length < 2) return;
-    var attrHeaders = attrData[0].map(function(h) { return String(h).toLowerCase().trim(); });
-
-    var attribution = null;
-    for (var j = 1; j < attrData.length; j++) {
-      var attr = {};
-      attrHeaders.forEach(function(header, index) { attr[header] = attrData[j][index]; });
-      if (String(attr.evaluation_id).trim() === String(evaluationId).trim() &&
-          String(attr.eleve_id).trim() === String(eleveId).trim()) {
-        attribution = attr;
-        break;
+    if (!banqueId) {
+      var attrSheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
+      if (attrSheet) {
+        var attrData = attrSheet.getDataRange().getValues();
+        if (attrData.length >= 2) {
+          var attrHeaders = attrData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+          for (var j = 1; j < attrData.length; j++) {
+            var attr = {};
+            attrHeaders.forEach(function(header, index) { attr[header] = attrData[j][index]; });
+            if (String(attr.evaluation_id).trim() === String(evaluationId).trim() &&
+                String(attr.eleve_id).trim() === String(eleveId).trim()) {
+              banqueId = String(attr.banque_id || '').trim();
+              break;
+            }
+          }
+        }
       }
     }
 
-    if (!attribution || !attribution.banque_id) return;
+    if (!banqueId) return;
 
     // 3. Mettre a jour la progression
-    updateProgressionEvaluation_(eleveId, type, matiere, String(attribution.banque_id).trim());
+    updateProgressionEvaluation_(eleveId, type, matiere, banqueId);
   } catch (e) {
     // Ne pas bloquer la sauvegarde du resultat si la progression echoue
     Logger.log('Erreur updateProgressionFromResult_: ' + e.message);
