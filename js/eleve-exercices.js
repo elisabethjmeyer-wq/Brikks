@@ -650,7 +650,7 @@ const EleveExercices = {
         }
 
         const reps = banqueStatus.repetitions || 0;
-        const dureeMinutes = exo.duree > 60 ? Math.floor(exo.duree / 60) : exo.duree;
+        const dureeMinutes = exo.duree || 10;
 
         // CTA et hint adaptés au statut
         let ctaText, hintText = '';
@@ -848,7 +848,7 @@ const EleveExercices = {
                         <div class="exercice-titre">${escapeHtml(exo.titre || 'Exercice ' + exo.numero)}</div>
                         <div class="exercice-meta">
                             ${format ? format.nom : 'Format inconnu'}
-                            ${exo.duree ? ` • ${Math.floor(exo.duree / 60)} min` : ''}
+                            ${exo.duree ? ` • ${exo.duree} min` : ''}
                             ${result && result.score < 100 ? ` • Meilleur: ${result.score}%` : ''}
                         </div>
                     </div>
@@ -1006,7 +1006,7 @@ const EleveExercices = {
                         </div>
                         ${exo.duree ? `
                             <div class="exercise-timer" id="exerciseTimer">
-                                <span id="timerDisplay">${this.formatTime(exo.duree)}</span>
+                                <span id="timerDisplay">${this.formatTime(exo.duree * 60)}</span>
                             </div>
                         ` : ''}
                     </div>
@@ -1041,7 +1041,7 @@ const EleveExercices = {
         `;
 
         if (exo.duree) {
-            this.startTimer(exo.duree);
+            this.startTimer(exo.duree * 60);
         }
     },
 

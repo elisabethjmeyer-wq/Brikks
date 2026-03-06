@@ -78,7 +78,7 @@ const EleveEvaluation = {
             attribution: data.attribution
         };
 
-        // Durée en secondes (priorité : données entraînement > évaluation > défaut)
+        // Durée en secondes (duree stockée en minutes partout → × 60)
         const dureeMinutes = parseInt(data.duree) || 15;
         this.duration = dureeMinutes * 60;
         this.remainingTime = this.duration;

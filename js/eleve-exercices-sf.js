@@ -359,7 +359,7 @@ Object.assign(EleveExercices, {
      * @returns {Object} Résultat de la validation
      */
     validerRepetitionSF(exercice, score, tempsPasse, statsBanque) {
-        const tempsPrevu = exercice.duree || 900;
+        const tempsPrevu = (exercice.duree || 15) * 60;
         const repsActuelles = statsBanque?.repetitions_validees || 0;
         const prochaineRep = repsActuelles + 1;
 

@@ -393,7 +393,7 @@ Object.assign(EleveCompetences, {
         this.exerciseStartTime = Date.now();
 
         const container = document.getElementById('competences-content');
-        const duree = entrainement.duree || 1800;
+        const duree = (entrainement.duree || 30) * 60;
 
         // Mode évaluation : restaurer le timer persistant
         if (mode === 'evalue') {
@@ -541,11 +541,11 @@ Object.assign(EleveCompetences, {
 
         if (this.currentUser) {
             try {
-                const duree = entrainement.duree || 1800;
+                const dureeSec = (entrainement.duree || 30) * 60;
                 const result = await this.callAPI('finishEleveEntrainementCompetence', {
                     eleve_id: this.currentUser.id,
                     entrainement_id: entrainement.id,
-                    temps_passe: duree
+                    temps_passe: dureeSec
                 });
 
                 if (!result.success) {
@@ -557,7 +557,7 @@ Object.assign(EleveCompetences, {
                     );
                     if (prog) {
                         prog.statut = 'soumis';
-                        prog.temps_passe = duree;
+                        prog.temps_passe = dureeSec;
                         prog.date_soumission = new Date().toISOString();
                     }
                     this.saveToCache();
@@ -716,9 +716,9 @@ Object.assign(EleveCompetences, {
 
         const entr = this.currentEntrainement;
         const mode = this.currentMode;
-        const duree = entr.duree || 1800;
+        const dureeSec = (entr.duree || 30) * 60;
         // tempsPasse = durée totale - temps restant (gère reprises et overtime)
-        const tempsPasse = Math.max(0, duree - this.timeRemaining);
+        const tempsPasse = Math.max(0, dureeSec - this.timeRemaining);
 
         this.stopTimer();
         this._clearEvalTimer(entr.id);
@@ -1264,11 +1264,11 @@ Object.assign(EleveCompetences, {
         const competenceNom = comp ? comp.nom : '';
 
         // Temps passé formaté
-        const duree = entrainement.duree || 0;
+        const dureeSec = entrainement.duree ? entrainement.duree * 60 : 0;
         const tempsPasse = progression.temps_passe
             ? this._formatDuree(progression.temps_passe)
             : '';
-        const tempsTotal = duree ? this._formatDuree(duree) : '';
+        const tempsTotal = dureeSec ? this._formatDuree(dureeSec) : '';
 
         // --- Colonne gauche : bilan ---
         const stepperMiniHTML = this._buildSoumisStepperMini(hasEnvoye);

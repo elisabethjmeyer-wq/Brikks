@@ -782,6 +782,10 @@ function handleRequest(e) {
         result = cleanupOrphanedData();
         break;
 
+      case 'migrateDureeToMinutes':
+        result = migrateDureeToMinutes_();
+        break;
+
       default:
         result = { success: false, error: 'Action non reconnue: ' + action };
     }
@@ -795,6 +799,59 @@ function handleRequest(e) {
       error: error.message
     }, callback);
   }
+}
+
+/**
+ * Migration one-shot : convertit les duree de secondes en minutes
+ * pour les tables Exercices et EntrainementsCompetences.
+ * Les connaissances stockent déjà en minutes, pas besoin de migrer.
+ * Seuil : toute valeur > 120 est considérée comme étant en secondes.
+ */
+function migrateDureeToMinutes_() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var migrated = { exercices: 0, competences: 0 };
+
+  // 1. Table Exercices (SF)
+  var exSheet = ss.getSheetByName(SHEETS.EXERCICES);
+  if (exSheet) {
+    var exData = exSheet.getDataRange().getValues();
+    if (exData.length >= 2) {
+      var exHeaders = exData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      var dureeCol = exHeaders.indexOf('duree');
+      if (dureeCol >= 0) {
+        for (var i = 1; i < exData.length; i++) {
+          var val = parseInt(exData[i][dureeCol]);
+          if (val > 120) {
+            var newVal = Math.round(val / 60);
+            exSheet.getRange(i + 1, dureeCol + 1).setValue(newVal);
+            migrated.exercices++;
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Table EntrainementsCompetences
+  var compSheet = ss.getSheetByName(SHEETS.ENTRAINEMENTS_COMPETENCES);
+  if (compSheet) {
+    var compData = compSheet.getDataRange().getValues();
+    if (compData.length >= 2) {
+      var compHeaders = compData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      var dureeCol2 = compHeaders.indexOf('duree');
+      if (dureeCol2 >= 0) {
+        for (var j = 1; j < compData.length; j++) {
+          var val2 = parseInt(compData[j][dureeCol2]);
+          if (val2 > 120) {
+            var newVal2 = Math.round(val2 / 60);
+            compSheet.getRange(j + 1, dureeCol2 + 1).setValue(newVal2);
+            migrated.competences++;
+          }
+        }
+      }
+    }
+  }
+
+  return { success: true, migrated: migrated };
 }
 
 /**

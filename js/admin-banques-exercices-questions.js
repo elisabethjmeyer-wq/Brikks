@@ -1816,7 +1816,7 @@ Object.assign(AdminBanquesExercices, {
         return `
             <div class="exercices-list" data-banque-id="${banqueId}">
                 ${entrainements.map(tache => {
-                    const dureeMin = Math.round((tache.duree || 1800) / 60);
+                    const dureeMin = tache.duree || 30;
                     const hasCorrige = this._hasCorrectionCommentee(tache);
 
                     return `
@@ -2146,7 +2146,7 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('editTacheId').value = tache.id;
             document.getElementById('tacheTitre').value = tache.titre || '';
             document.getElementById('tacheDescription').value = tache.description || '';
-            document.getElementById('tacheDuree').value = Math.round((tache.duree || 1800) / 60);
+            document.getElementById('tacheDuree').value = tache.duree || 30;
             document.getElementById('tacheOrdre').value = tache.ordre || 1;
             document.getElementById('tacheStatut').value = tache.statut || 'brouillon';
             document.getElementById('tacheDelaiMail').value = tache.delai_mail_minutes || 30;
@@ -2495,8 +2495,7 @@ Object.assign(AdminBanquesExercices, {
         const banqueId = document.getElementById('tacheCompetenceId').value;
         const titre = document.getElementById('tacheTitre').value.trim();
         const description = document.getElementById('tacheDescription').value.trim();
-        const dureeMinutes = parseInt(document.getElementById('tacheDuree').value) || 30;
-        const duree = dureeMinutes * 60;
+        const duree = parseInt(document.getElementById('tacheDuree').value) || 30;
         const ordre = parseInt(document.getElementById('tacheOrdre').value) || 1;
         const statut = document.getElementById('tacheStatut').value;
 

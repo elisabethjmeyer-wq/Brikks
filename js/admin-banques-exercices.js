@@ -762,7 +762,7 @@ const AdminBanquesExercices = {
                 ${exercices.map(exo => {
                     const format = this.formats.find(f => f.id === exo.format_id);
                     const formatName = format ? format.nom : 'Format inconnu';
-                    const dureeMin = Math.round((exo.duree || 600) / 60);
+                    const dureeMin = exo.duree || 10;
 
                     return `
                         <div class="exercice-item" data-id="${exo.id}">
@@ -1108,7 +1108,7 @@ const AdminBanquesExercices = {
             document.getElementById('exerciceTitre').value = exercice.titre || '';
             document.getElementById('exerciceFormat').value = exercice.format_id || '';
             document.getElementById('exerciceConsigne').value = exercice.consigne || '';
-            document.getElementById('exerciceDuree').value = exercice.duree || 600;
+            document.getElementById('exerciceDuree').value = exercice.duree || 10;
             document.getElementById('exerciceStatut').value = exercice.statut || 'brouillon';
             document.getElementById('exercicePeutTomber').checked = exercice.peut_tomber_en_eval !== false;
 
@@ -1195,7 +1195,7 @@ const AdminBanquesExercices = {
         const titre = document.getElementById('exerciceTitre').value.trim();
         const format_id = document.getElementById('exerciceFormat').value;
         const consigne = document.getElementById('exerciceConsigne').value.trim();
-        const duree = parseInt(document.getElementById('exerciceDuree').value) || 600;
+        const duree = parseInt(document.getElementById('exerciceDuree').value) || 10;
         const statut = document.getElementById('exerciceStatut').value;
         const peut_tomber_en_eval = document.getElementById('exercicePeutTomber').checked;
 

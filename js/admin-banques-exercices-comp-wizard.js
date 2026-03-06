@@ -211,7 +211,7 @@ Object.assign(AdminBanquesExercices, {
 
             e.titre = titre ? titre.value.trim() : (e.titre || '');
             e.banque_id = banqueId ? banqueId.value : (e.banque_id || '');
-            e.duree = duree ? (parseInt(duree.value) || 30) * 60 : (e.duree || 1800);
+            e.duree = duree ? (parseInt(duree.value) || 30) : (e.duree || 30);
             e.statut = statut ? statut.value : (e.statut || 'brouillon');
 
             // Ordre automatique : si nouvel entraînement, placer à la fin
@@ -324,7 +324,7 @@ Object.assign(AdminBanquesExercices, {
     _renderCompWizardStep1() {
         var e = this.compWizardData.entrainement || {};
         var banqueId = e.banque_id || this.compWizardData.banqueId || '';
-        var dureeMin = e.duree ? Math.round(e.duree / 60) : 30;
+        var dureeMin = e.duree || 30;
 
         // Construire les options du select banque
         var banques = (this.banquesCompetences || []).slice().sort(function(a, b) {
@@ -796,7 +796,7 @@ Object.assign(AdminBanquesExercices, {
         var banque = this.banquesCompetences.find(function(b) { return b.id === e.banque_id; });
         var comp = banque ? this.competencesReferentiel.find(function(c) { return c.id === banque.competence_id; }) : null;
         var banqueLabel = banque ? (banque.titre || (comp ? comp.nom : '')) : '(non s\u00E9lectionn\u00E9e)';
-        var dureeMin = e.duree ? Math.round(e.duree / 60) : 30;
+        var dureeMin = e.duree || 30;
 
         // Compter les blocs de document
         var nbDocBlocks = 0;
@@ -861,7 +861,7 @@ Object.assign(AdminBanquesExercices, {
             document_legende: '',
             correction_commentee: e.correction_commentee || '',
             correction_contenu: e.correction_contenu || '',
-            duree: e.duree || 1800,
+            duree: e.duree || 30,
             ordre: e.ordre || 1,
             statut: e.statut || 'brouillon',
             delai_mail_minutes: e.delai_mail_minutes || 30,
