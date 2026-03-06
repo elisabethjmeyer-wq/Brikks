@@ -1,7 +1,10 @@
 /**
  * Moteur d'Evaluation Eleve
- * Pilote EleveConnaissances en "mode évaluation" pour réutiliser
- * les rendus et validations du module d'entraînement.
+ * Pilote EleveConnaissances ou EleveExercices en "mode évaluation"
+ * pour réutiliser les rendus et validations des modules d'entraînement.
+ *
+ * Type connaissances → piloté via EleveConnaissances (étapes, formats QCM/VF/etc.)
+ * Type savoir-faire  → piloté via EleveExercices (format unique : tableau, carte, etc.)
  */
 
 const EleveEvaluation = {
@@ -12,6 +15,9 @@ const EleveEvaluation = {
     timerInterval: null,
     timeExpired: false,
     isSubmitting: false,
+
+    // SF : résultat de validation stocké pour finishEvaluation
+    _sfValidationResult: null,
 
     // ========== INITIALISATION ==========
     async init() {
@@ -24,7 +30,14 @@ const EleveEvaluation = {
             }
 
             await this.loadEvaluation(evalId);
-            this.setupConnaissancesModule();
+
+            // Bifurquer selon le type d'évaluation
+            if (this.evaluation.type === 'savoir-faire') {
+                this.setupSFModule();
+            } else {
+                this.setupConnaissancesModule();
+            }
+
             this._addBeforeUnload();
             this.startTimer();
             this.render();
@@ -70,17 +83,26 @@ const EleveEvaluation = {
         this.duration = dureeMinutes * 60;
         this.remainingTime = this.duration;
 
-        // Stocker les données brutes pour injection dans EleveConnaissances
-        this._rawEtapes = data.etapes || [];
-        this._rawEtapeQuestions = data.etapeQuestions || [];
-        this._rawQuestionsConnaissances = data.questionsConnaissances || [];
-        this._rawEntrainementData = data.entrainementData || {};
+        if (data.type === 'savoir-faire') {
+            // SF : le backend renvoie data.questions (array d'un exercice)
+            this._rawSFQuestions = data.questions || [];
+            if (this._rawSFQuestions.length === 0) {
+                throw new Error('Aucun exercice disponible pour cette évaluation');
+            }
+        } else {
+            // Connaissances : données structurées par étape
+            this._rawEtapes = data.etapes || [];
+            this._rawEtapeQuestions = data.etapeQuestions || [];
+            this._rawQuestionsConnaissances = data.questionsConnaissances || [];
+            this._rawEntrainementData = data.entrainementData || {};
 
-        // Vérifier qu'on a des données
-        if (this._rawEtapes.length === 0) {
-            throw new Error('Aucune étape disponible pour cette évaluation');
+            if (this._rawEtapes.length === 0) {
+                throw new Error('Aucune étape disponible pour cette évaluation');
+            }
         }
     },
+
+    // ========== SETUP CONNAISSANCES ==========
 
     /**
      * Injecte les données dans EleveConnaissances et configure le mode évaluation.
@@ -138,8 +160,51 @@ const EleveEvaluation = {
         };
     },
 
+    // ========== SETUP SAVOIR-FAIRE ==========
+
     /**
-     * Rendu de la vue exercice dans le conteneur de l'évaluation.
+     * Configure EleveExercices en mode évaluation pour un exercice SF.
+     * L'exercice est injecté directement (pas d'appel API getExercice).
+     */
+    setupSFModule() {
+        const EE = EleveExercices;
+        const question = this._rawSFQuestions[0];
+
+        // Construire un objet exercice compatible avec EleveExercices
+        EE.currentExercise = {
+            id: question.id,
+            titre: question.enonce || 'Exercice',
+            donnees: typeof question.donnees === 'string'
+                ? question.donnees
+                : JSON.stringify(question.donnees || {}),
+            format_id: question.format_id || (question.format && question.format.id) || '',
+            duree: null, // Timer géré par EleveEvaluation, pas par EleveExercices
+            consigne: question.consigne || ''
+        };
+
+        // Stocker le format pour que getFormatHandler fonctionne
+        EE.formats = question.format ? [question.format] : [];
+        EE.currentType = 'savoir-faire';
+        EE.isEntrainementLibre = false;
+        EE.exerciseStartTime = Date.now();
+        EE.isValidating = false;
+
+        // Empêcher le timer SF de démarrer (on utilise celui de l'évaluation)
+        EE.startTimer = function() {};
+        EE.stopTimer = function() {};
+    },
+
+    // ========== RENDU PRINCIPAL ==========
+    render() {
+        if (this.evaluation.type === 'savoir-faire') {
+            this.renderSFExerciseView();
+        } else {
+            this.renderExerciseView();
+        }
+    },
+
+    /**
+     * Rendu de la vue exercice connaissances dans le conteneur de l'évaluation.
      * Réutilise le même layout que les entraînements (exercise-card)
      * et délègue le contenu à EleveConnaissances.renderEtapeContent().
      */
@@ -247,6 +312,79 @@ const EleveEvaluation = {
             if (headerCounter) headerCounter.textContent = `Carte 1 / ${EC.flashcardState.total}`;
             EC.updateMultiProgressBar(1, EC.flashcardState.total);
         }
+    },
+
+    /**
+     * Rendu de la vue exercice SF dans le conteneur de l'évaluation.
+     * Utilise les FORMAT_HANDLERS de EleveExercices pour le rendu.
+     */
+    renderSFExerciseView() {
+        const EE = EleveExercices;
+        const exo = EE.currentExercise;
+        const format = EE.formats[0];
+
+        const donnees = parseJSONField(exo.donnees);
+        const structure = parseJSONField(format?.structure);
+        const typeUI = structure.type_ui || 'tableau_saisie';
+
+        // Générer le HTML du contenu via le format handler
+        const handler = EE.getFormatHandler(typeUI);
+        let contentHTML = '';
+        if (handler && handler.render) {
+            contentHTML = handler.render.call(EE, donnees, structure);
+        } else {
+            contentHTML = `<div style="text-align:center; color:#6b7280; padding:2rem;">
+                <p>Format d'exercice non supporté : ${escapeHtml(typeUI)}</p>
+            </div>`;
+        }
+
+        const typeLabel = this.getTypeLabel(this.evaluation.type);
+        const container = document.getElementById('exerciseContainer');
+        container.innerHTML = `
+            <div class="exercise-view eval-exercise-view">
+                <div class="exercise-card">
+                    <div class="exercise-header savoir-faire">
+                        <div class="exercise-header-left">
+                            <div class="exercise-header-info">
+                                <h1>${escapeHtml(this.evaluation.titre)}</h1>
+                                <div class="exercise-header-meta">
+                                    ${escapeHtml(typeLabel)} · ${this.evaluation.briques} pt${this.evaluation.briques > 1 ? 's' : ''} en jeu · Seuil : 100%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="exercise-timer" id="exerciseTimer">
+                            <span id="timerDisplay">${this.formatTime(this.remainingTime)}</span>
+                        </div>
+                    </div>
+
+                    ${exo.consigne ? `
+                        <div class="exercise-consigne">${escapeHtml(exo.consigne)}</div>
+                    ` : ''}
+
+                    <div class="exercise-content" id="exerciseContent">
+                        ${contentHTML}
+                    </div>
+
+                    <div class="exercise-actions">
+                        <button class="btn btn-verifier" id="btnTerminerEval" onclick="EleveEvaluation.finishEvaluation()">
+                            Terminer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.updateTimerDisplay();
+    },
+
+    getTypeLabel(type) {
+        const labels = {
+            connaissances: 'Connaissances',
+            'savoir-faire': 'Savoir-faire',
+            competences: 'Compétences',
+            bonus: 'Bonus'
+        };
+        return labels[type] || type;
     },
 
     // ========== APPEL API (JSONP) ==========
@@ -358,21 +496,6 @@ const EleveEvaluation = {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     },
 
-    // ========== RENDU PRINCIPAL ==========
-    render() {
-        this.renderExerciseView();
-    },
-
-    getTypeLabel(type) {
-        const labels = {
-            connaissances: 'Connaissances',
-            'savoir-faire': 'Savoir-faire',
-            competences: 'Compétences',
-            bonus: 'Bonus'
-        };
-        return labels[type] || type;
-    },
-
     // ========== FIN D'ÉVALUATION ==========
     async finishEvaluation() {
         if (this.isSubmitting) return;
@@ -380,19 +503,13 @@ const EleveEvaluation = {
 
         this.stopTimer();
 
-        const EC = EleveConnaissances;
+        let globalResult;
 
-        // Valider l'étape en cours si pas encore fait
-        if (!EC.currentEtapeValidated) {
-            EC.validateCurrentEtape();
+        if (this.evaluation.type === 'savoir-faire') {
+            globalResult = this._finishSF();
+        } else {
+            globalResult = this._finishConnaissances();
         }
-
-        // Calculer le score global depuis les résultats d'EleveConnaissances
-        const globalResult = this.calculateGlobalResult();
-
-        // Compiler les résultats détaillés pour la correction
-        const detailedResults = EC.compileResults();
-        globalResult.detailedResults = detailedResults;
 
         // Afficher un écran d'attente pendant la sauvegarde
         this._showSaving();
@@ -405,6 +522,68 @@ const EleveEvaluation = {
         } else {
             this._showSaveFailure(globalResult);
         }
+    },
+
+    /**
+     * Finalisation pour une évaluation de connaissances.
+     */
+    _finishConnaissances() {
+        const EC = EleveConnaissances;
+
+        // Valider l'étape en cours si pas encore fait
+        if (!EC.currentEtapeValidated) {
+            EC.validateCurrentEtape();
+        }
+
+        const globalResult = this.calculateGlobalResult();
+
+        // Compiler les résultats détaillés pour la correction
+        const detailedResults = EC.compileResults();
+        globalResult.detailedResults = detailedResults;
+
+        return globalResult;
+    },
+
+    /**
+     * Finalisation pour une évaluation savoir-faire.
+     * Valide l'exercice via le format handler de EleveExercices.
+     */
+    _finishSF() {
+        const EE = EleveExercices;
+        const format = EE.formats[0];
+        const structure = parseJSONField(format?.structure);
+        const typeUI = structure.type_ui || 'tableau_saisie';
+
+        // Valider l'exercice via le format handler
+        const handler = EE.getFormatHandler(typeUI);
+        let result = { correct: 0, total: 0 };
+        if (handler && handler.validate) {
+            result = handler.validate.call(EE);
+        }
+
+        // Appliquer les corrections visuelles sur le DOM
+        if (handler && handler.showCorrection) {
+            handler.showCorrection.call(EE);
+        }
+
+        // Capturer le HTML corrigé pour l'afficher dans les résultats
+        const exerciseContent = document.querySelector('.exercise-content');
+        this._sfCorrectedHTML = exerciseContent ? exerciseContent.innerHTML : '';
+
+        this._sfValidationResult = result;
+
+        const { correct, total } = result;
+        const score = total > 0 ? Math.round((correct / total) * 100) : 0;
+        const isValidated = score === 100;
+
+        return {
+            score,
+            correct,
+            total,
+            isValidated,
+            pointsEarned: isValidated ? this.evaluation.briques : 0,
+            elapsedTime: this.getElapsedTime()
+        };
     },
 
     /** Écran d'attente pendant la sauvegarde */
@@ -521,15 +700,24 @@ const EleveEvaluation = {
                 return false;
             }
 
-            // Résumé compact des étapes (sans les données brutes des questions
-            // qui rendraient l'URL JSONP trop longue)
-            const detailsCompact = EleveConnaissances.etapesResults.map(r => r ? {
-                i: r.etapeIndex,
-                f: r.format,
-                c: r.correct,
-                t: r.total,
-                p: r.pourcentage
-            } : null);
+            // Résumé compact (format différent selon conn/SF)
+            let detailsCompact;
+            if (this.evaluation.type === 'savoir-faire') {
+                detailsCompact = [{
+                    f: 'savoir-faire',
+                    c: globalResult.correct,
+                    t: globalResult.total,
+                    p: globalResult.score
+                }];
+            } else {
+                detailsCompact = EleveConnaissances.etapesResults.map(r => r ? {
+                    i: r.etapeIndex,
+                    f: r.format,
+                    c: r.correct,
+                    t: r.total,
+                    p: r.pourcentage
+                } : null);
+            }
 
             const attribution = this.evaluation.attribution || {};
             const params = {
@@ -574,11 +762,18 @@ const EleveEvaluation = {
             ? `Tu as gagné ${globalResult.pointsEarned} point${globalResult.pointsEarned > 1 ? 's' : ''} !`
             : 'Tu pourras repasser cette évaluation avec de nouvelles questions.';
 
-        // Correction détaillée via EleveConnaissances
-        const EC = EleveConnaissances;
+        // Correction détaillée (conn ou SF)
         let correctionHtml = '';
-        if (globalResult.detailedResults && typeof EC.generateErrorDetails === 'function') {
-            correctionHtml = EC.generateErrorDetails(globalResult.detailedResults);
+        if (this.evaluation.type === 'savoir-faire') {
+            // Pour SF : afficher le HTML corrigé capturé avant la sauvegarde
+            if (this._sfCorrectedHTML) {
+                correctionHtml = this._sfCorrectedHTML;
+            }
+        } else {
+            const EC = EleveConnaissances;
+            if (globalResult.detailedResults && typeof EC.generateErrorDetails === 'function') {
+                correctionHtml = EC.generateErrorDetails(globalResult.detailedResults);
+            }
         }
 
         resultContainer.innerHTML = `
@@ -610,7 +805,7 @@ const EleveEvaluation = {
                     </div>
 
                     <div class="threshold-info">
-                        <div class="threshold-info-icon">${this.evaluation.seuil}%</div>
+                        <div class="threshold-info-icon">${this.evaluation.type === 'savoir-faire' ? '100%' : this.evaluation.seuil + '%'}</div>
                         <div class="threshold-info-text">
                             <strong>Seuil de validation</strong>
                             <span>${this.evaluation.type === 'savoir-faire'
