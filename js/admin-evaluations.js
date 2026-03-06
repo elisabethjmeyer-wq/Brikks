@@ -469,8 +469,6 @@ const AdminEvaluations = {
                     ${statsHtml}
                     <div class="eval-card-actions">
                         <button class="btn-icon" onclick="AdminEvaluations.editEvaluation('${evaluation.id}')" title="Modifier">✏️</button>
-                        ${evaluation.type === 'connaissances' || evaluation.type === 'savoir-faire' ?
-                            `<button class="btn-icon" onclick="AdminEvaluations.openAttributionModal('${evaluation.id}')" title="Attribuer sujets">👥</button>` : ''}
                         ${canSaisir ? `<button class="btn-icon" onclick="AdminEvaluations.openSaisie('${evaluation.id}')" title="Saisir résultats">📝</button>` : ''}
                         <button class="btn-icon danger" onclick="AdminEvaluations.confirmDelete('${evaluation.id}', 'evaluation')" title="Supprimer">🗑️</button>
                     </div>
@@ -1312,8 +1310,9 @@ const AdminEvaluations = {
         this.saisieEvaluation = evaluation;
         this.saisieSommative = null;
         this.saisieChanges = {};
+        this._saisieAttributions = {};
 
-        // Show saisie view immediately with loading state
+        // Show saisie view immediately
         document.getElementById('evaluations-content').style.display = 'none';
         document.getElementById('saisie-content').style.display = 'block';
 
@@ -1324,14 +1323,14 @@ const AdminEvaluations = {
         const resultsMap = {};
         evalResults.forEach(r => { resultsMap[String(r.eleve_id).trim()] = r; });
 
-        // Load attributions for this evaluation (banque/exercise per student)
+        // Load existing attributions
         let attributionsMap = {};
         try {
             const attrResult = await this.callAPI('getAttributionsSujets', { evaluation_id: evaluationId });
             if (attrResult.success && attrResult.data) {
                 attrResult.data.forEach(a => { attributionsMap[String(a.eleve_id).trim()] = a; });
             }
-        } catch (_e) { /* ignore - attributions are informational */ }
+        } catch (_e) { /* ignore */ }
 
         // Update header
         document.getElementById('saisieTitle').textContent = escapeHtml(evaluation.titre || 'Sans titre');
@@ -1340,25 +1339,38 @@ const AdminEvaluations = {
             evaluation.matiere === 'HG-EMC' ? '🌍 HG-EMC' :
             evaluation.matiere === 'Les deux' ? '🔗 Les deux matières' : '';
 
-        // Subtitle with date info
         let subtitleParts = [`${this._capitalizeType(evaluation.type)} · ${matLabel} · ${evaluation.briques || 0} pts`];
         if (evaluation.date_ouverture) {
             subtitleParts.push(`📅 ${this._formatDateShort(evaluation.date_ouverture)}`);
         }
         document.getElementById('saisieSubtitle').textContent = subtitleParts.join(' · ');
 
-        // Determine if we show sujet column (connaissances or savoir-faire)
         const showSujet = evaluation.type === 'connaissances' || evaluation.type === 'savoir-faire';
         const isConn = evaluation.type === 'connaissances';
 
-        // Update table headers for progression eval
+        // Check if any results have date/duration data
+        const hasDateData = evalResults.some(r => r.date_passage);
+        const hasDureeData = evalResults.some(r => r.temps_passe);
+
+        // Prepare banques for attribution dropdowns
+        let banques = [];
+        if (showSujet) {
+            const allBanques = isConn ? [...this.banquesExercicesConn] : [...this.banquesSF];
+            const evalMatiere = evaluation.matiere || this.currentMatiere;
+            banques = allBanques
+                .filter(b => !b.matiere || b.matiere === evalMatiere)
+                .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
+        }
+
+        // Build table headers
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
-            ${showSujet ? '<th class="col-sujet">Sujet attribué</th>' : ''}
+            ${showSujet ? '<th class="col-banque">Banque</th>' : ''}
+            ${showSujet && isConn ? '<th class="col-entrainement">Entraînement</th>' : ''}
             <th class="col-score">Score (%)</th>
             <th class="col-resultat">Résultat</th>
-            <th class="col-date-passage">Date</th>
-            <th class="col-duree">Durée</th>
+            ${hasDateData ? '<th class="col-date-passage">Date</th>' : ''}
+            ${hasDureeData ? '<th class="col-duree">Durée</th>' : ''}
         `;
 
         // Render student rows
@@ -1371,41 +1383,71 @@ const AdminEvaluations = {
             const isAuto = r.source === 'auto' || (!r.source && r.id);
             const sourceBadge = r.id ? (isAuto ? '<span class="source-badge auto">🤖</span>' : '<span class="source-badge manuel">✏️</span>') : '';
 
-            // Date passage
-            const datePassage = r.date_passage ? this._formatDateShort(r.date_passage) : '';
+            const datePassage = hasDateData ? `<td class="col-date-passage">${r.date_passage ? this._formatDateShort(r.date_passage) : ''}</td>` : '';
+            const duree = hasDureeData ? `<td class="col-duree">${r.temps_passe ? this._formatDuree(r.temps_passe) : ''}</td>` : '';
 
-            // Durée formatée
-            const duree = r.temps_passe ? this._formatDuree(r.temps_passe) : '';
-
-            // Sujet attribué (banque + entrainement)
-            let sujetCell = '';
+            // Attribution: banque + entraînement dropdowns
+            let banqueCell = '';
+            let entrainementCell = '';
             if (showSujet) {
-                const attr = attributionsMap[String(eleve.id).trim()];
-                let sujetHTML = '<span class="sujet-none">—</span>';
-                if (attr) {
-                    const banqueId = String(attr.banque_id || '').trim();
-                    let banqueName = '';
-                    if (isConn) {
-                        const banque = this.banquesExercicesConn.find(b => String(b.id).trim() === banqueId);
-                        banqueName = banque ? (banque.titre || 'Sans titre') : '';
-                    } else {
-                        const banque = this.banquesSF.find(b => String(b.id).trim() === banqueId);
-                        banqueName = banque ? (banque.titre || 'Sans titre') : '';
+                const existingAttr = attributionsMap[String(eleve.id).trim()];
+
+                // Compute auto banque from progression
+                const prog = this.progressionsEvaluation.find(p =>
+                    String(p.eleve_id).trim() === String(eleve.id).trim() &&
+                    String(p.type).trim() === evaluation.type &&
+                    (!p.matiere || String(p.matiere).trim() === (evaluation.matiere || this.currentMatiere))
+                );
+                const lastValidatedId = prog ? String(prog.derniere_banque_validee_id || '').trim() : '';
+                let autoBanqueIndex = 0;
+                if (lastValidatedId) {
+                    const lastIdx = banques.findIndex(b => String(b.id).trim() === lastValidatedId);
+                    if (lastIdx >= 0 && lastIdx < banques.length - 1) {
+                        autoBanqueIndex = lastIdx + 1;
+                    } else if (lastIdx === banques.length - 1) {
+                        autoBanqueIndex = lastIdx;
                     }
-                    const entrId = String(attr.entrainement_id || '').trim();
-                    let entrName = '';
-                    if (isConn && entrId) {
-                        const entr = this.entrainementsConn.find(e => String(e.id).trim() === entrId);
-                        entrName = entr ? (entr.titre || '') : '';
-                    }
-                    const sourceLabel = attr.source === 'manuel' ? '✏️' : '🤖';
-                    sujetHTML = `<div class="sujet-info">
-                        <span class="sujet-banque">${escapeHtml(banqueName)}</span>
-                        ${entrName ? `<span class="sujet-entr">${escapeHtml(entrName)}</span>` : ''}
-                        <span class="sujet-source">${sourceLabel}</span>
-                    </div>`;
                 }
-                sujetCell = `<td class="col-sujet">${sujetHTML}</td>`;
+                const autoBanque = banques[autoBanqueIndex];
+                const allowedBanques = banques.filter((_b, idx) => idx <= autoBanqueIndex);
+
+                // Determine current selection
+                const isManual = existingAttr && String(existingAttr.source).trim() === 'manuel';
+                const currentBanqueId = isManual ? String(existingAttr.banque_id || '').trim() : '';
+                const currentEntrId = existingAttr ? String(existingAttr.entrainement_id || '').trim() : '';
+                const effectiveBanqueId = currentBanqueId || (autoBanque ? autoBanque.id : '');
+
+                // Store initial attribution state
+                this._saisieAttributions[String(eleve.id).trim()] = {
+                    banque_id: effectiveBanqueId,
+                    entrainement_id: currentEntrId,
+                    source: isManual ? 'manuel' : 'auto',
+                    auto_banque_id: autoBanque ? autoBanque.id : ''
+                };
+
+                // Banque dropdown
+                const banqueOptions = `<option value="">${escapeHtml('Auto' + (autoBanque ? ' (' + (autoBanque.titre || '') + ')' : ''))}</option>` +
+                    allowedBanques.map(b => {
+                        const sel = currentBanqueId === String(b.id).trim() ? 'selected' : '';
+                        return `<option value="${b.id}" ${sel}>${escapeHtml(b.titre || 'Sans titre')}</option>`;
+                    }).join('');
+
+                banqueCell = `<td class="col-banque">
+                    <select class="saisie-select banque-select" data-eleve="${eleve.id}"
+                        onchange="AdminEvaluations._onSaisieBanqueChange('${eleve.id}', this.value)">
+                        ${banqueOptions}
+                    </select>
+                </td>`;
+
+                // Entraînement dropdown (connaissances only)
+                if (isConn) {
+                    entrainementCell = `<td class="col-entrainement">
+                        <select class="saisie-select entrainement-select" data-eleve="${eleve.id}"
+                            onchange="AdminEvaluations._onSaisieEntrainementChange('${eleve.id}', this.value)">
+                            ${this._buildEntrainementOptions(effectiveBanqueId, currentEntrId)}
+                        </select>
+                    </td>`;
+                }
             }
 
             // Build résultat select options
@@ -1425,7 +1467,8 @@ const AdminEvaluations = {
                         <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
                         ${sourceBadge}
                     </td>
-                    ${sujetCell}
+                    ${banqueCell}
+                    ${entrainementCell}
                     <td class="col-score">
                         <input type="number" class="saisie-input" value="${score}" min="0" max="100"
                             placeholder="—"
@@ -1437,11 +1480,41 @@ const AdminEvaluations = {
                             ${resultatOptions}
                         </select>
                     </td>
-                    <td class="col-date-passage">${datePassage}</td>
-                    <td class="col-duree">${duree}</td>
+                    ${datePassage}
+                    ${duree}
                 </tr>
             `;
         }).join('');
+    },
+
+    /**
+     * Changement de banque dans la saisie — met à jour le dropdown entraînement
+     */
+    _onSaisieBanqueChange(eleveId, banqueId) {
+        const attr = this._saisieAttributions[eleveId];
+        if (!attr) return;
+
+        const effectiveBanqueId = banqueId || attr.auto_banque_id;
+        attr.banque_id = effectiveBanqueId;
+        attr.source = banqueId ? 'manuel' : 'auto';
+        attr._changed = true;
+
+        // Update entraînement dropdown if connaissances
+        const entrSelect = document.querySelector(`.entrainement-select[data-eleve="${eleveId}"]`);
+        if (entrSelect) {
+            entrSelect.innerHTML = this._buildEntrainementOptions(effectiveBanqueId, '');
+            attr.entrainement_id = '';
+        }
+
+        document.getElementById('saisieSaveBar').style.display = 'flex';
+    },
+
+    _onSaisieEntrainementChange(eleveId, entrainementId) {
+        const attr = this._saisieAttributions[eleveId];
+        if (!attr) return;
+        attr.entrainement_id = entrainementId;
+        attr._changed = true;
+        document.getElementById('saisieSaveBar').style.display = 'flex';
     },
 
     _formatDuree(seconds) {
@@ -1570,11 +1643,14 @@ const AdminEvaluations = {
         this.saisieEvaluation = null;
         this.saisieSommative = null;
         this.saisieChanges = {};
+        this._saisieAttributions = {};
     },
 
     async saveSaisie() {
+        // Check for attribution changes too
+        const hasAttrChanges = this._saisieAttributions && Object.values(this._saisieAttributions).some(a => a._changed);
         const changedIds = Object.keys(this.saisieChanges);
-        if (changedIds.length === 0) {
+        if (changedIds.length === 0 && !hasAttrChanges) {
             this.showNotification('Aucune modification à enregistrer');
             return;
         }
@@ -1620,8 +1696,30 @@ const AdminEvaluations = {
                 }
             }
 
+            // Save attributions if changed
+            if (this.saisieEvaluation && this._saisieAttributions) {
+                const attributions = [];
+                for (const [eleveId, attr] of Object.entries(this._saisieAttributions)) {
+                    attributions.push({
+                        eleve_id: eleveId,
+                        banque_id: attr.banque_id || '',
+                        entrainement_id: attr.entrainement_id || '',
+                        source: attr.source || 'auto'
+                    });
+                }
+                try {
+                    await this.callAPI('saveAttributionsSujets', {
+                        evaluation_id: this.saisieEvaluation.id,
+                        attributions: JSON.stringify(attributions)
+                    });
+                } catch (_e) {
+                    console.warn('Erreur sauvegarde attributions:', _e);
+                }
+            }
+
             if (errors === 0) {
-                this.showNotification(`${changedIds.length} résultat(s) enregistré(s)`);
+                const nbResults = changedIds.length;
+                this.showNotification(nbResults > 0 ? `${nbResults} résultat(s) enregistré(s)` : 'Attributions enregistrées');
                 this.saisieChanges = {};
                 document.getElementById('saisieSaveBar').style.display = 'none';
 
