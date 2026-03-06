@@ -206,9 +206,12 @@ const EleveNotes = {
         const ptsSansBonus = points.connaissances + points['savoir-faire'] + points.competences;
         const noteBase = params.noteDepart + (ptsSansBonus / params.budget) * 19.5;
         const noteAvecBonus = noteBase + points.bonus;
-        const note = Math.min(20, Math.max(0, Math.round(noteAvecBonus * 100) / 100));
+        const noteRaw = Math.max(0, Math.round(noteAvecBonus * 100) / 100);
+        const note = Math.min(20, noteRaw);
+        // Points bonus au-delà de 20 (pour félicitations)
+        const bonusExcedent = noteRaw > 20 ? Math.round((noteRaw - 20) * 100) / 100 : 0;
 
-        return { note, noteDepart: params.noteDepart, budget: params.budget, ptsSansBonus, bonus: points.bonus, categories: points };
+        return { note, noteDepart: params.noteDepart, budget: params.budget, ptsSansBonus, bonus: points.bonus, bonusExcedent, categories: points };
     },
 
     _getSommatives(matiere, semestre) {
@@ -265,6 +268,17 @@ const EleveNotes = {
             `${prog.noteDepart} + (${prog.ptsSansBonus}/${prog.budget}) × 19.5` +
             (prog.bonus > 0 ? ` + ${prog.bonus}` : '') +
             ` = ${this._fmt(prog.note)}`;
+
+        // Afficher les points bonus excédentaires
+        const bonusExcEl = document.getElementById('bonusExcedent');
+        if (bonusExcEl) {
+            if (prog.bonusExcedent > 0) {
+                bonusExcEl.textContent = `+${this._fmt(prog.bonusExcedent)} pts bonus au-delà de 20 (félicitations)`;
+                bonusExcEl.style.display = 'block';
+            } else {
+                bonusExcEl.style.display = 'none';
+            }
+        }
 
         // Progress bar
         const pct = Math.min(100, Math.max(0, ((prog.note - prog.noteDepart) / (20 - prog.noteDepart)) * 100));

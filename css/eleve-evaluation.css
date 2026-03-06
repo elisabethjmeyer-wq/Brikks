@@ -220,6 +220,33 @@
     margin: 0;
 }
 
+/* Correction Section */
+.eval-correction-section {
+    padding: 24px 32px;
+    border-top: 1px solid var(--gray-200, #e5e7eb);
+}
+
+.eval-correction-section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-800, #1f2937);
+    margin: 0 0 16px 0;
+}
+
+.eval-correction-content {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* Score item earned/lost colors */
+.score-item-value.earned {
+    color: #22c55e;
+}
+
+.score-item-value.lost {
+    color: #ef4444;
+}
+
 /* Result Actions */
 .result-actions {
     padding: 24px 32px;

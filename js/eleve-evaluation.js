@@ -167,7 +167,7 @@ const EleveEvaluation = {
                             <div class="exercise-header-info">
                                 <h1>${escapeHtml(this.evaluation.titre)}</h1>
                                 <div class="exercise-header-meta">
-                                    ${escapeHtml(typeLabel)} · ${this.evaluation.briques} pt${this.evaluation.briques > 1 ? 's' : ''} en jeu · Étape ${EC.currentEtapeIndex + 1}/${etapes.length}
+                                    ${escapeHtml(typeLabel)} · ${this.evaluation.briques} pt${this.evaluation.briques > 1 ? 's' : ''} en jeu · Seuil : ${this.evaluation.type === 'savoir-faire' ? '100%' : this.evaluation.seuil + '%'} · Étape ${EC.currentEtapeIndex + 1}/${etapes.length}
                                 </div>
                             </div>
                         </div>
@@ -390,6 +390,10 @@ const EleveEvaluation = {
         // Calculer le score global depuis les résultats d'EleveConnaissances
         const globalResult = this.calculateGlobalResult();
 
+        // Compiler les résultats détaillés pour la correction
+        const detailedResults = EC.compileResults();
+        globalResult.detailedResults = detailedResults;
+
         // Afficher un écran d'attente pendant la sauvegarde
         this._showSaving();
 
@@ -561,11 +565,18 @@ const EleveEvaluation = {
         resultContainer.style.display = 'block';
 
         const headerClass = globalResult.isValidated ? 'validated' : 'failed';
-        const icon = globalResult.isValidated ? ':)' : ':(';
+        const icon = globalResult.isValidated ? '✅' : '❌';
         const message = globalResult.isValidated ? 'Évaluation validée !' : 'Évaluation non validée';
         const subMessage = globalResult.isValidated
             ? `Tu as gagné ${globalResult.pointsEarned} point${globalResult.pointsEarned > 1 ? 's' : ''} !`
             : 'Tu pourras repasser cette évaluation avec de nouvelles questions.';
+
+        // Correction détaillée via EleveConnaissances
+        const EC = EleveConnaissances;
+        let correctionHtml = '';
+        if (globalResult.detailedResults && typeof EC.generateErrorDetails === 'function') {
+            correctionHtml = EC.generateErrorDetails(globalResult.detailedResults);
+        }
 
         resultContainer.innerHTML = `
             <div class="evaluation-result">
@@ -575,23 +586,11 @@ const EleveEvaluation = {
                     <p>${subMessage}</p>
                 </div>
 
-                <div class="validation-result">
-                    <div class="validation-item">
-                        <div class="validation-item-value ${globalResult.isValidated ? 'earned' : 'lost'}">${globalResult.pointsEarned}</div>
-                        <div class="validation-item-label">Points obtenus</div>
-                    </div>
-                    <div class="validation-item">
-                        <div class="validation-item-value">${this.evaluation.briques}</div>
-                        <div class="validation-item-label">Points en jeu</div>
-                    </div>
-                </div>
-
                 <div class="score-details">
-                    <h3>Détails du score</h3>
                     <div class="score-breakdown">
                         <div class="score-item">
                             <div class="score-item-value">${globalResult.score}%</div>
-                            <div class="score-item-label">Score obtenu</div>
+                            <div class="score-item-label">Score</div>
                         </div>
                         <div class="score-item">
                             <div class="score-item-value">${globalResult.correct}/${globalResult.total}</div>
@@ -600,6 +599,10 @@ const EleveEvaluation = {
                         <div class="score-item">
                             <div class="score-item-value">${this.formatTime(globalResult.elapsedTime)}</div>
                             <div class="score-item-label">Temps</div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-item-value ${globalResult.isValidated ? 'earned' : 'lost'}">${globalResult.pointsEarned}/${this.evaluation.briques}</div>
+                            <div class="score-item-label">Points</div>
                         </div>
                     </div>
 
@@ -612,17 +615,16 @@ const EleveEvaluation = {
                                 : `Tu devais obtenir au moins ${this.evaluation.seuil}% pour valider`}</span>
                         </div>
                     </div>
-
-                    ${this.evaluation.type === 'savoir-faire' && !globalResult.isValidated ? `
-                        <div class="savoir-faire-warning">
-                            <div class="savoir-faire-warning-title">
-                                <span>!</span> Savoir-faire non validé
-                            </div>
-                            <p>Pour valider un savoir-faire, tu dois répondre correctement à toutes les questions sans aucune erreur.
-                            Tu pourras repasser cette évaluation avec un nouveau sujet tiré au sort.</p>
-                        </div>
-                    ` : ''}
                 </div>
+
+                ${correctionHtml ? `
+                <div class="eval-correction-section">
+                    <h3>Correction détaillée</h3>
+                    <div class="eval-correction-content">
+                        ${correctionHtml}
+                    </div>
+                </div>
+                ` : ''}
 
                 <div class="result-actions">
                     <button class="btn btn-primary" onclick="window.location.href='evaluations.html'">
@@ -631,6 +633,7 @@ const EleveEvaluation = {
                 </div>
             </div>
         `;
+
     },
 
     // ========== NAVIGATION ==========

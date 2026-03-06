@@ -157,6 +157,17 @@
     margin-bottom: 16px;
 }
 
+.bonus-excedent {
+    font-size: 12px;
+    font-weight: 600;
+    color: #eab308;
+    background: #fef9c3;
+    padding: 6px 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
 /* Progress bar */
 .note-progress-bar {
     height: 8px;
