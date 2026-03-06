@@ -78,9 +78,15 @@ const EleveEvaluation = {
             attribution: data.attribution
         };
 
-        // Durée en secondes (priorité : données entraînement > évaluation > défaut)
-        const dureeMinutes = parseInt(data.duree) || 15;
-        this.duration = dureeMinutes * 60;
+        // Durée en secondes
+        // Connaissances : duree stockée en minutes (ex: 15) → × 60
+        // SF : duree stockée en secondes (ex: 300 pour 5 min) → tel quel
+        if (data.type === 'savoir-faire') {
+            this.duration = parseInt(data.duree) || 600;
+        } else {
+            const dureeMinutes = parseInt(data.duree) || 15;
+            this.duration = dureeMinutes * 60;
+        }
         this.remainingTime = this.duration;
 
         if (data.type === 'savoir-faire') {
