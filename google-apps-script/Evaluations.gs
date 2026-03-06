@@ -898,9 +898,12 @@ function saveEvaluationResult(data) {
         }
       }
     });
-    // Mettre à jour la date de passage
+    // Mettre à jour la date de passage (manuelle si fournie, sinon auto)
     var dateCol = headers.indexOf('date_passage');
-    if (dateCol >= 0) sheet.getRange(existingRow, dateCol + 1).setValue(new Date().toISOString());
+    if (dateCol >= 0) {
+      var dateValue = data.date_passage ? data.date_passage : new Date().toISOString();
+      sheet.getRange(existingRow, dateCol + 1).setValue(dateValue);
+    }
 
     // Mettre a jour la progression evaluation si valide
     var isValidUpdate = data.is_validated === true || data.is_validated === 'true';
@@ -923,7 +926,7 @@ function saveEvaluationResult(data) {
     if (col === 'validations') return data.validations || 0;
     if (col === 'is_validated') return data.is_validated === true || data.is_validated === 'true';
     if (col === 'temps_passe') return data.temps_passe || 0;
-    if (col === 'date_passage') return datePassage;
+    if (col === 'date_passage') return data.date_passage || datePassage;
     if (col === 'details') return data.details || '';
     if (col === 'mode') return data.mode || 'numerique';
     if (col === 'source') return data.source || 'auto';

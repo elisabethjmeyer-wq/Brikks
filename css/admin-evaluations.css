@@ -669,6 +669,21 @@
     opacity: 0.7;
 }
 
+/* Ligne verte quand élève a réussi */
+.saisie-table tr.success-row {
+    background-color: #ecfdf5;
+}
+.saisie-table tr.success-row:hover {
+    background-color: #d1fae5;
+}
+
+/* Date input dans saisie */
+.saisie-date {
+    width: 130px;
+    font-size: 12px;
+    padding: 5px 8px;
+}
+
 .resultat-select {
     min-width: 70px;
 }
