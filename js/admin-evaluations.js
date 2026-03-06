@@ -777,8 +777,8 @@ const AdminEvaluations = {
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Durée (minutes)</label>
-                    <input type="number" class="form-input" id="evalDuree" value="${d.duree || ''}" min="1" max="120" placeholder="Auto si lié à un entraînement">
+                    <label>Durée</label>
+                    <div class="form-info-display" id="evalDureeInfo">⏱️ Automatique : celle de l'entraînement attribué à chaque élève</div>
                 </div>
                 ${this._renderStatutSelect(d)}
             </div>
@@ -885,9 +885,6 @@ const AdminEvaluations = {
         const seuil = document.getElementById('evalSeuil')?.value;
         if (seuil) this.wizardData.seuil = parseInt(seuil) || 80;
 
-        const duree = document.getElementById('evalDuree')?.value;
-        if (duree !== undefined) this.wizardData.duree = duree ? parseInt(duree) : '';
-
         const modePassation = document.getElementById('evalModePassation')?.value;
         if (modePassation) this.wizardData.mode_passation = modePassation;
 
@@ -914,8 +911,8 @@ const AdminEvaluations = {
                     <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
                 </div>
                 <div class="form-group">
-                    <label>Durée (minutes)</label>
-                    <input type="number" class="form-input" id="evalDuree" value="${d.duree || ''}" min="1" max="120" placeholder="Auto si lié à un exercice">
+                    <label>Durée</label>
+                    <div class="form-info-display" id="evalDureeInfo">⏱️ Automatique : celle de l'exercice attribué à chaque élève</div>
                 </div>
             </div>
             <div class="form-row">
@@ -1152,10 +1149,6 @@ const AdminEvaluations = {
                     this.wizardData.statut = document.getElementById('evalStatut')?.value || 'brouillon';
                 }
 
-                // Durée manuelle (tous types sauf bonus)
-                const dureeVal = document.getElementById('evalDuree')?.value;
-                if (dureeVal) this.wizardData.duree = parseInt(dureeVal);
-
                 if (this.wizardData.type === 'connaissances') {
                     this.wizardData.seuil = parseInt(document.getElementById('evalSeuil')?.value) || 80;
                 }
@@ -1200,16 +1193,7 @@ const AdminEvaluations = {
             mode_passation: d.mode_passation || 'numerique'
         };
 
-        // Durée : priorité manuelle > auto depuis contenu lié
-        if (d.duree) {
-            data.duree = d.duree;
-        } else if (d.type === 'connaissances' && d.entrainement_conn_id) {
-            const entr = this.entrainementsConn.find(e => e.id === d.entrainement_conn_id);
-            if (entr && entr.duree) data.duree = parseInt(entr.duree);
-        } else if (d.type === 'savoir-faire' && d.exercice_sf_id) {
-            const exo = this.exercicesSF.find(e => e.id === d.exercice_sf_id);
-            if (exo && exo.duree) data.duree = parseInt(exo.duree);
-        }
+        // Durée : résolue automatiquement par le backend depuis l'entraînement attribué à chaque élève
 
         if (d.type === 'connaissances') {
             data.seuil = d.seuil || 80;
