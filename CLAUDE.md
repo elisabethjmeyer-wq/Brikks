@@ -411,7 +411,7 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - ~~**Notifications trop rapides**~~ : **CORRIGÉ (session 15)** — durée augmentée (4s success, 6s error) + animation de sortie `slideOut`.
 - ~~**Code.gs : action POST non lue**~~ : **CORRIGÉ (session 15)** — `handleRequest` ne lisait `action` que depuis `e.parameter` (query params). Si un futur appel POST envoie l'action dans le body, elle était ignorée. Maintenant : `params.action || data.action`.
 
-### Évaluations & Notes admin — PHASE 2 EN COURS
+### Évaluations & Notes admin — PHASES 1-3 COMPLÈTES
 
 **Pages** : `admin/evaluations.html`, `admin/parametrage-eval.html`, `admin/tableau-bord.html` (placeholder)
 **Fichiers** : `js/admin-evaluations.js` (~670 lignes), `js/admin-parametrage-eval.js` (~430 lignes), `css/admin-evaluations.css`, `css/admin-parametrage-eval.css`
@@ -426,13 +426,16 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - **Saisie des notes sommatives** : vue similaire avec note /barème et remarque
 - **Bandeau corrections** : compte les copies à corriger (EleveEntrainementsCompetences avec statut='soumis')
 - **Page Paramétrage** : 2 onglets — Notes de progression (semestres, config par matière) et Référentiel compétences (CRUD avec filtre matière)
+- **Mode de passation** : chaque évaluation peut être "numérique" (défaut) ou "papier". En mode papier : badge 📄 sur la carte admin, boutons Commencer/Repasser masqués côté élève. L'attribution reste identique (auto par défaut, override manuel possible). Colonne `mode_passation` dans EVALUATIONS.
+- **Programmation temporelle** : champs `date_ouverture` et `date_fermeture` optionnels. Le statut effectif est calculé automatiquement à partir des dates (planifiée → publiée → terminée). Côté élève : les évals planifiées apparaissent "à venir", les fermées sont masquées ou affichées comme "terminées".
 
 **Tables backend (Phase 1)** :
 - `PARAMETRES_NOTES` : id, matiere, semestre, note_depart, budget_estime, coefficient_progression, date_debut, date_fin
 - `NOTES_SOMMATIVES` : id, titre, matiere, bareme, coefficient, date, semestre
 - `RESULTATS_SOMMATIVES` : id, sommative_id, eleve_id, note, statut, remarque_texte, remarque_media, date_saisie
 - `OBJECTIFS_ELEVES` : id, eleve_id, matiere, semestre, objectif_note
-- `EVALUATION_RESULTATS` : ajout colonnes mode, source, remarque_texte, remarque_media, statut (upsert)
+- `EVALUATION_RESULTATS` : ajout colonnes mode, source, remarque_texte, remarque_media, statut, statut_resultat (upsert)
+- `EVALUATIONS` : ajout colonnes date_ouverture, date_fermeture, mode_passation
 
 **Appels API (évaluations)** : `createEvaluation`, `updateEvaluation`, `deleteEvaluation`, `saveEvaluationResult`, `getEvaluationResults`
 **Appels API (sommatives)** : `createNoteSommative`, `updateNoteSommative`, `deleteNoteSommative`, `saveResultatSommative`, `getResultatsSommatives`
@@ -446,9 +449,9 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - Moyenne pondérée : `(prog × coefProg + Σ(som × coef)) / Σ(coefs)`
 - Vue classe triable + panneau détail élève (slide-in) + toggle semestre S1/S2
 
-**Phase restante** : Phase 4 (pages élève + enrichissement Suivi)
+**Phase restante** : afficher banque + sujet attribué dans le tableau de saisie des résultats (pour faciliter la correction papier).
 
-**État** : Phases 1-3 complètes.
+**État** : Phases 1-3 complètes. Mode passation papier/numérique ajouté (session 18). Page notes élève créée (session 16).
 
 ### Points structurels
 
