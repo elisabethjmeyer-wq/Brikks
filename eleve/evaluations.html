@@ -26,14 +26,42 @@
 
     <!-- Contenu principal -->
     <div id="evaluations-content" style="display: none;">
+        <!-- Header avec carte progression -->
         <header class="page-header">
-            <h1>📋 Mes évaluations</h1>
-            <p>Passe tes évaluations et suis ta progression. Pour voir tes notes, consulte <a href="notes.html">📊 Mes notes</a>.</p>
+            <div class="header-left">
+                <h1>Mes évaluations</h1>
+                <p>Passe tes évaluations et suis ta progression.</p>
+            </div>
+            <div class="header-right" id="progressionCard">
+                <!-- Rempli dynamiquement -->
+            </div>
         </header>
 
-        <div class="eval-list" id="evaluationsList">
-            <!-- Generated dynamically -->
+        <!-- Onglets -->
+        <div class="tabs-bar">
+            <button class="tab-btn active" data-tab="evaluations" onclick="EleveEvaluations.switchTab('evaluations')">
+                Évaluations <span class="tab-count" id="tabCountEvals">0</span>
+            </button>
+            <button class="tab-btn" data-tab="bonus" onclick="EleveEvaluations.switchTab('bonus')">
+                Bonus <span class="tab-count" id="tabCountBonus">0</span>
+            </button>
         </div>
+
+        <!-- Contenu des onglets -->
+        <div class="tab-content active" id="tab-evaluations">
+            <div class="eval-list" id="evaluationsList"></div>
+        </div>
+        <div class="tab-content" id="tab-bonus">
+            <div class="eval-list" id="bonusList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal review -->
+<div class="modal-overlay hidden" id="reviewModal">
+    <div class="review-modal">
+        <button class="review-close" onclick="EleveEvaluations.closeReview()">&times;</button>
+        <div id="reviewContent"></div>
     </div>
 </div>
 
