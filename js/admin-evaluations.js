@@ -333,7 +333,6 @@ const AdminEvaluations = {
     renderEvaluations() {
         if (this.currentType === 'sommatives') {
             this._renderSommatives();
-            this._updateBudgetIndicator();
             return;
         }
 
@@ -357,7 +356,6 @@ const AdminEvaluations = {
             container.innerHTML = filtered.map(e => this.renderEvaluationCard(e)).join('');
         }
 
-        this._updateBudgetIndicator();
     },
 
     renderEvaluationCard(evaluation) {
@@ -511,50 +509,17 @@ const AdminEvaluations = {
         return '';
     },
 
-    _updateBudgetIndicator() {
-        const indicator = document.getElementById('budgetIndicator');
-        if (!indicator) return;
 
-        // Find current semester based on today
-        const today = new Date();
-        let currentSemestre = '1';
-        for (const p of this.parametresNotes) {
-            if (String(p.matiere).trim() !== this.currentMatiere) continue;
-            const debut = p.date_debut ? new Date(p.date_debut) : null;
-            const fin = p.date_fin ? new Date(p.date_fin) : null;
-            if (debut && fin && today >= debut && today <= fin) {
-                currentSemestre = String(p.semestre);
-                break;
-            }
-        }
-
-        // Get budget for current matière + semester
-        const params = this.parametresNotes.find(p =>
-            String(p.matiere).trim() === this.currentMatiere &&
-            String(p.semestre).trim() === currentSemestre
-        );
-        const budget = parseFloat(params?.budget_estime) || 100;
-
-        // Sum points (briques) for non-bonus evals in current matière + semester
-        const evalsForMatiere = this._filterByMatiere(
-            this.evaluations.filter(e => e.type !== 'bonus')
-        );
-        let totalPoints = 0;
-        for (const ev of evalsForMatiere) {
-            const sem = this._getSemestreTag(ev);
-            if (sem === 'S' + currentSemestre) {
-                totalPoints += parseInt(ev.briques) || 0;
-            }
-        }
-
-        // Update display
-        const pct = Math.min(100, Math.round((totalPoints / budget) * 100));
-        document.getElementById('budgetValues').textContent = `${totalPoints} / ${budget} pts (S${currentSemestre})`;
-        const fill = document.getElementById('budgetBarFill');
-        fill.style.width = pct + '%';
-        fill.className = 'budget-bar-fill' + (pct > 100 ? ' over' : pct >= 80 ? ' high' : '');
-
-        indicator.style.display = '';
+    /**
+     * Normalise une date (venant de Google Sheets ou autre) vers le format
+     * attendu par <input type="datetime-local"> : YYYY-MM-DDTHH:MM
+     */
+    _toDateTimeLocal(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     },
 
     _formatDateShort(dateStr) {
@@ -644,6 +609,9 @@ const AdminEvaluations = {
             document.getElementById('editEvaluationId').value = evaluation.id;
             document.getElementById('evalEntrainementConnId').value = evaluation.entrainement_conn_id || '';
             this.wizardData = { ...evaluation };
+            // Normalise dates pour input datetime-local
+            this.wizardData.date_ouverture = this._toDateTimeLocal(evaluation.date_ouverture);
+            this.wizardData.date_fermeture = this._toDateTimeLocal(evaluation.date_fermeture);
         } else {
             title.textContent = `Nouvelle évaluation de ${typeLabels[type] || type}`;
             document.getElementById('editEvaluationId').value = '';
