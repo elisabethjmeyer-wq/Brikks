@@ -1374,10 +1374,6 @@ const AdminEvaluations = {
         const showSujet = evaluation.type === 'connaissances' || evaluation.type === 'savoir-faire';
         const isConn = evaluation.type === 'connaissances';
 
-        // Check if any results have date/duration data
-        const hasDateData = evalResults.some(r => r.date_passage);
-        const hasDureeData = evalResults.some(r => r.temps_passe);
-
         // Prepare banques for attribution dropdowns
         let banques = [];
         if (showSujet) {
@@ -1388,15 +1384,15 @@ const AdminEvaluations = {
                 .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
         }
 
-        // Build table headers
+        // Build table headers — structure unifiée conn + SF
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
             ${showSujet ? '<th class="col-banque">Banque</th>' : ''}
-            ${showSujet && isConn ? '<th class="col-entrainement">Exercice</th>' : ''}
+            ${showSujet ? '<th class="col-entrainement">Exercice</th>' : ''}
+            <th class="col-date-passage">Date</th>
             <th class="col-score">Score (%)</th>
+            <th class="col-duree">Durée</th>
             <th class="col-resultat">Résultat</th>
-            ${hasDateData ? '<th class="col-date-passage">Date</th>' : ''}
-            ${hasDureeData ? '<th class="col-duree">Durée</th>' : ''}
         `;
 
         // Render student rows
@@ -1409,8 +1405,21 @@ const AdminEvaluations = {
             const isAuto = r.source === 'auto' || (!r.source && r.id);
             const sourceBadge = r.id ? (isAuto ? '<span class="source-badge auto">🤖</span>' : '<span class="source-badge manuel">✏️</span>') : '';
 
-            const datePassage = hasDateData ? `<td class="col-date-passage">${r.date_passage ? this._formatDateShort(r.date_passage) : ''}</td>` : '';
-            const duree = hasDureeData ? `<td class="col-duree">${r.temps_passe ? this._formatDuree(r.temps_passe) : ''}</td>` : '';
+            // Ligne verte si élève a réussi
+            const isSuccess = r.is_validated === true || r.is_validated === 'true' || (r.validations && parseInt(r.validations) > 0 && r.validations !== 'non_rendu' && r.validations !== 'absent');
+
+            // Date : saisissable si vide/papier, lecture seule si auto
+            const hasAutoDate = r.date_passage && isAuto;
+            const dateValue = r.date_passage ? this._formatDateInput(r.date_passage) : '';
+            const dateCell = hasAutoDate
+                ? `<td class="col-date-passage">${this._formatDateShort(r.date_passage)}</td>`
+                : `<td class="col-date-passage"><input type="date" class="saisie-input saisie-date" value="${dateValue}" onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'date_passage', this.value)"></td>`;
+
+            // Score : lecture seule (affiche uniquement les remontées auto)
+            const scoreCell = `<td class="col-score">${score !== '' ? score + '%' : '—'}</td>`;
+
+            // Durée : lecture seule
+            const dureeCell = `<td class="col-duree">${r.temps_passe ? this._formatDuree(r.temps_passe) : '—'}</td>`;
 
             // Attribution: banque + entraînement dropdowns
             let banqueCell = '';
@@ -1431,14 +1440,15 @@ const AdminEvaluations = {
                 const currentEntrId = existingAttr ? String(existingAttr.entrainement_id || '').trim() : '';
                 const effectiveBanqueId = currentBanqueId || (autoBanque ? autoBanque.id : '');
 
-                // Auto-assign an exercise if none specified (connaissances)
+                // Auto-assign an exercise if none specified (connaissances + SF)
                 let effectiveEntrId = currentEntrId;
-                if (isConn && !effectiveEntrId) {
-                    const banqueEntrs = this.entrainementsConn
-                        .filter(e => String(e.banque_exercice_id).trim() === String(effectiveBanqueId).trim() && e.statut !== 'evaluation');
-                    if (banqueEntrs.length > 0) {
-                        const randomIndex = Math.floor(Math.random() * banqueEntrs.length);
-                        effectiveEntrId = String(banqueEntrs[randomIndex].id).trim();
+                if (!effectiveEntrId) {
+                    const exerciseList = isConn
+                        ? this.entrainementsConn.filter(e => String(e.banque_exercice_id).trim() === String(effectiveBanqueId).trim() && e.statut !== 'evaluation')
+                        : this.exercicesSF.filter(e => String(e.banque_id).trim() === String(effectiveBanqueId).trim());
+                    if (exerciseList.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * exerciseList.length);
+                        effectiveEntrId = String(exerciseList[randomIndex].id).trim();
                     }
                 }
 
@@ -1464,15 +1474,16 @@ const AdminEvaluations = {
                     </select>
                 </td>`;
 
-                // Exercice dropdown (connaissances only)
-                if (isConn) {
-                    entrainementCell = `<td class="col-entrainement">
-                        <select class="saisie-select entrainement-select" data-eleve="${eleve.id}"
-                            onchange="AdminEvaluations._onSaisieEntrainementChange('${eleve.id}', this.value)">
-                            ${this._buildEntrainementOptions(effectiveBanqueId, effectiveEntrId)}
-                        </select>
-                    </td>`;
-                }
+                // Exercice dropdown (connaissances + SF)
+                const exerciceOptions = isConn
+                    ? this._buildEntrainementOptions(effectiveBanqueId, effectiveEntrId)
+                    : this._buildExerciceSFOptions(effectiveBanqueId, effectiveEntrId);
+                entrainementCell = `<td class="col-entrainement">
+                    <select class="saisie-select entrainement-select" data-eleve="${eleve.id}"
+                        onchange="AdminEvaluations._onSaisieEntrainementChange('${eleve.id}', this.value)">
+                        ${exerciceOptions}
+                    </select>
+                </td>`;
             }
 
             // Build résultat select options
@@ -1487,26 +1498,22 @@ const AdminEvaluations = {
             resultatOptions += `<option value="absent" ${absSelected}>ABS</option>`;
 
             return `
-                <tr data-eleve-id="${eleve.id}" class="${r.id ? '' : 'no-result'}">
+                <tr data-eleve-id="${eleve.id}" class="${isSuccess ? 'success-row' : ''} ${!r.id ? 'no-result' : ''}">
                     <td class="col-eleve">
                         <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
                         ${sourceBadge}
                     </td>
                     ${banqueCell}
                     ${entrainementCell}
-                    <td class="col-score">
-                        <input type="number" class="saisie-input" value="${score}" min="0" max="100"
-                            placeholder="—"
-                            onchange="AdminEvaluations.onSaisieScoreChange('${eleve.id}', this.value, ${maxPts}, ${evaluation.seuil || 80})">
-                    </td>
+                    ${dateCell}
+                    ${scoreCell}
+                    ${dureeCell}
                     <td class="col-resultat">
                         <select class="saisie-select resultat-select"
                             onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'validations', this.value)">
                             ${resultatOptions}
                         </select>
                     </td>
-                    ${datePassage}
-                    ${duree}
                 </tr>
             `;
         }).join('');
@@ -1528,11 +1535,13 @@ const AdminEvaluations = {
         attr.source = banqueId ? 'manuel' : 'auto';
         attr._changed = true;
 
-        // Update exercice dropdown if connaissances — auto-assign random
+        // Update exercice dropdown — auto-assign random (conn + SF)
         const entrSelect = document.querySelector(`.entrainement-select[data-eleve="${eleveId}"]`);
         if (entrSelect) {
-            entrSelect.innerHTML = this._buildEntrainementOptions(effectiveBanqueId, '');
-            // Read back which exercise was auto-selected
+            const isConn = this.saisieEvaluation && this.saisieEvaluation.type === 'connaissances';
+            entrSelect.innerHTML = isConn
+                ? this._buildEntrainementOptions(effectiveBanqueId, '')
+                : this._buildExerciceSFOptions(effectiveBanqueId, '');
             attr.entrainement_id = entrSelect.value || '';
         }
 
@@ -1629,13 +1638,20 @@ const AdminEvaluations = {
         // Saisie manuelle → marquer la source comme 'manuel'
         this.saisieChanges[eleveId].source = 'manuel';
 
-        // Mettre à jour le badge source visuellement
         const row = document.querySelector(`tr[data-eleve-id="${eleveId}"]`);
         if (row) {
+            // Mettre à jour le badge source visuellement
             const badge = row.querySelector('.source-badge');
             if (badge) {
                 badge.className = 'source-badge manuel';
                 badge.textContent = '✏️ Manuel';
+            }
+
+            // Mettre à jour la ligne verte quand on change le résultat
+            if (field === 'validations') {
+                const isSuccess = value && parseInt(value) > 0 && value !== 'non_rendu' && value !== 'absent';
+                row.classList.toggle('success-row', isSuccess);
+                row.classList.toggle('no-result', false);
             }
         }
 
@@ -1907,6 +1923,40 @@ const AdminEvaluations = {
                 const selected = String(e.id).trim() === String(effectiveSelectedId).trim() ? 'selected' : '';
                 return `<option value="${e.id}" ${selected}>${escapeHtml(e.titre || 'Sans titre')}</option>`;
             }).join('');
+    },
+
+    _buildExerciceSFOptions(banqueId, selectedId) {
+        if (!banqueId) return '<option value="">-</option>';
+        const exercices = this.exercicesSF
+            .filter(e => String(e.banque_id).trim() === String(banqueId).trim())
+            .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
+
+        if (exercices.length === 0) return '<option value="">Aucun exercice</option>';
+
+        // Si pas de sélection existante, tirer au sort
+        let effectiveSelectedId = selectedId;
+        if (!effectiveSelectedId && exercices.length > 0) {
+            const randomIndex = Math.floor(Math.random() * exercices.length);
+            effectiveSelectedId = String(exercices[randomIndex].id).trim();
+        }
+
+        return exercices.map(e => {
+            const selected = String(e.id).trim() === String(effectiveSelectedId).trim() ? 'selected' : '';
+            return `<option value="${e.id}" ${selected}>${escapeHtml(e.titre || 'Sans titre')}</option>`;
+        }).join('');
+    },
+
+    /**
+     * Formate une date pour un input type="date" (YYYY-MM-DD)
+     */
+    _formatDateInput(dateStr) {
+        if (!dateStr) return '';
+        // Si déjà au format YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.substring(0, 10);
+        // Essayer de parser
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().substring(0, 10);
     },
 
     _onAttributionBanqueChange(eleveId, banqueId) {
