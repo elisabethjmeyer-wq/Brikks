@@ -57,10 +57,30 @@ const EleveEvaluations = {
             this.resultats = [];
         }
 
-        // Filter only published evaluations
-        this.evaluations = this.evaluations.filter(e =>
-            e.statut === 'publiee' || e.statut === 'terminee'
-        );
+        // Filter only visible evaluations (publiee, planifiee with dates, terminee)
+        this.evaluations = this.evaluations.filter(e => {
+            // If dates are set, compute effective status
+            if (e.date_ouverture || e.date_fermeture) {
+                const effectiveStatut = this._computeEffectiveStatut(e);
+                // Show planifiee (as "à venir"), publiee and terminee
+                return effectiveStatut === 'planifiee' || effectiveStatut === 'publiee' || effectiveStatut === 'terminee';
+            }
+            // No dates: use stored statut
+            return e.statut === 'publiee' || e.statut === 'terminee';
+        });
+    },
+
+    /**
+     * Compute effective status from dates (if set) or stored statut
+     */
+    _computeEffectiveStatut(evaluation) {
+        const now = new Date();
+        if (evaluation.date_ouverture || evaluation.date_fermeture) {
+            if (evaluation.date_ouverture && new Date(evaluation.date_ouverture) > now) return 'planifiee';
+            if (evaluation.date_fermeture && new Date(evaluation.date_fermeture) < now) return 'terminee';
+            return 'publiee';
+        }
+        return evaluation.statut || 'brouillon';
     },
 
     categorizeEvaluations() {
@@ -69,11 +89,29 @@ const EleveEvaluations = {
         this.categories = {
             repasser: [],
             disponibles: [],
-            avenir: []
+            avenir: [],
+            fermees: []
         };
 
-        this.evaluations.forEach(eval => {
-            const resultat = this.resultats.find(r => r.evaluation_id === eval.id);
+        this.evaluations.forEach(evaluation => {
+            const resultat = this.resultats.find(r => r.evaluation_id === evaluation.id);
+            const effectiveStatut = this._computeEffectiveStatut(evaluation);
+
+            // Evaluation fermée — ne plus afficher le bouton "Commencer"
+            if (effectiveStatut === 'terminee') {
+                if (resultat) {
+                    // Already attempted — show in fermees with result
+                    this.categories.fermees.push({ ...evaluation, resultat, status: 'closed' });
+                }
+                // Not attempted and closed — don't show
+                return;
+            }
+
+            // Evaluation pas encore ouverte
+            if (effectiveStatut === 'planifiee') {
+                this.categories.avenir.push(evaluation);
+                return;
+            }
 
             if (resultat) {
                 if (resultat.valide === 'true' || resultat.valide === true) {
@@ -81,22 +119,19 @@ const EleveEvaluations = {
                     return;
                 } else {
                     // Non validée - à repasser
-                    this.categories.repasser.push({ ...eval, resultat });
+                    this.categories.repasser.push({ ...evaluation, resultat });
                 }
             } else {
                 // Pas encore passée
-                if (eval.date_ouverture) {
-                    const dateOuverture = new Date(eval.date_ouverture);
+                if (evaluation.date_ouverture) {
+                    const dateOuverture = new Date(evaluation.date_ouverture);
                     if (dateOuverture > now) {
-                        // À venir
-                        this.categories.avenir.push(eval);
+                        this.categories.avenir.push(evaluation);
                     } else {
-                        // Disponible
-                        this.categories.disponibles.push(eval);
+                        this.categories.disponibles.push(evaluation);
                     }
                 } else {
-                    // Disponible par défaut
-                    this.categories.disponibles.push(eval);
+                    this.categories.disponibles.push(evaluation);
                 }
             }
         });
@@ -122,11 +157,12 @@ const EleveEvaluations = {
         const container = document.getElementById('evaluationsList');
         const emptyState = document.getElementById('emptyState');
 
-        // Combine all in order: repasser first, then disponibles, then avenir
+        // Combine all in order: repasser first, then disponibles, then avenir, then fermees
         const allEvals = [
             ...this.categories.repasser.map(e => ({ ...e, status: 'retry' })),
             ...this.categories.disponibles.map(e => ({ ...e, status: 'available' })),
-            ...this.categories.avenir.map(e => ({ ...e, status: 'upcoming' }))
+            ...this.categories.avenir.map(e => ({ ...e, status: 'upcoming' })),
+            ...this.categories.fermees.map(e => ({ ...e, status: 'closed' }))
         ];
 
         if (allEvals.length === 0) {
@@ -169,6 +205,11 @@ const EleveEvaluations = {
         let actionHtml = '';
         let statusBadge = '';
 
+        // Show fermeture date if present
+        if (evaluation.date_fermeture && evaluation.status !== 'upcoming' && evaluation.status !== 'closed') {
+            metaItems.push(`🔒 Jusqu'au ${this.formatDate(evaluation.date_fermeture)}`);
+        }
+
         switch (evaluation.status) {
             case 'retry':
                 statusBadge = '<span class="status-badge retry">⚠️ À repasser</span>';
@@ -194,6 +235,11 @@ const EleveEvaluations = {
                         <span class="upcoming-info">⏳ Dans <span class="time">${countdown}</span></span>
                     </div>
                 `;
+                break;
+
+            case 'closed':
+                statusBadge = '<span class="status-badge terminee">🔒 Terminée</span>';
+                actionHtml = '';
                 break;
         }
 
