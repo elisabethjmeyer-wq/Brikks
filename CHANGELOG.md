@@ -4,6 +4,49 @@
 
 ---
 
+## 2026-03-06 — Session 20 : Évaluations SF + unification des durées
+
+### Modifications
+
+1. **Support des évaluations savoir-faire côté élève** :
+   - Le module `eleve-evaluation.js` ne supportait que les connaissances. Les évaluations SF échouaient avec "Aucune étape disponible" car le backend renvoie `data.questions` (un exercice) au lieu de `data.etapes`
+   - Ajouté `setupSFModule()` : injection de l'exercice dans `EleveExercices`, utilisation des `FORMAT_HANDLERS` SF (tableau_saisie, carte_cliquable, document_tableau, question_ouverte, document_mixte)
+   - Ajouté `renderSFExerciseView()` : rendu SF avec le même layout évaluation (bandeau, timer, bouton Terminer)
+   - Ajouté `_finishSF()` : validation via le handler SF + capture du HTML corrigé pour l'écran de résultat
+   - Scripts SF (`eleve-exercices.js`, `-formats.js`, `-validation.js`) ajoutés dans `evaluation.html`
+   - La progression SF admin se résout automatiquement : les résultats sont maintenant sauvegardés avec `banque_id`
+
+2. **Unification du stockage des durées en minutes** :
+   - Avant : SF stockait `duree` en secondes (600 = 10 min), compétences aussi (1800 = 30 min), connaissances en minutes (15 = 15 min)
+   - Maintenant : tout est en minutes partout (saisie, stockage, affichage). Le timer interne fait `duree × 60` au lancement du compte à rebours
+   - Wizards admin SF/comp : retrait des `× 60` (sauvegarde) et `÷ 60` (lecture)
+   - Frontend élève : `startTimer(duree * 60)`, affichage simplifié
+   - Defaults backend : 600 → 10 (Exercices.gs), 1800 → 30 (Competences.gs)
+   - Migration one-shot : `migrateDureeToMinutes` divise par 60 les valeurs > 120 dans Exercices et EntrainementsCompetences
+
+### Fichiers modifiés
+- `js/eleve-evaluation.js` : support SF complet + timer unifié
+- `eleve/evaluation.html` : scripts SF ajoutés
+- `js/eleve-exercices.js` : `startTimer(duree * 60)`, affichage en minutes
+- `js/eleve-exercices-results.js` : `tempsPrevu` converti en secondes
+- `js/eleve-exercices-sf.js` : `tempsPrevu` converti en secondes
+- `js/eleve-competences.js` : retrait des `÷ 60` à l'affichage
+- `js/eleve-competences-exercice.js` : `duree * 60` pour le timer
+- `js/admin-banques-exercices-sf-wizard.js` : retrait `× 60` sauvegarde, `÷ 60` lecture
+- `js/admin-banques-exercices-comp-wizard.js` : idem
+- `js/admin-banques-exercices.js` : defaults 600 → 10
+- `js/admin-banques-exercices-questions.js` : retrait `× 60` sauvegarde, `÷ 60` lecture
+- `google-apps-script/Code.gs` : routeur + `migrateDureeToMinutes_()`
+- `google-apps-script/Exercices.gs` : default 600 → 10
+- `google-apps-script/Competences.gs` : default 1800 → 30
+
+### Décisions
+- Convention unique : `duree` = minutes partout. Le `× 60` se fait uniquement au moment de lancer un timer (conversion en secondes internes)
+- Migration des données existantes : seuil > 120 pour distinguer secondes vs minutes (aucun exercice ne dure plus de 2h)
+- La migration doit être appelée une fois après déploiement du backend (`?action=migrateDureeToMinutes`)
+
+---
+
 ## 2026-03-06 — Session 19 : Améliorations évaluations (Phase D)
 
 ### Modifications
