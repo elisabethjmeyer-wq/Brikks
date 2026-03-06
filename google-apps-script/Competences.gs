@@ -588,7 +588,7 @@ function createEntrainementCompetence(data) {
       case 'document_legende': return data.document_legende || '';
       case 'correction_commentee': return correction;
       case 'correction_contenu': return data.correction_contenu || '';
-      case 'duree': return data.duree || 1800;
+      case 'duree': return data.duree || 30;
       case 'ordre': return data.ordre || 1;
       case 'statut': return data.statut || 'brouillon';
       case 'date_creation': return new Date().toISOString();

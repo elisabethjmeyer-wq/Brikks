@@ -481,7 +481,7 @@ const EleveCompetences = {
             const prog = this.progressions.find(p =>
                 String(p.entrainement_id) === String(entr.id)
             );
-            const dureeMin = Math.round((entr.duree || 1800) / 60);
+            const dureeMin = entr.duree || 30;
             const exStatus = this.getExerciseStatus(prog, entr);
 
             // Badge unique (vide si pas commencé)
@@ -634,7 +634,7 @@ const EleveCompetences = {
     },
 
     _showChoiceModal(entr, opts) {
-        const dureeMin = Math.round((entr.duree || 1800) / 60);
+        const dureeMin = entr.duree || 30;
 
         const modal = document.createElement('div');
         modal.id = 'compChoiceModal';
@@ -690,7 +690,7 @@ const EleveCompetences = {
      */
     _showResumeOrRestartModal(entr) {
         this.currentEntrainement = entr;
-        const dureeMin = Math.round((entr.duree || 1800) / 60);
+        const dureeMin = entr.duree || 30;
         const savedTime = this._loadTrainTimer(entr.id);
         const savedTimeStr = savedTime !== null ? this.formatTime(savedTime) : '';
 

@@ -260,7 +260,7 @@ Object.assign(AdminBanquesExercices, {
             var statut = document.getElementById('sfwStatut');
 
             e.titre = titre ? titre.value.trim() : (e.titre || '');
-            e.duree = duree ? (parseInt(duree.value) || 10) * 60 : (e.duree || 600);
+            e.duree = duree ? (parseInt(duree.value) || 10) : (e.duree || 10);
             e.statut = statut ? statut.value : (e.statut || 'brouillon');
 
             this.sfWizardData.exercice = e;
@@ -333,7 +333,7 @@ Object.assign(AdminBanquesExercices, {
 
     _renderSFWizardStep1: function() {
         var e = this.sfWizardData.exercice || {};
-        var dureeMin = Math.round((e.duree || 600) / 60);
+        var dureeMin = e.duree || 10;
 
         // Titre par défaut pour un nouvel exercice
         var defaultTitre = e.titre || '';
@@ -1016,7 +1016,7 @@ Object.assign(AdminBanquesExercices, {
             'document_mixte': 'Document mixte'
         };
         var formatName = formatLabelsStep4[formatUI] || 'Non s\u00e9lectionn\u00e9';
-        var dureeMin = Math.round((e.duree || 600) / 60);
+        var dureeMin = e.duree || 10;
 
         // Résumé du contenu selon le format
         var contentSummary = this._getSFContentSummary();
@@ -1134,7 +1134,7 @@ Object.assign(AdminBanquesExercices, {
             numero: numero,
             titre: e.titre || '',
             consigne: e.consigne || '',
-            duree: e.duree || 600,
+            duree: e.duree || 10,
             donnees: JSON.stringify(donnees),
             statut: e.statut || 'brouillon'
         };

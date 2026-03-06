@@ -13,7 +13,7 @@ Object.assign(EleveExercices, {
 
     async saveResult(correct, total, percent) {
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
-        const tempsPrevu = this.currentExercise?.duree || 300;
+        const tempsPrevu = (this.currentExercise?.duree || 5) * 60;
 
         // Capturer isEntrainementLibre AU DÉBUT avant tout appel async
         // Car la valeur peut changer pendant les awaits
@@ -315,7 +315,7 @@ Object.assign(EleveExercices, {
         const exo = this.currentExercise;
 
         const timeSpent = this.exerciseStartTime ? Math.round((Date.now() - this.exerciseStartTime) / 1000) : 0;
-        const tempsPrevu = exo.duree || 300;
+        const tempsPrevu = (exo.duree || 5) * 60;
         const tempsOK = timeSpent <= tempsPrevu;
 
         const validationResult = this.lastValidationResult || {

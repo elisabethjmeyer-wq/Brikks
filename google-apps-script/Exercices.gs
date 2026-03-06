@@ -524,7 +524,7 @@ function createExercice(data) {
     if (col === 'date_creation') return new Date().toISOString().split('T')[0];
     if (col === 'statut') return data.statut || 'brouillon';
     if (col === 'peut_tomber_en_eval') return data.peut_tomber_en_eval !== undefined ? data.peut_tomber_en_eval : true;
-    if (col === 'duree') return data.duree || 600;
+    if (col === 'duree') return data.duree || 10;
     if (col === 'numero') return data.numero || 1;
     if (col === 'donnees' && typeof data.donnees === 'object') {
       return JSON.stringify(data.donnees);
