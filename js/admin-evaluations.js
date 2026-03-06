@@ -1376,7 +1376,7 @@ const AdminEvaluations = {
 
         let subtitleParts = [`${this._capitalizeType(evaluation.type)} · ${matLabel} · ${evaluation.briques || 0} pts`];
         if (evaluation.date_ouverture) {
-            subtitleParts.push(`📅 ${this._formatDateShort(evaluation.date_ouverture)}`);
+            subtitleParts.push(`📅 Date : ${this._formatDateShort(evaluation.date_ouverture)}`);
         }
         document.getElementById('saisieSubtitle').textContent = subtitleParts.join(' · ');
 
@@ -1398,7 +1398,6 @@ const AdminEvaluations = {
             <th class="col-eleve">Élève</th>
             ${showSujet ? '<th class="col-banque">Banque</th>' : ''}
             ${showSujet ? '<th class="col-entrainement">Exercice</th>' : ''}
-            <th class="col-date-passage">Date</th>
             <th class="col-score">Score (%)</th>
             <th class="col-duree">Durée</th>
             <th class="col-resultat">Résultat</th>
@@ -1416,13 +1415,6 @@ const AdminEvaluations = {
 
             // Ligne verte si élève a réussi
             const isSuccess = r.is_validated === true || r.is_validated === 'true' || (r.validations && parseInt(r.validations) > 0 && r.validations !== 'non_rendu' && r.validations !== 'absent');
-
-            // Date : saisissable si vide/papier, lecture seule si auto
-            const hasAutoDate = r.date_passage && isAuto;
-            const dateValue = r.date_passage ? this._formatDateInput(r.date_passage) : '';
-            const dateCell = hasAutoDate
-                ? `<td class="col-date-passage">${this._formatDateShort(r.date_passage)}</td>`
-                : `<td class="col-date-passage"><input type="date" class="saisie-input saisie-date" value="${dateValue}" onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'date_passage', this.value)"></td>`;
 
             // Score : lecture seule (affiche uniquement les remontées auto)
             const scoreCell = `<td class="col-score">${score !== '' ? score + '%' : '—'}</td>`;
@@ -1514,7 +1506,6 @@ const AdminEvaluations = {
                     </td>
                     ${banqueCell}
                     ${entrainementCell}
-                    ${dateCell}
                     ${scoreCell}
                     ${dureeCell}
                     <td class="col-resultat">
@@ -1953,19 +1944,6 @@ const AdminEvaluations = {
             const selected = String(e.id).trim() === String(effectiveSelectedId).trim() ? 'selected' : '';
             return `<option value="${e.id}" ${selected}>${escapeHtml(e.titre || 'Sans titre')}</option>`;
         }).join('');
-    },
-
-    /**
-     * Formate une date pour un input type="date" (YYYY-MM-DD)
-     */
-    _formatDateInput(dateStr) {
-        if (!dateStr) return '';
-        // Si déjà au format YYYY-MM-DD
-        if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.substring(0, 10);
-        // Essayer de parser
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return '';
-        return d.toISOString().substring(0, 10);
     },
 
     _onAttributionBanqueChange(eleveId, banqueId) {
