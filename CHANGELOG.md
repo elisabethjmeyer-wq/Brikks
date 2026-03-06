@@ -4,6 +4,41 @@
 
 ---
 
+## 2026-03-06 — Session 18 : Mode de passation papier/numérique + programmation temporelle
+
+### Modifications
+
+1. **Mode de passation** (papier / numérique) :
+   - Wizard admin : champ "Mode de passation" dans l'étape Paramètres (aide contextuelle : "Papier : pas de bouton Commencer côté élève")
+   - Cartes admin : badge 📄 Papier affiché si mode papier
+   - Cartes élève : boutons Commencer/Repasser masqués pour les évaluations papier, badge 📄 dans les métadonnées
+   - Backend : `mode_passation` ajouté aux champs modifiables dans `updateEvaluation`
+   - **Prérequis** : ajouter la colonne `mode_passation` dans le header de la feuille EVALUATIONS
+
+2. **Programmation temporelle** (dates d'ouverture/fermeture) :
+   - Champs `date_ouverture` et `date_fermeture` ajoutés aux champs modifiables backend
+   - Statut effectif auto-calculé à partir des dates (planifiée → publiée → terminée)
+   - Côté élève : catégorie "fermées" ajoutée, évals planifiées affichées comme "à venir"
+   - Côté admin : dates affichées sur les cartes
+
+3. **Nettoyages** :
+   - Variable `eval` renommée en `evaluation` dans `eleve-evaluations.js` (mot réservé JS)
+   - Durée affichée correctement (`duree` prioritaire sur `duree_estimee`)
+   - `statut_resultat` ajouté aux champs modifiables dans `saveEvaluationResult`
+
+### Fichiers modifiés
+- `js/admin-evaluations.js` : badge papier, dates sur cartes, statut auto-calculé
+- `js/eleve-evaluations.js` : filtrage par dates, catégorie fermées, masquage boutons papier
+- `google-apps-script/Evaluations.gs` : champs modifiables étendus (mode_passation, dates, statut_resultat)
+- `google-apps-script/TOUT-EN-UN.gs` : idem
+
+### Décisions
+- Le mode papier est un flag visuel : il masque les boutons côté élève mais ne change pas le système d'attribution (toujours automatique par défaut, override manuel via le modal 👥)
+- Les colonnes `mode_passation`, `date_ouverture`, `date_fermeture` doivent être ajoutées manuellement dans le header de la feuille EVALUATIONS
+- Pas de génération PDF/impression pour le moment
+
+---
+
 ## 2026-03-05 — Session 17 : Refonte visuelle page évaluation élève
 
 ### Problèmes corrigés
