@@ -531,6 +531,7 @@ const EleveEvaluation = {
                 p: r.pourcentage
             } : null);
 
+            const attribution = this.evaluation.attribution || {};
             const params = {
                 evaluation_id: this.evaluation.id,
                 eleve_id: eleveId,
@@ -538,7 +539,9 @@ const EleveEvaluation = {
                 validations: globalResult.pointsEarned,
                 is_validated: globalResult.isValidated,
                 temps_passe: globalResult.elapsedTime,
-                details: JSON.stringify(detailsCompact)
+                details: JSON.stringify(detailsCompact),
+                banque_id: attribution.banque_id || '',
+                entrainement_id: attribution.entrainement_id || ''
             };
 
             console.log('[EVAL SAVE] Envoi:', JSON.stringify(params));

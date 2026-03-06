@@ -1366,7 +1366,7 @@ const AdminEvaluations = {
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
             ${showSujet ? '<th class="col-banque">Banque</th>' : ''}
-            ${showSujet && isConn ? '<th class="col-entrainement">Entraînement</th>' : ''}
+            ${showSujet && isConn ? '<th class="col-entrainement">Exercice</th>' : ''}
             <th class="col-score">Score (%)</th>
             <th class="col-resultat">Résultat</th>
             ${hasDateData ? '<th class="col-date-passage">Date</th>' : ''}
@@ -1417,10 +1417,21 @@ const AdminEvaluations = {
                 const currentEntrId = existingAttr ? String(existingAttr.entrainement_id || '').trim() : '';
                 const effectiveBanqueId = currentBanqueId || (autoBanque ? autoBanque.id : '');
 
+                // Auto-assign an exercise if none specified (connaissances)
+                let effectiveEntrId = currentEntrId;
+                if (isConn && !effectiveEntrId) {
+                    const banqueEntrs = this.entrainementsConn
+                        .filter(e => String(e.banque_exercice_id).trim() === String(effectiveBanqueId).trim() && e.statut !== 'evaluation');
+                    if (banqueEntrs.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * banqueEntrs.length);
+                        effectiveEntrId = String(banqueEntrs[randomIndex].id).trim();
+                    }
+                }
+
                 // Store initial attribution state
                 this._saisieAttributions[String(eleve.id).trim()] = {
                     banque_id: effectiveBanqueId,
-                    entrainement_id: currentEntrId,
+                    entrainement_id: effectiveEntrId,
                     source: isManual ? 'manuel' : 'auto',
                     auto_banque_id: autoBanque ? autoBanque.id : ''
                 };
@@ -1439,12 +1450,12 @@ const AdminEvaluations = {
                     </select>
                 </td>`;
 
-                // Entraînement dropdown (connaissances only)
+                // Exercice dropdown (connaissances only)
                 if (isConn) {
                     entrainementCell = `<td class="col-entrainement">
                         <select class="saisie-select entrainement-select" data-eleve="${eleve.id}"
                             onchange="AdminEvaluations._onSaisieEntrainementChange('${eleve.id}', this.value)">
-                            ${this._buildEntrainementOptions(effectiveBanqueId, currentEntrId)}
+                            ${this._buildEntrainementOptions(effectiveBanqueId, effectiveEntrId)}
                         </select>
                     </td>`;
                 }
@@ -1499,11 +1510,12 @@ const AdminEvaluations = {
         attr.source = banqueId ? 'manuel' : 'auto';
         attr._changed = true;
 
-        // Update entraînement dropdown if connaissances
+        // Update exercice dropdown if connaissances — auto-assign random
         const entrSelect = document.querySelector(`.entrainement-select[data-eleve="${eleveId}"]`);
         if (entrSelect) {
             entrSelect.innerHTML = this._buildEntrainementOptions(effectiveBanqueId, '');
-            attr.entrainement_id = '';
+            // Read back which exercise was auto-selected
+            attr.entrainement_id = entrSelect.value || '';
         }
 
         document.getElementById('saisieSaveBar').style.display = 'flex';
@@ -1672,6 +1684,9 @@ const AdminEvaluations = {
                     const isSpecial = validations === 'non_rendu' || validations === 'absent';
                     const numericValidations = isSpecial ? 0 : validations;
 
+                    // Include attribution banque_id + entrainement_id for traceability
+                    const attr = this._saisieAttributions ? this._saisieAttributions[eleveId] : null;
+
                     // Progression evaluation result
                     result = await this.callAPI('saveEvaluationResult', {
                         evaluation_id: this.saisieEvaluation.id,
@@ -1679,7 +1694,9 @@ const AdminEvaluations = {
                         ...changes,
                         validations: numericValidations,
                         statut_resultat: isSpecial ? validations : '',
-                        is_validated: isSpecial ? false : (changes.score !== undefined ? parseInt(changes.score) >= (this.saisieEvaluation.seuil || 80) : undefined)
+                        is_validated: isSpecial ? false : (changes.score !== undefined ? parseInt(changes.score) >= (this.saisieEvaluation.seuil || 80) : undefined),
+                        banque_id: attr ? attr.banque_id : '',
+                        entrainement_id: attr ? attr.entrainement_id : ''
                     });
                 } else if (this.saisieSommative) {
                     // Sommative result
@@ -1859,11 +1876,17 @@ const AdminEvaluations = {
             .filter(e => String(e.banque_exercice_id).trim() === String(banqueId).trim() && e.statut !== 'evaluation')
             .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
 
-        if (entrainements.length === 0) return '<option value="">Aucun entraînement</option>';
+        if (entrainements.length === 0) return '<option value="">Aucun exercice</option>';
 
-        return '<option value="">Aléatoire</option>' +
-            entrainements.map(e => {
-                const selected = String(e.id).trim() === String(selectedId).trim() ? 'selected' : '';
+        // Si pas de sélection existante, tirer au sort un exercice
+        let effectiveSelectedId = selectedId;
+        if (!effectiveSelectedId && entrainements.length > 0) {
+            const randomIndex = Math.floor(Math.random() * entrainements.length);
+            effectiveSelectedId = String(entrainements[randomIndex].id).trim();
+        }
+
+        return entrainements.map(e => {
+                const selected = String(e.id).trim() === String(effectiveSelectedId).trim() ? 'selected' : '';
                 return `<option value="${e.id}" ${selected}>${escapeHtml(e.titre || 'Sans titre')}</option>`;
             }).join('');
     },
