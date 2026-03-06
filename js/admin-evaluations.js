@@ -1434,22 +1434,10 @@ const AdminEvaluations = {
             if (showSujet) {
                 const existingAttr = attributionsMap[String(eleve.id).trim()];
 
-                // Compute auto banque from progression
-                const prog = this.progressionsEvaluation.find(p =>
-                    String(p.eleve_id).trim() === String(eleve.id).trim() &&
-                    String(p.type).trim() === evaluation.type &&
-                    (!p.matiere || String(p.matiere).trim() === (evaluation.matiere || this.currentMatiere))
+                // Compute auto banque from progression (résultats validés + fallback PROGRESSION_EVALUATION)
+                const autoBanqueIndex = this._getAutoBanqueIndex(
+                    eleve.id, evaluation.type, evaluation.matiere || this.currentMatiere, banques
                 );
-                const lastValidatedId = prog ? String(prog.derniere_banque_validee_id || '').trim() : '';
-                let autoBanqueIndex = 0;
-                if (lastValidatedId) {
-                    const lastIdx = banques.findIndex(b => String(b.id).trim() === lastValidatedId);
-                    if (lastIdx >= 0 && lastIdx < banques.length - 1) {
-                        autoBanqueIndex = lastIdx + 1;
-                    } else if (lastIdx === banques.length - 1) {
-                        autoBanqueIndex = lastIdx;
-                    }
-                }
                 const autoBanque = banques[autoBanqueIndex];
                 const allowedBanques = banques.filter((_b, idx) => idx <= autoBanqueIndex);
 
@@ -1733,7 +1721,9 @@ const AdminEvaluations = {
                     const numericValidations = isSpecial ? 0 : validations;
 
                     // Include attribution banque_id + entrainement_id for traceability
-                    const attr = this._saisieAttributions ? this._saisieAttributions[eleveId] : null;
+                    // Clé normalisée (trim) pour matcher _saisieAttributions
+                    const attrKey = String(eleveId).trim();
+                    const attr = this._saisieAttributions ? this._saisieAttributions[attrKey] : null;
 
                     // Progression evaluation result
                     result = await this.callAPI('saveEvaluationResult', {
@@ -1850,25 +1840,8 @@ const AdminEvaluations = {
         // Build rows
         const tbody = document.getElementById('attributionTableBody');
         tbody.innerHTML = this.eleves.map(eleve => {
-            // Find progression for this student
-            const prog = this.progressionsEvaluation.find(p =>
-                String(p.eleve_id).trim() === String(eleve.id).trim() &&
-                String(p.type).trim() === type &&
-                (!p.matiere || String(p.matiere).trim() === matiere)
-            );
-
-            // Determine auto banque (next one after last validated)
-            const lastValidatedId = prog ? String(prog.derniere_banque_validee_id).trim() : '';
-            let autoBanqueIndex = 0; // default: first banque
-            if (lastValidatedId) {
-                const lastIdx = banques.findIndex(b => String(b.id).trim() === lastValidatedId);
-                if (lastIdx >= 0 && lastIdx < banques.length - 1) {
-                    autoBanqueIndex = lastIdx + 1;
-                } else if (lastIdx === banques.length - 1) {
-                    autoBanqueIndex = lastIdx; // already at last banque
-                }
-            }
-
+            // Compute auto banque from progression (résultats validés + fallback PROGRESSION_EVALUATION)
+            const autoBanqueIndex = this._getAutoBanqueIndex(eleve.id, type, matiere, banques);
             const autoBanque = banques[autoBanqueIndex];
             const autoBanqueName = autoBanque ? escapeHtml(autoBanque.titre || 'Sans titre') : '-';
 
@@ -2062,6 +2035,72 @@ const AdminEvaluations = {
             document.getElementById('confirmDeleteBtn').disabled = false;
             document.getElementById('confirmDeleteBtn').textContent = 'Supprimer';
         }
+    },
+
+    // ========== AUTO-ATTRIBUTION HELPERS ==========
+
+    /**
+     * Détermine l'index de la prochaine banque à attribuer à un élève.
+     * Source de vérité : EVALUATION_RESULTATS (résultats validés avec banque_id).
+     * Fallback : PROGRESSION_EVALUATION (derniere_banque_validee_id).
+     *
+     * @param {string} eleveId - ID de l'élève
+     * @param {string} type - 'connaissances' ou 'savoir-faire'
+     * @param {string} matiere - 'FR', 'HG-EMC', etc.
+     * @param {Array} banques - banques triées par ordre
+     * @returns {number} index dans le tableau banques (0 = première banque)
+     */
+    _getAutoBanqueIndex(eleveId, type, matiere, banques) {
+        if (!banques.length) return 0;
+
+        // 1. Chercher les résultats validés de cet élève pour ce type/matière
+        // On parcourt TOUTES les évaluations du même type/matière
+        const sameTypeEvals = this.evaluations.filter(ev =>
+            String(ev.type).trim() === type &&
+            (String(ev.matiere || '').trim() === matiere || String(ev.matiere || '').trim() === 'Les deux')
+        );
+        const sameTypeEvalIds = new Set(sameTypeEvals.map(ev => String(ev.id).trim()));
+
+        // Résultats validés de cet élève pour ces évaluations
+        const validatedResults = this.resultats.filter(r =>
+            String(r.eleve_id).trim() === String(eleveId).trim() &&
+            sameTypeEvalIds.has(String(r.evaluation_id).trim()) &&
+            (r.is_validated === true || r.is_validated === 'true' || r.is_validated === 'TRUE')
+        );
+
+        // Collecter les banque_id validées
+        const validatedBanqueIds = new Set();
+        validatedResults.forEach(r => {
+            const bid = String(r.banque_id || '').trim();
+            if (bid) validatedBanqueIds.add(bid);
+        });
+
+        // 2. Trouver l'index de la dernière banque validée (la plus avancée dans l'ordre)
+        let lastValidatedIndex = -1;
+        banques.forEach((b, idx) => {
+            if (validatedBanqueIds.has(String(b.id).trim())) {
+                if (idx > lastValidatedIndex) lastValidatedIndex = idx;
+            }
+        });
+
+        // 3. Fallback sur PROGRESSION_EVALUATION si aucun résultat validé trouvé
+        if (lastValidatedIndex < 0) {
+            const prog = this.progressionsEvaluation.find(p =>
+                String(p.eleve_id).trim() === String(eleveId).trim() &&
+                String(p.type).trim() === type &&
+                (!p.matiere || String(p.matiere).trim() === matiere)
+            );
+            const lastValidatedId = prog ? String(prog.derniere_banque_validee_id || '').trim() : '';
+            if (lastValidatedId) {
+                lastValidatedIndex = banques.findIndex(b => String(b.id).trim() === lastValidatedId);
+            }
+        }
+
+        // 4. Prochaine banque = index + 1, ou même banque si déjà à la dernière
+        if (lastValidatedIndex >= 0) {
+            return Math.min(lastValidatedIndex + 1, banques.length - 1);
+        }
+        return 0; // Aucune banque validée → première banque
     },
 
     // ========== API ==========
