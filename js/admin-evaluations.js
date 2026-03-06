@@ -449,7 +449,7 @@ const AdminEvaluations = {
             </div>
         `;
 
-        const canSaisir = statusClass === 'publiee' || statusClass === 'terminee';
+        const canSaisir = statusClass === 'publiee' || statusClass === 'terminee' || statusClass === 'planifiee';
 
         return `
             <div class="eval-card ${typeClass}" data-id="${evaluation.id}">
@@ -731,7 +731,7 @@ const AdminEvaluations = {
                         <input type="text" class="form-input" id="evalTitre" value="${escapeHtml(d.titre || '')}" placeholder="Ex: Evaluation chapitre 1">
                     </div>
                     <div class="form-row">
-                        <div class="form-group">
+                        <div class="form-group" id="evalMatiereGroup" style="${type === 'bonus' ? '' : 'display:none'}">
                             <label>Matière <span class="req">*</span></label>
                             <select class="form-select" id="evalMatiere">
                                 <option value="FR" ${d.matiere === 'FR' || !d.matiere ? 'selected' : ''}>🇫🇷 Français</option>
@@ -857,6 +857,10 @@ const AdminEvaluations = {
      * Called when date fields change — re-render the statut display
      */
     _onDatesChange() {
+        // Sauvegarder TOUS les champs du formulaire avant le re-render
+        // (sinon le titre et les autres champs sont perdus)
+        this._collectCurrentFormFields();
+
         const dateOuverture = document.getElementById('evalDateOuverture')?.value || '';
         const dateFermeture = document.getElementById('evalDateFermeture')?.value || '';
         this.wizardData.date_ouverture = dateOuverture;
@@ -864,6 +868,42 @@ const AdminEvaluations = {
 
         // Re-render step to update statut display
         this._renderWizardStep();
+    },
+
+    /**
+     * Sauvegarde les valeurs actuelles de tous les champs du wizard step 1
+     * dans wizardData, sans validation (pas de blocage si titre vide).
+     * Utilisé avant un re-render pour ne pas perdre la saisie utilisateur.
+     */
+    _collectCurrentFormFields() {
+        const titre = document.getElementById('evalTitre')?.value;
+        if (titre !== undefined) this.wizardData.titre = titre.trim();
+
+        const briques = document.getElementById('evalBriques')?.value;
+        if (briques) this.wizardData.briques = parseInt(briques) || 3;
+
+        const seuil = document.getElementById('evalSeuil')?.value;
+        if (seuil) this.wizardData.seuil = parseInt(seuil) || 80;
+
+        const duree = document.getElementById('evalDuree')?.value;
+        if (duree !== undefined) this.wizardData.duree = duree ? parseInt(duree) : '';
+
+        const modePassation = document.getElementById('evalModePassation')?.value;
+        if (modePassation) this.wizardData.mode_passation = modePassation;
+
+        const matiereEl = document.getElementById('evalMatiere');
+        if (matiereEl && document.getElementById('evalMatiereGroup')?.style.display !== 'none') {
+            this.wizardData.matiere = matiereEl.value;
+        }
+
+        const categorie = document.getElementById('evalCategorie')?.value;
+        if (categorie !== undefined) this.wizardData.categorie = categorie;
+
+        const criteres = document.getElementById('evalCriteres')?.value;
+        if (criteres !== undefined) this.wizardData.criteres = criteres.trim();
+
+        const methodologie = document.getElementById('evalMethodologieTC')?.value;
+        if (methodologie !== undefined) this.wizardData.methodologie_id = methodologie;
     },
 
     _renderDefaultFields(d) {
@@ -1312,9 +1352,11 @@ const AdminEvaluations = {
         this.saisieChanges = {};
         this._saisieAttributions = {};
 
-        // Show saisie view immediately
+        // Show saisie view with loader
         document.getElementById('evaluations-content').style.display = 'none';
         document.getElementById('saisie-content').style.display = 'block';
+        document.getElementById('saisieLoader').style.display = 'block';
+        document.getElementById('saisieTableContainer').style.display = 'none';
 
         // Get existing results for this evaluation
         const evalResults = this.resultats.filter(r =>
@@ -1496,6 +1538,10 @@ const AdminEvaluations = {
                 </tr>
             `;
         }).join('');
+
+        // Hide loader, show table
+        document.getElementById('saisieLoader').style.display = 'none';
+        document.getElementById('saisieTableContainer').style.display = '';
     },
 
     /**
@@ -1599,6 +1645,8 @@ const AdminEvaluations = {
         // Show saisie view
         document.getElementById('evaluations-content').style.display = 'none';
         document.getElementById('saisie-content').style.display = 'block';
+        document.getElementById('saisieLoader').style.display = 'none';
+        document.getElementById('saisieTableContainer').style.display = '';
     },
 
     onSaisieChange(eleveId, field, value) {
