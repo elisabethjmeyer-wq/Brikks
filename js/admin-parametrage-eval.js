@@ -7,6 +7,7 @@
 const AdminParametrageEval = {
     // State
     parametresNotes: [],
+    evaluations: [],
     competences: [],
     criteresAll: [],
     criteresTemp: [],
@@ -22,6 +23,7 @@ const AdminParametrageEval = {
             await this.loadData();
             this.setupEventListeners();
             this.populateNotesForm();
+            this._renderBudgetBars();
             this.renderReferentiel();
             this.showContent();
         } catch (error) {
@@ -37,6 +39,14 @@ const AdminParametrageEval = {
             this.callAPI('getCompetencesReferentiel', {}),
             this.callAPI('getCriteresReussite', {})
         ]);
+
+        // Load evaluations for budget bars (via SheetsAPI, non-blocking)
+        try {
+            var evalsData = await SheetsAPI.getSheetData('EVALUATIONS');
+            this.evaluations = SheetsAPI.parseSheetData(evalsData);
+        } catch (_e) {
+            this.evaluations = [];
+        }
 
         if (notesResult.success) {
             this.parametresNotes = notesResult.data || [];
@@ -200,6 +210,85 @@ const AdminParametrageEval = {
         var d = new Date(dateStr);
         if (isNaN(d.getTime())) return String(dateStr).substring(0, 10);
         return d.toISOString().substring(0, 10);
+    },
+
+    // ========== BUDGET BARS ==========
+
+    /**
+     * Détermine le semestre d'une évaluation à partir de sa date
+     * et des plages de dates dans parametresNotes.
+     */
+    _getSemestreForEval(ev) {
+        var dateStr = ev.date_ouverture || ev.date_debut || '';
+        var evalDate;
+        if (dateStr) {
+            evalDate = new Date(dateStr);
+            if (isNaN(evalDate.getTime())) evalDate = new Date();
+        } else {
+            evalDate = new Date();
+        }
+
+        for (var i = 0; i < this.parametresNotes.length; i++) {
+            var p = this.parametresNotes[i];
+            var debut = p.date_debut ? new Date(p.date_debut) : null;
+            var fin = p.date_fin ? new Date(p.date_fin) : null;
+            if (debut && fin && evalDate >= debut && evalDate <= fin) {
+                return String(p.semestre);
+            }
+        }
+        return '';
+    },
+
+    /**
+     * Calcule les points distribués pour une matière et un semestre donnés.
+     * Exclut les évaluations bonus.
+     */
+    _getPointsForSemestre(matiere, semestre) {
+        var total = 0;
+        for (var i = 0; i < this.evaluations.length; i++) {
+            var ev = this.evaluations[i];
+            if (ev.type === 'bonus') continue;
+            var m = ev.matiere || '';
+            if (m !== matiere && m !== 'Les deux') continue;
+            if (this._getSemestreForEval(ev) === semestre) {
+                total += parseInt(ev.briques) || 0;
+            }
+        }
+        return total;
+    },
+
+    /**
+     * Rend les barres de budget sous chaque card semestre.
+     */
+    _renderBudgetBars() {
+        var self = this;
+        ['1', '2'].forEach(function(sem) {
+            var container = document.getElementById('budgetBarsS' + sem);
+            if (!container) return;
+
+            var html = '';
+            [{ matiere: 'FR', label: '🇫🇷 Français' }, { matiere: 'HG-EMC', label: '🌍 HG-EMC' }].forEach(function(m) {
+                var params = self.parametresNotes.find(function(p) {
+                    return String(p.matiere).trim() === m.matiere && String(p.semestre).trim() === sem;
+                });
+                var budget = parseFloat(params && params.budget_estime) || 100;
+                var total = self._getPointsForSemestre(m.matiere, sem);
+                var pct = Math.min(100, Math.round((total / budget) * 100));
+                var colorClass = pct > 100 ? ' over' : pct >= 80 ? ' high' : '';
+
+                html += '<div class="budget-row">' +
+                    '<div class="budget-row-label">' +
+                        '<span>' + m.label + '</span>' +
+                        '<span class="budget-row-values">' + total + ' / ' + budget + ' pts</span>' +
+                    '</div>' +
+                    '<div class="budget-row-bar">' +
+                        '<div class="budget-row-bar-fill' + colorClass + '" style="width: ' + pct + '%"></div>' +
+                    '</div>' +
+                '</div>';
+            });
+
+            container.innerHTML = html;
+        });
     },
 
     _getNotesFormData() {

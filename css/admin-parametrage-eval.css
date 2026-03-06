@@ -74,6 +74,47 @@
     margin-bottom: 12px;
 }
 
+/* Budget bars (sous chaque semestre) */
+.budget-bars {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 14px;
+}
+.budget-row-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+.budget-row-values {
+    font-weight: 600;
+    color: #334155;
+}
+.budget-row-bar {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+.budget-row-bar-fill {
+    height: 100%;
+    background: var(--accent-green, #22c55e);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+.budget-row-bar-fill.high {
+    background: var(--accent-orange, #f59e0b);
+}
+.budget-row-bar-fill.over {
+    background: var(--accent-red, #ef4444);
+}
+
 /* Matière config */
 .matiere-config {
     background: #f8fafc;
