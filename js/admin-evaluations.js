@@ -1342,6 +1342,15 @@ const AdminEvaluations = {
         document.getElementById('saisieLoader').style.display = 'block';
         document.getElementById('saisieTableContainer').style.display = 'none';
 
+        // Recharger les résultats frais (sans cache) pour capter les passages récents
+        try {
+            localStorage.removeItem(SheetsAPI._cachePrefix + 'EVALUATION_RESULTATS_');
+            const freshResultats = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+            this.resultats = SheetsAPI.parseSheetData(freshResultats);
+        } catch (_e) {
+            console.warn('Erreur rechargement résultats, utilisation des données en mémoire');
+        }
+
         // Get existing results for this evaluation
         const evalResults = this.resultats.filter(r =>
             String(r.evaluation_id).trim() === String(evaluationId).trim()
