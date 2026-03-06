@@ -1709,6 +1709,19 @@ const AdminEvaluations = {
                     const attrKey = String(eleveId).trim();
                     const attr = this._saisieAttributions ? this._saisieAttributions[attrKey] : null;
 
+                    // Déterminer is_validated :
+                    // - NR/ABS → false
+                    // - Score saisi → score >= seuil
+                    // - Pas de score mais points > 0 (mode papier) → true
+                    let isValidated;
+                    if (isSpecial) {
+                        isValidated = false;
+                    } else if (changes.score !== undefined && changes.score !== '') {
+                        isValidated = parseInt(changes.score) >= (this.saisieEvaluation.seuil || 80);
+                    } else if (numericValidations !== undefined && parseInt(numericValidations) > 0) {
+                        isValidated = true;
+                    }
+
                     // Progression evaluation result
                     result = await this.callAPI('saveEvaluationResult', {
                         evaluation_id: this.saisieEvaluation.id,
@@ -1716,7 +1729,7 @@ const AdminEvaluations = {
                         ...changes,
                         validations: numericValidations,
                         statut_resultat: isSpecial ? validations : '',
-                        is_validated: isSpecial ? false : (changes.score !== undefined ? parseInt(changes.score) >= (this.saisieEvaluation.seuil || 80) : undefined),
+                        is_validated: isValidated,
                         banque_id: attr ? attr.banque_id : '',
                         entrainement_id: attr ? attr.entrainement_id : ''
                     });

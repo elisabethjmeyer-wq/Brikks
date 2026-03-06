@@ -669,39 +669,177 @@ function deleteEvaluation(data) {
   }
 
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var evalId = String(data.id).trim();
 
-  // Supprimer les liens evaluation_questions
-  const eqSheet = ss.getSheetByName(SHEETS.EVALUATION_QUESTIONS);
-  if (eqSheet) {
-    const eqData = eqSheet.getDataRange().getValues();
-    const eqHeaders = eqData[0].map(h => String(h).toLowerCase().trim());
-    const eqIdCol = eqHeaders.indexOf('evaluation_id');
+  // 1. Lire l'évaluation pour connaître type/matière (nécessaire pour recalcul progression)
+  var evalSheet = ss.getSheetByName(SHEETS.EVALUATIONS);
+  if (!evalSheet) {
+    return { success: false, error: 'Sheet EVALUATIONS non trouve' };
+  }
+  var evalData = evalSheet.getDataRange().getValues();
+  var evalHeaders = evalData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var evalIdCol = evalHeaders.indexOf('id');
+  var evaluation = null;
+  var evalRow = -1;
 
-    for (let i = eqData.length - 1; i >= 1; i--) {
-      if (String(eqData[i][eqIdCol]).trim() === String(data.id).trim()) {
-        eqSheet.deleteRow(i + 1);
+  for (var i = 1; i < evalData.length; i++) {
+    if (String(evalData[i][evalIdCol]).trim() === evalId) {
+      evaluation = {};
+      evalHeaders.forEach(function(h, idx) { evaluation[h] = evalData[i][idx]; });
+      evalRow = i + 1;
+      break;
+    }
+  }
+
+  if (!evaluation) {
+    return { success: false, error: 'Evaluation non trouvee' };
+  }
+
+  var type = String(evaluation.type || '').trim();
+  var matiere = String(evaluation.matiere || '').trim();
+
+  // 2. Collecter les élèves ayant un résultat validé (pour recalcul progression)
+  var affectedEleves = [];
+  var resSheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
+  if (resSheet && resSheet.getLastRow() > 1) {
+    var resData = resSheet.getDataRange().getValues();
+    var resHeaders = resData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    var resEvalCol = resHeaders.indexOf('evaluation_id');
+    var resEleveCol = resHeaders.indexOf('eleve_id');
+    var resValidCol = resHeaders.indexOf('is_validated');
+
+    for (var j = 1; j < resData.length; j++) {
+      if (String(resData[j][resEvalCol]).trim() === evalId) {
+        var isValid = resData[j][resValidCol] === true || String(resData[j][resValidCol]).toUpperCase() === 'TRUE';
+        if (isValid) {
+          affectedEleves.push(String(resData[j][resEleveCol]).trim());
+        }
       }
     }
   }
 
-  // Supprimer l'evaluation
-  const sheet = ss.getSheetByName(SHEETS.EVALUATIONS);
-  if (!sheet) {
-    return { success: false, error: 'Sheet EVALUATIONS non trouve' };
-  }
+  // 3. Supprimer en cascade (ordre inverse des dépendances)
+  deleteRowsByValue_(ss, SHEETS.EVALUATION_QUESTIONS, 'evaluation_id', evalId);
+  deleteRowsByValue_(ss, SHEETS.EVALUATION_RESULTATS, 'evaluation_id', evalId);
+  deleteRowsByValue_(ss, SHEETS.ATTRIBUTION_SUJETS, 'evaluation_id', evalId);
 
-  const allData = sheet.getDataRange().getValues();
-  const headers = allData[0].map(h => String(h).toLowerCase().trim());
-  const idCol = headers.indexOf('id');
+  // 4. Supprimer l'évaluation elle-même
+  evalSheet.deleteRow(evalRow);
 
-  for (let i = allData.length - 1; i >= 1; i--) {
-    if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      sheet.deleteRow(i + 1);
-      return { success: true, message: 'Evaluation supprimee' };
+  // 5. Recalculer la progression pour les élèves affectés
+  if (affectedEleves.length > 0 && (type === 'connaissances' || type === 'savoir-faire')) {
+    try {
+      recalcProgressionForEleves_(ss, affectedEleves, type, matiere);
+    } catch (e) {
+      Logger.log('Erreur recalcul progression après suppression: ' + e.message);
     }
   }
 
-  return { success: false, error: 'Evaluation non trouvee' };
+  return { success: true, message: 'Evaluation et donnees associees supprimees' };
+}
+
+/**
+ * Recalcule la progression pour une liste d'élèves après suppression d'une évaluation.
+ * Parcourt tous les résultats validés restants pour trouver la dernière banque validée.
+ */
+function recalcProgressionForEleves_(ss, eleveIds, type, matiere) {
+  // Charger toutes les évaluations du même type/matière
+  var evalSheet = ss.getSheetByName(SHEETS.EVALUATIONS);
+  if (!evalSheet) return;
+  var evalData = evalSheet.getDataRange().getValues();
+  var evalHeaders = evalData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var sameTypeEvalIds = new Set();
+  for (var i = 1; i < evalData.length; i++) {
+    var ev = {};
+    evalHeaders.forEach(function(h, idx) { ev[h] = evalData[i][idx]; });
+    if (String(ev.type).trim() === type &&
+        (String(ev.matiere || '').trim() === matiere || String(ev.matiere || '').trim() === 'Les deux')) {
+      sameTypeEvalIds.add(String(ev.id).trim());
+    }
+  }
+
+  // Charger les banques triées par ordre
+  var banquesSheetName = type === 'connaissances' ? SHEETS.BANQUES_EXERCICES_CONN : SHEETS.BANQUES_EXERCICES;
+  var banquesSheet = ss.getSheetByName(banquesSheetName);
+  var banques = [];
+  if (banquesSheet && banquesSheet.getLastRow() > 1) {
+    var bData = banquesSheet.getDataRange().getValues();
+    var bHeaders = bData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    for (var b = 1; b < bData.length; b++) {
+      var bq = {};
+      bHeaders.forEach(function(h, idx) { bq[h] = bData[b][idx]; });
+      var bqMatiere = String(bq.matiere || '').trim();
+      if (!bqMatiere || bqMatiere === matiere || bqMatiere === 'Les deux') {
+        banques.push(bq);
+      }
+    }
+  }
+  banques.sort(function(a, b) { return (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999); });
+  var banqueOrder = {};
+  banques.forEach(function(bq, idx) { banqueOrder[String(bq.id).trim()] = idx; });
+
+  // Charger tous les résultats
+  var resSheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
+  if (!resSheet || resSheet.getLastRow() <= 1) {
+    // Plus aucun résultat → supprimer les progressions
+    eleveIds.forEach(function(eid) {
+      deleteProgressionEvaluation_(ss, eid, type, matiere);
+    });
+    return;
+  }
+  var resData = resSheet.getDataRange().getValues();
+  var resHeaders = resData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
+  // Pour chaque élève affecté, trouver la banque validée la plus avancée
+  eleveIds.forEach(function(eleveId) {
+    var lastValidatedIdx = -1;
+    var lastBanqueId = '';
+
+    for (var r = 1; r < resData.length; r++) {
+      var res = {};
+      resHeaders.forEach(function(h, idx) { res[h] = resData[r][idx]; });
+
+      if (String(res.eleve_id).trim() !== eleveId) continue;
+      if (!sameTypeEvalIds.has(String(res.evaluation_id).trim())) continue;
+      var isValid = res.is_validated === true || String(res.is_validated).toUpperCase() === 'TRUE';
+      if (!isValid) continue;
+
+      var bid = String(res.banque_id || '').trim();
+      if (bid && banqueOrder[bid] !== undefined && banqueOrder[bid] > lastValidatedIdx) {
+        lastValidatedIdx = banqueOrder[bid];
+        lastBanqueId = bid;
+      }
+    }
+
+    if (lastBanqueId) {
+      updateProgressionEvaluation_(eleveId, type, matiere, lastBanqueId);
+    } else {
+      // Plus aucune banque validée → supprimer la progression
+      deleteProgressionEvaluation_(ss, eleveId, type, matiere);
+    }
+  });
+}
+
+/**
+ * Supprime la ligne de progression d'un élève pour un type/matière donné.
+ */
+function deleteProgressionEvaluation_(ss, eleveId, type, matiere) {
+  var sheet = ss.getSheetByName(SHEETS.PROGRESSION_EVALUATION);
+  if (!sheet || sheet.getLastRow() <= 1) return;
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var typeCol = headers.indexOf('type');
+  var matiereCol = headers.indexOf('matiere');
+
+  for (var i = allData.length - 1; i >= 1; i--) {
+    if (String(allData[i][eleveIdCol]).trim() === String(eleveId).trim() &&
+        String(allData[i][typeCol]).trim() === String(type).trim() &&
+        (matiereCol < 0 || String(allData[i][matiereCol]).trim() === String(matiere).trim())) {
+      sheet.deleteRow(i + 1);
+    }
+  }
 }
 
 /**
