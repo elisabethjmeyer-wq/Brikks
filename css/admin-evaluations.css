@@ -640,7 +640,6 @@
 /* Saisie column widths */
 .col-score { width: 80px; }
 .col-resultat { width: 100px; }
-.col-date-passage { width: 120px; font-size: 12px; color: var(--gray-500); white-space: nowrap; }
 .col-duree { width: 70px; font-size: 13px; text-align: center; }
 .col-banque { min-width: 140px; }
 .col-entrainement { min-width: 120px; }
