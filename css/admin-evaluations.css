@@ -642,33 +642,26 @@
 .col-resultat { width: 100px; }
 .col-date-passage { width: 120px; font-size: 12px; color: var(--gray-500); white-space: nowrap; }
 .col-duree { width: 70px; font-size: 13px; text-align: center; }
-.col-sujet { min-width: 160px; max-width: 260px; }
+.col-banque { min-width: 140px; }
+.col-entrainement { min-width: 120px; }
 
-/* Sujet attribué */
-.sujet-info {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-.sujet-banque {
-    font-weight: 500;
-    font-size: 13px;
-    color: var(--gray-700);
-}
-.sujet-entr {
+/* Banque / Entraînement selects */
+.banque-select,
+.entrainement-select {
+    width: 100%;
+    max-width: 200px;
     font-size: 12px;
-    color: var(--gray-500);
-    background: var(--gray-100);
-    padding: 1px 6px;
-    border-radius: 4px;
+    padding: 5px 8px;
+    border: 2px solid var(--gray-200);
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
 }
-.sujet-source {
-    font-size: 11px;
-}
-.sujet-none {
-    color: var(--gray-400);
-    font-size: 13px;
+.banque-select:focus,
+.entrainement-select:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
 }
 
 /* Row without result */
