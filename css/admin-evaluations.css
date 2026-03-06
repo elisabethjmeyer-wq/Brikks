@@ -1037,6 +1037,16 @@
     margin-top: 4px;
 }
 
+.form-info-display {
+    font-size: 13px;
+    color: var(--gray-600);
+    background: var(--gray-50);
+    border: 1px dashed var(--gray-300);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 4px;
+}
+
 .input-with-suffix {
     position: relative;
     display: flex;
