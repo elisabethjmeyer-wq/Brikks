@@ -122,6 +122,15 @@ const SheetsAPI = {
     },
 
     /**
+     * Vide le cache d'un onglet spécifique
+     */
+    clearCacheFor(sheetName) {
+        try {
+            localStorage.removeItem(this._cachePrefix + sheetName);
+        } catch (_e) { /* ignore */ }
+    },
+
+    /**
      * Vide le cache (utile pour forcer un rechargement)
      */
     clearCache() {
