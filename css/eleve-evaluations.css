@@ -22,21 +22,10 @@
     --eval-controle-text: #334155;
 }
 
-/* ===== BREADCRUMB ===== */
-.breadcrumb {
-    font-size: 11px;
-    color: #9ca3af;
-    margin-bottom: 14px;
-}
-
-.breadcrumb-home {
-    color: #f59e0b;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.breadcrumb-sep {
-    margin: 0 6px;
+/* ===== PAGE CONTAINER ===== */
+#evaluations-content {
+    max-width: 740px;
+    margin: 0 auto;
 }
 
 /* ===== HERO HEADER ===== */
