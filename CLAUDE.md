@@ -183,6 +183,25 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **État** : créé (session 16). Fonctionnel.
 
+### Mes évaluations élève (liste) — REFONDU SESSION 21
+
+**Page** : `eleve/evaluations.html`
+**Fichiers** : `js/eleve-evaluations.js` (~660 lignes), `css/eleve-evaluations.css` (~800 lignes)
+**Backend** : lecture seule via `SheetsAPI` (6 tables) + `callAPI` pour les résultats compétences
+
+**Ce que fait le module :**
+- L'élève voit la liste de ses évaluations avec onglets (Évaluations / Bonus) et compteurs
+- Carte de progression en haut à droite : moyenne /20, points par catégorie (conn, SF, comp, bonus), lien vers la page notes
+- Toggle matière (FR / HG-EMC) filtre les évaluations et recalcule la moyenne
+- Cartes enrichies : badge type, statut (à faire, en cours, validée, non validée, terminée), score en cercle, points gagnés/perdus
+- Regroupement par statut : « À PASSER » en haut, « TERMINÉES » en bas
+- Lien « Voir le détail → » pour consulter la correction après passage
+
+**Appels API** (chargement, 8 en parallèle) :
+`EVALUATIONS`, `EVALUATION_RESULTATS`, `NOTES_SOMMATIVES`, `RESULTATS_SOMMATIVES`, `PARAMETRES_NOTES`, `OBJECTIFS_ELEVES` (via SheetsAPI) + `getEleveEntrainementsCompetences`, `getBanquesCompetences` (via callAPI)
+
+**État** : refondu (session 21). Design cohérent avec la page notes. Fonctionnel.
+
 ### Évaluation élève (passage d'évaluation) — REFONDU SESSION 17, SF AJOUTÉ SESSION 20
 
 **Page** : `eleve/evaluation.html`
