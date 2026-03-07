@@ -1,7 +1,6 @@
 /**
  * Eleve Evaluations - Liste des évaluations pour l'élève
  * Onglets : Évaluations (conn, SF, comp) / Bonus
- * Carte de progression avec note calculée
  * Review modal pour les évaluations terminées
  */
 
@@ -27,10 +26,10 @@ const EleveEvaluations = {
 
     // Type config
     typeConfig: {
-        'connaissances': { label: 'Connaissances', color: '#3b82f6', bg: '#dbeafe', textColor: '#1e40af', cssClass: 'type-conn' },
-        'savoir-faire': { label: 'Savoir-faire', color: '#f59e0b', bg: '#fef3c7', textColor: '#92400e', cssClass: 'type-sf' },
-        'competences': { label: 'Compétences', color: '#8b5cf6', bg: '#ede9fe', textColor: '#5b21b6', cssClass: 'type-comp' },
-        'bonus': { label: 'Bonus', color: '#eab308', bg: '#fef9c3', textColor: '#854d0e', cssClass: 'type-bonus' }
+        'connaissances': { label: 'Connaissances', color: '#3b82f6', cssClass: 'type-conn' },
+        'savoir-faire': { label: 'Savoir-faire', color: '#f59e0b', cssClass: 'type-sf' },
+        'competences': { label: 'Compétences', color: '#8b5cf6', cssClass: 'type-comp' },
+        'bonus': { label: 'Bonus', color: '#eab308', cssClass: 'type-bonus' }
     },
 
     // ========== INITIALIZATION ==========
@@ -39,7 +38,6 @@ const EleveEvaluations = {
             this.currentUserId = this._getCurrentUserId();
             await this.loadData();
             this.categorizeEvaluations();
-            this.renderProgressionCard();
             this.render();
             this.updateTabCounts();
             this.showContent();
@@ -128,158 +126,21 @@ const EleveEvaluations = {
         return '';
     },
 
-    _getCurrentSemestre() {
-        const today = new Date();
-        for (const p of this.parametresNotes) {
-            const debut = p.date_debut ? new Date(p.date_debut) : null;
-            const fin = p.date_fin ? new Date(p.date_fin) : null;
-            if (debut && fin && today >= debut && today <= fin) return p.semestre;
-        }
-        return '1';
-    },
-
     _getCondition(evaluation) {
         const type = evaluation.type || 'connaissances';
         const seuil = parseInt(evaluation.seuil) || 80;
         if (type === 'savoir-faire') return '100% de réussite';
         if (type === 'competences') return 'Critères de réussite';
-        return seuil + '% de réussite';
-    },
-
-    // ========== PROGRESSION CALCULATION ==========
-    _getParams(matiere, semestre) {
-        const p = this.parametresNotes.find(
-            row => row.matiere === matiere && String(row.semestre) === String(semestre)
-        );
-        return {
-            noteDepart: parseFloat(p?.note_depart) || 8,
-            budget: parseFloat(p?.budget_estime) || 100,
-            coeffProg: parseFloat(p?.coefficient_progression) || 3
-        };
-    },
-
-    _calculatePoints(matiere, semestre) {
-        const cats = { connaissances: 0, 'savoir-faire': 0, competences: 0, bonus: 0 };
-
-        const matchingEvals = this.evaluations.filter(ev => {
-            const m = ev.matiere || '';
-            if (m !== matiere && m !== 'Les deux') return false;
-            return this._getSemestreForEval(ev) === String(semestre);
-        });
-
-        matchingEvals.forEach(ev => {
-            const result = this.resultats.find(r =>
-                String(r.evaluation_id).trim() === String(ev.id).trim()
-            );
-            if (result) {
-                const validations = parseFloat(result.validations) || 0;
-                const categorie = ev.categorie || ev.type || 'connaissances';
-                if (cats[categorie] !== undefined) {
-                    cats[categorie] += validations;
-                }
-            }
-        });
-
-        return cats;
-    },
-
-    _calculateNoteProgression(matiere, semestre) {
-        const params = this._getParams(matiere, semestre);
-        const points = this._calculatePoints(matiere, semestre);
-
-        const ptsSansBonus = points.connaissances + points['savoir-faire'] + points.competences;
-        const noteBase = params.noteDepart + (ptsSansBonus / params.budget) * 19.5;
-        const noteAvecBonus = noteBase + points.bonus;
-        const note = Math.min(20, Math.max(0, Math.round(noteAvecBonus * 100) / 100));
-
-        return { note, noteDepart: params.noteDepart, budget: params.budget, ptsSansBonus, bonus: points.bonus, categories: points, coeffProg: params.coeffProg };
-    },
-
-    _calculateMoyenne(noteProg, coeffProg, matiere, semestre) {
-        let totalPts = noteProg * coeffProg;
-        let totalCoefs = coeffProg;
-
-        this.notesSommatives
-            .filter(s => s.matiere === matiere && String(s.semestre) === String(semestre))
-            .forEach(s => {
-                const res = this.resultatsSommatives.find(r =>
-                    String(r.sommative_id).trim() === String(s.id).trim()
-                );
-                if (res && res.note !== '' && res.note !== undefined) {
-                    const note = parseFloat(res.note);
-                    const bareme = parseFloat(s.bareme) || 20;
-                    const coef = parseFloat(s.coefficient) || 1;
-                    if (!isNaN(note)) {
-                        const note20 = (note / bareme) * 20;
-                        totalPts += note20 * coef;
-                        totalCoefs += coef;
-                    }
-                }
-            });
-
-        if (totalCoefs === 0) return null;
-        return Math.round(Math.min(20, Math.max(0, totalPts / totalCoefs)) * 100) / 100;
-    },
-
-    // ========== PROGRESSION CARD ==========
-    renderProgressionCard() {
-        const container = document.getElementById('progressionCard');
-        if (!container) return;
-
-        const matieres = [...new Set(this.parametresNotes.map(p => p.matiere))];
-        const matiere = matieres[0] || 'HG-EMC';
-        const semestre = this._getCurrentSemestre();
-
-        const prog = this._calculateNoteProgression(matiere, semestre);
-        const moyenne = this._calculateMoyenne(prog.note, prog.coeffProg, matiere, semestre);
-
-        const noteDisplay = moyenne !== null ? moyenne : prog.note;
-        const noteLabel = moyenne !== null ? 'Moyenne' : 'Progression';
-        const percentage = Math.min(100, (noteDisplay / 20) * 100);
-        const cats = prog.categories;
-
-        // Count completed evals
-        const totalDone = this.resultats.length;
-        const totalEvals = this.evaluations.length;
-
-        container.innerHTML = `
-            <a href="notes.html" class="progression-card">
-                <div class="prog-top">
-                    <div class="prog-note-wrap">
-                        <span class="prog-note-value">${noteDisplay.toFixed(1)}</span>
-                        <span class="prog-note-max">/20</span>
-                    </div>
-                    <div class="prog-info">
-                        <span class="prog-label">${escapeHtml(noteLabel)}</span>
-                        <span class="prog-sem">S${escapeHtml(String(semestre))} · ${escapeHtml(matiere)}</span>
-                    </div>
-                </div>
-                <div class="prog-bar-wrap">
-                    <div class="prog-bar">
-                        <div class="prog-bar-fill" style="width: ${percentage}%"></div>
-                    </div>
-                </div>
-                <div class="prog-cats">
-                    <span class="prog-cat conn" title="Connaissances">${cats.connaissances} pts</span>
-                    <span class="prog-cat sf" title="Savoir-faire">${cats['savoir-faire']} pts</span>
-                    <span class="prog-cat comp" title="Compétences">${cats.competences} pts</span>
-                    ${cats.bonus > 0 ? `<span class="prog-cat bonus" title="Bonus">+${cats.bonus}</span>` : ''}
-                </div>
-                <div class="prog-footer">
-                    <span class="prog-count">${totalDone}/${totalEvals} évaluations passées</span>
-                    <span class="prog-link-text">Voir mes notes →</span>
-                </div>
-            </a>
-        `;
+        return seuil + '% de bonnes réponses';
     },
 
     // ========== CATEGORIZATION ==========
     categorizeEvaluations() {
         this.categories = {
-            available: [],   // Disponibles (pas encore passées)
-            upcoming: [],    // Planifiées
-            done: [],        // Terminées (avec résultat, validé ou non)
-            bonus: []        // Bonus disponibles
+            available: [],
+            upcoming: [],
+            done: [],
+            bonus: []
         };
 
         this.evaluations.forEach(ev => {
@@ -329,13 +190,9 @@ const EleveEvaluations = {
     // ========== TABS ==========
     switchTab(tab) {
         this.currentTab = tab;
-
-        // Toggle active button
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tab);
         });
-
-        // Toggle content
         document.querySelectorAll('.tab-content').forEach(el => {
             el.classList.toggle('active', el.id === 'tab-' + tab);
         });
@@ -389,17 +246,14 @@ const EleveEvaluations = {
 
         let html = '';
 
-        // Available evaluations
         if (available.length > 0) {
             html += this._renderSection('À passer', available, 'section-active');
         }
 
-        // Upcoming
         if (upcoming.length > 0) {
             html += this._renderSection('À venir', upcoming, 'section-upcoming');
         }
 
-        // Done (collapsible, open by default)
         if (done.length > 0) {
             html += `
                 <div class="eval-section section-done">
@@ -437,7 +291,6 @@ const EleveEvaluations = {
         const upcomingBonus = bonus.filter(b => b.cardStatus === 'upcoming');
 
         let html = '';
-
         if (availableBonus.length > 0) {
             html += this._renderSection('Disponibles', availableBonus, 'section-active');
         }
@@ -484,6 +337,7 @@ const EleveEvaluations = {
         const duree = parseInt(evaluation.duree) || 0;
         const briques = parseInt(evaluation.briques) || 1;
         const condition = this._getCondition(evaluation);
+        const matiere = evaluation.matiere || '';
 
         // CSS card class
         let cardClass = `eval-card ${config.cssClass}`;
@@ -499,95 +353,86 @@ const EleveEvaluations = {
             cardClass += ' clickable';
         }
 
-        // Score circle for done cards
-        let scoreCircle = '';
-        if (resultat && isDone) {
-            const score = parseInt(resultat.score) || 0;
-            const isOk = cardStatus === 'validated';
-            scoreCircle = `
-                <div class="card-score ${isOk ? 'score-ok' : 'score-ko'}">
-                    <span class="card-score-value">${score}%</span>
-                </div>
-            `;
-        }
-
-        // Type icon
-        const typeIcons = {
-            'connaissances': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>',
-            'savoir-faire': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
-            'competences': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>',
-            'bonus': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
-        };
-        const typeIcon = typeIcons[type] || typeIcons['connaissances'];
-
-        // Status badge
-        let statusBadge = '';
-        if (cardStatus === 'validated') {
-            statusBadge = '<span class="status-badge validated">Validée</span>';
-        } else if (cardStatus === 'failed') {
-            statusBadge = '<span class="status-badge failed">Non validée</span>';
-        } else if (cardStatus === 'done') {
-            statusBadge = '<span class="status-badge closed">Terminée</span>';
-        }
-
-        // Points in play
-        let pointsHtml = '';
-        if (resultat && (cardStatus === 'validated' || cardStatus === 'done')) {
+        // Points badge (top right)
+        let pointsBadge = '';
+        if (isDone && resultat) {
             const validations = parseFloat(resultat.validations) || 0;
-            if (validations > 0) {
-                pointsHtml = `<span class="card-points earned">+${validations} pt${validations > 1 ? 's' : ''}</span>`;
+            const isValidated = cardStatus === 'validated' || cardStatus === 'done';
+            if (isValidated && validations > 0) {
+                pointsBadge = `<span class="card-points earned">+${validations}/${briques}</span>`;
+            } else if (cardStatus === 'failed') {
+                pointsBadge = `<span class="card-points lost">+0/${briques}</span>`;
+            } else {
+                pointsBadge = `<span class="card-points earned">+${validations}/${briques}</span>`;
             }
-        } else if (cardStatus === 'available') {
-            pointsHtml = `<span class="card-points in-play">${briques} pt${briques > 1 ? 's' : ''} en jeu</span>`;
+        } else {
+            pointsBadge = `<span class="card-points pending">+${briques} pt${briques > 1 ? 's' : ''}</span>`;
         }
 
-        // Meta items
-        let metaItems = [];
-        if (duree > 0) metaItems.push(`${duree} min`);
-        metaItems.push(condition);
-        if (isPapier) metaItems.push('En classe');
+        // Type subtitle (colored text)
+        const typeSubtitle = `<div class="card-type ${config.cssClass}">${escapeHtml(config.label)}</div>`;
 
-        // Date
-        let dateHtml = '';
-        if (cardStatus === 'upcoming' && evaluation.date_ouverture) {
-            dateHtml = `<div class="card-date">Ouvre le ${this.formatDate(evaluation.date_ouverture)}</div>`;
+        // Meta line: date · durée · matière · mode
+        const metaParts = [];
+        const dateStr = this._getCardDate(evaluation, cardStatus);
+        if (dateStr) metaParts.push(`<span class="meta-date">📅 ${escapeHtml(dateStr)}</span>`);
+        if (duree > 0) metaParts.push(`<span class="meta-duree">⏱ ${duree} min</span>`);
+        if (matiere && matiere !== 'Les deux') metaParts.push(`<span class="meta-matiere">${escapeHtml(matiere)}</span>`);
+        if (matiere === 'Les deux') metaParts.push('<span class="meta-matiere">FR + HG</span>');
+        if (isPapier) {
+            metaParts.push('<span class="meta-mode papier">📄 Papier</span>');
+        } else if (cardStatus !== 'upcoming') {
+            metaParts.push('<span class="meta-mode numerique">💻 Numérique</span>');
         }
-        if (evaluation.date_fermeture && cardStatus === 'available') {
-            dateHtml = `<div class="card-date">Ferme le ${this.formatDate(evaluation.date_fermeture)}</div>`;
-        }
+        const metaLine = metaParts.length > 0
+            ? `<div class="card-meta">${metaParts.join('<span class="meta-sep">·</span>')}</div>`
+            : '';
 
-        // Action
+        // Condition line
+        const conditionLine = `<div class="card-condition">Réussite : ${escapeHtml(condition)}</div>`;
+
+        // Action / status line
         let actionHtml = '';
         if (cardStatus === 'available' && !isPapier) {
-            actionHtml = `<a href="evaluation.html?id=${evaluation.id}" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Commencer</a>`;
+            actionHtml = `<a href="evaluation.html?id=${evaluation.id}" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">▶ Commencer</a>`;
         } else if (cardStatus === 'available' && isPapier) {
-            actionHtml = '<span class="card-papier">Évaluation en classe</span>';
+            actionHtml = '<div class="card-status-line papier">📄 <em>Évaluation en classe</em></div>';
         } else if (cardStatus === 'upcoming') {
             const countdown = this.getCountdown(evaluation.date_ouverture);
-            actionHtml = `<span class="card-countdown">${countdown}</span>`;
+            actionHtml = `<div class="card-status-line upcoming">🔒 <em>${escapeHtml(countdown)}</em></div>`;
         } else if (isDone) {
-            actionHtml = '<span class="card-detail-link">Voir le détail →</span>';
+            actionHtml = '<div class="card-detail-link">Voir le détail →</div>';
         }
 
         return `
             <div class="${cardClass}"${clickAttr}>
-                ${scoreCircle}
-                <div class="card-content">
-                    <div class="card-header">
-                        <div class="card-type-icon ${config.cssClass}">${typeIcon}</div>
-                        <span class="card-type-label ${config.cssClass}">${config.label}</span>
-                        ${statusBadge}
-                        ${pointsHtml}
+                <div class="card-body">
+                    <div class="card-title-row">
+                        <span class="card-bullet ${config.cssClass}"></span>
+                        <h3 class="card-title">${escapeHtml(title)}</h3>
+                        ${pointsBadge}
                     </div>
-                    <div class="card-title">${escapeHtml(title)}</div>
-                    <div class="card-meta">${metaItems.join(' · ')}</div>
-                    ${dateHtml}
-                </div>
-                <div class="card-action">
+                    ${typeSubtitle}
+                    ${metaLine}
+                    ${conditionLine}
                     ${actionHtml}
                 </div>
             </div>
         `;
+    },
+
+    _getCardDate(evaluation, cardStatus) {
+        if (cardStatus === 'upcoming' && evaluation.date_ouverture) {
+            return this.formatDate(evaluation.date_ouverture);
+        }
+        if (cardStatus === 'available' && evaluation.date_fermeture) {
+            return 'Ferme le ' + this.formatDate(evaluation.date_fermeture);
+        }
+        // For done cards, show date_ouverture if available
+        if (evaluation.date_ouverture) {
+            return this.formatDate(evaluation.date_ouverture);
+        }
+        return '';
     },
 
     // ========== REVIEW MODAL ==========
@@ -697,32 +542,37 @@ const EleveEvaluations = {
         if (!dateStr) return '';
         try {
             const date = new Date(dateStr);
-            return date.toLocaleDateString('fr-FR', {
-                day: '2-digit',
-                month: 'long',
-                hour: '2-digit',
-                minute: '2-digit'
-            }).replace(' ', ' à ');
+            const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+            const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
+            const day = days[date.getDay()];
+            const num = date.getDate();
+            const month = months[date.getMonth()];
+            const hours = date.getHours();
+            const mins = String(date.getMinutes()).padStart(2, '0');
+            if (hours === 0 && mins === '00') {
+                return `${day} ${num} ${month}`;
+            }
+            return `${day} ${num} ${month} à ${hours}h${mins}`;
         } catch {
             return dateStr;
         }
     },
 
     getCountdown(dateStr) {
-        if (!dateStr) return '?';
+        if (!dateStr) return 'Pas encore ouvert';
         try {
             const date = new Date(dateStr);
             const now = new Date();
             const diff = date - now;
-            if (diff <= 0) return 'Bientôt';
+            if (diff <= 0) return 'Bientôt disponible';
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            if (days > 0) return `${days}j ${hours}h`;
-            if (hours > 0) return `${hours}h ${minutes}min`;
-            return `${minutes}min`;
+            if (days > 0) return `Pas encore ouvert — dans ${days}j ${hours}h`;
+            if (hours > 0) return `Pas encore ouvert — dans ${hours}h ${minutes}min`;
+            return `Pas encore ouvert — dans ${minutes}min`;
         } catch {
-            return '?';
+            return 'Pas encore ouvert';
         }
     }
 };
