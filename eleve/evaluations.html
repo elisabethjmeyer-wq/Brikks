@@ -26,16 +26,24 @@
 
     <!-- Contenu principal -->
     <div id="evaluations-content" style="display: none;">
+        <!-- Fil d'ariane -->
+        <nav class="breadcrumb">
+            <span class="breadcrumb-home" onclick="window.location.href='../index.html'">🏠 Accueil</span>
+            <span class="breadcrumb-sep">›</span>
+            <span>Mes évaluations</span>
+        </nav>
+
         <!-- Header hero -->
         <header class="hero-header">
             <div class="hero-left">
                 <h1 class="hero-title">Mes évaluations</h1>
                 <p class="hero-subtitle">Passe tes évaluations et suis ta progression.</p>
-                <span class="hero-link" onclick="window.location.href='notes.html'">📊 Mes résultats →</span>
+                <div class="hero-btn" onclick="window.location.href='notes.html'">📊 Consulter mes résultats</div>
             </div>
             <div class="hero-separator"></div>
             <div class="hero-gauges" id="progressionBanner"><!-- Mini gauges --></div>
         </header>
+        <div class="hero-hint">Survole une jauge pour voir ton objectif</div>
 
         <!-- Onglets -->
         <div class="tabs-bar">

@@ -236,11 +236,12 @@ const EleveEvaluations = {
     // ========== HERO HEADER (gauges) ==========
     _getNoteColor(note) {
         if (note === null) return '#9ca3af';
-        if (note < 5) return '#ef4444';
-        if (note < 8) return '#f97316';
-        if (note < 10) return '#f59e0b';
-        if (note < 12) return '#eab308';
-        if (note < 15) return '#84cc16';
+        const ratio = note / 20;
+        if (ratio < 0.25) return '#ef4444';
+        if (ratio < 0.4) return '#f97316';
+        if (ratio < 0.5) return '#f59e0b';
+        if (ratio < 0.6) return '#eab308';
+        if (ratio < 0.75) return '#84cc16';
         return '#10b981';
     },
 
@@ -253,38 +254,78 @@ const EleveEvaluations = {
             { code: 'HG-EMC', label: 'HG-EMC', accentColor: '#8b5cf6' }
         ];
 
-        const radius = 26.25;
-        const circumference = 2 * Math.PI * radius;
+        const size = 80;
+        const strokeW = 7;
+        const r = (size - strokeW) / 2; // 36.5
+        const circ = 2 * Math.PI * r;
+        const cx = size / 2;
+        const cy = size / 2;
+        const tickLen = 5;
 
         const gauges = matieres.map(mat => {
             const moyenne = this._calculateMoyenne(mat.code);
             const objectif = this._getObjectif(mat.code);
             const note = moyenne !== null ? Math.round(moyenne * 10) / 10 : null;
             const pct = note !== null ? Math.min(1, Math.max(0, note / 20)) : 0;
-            const offset = circumference * (1 - pct);
             const dynColor = this._getNoteColor(note);
-
             const noteDisplay = note !== null ? note.toFixed(1) : '—';
-            const objLine = objectif
-                ? `<span class="mini-gauge-obj">obj. ${objectif}</span>`
-                : `<a href="notes.html" class="mini-gauge-obj link" style="color:${mat.accentColor}">Fixe un obj.</a>`;
+
+            // Objective calculations
+            const objPct = objectif ? Math.min(objectif / 20, 1) : null;
+
+            // SVG layers
+            // Layer 1: Track
+            const trackCircle = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#f0f0f0" stroke-width="${strokeW}" style="transform:rotate(-90deg);transform-origin:center"/>`;
+
+            // Layer 2: Objective zone (faint arc from 0 to objective)
+            let objZone = '';
+            if (objPct) {
+                objZone = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${mat.accentColor}" stroke-width="${strokeW}" stroke-dasharray="${circ}" stroke-dashoffset="${circ * (1 - objPct)}" opacity="0.1" style="transform:rotate(-90deg);transform-origin:center"/>`;
+            }
+
+            // Layer 3: Progress arc
+            const progressCircle = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${dynColor}" stroke-width="${strokeW}" stroke-dasharray="${circ}" stroke-dashoffset="${circ * (1 - pct)}" stroke-linecap="round" class="mini-gauge-arc" style="transform:rotate(-90deg);transform-origin:center"/>`;
+
+            // Layer 4: Objective tick mark
+            let objTick = '';
+            let tooltipHtml = '';
+            if (objPct) {
+                const objAngle = (objPct * 360 - 90) * (Math.PI / 180);
+                const x1 = cx + (r - tickLen) * Math.cos(objAngle);
+                const y1 = cy + (r - tickLen) * Math.sin(objAngle);
+                const x2 = cx + (r + tickLen) * Math.cos(objAngle);
+                const y2 = cy + (r + tickLen) * Math.sin(objAngle);
+                objTick = `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${mat.accentColor}" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>`;
+
+                // Tooltip position (outside the arc)
+                const tooltipX = cx + (r + 16) * Math.cos(objAngle);
+                const tooltipY = cy + (r + 16) * Math.sin(objAngle);
+                tooltipHtml = `<div class="mini-gauge-tooltip" style="left:${(tooltipX - 22).toFixed(1)}px;top:${(tooltipY - 12).toFixed(1)}px">🎯 Objectif\u00a0: ${objectif}/20</div>`;
+            }
+
+            // Below gauge
+            let belowHtml = '';
+            if (!objectif) {
+                belowHtml = `<a href="notes.html" class="mini-gauge-obj" style="color:${mat.accentColor}">Fixe un obj.</a>`;
+            }
 
             return `
                 <div class="mini-gauge">
                     <div class="mini-gauge-circle">
-                        <svg viewBox="0 0 58 58" width="58" height="58">
-                            <circle cx="29" cy="29" r="${radius}" fill="none" stroke="#e5e7eb" stroke-width="5.5"/>
-                            <circle cx="29" cy="29" r="${radius}" fill="none" stroke="${dynColor}" stroke-width="5.5"
-                                    stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
-                                    stroke-linecap="round" class="mini-gauge-arc"/>
+                        <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+                            ${trackCircle}
+                            ${objZone}
+                            ${progressCircle}
+                            ${objTick}
                         </svg>
                         <div class="mini-gauge-center">
                             <span class="mini-gauge-value" style="color:${dynColor}">${noteDisplay}</span>
                             <span class="mini-gauge-unit">/20</span>
                         </div>
+                        ${tooltipHtml}
                     </div>
                     <span class="mini-gauge-label" style="color:${mat.accentColor}">${mat.label}</span>
-                    ${objLine}
+                    ${belowHtml}
                 </div>
             `;
         }).join('');
