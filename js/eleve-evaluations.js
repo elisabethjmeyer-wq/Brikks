@@ -702,74 +702,9 @@ const EleveEvaluations = {
         return '';
     },
 
-    // ========== REVIEW MODAL ==========
+    // ========== REVIEW ==========
     openReview(evaluationId) {
-        const ev = this.categories.done.find(e => String(e.id) === String(evaluationId))
-            || this.categories.bonus.find(e => String(e.id) === String(evaluationId));
-        if (!ev || !ev.resultat) return;
-
-        const resultat = ev.resultat;
-        const type = ev.type || 'connaissances';
-        const config = this.typeConfig[type] || this.typeConfig['connaissances'];
-        const isValidated = this._isTruthy(resultat.is_validated);
-        const score = resultat.score || 0;
-        const validations = parseFloat(resultat.validations) || 0;
-        const tempsPasse = parseInt(resultat.temps_passe) || 0;
-
-        let details = [];
-        try { details = JSON.parse(resultat.details || '[]'); } catch (_e) { /* ignore */ }
-
-        const minutes = Math.floor(tempsPasse / 60);
-        const seconds = tempsPasse % 60;
-        const tempsStr = minutes > 0 ? `${minutes} min ${seconds}s` : `${seconds}s`;
-
-        let html = `
-            <div class="review-header ${config.cssClass}">
-                <h2>${escapeHtml(ev.titre || 'Évaluation')}</h2>
-                <span class="review-type">${config.label}</span>
-            </div>
-            <div class="review-summary">
-                <div class="review-score ${isValidated ? 'success' : 'fail'}">
-                    <div class="review-score-value">${score}%</div>
-                    <div class="review-score-label">${isValidated ? 'Validée' : 'Non validée'}</div>
-                </div>
-                <div class="review-stats">
-                    <div class="review-stat">
-                        <span class="stat-value">${validations}</span>
-                        <span class="stat-label">Point${validations > 1 ? 's' : ''} gagné${validations > 1 ? 's' : ''}</span>
-                    </div>
-                    <div class="review-stat">
-                        <span class="stat-value">${tempsStr}</span>
-                        <span class="stat-label">Temps passé</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        if (details && details.length > 0) {
-            html += '<div class="review-details"><h3>Détail par étape</h3>';
-            details.forEach((d, i) => {
-                if (!d) return;
-                const stepPct = d.p || 0;
-                const stepOk = stepPct >= (parseInt(ev.seuil) || 80);
-                html += `
-                    <div class="review-step ${stepOk ? 'step-ok' : 'step-ko'}">
-                        <span class="step-num">${i + 1}</span>
-                        <span class="step-format">${escapeHtml(this._formatLabel(d.f || 'inconnu'))}</span>
-                        <span class="step-score">${d.c || 0}/${d.t || 0}</span>
-                        <span class="step-pct">${stepPct}%</span>
-                    </div>
-                `;
-            });
-            html += '</div>';
-        }
-
-        document.getElementById('reviewContent').innerHTML = html;
-        document.getElementById('reviewModal').classList.remove('hidden');
-    },
-
-    closeReview() {
-        document.getElementById('reviewModal').classList.add('hidden');
+        window.location.href = 'evaluation.html?id=' + evaluationId + '&mode=review';
     },
 
     _formatLabel(format) {

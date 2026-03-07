@@ -423,6 +423,9 @@ function handleRequest(e) {
       case 'getEvaluationResults':
         result = getEvaluationResults(request);
         break;
+      case 'getEvaluationResultForReview':
+        result = getEvaluationResultForReview(request);
+        break;
       case 'getEleveEvaluations':
         result = getEleveEvaluations(request);
         break;
@@ -4941,10 +4944,32 @@ function getEvaluationForEleve(data) {
     actualEntrainementId = String(result.questions[0].id || '').trim();
   }
 
+  // 5. Recuperer le titre de la banque pour le message conseil
+  var banqueTitre = '';
+  var banqueSheetName = type === 'connaissances' ? SHEETS.BANQUES_EXERCICES_CONN : SHEETS.BANQUES_EXERCICES;
+  var banqueSheet = ss.getSheetByName(banqueSheetName);
+  if (banqueSheet) {
+    var bData = banqueSheet.getDataRange().getValues();
+    if (bData.length >= 2) {
+      var bHeaders = bData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      var bIdCol = bHeaders.indexOf('id');
+      var bTitreCol = bHeaders.indexOf('titre');
+      if (bIdCol >= 0 && bTitreCol >= 0) {
+        for (var k = 1; k < bData.length; k++) {
+          if (String(bData[k][bIdCol]).trim() === String(banqueId).trim()) {
+            banqueTitre = String(bData[k][bTitreCol]).trim();
+            break;
+          }
+        }
+      }
+    }
+  }
+
   evaluation.attribution = {
     banque_id: banqueId,
     entrainement_id: actualEntrainementId,
-    source: source
+    source: source,
+    banque_titre: banqueTitre
   };
 
   // Pour connaissances : retourner les donnees structurees par etape
@@ -5516,15 +5541,16 @@ function saveEvaluationResult(data) {
     sheet.appendRow(['id', 'evaluation_id', 'eleve_id', 'score', 'validations', 'is_validated', 'temps_passe', 'date_passage', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut', 'banque_id', 'entrainement_id']);
   }
 
-  // Migration progressive : ajouter les colonnes banque_id et entrainement_id si absentes
+  // Migration progressive : ajouter les colonnes manquantes
   var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
-  if (headerNames.indexOf('banque_id') < 0) {
-    sheet.getRange(1, sheet.getLastColumn() + 1).setValue('banque_id');
-  }
-  if (headerNames.indexOf('entrainement_id') < 0) {
-    sheet.getRange(1, sheet.getLastColumn() + 1).setValue('entrainement_id');
-  }
+  var migrationCols = ['banque_id', 'entrainement_id', 'correction_html', 'detailed_results'];
+  migrationCols.forEach(function(col) {
+    if (headerNames.indexOf(col) < 0) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
+      headerNames.push(col);
+    }
+  });
 
   // Vérifier si un résultat existe déjà pour cet élève/évaluation (mise à jour)
   var allData = sheet.getDataRange().getValues();
@@ -5543,7 +5569,7 @@ function saveEvaluationResult(data) {
 
   if (existingRow > 0) {
     // Mise à jour du résultat existant
-    var updatableFields = ['score', 'validations', 'is_validated', 'temps_passe', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut', 'statut_resultat', 'banque_id', 'entrainement_id'];
+    var updatableFields = ['score', 'validations', 'is_validated', 'temps_passe', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut', 'statut_resultat', 'banque_id', 'entrainement_id', 'correction_html', 'detailed_results'];
     updatableFields.forEach(function(field) {
       if (data[field] !== undefined) {
         var colIdx = headers.indexOf(field);
@@ -5591,6 +5617,8 @@ function saveEvaluationResult(data) {
     if (col === 'statut') return data.statut || '';
     if (col === 'banque_id') return data.banque_id || '';
     if (col === 'entrainement_id') return data.entrainement_id || '';
+    if (col === 'correction_html') return data.correction_html || '';
+    if (col === 'detailed_results') return data.detailed_results || '';
     return data[col] !== undefined ? data[col] : '';
   });
 
@@ -5711,6 +5739,97 @@ function getEvaluationResults(data) {
   }
 
   return { success: true, data: results };
+}
+
+/**
+ * Recupere un resultat d'evaluation avec les infos enrichies pour le mode review
+ * @param {Object} data - { evaluation_id, eleve_id }
+ */
+function getEvaluationResultForReview(data) {
+  if (!data.evaluation_id || !data.eleve_id) {
+    return { success: false, error: 'evaluation_id et eleve_id requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // 1. Trouver le resultat
+  var resSheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
+  if (!resSheet) {
+    return { success: false, error: 'Aucun resultat trouve' };
+  }
+
+  var resData = resSheet.getDataRange().getValues();
+  var resHeaders = resData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var resultat = null;
+
+  for (var i = 1; i < resData.length; i++) {
+    var row = {};
+    resHeaders.forEach(function(h, idx) { row[h] = resData[i][idx]; });
+    if (String(row.evaluation_id).trim() === String(data.evaluation_id).trim() &&
+        String(row.eleve_id).trim() === String(data.eleve_id).trim()) {
+      resultat = row;
+      break;
+    }
+  }
+
+  if (!resultat) {
+    return { success: false, error: 'Resultat non trouve' };
+  }
+
+  // Parser JSON fields
+  if (resultat.details) {
+    try { resultat.details = JSON.parse(resultat.details); } catch (e) { /* keep string */ }
+  }
+  if (resultat.detailed_results) {
+    try { resultat.detailed_results = JSON.parse(resultat.detailed_results); } catch (e) { /* keep string */ }
+  }
+
+  // 2. Recuperer les infos de l'evaluation
+  var evalSheet = ss.getSheetByName(SHEETS.EVALUATIONS);
+  var evaluation = null;
+  if (evalSheet) {
+    var evalData = evalSheet.getDataRange().getValues();
+    var evalHeaders = evalData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    for (var j = 1; j < evalData.length; j++) {
+      var evalRow = {};
+      evalHeaders.forEach(function(h, idx) { evalRow[h] = evalData[j][idx]; });
+      if (String(evalRow.id).trim() === String(data.evaluation_id).trim()) {
+        evaluation = evalRow;
+        break;
+      }
+    }
+  }
+
+  // 3. Recuperer le titre de la banque si banque_id present
+  var banqueTitre = '';
+  if (resultat.banque_id && evaluation) {
+    var type = String(evaluation.type || '').trim();
+    var bSheetName = type === 'connaissances' ? SHEETS.BANQUES_EXERCICES_CONN : SHEETS.BANQUES_EXERCICES;
+    var bSheet = ss.getSheetByName(bSheetName);
+    if (bSheet) {
+      var bData = bSheet.getDataRange().getValues();
+      var bHeaders = bData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      var bIdCol = bHeaders.indexOf('id');
+      var bTitreCol = bHeaders.indexOf('titre');
+      if (bIdCol >= 0 && bTitreCol >= 0) {
+        for (var k = 1; k < bData.length; k++) {
+          if (String(bData[k][bIdCol]).trim() === String(resultat.banque_id).trim()) {
+            banqueTitre = String(bData[k][bTitreCol]).trim();
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    success: true,
+    data: {
+      resultat: resultat,
+      evaluation: evaluation,
+      banque_titre: banqueTitre
+    }
+  };
 }
 
 /**

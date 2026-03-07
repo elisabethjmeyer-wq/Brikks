@@ -413,6 +413,9 @@ function handleRequest(e) {
       case 'getEvaluationResults':
         result = getEvaluationResults(request);
         break;
+      case 'getEvaluationResultForReview':
+        result = getEvaluationResultForReview(request);
+        break;
       case 'getEleveEvaluations':
         result = getEleveEvaluations(request);
         break;
