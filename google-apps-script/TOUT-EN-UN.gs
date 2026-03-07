@@ -4918,8 +4918,14 @@ function getEvaluationForEleve(data) {
   }
 
   // 3b. Si pas d'attribution, calculer automatiquement la prochaine banque
+  //     et la sauvegarder dans ATTRIBUTION_SUJETS pour verrouiller le sujet
   if (!banqueId) {
     banqueId = computeNextBanque_(ss, type, matiere, String(data.eleve_id).trim());
+    if (banqueId) {
+      source = 'auto';
+      // Sauvegarder l'attribution pour que le prochain appel retombe sur la même banque
+      saveAutoAttribution_(ss, String(data.id).trim(), String(data.eleve_id).trim(), banqueId, '', source);
+    }
   }
 
   if (!banqueId) {
@@ -4942,6 +4948,11 @@ function getEvaluationForEleve(data) {
     actualEntrainementId = String(result.entrainement.id).trim();
   } else if (type === 'savoir-faire' && result.questions && result.questions.length > 0) {
     actualEntrainementId = String(result.questions[0].id || '').trim();
+  }
+
+  // Mettre à jour l'entrainement_id dans l'attribution si auto (tirage aléatoire)
+  if (source === 'auto' && actualEntrainementId && actualEntrainementId !== entrainementId) {
+    updateAttributionEntrainement_(ss, String(data.id).trim(), String(data.eleve_id).trim(), actualEntrainementId);
   }
 
   // 5. Recuperer le titre de la banque pour le message conseil
@@ -5063,6 +5074,57 @@ function computeNextBanque_(ss, type, matiere, eleveId) {
 
   // Toutes les banques validees → rester sur la derniere
   return String(banques[banques.length - 1].id).trim();
+}
+
+/**
+ * Sauvegarde une attribution automatique dans ATTRIBUTION_SUJETS
+ * pour verrouiller le sujet lors des prochains appels.
+ * @param {Spreadsheet} ss
+ * @param {string} evaluationId
+ * @param {string} eleveId
+ * @param {string} banqueId
+ * @param {string} entrainementId
+ * @param {string} source
+ */
+function saveAutoAttribution_(ss, evaluationId, eleveId, banqueId, entrainementId, source) {
+  try {
+    var sheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEETS.ATTRIBUTION_SUJETS);
+      sheet.appendRow(['id', 'evaluation_id', 'eleve_id', 'banque_id', 'entrainement_id', 'source']);
+    }
+    var id = 'attr_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 4);
+    sheet.appendRow([id, evaluationId, eleveId, banqueId, entrainementId || '', source || 'auto']);
+  } catch (e) {
+    // Silencieux : ne pas bloquer l'évaluation si la sauvegarde échoue
+    Logger.log('saveAutoAttribution_ erreur: ' + e.message);
+  }
+}
+
+/**
+ * Met à jour l'entrainement_id dans ATTRIBUTION_SUJETS (après tirage aléatoire)
+ */
+function updateAttributionEntrainement_(ss, evaluationId, eleveId, entrainementId) {
+  try {
+    var sheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
+    if (!sheet) return;
+    var allData = sheet.getDataRange().getValues();
+    if (allData.length < 2) return;
+    var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    var evalCol = headers.indexOf('evaluation_id');
+    var eleveCol = headers.indexOf('eleve_id');
+    var entCol = headers.indexOf('entrainement_id');
+    if (evalCol < 0 || eleveCol < 0 || entCol < 0) return;
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][evalCol]).trim() === evaluationId &&
+          String(allData[i][eleveCol]).trim() === eleveId) {
+        sheet.getRange(i + 1, entCol + 1).setValue(entrainementId);
+        break;
+      }
+    }
+  } catch (e) {
+    Logger.log('updateAttributionEntrainement_ erreur: ' + e.message);
+  }
 }
 
 /**
@@ -5569,7 +5631,9 @@ function saveEvaluationResult(data) {
 
   if (existingRow > 0) {
     // Mise à jour du résultat existant
-    var updatableFields = ['score', 'validations', 'is_validated', 'temps_passe', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut', 'statut_resultat', 'banque_id', 'entrainement_id', 'correction_html', 'detailed_results'];
+    // banque_id et entrainement_id ne sont PAS dans cette liste :
+    // ils sont posés à la création et ne doivent pas être écrasés lors d'un repassage
+    var updatableFields = ['score', 'validations', 'is_validated', 'temps_passe', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut', 'statut_resultat', 'correction_html', 'detailed_results'];
     updatableFields.forEach(function(field) {
       if (data[field] !== undefined) {
         var colIdx = headers.indexOf(field);

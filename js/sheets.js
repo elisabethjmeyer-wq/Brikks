@@ -122,11 +122,21 @@ const SheetsAPI = {
     },
 
     /**
-     * Vide le cache d'un onglet spécifique
+     * Vide le cache d'un onglet spécifique.
+     * Supprime toutes les entrées commençant par le nom de l'onglet
+     * (couvre les variantes avec ou sans range).
      */
     clearCacheFor(sheetName) {
         try {
-            localStorage.removeItem(this._cachePrefix + sheetName);
+            const prefix = this._cachePrefix + sheetName;
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(prefix)) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
         } catch (_e) { /* ignore */ }
     },
 
