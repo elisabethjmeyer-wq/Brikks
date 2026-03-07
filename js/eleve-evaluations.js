@@ -352,7 +352,20 @@ const EleveEvaluations = {
             const isBonus = ev.type === 'bonus';
 
             if (effectiveStatut === 'terminee') {
-                if (resultat) this.categories.done.push({ ...ev, resultat, cardStatus: 'done' });
+                if (resultat) {
+                    // Vérifier si non_rendu ou absent (saisi par la prof)
+                    const val = String(resultat.validations || '').trim();
+                    if (val === 'non_rendu') {
+                        this.categories.done.push({ ...ev, resultat, cardStatus: 'non_rendu' });
+                    } else if (val === 'absent') {
+                        this.categories.done.push({ ...ev, resultat, cardStatus: 'absent' });
+                    } else {
+                        this.categories.done.push({ ...ev, resultat, cardStatus: 'done' });
+                    }
+                } else {
+                    // Pas de résultat du tout → carte visible en "non passée"
+                    this.categories.done.push({ ...ev, cardStatus: 'not_done' });
+                }
                 return;
             }
 
@@ -552,7 +565,11 @@ const EleveEvaluations = {
         const isPapier = evaluation.mode_passation === 'papier';
         const cardStatus = evaluation.cardStatus;
         const resultat = evaluation.resultat;
-        const isDone = cardStatus === 'validated' || cardStatus === 'done' || cardStatus === 'failed';
+        const isNonRendu = cardStatus === 'non_rendu';
+        const isAbsent = cardStatus === 'absent';
+        const isNotDone = cardStatus === 'not_done';
+        const isMissed = isNonRendu || isAbsent || isNotDone;
+        const isDone = cardStatus === 'validated' || cardStatus === 'done' || cardStatus === 'failed' || isMissed;
 
         const title = evaluation.titre || 'Évaluation';
         const duree = parseInt(evaluation.duree) || 0;
@@ -564,17 +581,23 @@ const EleveEvaluations = {
         if (cardStatus === 'upcoming') cardClass += ' upcoming';
         if (isDone) cardClass += ' done';
         if (cardStatus === 'validated') cardClass += ' validated';
-        if (cardStatus === 'failed') cardClass += ' failed';
+        if (cardStatus === 'failed' || isMissed) cardClass += ' failed';
 
         let clickAttr = '';
-        if (resultat && isDone) {
+        if (resultat && isDone && !isMissed) {
             clickAttr = ` onclick="EleveEvaluations.openReview('${evaluation.id}')"`;
             cardClass += ' clickable';
         }
 
         // Points badge
         let pointsBadge = '';
-        if (isDone && resultat) {
+        if (isNonRendu) {
+            pointsBadge = '<span class="card-points lost">Non rendu</span>';
+        } else if (isAbsent) {
+            pointsBadge = '<span class="card-points lost">Absent(e)</span>';
+        } else if (isNotDone) {
+            pointsBadge = '<span class="card-points lost">Non passée</span>';
+        } else if (isDone && resultat) {
             const validations = parseFloat(resultat.validations) || 0;
             pointsBadge = validations > 0
                 ? `<span class="card-points earned">+${validations}</span>`
@@ -609,6 +632,8 @@ const EleveEvaluations = {
             actionHtml = '<div class="card-action-info papier">En classe</div>';
         } else if (cardStatus === 'upcoming') {
             actionHtml = `<div class="card-action-info upcoming">${escapeHtml(this.getCountdown(evaluation.date_ouverture))}</div>`;
+        } else if (isMissed) {
+            actionHtml = '';
         } else if (isDone) {
             actionHtml = '<div class="card-detail-link">Voir le détail →</div>';
         }
