@@ -600,9 +600,9 @@ const EleveEvaluations = {
         // Points badge
         let pointsBadge = '';
         if (isNonRendu) {
-            pointsBadge = '<span class="card-points lost">Non rendu</span>';
+            pointsBadge = '<span class="card-points lost">Non rendu</span><span class="card-points-sub">+0</span>';
         } else if (isAbsent) {
-            pointsBadge = '<span class="card-points lost">Absent(e)</span>';
+            pointsBadge = '<span class="card-points lost">Absent(e)</span><span class="card-points-sub">+0</span>';
         } else if (isNotDone) {
             pointsBadge = '<span class="card-points lost">Non passée</span>';
         } else if (isDone && resultat) {
