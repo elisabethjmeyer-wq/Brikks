@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-03-07 — Session 22 : Ajustements page évaluations élève
+
+### Modifications
+
+1. **Retrait du centrage `max-width: 740px`** sur `#evaluations-content` — la page reprend toute la largeur disponible, alignée à gauche comme les autres pages
+2. **Section « Terminées » repliée par défaut** : l'élève voit d'abord les évaluations à passer sans scroller. Le toggle reste cliquable pour déplier. Appliqué aussi à l'onglet Bonus.
+
+### Fichiers modifiés
+- `css/eleve-evaluations.css` (retrait max-width)
+- `js/eleve-evaluations.js` (sections repliées par défaut)
+
+---
+
 ## 2026-03-07 — Session 21 : Refonte page « Mes évaluations » élève
 
 ### Modifications
