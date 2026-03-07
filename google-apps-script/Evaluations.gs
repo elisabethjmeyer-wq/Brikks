@@ -469,6 +469,44 @@ function updateAttributionEntrainement_(ss, evaluationId, eleveId, entrainementI
 }
 
 /**
+ * Synchronise ATTRIBUTION_SUJETS avec la banque/exercice réellement passés par l'élève.
+ * Met à jour la ligne existante ou en crée une nouvelle.
+ */
+function syncAttributionFromResult_(ss, evaluationId, eleveId, banqueId, entrainementId) {
+  try {
+    var sheet = ss.getSheetByName(SHEETS.ATTRIBUTION_SUJETS);
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEETS.ATTRIBUTION_SUJETS);
+      sheet.appendRow(['id', 'evaluation_id', 'eleve_id', 'banque_id', 'entrainement_id', 'source']);
+    }
+    var allData = sheet.getDataRange().getValues();
+    var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    var evalCol = headers.indexOf('evaluation_id');
+    var eleveCol = headers.indexOf('eleve_id');
+    var banqueCol = headers.indexOf('banque_id');
+    var entCol = headers.indexOf('entrainement_id');
+    if (evalCol < 0 || eleveCol < 0) return;
+
+    // Chercher une ligne existante
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][evalCol]).trim() === String(evaluationId).trim() &&
+          String(allData[i][eleveCol]).trim() === String(eleveId).trim()) {
+        // Mettre à jour banque + exercice
+        if (banqueCol >= 0) sheet.getRange(i + 1, banqueCol + 1).setValue(banqueId);
+        if (entCol >= 0) sheet.getRange(i + 1, entCol + 1).setValue(entrainementId);
+        return;
+      }
+    }
+
+    // Pas de ligne existante → en créer une
+    var id = 'attr_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 4);
+    sheet.appendRow([id, evaluationId, eleveId, banqueId, entrainementId || '', 'auto']);
+  } catch (e) {
+    Logger.log('syncAttributionFromResult_ erreur: ' + e.message);
+  }
+}
+
+/**
  * Charge les donnees d'un entrainement connaissances pour une evaluation.
  * Retourne les etapes, liens etape-questions et questions dans le meme format
  * que le module d'entrainement (EleveConnaissances) pour reutiliser le moteur de rendu.
@@ -1028,6 +1066,11 @@ function saveEvaluationResult(data) {
   });
 
   sheet.appendRow(newRow);
+
+  // Synchroniser ATTRIBUTION_SUJETS avec la banque/exercice réellement passés
+  if (data.banque_id) {
+    syncAttributionFromResult_(ss, data.evaluation_id, data.eleve_id, data.banque_id, data.entrainement_id || '');
+  }
 
   // Mettre a jour la progression evaluation si valide
   var isValid = data.is_validated === true || data.is_validated === 'true';
