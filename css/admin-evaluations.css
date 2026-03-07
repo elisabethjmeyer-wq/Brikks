@@ -690,6 +690,20 @@
     background-color: #d1fae5;
 }
 
+/* Ligne orange/rouge pour absent ou non rendu */
+.saisie-table tr.absent-row {
+    background-color: #fef3c7;
+}
+.saisie-table tr.absent-row:hover {
+    background-color: #fde68a;
+}
+.saisie-table tr.nr-row {
+    background-color: #fee2e2;
+}
+.saisie-table tr.nr-row:hover {
+    background-color: #fecaca;
+}
+
 /* Date input dans saisie */
 .saisie-date {
     width: 130px;
