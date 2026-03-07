@@ -233,56 +233,57 @@ const EleveEvaluations = {
         return (Math.round(note * 10) / 10).toFixed(1);
     },
 
-    // ========== COMPACT HEADER (gauges) ==========
+    // ========== HERO HEADER (gauges) ==========
+    _getNoteColor(note) {
+        if (note === null) return '#9ca3af';
+        if (note < 5) return '#ef4444';
+        if (note < 8) return '#f97316';
+        if (note < 10) return '#f59e0b';
+        if (note < 12) return '#eab308';
+        if (note < 15) return '#84cc16';
+        return '#10b981';
+    },
+
     _renderProgressionBanner() {
         const container = document.getElementById('progressionBanner');
         if (!container) return;
 
         const matieres = [
-            { code: 'FR', label: 'FR', color: '#6366f1', trackColor: '#e0e7ff' },
-            { code: 'HG-EMC', label: 'HG-EMC', color: '#6366f1', trackColor: '#e0e7ff' }
+            { code: 'FR', label: 'FR', accentColor: '#6366f1' },
+            { code: 'HG-EMC', label: 'HG-EMC', accentColor: '#8b5cf6' }
         ];
+
+        const radius = 26.25;
+        const circumference = 2 * Math.PI * radius;
 
         const gauges = matieres.map(mat => {
             const moyenne = this._calculateMoyenne(mat.code);
             const objectif = this._getObjectif(mat.code);
             const note = moyenne !== null ? Math.round(moyenne * 10) / 10 : null;
-            const target = objectif || 20;
-            const pct = note !== null ? Math.min(100, Math.max(0, (note / target) * 100)) : 0;
-
-            // 270° arc on 64px circle
-            const radius = 27;
-            const circumference = 2 * Math.PI * radius * 0.75;
-            const strokeLen = (pct / 100) * circumference;
-
-            // Color: green if >= 75%, amber if >= 40%, red otherwise
-            let arcColor = mat.color;
-            if (note !== null) {
-                if (pct >= 75) arcColor = '#10b981';
-                else if (pct >= 40) arcColor = '#f59e0b';
-                else arcColor = '#ef4444';
-            }
+            const pct = note !== null ? Math.min(1, Math.max(0, note / 20)) : 0;
+            const offset = circumference * (1 - pct);
+            const dynColor = this._getNoteColor(note);
 
             const noteDisplay = note !== null ? note.toFixed(1) : '—';
             const objLine = objectif
                 ? `<span class="mini-gauge-obj">obj. ${objectif}</span>`
-                : `<a href="notes.html" class="mini-gauge-obj link">Fixe un obj.</a>`;
+                : `<a href="notes.html" class="mini-gauge-obj link" style="color:${mat.accentColor}">Fixe un obj.</a>`;
 
             return `
                 <div class="mini-gauge">
                     <div class="mini-gauge-circle">
-                        <svg viewBox="0 0 64 64" width="64" height="64">
-                            <circle cx="32" cy="32" r="${radius}" fill="none" stroke="${mat.trackColor}" stroke-width="5"
-                                    stroke-dasharray="${circumference} 1000" stroke-dashoffset="0"
-                                    transform="rotate(-225 32 32)" stroke-linecap="round"/>
-                            <circle cx="32" cy="32" r="${radius}" fill="none" stroke="${arcColor}" stroke-width="5"
-                                    stroke-dasharray="${strokeLen} 1000" stroke-dashoffset="0"
-                                    transform="rotate(-225 32 32)" stroke-linecap="round" class="mini-gauge-arc"/>
+                        <svg viewBox="0 0 58 58" width="58" height="58">
+                            <circle cx="29" cy="29" r="${radius}" fill="none" stroke="#e5e7eb" stroke-width="5.5"/>
+                            <circle cx="29" cy="29" r="${radius}" fill="none" stroke="${dynColor}" stroke-width="5.5"
+                                    stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+                                    stroke-linecap="round" class="mini-gauge-arc"/>
                         </svg>
-                        <span class="mini-gauge-value">${noteDisplay}</span>
-                        <span class="mini-gauge-unit">/20</span>
+                        <div class="mini-gauge-center">
+                            <span class="mini-gauge-value" style="color:${dynColor}">${noteDisplay}</span>
+                            <span class="mini-gauge-unit">/20</span>
+                        </div>
                     </div>
-                    <span class="mini-gauge-label">${mat.label}</span>
+                    <span class="mini-gauge-label" style="color:${mat.accentColor}">${mat.label}</span>
                     ${objLine}
                 </div>
             `;
