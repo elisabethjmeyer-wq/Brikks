@@ -233,65 +233,74 @@ const EleveEvaluations = {
         return (Math.round(note * 10) / 10).toFixed(1);
     },
 
-    // ========== PROGRESSION BANNER (SVG GAUGES) ==========
+    // ========== COMPACT HEADER (mini gauges + stats) ==========
     _renderProgressionBanner() {
         const container = document.getElementById('progressionBanner');
         if (!container) return;
 
+        // Header stats: "X disponibles · Y points à gagner"
+        const statsEl = document.getElementById('headerStats');
+        if (statsEl) {
+            const nbDispo = (this.categories.available || []).length;
+            const totalPts = (this.categories.available || []).reduce((sum, ev) => sum + (parseInt(ev.briques) || 1), 0);
+            const parts = [];
+            if (nbDispo > 0) parts.push(`<span class="stats-available">${nbDispo} disponible${nbDispo > 1 ? 's' : ''}</span>`);
+            if (totalPts > 0) parts.push(`${totalPts} point${totalPts > 1 ? 's' : ''} à gagner`);
+            statsEl.innerHTML = parts.join(' · ') || 'Aucune évaluation disponible';
+        }
+
+        // Mini circle gauges
         const matieres = [
-            { code: 'FR', label: 'Français', color: '#3b82f6', bgLight: '#eff6ff', trackColor: '#dbeafe' },
-            { code: 'HG-EMC', label: 'Histoire-Géo · EMC', color: '#10b981', bgLight: '#ecfdf5', trackColor: '#d1fae5' }
+            { code: 'FR', label: 'FR', color: '#6366f1', trackColor: '#e0e7ff' },
+            { code: 'HG-EMC', label: 'HG-EMC', color: '#6366f1', trackColor: '#e0e7ff' }
         ];
 
-        const cards = matieres.map(mat => {
+        const gauges = matieres.map(mat => {
             const moyenne = this._calculateMoyenne(mat.code);
             const objectif = this._getObjectif(mat.code);
             const note = moyenne !== null ? Math.round(moyenne * 10) / 10 : null;
-
-            // Arc: 0 to 20, gauge fills toward objective (or 20)
             const target = objectif || 20;
             const pct = note !== null ? Math.min(100, Math.max(0, (note / target) * 100)) : 0;
 
-            // SVG arc params (semi-circle, 180°)
-            const radius = 54;
-            const circumference = Math.PI * radius; // half-circle
+            // Full circle: 270° arc
+            const radius = 22;
+            const circumference = 2 * Math.PI * radius * 0.75; // 270°
             const strokeLen = (pct / 100) * circumference;
 
-            // Color based on progress
+            // Color: green if >= 75%, amber if >= 40%, red otherwise
             let arcColor = mat.color;
-            if (note !== null && pct < 50) arcColor = '#f59e0b';
-            if (note !== null && pct < 30) arcColor = '#ef4444';
+            if (note !== null) {
+                if (pct >= 75) arcColor = '#10b981';
+                else if (pct >= 40) arcColor = '#f59e0b';
+                else arcColor = '#ef4444';
+            }
 
             const noteDisplay = note !== null ? note.toFixed(1) : '—';
             const objLine = objectif
-                ? `<span class="gauge-objectif">Objectif : ${objectif}/20</span>`
-                : `<a href="notes.html" class="gauge-set-obj">Fixe un objectif →</a>`;
+                ? `<span class="mini-gauge-obj">obj. ${objectif}</span>`
+                : `<a href="notes.html" class="mini-gauge-obj link">Fixe un obj.</a>`;
 
             return `
-                <div class="gauge-card" style="--gauge-bg: ${mat.bgLight}; --gauge-track: ${mat.trackColor}; --gauge-color: ${arcColor};">
-                    <span class="gauge-label">${mat.label}</span>
-                    <div class="gauge-svg-wrap">
-                        <svg class="gauge-svg" viewBox="0 0 120 70" width="120" height="70">
-                            <path d="M 6 64 A 54 54 0 0 1 114 64" fill="none" stroke="var(--gauge-track)" stroke-width="8" stroke-linecap="round"/>
-                            <path d="M 6 64 A 54 54 0 0 1 114 64" fill="none" stroke="var(--gauge-color)" stroke-width="8" stroke-linecap="round"
-                                  stroke-dasharray="${strokeLen} ${circumference}" class="gauge-arc"/>
+                <div class="mini-gauge">
+                    <div class="mini-gauge-circle">
+                        <svg viewBox="0 0 52 52" width="52" height="52">
+                            <circle cx="26" cy="26" r="${radius}" fill="none" stroke="${mat.trackColor}" stroke-width="5"
+                                    stroke-dasharray="${circumference} 1000" stroke-dashoffset="0"
+                                    transform="rotate(-225 26 26)" stroke-linecap="round"/>
+                            <circle cx="26" cy="26" r="${radius}" fill="none" stroke="${arcColor}" stroke-width="5"
+                                    stroke-dasharray="${strokeLen} 1000" stroke-dashoffset="0"
+                                    transform="rotate(-225 26 26)" stroke-linecap="round" class="mini-gauge-arc"/>
                         </svg>
-                        <div class="gauge-note">
-                            <span class="gauge-note-value">${noteDisplay}</span>
-                            <span class="gauge-note-unit">/20</span>
-                        </div>
+                        <span class="mini-gauge-value">${noteDisplay}</span>
+                        <span class="mini-gauge-unit">/20</span>
                     </div>
+                    <span class="mini-gauge-label">${mat.label}</span>
                     ${objLine}
                 </div>
             `;
         }).join('');
 
-        container.innerHTML = `
-            <div class="progression-gauges">
-                ${cards}
-            </div>
-            <a href="notes.html" class="prog-link">Voir mes résultats détaillés →</a>
-        `;
+        container.innerHTML = gauges;
     },
 
     // ========== CATEGORIZATION ==========

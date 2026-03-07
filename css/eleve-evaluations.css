@@ -22,118 +22,117 @@
     --eval-controle-text: #334155;
 }
 
-/* ===== PAGE HEADER ===== */
-#evaluations-page .page-header {
+/* ===== COMPACT HEADER ===== */
+.compact-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
     margin-bottom: 20px;
+    background: white;
+    border-radius: 16px;
+    padding: 20px 24px;
+    border-left: 4px solid #6366f1;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
-#evaluations-page .page-header h1 {
-    font-size: 26px;
+.header-left h1 {
+    font-size: 24px;
     font-weight: 800;
     color: #111827;
-    margin: 0 0 4px 0;
+    margin: 0 0 6px 0;
 }
 
-.page-subtitle {
+.header-stats {
     font-size: 14px;
     color: #6b7280;
-    margin: 0;
+    margin: 0 0 8px 0;
 }
 
-/* ===== PROGRESSION GAUGES ===== */
-.progression-gauges {
+.stats-available {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.header-results-link {
+    font-size: 13px;
+    color: var(--primary, #6366f1);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.header-results-link:hover {
+    text-decoration: underline;
+}
+
+/* ===== MINI GAUGES (header right) ===== */
+.header-right {
     display: flex;
-    gap: 12px;
-    margin-top: 16px;
+    gap: 20px;
+    flex-shrink: 0;
 }
 
-.gauge-card {
-    flex: 1;
-    background: var(--gauge-bg, #f9fafb);
-    border-radius: 16px;
-    padding: 16px 20px 14px;
+.mini-gauge {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-.gauge-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: #374151;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-}
-
-.gauge-svg-wrap {
-    position: relative;
-    width: 120px;
-    height: 70px;
-    margin: 4px 0 2px;
-}
-
-.gauge-svg {
-    display: block;
-}
-
-.gauge-arc {
-    transition: stroke-dasharray 0.8s ease;
-}
-
-.gauge-note {
-    position: absolute;
-    bottom: 2px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: baseline;
     gap: 2px;
 }
 
-.gauge-note-value {
-    font-size: 24px;
+.mini-gauge-circle {
+    position: relative;
+    width: 52px;
+    height: 52px;
+}
+
+.mini-gauge-circle svg {
+    display: block;
+}
+
+.mini-gauge-arc {
+    transition: stroke-dasharray 0.8s ease;
+}
+
+.mini-gauge-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    font-size: 14px;
     font-weight: 800;
     color: #111827;
     line-height: 1;
 }
 
-.gauge-note-unit {
-    font-size: 12px;
+.mini-gauge-unit {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, 40%);
+    font-size: 8px;
     font-weight: 600;
     color: #9ca3af;
 }
 
-.gauge-objectif {
+.mini-gauge-label {
     font-size: 11px;
-    color: #6b7280;
+    font-weight: 700;
+    color: #374151;
+}
+
+.mini-gauge-obj {
+    font-size: 10px;
+    color: #9ca3af;
     font-weight: 500;
 }
 
-.gauge-set-obj {
-    font-size: 11px;
+.mini-gauge-obj.link {
     color: var(--primary, #6366f1);
-    font-weight: 600;
     text-decoration: none;
-}
-
-.gauge-set-obj:hover {
-    text-decoration: underline;
-}
-
-.prog-link {
-    display: block;
-    font-size: 12px;
-    color: var(--primary, #6366f1);
     font-weight: 600;
-    text-decoration: none;
-    text-align: right;
-    margin-top: 8px;
 }
 
-.prog-link:hover {
+.mini-gauge-obj.link:hover {
     text-decoration: underline;
 }
 
@@ -783,29 +782,19 @@
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 640px) {
-    #evaluations-page .page-header h1 {
+    .compact-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px 18px;
+        gap: 14px;
+    }
+
+    .header-left h1 {
         font-size: 22px;
     }
 
-    .progression-gauges {
-        gap: 8px;
-    }
-
-    .gauge-card {
-        padding: 12px 10px 10px;
-    }
-
-    .gauge-label {
-        font-size: 11px;
-    }
-
-    .gauge-svg-wrap {
-        width: 100px;
-        height: 60px;
-    }
-
-    .gauge-note-value {
-        font-size: 20px;
+    .header-right {
+        align-self: center;
     }
 
     .tabs-bar {
