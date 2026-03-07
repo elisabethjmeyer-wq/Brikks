@@ -163,7 +163,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 ### Notes élève — CRÉÉ SESSION 16
 
 **Page** : `eleve/notes.html`
-**Fichiers** : `js/eleve-notes.js` (~290 lignes), `css/eleve-notes.css` (~280 lignes)
+**Fichiers** : `js/eleve-notes.js` (~483 lignes), `css/eleve-notes.css` (~280 lignes)
 **Backend** : lecture seule via `SheetsAPI` (6 tables) + `saveObjectifEleve` (JSONP)
 
 **Ce que fait le module :**
@@ -186,7 +186,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 ### Mes évaluations élève (liste) — REFONDU SESSION 21
 
 **Page** : `eleve/evaluations.html`
-**Fichiers** : `js/eleve-evaluations.js` (~660 lignes), `css/eleve-evaluations.css` (~800 lignes)
+**Fichiers** : `js/eleve-evaluations.js` (~824 lignes), `css/eleve-evaluations.css` (~887 lignes)
 **Backend** : lecture seule via `SheetsAPI` (6 tables) + `callAPI` pour les résultats compétences
 
 **Ce que fait le module :**
@@ -205,7 +205,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 ### Évaluation élève (passage d'évaluation) — REFONDU SESSION 17, SF AJOUTÉ SESSION 20
 
 **Page** : `eleve/evaluation.html`
-**Fichiers** : `js/eleve-evaluation.js` (~620 lignes), `css/eleve-evaluation.css` (~220 lignes)
+**Fichiers** : `js/eleve-evaluation.js` (~864 lignes), `css/eleve-evaluation.css` (~281 lignes)
 **Backend** : `Evaluations.gs` (lecture évaluations + sauvegarde résultats)
 
 **Ce que fait le module :**
@@ -242,7 +242,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - **Lecture directe** : certaines pages lisent Google Sheets API v4 via `sheets.js` (cache localStorage)
 - **Déploiement** : GitHub Pages, avec préfixe `/Brikks/` dans les routes (voir `config.js`)
 - **Linting** : ESLint configuré — lancer `npm run lint` avant de pousser des changements
-- **Build GAS** : `npm run build:gas` concatène les 12 fichiers `.gs` en `TOUT-EN-UN.gs` (Code.gs en premier, puis alphabétique)
+- **Build GAS** : `npm run build:gas` concatène les 12 fichiers source `.gs` en `TOUT-EN-UN.gs` (Code.gs en premier, puis alphabétique)
 - **Pattern modules** : chaque module est un objet singleton `const ModuleName = { ... }` (pas de classes). Les gros modules sont découpés via `Object.assign(ModuleName, { ... })` dans des fichiers séparés (-formats, -validation, etc.)
 
 ### Fonctions globales
@@ -259,12 +259,12 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 ### Structure du repo
 ```
 Brikks/
-├── js/                          # 48 fichiers JS (~37k lignes)
+├── js/                          # 57 fichiers JS (~50k lignes)
 │   ├── config.js                # ⭐ Configuration centrale (sheets, API, routes)
 │   ├── block-editor.js          # Mixin block editor partagé (createBlockEditorMixin)
 │   └── submission-utils.js      # Utilitaires de soumission (popup, calcul délais, jours ouvrés)
-├── css/                         # 29 fichiers CSS (~38k lignes)
-├── google-apps-script/          # 12 fichiers .gs (~7.8k lignes)
+├── css/                         # 35 fichiers CSS (~48k lignes)
+├── google-apps-script/          # 12 fichiers .gs + TOUT-EN-UN.gs (~10k lignes source)
 │   ├── Code.gs                  # Routeur principal (switch/case sur 'action')
 │   ├── Entrainements.gs         # Entraînements + mémorisation (répétition espacée)
 │   ├── Connaissances.gs         # Banques de questions connaissances
@@ -451,8 +451,8 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 ### Évaluations & Notes admin — PHASES 1-3 COMPLÈTES
 
 **Pages** : `admin/evaluations.html`, `admin/parametrage-eval.html`, `admin/tableau-bord.html` (placeholder)
-**Fichiers** : `js/admin-evaluations.js` (~670 lignes), `js/admin-parametrage-eval.js` (~430 lignes), `css/admin-evaluations.css`, `css/admin-parametrage-eval.css`
-**Backend** : `Evaluations.gs` (~990 lignes)
+**Fichiers** : `js/admin-evaluations.js` (~2187 lignes), `js/admin-parametrage-eval.js` (~616 lignes), `css/admin-evaluations.css`, `css/admin-parametrage-eval.css`
+**Backend** : `Evaluations.gs` (~1843 lignes)
 
 **Ce que fait le module :**
 - **Page Évaluations** : gestion des évaluations de progression (4 types : connaissances, savoir-faire, compétences, bonus) + sommatives (5ème onglet)
@@ -501,6 +501,6 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - **Tests** : aucun test automatisé (pas de framework de test configuré)
 - **7 copies de `callAPI`** : chaque module a sa propre implémentation. Seul `admin-banques-exercices.js` a un timeout (15s). Les 6 autres peuvent rester bloqués indéfiniment. À centraliser un jour dans un fichier partagé.
 - **Double système de lecture** : `callAPI` (JSONP) et `SheetsAPI` (REST direct) avec caches indépendants (TTL 3-5 min). Peut causer des décalages de données entre pages admin.
-- **`SheetsAPI.clearCache()` trop large** : efface le cache de toutes les tables au lieu de celle modifiée. Force des rechargements inutiles.
+- **`SheetsAPI.clearCache()` trop large** : efface le cache de toutes les tables au lieu de celle modifiée. `SheetsAPI.clearCacheFor(sheetName)` ajouté (session 21) pour invalider une table spécifique — mais seul `admin-evaluations.js` l'utilise. Les autres modules appellent encore `clearCache()` global.
 - **Block editor : listeners non nettoyés** : `_initBlockDragDrop()` dans `block-editor.js` ajoute des listeners à chaque re-render (`_renderBlocks()`). Les anciens listeners sont orphelins. Pas de bug observable sur des sessions courtes, mais memory leak théorique sur de longues sessions d'édition.
 - **`remarque_prof`** : colonne créée par migration progressive dans `EleveEntrainementsCompetences`, mais le wizard correction ne l'utilise plus (remarque supprimée au profit du block editor). Colonne inerte.
