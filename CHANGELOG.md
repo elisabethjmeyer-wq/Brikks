@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-03-07 — Session 21 : Refonte page « Mes évaluations » élève
+
+### Modifications
+
+1. **Refonte complète de la page évaluations élève** :
+   - Nouveau design avec carte de progression (moyenne, points par catégorie, lien vers notes)
+   - Onglets Évaluations / Bonus avec compteurs
+   - Cartes d'évaluation enrichies : badge type (connaissances/SF), statut (validée, à faire, etc.), score en cercle, points gagnés/perdus
+   - Regroupement par statut : À PASSER en haut, puis TERMINÉES
+   - Lien « Voir le détail → » pour consulter la correction
+   - Toggle matière (FR / HG-EMC) avec filtrage des évaluations et recalcul de la moyenne
+
+2. **Fix bugs** :
+   - `is_validated` : le calcul de validation utilisait `>=` au lieu de `>` pour le seuil (un score de 0% avec seuil 0 était validé)
+   - Cache stale `SheetsAPI` : ajout de `SheetsAPI.invalidateCache(tableName)` pour invalider une table spécifique après sauvegarde (au lieu de tout vider)
+   - Navigation retour depuis `eleve-evaluation.js` : invalide le cache EVALUATION_RESULTATS pour afficher le résultat immédiatement
+
+3. **Fix CSS layout header** :
+   - La carte progression débordait du header flex → contrainte `max-width` + `overflow: hidden`
+   - Les sélecteurs `#evaluations-page .header-left/.header-right` écrasaient le header du layout global (hamburger + titre du site) → scopés avec `.page-header > .header-left`
+   - Suppression du `.loader` local qui écrasait le `.loader` global de `style.css`
+
+### Fichiers modifiés
+- `js/eleve-evaluations.js` : refonte complète du rendu (cartes, onglets, progression, toggle matière)
+- `css/eleve-evaluations.css` : refonte complète des styles
+- `eleve/evaluations.html` : ajout scripts `sheets.js` + `eleve-notes.js` (calculs partagés)
+- `js/eleve-evaluation.js` : invalidation cache après soumission
+- `js/sheets.js` : ajout `SheetsAPI.invalidateCache(tableName)`
+
+### Décisions
+- La page évaluations réutilise le moteur de calcul de `eleve-notes.js` pour la moyenne
+- Toggle matière persisté en `sessionStorage` (cohérent avec la page notes)
+- Scopage CSS strict : tout sélecteur interne doit passer par `.page-header >` pour éviter les conflits avec le layout global
+
+---
+
 ## 2026-03-06 — Session 20 : Évaluations SF + unification des durées
 
 ### Modifications
