@@ -985,7 +985,7 @@ function saveEvaluationResult(data) {
   // Migration progressive : ajouter les colonnes manquantes
   var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
-  var migrationCols = ['banque_id', 'entrainement_id', 'correction_html', 'detailed_results'];
+  var migrationCols = ['banque_id', 'entrainement_id', 'correction_html', 'detailed_results', 'statut_resultat'];
   migrationCols.forEach(function(col) {
     if (headerNames.indexOf(col) < 0) {
       sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
