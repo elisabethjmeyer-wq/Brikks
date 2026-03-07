@@ -357,16 +357,13 @@ const EleveEvaluations = {
         let pointsBadge = '';
         if (isDone && resultat) {
             const validations = parseFloat(resultat.validations) || 0;
-            const isValidated = cardStatus === 'validated' || cardStatus === 'done';
-            if (isValidated && validations > 0) {
-                pointsBadge = `<span class="card-points earned">+${validations}/${briques}</span>`;
-            } else if (cardStatus === 'failed') {
-                pointsBadge = `<span class="card-points lost">+0/${briques}</span>`;
+            if (validations > 0) {
+                pointsBadge = `<span class="card-points earned">+${validations}</span>`;
             } else {
-                pointsBadge = `<span class="card-points earned">+${validations}/${briques}</span>`;
+                pointsBadge = `<span class="card-points lost">+0</span>`;
             }
         } else {
-            pointsBadge = `<span class="card-points pending">+${briques} pt${briques > 1 ? 's' : ''}</span>`;
+            pointsBadge = `<span class="card-points pending">${briques} point${briques > 1 ? 's' : ''} à gagner</span>`;
         }
 
         // Type subtitle (colored text)
@@ -391,31 +388,35 @@ const EleveEvaluations = {
         // Condition line
         const conditionLine = `<div class="card-condition">Réussite : ${escapeHtml(condition)}</div>`;
 
-        // Action / status line
+        // Action / status (right side of card)
         let actionHtml = '';
         if (cardStatus === 'available' && !isPapier) {
-            actionHtml = `<a href="evaluation.html?id=${evaluation.id}" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">▶ Commencer</a>`;
+            actionHtml = `<a href="evaluation.html?id=${evaluation.id}" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Commencer</a>`;
         } else if (cardStatus === 'available' && isPapier) {
-            actionHtml = '<div class="card-status-line papier">📄 <em>Évaluation en classe</em></div>';
+            actionHtml = '<div class="card-action-info papier">📄 En classe</div>';
         } else if (cardStatus === 'upcoming') {
             const countdown = this.getCountdown(evaluation.date_ouverture);
-            actionHtml = `<div class="card-status-line upcoming">🔒 <em>${escapeHtml(countdown)}</em></div>`;
+            actionHtml = `<div class="card-action-info upcoming">🔒 ${escapeHtml(countdown)}</div>`;
         } else if (isDone) {
             actionHtml = '<div class="card-detail-link">Voir le détail →</div>';
         }
 
         return `
             <div class="${cardClass}"${clickAttr}>
-                <div class="card-body">
-                    <div class="card-title-row">
-                        <span class="card-bullet ${config.cssClass}"></span>
-                        <h3 class="card-title">${escapeHtml(title)}</h3>
-                        ${pointsBadge}
+                <div class="card-layout">
+                    <div class="card-info">
+                        <div class="card-title-row">
+                            <span class="card-bullet ${config.cssClass}"></span>
+                            <h3 class="card-title">${escapeHtml(title)}</h3>
+                        </div>
+                        ${typeSubtitle}
+                        ${metaLine}
+                        ${conditionLine}
                     </div>
-                    ${typeSubtitle}
-                    ${metaLine}
-                    ${conditionLine}
-                    ${actionHtml}
+                    <div class="card-right">
+                        ${pointsBadge}
+                        ${actionHtml}
+                    </div>
                 </div>
             </div>
         `;
