@@ -233,45 +233,64 @@ const EleveEvaluations = {
         return (Math.round(note * 10) / 10).toFixed(1);
     },
 
-    // ========== PROGRESSION BANNER ==========
+    // ========== PROGRESSION BANNER (SVG GAUGES) ==========
     _renderProgressionBanner() {
         const container = document.getElementById('progressionBanner');
         if (!container) return;
 
-        const matieres = ['FR', 'HG-EMC'];
-        const rows = matieres.map(mat => {
-            const moyenne = this._calculateMoyenne(mat);
-            const objectif = this._getObjectif(mat);
+        const matieres = [
+            { code: 'FR', label: 'Français', color: '#3b82f6', bgLight: '#eff6ff', trackColor: '#dbeafe' },
+            { code: 'HG-EMC', label: 'Histoire-Géo · EMC', color: '#10b981', bgLight: '#ecfdf5', trackColor: '#d1fae5' }
+        ];
+
+        const cards = matieres.map(mat => {
+            const moyenne = this._calculateMoyenne(mat.code);
+            const objectif = this._getObjectif(mat.code);
+            const note = moyenne !== null ? Math.round(moyenne * 10) / 10 : null;
+
+            // Arc: 0 to 20, gauge fills toward objective (or 20)
             const target = objectif || 20;
-            const pct = moyenne !== null ? Math.min(100, Math.max(0, (moyenne / target) * 100)) : 0;
+            const pct = note !== null ? Math.min(100, Math.max(0, (note / target) * 100)) : 0;
 
-            // Bar color
-            let barColor = '#ef4444'; // red < 50%
-            if (pct >= 80) barColor = '#10b981';
-            else if (pct >= 50) barColor = '#f59e0b';
+            // SVG arc params (semi-circle, 180°)
+            const radius = 54;
+            const circumference = Math.PI * radius; // half-circle
+            const strokeLen = (pct / 100) * circumference;
 
-            const moyenneStr = moyenne !== null ? this._fmt(moyenne) + '/20' : '—/20';
-            const objHtml = objectif
-                ? `<span class="prog-objectif">obj. ${objectif}</span>`
-                : `<a href="notes.html" class="prog-set-obj">Fixe un objectif</a>`;
+            // Color based on progress
+            let arcColor = mat.color;
+            if (note !== null && pct < 50) arcColor = '#f59e0b';
+            if (note !== null && pct < 30) arcColor = '#ef4444';
+
+            const noteDisplay = note !== null ? note.toFixed(1) : '—';
+            const objLine = objectif
+                ? `<span class="gauge-objectif">Objectif : ${objectif}/20</span>`
+                : `<a href="notes.html" class="gauge-set-obj">Fixe un objectif →</a>`;
 
             return `
-                <div class="prog-row">
-                    <span class="prog-matiere">${mat}</span>
-                    <span class="prog-moyenne">${moyenneStr}</span>
-                    <div class="prog-bar-track">
-                        <div class="prog-bar-fill" style="width: ${pct}%; background: ${barColor}"></div>
+                <div class="gauge-card" style="--gauge-bg: ${mat.bgLight}; --gauge-track: ${mat.trackColor}; --gauge-color: ${arcColor};">
+                    <span class="gauge-label">${mat.label}</span>
+                    <div class="gauge-svg-wrap">
+                        <svg class="gauge-svg" viewBox="0 0 120 70" width="120" height="70">
+                            <path d="M 6 64 A 54 54 0 0 1 114 64" fill="none" stroke="var(--gauge-track)" stroke-width="8" stroke-linecap="round"/>
+                            <path d="M 6 64 A 54 54 0 0 1 114 64" fill="none" stroke="var(--gauge-color)" stroke-width="8" stroke-linecap="round"
+                                  stroke-dasharray="${strokeLen} ${circumference}" class="gauge-arc"/>
+                        </svg>
+                        <div class="gauge-note">
+                            <span class="gauge-note-value">${noteDisplay}</span>
+                            <span class="gauge-note-unit">/20</span>
+                        </div>
                     </div>
-                    ${objHtml}
+                    ${objLine}
                 </div>
             `;
         }).join('');
 
         container.innerHTML = `
-            <div class="progression-banner">
-                ${rows}
-                <a href="notes.html" class="prog-link">Mes résultats →</a>
+            <div class="progression-gauges">
+                ${cards}
             </div>
+            <a href="notes.html" class="prog-link">Voir mes résultats détaillés →</a>
         `;
     },
 
