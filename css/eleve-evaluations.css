@@ -160,27 +160,13 @@
     white-space: nowrap;
 }
 
-.tab-btn svg {
-    transition: all 0.15s;
-}
-
-/* Inactive icons — colored */
-.tab-btn[data-tab="evaluations"] svg {
-    color: var(--eval-conn);
-    opacity: 0.6;
-}
-
-.tab-btn[data-tab="bonus"] svg {
-    color: var(--eval-bonus);
-    opacity: 0.6;
+.tab-icon {
+    font-size: 15px;
+    line-height: 1;
 }
 
 .tab-btn:hover {
     color: #374151;
-}
-
-.tab-btn:hover svg {
-    opacity: 0.85;
 }
 
 /* Active: evaluations = purple */
@@ -193,11 +179,6 @@
 .tab-btn.active[data-tab="bonus"] {
     background: #eab308;
     color: white;
-}
-
-.tab-btn.active svg {
-    color: white;
-    opacity: 1;
 }
 
 /* Badge */
