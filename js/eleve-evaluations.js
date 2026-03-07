@@ -474,9 +474,9 @@ const EleveEvaluations = {
                 <div class="eval-section section-done">
                     <button class="section-header collapsible" onclick="EleveEvaluations.toggleSection(this)">
                         <h2>Terminées <span class="section-count">${allDone.length}</span></h2>
-                        <span class="section-toggle">▲</span>
+                        <span class="section-toggle">▼</span>
                     </button>
-                    <div class="section-cards">
+                    <div class="section-cards collapsed">
                         ${allDone.map(e => e.isSommative ? this.renderSommativeCard(e) : this.renderCard(e)).join('')}
                     </div>
                 </div>
@@ -508,7 +508,19 @@ const EleveEvaluations = {
         let html = '';
         if (availableBonus.length > 0) html += this._renderSection('Disponibles', availableBonus, 'section-active');
         if (upcomingBonus.length > 0) html += this._renderSection('À venir', upcomingBonus, 'section-upcoming');
-        if (doneBonus.length > 0) html += this._renderSection('Terminés', doneBonus, 'section-done');
+        if (doneBonus.length > 0) {
+            html += `
+                <div class="eval-section section-done">
+                    <button class="section-header collapsible" onclick="EleveEvaluations.toggleSection(this)">
+                        <h2>Terminés <span class="section-count">${doneBonus.length}</span></h2>
+                        <span class="section-toggle">▼</span>
+                    </button>
+                    <div class="section-cards collapsed">
+                        ${doneBonus.map(e => this.renderCard(e)).join('')}
+                    </div>
+                </div>
+            `;
+        }
 
         container.innerHTML = html;
     },
