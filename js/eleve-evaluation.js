@@ -24,9 +24,16 @@ const EleveEvaluation = {
         try {
             const params = new URLSearchParams(window.location.search);
             const evalId = params.get('id');
+            const mode = params.get('mode');
 
             if (!evalId || evalId === 'test') {
                 throw new Error('ID d\'évaluation manquant');
+            }
+
+            // Mode review : afficher le bilan d'une évaluation déjà passée
+            if (mode === 'review') {
+                await this._initReviewMode(evalId);
+                return;
             }
 
             await this.loadEvaluation(evalId);
@@ -100,6 +107,80 @@ const EleveEvaluation = {
                 throw new Error('Aucune étape disponible pour cette évaluation');
             }
         }
+    },
+
+    // ========== MODE REVIEW ==========
+
+    /**
+     * Charge et affiche le bilan d'une évaluation déjà passée.
+     */
+    async _initReviewMode(evalId) {
+        const eleveId = this._getCurrentUserId();
+        if (!eleveId) {
+            throw new Error('Utilisateur non connecté');
+        }
+
+        const response = await this.callAPI('getEvaluationResultForReview', {
+            evaluation_id: evalId,
+            eleve_id: eleveId
+        });
+
+        if (!response.success || !response.data) {
+            throw new Error(response.error || 'Résultat non trouvé');
+        }
+
+        const { resultat, evaluation, banque_titre } = response.data;
+
+        // Reconstruire this.evaluation pour _buildResultHTML
+        this.evaluation = {
+            id: evalId,
+            titre: evaluation ? evaluation.titre : '',
+            type: evaluation ? String(evaluation.type || 'connaissances').trim() : 'connaissances',
+            briques: evaluation ? (parseInt(evaluation.briques) || 1) : 1,
+            seuil: evaluation ? (parseInt(evaluation.seuil) || 80) : 80,
+            attribution: {
+                banque_id: resultat.banque_id || '',
+                banque_titre: banque_titre || ''
+            }
+        };
+
+        // Reconstruire globalResult
+        const isValidated = resultat.is_validated === true || resultat.is_validated === 'true' || resultat.is_validated === 'TRUE';
+        const score = parseInt(resultat.score) || 0;
+        const tempsPasse = parseInt(resultat.temps_passe) || 0;
+        const validations = parseFloat(resultat.validations) || 0;
+
+        // Reconstituer correct/total depuis details
+        let correct = 0;
+        let total = 0;
+        const details = Array.isArray(resultat.details) ? resultat.details : [];
+        details.forEach(d => {
+            if (d) {
+                correct += (d.c || 0);
+                total += (d.t || 0);
+            }
+        });
+
+        const globalResult = {
+            score: score,
+            correct: correct,
+            total: total,
+            isValidated: isValidated,
+            pointsEarned: validations,
+            elapsedTime: tempsPasse,
+            correctionHtml: resultat.correction_html || ''
+        };
+
+        // Masquer le container d'exercice, afficher le résultat
+        const exerciseContainer = document.getElementById('exerciseContainer');
+        if (exerciseContainer) exerciseContainer.style.display = 'none';
+
+        const resultContainer = document.getElementById('resultContainer');
+        resultContainer.style.display = 'block';
+        resultContainer.innerHTML = this._buildResultHTML(globalResult);
+        this._initCarouselNav();
+
+        this.showContent();
     },
 
     // ========== SETUP CONNAISSANCES ==========
@@ -719,6 +800,23 @@ const EleveEvaluation = {
                 } : null);
             }
 
+            // Correction HTML pour review ultérieure
+            let correctionHtml = '';
+            if (this.evaluation.type === 'savoir-faire') {
+                if (this._sfCorrectedHTML) {
+                    correctionHtml = this._sfCorrectedHTML;
+                }
+            } else {
+                const EC = EleveConnaissances;
+                if (globalResult.detailedResults && typeof EC.generateErrorDetails === 'function') {
+                    correctionHtml = EC.generateErrorDetails(globalResult.detailedResults);
+                }
+            }
+            // Tronquer si trop long pour Google Sheets (limite ~50k chars)
+            if (correctionHtml.length > 40000) {
+                correctionHtml = correctionHtml.substring(0, 40000) + '<!-- tronqué -->';
+            }
+
             const attribution = this.evaluation.attribution || {};
             const params = {
                 evaluation_id: this.evaluation.id,
@@ -729,7 +827,9 @@ const EleveEvaluation = {
                 temps_passe: globalResult.elapsedTime,
                 details: JSON.stringify(detailsCompact),
                 banque_id: attribution.banque_id || '',
-                entrainement_id: attribution.entrainement_id || ''
+                entrainement_id: attribution.entrainement_id || '',
+                correction_html: correctionHtml,
+                detailed_results: JSON.stringify(detailsCompact)
             };
 
             console.log('[EVAL SAVE] Envoi:', JSON.stringify(params));
@@ -752,6 +852,10 @@ const EleveEvaluation = {
         }
     },
 
+    /**
+     * Affiche le bilan post-évaluation en layout 2 colonnes.
+     * Réutilisé pour le mode review (Phase 4).
+     */
     showResults(globalResult) {
         this._removeBeforeUnload();
         document.getElementById('exerciseContainer').style.display = 'none';
@@ -759,83 +863,196 @@ const EleveEvaluation = {
         const resultContainer = document.getElementById('resultContainer');
         resultContainer.style.display = 'block';
 
-        const headerClass = globalResult.isValidated ? 'validated' : 'failed';
-        const icon = globalResult.isValidated ? '✅' : '❌';
-        const message = globalResult.isValidated ? 'Évaluation validée !' : 'Évaluation non validée';
-        const subMessage = globalResult.isValidated
-            ? `Tu as gagné ${globalResult.pointsEarned} point${globalResult.pointsEarned > 1 ? 's' : ''} !`
-            : 'Tu pourras repasser cette évaluation avec de nouvelles questions.';
+        resultContainer.innerHTML = this._buildResultHTML(globalResult);
+
+        // Init carrousel navigation si présent
+        this._initCarouselNav();
+    },
+
+    /**
+     * Construit le HTML du bilan 2 colonnes (réutilisé par showResults et mode review).
+     */
+    _buildResultHTML(globalResult) {
+        const score = globalResult.score || 0;
+        const isValidated = globalResult.isValidated;
+        const type = this.evaluation.type || 'connaissances';
+        const seuil = type === 'savoir-faire' ? 100 : (parseInt(this.evaluation.seuil) || 80);
+        const attribution = this.evaluation.attribution || {};
+
+        // Catégorie visuelle
+        let colorClass = 'error';
+        if (isValidated) colorClass = 'success';
+        else if (score >= seuil / 2) colorClass = 'partial';
+
+        const icon = isValidated ? '🎉' : (colorClass === 'partial' ? '💪' : '😔');
+        const message = isValidated ? 'Évaluation validée !' : 'Évaluation non validée';
 
         // Correction détaillée (conn ou SF)
-        let correctionHtml = '';
-        if (this.evaluation.type === 'savoir-faire') {
-            // Pour SF : afficher le HTML corrigé capturé avant la sauvegarde
-            if (this._sfCorrectedHTML) {
-                correctionHtml = this._sfCorrectedHTML;
-            }
-        } else {
-            const EC = EleveConnaissances;
-            if (globalResult.detailedResults && typeof EC.generateErrorDetails === 'function') {
-                correctionHtml = EC.generateErrorDetails(globalResult.detailedResults);
+        let correctionHtml = globalResult.correctionHtml || '';
+        if (!correctionHtml) {
+            if (type === 'savoir-faire') {
+                if (this._sfCorrectedHTML) correctionHtml = this._sfCorrectedHTML;
+            } else {
+                const EC = typeof EleveConnaissances !== 'undefined' ? EleveConnaissances : null;
+                if (globalResult.detailedResults && EC && typeof EC.generateErrorDetails === 'function') {
+                    correctionHtml = EC.generateErrorDetails(globalResult.detailedResults);
+                }
             }
         }
 
-        resultContainer.innerHTML = `
-            <div class="evaluation-result">
-                <div class="evaluation-result-header ${headerClass}">
-                    <div class="evaluation-result-icon">${icon}</div>
-                    <h2>${message}</h2>
-                    <p>${subMessage}</p>
-                </div>
+        // Points affichage
+        const points = globalResult.pointsEarned !== undefined ? globalResult.pointsEarned : 0;
+        const briques = this.evaluation.briques || points;
+        const pointsClass = isValidated ? 'earned' : 'lost';
+        const pointsSign = isValidated ? '+' : '';
 
-                <div class="score-details">
-                    <div class="score-breakdown">
-                        <div class="score-item">
-                            <div class="score-item-value">${globalResult.score}%</div>
-                            <div class="score-item-label">Score</div>
-                        </div>
-                        <div class="score-item">
-                            <div class="score-item-value">${globalResult.correct}/${globalResult.total}</div>
-                            <div class="score-item-label">Bonnes réponses</div>
-                        </div>
-                        <div class="score-item">
-                            <div class="score-item-value">${this.formatTime(globalResult.elapsedTime)}</div>
-                            <div class="score-item-label">Temps</div>
-                        </div>
-                        <div class="score-item">
-                            <div class="score-item-value ${globalResult.isValidated ? 'earned' : 'lost'}">${globalResult.pointsEarned}/${this.evaluation.briques}</div>
-                            <div class="score-item-label">Points</div>
-                        </div>
+        // Temps
+        const tempsStr = this.formatTime(globalResult.elapsedTime || 0);
+
+        // Message conseil
+        const conseilHtml = this._buildConseilHTML(isValidated, type, attribution);
+
+        // Colonne droite
+        let rightHtml;
+        if (!correctionHtml || score === 100) {
+            rightHtml = `
+                <div class="eval-result-right is-felicitation">
+                    <div class="felicitation-panel ${isValidated ? 'success' : ''}">
+                        <span class="felicitation-icon">${isValidated ? '🏆' : '📝'}</span>
+                        <h3>${isValidated ? 'Bravo, sans faute !' : 'Pas de correction disponible'}</h3>
+                        <p>${isValidated ? 'Tu as tout réussi, continue comme ça !' : 'Les détails de correction ne sont pas disponibles pour cette évaluation.'}</p>
                     </div>
-
-                    <div class="threshold-info">
-                        <div class="threshold-info-icon">${this.evaluation.type === 'savoir-faire' ? '100%' : this.evaluation.seuil + '%'}</div>
-                        <div class="threshold-info-text">
-                            <strong>Seuil de validation</strong>
-                            <span>${this.evaluation.type === 'savoir-faire'
-                                ? 'Pour un savoir-faire, tu dois obtenir 100% (zéro erreur)'
-                                : `Tu devais obtenir au moins ${this.evaluation.seuil}% pour valider`}</span>
-                        </div>
+                </div>`;
+        } else {
+            rightHtml = `
+                <div class="eval-result-right is-correction">
+                    <div class="eval-correction-header">
+                        <h3>Correction détaillée</h3>
                     </div>
-                </div>
-
-                ${correctionHtml ? `
-                <div class="eval-correction-section">
-                    <h3>Correction détaillée</h3>
-                    <div class="eval-correction-content">
+                    <div class="eval-correction-body">
                         ${correctionHtml}
                     </div>
-                </div>
-                ` : ''}
+                </div>`;
+        }
 
-                <div class="result-actions">
-                    <button class="btn btn-primary" onclick="window.location.href='evaluations.html'">
-                        Retour aux évaluations
-                    </button>
+        return `
+            <div class="eval-result-card">
+                <div class="eval-result-bilan">
+                    <div class="bilan-header ${colorClass}">
+                        <span class="bilan-icon">${icon}</span>
+                        <span class="bilan-message">${message}</span>
+                    </div>
+
+                    <div class="bilan-score">
+                        <div class="score-circle ${colorClass}">${score}%</div>
+                        <div class="score-detail">${globalResult.correct || 0}/${globalResult.total || 0} bonnes réponses</div>
+                    </div>
+
+                    <div class="bilan-stats-row">
+                        <div class="bilan-stat">
+                            <span class="stat-icon">⏱</span>
+                            <span class="stat-value">${tempsStr}</span>
+                        </div>
+                        <div class="bilan-stat">
+                            <span class="stat-icon">🎯</span>
+                            <span class="stat-value">Seuil : ${seuil}%</span>
+                        </div>
+                    </div>
+
+                    <div class="bilan-points ${pointsClass}">
+                        <span class="points-value">${pointsSign}${points}</span>
+                        <span class="points-label">point${points > 1 ? 's' : ''} sur ${briques}</span>
+                    </div>
+
+                    ${conseilHtml}
+
+                    <div class="bilan-actions">
+                        <button class="btn btn-primary" onclick="window.location.href='evaluations.html'">
+                            Retour aux évaluations
+                        </button>
+                    </div>
                 </div>
+                ${rightHtml}
             </div>
         `;
+    },
 
+    /**
+     * Construit le message conseil avec lien vers la banque d'entraînement.
+     */
+    _buildConseilHTML(isValidated, type, attribution) {
+        if (isValidated) {
+            return `
+                <div class="bilan-conseil success">
+                    <span class="conseil-icon">✅</span>
+                    <p>Bravo ! Continue à t'entraîner pour consolider tes acquis.</p>
+                </div>`;
+        }
+
+        const banqueTitre = attribution.banque_titre || '';
+        const page = type === 'connaissances' ? 'entrainements-conn.html' : 'entrainements-sf.html';
+        const label = type === 'connaissances' ? 'connaissances' : 'savoir-faire';
+
+        if (banqueTitre) {
+            return `
+                <div class="bilan-conseil warning">
+                    <span class="conseil-icon">💡</span>
+                    <div>
+                        <p>Pour progresser, retravaille tes entraînements ${label} :</p>
+                        <a href="${page}" class="conseil-link">${escapeHtml(banqueTitre)}</a>
+                    </div>
+                </div>`;
+        }
+
+        return `
+            <div class="bilan-conseil warning">
+                <span class="conseil-icon">💡</span>
+                <p>Pour progresser, retravaille tes <a href="${page}">entraînements ${label}</a>.</p>
+            </div>`;
+    },
+
+    /**
+     * Initialise la navigation carrousel dans la correction (si présent).
+     */
+    _initCarouselNav() {
+        const container = document.querySelector('.eval-correction-body');
+        if (!container) return;
+
+        // Réattacher les listeners du carrousel connaissances si présent
+        const arrows = container.querySelectorAll('.carousel-arrow');
+        const slides = container.querySelectorAll('.carousel-slide');
+        if (arrows.length === 0 || slides.length === 0) return;
+
+        let currentSlide = 0;
+        const updateSlide = (idx) => {
+            slides.forEach((s, i) => {
+                s.classList.toggle('hidden', i !== idx);
+            });
+            currentSlide = idx;
+            const prevBtn = container.querySelector('.carousel-arrow.prev');
+            const nextBtn = container.querySelector('.carousel-arrow.next');
+            if (prevBtn) prevBtn.disabled = idx === 0;
+            if (nextBtn) nextBtn.disabled = idx === slides.length - 1;
+            // Update dots
+            container.querySelectorAll('.carousel-dot').forEach((d, i) => {
+                d.classList.toggle('active', i === idx);
+            });
+        };
+
+        const prevBtn = container.querySelector('.carousel-arrow.prev');
+        const nextBtn = container.querySelector('.carousel-arrow.next');
+        if (prevBtn) prevBtn.addEventListener('click', () => { if (currentSlide > 0) updateSlide(currentSlide - 1); });
+        if (nextBtn) nextBtn.addEventListener('click', () => { if (currentSlide < slides.length - 1) updateSlide(currentSlide + 1); });
+
+        // Clickable overview rows
+        container.querySelectorAll('[data-slide-index]').forEach(el => {
+            el.addEventListener('click', () => {
+                const idx = parseInt(el.dataset.slideIndex);
+                if (!isNaN(idx)) updateSlide(idx);
+            });
+        });
+
+        updateSlide(0);
     },
 
     // ========== NAVIGATION ==========
