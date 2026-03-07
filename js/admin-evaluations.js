@@ -1409,12 +1409,18 @@ const AdminEvaluations = {
         tbody.innerHTML = this.eleves.map(eleve => {
             const r = resultsMap[String(eleve.id).trim()] || {};
             const score = r.score !== undefined && r.score !== '' ? r.score : '';
-            const validations = r.validations !== undefined && r.validations !== '' ? r.validations : '';
+            // Si statut_resultat = non_rendu/absent, afficher NR/ABS au lieu de 0
+            const statutRes = String(r.statut_resultat || '').trim();
+            const validations = (statutRes === 'non_rendu' || statutRes === 'absent')
+                ? statutRes
+                : (r.validations !== undefined && r.validations !== '' ? r.validations : '');
             const isAuto = r.source === 'auto' || (!r.source && r.id);
             const sourceBadge = r.id ? (isAuto ? '<span class="source-badge auto">🤖</span>' : '<span class="source-badge manuel">✏️</span>') : '';
 
-            // Ligne verte si élève a réussi
+            // Ligne verte si élève a réussi, orange si absent, rouge si non rendu
             const isSuccess = r.is_validated === true || r.is_validated === 'true' || (r.validations && parseInt(r.validations) > 0 && r.validations !== 'non_rendu' && r.validations !== 'absent');
+            const isAbsent = validations === 'absent';
+            const isNR = validations === 'non_rendu';
 
             // Score : lecture seule (affiche uniquement les remontées auto)
             const scoreCell = `<td class="col-score">${score !== '' ? score + '%' : '—'}</td>`;
@@ -1527,7 +1533,7 @@ const AdminEvaluations = {
             resultatOptions += `<option value="absent" ${absSelected}>ABS</option>`;
 
             return `
-                <tr data-eleve-id="${eleve.id}" class="${isSuccess ? 'success-row' : ''} ${!r.id ? 'no-result' : ''}">
+                <tr data-eleve-id="${eleve.id}" class="${isSuccess ? 'success-row' : ''} ${isAbsent ? 'absent-row' : ''} ${isNR ? 'nr-row' : ''} ${!r.id ? 'no-result' : ''}">
                     <td class="col-eleve">
                         <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
                         ${sourceBadge}
@@ -1675,10 +1681,12 @@ const AdminEvaluations = {
                 badge.textContent = '✏️ Manuel';
             }
 
-            // Mettre à jour la ligne verte quand on change le résultat
+            // Mettre à jour la couleur de ligne quand on change le résultat
             if (field === 'validations') {
                 const isSuccess = value && parseInt(value) > 0 && value !== 'non_rendu' && value !== 'absent';
                 row.classList.toggle('success-row', isSuccess);
+                row.classList.toggle('absent-row', value === 'absent');
+                row.classList.toggle('nr-row', value === 'non_rendu');
                 row.classList.toggle('no-result', false);
             }
         }
