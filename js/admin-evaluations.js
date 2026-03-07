@@ -1426,65 +1426,93 @@ const AdminEvaluations = {
             let banqueCell = '';
             let entrainementCell = '';
             if (showSujet) {
-                const existingAttr = attributionsMap[String(eleve.id).trim()];
+                // Si l'élève a déjà passé l'éval, afficher ce qu'il a réellement fait (lecture seule)
+                const hasResult = r.id && r.banque_id;
+                if (hasResult) {
+                    const resultBanqueId = String(r.banque_id).trim();
+                    const resultEntrId = String(r.entrainement_id || '').trim();
+                    const resultBanque = banques.find(b => String(b.id).trim() === resultBanqueId);
+                    const banqueLabel = resultBanque ? (resultBanque.titre || 'Sans titre') : resultBanqueId;
 
-                // Compute auto banque from progression (résultats validés + fallback PROGRESSION_EVALUATION)
-                const autoBanqueIndex = this._getAutoBanqueIndex(
-                    eleve.id, evaluation.type, evaluation.matiere || this.currentMatiere, banques
-                );
-                const autoBanque = banques[autoBanqueIndex];
-                const allowedBanques = banques.filter((_b, idx) => idx <= autoBanqueIndex);
-
-                // Determine current selection
-                const isManual = existingAttr && String(existingAttr.source).trim() === 'manuel';
-                const currentBanqueId = isManual ? String(existingAttr.banque_id || '').trim() : '';
-                const currentEntrId = existingAttr ? String(existingAttr.entrainement_id || '').trim() : '';
-                const effectiveBanqueId = currentBanqueId || (autoBanque ? autoBanque.id : '');
-
-                // Auto-assign an exercise if none specified (connaissances + SF)
-                let effectiveEntrId = currentEntrId;
-                if (!effectiveEntrId) {
-                    const exerciseList = isConn
-                        ? this.entrainementsConn.filter(e => String(e.banque_exercice_id).trim() === String(effectiveBanqueId).trim() && e.statut !== 'evaluation')
-                        : this.exercicesSF.filter(e => String(e.banque_id).trim() === String(effectiveBanqueId).trim());
-                    if (exerciseList.length > 0) {
-                        const randomIndex = Math.floor(Math.random() * exerciseList.length);
-                        effectiveEntrId = String(exerciseList[randomIndex].id).trim();
+                    let entrLabel = '—';
+                    if (resultEntrId) {
+                        const entrList = isConn ? this.entrainementsConn : this.exercicesSF;
+                        const entrObj = entrList.find(e => String(e.id).trim() === resultEntrId);
+                        entrLabel = entrObj ? (entrObj.titre || entrObj.nom || resultEntrId) : resultEntrId;
                     }
+
+                    // Stocker l'attribution réelle (pas de modification possible)
+                    this._saisieAttributions[String(eleve.id).trim()] = {
+                        banque_id: resultBanqueId,
+                        entrainement_id: resultEntrId,
+                        source: r.source || 'auto',
+                        auto_banque_id: resultBanqueId
+                    };
+
+                    banqueCell = `<td class="col-banque"><span class="attribution-locked" title="Sujet réellement passé">${escapeHtml(banqueLabel)}</span></td>`;
+                    entrainementCell = `<td class="col-entrainement"><span class="attribution-locked" title="Exercice réellement passé">${escapeHtml(entrLabel)}</span></td>`;
+                } else {
+                    // Pas encore passé : dropdowns modifiables
+                    const existingAttr = attributionsMap[String(eleve.id).trim()];
+
+                    // Compute auto banque from progression (résultats validés + fallback PROGRESSION_EVALUATION)
+                    const autoBanqueIndex = this._getAutoBanqueIndex(
+                        eleve.id, evaluation.type, evaluation.matiere || this.currentMatiere, banques
+                    );
+                    const autoBanque = banques[autoBanqueIndex];
+                    const allowedBanques = banques.filter((_b, idx) => idx <= autoBanqueIndex);
+
+                    // Determine current selection
+                    const isManual = existingAttr && String(existingAttr.source).trim() === 'manuel';
+                    const currentBanqueId = isManual ? String(existingAttr.banque_id || '').trim() : '';
+                    const currentEntrId = existingAttr ? String(existingAttr.entrainement_id || '').trim() : '';
+                    const effectiveBanqueId = currentBanqueId || (autoBanque ? autoBanque.id : '');
+
+                    // Auto-assign an exercise if none specified (connaissances + SF)
+                    let effectiveEntrId = currentEntrId;
+                    if (!effectiveEntrId) {
+                        const exerciseList = isConn
+                            ? this.entrainementsConn.filter(e => String(e.banque_exercice_id).trim() === String(effectiveBanqueId).trim() && e.statut !== 'evaluation')
+                            : this.exercicesSF.filter(e => String(e.banque_id).trim() === String(effectiveBanqueId).trim());
+                        if (exerciseList.length > 0) {
+                            const randomIndex = Math.floor(Math.random() * exerciseList.length);
+                            effectiveEntrId = String(exerciseList[randomIndex].id).trim();
+                        }
+                    }
+
+                    // Store initial attribution state
+                    this._saisieAttributions[String(eleve.id).trim()] = {
+                        banque_id: effectiveBanqueId,
+                        entrainement_id: effectiveEntrId,
+                        source: isManual ? 'manuel' : 'auto',
+                        auto_banque_id: autoBanque ? autoBanque.id : ''
+                    };
+
+                    // Banque dropdown
+                    const banqueOptions = `<option value="">${escapeHtml('Auto' + (autoBanque ? ' (' + (autoBanque.titre || '') + ')' : ''))}</option>` +
+                        allowedBanques.map(b => {
+                            const sel = currentBanqueId === String(b.id).trim() ? 'selected' : '';
+                            return `<option value="${b.id}" ${sel}>${escapeHtml(b.titre || 'Sans titre')}</option>`;
+                        }).join('');
+
+                    banqueCell = `<td class="col-banque">
+                        <select class="saisie-select banque-select" data-eleve="${eleve.id}"
+                            onchange="AdminEvaluations._onSaisieBanqueChange('${eleve.id}', this.value)">
+                            ${banqueOptions}
+                        </select>
+                    </td>`;
+
+                    // Exercice dropdown (connaissances + SF)
+                    const exerciceOptions = isConn
+                        ? this._buildEntrainementOptions(effectiveBanqueId, effectiveEntrId)
+                        : this._buildExerciceSFOptions(effectiveBanqueId, effectiveEntrId);
+                    entrainementCell = `<td class="col-entrainement">
+                        <select class="saisie-select entrainement-select" data-eleve="${eleve.id}"
+                            onchange="AdminEvaluations._onSaisieEntrainementChange('${eleve.id}', this.value)">
+                            ${exerciceOptions}
+                        </select>
+                    </td>`;
                 }
-
-                // Store initial attribution state
-                this._saisieAttributions[String(eleve.id).trim()] = {
-                    banque_id: effectiveBanqueId,
-                    entrainement_id: effectiveEntrId,
-                    source: isManual ? 'manuel' : 'auto',
-                    auto_banque_id: autoBanque ? autoBanque.id : ''
-                };
-
-                // Banque dropdown
-                const banqueOptions = `<option value="">${escapeHtml('Auto' + (autoBanque ? ' (' + (autoBanque.titre || '') + ')' : ''))}</option>` +
-                    allowedBanques.map(b => {
-                        const sel = currentBanqueId === String(b.id).trim() ? 'selected' : '';
-                        return `<option value="${b.id}" ${sel}>${escapeHtml(b.titre || 'Sans titre')}</option>`;
-                    }).join('');
-
-                banqueCell = `<td class="col-banque">
-                    <select class="saisie-select banque-select" data-eleve="${eleve.id}"
-                        onchange="AdminEvaluations._onSaisieBanqueChange('${eleve.id}', this.value)">
-                        ${banqueOptions}
-                    </select>
-                </td>`;
-
-                // Exercice dropdown (connaissances + SF)
-                const exerciceOptions = isConn
-                    ? this._buildEntrainementOptions(effectiveBanqueId, effectiveEntrId)
-                    : this._buildExerciceSFOptions(effectiveBanqueId, effectiveEntrId);
-                entrainementCell = `<td class="col-entrainement">
-                    <select class="saisie-select entrainement-select" data-eleve="${eleve.id}"
-                        onchange="AdminEvaluations._onSaisieEntrainementChange('${eleve.id}', this.value)">
-                        ${exerciceOptions}
-                    </select>
-                </td>`;
             }
 
             // Build résultat select options

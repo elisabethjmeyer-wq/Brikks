@@ -644,6 +644,20 @@
 .col-banque { min-width: 140px; }
 .col-entrainement { min-width: 120px; }
 
+/* Attribution verrouillée (élève a déjà passé) */
+.attribution-locked {
+    display: inline-block;
+    padding: 4px 8px;
+    background: var(--bg-tertiary, #f0f0f0);
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: var(--text-secondary, #555);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+
 /* Banque / Entraînement selects */
 .banque-select,
 .entrainement-select {
