@@ -233,23 +233,11 @@ const EleveEvaluations = {
         return (Math.round(note * 10) / 10).toFixed(1);
     },
 
-    // ========== COMPACT HEADER (mini gauges + stats) ==========
+    // ========== COMPACT HEADER (gauges) ==========
     _renderProgressionBanner() {
         const container = document.getElementById('progressionBanner');
         if (!container) return;
 
-        // Header stats: "X disponibles · Y points à gagner"
-        const statsEl = document.getElementById('headerStats');
-        if (statsEl) {
-            const nbDispo = (this.categories.available || []).length;
-            const totalPts = (this.categories.available || []).reduce((sum, ev) => sum + (parseInt(ev.briques) || 1), 0);
-            const parts = [];
-            if (nbDispo > 0) parts.push(`<span class="stats-available">${nbDispo} disponible${nbDispo > 1 ? 's' : ''}</span>`);
-            if (totalPts > 0) parts.push(`${totalPts} point${totalPts > 1 ? 's' : ''} à gagner`);
-            statsEl.innerHTML = parts.join(' · ') || 'Aucune évaluation disponible';
-        }
-
-        // Mini circle gauges
         const matieres = [
             { code: 'FR', label: 'FR', color: '#6366f1', trackColor: '#e0e7ff' },
             { code: 'HG-EMC', label: 'HG-EMC', color: '#6366f1', trackColor: '#e0e7ff' }
@@ -262,9 +250,9 @@ const EleveEvaluations = {
             const target = objectif || 20;
             const pct = note !== null ? Math.min(100, Math.max(0, (note / target) * 100)) : 0;
 
-            // Full circle: 270° arc
-            const radius = 22;
-            const circumference = 2 * Math.PI * radius * 0.75; // 270°
+            // 270° arc on 64px circle
+            const radius = 27;
+            const circumference = 2 * Math.PI * radius * 0.75;
             const strokeLen = (pct / 100) * circumference;
 
             // Color: green if >= 75%, amber if >= 40%, red otherwise
@@ -283,13 +271,13 @@ const EleveEvaluations = {
             return `
                 <div class="mini-gauge">
                     <div class="mini-gauge-circle">
-                        <svg viewBox="0 0 52 52" width="52" height="52">
-                            <circle cx="26" cy="26" r="${radius}" fill="none" stroke="${mat.trackColor}" stroke-width="5"
+                        <svg viewBox="0 0 64 64" width="64" height="64">
+                            <circle cx="32" cy="32" r="${radius}" fill="none" stroke="${mat.trackColor}" stroke-width="5"
                                     stroke-dasharray="${circumference} 1000" stroke-dashoffset="0"
-                                    transform="rotate(-225 26 26)" stroke-linecap="round"/>
-                            <circle cx="26" cy="26" r="${radius}" fill="none" stroke="${arcColor}" stroke-width="5"
+                                    transform="rotate(-225 32 32)" stroke-linecap="round"/>
+                            <circle cx="32" cy="32" r="${radius}" fill="none" stroke="${arcColor}" stroke-width="5"
                                     stroke-dasharray="${strokeLen} 1000" stroke-dashoffset="0"
-                                    transform="rotate(-225 26 26)" stroke-linecap="round" class="mini-gauge-arc"/>
+                                    transform="rotate(-225 32 32)" stroke-linecap="round" class="mini-gauge-arc"/>
                         </svg>
                         <span class="mini-gauge-value">${noteDisplay}</span>
                         <span class="mini-gauge-unit">/20</span>
