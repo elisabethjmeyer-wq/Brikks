@@ -24,16 +24,27 @@
 
 /* ===== HERO HEADER ===== */
 .hero-header {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 28px;
     margin-bottom: 20px;
     background: white;
     border-radius: 16px;
-    padding: 24px 28px;
-    border-left: 5px solid;
-    border-image: linear-gradient(to bottom, #6366f1, #8b5cf6) 1;
+    padding: 24px 28px 24px 33px;
     box-shadow: 0 2px 16px rgba(99, 102, 241, 0.08);
+    overflow: hidden;
+}
+
+.hero-header::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: linear-gradient(to bottom, #6366f1, #8b5cf6);
+    border-radius: 16px 0 0 16px;
 }
 
 .hero-left {
