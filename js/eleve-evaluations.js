@@ -353,11 +353,11 @@ const EleveEvaluations = {
 
             if (effectiveStatut === 'terminee') {
                 if (resultat) {
-                    // Vérifier si non_rendu ou absent (saisi par la prof)
-                    const val = String(resultat.validations || '').trim();
-                    if (val === 'non_rendu') {
+                    // statut_resultat contient 'non_rendu' ou 'absent' si la prof l'a saisi
+                    const statutRes = String(resultat.statut_resultat || '').trim();
+                    if (statutRes === 'non_rendu') {
                         this.categories.done.push({ ...ev, resultat, cardStatus: 'non_rendu' });
-                    } else if (val === 'absent') {
+                    } else if (statutRes === 'absent') {
                         this.categories.done.push({ ...ev, resultat, cardStatus: 'absent' });
                     } else {
                         this.categories.done.push({ ...ev, resultat, cardStatus: 'done' });
@@ -376,6 +376,14 @@ const EleveEvaluations = {
             }
 
             if (resultat) {
+                // Vérifier NR/ABS même si l'éval n'est pas encore terminée
+                const statutRes = String(resultat.statut_resultat || '').trim();
+                if (statutRes === 'non_rendu' || statutRes === 'absent') {
+                    const cs = statutRes === 'non_rendu' ? 'non_rendu' : 'absent';
+                    if (isBonus) this.categories.bonus.push({ ...ev, resultat, cardStatus: cs });
+                    else this.categories.done.push({ ...ev, resultat, cardStatus: cs });
+                    return;
+                }
                 const isValidated = this._isTruthy(resultat.is_validated);
                 const status = isValidated ? 'validated' : 'failed';
                 if (isBonus) this.categories.bonus.push({ ...ev, resultat, cardStatus: status });
