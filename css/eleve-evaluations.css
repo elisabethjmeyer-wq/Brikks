@@ -22,12 +22,6 @@
     --eval-controle-text: #334155;
 }
 
-/* ===== PAGE CONTAINER ===== */
-#evaluations-content {
-    max-width: 740px;
-    margin: 0 auto;
-}
-
 /* ===== HERO HEADER ===== */
 .hero-header {
     position: relative;
