@@ -22,17 +22,12 @@
     --eval-controle-text: #334155;
 }
 
-/* ===== PAGE CONTAINER ===== */
-#evaluations-content {
-    max-width: 740px;
-    margin: 0 auto;
-}
-
 /* ===== HERO HEADER ===== */
 .hero-header {
     position: relative;
     display: flex;
     align-items: center;
+    max-width: 740px;
     background: white;
     border-radius: 16px;
     padding: 26px 28px 26px 33px;
@@ -90,6 +85,7 @@
 }
 
 .hero-hint {
+    max-width: 740px;
     font-size: 10px;
     color: #9ca3af;
     margin-top: 8px;
