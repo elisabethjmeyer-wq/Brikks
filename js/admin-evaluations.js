@@ -746,14 +746,33 @@ const AdminEvaluations = {
                         <label>Titre <span class="req">*</span></label>
                         <input type="text" class="form-input" id="evalTitre" value="${escapeHtml(d.titre || '')}" placeholder="Ex: Evaluation chapitre 1">
                     </div>
+                    ${type === 'bonus' ? `
                     <div class="form-row">
-                        <div class="form-group" id="evalMatiereGroup" style="${type === 'bonus' ? '' : 'display:none'}">
+                        <div class="form-group" id="evalMatiereGroup">
                             <label>Matière <span class="req">*</span></label>
                             <select class="form-select" id="evalMatiere">
                                 <option value="FR" ${d.matiere === 'FR' || !d.matiere ? 'selected' : ''}>🇫🇷 Français</option>
                                 <option value="HG-EMC" ${d.matiere === 'HG-EMC' ? 'selected' : ''}>🌍 HG-EMC</option>
                                 <option value="Les deux" ${d.matiere === 'Les deux' ? 'selected' : ''}>🔗 Les deux</option>
                             </select>
+                        </div>
+                        <div class="form-group" id="evalCategorieGroup">
+                            <label>Catégorie de points</label>
+                            <select class="form-select" id="evalCategorie">
+                                <option value="connaissances" ${d.categorie === 'connaissances' || !d.categorie ? 'selected' : ''}>Connaissances</option>
+                                <option value="savoir-faire" ${d.categorie === 'savoir-faire' ? 'selected' : ''}>Savoir-faire</option>
+                                <option value="competences" ${d.categorie === 'competences' ? 'selected' : ''}>Compétences</option>
+                            </select>
+                        </div>
+                    </div>` : `
+                    <div style="display:none">
+                        <select id="evalMatiere"><option value="FR" selected></option></select>
+                        <select id="evalCategorie"><option value="" selected></option></select>
+                    </div>`}
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Points mis en jeu <span class="req">*</span></label>
+                            <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
                         </div>
                         <div class="form-group">
                             <label>Mode de passation</label>
@@ -765,14 +784,6 @@ const AdminEvaluations = {
                         </div>
                     </div>
                     ${typeSpecificHTML}
-                    <div class="form-group" id="evalCategorieGroup" style="${d.type === 'bonus' ? '' : 'display:none'}">
-                        <label>Catégorie de points</label>
-                        <select class="form-select" id="evalCategorie">
-                            <option value="connaissances" ${d.categorie === 'connaissances' || !d.categorie ? 'selected' : ''}>Connaissances</option>
-                            <option value="savoir-faire" ${d.categorie === 'savoir-faire' ? 'selected' : ''}>Savoir-faire</option>
-                            <option value="competences" ${d.categorie === 'competences' ? 'selected' : ''}>Compétences</option>
-                        </select>
-                    </div>
                 </div>
             </div>
         `;
@@ -782,14 +793,11 @@ const AdminEvaluations = {
         return `
             <div class="form-row">
                 <div class="form-group">
-                    <label>Points mis en jeu <span class="req">*</span></label>
-                    <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
-                </div>
-                <div class="form-group">
                     <label>Seuil de réussite (%) <span class="req">*</span></label>
                     <input type="number" class="form-input" id="evalSeuil" value="${d.seuil || 80}" min="0" max="100">
                     <div class="form-help">Score minimum pour valider</div>
                 </div>
+                <div class="form-group"></div>
             </div>
         `;
     },
@@ -1104,13 +1112,14 @@ const AdminEvaluations = {
         const modePassation = document.getElementById('evalModePassation')?.value;
         if (modePassation) this.wizardData.mode_passation = modePassation;
 
-        const matiereEl = document.getElementById('evalMatiere');
-        if (matiereEl && document.getElementById('evalMatiereGroup')?.style.display !== 'none') {
-            this.wizardData.matiere = matiereEl.value;
+        const matiereGroup = document.getElementById('evalMatiereGroup');
+        if (matiereGroup && matiereGroup.style.display !== 'none') {
+            this.wizardData.matiere = document.getElementById('evalMatiere')?.value || 'FR';
         }
 
-        const categorie = document.getElementById('evalCategorie')?.value;
-        if (categorie !== undefined) this.wizardData.categorie = categorie;
+        if (this.wizardData.type === 'bonus') {
+            this.wizardData.categorie = document.getElementById('evalCategorie')?.value || 'connaissances';
+        }
 
         const criteres = document.getElementById('evalCriteres')?.value;
         if (criteres !== undefined) this.wizardData.criteres = criteres.trim();
@@ -1121,16 +1130,8 @@ const AdminEvaluations = {
         // Les dates sont gérées via le dropdown statut, pas le wizard.
     },
 
-    _renderDefaultFields(d) {
-        return `
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Points mis en jeu <span class="req">*</span></label>
-                    <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
-                </div>
-                <div class="form-group"></div>
-            </div>
-        `;
+    _renderDefaultFields() {
+        return '';
     },
 
     _renderCompFields(d) {
@@ -1141,29 +1142,19 @@ const AdminEvaluations = {
         return `
             <div class="form-row">
                 <div class="form-group">
-                    <label>Points mis en jeu <span class="req">*</span></label>
-                    <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
-                </div>
-                <div class="form-group">
                     <label>Méthodologie liée</label>
                     <select class="form-select" id="evalMethodologieTC">
                         <option value="">Sélectionner...</option>
                         ${compOptions}
                     </select>
                 </div>
+                <div class="form-group"></div>
             </div>
         `;
     },
 
     _renderBonusFields(d) {
         return `
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Points mis en jeu <span class="req">*</span></label>
-                    <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
-                </div>
-                <div class="form-group"></div>
-            </div>
             <div class="form-group">
                 <label>Critères de validation</label>
                 <textarea class="form-textarea" id="evalCriteres" rows="3" placeholder="Décrivez les critères...">${escapeHtml(d.criteres || '')}</textarea>
@@ -1341,7 +1332,8 @@ const AdminEvaluations = {
                 this.wizardData.titre = titre;
                 this.wizardData.briques = parseInt(document.getElementById('evalBriques')?.value) || 3;
                 this.wizardData.mode_passation = document.getElementById('evalModePassation')?.value || 'numerique';
-                const matiereVisible = document.getElementById('evalMatiereGroup')?.style.display !== 'none';
+                const matiereGroup = document.getElementById('evalMatiereGroup');
+                const matiereVisible = matiereGroup && matiereGroup.style.display !== 'none';
                 this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
                 this.wizardData.categorie = this.wizardData.type === 'bonus' ? (document.getElementById('evalCategorie')?.value || 'connaissances') : '';
 
