@@ -4,6 +4,50 @@
 
 ---
 
+## 2026-03-08 — Session 27 : Wizard évaluations TC + bonus + 5ème onglet bonus ponctuels
+
+### Modifications
+
+1. **5ème onglet « Bonus ponctuels »** dans Banques d'exercices (couleur teal)
+   - Banque bonus = conteneur simple (titre, description, statut)
+   - Wizard 5 étapes (mode bonus) : Paramètres → Document → Corrigé → Critères libres → Résumé
+   - Critères libres : liste dynamique (ajouter/supprimer), stockés en JSON array
+2. **Admin Évaluations — wizard création TC + bonus**
+   - Onglet Compétences : toujours = tâche complexe (toggle classique/TC supprimé)
+   - Wizard 2 étapes : Paramètres → Sélection sujet (cascade dropdown banque TC → exercice)
+   - Onglet Bonus : 3 sous-types via toggle (compétence / ponctuel / suivi)
+   - Catégorie de points auto-déterminée (bonus compétence → "competences", ponctuel/suivi → "bonus")
+3. **Fix dropdown exercice vide** : comparaisons `String().trim()` dans les filtres cascade
+4. **Backend** : migration progressive des colonnes TC/bonus dans `Evaluations.gs`
+5. **Documentation** : plan phases 5-7 remanié avec contraintes parcours bonus élève
+
+### Décisions prises
+- Les bonus ne se passent **JAMAIS en ligne** (consultation sujet uniquement, rendu papier/mail)
+- Le bouton "Commencer" ne doit **jamais** apparaître pour les bonus
+- La saisie du résultat est **toujours manuelle** par la prof
+- Parcours bonus compétence : Élève demande → Prof accepte/refuse + fixe date → Consultation sujet → Rendu papier/mail → Prof saisit résultat
+
+### Questions ouvertes (à clarifier avec la prof)
+1. Bonus ponctuel : prof attribue ou élève demande ?
+2. Mode rendu : renommer "papier / mail" au lieu de "papier / numérique" ?
+3. Tâches complexes élève : même logique hors-ligne que les bonus ?
+4. Système de notifications : bandeau ? badge sidebar ? autre ?
+5. Bonus suivi : saisie dans le tableau existant ou écran dédié ?
+
+### Fichiers modifiés
+- `admin/banques-exercices.html` : 5ème onglet + modal `#banqueBonusModal`
+- `js/admin-banques-exercices.js` : données bonus ponctuels, tab switching, counts
+- `js/admin-banques-exercices-questions.js` : rendu bonus, CRUD, drag & drop
+- `js/admin-banques-exercices-comp-wizard.js` : mode `bonus` (5 étapes avec critères libres)
+- `js/admin-evaluations.js` : chargement données TC/bonus, wizard TC + bonus 3 sous-types, catégorie auto
+- `css/admin-evaluations.css` : styles `.sous-type-toggle`, `.sous-type-btn`
+- `css/admin-banques-exercices.css` : styles onglet teal, wizard critères
+- `google-apps-script/Evaluations.gs` : migration progressive colonnes TC/bonus
+- `google-apps-script/Competences.gs` : migration progressive `competence_ids`, `criteres_libres`, `matiere`
+- `CLAUDE.md` : vue fonctionnelle + plan phases mis à jour
+
+---
+
 ## 2026-03-08 — Session 26 : Onglet Tâches complexes (multi-compétences par exercice)
 
 ### Modifications
