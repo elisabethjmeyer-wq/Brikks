@@ -28,12 +28,18 @@ Object.assign(AdminBanquesExercices, {
     // ========== OUVERTURE / FERMETURE ==========
 
     openCompWizard(tache = null, lockedBanqueId = null) {
+        // Détecter si c'est un exercice TC (banque dans banquesTachesComplexes)
+        var effectiveBanqueId = lockedBanqueId || (tache ? tache.banque_id : null);
+        var isTCMode = !!(effectiveBanqueId && (this.banquesTachesComplexes || []).some(function(b) { return b.id === effectiveBanqueId; }));
+
         // Initialiser les données du wizard
         this.compWizardData = {
             entrainement: tache ? Object.assign({}, tache) : null,
-            banqueId: lockedBanqueId || (tache ? tache.banque_id : null),
+            banqueId: effectiveBanqueId,
             currentStep: 1,
-            isEditing: !!tache
+            isEditing: !!tache,
+            isTCMode: isTCMode,
+            totalSteps: isTCMode ? 5 : 4
         };
 
         // Supprimer une éventuelle instance précédente
@@ -56,16 +62,21 @@ Object.assign(AdminBanquesExercices, {
                             '<span class="step-number">1</span>' +
                             '<span class="step-label">Param\u00E8tres</span>' +
                         '</button>' +
+                        (isTCMode ?
                         '<button class="wizard-step" data-step="2" onclick="AdminBanquesExercices.goToCompWizardStep(2)">' +
                             '<span class="step-number">2</span>' +
+                            '<span class="step-label">Comp\u00E9tences</span>' +
+                        '</button>' : '') +
+                        '<button class="wizard-step" data-step="' + (isTCMode ? '3' : '2') + '" onclick="AdminBanquesExercices.goToCompWizardStep(' + (isTCMode ? 3 : 2) + ')">' +
+                            '<span class="step-number">' + (isTCMode ? '3' : '2') + '</span>' +
                             '<span class="step-label">Document</span>' +
                         '</button>' +
-                        '<button class="wizard-step" data-step="3" onclick="AdminBanquesExercices.goToCompWizardStep(3)">' +
-                            '<span class="step-number">3</span>' +
+                        '<button class="wizard-step" data-step="' + (isTCMode ? '4' : '3') + '" onclick="AdminBanquesExercices.goToCompWizardStep(' + (isTCMode ? 4 : 3) + ')">' +
+                            '<span class="step-number">' + (isTCMode ? '4' : '3') + '</span>' +
                             '<span class="step-label">Corrig\u00E9</span>' +
                         '</button>' +
-                        '<button class="wizard-step" data-step="4" onclick="AdminBanquesExercices.goToCompWizardStep(4)">' +
-                            '<span class="step-number">4</span>' +
+                        '<button class="wizard-step" data-step="' + (isTCMode ? '5' : '4') + '" onclick="AdminBanquesExercices.goToCompWizardStep(' + (isTCMode ? 5 : 4) + ')">' +
+                            '<span class="step-number">' + (isTCMode ? '5' : '4') + '</span>' +
                             '<span class="step-label">R\u00E9sum\u00E9</span>' +
                         '</button>' +
                     '</div>' +
@@ -104,6 +115,8 @@ Object.assign(AdminBanquesExercices, {
             entrainement: null,
             banqueId: null,
             currentStep: 1,
+            isTCMode: false,
+            totalSteps: 4,
             isEditing: false
         };
         if (this._previewDebounce) {
@@ -137,13 +150,14 @@ Object.assign(AdminBanquesExercices, {
         this._cwNavigating = true;
 
         var nextBtn = document.getElementById('compWizardNextBtn');
+        var totalSteps = this.compWizardData.totalSteps || 4;
 
         try {
             if (!this.validateCompWizardStep(this.compWizardData.currentStep)) return;
 
             this._saveCompWizardStepState(this.compWizardData.currentStep);
 
-            if (this.compWizardData.currentStep < 4) {
+            if (this.compWizardData.currentStep < totalSteps) {
                 this.compWizardData.currentStep++;
                 this.renderCompWizardStep(this.compWizardData.currentStep);
             } else {
@@ -159,11 +173,25 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
+    /**
+     * Retourne le nom logique d'une étape selon le mode (TC ou normal).
+     * TC mode : 1=params, 2=competences, 3=document, 4=corrige, 5=resume
+     * Normal : 1=params, 2=document, 3=corrige, 4=resume
+     */
+    _cwLogicalStep(step) {
+        if (this.compWizardData.isTCMode) {
+            return ['params', 'competences', 'document', 'corrige', 'resume'][step - 1] || 'unknown';
+        }
+        return ['params', 'document', 'corrige', 'resume'][step - 1] || 'unknown';
+    },
+
     // ========== VALIDATION ==========
 
     validateCompWizardStep(step) {
-        switch (step) {
-        case 1: {
+        var logical = this._cwLogicalStep(step);
+
+        switch (logical) {
+        case 'params': {
             var titre = document.getElementById('cwTitre');
             if (titre && !titre.value.trim()) {
                 this.showNotification('Le titre est requis', 'warning');
@@ -186,12 +214,14 @@ Object.assign(AdminBanquesExercices, {
             }
             return true;
         }
-        case 2:
+        case 'competences': {
+            var checked = document.querySelectorAll('#cwCompetencesCheckboxes input[type="checkbox"]:checked');
+            if (checked.length === 0) {
+                this.showNotification('Veuillez s\u00E9lectionner au moins une comp\u00E9tence', 'warning');
+                return false;
+            }
             return true;
-        case 3:
-            return true;
-        case 4:
-            return true;
+        }
         default:
             return true;
         }
@@ -201,9 +231,10 @@ Object.assign(AdminBanquesExercices, {
 
     _saveCompWizardStepState(step) {
         var e = this.compWizardData.entrainement || {};
+        var logical = this._cwLogicalStep(step);
 
-        switch (step) {
-        case 1: {
+        switch (logical) {
+        case 'params': {
             var titre = document.getElementById('cwTitre');
             var banqueId = document.getElementById('cwBanqueId');
             var duree = document.getElementById('cwDuree');
@@ -226,17 +257,29 @@ Object.assign(AdminBanquesExercices, {
             e.delai_mail_minutes = delaiMail ? (parseInt(delaiMail.value) || 30) : (e.delai_mail_minutes || 30);
             e.delai_papier_jours = delaiPapier ? (parseInt(delaiPapier.value) || 1) : (e.delai_papier_jours || 1);
 
-            // Résoudre la compétence depuis la banque
-            var banque = this.banquesCompetences.find(function(b) { return b.id === e.banque_id; });
-            e.competence_id = banque ? banque.competence_id : '';
+            // Résoudre la compétence depuis la banque (mode compétences classique)
+            if (!this.compWizardData.isTCMode) {
+                var banque = this.banquesCompetences.find(function(b) { return b.id === e.banque_id; });
+                e.competence_id = banque ? banque.competence_id : '';
+            }
 
             this.compWizardData.entrainement = e;
             break;
         }
-        case 2: {
-            // Sauvegarder la consigne (déplacée de l'étape 1)
-            var descStep2 = document.getElementById('cwDescription');
-            e.description = descStep2 ? descStep2.value.trim() : (e.description || '');
+        case 'competences': {
+            // Sauvegarder les compétences cochées
+            var checked = document.querySelectorAll('#cwCompetencesCheckboxes input[type="checkbox"]:checked');
+            var ids = [];
+            checked.forEach(function(cb) { ids.push(cb.value); });
+            e.competence_ids = JSON.stringify(ids);
+            e.competence_id = ids[0] || '';
+            this.compWizardData.entrainement = e;
+            break;
+        }
+        case 'document': {
+            // Sauvegarder la consigne
+            var descStep = document.getElementById('cwDescription');
+            e.description = descStep ? descStep.value.trim() : (e.description || '');
             // Sauvegarder les blocs du block editor (document)
             this._saveEditorsState();
             var json = this.getBlocksJSON();
@@ -246,7 +289,7 @@ Object.assign(AdminBanquesExercices, {
             this.compWizardData.entrainement = e;
             break;
         }
-        case 3: {
+        case 'corrige': {
             // Sauvegarder le corrigé
             var corrMode = this._cwGetCorrectionMode();
             if (corrMode === 'url') {
@@ -261,7 +304,7 @@ Object.assign(AdminBanquesExercices, {
             this.compWizardData.entrainement = e;
             break;
         }
-        case 4:
+        case 'resume':
             // Résumé — rien à sauvegarder
             break;
         }
@@ -282,6 +325,8 @@ Object.assign(AdminBanquesExercices, {
         var nextBtn = document.getElementById('compWizardNextBtn');
         if (!content) return;
 
+        var totalSteps = this.compWizardData.totalSteps || 4;
+
         // Mettre à jour les indicateurs d'étapes
         var modalEl = document.getElementById('compWizardModal');
         if (modalEl) {
@@ -298,22 +343,28 @@ Object.assign(AdminBanquesExercices, {
         }
         if (nextBtn) {
             nextBtn.disabled = false;
-            nextBtn.textContent = step === 4 ? '\u2713 Enregistrer' : 'Suivant \u2192';
+            nextBtn.textContent = step === totalSteps ? '\u2713 Enregistrer' : 'Suivant \u2192';
         }
 
-        switch (step) {
-        case 1:
+        var logical = this._cwLogicalStep(step);
+
+        switch (logical) {
+        case 'params':
             content.innerHTML = this._renderCompWizardStep1();
             break;
-        case 2:
+        case 'competences':
+            content.innerHTML = this._renderCWStepCompetences();
+            this._initCWStepCompetences();
+            break;
+        case 'document':
             content.innerHTML = this._renderCompWizardStep2();
             this._initCompWizardStep2();
             break;
-        case 3:
+        case 'corrige':
             content.innerHTML = this._renderCompWizardStep3();
             this._initCompWizardStep3();
             break;
-        case 4:
+        case 'resume':
             content.innerHTML = this._renderCompWizardStep4();
             break;
         }
@@ -327,7 +378,8 @@ Object.assign(AdminBanquesExercices, {
         var dureeMin = e.duree || 30;
 
         // Construire les options du select banque
-        var banques = (this.banquesCompetences || []).slice().sort(function(a, b) {
+        var sourceList = this.compWizardData.isTCMode ? (this.banquesTachesComplexes || []) : (this.banquesCompetences || []);
+        var banques = sourceList.slice().sort(function(a, b) {
             return (a.ordre || 0) - (b.ordre || 0);
         });
         var self = this;
@@ -787,13 +839,135 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
-    // ========== ÉTAPE 4 : RÉSUMÉ ==========
+    // ========== ÉTAPE COMPÉTENCES (TC uniquement) ==========
+
+    _renderCWStepCompetences() {
+        var e = this.compWizardData.entrainement || {};
+        var selectedIds = [];
+        if (e.competence_ids) {
+            try {
+                var parsed = typeof e.competence_ids === 'string' ? JSON.parse(e.competence_ids) : e.competence_ids;
+                if (Array.isArray(parsed)) selectedIds = parsed;
+            } catch (_err) { /* ignore */ }
+        }
+
+        // Grouper les compétences par matière
+        var comps = (this.competencesReferentiel || []).slice().sort(function(a, b) {
+            return (a.ordre || 0) - (b.ordre || 0);
+        });
+
+        var groups = {};
+        comps.forEach(function(c) {
+            var mat = c.matiere || 'Transversal';
+            if (!groups[mat]) groups[mat] = [];
+            groups[mat].push(c);
+        });
+
+        // Ordre d'affichage des matières
+        var matiereOrder = ['FR', 'HG-EMC', 'Transversal'];
+        var sortedKeys = Object.keys(groups).sort(function(a, b) {
+            var ia = matiereOrder.indexOf(a);
+            var ib = matiereOrder.indexOf(b);
+            if (ia === -1) ia = 99;
+            if (ib === -1) ib = 99;
+            return ia - ib;
+        });
+
+        var matiereLabels = { 'FR': 'Fran\u00E7ais', 'HG-EMC': 'Histoire-G\u00E9o \u00B7 EMC', 'Transversal': 'Transversal' };
+        var matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+
+        var groupsHtml = '';
+        sortedKeys.forEach(function(mat) {
+            var label = matiereLabels[mat] || mat;
+            var color = matiereColors[mat] || '#6b7280';
+            var items = groups[mat];
+
+            groupsHtml +=
+                '<div class="cw-comp-group">' +
+                    '<div class="cw-comp-group-header" style="border-left: 3px solid ' + color + '; padding-left: 10px; margin-bottom: 8px;">' +
+                        '<span style="font-weight: 600; font-size: 0.875rem; color: ' + color + ';">' + label + '</span>' +
+                        '<span style="font-size: 0.75rem; color: var(--gray-400); margin-left: 8px;">(' + items.length + ')</span>' +
+                    '</div>';
+
+            items.forEach(function(c) {
+                var checked = selectedIds.indexOf(c.id) !== -1 ? ' checked' : '';
+                groupsHtml +=
+                    '<label class="cw-comp-checkbox-item" data-comp-name="' + escapeHtml((c.nom || '').toLowerCase()) + '">' +
+                        '<input type="checkbox" value="' + c.id + '"' + checked + '>' +
+                        '<span class="cw-comp-checkbox-label">' + escapeHtml(c.nom) + '</span>' +
+                    '</label>';
+            });
+
+            groupsHtml += '</div>';
+        });
+
+        if (comps.length === 0) {
+            groupsHtml = '<div style="padding: 24px; text-align: center; color: var(--gray-400);">Aucune comp\u00E9tence dans le r\u00E9f\u00E9rentiel</div>';
+        }
+
+        return '<div class="wizard-step-content">' +
+            '<div class="step-header">' +
+                '<span class="step-icon">\uD83C\uDFAF</span>' +
+                '<div>' +
+                    '<h3>Comp\u00E9tences \u00E9valu\u00E9es</h3>' +
+                    '<p>S\u00E9lectionnez les comp\u00E9tences mobilis\u00E9es par cet exercice</p>' +
+                '</div>' +
+            '</div>' +
+            '<div class="cw-comp-search-bar">' +
+                '<input type="text" class="form-input" id="cwCompSearch" placeholder="Rechercher une comp\u00E9tence...">' +
+            '</div>' +
+            '<div class="cw-comp-counter" id="cwCompCounter">' +
+                selectedIds.length + ' comp\u00E9tence' + (selectedIds.length > 1 ? 's' : '') + ' s\u00E9lectionn\u00E9e' + (selectedIds.length > 1 ? 's' : '') +
+            '</div>' +
+            '<div class="cw-comp-list" id="cwCompetencesCheckboxes">' +
+                groupsHtml +
+            '</div>' +
+        '</div>';
+    },
+
+    _initCWStepCompetences() {
+        var self = this;
+        var searchInput = document.getElementById('cwCompSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                var query = this.value.toLowerCase().trim();
+                var items = document.querySelectorAll('#cwCompetencesCheckboxes .cw-comp-checkbox-item');
+                items.forEach(function(item) {
+                    var name = item.dataset.compName || '';
+                    item.style.display = (!query || name.indexOf(query) !== -1) ? '' : 'none';
+                });
+                // Masquer les groupes vides
+                document.querySelectorAll('#cwCompetencesCheckboxes .cw-comp-group').forEach(function(group) {
+                    var visibleItems = group.querySelectorAll('.cw-comp-checkbox-item:not([style*="display: none"])');
+                    group.style.display = visibleItems.length > 0 ? '' : 'none';
+                });
+            });
+        }
+
+        // Compteur temps réel
+        var container = document.getElementById('cwCompetencesCheckboxes');
+        if (container) {
+            container.addEventListener('change', function() {
+                var checked = container.querySelectorAll('input[type="checkbox"]:checked');
+                var counter = document.getElementById('cwCompCounter');
+                if (counter) {
+                    var n = checked.length;
+                    counter.textContent = n + ' comp\u00E9tence' + (n > 1 ? 's' : '') + ' s\u00E9lectionn\u00E9e' + (n > 1 ? 's' : '');
+                    counter.style.color = n > 0 ? 'var(--accent-green, #10b981)' : 'var(--gray-400)';
+                }
+            });
+        }
+    },
+
+    // ========== ÉTAPE RÉSUMÉ ==========
 
     _renderCompWizardStep4() {
         var e = this.compWizardData.entrainement || {};
+        var self = this;
 
         // Résumé de l'entraînement
-        var banque = this.banquesCompetences.find(function(b) { return b.id === e.banque_id; });
+        var sourceList = this.compWizardData.isTCMode ? (this.banquesTachesComplexes || []) : (this.banquesCompetences || []);
+        var banque = sourceList.find(function(b) { return b.id === e.banque_id; });
         var comp = banque ? this.competencesReferentiel.find(function(c) { return c.id === banque.competence_id; }) : null;
         var banqueLabel = banque ? (banque.titre || (comp ? comp.nom : '')) : '(non s\u00E9lectionn\u00E9e)';
         var dureeMin = e.duree || 30;
@@ -837,6 +1011,7 @@ Object.assign(AdminBanquesExercices, {
                     '<div class="summary-row"><span class="label">Banque</span><span class="value">' + escapeHtml(banqueLabel) + '</span></div>' +
                     '<div class="summary-row"><span class="label">Titre</span><span class="value">' + escapeHtml(e.titre || '(vide)') + '</span></div>' +
                     (e.description ? '<div class="summary-row"><span class="label">Consigne</span><span class="value">' + escapeHtml(e.description) + '</span></div>' : '') +
+                    this._cwRenderCompetencesSummary(e) +
                     '<div class="summary-row"><span class="label">Dur\u00E9e</span><span class="value">' + dureeMin + ' min</span></div>' +
                     '<div class="summary-row"><span class="label">Blocs de contenu</span><span class="value">' + nbDocBlocks + '</span></div>' +
                     '<div class="summary-row"><span class="label">Corrig\u00E9</span><span class="value">' + corrLabel + '</span></div>' +
@@ -844,6 +1019,26 @@ Object.assign(AdminBanquesExercices, {
                 '</div>' +
             '</div>' +
         '</div>';
+    },
+
+    _cwRenderCompetencesSummary(e) {
+        if (!this.compWizardData.isTCMode) return '';
+        var ids = [];
+        if (e.competence_ids) {
+            try {
+                var parsed = typeof e.competence_ids === 'string' ? JSON.parse(e.competence_ids) : e.competence_ids;
+                if (Array.isArray(parsed)) ids = parsed;
+            } catch (_err) { /* ignore */ }
+        }
+        var self = this;
+        var matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        var badges = ids.map(function(cid) {
+            var c = (self.competencesReferentiel || []).find(function(r) { return r.id === cid; });
+            if (!c) return '';
+            var color = matiereColors[c.matiere] || '#6b7280';
+            return '<span style="display: inline-block; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: ' + color + '20; color: ' + color + '; font-weight: 600; margin: 1px 2px;">' + escapeHtml(c.nom) + '</span>';
+        }).join('');
+        return '<div class="summary-row"><span class="label">Comp\u00E9tences</span><span class="value" style="display: flex; flex-wrap: wrap; gap: 2px;">' + (badges || 'Aucune') + '</span></div>';
     },
 
     // ========== SAUVEGARDE FINALE ==========
@@ -855,6 +1050,7 @@ Object.assign(AdminBanquesExercices, {
             titre: e.titre || '',
             banque_id: e.banque_id || '',
             competence_id: e.competence_id || '',
+            competence_ids: e.competence_ids || '',
             description: e.description || '',
             document_url: '',
             document_contenu: e.document_contenu || '',

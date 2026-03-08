@@ -1484,7 +1484,7 @@ function createEntrainementCompetence(data) {
 
   // Migration progressive : ajouter les colonnes manquantes
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  var newCols = ['banque_id', 'document_contenu', 'correction_contenu', 'delai_mail_minutes', 'delai_papier_jours'];
+  var newCols = ['banque_id', 'document_contenu', 'correction_contenu', 'delai_mail_minutes', 'delai_papier_jours', 'competence_ids'];
   newCols.forEach(function(col) {
     if (headers.indexOf(col) === -1) {
       var nextCol = sheet.getLastColumn() + 1;
@@ -1521,6 +1521,7 @@ function createEntrainementCompetence(data) {
       case 'date_creation': return new Date().toISOString();
       case 'delai_mail_minutes': return data.delai_mail_minutes || 30;
       case 'delai_papier_jours': return data.delai_papier_jours || 1;
+      case 'competence_ids': return data.competence_ids || '';
       default: return '';
     }
   });
@@ -1542,7 +1543,7 @@ function updateEntrainementCompetence(data) {
 
   // Migration progressive : ajouter les colonnes manquantes
   var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  var newCols = ['banque_id', 'document_contenu', 'correction_contenu', 'delai_mail_minutes', 'delai_papier_jours'];
+  var newCols = ['banque_id', 'document_contenu', 'correction_contenu', 'delai_mail_minutes', 'delai_papier_jours', 'competence_ids'];
   newCols.forEach(function(col) {
     if (currentHeaders.indexOf(col) === -1) {
       var nextCol = sheet.getLastColumn() + 1;

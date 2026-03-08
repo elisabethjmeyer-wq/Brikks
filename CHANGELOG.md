@@ -4,34 +4,39 @@
 
 ---
 
-## 2026-03-08 — Session 26 : Onglet Tâches complexes + nettoyage compétences
+## 2026-03-08 — Session 26 : Onglet Tâches complexes (multi-compétences par exercice)
 
 ### Modifications
 
 1. **Nouvel onglet « Tâches complexes »** dans la page Banques d'exercices (4ème onglet, couleur rouge)
-2. **Multi-compétences** : les banques de tâches complexes permettent de sélectionner plusieurs compétences du référentiel (checkboxes) via le champ `competence_ids` (JSON array)
-3. **Modal dédiée** : formulaire de création/modification de banque TC avec checkboxes multi-sélection, titre, description, ordre, statut
-4. **CRUD complet** : création, modification, suppression de banques TC + ajout/modification/suppression d'exercices (réutilise le wizard compétences existant)
-5. **Drag & drop** : réordonnancement des banques et des exercices dans chaque banque
-6. **Badges compétences** : chaque carte de banque TC affiche les compétences évaluées sous forme de badges violets
-7. **Simplification onglet Compétences** : retrait du badge `type_usage` et du sélecteur d'usage dans la modal (les compétences sont toujours des entraînements)
-8. **Séparation des données** : les banques sont splitées au chargement selon `type_usage` (`banquesCompetences` vs `banquesTachesComplexes`)
+2. **Banque TC = conteneur simple** : titre, description, statut (pas de sélection de compétences)
+3. **Compétences au niveau exercice** : chaque exercice TC a ses propres `competence_ids` (JSON array)
+4. **Wizard 5 étapes (mode TC)** : Paramètres → **Compétences** → Document → Corrigé → Résumé
+5. **Étape Compétences** : checkboxes groupées par matière (Français / HG-EMC / Transversal), barre de recherche, compteur temps réel
+6. **Badges matière** : badges colorés par matière (bleu FR, orange HG-EMC, gris Transversal) sur les cartes d'exercices et dans le résumé
+7. **CRUD complet** : banques TC + exercices TC avec drag & drop
+8. **Simplification onglet Compétences** : retrait du badge `type_usage` et du sélecteur d'usage (toujours entraînement)
+9. **Séparation des données** : banques splitées au chargement selon `type_usage`
 
 ### Architecture
 
-Les tâches complexes réutilisent les tables backend existantes (`BanquesCompetences` + `EntrainementsCompetences`) avec `type_usage='tache_complexe'`. Pas de nouvelle table Google Sheets nécessaire. La distinction se fait côté frontend par filtrage.
+- Les tâches complexes réutilisent les tables backend existantes avec `type_usage='tache_complexe'`
+- Le wizard détecte automatiquement le mode TC (5 étapes) vs Compétences (4 étapes) selon la banque
+- `competence_ids` stocké dans `EntrainementsCompetences` (migration progressive côté backend)
 
 ### Fichiers modifiés
-- `admin/banques-exercices.html` : 4ème onglet + modal `#banqueTCModal`
+- `admin/banques-exercices.html` : 4ème onglet + modal `#banqueTCModal` (simplifiée)
 - `js/admin-banques-exercices.js` : split données, tab switching, counts, rollback
-- `js/admin-banques-exercices-questions.js` : rendu TC, modal TC, CRUD, drag & drop, nettoyage badge compétences
-- `css/admin-banques-exercices.css` : styles onglet rouge, icône TC, checkboxes, badges compétences
+- `js/admin-banques-exercices-questions.js` : rendu TC, modal TC simplifiée, CRUD, drag & drop
+- `js/admin-banques-exercices-comp-wizard.js` : mode TC 5 étapes, étape Compétences, résumé enrichi
+- `css/admin-banques-exercices.css` : styles onglet rouge, wizard compétences, badges matière
+- `google-apps-script/Competences.gs` : migration `competence_ids` dans `EntrainementsCompetences`
 - `google-apps-script/TOUT-EN-UN.gs` : rebuild
 
 ### Décisions
-- Réutilisation des tables existantes plutôt que création de nouvelles (évite setup Google Sheets)
-- Les exercices TC utilisent le wizard compétences existant (même format : document + correction + durée)
-- L'onglet compétences ne montre plus le type_usage (toujours entraînement)
+- Compétences au niveau exercice (pas banque) pour plus de flexibilité
+- Groupement par matière dans le wizard pour la lisibilité (via `CompetencesReferentiel.matiere`)
+- Couleurs matière : bleu (FR), orange (HG-EMC), gris (Transversal)
 
 ---
 
