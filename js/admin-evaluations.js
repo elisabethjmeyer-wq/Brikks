@@ -211,7 +211,9 @@ const AdminEvaluations = {
         });
 
         // Fermer les dropdowns de statut au clic extérieur
-        document.addEventListener('click', () => {
+        document.addEventListener('click', (e) => {
+            // Ne pas fermer si le clic est à l'intérieur d'un dropdown ouvert
+            if (e.target.closest('.status-dropdown.open')) return;
             document.querySelectorAll('.status-dropdown.open').forEach(d => d.classList.remove('open'));
         });
 
