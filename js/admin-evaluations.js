@@ -848,6 +848,8 @@ const AdminEvaluations = {
     _syncStatutsFromDates() {
         for (const ev of this.evaluations) {
             if (ev.mode_passation === 'papier') continue;
+            // Brouillon = décision manuelle de la prof, on ne l'écrase jamais
+            if (ev.statut === 'brouillon') continue;
             if (!ev.date_ouverture && !ev.date_fermeture) continue;
             ev.statut = this._computeAutoStatut(ev.date_ouverture, ev.date_fermeture);
         }
