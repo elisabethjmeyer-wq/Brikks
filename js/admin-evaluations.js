@@ -91,7 +91,10 @@ const AdminEvaluations = {
             banquesExercicesConnData,
             entrainementsConnData,
             banquesExercicesData,
-            exercicesData
+            exercicesData,
+            banquesCompetencesData,
+            entrainementsCompetencesData,
+            competencesReferentielData
         ] = await Promise.all([
             safeGet('DISCIPLINES'),
             safeGet('THEMES'),
@@ -104,7 +107,10 @@ const AdminEvaluations = {
             safeGet('BANQUES_EXERCICES_CONN'),
             safeGet('ENTRAINEMENTS_CONN'),
             safeGet('BANQUES_EXERCICES'),
-            safeGet('EXERCICES')
+            safeGet('EXERCICES'),
+            safeGet('BanquesCompetences'),
+            safeGet('EntrainementsCompetences'),
+            safeGet('CompetencesReferentiel')
         ]);
 
         this.disciplines = SheetsAPI.parseSheetData(disciplinesData);
@@ -127,6 +133,14 @@ const AdminEvaluations = {
         const allBanques = SheetsAPI.parseSheetData(banquesExercicesData);
         this.banquesSF = allBanques.filter(b => b.type === 'savoir-faire');
         this.exercicesSF = SheetsAPI.parseSheetData(exercicesData);
+
+        // Compétences / TC / Bonus data
+        const allBanquesComp = SheetsAPI.parseSheetData(banquesCompetencesData);
+        this.banquesCompetences = allBanquesComp.filter(b => !b.type_usage || b.type_usage === 'entrainement');
+        this.banquesTachesComplexes = allBanquesComp.filter(b => b.type_usage === 'tache_complexe');
+        this.banquesBonusPonctuels = allBanquesComp.filter(b => b.type_usage === 'bonus_ponctuel');
+        this.entrainementsCompetences = SheetsAPI.parseSheetData(entrainementsCompetencesData);
+        this.competencesReferentiel = SheetsAPI.parseSheetData(competencesReferentielData);
 
         // Load evaluations
         try {
@@ -656,7 +670,10 @@ const AdminEvaluations = {
 
     _getMaxStep() {
         const type = this.wizardData.type;
-        return (type === 'connaissances' || type === 'savoir-faire') ? 2 : 1;
+        if (type === 'connaissances' || type === 'savoir-faire') return 2;
+        if (type === 'competences' && this.wizardData.sous_type_comp === 'tache_complexe') return 2;
+        if (type === 'bonus' && (this.wizardData.sous_type_bonus === 'competence' || this.wizardData.sous_type_bonus === 'ponctuel')) return 2;
+        return 1;
     },
 
     wizardNext() {
@@ -1145,31 +1162,106 @@ const AdminEvaluations = {
     },
 
     _renderCompFields(d) {
-        const compOptions = (this.bexConfig || []).filter(b => b.type === 'competences').map(m =>
-            `<option value="${m.id}" ${d.methodologie_id === m.id ? 'selected' : ''}>${escapeHtml(m.titre || m.id)}</option>`
-        ).join('');
+        const sousType = d.sous_type_comp || 'classique';
 
         return `
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Méthodologie liée</label>
-                    <select class="form-select" id="evalMethodologieTC">
-                        <option value="">Sélectionner...</option>
-                        ${compOptions}
-                    </select>
+            <div class="form-group">
+                <label>Type d'évaluation <span class="req">*</span></label>
+                <div class="sous-type-toggle" id="compSousTypeToggle">
+                    <button type="button" class="sous-type-btn ${sousType === 'classique' ? 'active' : ''}" data-value="classique" onclick="AdminEvaluations._onCompSousTypeChange('classique')">
+                        🟣 Compétence classique
+                    </button>
+                    <button type="button" class="sous-type-btn ${sousType === 'tache_complexe' ? 'active' : ''}" data-value="tache_complexe" onclick="AdminEvaluations._onCompSousTypeChange('tache_complexe')">
+                        🧩 Tâche complexe
+                    </button>
                 </div>
-                <div class="form-group"></div>
+                <div class="form-help">${sousType === 'tache_complexe' ? 'Exercice multi-compétences avec sélection du sujet' : 'Attribution automatique selon la progression'}</div>
             </div>
         `;
     },
 
+    _onCompSousTypeChange(value) {
+        this.wizardData.sous_type_comp = value;
+        // Update toggle buttons
+        document.querySelectorAll('#compSousTypeToggle .sous-type-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.value === value);
+        });
+        // Update help text
+        const help = document.querySelector('#compSousTypeToggle + .form-help');
+        if (help) {
+            help.textContent = value === 'tache_complexe'
+                ? 'Exercice multi-compétences avec sélection du sujet'
+                : 'Attribution automatique selon la progression';
+        }
+    },
+
     _renderBonusFields(d) {
+        const sousType = d.sous_type_bonus || 'competence';
+
+        let sousTypeFields = '';
+        if (sousType === 'suivi') {
+            sousTypeFields = `
+                <div class="form-group">
+                    <label>Nombre de validations requises <span class="req">*</span></label>
+                    <input type="number" class="form-input" id="evalNbValidations" value="${d.nb_validations || 5}" min="1" max="50">
+                    <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points (saisis dans le tableau de résultats)</div>
+                </div>
+            `;
+        }
+
         return `
             <div class="form-group">
-                <label>Critères de validation</label>
-                <textarea class="form-textarea" id="evalCriteres" rows="3" placeholder="Décrivez les critères...">${escapeHtml(d.criteres || '')}</textarea>
+                <label>Type de bonus <span class="req">*</span></label>
+                <div class="sous-type-toggle" id="bonusSousTypeToggle">
+                    <button type="button" class="sous-type-btn ${sousType === 'competence' ? 'active' : ''}" data-value="competence" onclick="AdminEvaluations._onBonusSousTypeChange('competence')">
+                        🟣 Compétence
+                    </button>
+                    <button type="button" class="sous-type-btn ${sousType === 'ponctuel' ? 'active' : ''}" data-value="ponctuel" onclick="AdminEvaluations._onBonusSousTypeChange('ponctuel')">
+                        🎁 Ponctuel
+                    </button>
+                    <button type="button" class="sous-type-btn ${sousType === 'suivi' ? 'active' : ''}" data-value="suivi" onclick="AdminEvaluations._onBonusSousTypeChange('suivi')">
+                        📊 Suivi
+                    </button>
+                </div>
+                <div class="form-help" id="bonusSousTypeHelp">${this._getBonusSousTypeHelp(sousType)}</div>
             </div>
+            <div id="bonusSousTypeFields">${sousTypeFields}</div>
         `;
+    },
+
+    _getBonusSousTypeHelp(sousType) {
+        if (sousType === 'competence') return 'Lié à une compétence du référentiel (comme un entraînement)';
+        if (sousType === 'ponctuel') return 'Exercice ponctuel avec critères libres';
+        if (sousType === 'suivi') return 'Compteur de validations (pas d\'exercice, points saisis manuellement)';
+        return '';
+    },
+
+    _onBonusSousTypeChange(value) {
+        this.wizardData.sous_type_bonus = value;
+        // Update toggle buttons
+        document.querySelectorAll('#bonusSousTypeToggle .sous-type-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.value === value);
+        });
+        // Update help text
+        var help = document.getElementById('bonusSousTypeHelp');
+        if (help) help.textContent = this._getBonusSousTypeHelp(value);
+        // Update sous-type-specific fields
+        var container = document.getElementById('bonusSousTypeFields');
+        if (container) {
+            if (value === 'suivi') {
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label>Nombre de validations requises <span class="req">*</span></label>
+                        <input type="number" class="form-input" id="evalNbValidations" value="${this.wizardData.nb_validations || 5}" min="1" max="50">
+                        <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points (saisis dans le tableau de résultats)</div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '';
+            }
+        }
+        // Update stepper (step count changes based on sous-type)
+        this._updateWizardStepper();
     },
 
     // ========== STEP 3: SUJET (cascade dropdowns) ==========
@@ -1179,6 +1271,18 @@ const AdminEvaluations = {
 
         if (type === 'connaissances' || type === 'savoir-faire') {
             return this._renderStep3Auto();
+        }
+
+        if (type === 'competences' && this.wizardData.sous_type_comp === 'tache_complexe') {
+            return this._renderStep3TC();
+        }
+
+        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'competence') {
+            return this._renderStep3BonusComp();
+        }
+
+        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'ponctuel') {
+            return this._renderStep3BonusPonctuel();
         }
 
         return '';
@@ -1224,6 +1328,194 @@ const AdminEvaluations = {
                 </div>
             </div>
         `;
+    },
+
+    // ========== STEP 2: SÉLECTION SUJET TC ==========
+
+    _renderStep3TC() {
+        const d = this.wizardData;
+        const banques = (this.banquesTachesComplexes || [])
+            .filter(b => b.statut === 'publie')
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        const selectedBanqueId = d.banque_tc_id || '';
+        const exercices = selectedBanqueId
+            ? (this.entrainementsCompetences || []).filter(e => e.banque_id === selectedBanqueId && e.statut === 'publie')
+            : [];
+
+        const banqueOptions = banques.map(b =>
+            `<option value="${b.id}" ${b.id === selectedBanqueId ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
+        ).join('');
+
+        const exerciceOptions = exercices.map(e =>
+            `<option value="${e.id}" ${e.id === d.exercice_tc_id ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
+        ).join('');
+
+        return `
+            <div class="eval-wizard-step-content">
+                <div class="step-header">
+                    <h3>Sélection du sujet</h3>
+                    <p>Choisissez la banque et l'exercice de tâche complexe</p>
+                </div>
+                <div class="wizard-form">
+                    <div class="form-group">
+                        <label>Banque de tâches complexes <span class="req">*</span></label>
+                        <select class="form-select" id="evalBanqueTC" onchange="AdminEvaluations._onBanqueTCChange(this.value)">
+                            <option value="">-- Choisir une banque --</option>
+                            ${banqueOptions}
+                        </select>
+                    </div>
+                    <div class="form-group" id="evalExerciceTCGroup">
+                        <label>Exercice <span class="req">*</span></label>
+                        <select class="form-select" id="evalExerciceTC" onchange="AdminEvaluations.wizardData.exercice_tc_id = this.value">
+                            <option value="">-- Choisir un exercice --</option>
+                            ${exerciceOptions}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    _onBanqueTCChange(banqueId) {
+        this.wizardData.banque_tc_id = banqueId;
+        this.wizardData.exercice_tc_id = '';
+        const exercices = (this.entrainementsCompetences || [])
+            .filter(e => e.banque_id === banqueId && e.statut === 'publie')
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const select = document.getElementById('evalExerciceTC');
+        if (select) {
+            select.innerHTML = '<option value="">-- Choisir un exercice --</option>' +
+                exercices.map(e =>
+                    `<option value="${e.id}">${escapeHtml(e.titre || 'Sans titre')}</option>`
+                ).join('');
+        }
+    },
+
+    // ========== STEP 2: SÉLECTION SUJET BONUS COMPÉTENCE ==========
+
+    _renderStep3BonusComp() {
+        const d = this.wizardData;
+        const banques = (this.banquesCompetences || [])
+            .filter(b => b.statut === 'publie')
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        const selectedBanqueId = d.banque_comp_id || '';
+        const exercices = selectedBanqueId
+            ? (this.entrainementsCompetences || []).filter(e => e.banque_id === selectedBanqueId && e.statut === 'publie')
+            : [];
+
+        const banqueOptions = banques.map(b => {
+            const comp = (this.competencesReferentiel || []).find(c => c.id === b.competence_id);
+            const label = b.titre || (comp ? comp.nom : 'Sans titre');
+            return `<option value="${b.id}" ${b.id === selectedBanqueId ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+        }).join('');
+
+        const exerciceOptions = exercices.map(e =>
+            `<option value="${e.id}" ${e.id === d.exercice_comp_id ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
+        ).join('');
+
+        return `
+            <div class="eval-wizard-step-content">
+                <div class="step-header">
+                    <h3>Sélection du sujet</h3>
+                    <p>Choisissez la banque de compétences et l'exercice</p>
+                </div>
+                <div class="wizard-form">
+                    <div class="form-group">
+                        <label>Banque de compétences <span class="req">*</span></label>
+                        <select class="form-select" id="evalBanqueBonusComp" onchange="AdminEvaluations._onBanqueBonusCompChange(this.value)">
+                            <option value="">-- Choisir une banque --</option>
+                            ${banqueOptions}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Exercice <span class="req">*</span></label>
+                        <select class="form-select" id="evalExerciceBonusComp" onchange="AdminEvaluations.wizardData.exercice_comp_id = this.value">
+                            <option value="">-- Choisir un exercice --</option>
+                            ${exerciceOptions}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    _onBanqueBonusCompChange(banqueId) {
+        this.wizardData.banque_comp_id = banqueId;
+        this.wizardData.exercice_comp_id = '';
+        const exercices = (this.entrainementsCompetences || [])
+            .filter(e => e.banque_id === banqueId && e.statut === 'publie')
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const select = document.getElementById('evalExerciceBonusComp');
+        if (select) {
+            select.innerHTML = '<option value="">-- Choisir un exercice --</option>' +
+                exercices.map(e =>
+                    `<option value="${e.id}">${escapeHtml(e.titre || 'Sans titre')}</option>`
+                ).join('');
+        }
+    },
+
+    // ========== STEP 2: SÉLECTION SUJET BONUS PONCTUEL ==========
+
+    _renderStep3BonusPonctuel() {
+        const d = this.wizardData;
+        const banques = (this.banquesBonusPonctuels || [])
+            .filter(b => b.statut === 'publie')
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        const selectedBanqueId = d.banque_bonus_id || '';
+        const exercices = selectedBanqueId
+            ? (this.entrainementsCompetences || []).filter(e => e.banque_id === selectedBanqueId && e.statut === 'publie')
+            : [];
+
+        const banqueOptions = banques.map(b =>
+            `<option value="${b.id}" ${b.id === selectedBanqueId ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
+        ).join('');
+
+        const exerciceOptions = exercices.map(e =>
+            `<option value="${e.id}" ${e.id === d.exercice_bonus_id ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
+        ).join('');
+
+        return `
+            <div class="eval-wizard-step-content">
+                <div class="step-header">
+                    <h3>Sélection du sujet</h3>
+                    <p>Choisissez la banque et l'exercice bonus ponctuel</p>
+                </div>
+                <div class="wizard-form">
+                    <div class="form-group">
+                        <label>Banque bonus ponctuel <span class="req">*</span></label>
+                        <select class="form-select" id="evalBanqueBonusPonctuel" onchange="AdminEvaluations._onBanqueBonusPonctuelChange(this.value)">
+                            <option value="">-- Choisir une banque --</option>
+                            ${banqueOptions}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Exercice <span class="req">*</span></label>
+                        <select class="form-select" id="evalExerciceBonusPonctuel" onchange="AdminEvaluations.wizardData.exercice_bonus_id = this.value">
+                            <option value="">-- Choisir un exercice --</option>
+                            ${exerciceOptions}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    _onBanqueBonusPonctuelChange(banqueId) {
+        this.wizardData.banque_bonus_id = banqueId;
+        this.wizardData.exercice_bonus_id = '';
+        const exercices = (this.entrainementsCompetences || [])
+            .filter(e => e.banque_id === banqueId && e.statut === 'publie')
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const select = document.getElementById('evalExerciceBonusPonctuel');
+        if (select) {
+            select.innerHTML = '<option value="">-- Choisir un exercice --</option>' +
+                exercices.map(e =>
+                    `<option value="${e.id}">${escapeHtml(e.titre || 'Sans titre')}</option>`
+                ).join('');
+        }
     },
 
     // Legacy methods kept for backward compatibility with existing evaluations
@@ -1359,13 +1651,35 @@ const AdminEvaluations = {
                     this.wizardData.methodologie_id = document.getElementById('evalMethodologieTC')?.value || '';
                 }
                 if (this.wizardData.type === 'bonus') {
-                    this.wizardData.criteres = document.getElementById('evalCriteres')?.value.trim() || '';
+                    if (this.wizardData.sous_type_bonus === 'suivi') {
+                        this.wizardData.nb_validations = parseInt(document.getElementById('evalNbValidations')?.value) || 5;
+                    }
                 }
                 return true;
             }
-            case 2:
-                // Step 2 = Sujet — data already collected via onchange handlers
+            case 2: {
+                // Step 2 = Sujet — validate selections
+                const type = this.wizardData.type;
+                if (type === 'competences' && this.wizardData.sous_type_comp === 'tache_complexe') {
+                    if (!this.wizardData.banque_tc_id || !this.wizardData.exercice_tc_id) {
+                        this.showNotification('Veuillez sélectionner une banque et un exercice', 'error');
+                        return false;
+                    }
+                }
+                if (type === 'bonus' && this.wizardData.sous_type_bonus === 'competence') {
+                    if (!this.wizardData.banque_comp_id || !this.wizardData.exercice_comp_id) {
+                        this.showNotification('Veuillez sélectionner une banque et un exercice', 'error');
+                        return false;
+                    }
+                }
+                if (type === 'bonus' && this.wizardData.sous_type_bonus === 'ponctuel') {
+                    if (!this.wizardData.banque_bonus_id || !this.wizardData.exercice_bonus_id) {
+                        this.showNotification('Veuillez sélectionner une banque et un exercice', 'error');
+                        return false;
+                    }
+                }
                 return true;
+            }
         }
         return true;
     },
@@ -1408,9 +1722,23 @@ const AdminEvaluations = {
         }
         if (d.type === 'competences') {
             data.methodologie_id = d.methodologie_id || '';
+            data.sous_type_comp = d.sous_type_comp || 'classique';
+            if (d.sous_type_comp === 'tache_complexe') {
+                data.banque_tc_id = d.banque_tc_id || '';
+                data.exercice_tc_id = d.exercice_tc_id || '';
+            }
         }
         if (d.type === 'bonus') {
-            data.criteres = d.criteres || '';
+            data.sous_type_bonus = d.sous_type_bonus || 'competence';
+            if (d.sous_type_bonus === 'competence') {
+                data.banque_comp_id = d.banque_comp_id || '';
+                data.exercice_comp_id = d.exercice_comp_id || '';
+            } else if (d.sous_type_bonus === 'ponctuel') {
+                data.banque_bonus_id = d.banque_bonus_id || '';
+                data.exercice_bonus_id = d.exercice_bonus_id || '';
+            } else if (d.sous_type_bonus === 'suivi') {
+                data.nb_validations = d.nb_validations || 5;
+            }
         }
 
         const nextBtn = document.getElementById('evalWizardNextBtn');
