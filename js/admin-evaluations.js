@@ -850,21 +850,6 @@ const AdminEvaluations = {
         return labels[statut] || statut;
     },
 
-    /**
-     * Génère les <option> pour un sélecteur d'heure par pas de 15 min (08:00 → 18:00).
-     */
-    _generateTimeOptions(selectedValue) {
-        let html = '<option value="">--:--</option>';
-        for (let h = 7; h <= 20; h++) {
-            for (let m = 0; m < 60; m += 15) {
-                const val = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-                const label = val.replace(':', 'h');
-                const sel = val === selectedValue ? ' selected' : '';
-                html += `<option value="${val}"${sel}>${label}</option>`;
-            }
-        }
-        return html;
-    },
 
     /**
      * Rend le dropdown de statut avec les 4 options : Brouillon, Publier, Programmer, Terminer.
@@ -904,7 +889,7 @@ const AdminEvaluations = {
                             <label>${isPapier ? 'Date' : 'Ouverture'}</label>
                             <div class="schedule-date-row">
                                 <input type="date" class="schedule-input" id="schedDate-${id}" value="${datePartOuv}">
-                                ${isPapier ? '' : `<select class="schedule-input schedule-time" id="schedTimeOuv-${id}">${this._generateTimeOptions(timePartOuv)}</select>`}
+                                ${isPapier ? '' : `<input type="time" class="schedule-input schedule-time" id="schedTimeOuv-${id}" value="${timePartOuv}">`}
                             </div>
                         </div>
                         ${isPapier ? '' : `
@@ -912,7 +897,7 @@ const AdminEvaluations = {
                             <label>Fermeture <span class="schedule-optional">(optionnel)</span></label>
                             <div class="schedule-date-row">
                                 <input type="date" class="schedule-input" id="schedDateFerm-${id}" value="${datePartFerm}">
-                                <select class="schedule-input schedule-time" id="schedTimeFerm-${id}">${this._generateTimeOptions(timePartFerm)}</select>
+                                <input type="time" class="schedule-input schedule-time" id="schedTimeFerm-${id}" value="${timePartFerm}">
                             </div>
                         </div>`}
                         <button class="schedule-save-btn" onclick="AdminEvaluations._saveSchedule('${id}')">
