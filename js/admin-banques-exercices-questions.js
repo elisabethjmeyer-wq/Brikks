@@ -1764,12 +1764,6 @@ Object.assign(AdminBanquesExercices, {
             const comp = this.competencesReferentiel.find(c => c.id === banque.competence_id);
             const compNom = comp ? comp.nom : '(competence inconnue)';
 
-            // Badge type_usage
-            const typeUsage = banque.type_usage || 'entrainement';
-            const typeLabels = { entrainement: 'Entrainement', eval_bonus: 'Eval bonus', tache_complexe: 'Tache complexe' };
-            const typeColors = { entrainement: '#10b981', eval_bonus: '#f59e0b', tache_complexe: '#8b5cf6' };
-            const typeBadge = `<span class="type-usage-badge" style="background: ${typeColors[typeUsage] || '#6b7280'}; color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">${typeLabels[typeUsage] || typeUsage}</span>`;
-
             // Entraînements dans cette banque (par banque_id ou competence_id en fallback)
             const entrainements = this.tachesComplexes
                 .filter(t => t.banque_id === banque.id || (!t.banque_id && t.competence_id === banque.competence_id))
@@ -1782,7 +1776,7 @@ Object.assign(AdminBanquesExercices, {
                         <div class="banque-card-icon competences">&#128995;</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
-                                ${escapeHtml(banque.titre || compNom)} ${typeBadge}
+                                ${escapeHtml(banque.titre || compNom)}
                             </div>
                             <div class="banque-card-meta">
                                 Competence : ${escapeHtml(compNom)}
@@ -2006,8 +2000,12 @@ Object.assign(AdminBanquesExercices, {
     },
 
     toggleTache(id) {
-        // Accordéon banque de compétence (bc_xxx) ou ancien format compétence/tâche
-        if (id.startsWith('bc_')) {
+        // Accordéon banque de compétence (bc_xxx), tâche complexe (tc_xxx), ou ancien format
+        if (id.startsWith('tc_')) {
+            const banqueId = id.replace('tc_', '');
+            const card = document.querySelector(`.banque-card[data-banque-tc-id="${banqueId}"]`);
+            if (card) card.classList.toggle('expanded');
+        } else if (id.startsWith('bc_')) {
             const banqueId = id.replace('bc_', '');
             const card = document.querySelector(`.banque-card[data-banque-comp-id="${banqueId}"]`);
             if (card) card.classList.toggle('expanded');
@@ -2065,8 +2063,9 @@ Object.assign(AdminBanquesExercices, {
             if (typeUsageSelect) typeUsageSelect.value = 'entrainement';
         }
 
-        // Afficher/masquer type_usage uniquement en mode banque
-        if (typeUsageGroup) typeUsageGroup.style.display = this._banqueCompMode ? '' : 'none';
+        // Masquer type_usage en mode compétences (toujours entrainement)
+        if (typeUsageGroup) typeUsageGroup.style.display = 'none';
+        if (typeUsageSelect) typeUsageSelect.value = 'entrainement';
 
         modal.classList.remove('hidden');
     },
@@ -2660,5 +2659,457 @@ Object.assign(AdminBanquesExercices, {
         document.getElementById('deleteMessage').textContent =
             `Etes-vous sur de vouloir supprimer l'entrainement "${tache.titre}" ?`;
         document.getElementById('deleteModal').classList.remove('hidden');
+    },
+
+    // ========== ONGLET TÂCHES COMPLEXES ==========
+
+    /**
+     * Rendu de l'onglet Tâches complexes
+     */
+    renderTachesComplexesTab(container, emptyState) {
+        let banques = [...this.banquesTachesComplexes].sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        if (this.filters.search) {
+            const search = this.filters.search;
+            banques = banques.filter(b => {
+                if ((b.titre || '').toLowerCase().includes(search)) return true;
+                if ((b.description || '').toLowerCase().includes(search)) return true;
+                // Chercher dans les compétences liées
+                const compIds = this._parseTCCompetenceIds(b);
+                const matchComp = compIds.some(cid => {
+                    const comp = this.competencesReferentiel.find(c => c.id === cid);
+                    return comp && (comp.nom || '').toLowerCase().includes(search);
+                });
+                if (matchComp) return true;
+                // Chercher dans les exercices
+                return this.tachesComplexes.some(t =>
+                    t.banque_id === b.id &&
+                    ((t.titre || '').toLowerCase().includes(search) ||
+                     (t.description || '').toLowerCase().includes(search))
+                );
+            });
+        }
+
+        if (this.filters.statut) {
+            banques = banques.filter(b => b.statut === this.filters.statut);
+        }
+
+        if (banques.length === 0 && this.competencesReferentiel.length === 0) {
+            emptyState.style.display = 'none';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">&#129513;</div>
+                    <h3>Aucune competence dans le referentiel</h3>
+                    <p>Ajoutez des competences dans la page <strong>Referentiel des competences</strong> pour pouvoir creer des taches complexes.</p>
+                    <a href="competences.html" class="btn btn-primary" style="text-decoration: none;">Aller au referentiel</a>
+                </div>
+            `;
+            return;
+        }
+
+        if (banques.length === 0) {
+            emptyState.style.display = 'none';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">&#129513;</div>
+                    <h3>Aucune banque de taches complexes</h3>
+                    <p>Les taches complexes evaluent plusieurs competences. Creez une banque pour organiser vos exercices.</p>
+                    <button class="btn btn-primary" id="addBanqueBtnEmpty">+ Nouvelle banque</button>
+                </div>
+            `;
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        container.innerHTML = banques.map(banque => {
+            // Résoudre les compétences liées (multi)
+            const compIds = this._parseTCCompetenceIds(banque);
+            const compNames = compIds.map(cid => {
+                const comp = this.competencesReferentiel.find(c => c.id === cid);
+                return comp ? comp.nom : '?';
+            });
+            const compBadges = compNames.map(n =>
+                `<span class="tc-comp-badge">${escapeHtml(n)}</span>`
+            ).join('');
+
+            // Exercices dans cette banque
+            const entrainements = this.tachesComplexes
+                .filter(t => t.banque_id === banque.id)
+                .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+            return `
+                <div class="banque-card" data-banque-tc-id="${banque.id}">
+                    <div class="banque-card-header" onclick="AdminBanquesExercices.toggleTache('tc_${banque.id}')">
+                        <span class="drag-handle" title="Glisser pour reordonner">&#8942;&#8942;</span>
+                        <div class="banque-card-icon taches-complexes">&#129513;</div>
+                        <div class="banque-card-content">
+                            <div class="banque-card-title">
+                                ${escapeHtml(banque.titre || 'Sans titre')}
+                            </div>
+                            <div class="banque-card-meta">
+                                <div class="tc-competences-badges">${compBadges || '<span style="color: var(--gray-400);">Aucune competence</span>'}</div>
+                            </div>
+                        </div>
+                        <div class="banque-card-stats">
+                            <div class="banque-stat">
+                                <div class="banque-stat-value">${entrainements.length}</div>
+                                <div class="banque-stat-label">exerc.</div>
+                            </div>
+                        </div>
+                        <span class="status-badge ${banque.statut}">${banque.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
+                        <div class="banque-card-actions">
+                            <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editBanqueTC('${banque.id}')" title="Modifier la banque">&#9998;</button>
+                            <button class="btn-icon add" onclick="event.stopPropagation(); AdminBanquesExercices.addExerciceTC('${banque.id}')" title="Ajouter un exercice">+</button>
+                            <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteBanqueTC('${banque.id}')" title="Supprimer la banque">&#128465;</button>
+                        </div>
+                        <div class="banque-card-toggle">&#9660;</div>
+                    </div>
+                    <div class="banque-exercices" id="tc_${banque.id}_list">
+                        <div class="exercices-header">
+                            <h4>Exercices</h4>
+                        </div>
+                        ${this._renderTCEntrainements(entrainements, banque.id)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    _renderTCEntrainements(entrainements, banqueId) {
+        if (entrainements.length === 0) {
+            return '<div class="exercices-empty">Aucun exercice dans cette banque</div>';
+        }
+
+        return `
+            <div class="exercices-list" data-banque-id="${banqueId}">
+                ${entrainements.map(tache => {
+                    const dureeMin = tache.duree || 30;
+                    const hasCorrige = this._hasCorrectionCommentee(tache);
+
+                    return `
+                        <div class="exercice-item" data-id="${tache.id}">
+                            <span class="drag-handle drag-handle-sm" title="Glisser pour reordonner">&#8942;&#8942;</span>
+                            <div class="exercice-numero">${tache.ordre || '?'}</div>
+                            <div class="exercice-info">
+                                <div class="exercice-title">${escapeHtml(tache.titre || 'Sans titre')}</div>
+                                <div class="exercice-meta">
+                                    ${dureeMin} min
+                                    ${hasCorrige ? ' · &#9989; corrige' : ' · &#9888; sans corrige'}
+                                </div>
+                            </div>
+                            <span class="status-badge ${tache.statut}">${tache.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
+                            <div class="exercice-actions">
+                                <button class="btn-icon" onclick="AdminBanquesExercices.editExerciceTC('${tache.id}')" title="Modifier">&#9998;</button>
+                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteExerciceTC('${tache.id}')" title="Supprimer">&#128465;</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
+    /**
+     * Parse competence_ids depuis une banque TC
+     * Supporte JSON array ou competence_id unique en fallback
+     */
+    _parseTCCompetenceIds(banque) {
+        if (banque.competence_ids) {
+            try {
+                const parsed = typeof banque.competence_ids === 'string'
+                    ? JSON.parse(banque.competence_ids)
+                    : banque.competence_ids;
+                if (Array.isArray(parsed)) return parsed;
+            } catch (_e) { /* fallback */ }
+        }
+        return banque.competence_id ? [banque.competence_id] : [];
+    },
+
+    // ========== MODAL BANQUE TC ==========
+
+    openBanqueTCModal(banque = null) {
+        const modal = document.getElementById('banqueTCModal');
+        if (!modal) return;
+
+        // Remplir les checkboxes de compétences
+        const checkboxContainer = document.getElementById('tcCompetencesCheckboxes');
+        const comps = [...this.competencesReferentiel].sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        checkboxContainer.innerHTML = comps.map(c => `
+            <div class="tc-checkbox-item">
+                <input type="checkbox" id="tc_comp_${c.id}" value="${c.id}">
+                <label for="tc_comp_${c.id}">${escapeHtml(c.nom)}</label>
+            </div>
+        `).join('');
+
+        if (comps.length === 0) {
+            checkboxContainer.innerHTML = '<div style="padding: 12px; color: var(--gray-400); text-align: center;">Aucune competence dans le referentiel</div>';
+        }
+
+        const title = document.getElementById('banqueTCModalTitle');
+
+        if (banque) {
+            title.textContent = 'Modifier la banque de taches complexes';
+            document.getElementById('editBanqueTCId').value = banque.id;
+            document.getElementById('banqueTCTitre').value = banque.titre || '';
+            document.getElementById('banqueTCDescription').value = banque.description || '';
+            document.getElementById('banqueTCOrdre').value = banque.ordre || 1;
+            document.getElementById('banqueTCStatut').value = banque.statut || 'brouillon';
+
+            // Cocher les compétences existantes
+            const selectedIds = this._parseTCCompetenceIds(banque);
+            selectedIds.forEach(cid => {
+                const cb = document.getElementById('tc_comp_' + cid);
+                if (cb) cb.checked = true;
+            });
+        } else {
+            title.textContent = 'Nouvelle banque de taches complexes';
+            document.getElementById('editBanqueTCId').value = '';
+            document.getElementById('banqueTCTitre').value = '';
+            document.getElementById('banqueTCDescription').value = '';
+            document.getElementById('banqueTCOrdre').value = this.banquesTachesComplexes.length + 1;
+            document.getElementById('banqueTCStatut').value = 'brouillon';
+        }
+
+        modal.classList.remove('hidden');
+    },
+
+    closeBanqueTCModal() {
+        const modal = document.getElementById('banqueTCModal');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    editBanqueTC(banqueId) {
+        const banque = this.banquesTachesComplexes.find(b => b.id === banqueId);
+        if (banque) this.openBanqueTCModal(banque);
+    },
+
+    async saveBanqueTC() {
+        if (this._savingBanqueTC) return;
+
+        const id = document.getElementById('editBanqueTCId').value;
+        const titre = document.getElementById('banqueTCTitre').value.trim();
+        const description = document.getElementById('banqueTCDescription').value.trim();
+        const ordre = parseInt(document.getElementById('banqueTCOrdre').value) || 1;
+        const statut = document.getElementById('banqueTCStatut').value;
+
+        // Récupérer les compétences cochées
+        const checkboxes = document.querySelectorAll('#tcCompetencesCheckboxes input[type="checkbox"]:checked');
+        const competenceIds = Array.from(checkboxes).map(cb => cb.value);
+
+        if (competenceIds.length === 0) {
+            alert('Veuillez selectionner au moins une competence');
+            return;
+        }
+        if (!titre) {
+            alert('Le titre est requis');
+            return;
+        }
+
+        this._savingBanqueTC = true;
+        const saveBtn = document.querySelector('#banqueTCModal .btn-primary');
+        const saveBtnText = saveBtn ? saveBtn.textContent : '';
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
+
+        const data = {
+            competence_id: competenceIds[0],
+            competence_ids: JSON.stringify(competenceIds),
+            titre,
+            description,
+            ordre,
+            statut,
+            type_usage: 'tache_complexe'
+        };
+
+        try {
+            let result;
+            if (id) {
+                data.id = id;
+                result = await this.callAPI('updateBanqueCompetence', data);
+            } else {
+                result = await this.callAPI('createBanqueCompetence', data);
+            }
+
+            if (result.success) {
+                await this.loadDataFromAPI();
+                this.updateCounts();
+                this.renderBanques();
+                this.closeBanqueTCModal();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde banque TC:', error);
+            alert('Erreur lors de la sauvegarde');
+        } finally {
+            this._savingBanqueTC = false;
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtnText; }
+        }
+    },
+
+    async deleteBanqueTC(banqueId) {
+        const banque = this.banquesTachesComplexes.find(b => b.id === banqueId);
+        if (!banque) return;
+
+        const entrCount = this.tachesComplexes.filter(t => t.banque_id === banqueId).length;
+        const msg = entrCount > 0
+            ? `Etes-vous sur de vouloir supprimer la banque "${banque.titre}" et ses ${entrCount} exercice(s) ?`
+            : `Etes-vous sur de vouloir supprimer la banque "${banque.titre}" ?`;
+
+        document.getElementById('deleteType').value = 'banqueCompetence';
+        document.getElementById('deleteId').value = banqueId;
+        document.getElementById('deleteMessage').textContent = msg;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    },
+
+    // ========== EXERCICES TC (réutilise le wizard compétences) ==========
+
+    addExerciceTC(banqueId) {
+        // Ouvre le wizard compétences existant, pré-sélectionné sur cette banque
+        this.openCompWizard(null, banqueId);
+    },
+
+    editExerciceTC(id) {
+        const tache = this.tachesComplexes.find(t => t.id === id);
+        if (tache) {
+            this.openCompWizard(tache);
+        }
+    },
+
+    async deleteExerciceTC(id) {
+        const tache = this.tachesComplexes.find(t => t.id === id);
+        if (!tache) return;
+
+        document.getElementById('deleteType').value = 'tacheComplexe';
+        document.getElementById('deleteId').value = id;
+        document.getElementById('deleteMessage').textContent =
+            `Etes-vous sur de vouloir supprimer l'exercice "${tache.titre}" ?`;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    },
+
+    // ========== DRAG & DROP TC ==========
+
+    initTCDragDrop() {
+        const container = document.getElementById('banquesList');
+        if (!container) return;
+
+        const enableDragFromHandle = (draggableEl) => {
+            draggableEl.setAttribute('draggable', 'false');
+            const handle = draggableEl.querySelector('.drag-handle');
+            if (!handle) return;
+            handle.addEventListener('mousedown', () => draggableEl.setAttribute('draggable', 'true'));
+            draggableEl.addEventListener('dragend', () => draggableEl.setAttribute('draggable', 'false'));
+            handle.addEventListener('mouseup', () => draggableEl.setAttribute('draggable', 'false'));
+        };
+
+        // Niveau 1 : réordonner les banques TC
+        let draggedBanque = null;
+        container.querySelectorAll('.banque-card[data-banque-tc-id]').forEach(card => {
+            enableDragFromHandle(card);
+
+            card.addEventListener('dragstart', (e) => {
+                draggedBanque = card;
+                card.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', 'banque-tc');
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+                if (draggedBanque) {
+                    draggedBanque = null;
+                    this._saveTCBanquesOrder();
+                }
+            });
+
+            card.addEventListener('dragover', (e) => {
+                if (!draggedBanque || draggedBanque === card) return;
+                e.preventDefault();
+                const rect = card.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY) {
+                    card.parentNode.insertBefore(draggedBanque, card);
+                } else {
+                    card.parentNode.insertBefore(draggedBanque, card.nextSibling);
+                }
+            });
+        });
+
+        // Niveau 2 : réordonner les exercices dans chaque banque
+        container.querySelectorAll('.banque-card[data-banque-tc-id] .exercices-list').forEach(list => {
+            let draggedItem = null;
+
+            list.querySelectorAll('.exercice-item').forEach(item => {
+                enableDragFromHandle(item);
+
+                item.addEventListener('dragstart', (e) => {
+                    e.stopPropagation();
+                    draggedItem = item;
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', 'exercice-tc');
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    if (draggedItem) {
+                        draggedItem = null;
+                        list.querySelectorAll('.exercice-item').forEach((el, idx) => {
+                            const numero = el.querySelector('.exercice-numero');
+                            if (numero) numero.textContent = idx + 1;
+                        });
+                        this._saveTCExercicesOrder(list);
+                    }
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    if (!draggedItem || draggedItem === item) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const rect = item.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        item.parentNode.insertBefore(draggedItem, item);
+                    } else {
+                        item.parentNode.insertBefore(draggedItem, item.nextSibling);
+                    }
+                });
+            });
+        });
+    },
+
+    async _saveTCBanquesOrder() {
+        const container = document.getElementById('banquesList');
+        if (!container) return;
+
+        const cards = container.querySelectorAll('.banque-card[data-banque-tc-id]');
+        const newOrder = [];
+        cards.forEach((card, index) => {
+            newOrder.push({ id: card.dataset.banqueTcId, ordre: index + 1 });
+        });
+
+        for (const item of newOrder) {
+            const banque = this.banquesTachesComplexes.find(b => b.id === item.id);
+            if (banque && banque.ordre !== item.ordre) {
+                banque.ordre = item.ordre;
+                await this.callAPI('updateBanqueCompetence', { id: item.id, ordre: item.ordre });
+            }
+        }
+    },
+
+    async _saveTCExercicesOrder(list) {
+        const items = list.querySelectorAll('.exercice-item');
+        const newOrder = [];
+        items.forEach((el, index) => {
+            newOrder.push({ id: el.dataset.id, ordre: index + 1 });
+        });
+
+        for (const item of newOrder) {
+            const tache = this.tachesComplexes.find(t => t.id === item.id);
+            if (tache && tache.ordre !== item.ordre) {
+                tache.ordre = item.ordre;
+                await this.callAPI('updateTacheComplexe', { id: item.id, ordre: item.ordre });
+            }
+        }
     },
 });

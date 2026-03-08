@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-03-08 — Session 26 : Onglet Tâches complexes + nettoyage compétences
+
+### Modifications
+
+1. **Nouvel onglet « Tâches complexes »** dans la page Banques d'exercices (4ème onglet, couleur rouge)
+2. **Multi-compétences** : les banques de tâches complexes permettent de sélectionner plusieurs compétences du référentiel (checkboxes) via le champ `competence_ids` (JSON array)
+3. **Modal dédiée** : formulaire de création/modification de banque TC avec checkboxes multi-sélection, titre, description, ordre, statut
+4. **CRUD complet** : création, modification, suppression de banques TC + ajout/modification/suppression d'exercices (réutilise le wizard compétences existant)
+5. **Drag & drop** : réordonnancement des banques et des exercices dans chaque banque
+6. **Badges compétences** : chaque carte de banque TC affiche les compétences évaluées sous forme de badges violets
+7. **Simplification onglet Compétences** : retrait du badge `type_usage` et du sélecteur d'usage dans la modal (les compétences sont toujours des entraînements)
+8. **Séparation des données** : les banques sont splitées au chargement selon `type_usage` (`banquesCompetences` vs `banquesTachesComplexes`)
+
+### Architecture
+
+Les tâches complexes réutilisent les tables backend existantes (`BanquesCompetences` + `EntrainementsCompetences`) avec `type_usage='tache_complexe'`. Pas de nouvelle table Google Sheets nécessaire. La distinction se fait côté frontend par filtrage.
+
+### Fichiers modifiés
+- `admin/banques-exercices.html` : 4ème onglet + modal `#banqueTCModal`
+- `js/admin-banques-exercices.js` : split données, tab switching, counts, rollback
+- `js/admin-banques-exercices-questions.js` : rendu TC, modal TC, CRUD, drag & drop, nettoyage badge compétences
+- `css/admin-banques-exercices.css` : styles onglet rouge, icône TC, checkboxes, badges compétences
+- `google-apps-script/TOUT-EN-UN.gs` : rebuild
+
+### Décisions
+- Réutilisation des tables existantes plutôt que création de nouvelles (évite setup Google Sheets)
+- Les exercices TC utilisent le wizard compétences existant (même format : document + correction + durée)
+- L'onglet compétences ne montre plus le type_usage (toujours entraînement)
+
+---
+
 ## 2026-03-08 — Session 25 : Harmonisation visuelle page résultats élève
 
 ### Modifications
