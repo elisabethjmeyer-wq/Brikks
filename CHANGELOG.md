@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-03-08 — Session 25 : Harmonisation visuelle page résultats élève
+
+### Modifications
+
+1. **Hero header unifié** : la page « Mes résultats » utilise le même pattern `.hero-header` que la page évaluations (fond blanc, gradient latéral, border-radius 16px)
+2. **Sélecteur semestre simplifié** : le dropdown remplacé par 2 boutons S1/S2 dans le hero header
+3. **Toggle matière** : réutilise `.tabs-bar` et `.tab-btn` existants au lieu d'un composant custom
+4. **Breadcrumb supprimé** : dupliquait celui géré par `eleve-layout.js`
+5. **Container supprimé** : plus de `max-width: 700px` — la largeur est gérée par le `<main>` du layout
+6. **CSS réécrit** : variables CSS du site (`--primary`, `--gray-*`), tailles de texte augmentées (14-16px), paddings cards 22-26px, box-shadow aligné
+
+### Fichiers modifiés
+- `js/eleve-notes.js` : suppression breadcrumb, header hero, boutons S1/S2, tabs-bar matière, suppression container wrapper
+- `css/eleve-notes.css` : réécriture complète avec variables CSS du site
+- `eleve/notes.html` : ajout import `eleve-evaluations.css` pour réutiliser hero-header et tabs-bar
+
+### Décisions
+- Import de `eleve-evaluations.css` dans `notes.html` pour réutiliser les classes sans duplication
+- Suppression de `toggleSemMenu()` devenu inutile (boutons simples)
+
+---
+
 ## 2026-03-08 — Session 24 : Wizard papier simplifié + statut sur carte
 
 ### Modifications
