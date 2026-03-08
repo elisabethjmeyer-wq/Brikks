@@ -49,16 +49,28 @@ function createCompetenceReferentiel(data) {
     sheet.appendRow(['id', 'nom', 'description', 'consigne', 'ordre', 'visible', 'matiere']);
   }
 
+  // Migration progressive : ajouter la colonne matiere si elle manque
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (headers.indexOf('matiere') === -1) {
+    var nextCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, nextCol).setValue('matiere');
+    headers.push('matiere');
+  }
+
   var id = 'comp_' + new Date().getTime();
-  var rowData = [
-    id,
-    data.nom || '',
-    data.description || '',
-    data.consigne || '',
-    data.ordre || 1,
-    data.visible !== undefined ? data.visible : true,
-    data.matiere || 'Transversal'
-  ];
+
+  var rowData = headers.map(function(h) {
+    switch (h) {
+      case 'id': return id;
+      case 'nom': return data.nom || '';
+      case 'description': return data.description || '';
+      case 'consigne': return data.consigne || '';
+      case 'ordre': return data.ordre || 1;
+      case 'visible': return data.visible !== undefined ? data.visible : true;
+      case 'matiere': return data.matiere || 'Transversal';
+      default: return '';
+    }
+  });
 
   sheet.appendRow(rowData);
   return { success: true, id: id };
@@ -73,6 +85,14 @@ function updateCompetenceReferentiel(data) {
 
   if (!sheet) {
     return { success: false, error: 'Feuille non trouvée' };
+  }
+
+  // Migration progressive : ajouter la colonne matiere si elle manque
+  var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (currentHeaders.indexOf('matiere') === -1) {
+    var nextCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, nextCol).setValue('matiere');
+    currentHeaders.push('matiere');
   }
 
   var allData = sheet.getDataRange().getValues();
