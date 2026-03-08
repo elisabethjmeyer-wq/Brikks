@@ -132,6 +132,8 @@ const AdminEvaluations = {
         try {
             const evaluationsData = await SheetsAPI.getSheetData('EVALUATIONS');
             this.evaluations = SheetsAPI.parseSheetData(evaluationsData);
+            // Synchroniser le statut des évals numériques avec dates
+            this._syncStatutsFromDates();
         } catch (_e) {
             this.evaluations = [];
         }
@@ -365,10 +367,7 @@ const AdminEvaluations = {
 
     renderEvaluationCard(evaluation) {
         const typeClass = evaluation.type || 'connaissances';
-        // Papier : statut manuel uniquement. Numérique : auto-calculé depuis les dates si présentes
-        const statusClass = (evaluation.mode_passation !== 'papier' && (evaluation.date_ouverture || evaluation.date_fermeture))
-            ? this._computeAutoStatut(evaluation.date_ouverture, evaluation.date_fermeture)
-            : (evaluation.statut || 'brouillon');
+        const statusClass = evaluation.statut || 'brouillon';
         const order = evaluation.ordre || this._getEvaluationOrder(evaluation);
 
         // Status labels
@@ -844,6 +843,18 @@ const AdminEvaluations = {
                         <div class="form-help">L'élève ne pourra plus passer l'évaluation après</div>
                     </div>
                 </div>`;
+    },
+
+    /**
+     * À l'initialisation, met à jour le statut en mémoire des évals numériques avec dates.
+     * Après ça, la carte affiche toujours evaluation.statut (pas de recalcul à chaque rendu).
+     */
+    _syncStatutsFromDates() {
+        for (const ev of this.evaluations) {
+            if (ev.mode_passation === 'papier') continue;
+            if (!ev.date_ouverture && !ev.date_fermeture) continue;
+            ev.statut = this._computeAutoStatut(ev.date_ouverture, ev.date_fermeture);
+        }
     },
 
     /**
