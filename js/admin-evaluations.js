@@ -852,6 +852,46 @@ const AdminEvaluations = {
 
 
     /**
+     * Convertit "HH:MM" ou "HHhMM" → affichage français "HHhMM". Vide → "".
+     */
+    _formatTimeFR(val) {
+        if (!val) return '';
+        const clean = val.replace('h', ':');
+        const [h, m] = clean.split(':');
+        if (!h) return '';
+        return h.padStart(2, '0') + 'h' + (m || '00').padStart(2, '0');
+    },
+
+    /**
+     * Parse une heure saisie par l'utilisateur (formats acceptés : "10h30", "10:30", "1030", "10h").
+     * Retourne "HH:MM" ou null si invalide.
+     */
+    _parseTimeFR(val) {
+        if (!val || !val.trim()) return null;
+        const s = val.trim();
+        let h, m;
+        if (s.includes('h') || s.includes('H')) {
+            const parts = s.toLowerCase().split('h');
+            h = parseInt(parts[0], 10);
+            m = parts[1] ? parseInt(parts[1], 10) : 0;
+        } else if (s.includes(':')) {
+            const parts = s.split(':');
+            h = parseInt(parts[0], 10);
+            m = parseInt(parts[1], 10);
+        } else if (s.length === 4 && /^\d{4}$/.test(s)) {
+            h = parseInt(s.substring(0, 2), 10);
+            m = parseInt(s.substring(2, 4), 10);
+        } else if (s.length <= 2 && /^\d+$/.test(s)) {
+            h = parseInt(s, 10);
+            m = 0;
+        } else {
+            return null;
+        }
+        if (isNaN(h) || isNaN(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
+        return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    },
+
+    /**
      * Rend le dropdown de statut avec les 4 options : Brouillon, Publier, Programmer, Terminer.
      * L'option "Programmer" intègre un mini-formulaire de dates inline.
      */
@@ -889,7 +929,7 @@ const AdminEvaluations = {
                             <label>${isPapier ? 'Date' : 'Ouverture'}</label>
                             <div class="schedule-date-row">
                                 <input type="date" class="schedule-input" id="schedDate-${id}" value="${datePartOuv}">
-                                ${isPapier ? '' : `<input type="time" class="schedule-input schedule-time" id="schedTimeOuv-${id}" value="${timePartOuv}">`}
+                                ${isPapier ? '' : `<input type="text" class="schedule-input schedule-time" id="schedTimeOuv-${id}" value="${this._formatTimeFR(timePartOuv)}" placeholder="HH:MM">`}
                             </div>
                         </div>
                         ${isPapier ? '' : `
@@ -897,7 +937,7 @@ const AdminEvaluations = {
                             <label>Fermeture <span class="schedule-optional">(optionnel)</span></label>
                             <div class="schedule-date-row">
                                 <input type="date" class="schedule-input" id="schedDateFerm-${id}" value="${datePartFerm}">
-                                <input type="time" class="schedule-input schedule-time" id="schedTimeFerm-${id}" value="${timePartFerm}">
+                                <input type="text" class="schedule-input schedule-time" id="schedTimeFerm-${id}" value="${this._formatTimeFR(timePartFerm)}" placeholder="HH:MM">
                             </div>
                         </div>`}
                         <button class="schedule-save-btn" onclick="AdminEvaluations._saveSchedule('${id}')">
@@ -985,12 +1025,14 @@ const AdminEvaluations = {
         if (isPapier) {
             dateOuverture = dateStr;
         } else {
-            const timeOuv = document.getElementById(`schedTimeOuv-${evalId}`)?.value || '08:00';
+            const rawTimeOuv = document.getElementById(`schedTimeOuv-${evalId}`)?.value || '';
+            const timeOuv = this._parseTimeFR(rawTimeOuv) || '08:00';
             dateOuverture = dateStr + 'T' + timeOuv;
 
             const dateFermStr = document.getElementById(`schedDateFerm-${evalId}`)?.value || '';
             if (dateFermStr) {
-                const timeFerm = document.getElementById(`schedTimeFerm-${evalId}`)?.value || '18:00';
+                const rawTimeFerm = document.getElementById(`schedTimeFerm-${evalId}`)?.value || '';
+                const timeFerm = this._parseTimeFR(rawTimeFerm) || '18:00';
                 dateFermeture = dateFermStr + 'T' + timeFerm;
             }
         }
