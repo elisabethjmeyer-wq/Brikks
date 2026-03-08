@@ -594,6 +594,19 @@
     border-color: var(--accent-purple-light);
 }
 
+/* Mini dots inside dropdown options */
+.status-dot-mini {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.status-dot-mini.brouillon { background: var(--gray-400); }
+.status-dot-mini.planifiee { background: var(--accent-blue); }
+.status-dot-mini.publiee { background: var(--accent-green); }
+.status-dot-mini.terminee { background: var(--accent-purple); }
+
 .status-dropdown {
     display: none;
     position: absolute;
@@ -601,10 +614,10 @@
     top: 100%;
     margin-top: 4px;
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
     z-index: 100;
-    min-width: 160px;
+    min-width: 240px;
     overflow: hidden;
 }
 
@@ -613,7 +626,8 @@
     flex-direction: column;
 }
 
-.status-dropdown button {
+.status-dropdown > button,
+.status-dropdown .schedule-toggle {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -625,15 +639,106 @@
     color: var(--gray-700);
     white-space: nowrap;
     transition: background 0.15s;
+    width: 100%;
+    text-align: left;
 }
 
-.status-dropdown button:hover {
+.status-dropdown > button:hover,
+.status-dropdown .schedule-toggle:hover {
     background: var(--gray-50);
 }
 
-.status-dropdown button.active {
+.status-dropdown > button.active,
+.status-dropdown .schedule-toggle.active {
     background: var(--gray-100);
     font-weight: 600;
+}
+
+.status-dropdown-separator {
+    height: 1px;
+    background: var(--gray-200);
+    margin: 2px 0;
+}
+
+.schedule-chevron {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--gray-400);
+}
+
+/* Schedule panel inside dropdown */
+.schedule-panel {
+    padding: 8px 16px 12px;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+}
+
+.schedule-field {
+    margin-bottom: 8px;
+}
+
+.schedule-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.schedule-optional {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.schedule-date-row {
+    display: flex;
+    gap: 6px;
+}
+
+.schedule-input {
+    padding: 6px 8px;
+    border: 1px solid var(--gray-300);
+    border-radius: 6px;
+    font-size: 13px;
+    background: white;
+    color: var(--gray-700);
+}
+
+.schedule-input:focus {
+    outline: none;
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.schedule-date-row input[type="date"] {
+    flex: 1;
+    min-width: 0;
+}
+
+.schedule-time {
+    width: 80px;
+    flex-shrink: 0;
+}
+
+.schedule-save-btn {
+    width: 100%;
+    padding: 7px 12px;
+    margin-top: 4px;
+    background: var(--primary, #6366f1);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.schedule-save-btn:hover {
+    background: var(--primary-dark, #4f46e5);
 }
 
 /* Progress bar mini */
