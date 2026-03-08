@@ -522,7 +522,44 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 
 **Données** : `BanquesCompetences` avec `type_usage='tache_complexe'`, `EntrainementsCompetences` avec `competence_ids` (migration progressive)
 
-**État** : CRUD fonctionnel, wizard opérationnel. Pas encore d'évaluation TC côté admin ni de vue élève.
+**État** : CRUD fonctionnel, wizard opérationnel.
+
+### Onglet Bonus ponctuels (admin banques d'exercices) — CRÉÉ SESSION 27
+
+**Page** : `admin/banques-exercices.html` (5ème onglet)
+**Fichiers** : `js/admin-banques-exercices-questions.js` (rendu bonus, CRUD), `js/admin-banques-exercices-comp-wizard.js` (wizard 5 étapes mode bonus)
+**Backend** : `Competences.gs` (réutilise `BanquesCompetences` + `EntrainementsCompetences` avec `type_usage='bonus_ponctuel'`)
+
+**Ce que fait le module :**
+- 5ème onglet « Bonus ponctuels » (couleur teal) dans la page Banques d'exercices
+- **Banque bonus = conteneur simple** : titre, description, ordre, statut
+- **Exercices bonus** : wizard 5 étapes : Paramètres → Document → Corrigé → Critères libres → Résumé
+- **Critères libres** : liste dynamique (ajouter/supprimer), stockés en `criteres_libres` (JSON array)
+- Pas de lien au référentiel de compétences
+
+**Données** : `BanquesCompetences` avec `type_usage='bonus_ponctuel'`, `EntrainementsCompetences` avec `criteres_libres` (migration progressive)
+
+**État** : CRUD fonctionnel, wizard opérationnel.
+
+### Admin Évaluations — wizard création TC + bonus — SESSION 27
+
+**Page** : `admin/evaluations.html` (onglets Compétences et Bonus)
+**Fichiers** : `js/admin-evaluations.js`, `css/admin-evaluations.css`
+**Backend** : `Evaluations.gs` (migration progressive nouvelles colonnes)
+
+**Ce qui a été fait :**
+- **Onglet Compétences** : toujours = tâche complexe (pas de toggle). Wizard 2 étapes : Paramètres → Sélection sujet (cascade dropdown banque TC → exercice)
+- **Onglet Bonus** : 3 sous-types via toggle (compétence / ponctuel / suivi)
+  - **Bonus compétence** : step 2 = cascade dropdown banque compétences → exercice
+  - **Bonus ponctuel** : step 2 = cascade dropdown banque bonus → exercice
+  - **Bonus suivi** : champ "nombre de validations" (pas de step 2, pas d'exercice)
+- **Catégorie de points** auto-déterminée : bonus compétence → "competences", ponctuel/suivi → "bonus"
+- **Chargement données** : `BanquesCompetences`, `EntrainementsCompetences`, `CompetencesReferentiel` ajoutés au batch SheetsAPI
+- **Backend** : colonnes `sous_type_comp`, `banque_tc_id`, `exercice_tc_id`, `sous_type_bonus`, `banque_comp_id`, `exercice_comp_id`, `banque_bonus_id`, `exercice_bonus_id`, `nb_validations` en migration progressive
+
+**Bug corrigé** : comparaisons `===` dans les filtres cascade dropdown échouaient (type mismatch string/number de SheetsAPI) → remplacé par `String().trim()`
+
+**État** : wizard création fonctionnel. Pas encore d'affichage élève ni de gestion des demandes.
 
 ---
 
@@ -576,32 +613,49 @@ Mes résultats :
 
 ### Phases restantes
 
-**Phase 4 — Admin : création des évaluations bonus + TC**
+**Phase 4 — Admin : création des évaluations bonus + TC** ✅
 - [x] Onglet TC dans Banques d'exercices (banques + exercices + wizard 5 étapes)
-- [ ] Onglet Bonus ponctuels dans Banques d'exercices (5ème onglet, wizard simplifié : document + corrigé + critères libres, sans lien référentiel)
-- [ ] Évaluations > onglet Compétences : créer une évaluation TC (choisir banque TC + exercice précis)
-- [ ] Évaluations > onglet Bonus : créer les 3 sous-types (compétence, ponctuel, suivi)
-- [ ] Backend : tables/colonnes pour bonus (type_bonus, nb_validations_requises, etc.)
+- [x] Onglet Bonus ponctuels dans Banques d'exercices (5ème onglet, wizard 5 étapes avec critères libres)
+- [x] Évaluations > onglet Compétences : créer une évaluation TC (cascade dropdown banque TC → exercice)
+- [x] Évaluations > onglet Bonus : créer les 3 sous-types (compétence, ponctuel, suivi)
+- [x] Backend : colonnes pour bonus/TC (sous_type_comp, sous_type_bonus, banque_tc_id, exercice_tc_id, banque_comp_id, exercice_comp_id, banque_bonus_id, exercice_bonus_id, nb_validations) en migration progressive
 
-**Phase 5 — Admin : gestion des demandes**
-- [ ] Bandeau "X demandes" dans la page Évaluations
-- [ ] Modal accepter/refuser une demande de bonus compétence
-- [ ] Backend : table demandes (eleve_id, evaluation_id, statut, date_demande, date_reponse)
+**Phase 5 — Élève : affichage bonus + système de demandes**
+
+> **Contrainte fondamentale (session 27)** : les bonus ne se passent JAMAIS en ligne.
+> L'élève peut consulter le sujet (lecture seule) mais le rendu est papier ou par mail.
+> La saisie du résultat est toujours manuelle par la prof.
+> Le bouton "Commencer" ne doit JAMAIS apparaître pour les bonus.
+
+- [ ] **Backend : table DEMANDES_BONUS** (id, eleve_id, evaluation_id, statut [demande/acceptee/refusee], date_demande, date_reponse, date_passage, mode_rendu [papier/mail], remarque_prof)
+- [ ] **Élève : cartes bonus compétence** — bouton "Demander" → statut demandé → attendre réponse prof → si accepté : voir date + consulter sujet (lecture seule) → résultat saisi par la prof
+- [ ] **Élève : cartes bonus ponctuel** — statut visible (en attente / validé / remarque)
+- [ ] **Élève : cartes bonus suivi** — barre de progression X/Y validations (pas d'exercice)
+- [ ] **Élève : cartes tâche complexe** — passage en classe uniquement, voir correction par compétence
+- [ ] **Admin : bandeau "X demandes"** dans la page Évaluations
+- [ ] **Admin : modal accepter/refuser** une demande de bonus compétence + fixer date (passage en classe OU date butoir de rendu) + choisir mode (papier/mail)
+- [ ] **Notifications** prof ↔ élève (demande envoyée, réponse reçue)
 
 **Phase 6 — Admin : corrections + saisie suivi**
 - [ ] Page Corrections : adapter le wizard pour les types TC et bonus
 - [ ] Évaluations > Saisie : tableau progressif pour bonus suivi (cocher les validations)
+- [ ] Saisie résultats manuelle pour tous les bonus (pas de passage en ligne)
 
-**Phase 7 — Élève : affichage bonus + TC dans "Mes évaluations"**
-- [ ] Cartes bonus compétence (bouton "Demander", statuts : demandé, accepté, en cours, corrigé)
-- [ ] Cartes bonus ponctuel (statut visible, remarque prof)
-- [ ] Cartes bonus suivi (barre de progression X/Y validations)
-- [ ] Cartes tâche complexe (passer en classe, voir correction par compétence)
-
-**Phase 8 — Élève : résultats**
+**Phase 7 — Élève : résultats**
 - [ ] Section Compétences dans "Mes résultats" : validations par compétence (bonus comp + TC)
 - [ ] Section Bonus : points bonus (suivi + ponctuel)
 - [ ] Intégration dans le calcul de la note de progression
+
+### Questions ouvertes pour la prochaine session
+
+> **À clarifier avec la prof avant de coder la phase 5 :**
+
+1. **Bonus ponctuel : qui initie ?** La prof attribue directement le bonus à l'élève, ou l'élève demande aussi ? (Actuellement documenté comme "la prof la crée et l'attribue" mais à confirmer)
+2. **Mode de rendu** : pour les bonus, le "numérique" = rendu par mail (pas passage en ligne). Faut-il renommer le toggle "papier / mail" au lieu de "papier / numérique" ?
+3. **Date fixée par la prof** : c'est une date de passage en classe OU une date butoir de rendu par mail ? Peut-il y avoir les deux cas selon le bonus ?
+4. **Notifications** : comment notifier la prof d'une demande et l'élève de la réponse ? Bandeau dans la page ? Email ? Badge sur la sidebar ? Système simple de "notifications non lues" ?
+5. **Tâches complexes côté élève** : même logique que les bonus (passage en classe, consultation sujet) ? Ou l'élève peut les passer en ligne ?
+6. **Bonus suivi** : la prof valide dans le tableau de saisie existant ou faut-il un écran dédié avec des checkboxes progressives ?
 
 ---
 
