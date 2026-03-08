@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mes notes - Brikks</title>
+    <title>Mes résultats - Brikks</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,101 +16,12 @@
     <!-- Loader -->
     <div class="loader-container" id="loader">
         <div class="loader"></div>
-        <p>Chargement de tes notes...</p>
+        <p>Chargement de tes résultats...</p>
     </div>
 
     <!-- Content -->
     <div id="notes-content" style="display: none;">
-
-        <!-- Toggle matière + semestre -->
-        <div class="notes-filters">
-            <div class="matiere-tabs">
-                <button class="matiere-tab active" data-matiere="FR">🇫🇷 Français</button>
-                <button class="matiere-tab" data-matiere="HG-EMC">🌍 Histoire-Géo-EMC</button>
-            </div>
-            <div class="semestre-tabs">
-                <button class="sem-btn active" data-semestre="1">S1</button>
-                <button class="sem-btn" data-semestre="2">S2</button>
-            </div>
-        </div>
-
-        <!-- Note de progression card -->
-        <div class="note-card main-note" id="mainNoteCard">
-            <div class="note-card-header">
-                <span class="note-card-label">📈 Ma note de progression</span>
-                <span class="note-semester" id="noteSemester">S1</span>
-            </div>
-            <div class="note-big" id="noteProgression">—/20</div>
-            <div class="note-formula" id="noteFormula"></div>
-            <div class="bonus-excedent" id="bonusExcedent" style="display:none"></div>
-
-            <!-- Progress bar -->
-            <div class="note-progress-bar">
-                <div class="note-progress-fill" id="noteProgressFill" style="width: 0%"></div>
-            </div>
-            <div class="note-progress-labels">
-                <span id="noteProgressStart">8</span>
-                <span id="noteProgressEnd">20</span>
-            </div>
-        </div>
-
-        <!-- Points breakdown -->
-        <div class="note-card" id="pointsCard">
-            <div class="note-card-header">
-                <span class="note-card-label">🎯 Mes points</span>
-                <span class="points-total" id="pointsTotal">0 / 100</span>
-            </div>
-
-            <div class="points-bars" id="pointsBars">
-                <!-- Generated dynamically -->
-            </div>
-        </div>
-
-        <!-- Moyenne pondérée card -->
-        <div class="note-card" id="moyenneCard">
-            <div class="note-card-header">
-                <span class="note-card-label">📊 Ma moyenne</span>
-            </div>
-            <div class="moyenne-row">
-                <div class="moyenne-item">
-                    <div class="moyenne-label">Progression</div>
-                    <div class="moyenne-value" id="moyProgValue">—</div>
-                    <div class="moyenne-coef" id="moyProgCoef">coef. 3</div>
-                </div>
-                <div class="moyenne-separator">+</div>
-                <div class="moyenne-sommatives" id="moyenneSommatives">
-                    <!-- Generated dynamically -->
-                </div>
-                <div class="moyenne-separator">=</div>
-                <div class="moyenne-item result">
-                    <div class="moyenne-label">Moyenne</div>
-                    <div class="moyenne-value big" id="moyenneValue">—/20</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sommatives list -->
-        <div class="note-card" id="sommativesCard">
-            <div class="note-card-header">
-                <span class="note-card-label">📝 Évaluations sommatives</span>
-            </div>
-            <div class="sommatives-list" id="sommativesList">
-                <!-- Generated dynamically -->
-            </div>
-        </div>
-
-        <!-- Objectif -->
-        <div class="note-card objectif-card" id="objectifCard">
-            <div class="note-card-header">
-                <span class="note-card-label">🎯 Mon objectif</span>
-            </div>
-            <div class="objectif-row">
-                <input type="number" class="objectif-input" id="objectifInput" min="0" max="20" step="0.5" placeholder="—">
-                <span class="objectif-suffix">/20</span>
-                <button class="btn-save-objectif" id="saveObjectifBtn" onclick="EleveNotes.saveObjectif()">Enregistrer</button>
-            </div>
-            <div class="objectif-hint">Fixe-toi un objectif pour ce semestre</div>
-        </div>
+        <!-- Dynamic content rendered by EleveResultats -->
     </div>
 </div>
 
@@ -124,7 +35,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', async function() {
-        await EleveLayout.init('notes', 'Mes notes');
+        await EleveLayout.init('notes', 'Mes résultats');
     });
 </script>
 

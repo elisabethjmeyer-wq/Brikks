@@ -54,6 +54,7 @@
         "AdminParametrageEval": "readonly",
         "AdminTableauBord": "readonly",
         "AdminEvaluations": "readonly",
-        "EleveNotes": "readonly"
+        "EleveNotes": "readonly",
+        "EleveResultats": "readonly"
     }
 }
