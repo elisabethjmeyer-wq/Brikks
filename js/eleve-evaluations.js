@@ -112,6 +112,10 @@ const EleveEvaluations = {
 
     // ========== STATUS ==========
     _computeEffectiveStatut(evaluation) {
+        // Papier : statut géré manuellement (pas d'auto-calcul depuis les dates)
+        if (evaluation.mode_passation === 'papier') {
+            return evaluation.statut || 'brouillon';
+        }
         const now = new Date();
         if (evaluation.date_ouverture || evaluation.date_fermeture) {
             if (evaluation.date_ouverture && new Date(evaluation.date_ouverture) > now) return 'planifiee';

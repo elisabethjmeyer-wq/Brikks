@@ -1,7 +1,7 @@
 // ================================================================
 // FICHIER AUTO-GÉNÉRÉ — ne pas modifier directement
 // Généré par : npm run build:gas
-// Date : 2026-03-07
+// Date : 2026-03-08
 // ================================================================
 
 // ================================================================
@@ -5695,6 +5695,9 @@ function saveEvaluationResult(data) {
       updateProgressionFromResult_(ss, data.evaluation_id, data.eleve_id, data.banque_id || '');
     }
 
+    // Auto-terminée : si évaluation papier et saisie manuelle, passer en terminée
+    autoTerminePapier_(ss, data.evaluation_id);
+
     return { success: true, id: String(allData[existingRow - 1][0]), message: 'Resultat mis a jour' };
   }
 
@@ -5737,7 +5740,41 @@ function saveEvaluationResult(data) {
     updateProgressionFromResult_(ss, data.evaluation_id, data.eleve_id, data.banque_id || '');
   }
 
+  // Auto-terminée : si évaluation papier et saisie manuelle, passer en terminée
+  autoTerminePapier_(ss, data.evaluation_id);
+
   return { success: true, id: id, message: 'Resultat sauvegarde' };
+}
+
+/**
+ * Si l'evaluation est en mode papier et pas encore terminee, passe son statut a 'terminee'
+ * Appelee automatiquement apres chaque saisie de resultat
+ */
+function autoTerminePapier_(ss, evaluationId) {
+  try {
+    var evalSheet = ss.getSheetByName(SHEETS.EVALUATIONS);
+    if (!evalSheet) return;
+
+    var evalData = evalSheet.getDataRange().getValues();
+    var headers = evalData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    var idCol = headers.indexOf('id');
+    var modeCol = headers.indexOf('mode_passation');
+    var statutCol = headers.indexOf('statut');
+    if (idCol < 0 || modeCol < 0 || statutCol < 0) return;
+
+    for (var i = 1; i < evalData.length; i++) {
+      if (String(evalData[i][idCol]).trim() === String(evaluationId).trim()) {
+        var mode = String(evalData[i][modeCol]).trim().toLowerCase();
+        var statut = String(evalData[i][statutCol]).trim().toLowerCase();
+        if (mode === 'papier' && statut !== 'terminee') {
+          evalSheet.getRange(i + 1, statutCol + 1).setValue('terminee');
+        }
+        break;
+      }
+    }
+  } catch (e) {
+    // Non bloquant
+  }
 }
 
 /**
