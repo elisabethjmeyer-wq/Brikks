@@ -789,37 +789,7 @@ const AdminEvaluations = {
                     <div class="form-help">Score minimum pour valider</div>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Durée</label>
-                    <div class="form-info-display" id="evalDureeInfo">⏱️ Automatique : celle de l'entraînement attribué à chaque élève</div>
-                </div>
-                <div class="form-group"></div>
-            </div>
-            ${this._renderProgrammation(d)}
         `;
-    },
-
-    _renderProgrammation(d) {
-        // Les dates sont désormais gérées via le bouton statut sur la carte.
-        // Ici on affiche juste un résumé informatif si des dates existent.
-        const dateOuv = d.date_ouverture || '';
-        const dateFerm = d.date_fermeture || '';
-
-        if (!dateOuv && !dateFerm) return '';
-
-        const isPapier = d.mode_passation === 'papier';
-        let info = '';
-        if (isPapier && dateOuv) {
-            info = `📅 Programmée le ${this._formatDateShort(dateOuv)}`;
-        } else {
-            if (dateOuv) info += `📅 Ouverture : ${this._formatDateShort(dateOuv)}`;
-            if (dateFerm) info += `${dateOuv ? ' — ' : ''}🔒 Fermeture : ${this._formatDateShort(dateFerm)}`;
-        }
-        return `
-            <div class="form-section">Programmation</div>
-            <div class="form-info-display">${info}</div>
-            <div class="form-help">Modifiable via le bouton statut sur la carte de l'évaluation</div>`;
     },
 
     /**
@@ -1129,12 +1099,8 @@ const AdminEvaluations = {
                     <label>Points mis en jeu <span class="req">*</span></label>
                     <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
                 </div>
-                <div class="form-group">
-                    <label>Durée</label>
-                    <div class="form-info-display" id="evalDureeInfo">⏱️ Automatique : celle de l'exercice attribué à chaque élève</div>
-                </div>
+                <div class="form-group"></div>
             </div>
-            ${this._renderProgrammation(d)}
         `;
     },
 
@@ -1157,7 +1123,6 @@ const AdminEvaluations = {
                     </select>
                 </div>
             </div>
-            ${this._renderProgrammation(d)}
         `;
     },
 
@@ -1174,7 +1139,6 @@ const AdminEvaluations = {
                 <label>Critères de validation</label>
                 <textarea class="form-textarea" id="evalCriteres" rows="3" placeholder="Décrivez les critères...">${escapeHtml(d.criteres || '')}</textarea>
             </div>
-            ${this._renderProgrammation(d)}
         `;
     },
 
