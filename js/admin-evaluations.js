@@ -810,8 +810,8 @@ const AdminEvaluations = {
         const toUpdate = [];
         for (const ev of this.evaluations) {
             if (ev.mode_passation === 'papier') continue;
-            // Brouillon = décision manuelle de la prof, on ne l'écrase jamais
-            if (ev.statut === 'brouillon') continue;
+            // Brouillon/terminée = décision manuelle de la prof, on ne l'écrase jamais
+            if (ev.statut === 'brouillon' || ev.statut === 'terminee') continue;
             if (!ev.date_ouverture && !ev.date_fermeture) continue;
             const newStatut = this._computeAutoStatut(ev.date_ouverture, ev.date_fermeture);
             if (newStatut !== ev.statut) {
