@@ -478,11 +478,7 @@ const AdminEvaluations = {
                             <button class="btn-icon" onclick="AdminEvaluations.toggleStatusDropdown(event, '${evaluation.id}')" title="Changer le statut">
                                 <span class="status-dot ${statusClass}"></span>
                             </button>
-                            <div class="status-dropdown" id="status-dropdown-${evaluation.id}">
-                                <button class="${statusClass === 'brouillon' ? 'active' : ''}" onclick="AdminEvaluations.changeStatut('${evaluation.id}', 'brouillon')">📝 Brouillon</button>
-                                <button class="${statusClass === 'publiee' ? 'active' : ''}" onclick="AdminEvaluations.changeStatut('${evaluation.id}', 'publiee')">🟢 Publiée</button>
-                                <button class="${statusClass === 'terminee' ? 'active' : ''}" onclick="AdminEvaluations.changeStatut('${evaluation.id}', 'terminee')">✅ Terminée</button>
-                            </div>
+                            ${this._renderStatusDropdown(evaluation)}
                         </div>
                         <button class="btn-icon danger" onclick="AdminEvaluations.confirmDelete('${evaluation.id}', 'evaluation')" title="Supprimer">🗑️</button>
                     </div>
@@ -805,40 +801,25 @@ const AdminEvaluations = {
     },
 
     _renderProgrammation(d) {
+        // Les dates sont désormais gérées via le bouton statut sur la carte.
+        // Ici on affiche juste un résumé informatif si des dates existent.
+        const dateOuv = d.date_ouverture || '';
+        const dateFerm = d.date_fermeture || '';
+
+        if (!dateOuv && !dateFerm) return '';
+
         const isPapier = d.mode_passation === 'papier';
-
-        if (isPapier) {
-            // Mode papier : un seul champ date (sans heure)
-            const dateVal = d.date_evaluation || (d.date_ouverture ? d.date_ouverture.split('T')[0] : '');
-            return `
-                <div class="form-section">Date de l'évaluation</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" class="form-input" id="evalDateEvaluation" value="${dateVal}">
-                        <div class="form-help">Date à laquelle l'évaluation est passée en classe</div>
-                    </div>
-                    <div class="form-group"></div>
-                </div>`;
+        let info = '';
+        if (isPapier && dateOuv) {
+            info = `📅 Programmée le ${this._formatDateShort(dateOuv)}`;
+        } else {
+            if (dateOuv) info += `📅 Ouverture : ${this._formatDateShort(dateOuv)}`;
+            if (dateFerm) info += `${dateOuv ? ' — ' : ''}🔒 Fermeture : ${this._formatDateShort(dateFerm)}`;
         }
-
-        // Mode numérique : dates d'ouverture et fermeture avec heure
         return `
-                <div class="form-section">Programmation (optionnel)</div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Date d'ouverture</label>
-                        <input type="datetime-local" class="form-input" id="evalDateOuverture" value="${d.date_ouverture || ''}"
-                            onchange="AdminEvaluations._onDatesChange()">
-                        <div class="form-help">Visible pour les élèves à partir de cette date</div>
-                    </div>
-                    <div class="form-group">
-                        <label>Date de fermeture</label>
-                        <input type="datetime-local" class="form-input" id="evalDateFermeture" value="${d.date_fermeture || ''}"
-                            onchange="AdminEvaluations._onDatesChange()">
-                        <div class="form-help">L'élève ne pourra plus passer l'évaluation après</div>
-                    </div>
-                </div>`;
+            <div class="form-section">Programmation</div>
+            <div class="form-info-display">${info}</div>
+            <div class="form-help">Modifiable via le bouton statut sur la carte de l'évaluation</div>`;
     },
 
     /**
@@ -898,32 +879,211 @@ const AdminEvaluations = {
     },
 
     /**
-     * Called when date fields change — re-render the statut display
+     * Génère les <option> pour un sélecteur d'heure par pas de 15 min (08:00 → 18:00).
      */
-    _onDatesChange() {
-        // Sauvegarder TOUS les champs du formulaire avant le re-render
-        // (sinon le titre et les autres champs sont perdus)
-        this._collectCurrentFormFields();
+    _generateTimeOptions(selectedValue) {
+        let html = '<option value="">--:--</option>';
+        for (let h = 7; h <= 20; h++) {
+            for (let m = 0; m < 60; m += 15) {
+                const val = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+                const label = val.replace(':', 'h');
+                const sel = val === selectedValue ? ' selected' : '';
+                html += `<option value="${val}"${sel}>${label}</option>`;
+            }
+        }
+        return html;
+    },
 
-        const dateOuverture = document.getElementById('evalDateOuverture')?.value || '';
-        const dateFermeture = document.getElementById('evalDateFermeture')?.value || '';
-        this.wizardData.date_ouverture = dateOuverture;
-        this.wizardData.date_fermeture = dateFermeture;
+    /**
+     * Rend le dropdown de statut avec les 4 options : Brouillon, Publier, Programmer, Terminer.
+     * L'option "Programmer" intègre un mini-formulaire de dates inline.
+     */
+    _renderStatusDropdown(evaluation) {
+        const id = evaluation.id;
+        const statut = evaluation.statut || 'brouillon';
+        const isPapier = evaluation.mode_passation === 'papier';
 
-        this._renderWizardStep();
+        // Extraire date/heure actuelles pour pré-remplir le formulaire
+        const dateOuv = evaluation.date_ouverture || '';
+        const dateFerm = evaluation.date_fermeture || '';
+        const datePartOuv = dateOuv ? dateOuv.split('T')[0] : '';
+        const timePartOuv = dateOuv && dateOuv.includes('T') ? dateOuv.split('T')[1].substring(0, 5) : '';
+        const datePartFerm = dateFerm ? dateFerm.split('T')[0] : '';
+        const timePartFerm = dateFerm && dateFerm.includes('T') ? dateFerm.split('T')[1].substring(0, 5) : '';
+
+        const isProgrammed = statut === 'planifiee' || (statut === 'publiee' && dateOuv);
+
+        return `
+            <div class="status-dropdown" id="status-dropdown-${id}">
+                <button class="${statut === 'brouillon' ? 'active' : ''}" onclick="AdminEvaluations.changeStatut('${id}', 'brouillon')">
+                    <span class="status-dot-mini brouillon"></span> Brouillon
+                </button>
+                <button class="${statut === 'publiee' && !dateOuv ? 'active' : ''}" onclick="AdminEvaluations._publishNow('${id}')">
+                    <span class="status-dot-mini publiee"></span> Publier maintenant
+                </button>
+                <div class="status-dropdown-separator"></div>
+                <div class="status-dropdown-schedule ${isProgrammed ? 'active' : ''}">
+                    <button class="schedule-toggle ${isProgrammed ? 'active' : ''}" onclick="AdminEvaluations._toggleSchedulePanel(event, '${id}')">
+                        <span class="status-dot-mini planifiee"></span> Programmer
+                        <span class="schedule-chevron">${isProgrammed ? '▾' : '▸'}</span>
+                    </button>
+                    <div class="schedule-panel" id="schedule-panel-${id}" style="${isProgrammed ? '' : 'display:none'}">
+                        <div class="schedule-field">
+                            <label>${isPapier ? 'Date' : 'Ouverture'}</label>
+                            <div class="schedule-date-row">
+                                <input type="date" class="schedule-input" id="schedDate-${id}" value="${datePartOuv}">
+                                ${isPapier ? '' : `<select class="schedule-input schedule-time" id="schedTimeOuv-${id}">${this._generateTimeOptions(timePartOuv)}</select>`}
+                            </div>
+                        </div>
+                        ${isPapier ? '' : `
+                        <div class="schedule-field">
+                            <label>Fermeture <span class="schedule-optional">(optionnel)</span></label>
+                            <div class="schedule-date-row">
+                                <input type="date" class="schedule-input" id="schedDateFerm-${id}" value="${datePartFerm}">
+                                <select class="schedule-input schedule-time" id="schedTimeFerm-${id}">${this._generateTimeOptions(timePartFerm)}</select>
+                            </div>
+                        </div>`}
+                        <button class="schedule-save-btn" onclick="AdminEvaluations._saveSchedule('${id}')">
+                            Enregistrer
+                        </button>
+                    </div>
+                </div>
+                <div class="status-dropdown-separator"></div>
+                <button class="${statut === 'terminee' ? 'active' : ''}" onclick="AdminEvaluations.changeStatut('${id}', 'terminee')">
+                    <span class="status-dot-mini terminee"></span> Terminer
+                </button>
+            </div>`;
+    },
+
+    /**
+     * Publie immédiatement (supprime les dates de programmation).
+     */
+    async _publishNow(evalId) {
+        document.querySelectorAll('.status-dropdown.open').forEach(d => d.classList.remove('open'));
+        const evaluation = this.evaluations.find(e => String(e.id) === String(evalId));
+        if (!evaluation) return;
+
+        const oldStatut = evaluation.statut;
+        const oldDateOuv = evaluation.date_ouverture;
+        const oldDateFerm = evaluation.date_fermeture;
+
+        // Mise à jour optimiste
+        evaluation.statut = 'publiee';
+        evaluation.date_ouverture = '';
+        evaluation.date_fermeture = '';
+        this.renderEvaluations();
+
+        try {
+            const result = await this.callAPI('updateEvaluation', {
+                id: evalId, statut: 'publiee', date_ouverture: '', date_fermeture: ''
+            });
+            if (!result.success) {
+                evaluation.statut = oldStatut;
+                evaluation.date_ouverture = oldDateOuv;
+                evaluation.date_fermeture = oldDateFerm;
+                this.renderEvaluations();
+                this.showNotification('Erreur lors de la publication', 'error');
+            } else {
+                SheetsAPI.clearCacheFor('EVALUATIONS');
+            }
+        } catch (_err) {
+            evaluation.statut = oldStatut;
+            evaluation.date_ouverture = oldDateOuv;
+            evaluation.date_fermeture = oldDateFerm;
+            this.renderEvaluations();
+            this.showNotification('Erreur réseau', 'error');
+        }
+    },
+
+    /**
+     * Toggle le panneau de programmation dans le dropdown.
+     */
+    _toggleSchedulePanel(event, evalId) {
+        event.stopPropagation();
+        const panel = document.getElementById(`schedule-panel-${evalId}`);
+        if (panel) {
+            const isVisible = panel.style.display !== 'none';
+            panel.style.display = isVisible ? 'none' : '';
+        }
+    },
+
+    /**
+     * Sauvegarde les dates depuis le panneau de programmation du dropdown.
+     */
+    async _saveSchedule(evalId) {
+        const evaluation = this.evaluations.find(e => String(e.id) === String(evalId));
+        if (!evaluation) return;
+
+        const isPapier = evaluation.mode_passation === 'papier';
+        const dateStr = document.getElementById(`schedDate-${evalId}`)?.value || '';
+
+        if (!dateStr) {
+            this.showNotification('Veuillez sélectionner une date', 'error');
+            return;
+        }
+
+        let dateOuverture = '';
+        let dateFermeture = '';
+
+        if (isPapier) {
+            dateOuverture = dateStr;
+        } else {
+            const timeOuv = document.getElementById(`schedTimeOuv-${evalId}`)?.value || '08:00';
+            dateOuverture = dateStr + 'T' + timeOuv;
+
+            const dateFermStr = document.getElementById(`schedDateFerm-${evalId}`)?.value || '';
+            if (dateFermStr) {
+                const timeFerm = document.getElementById(`schedTimeFerm-${evalId}`)?.value || '18:00';
+                dateFermeture = dateFermStr + 'T' + timeFerm;
+            }
+        }
+
+        // Calculer le statut effectif
+        const now = new Date();
+        const ouv = new Date(dateOuverture);
+        let newStatut = ouv > now ? 'planifiee' : 'publiee';
+
+        document.querySelectorAll('.status-dropdown.open').forEach(d => d.classList.remove('open'));
+
+        const oldStatut = evaluation.statut;
+        const oldDateOuv = evaluation.date_ouverture;
+        const oldDateFerm = evaluation.date_fermeture;
+
+        // Mise à jour optimiste
+        evaluation.statut = newStatut;
+        evaluation.date_ouverture = dateOuverture;
+        evaluation.date_fermeture = dateFermeture;
+        this.renderEvaluations();
+
+        try {
+            const result = await this.callAPI('updateEvaluation', {
+                id: evalId,
+                statut: newStatut,
+                date_ouverture: dateOuverture,
+                date_fermeture: dateFermeture
+            });
+            if (!result.success) {
+                evaluation.statut = oldStatut;
+                evaluation.date_ouverture = oldDateOuv;
+                evaluation.date_fermeture = oldDateFerm;
+                this.renderEvaluations();
+                this.showNotification('Erreur lors de la programmation', 'error');
+            } else {
+                SheetsAPI.clearCacheFor('EVALUATIONS');
+                this.showNotification('Programmation enregistrée', 'success');
+            }
+        } catch (_err) {
+            evaluation.statut = oldStatut;
+            evaluation.date_ouverture = oldDateOuv;
+            evaluation.date_fermeture = oldDateFerm;
+            this.renderEvaluations();
+            this.showNotification('Erreur réseau', 'error');
+        }
     },
 
     _onModePassationChange() {
         this._collectCurrentFormFields();
         this.wizardData.mode_passation = document.getElementById('evalModePassation')?.value || 'numerique';
-        // Nettoyer les dates lors du switch de mode
-        if (this.wizardData.mode_passation === 'papier') {
-            // Conserver la date d'ouverture comme date d'évaluation si elle existe
-            this.wizardData.date_evaluation = this.wizardData.date_ouverture ? this.wizardData.date_ouverture.split('T')[0] : '';
-            this.wizardData.date_fermeture = '';
-        } else {
-            this.wizardData.date_evaluation = '';
-        }
         this._renderWizardStep();
     },
 
@@ -959,13 +1119,7 @@ const AdminEvaluations = {
         const methodologie = document.getElementById('evalMethodologieTC')?.value;
         if (methodologie !== undefined) this.wizardData.methodologie_id = methodologie;
 
-        // Dates selon le mode
-        const dateEval = document.getElementById('evalDateEvaluation')?.value;
-        if (dateEval !== undefined) this.wizardData.date_evaluation = dateEval;
-        const dateOuv = document.getElementById('evalDateOuverture')?.value;
-        if (dateOuv !== undefined) this.wizardData.date_ouverture = dateOuv;
-        const dateFerm = document.getElementById('evalDateFermeture')?.value;
-        if (dateFerm !== undefined) this.wizardData.date_fermeture = dateFerm;
+        // Les dates sont gérées via le dropdown statut, pas le wizard.
     },
 
     _renderDefaultFields(d) {
@@ -1198,17 +1352,8 @@ const AdminEvaluations = {
                 this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
                 this.wizardData.categorie = this.wizardData.type === 'bonus' ? (document.getElementById('evalCategorie')?.value || 'connaissances') : '';
 
-                // Dates : mode papier = date simple, mode numérique = ouverture/fermeture
-                if (this.wizardData.mode_passation === 'papier') {
-                    const dateEval = document.getElementById('evalDateEvaluation')?.value || '';
-                    this.wizardData.date_evaluation = dateEval;
-                    this.wizardData.date_ouverture = dateEval || '';
-                    this.wizardData.date_fermeture = '';
-                } else {
-                    this.wizardData.date_ouverture = document.getElementById('evalDateOuverture')?.value || '';
-                    this.wizardData.date_fermeture = document.getElementById('evalDateFermeture')?.value || '';
-                    this.wizardData.date_evaluation = '';
-                }
+                // Les dates sont gérées via le dropdown statut, pas le wizard.
+                // On garde les valeurs existantes dans wizardData (pré-remplies à l'ouverture).
 
                 // Statut : ne change plus depuis le wizard (géré via le bouton sur la carte)
 
