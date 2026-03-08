@@ -2723,16 +2723,6 @@ Object.assign(AdminBanquesExercices, {
         emptyState.style.display = 'none';
 
         container.innerHTML = banques.map(banque => {
-            // Résoudre les compétences liées (multi)
-            const compIds = this._parseTCCompetenceIds(banque);
-            const compNames = compIds.map(cid => {
-                const comp = this.competencesReferentiel.find(c => c.id === cid);
-                return comp ? comp.nom : '?';
-            });
-            const compBadges = compNames.map(n =>
-                `<span class="tc-comp-badge">${escapeHtml(n)}</span>`
-            ).join('');
-
             // Exercices dans cette banque
             const entrainements = this.tachesComplexes
                 .filter(t => t.banque_id === banque.id)
@@ -2747,9 +2737,7 @@ Object.assign(AdminBanquesExercices, {
                             <div class="banque-card-title">
                                 ${escapeHtml(banque.titre || 'Sans titre')}
                             </div>
-                            <div class="banque-card-meta">
-                                <div class="tc-competences-badges">${compBadges || '<span style="color: var(--gray-400);">Aucune competence</span>'}</div>
-                            </div>
+                            ${banque.description ? `<div class="banque-card-meta">${escapeHtml(banque.description)}</div>` : ''}
                         </div>
                         <div class="banque-card-stats">
                             <div class="banque-stat">
@@ -2781,11 +2769,23 @@ Object.assign(AdminBanquesExercices, {
             return '<div class="exercices-empty">Aucun exercice dans cette banque</div>';
         }
 
+        const self = this;
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+
         return `
             <div class="exercices-list" data-banque-id="${banqueId}">
                 ${entrainements.map(tache => {
                     const dureeMin = tache.duree || 30;
                     const hasCorrige = this._hasCorrectionCommentee(tache);
+
+                    // Badges compétences de l'exercice
+                    const compIds = self._parseTCCompetenceIds(tache);
+                    const compBadges = compIds.map(cid => {
+                        const c = (self.competencesReferentiel || []).find(r => r.id === cid);
+                        if (!c) return '';
+                        const color = matiereColors[c.matiere] || '#6b7280';
+                        return `<span class="tc-comp-badge" style="background: ${color}20; color: ${color};">${escapeHtml(c.nom)}</span>`;
+                    }).join('');
 
                     return `
                         <div class="exercice-item" data-id="${tache.id}">
@@ -2797,6 +2797,7 @@ Object.assign(AdminBanquesExercices, {
                                     ${dureeMin} min
                                     ${hasCorrige ? ' · &#9989; corrige' : ' · &#9888; sans corrige'}
                                 </div>
+                                ${compBadges ? `<div class="tc-competences-badges" style="margin-top: 4px;">${compBadges}</div>` : ''}
                             </div>
                             <span class="status-badge ${tache.statut}">${tache.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
                             <div class="exercice-actions">
@@ -2832,20 +2833,6 @@ Object.assign(AdminBanquesExercices, {
         const modal = document.getElementById('banqueTCModal');
         if (!modal) return;
 
-        // Remplir les checkboxes de compétences
-        const checkboxContainer = document.getElementById('tcCompetencesCheckboxes');
-        const comps = [...this.competencesReferentiel].sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
-        checkboxContainer.innerHTML = comps.map(c => `
-            <div class="tc-checkbox-item">
-                <input type="checkbox" id="tc_comp_${c.id}" value="${c.id}">
-                <label for="tc_comp_${c.id}">${escapeHtml(c.nom)}</label>
-            </div>
-        `).join('');
-
-        if (comps.length === 0) {
-            checkboxContainer.innerHTML = '<div style="padding: 12px; color: var(--gray-400); text-align: center;">Aucune competence dans le referentiel</div>';
-        }
-
         const title = document.getElementById('banqueTCModalTitle');
 
         if (banque) {
@@ -2855,13 +2842,6 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('banqueTCDescription').value = banque.description || '';
             document.getElementById('banqueTCOrdre').value = banque.ordre || 1;
             document.getElementById('banqueTCStatut').value = banque.statut || 'brouillon';
-
-            // Cocher les compétences existantes
-            const selectedIds = this._parseTCCompetenceIds(banque);
-            selectedIds.forEach(cid => {
-                const cb = document.getElementById('tc_comp_' + cid);
-                if (cb) cb.checked = true;
-            });
         } else {
             title.textContent = 'Nouvelle banque de taches complexes';
             document.getElementById('editBanqueTCId').value = '';
@@ -2893,14 +2873,6 @@ Object.assign(AdminBanquesExercices, {
         const ordre = parseInt(document.getElementById('banqueTCOrdre').value) || 1;
         const statut = document.getElementById('banqueTCStatut').value;
 
-        // Récupérer les compétences cochées
-        const checkboxes = document.querySelectorAll('#tcCompetencesCheckboxes input[type="checkbox"]:checked');
-        const competenceIds = Array.from(checkboxes).map(cb => cb.value);
-
-        if (competenceIds.length === 0) {
-            alert('Veuillez selectionner au moins une competence');
-            return;
-        }
         if (!titre) {
             alert('Le titre est requis');
             return;
@@ -2912,8 +2884,6 @@ Object.assign(AdminBanquesExercices, {
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
 
         const data = {
-            competence_id: competenceIds[0],
-            competence_ids: JSON.stringify(competenceIds),
             titre,
             description,
             ordre,
