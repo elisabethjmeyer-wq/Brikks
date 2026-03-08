@@ -39,7 +39,7 @@ const EleveLayout = {
             sectionId: 'evaluations',
             items: [
                 { icon: '📋', label: 'Mes évaluations', href: '/Brikks/eleve/evaluations.html', id: 'evaluations' },
-                { icon: '📊', label: 'Mes notes', href: '/Brikks/eleve/notes.html', id: 'notes' }
+                { icon: '📊', label: 'Mes résultats', href: '/Brikks/eleve/notes.html', id: 'notes' }
             ]
         },
         {
