@@ -624,7 +624,7 @@ const AdminEvaluations = {
             this.wizardData.date_fermeture = this._toDateTimeLocal(evaluation.date_fermeture);
             // Pour les évals papier, extraire la date simple depuis date_ouverture
             if (evaluation.mode_passation === 'papier' && evaluation.date_ouverture) {
-                this.wizardData.date_evaluation = evaluation.date_ouverture.split('T')[0];
+                this.wizardData.date_evaluation = this._splitDateTime(evaluation.date_ouverture)[0];
             }
         } else {
             title.textContent = `Nouvelle évaluation de ${typeLabels[type] || type}`;
@@ -900,6 +900,17 @@ const AdminEvaluations = {
     },
 
     /**
+     * Sépare une date-heure ("YYYY-MM-DDTHH:MM" ou "YYYY-MM-DD HH:MM") en [datePart, timePart].
+     */
+    _splitDateTime(val) {
+        if (!val) return ['', ''];
+        // Séparer sur T ou espace
+        const sep = val.includes('T') ? 'T' : ' ';
+        const parts = val.split(sep);
+        return [parts[0] || '', (parts[1] || '').substring(0, 5)];
+    },
+
+    /**
      * Rend le dropdown de statut avec les 4 options : Brouillon, Publier, Programmer, Terminer.
      * L'option "Programmer" intègre un mini-formulaire de dates inline.
      */
@@ -909,12 +920,11 @@ const AdminEvaluations = {
         const isPapier = evaluation.mode_passation === 'papier';
 
         // Extraire date/heure actuelles pour pré-remplir le formulaire
+        // Les dates peuvent être au format "YYYY-MM-DDTHH:MM" ou "YYYY-MM-DD HH:MM"
         const dateOuv = evaluation.date_ouverture || '';
         const dateFerm = evaluation.date_fermeture || '';
-        const datePartOuv = dateOuv ? dateOuv.split('T')[0] : '';
-        const timePartOuv = dateOuv && dateOuv.includes('T') ? dateOuv.split('T')[1].substring(0, 5) : '';
-        const datePartFerm = dateFerm ? dateFerm.split('T')[0] : '';
-        const timePartFerm = dateFerm && dateFerm.includes('T') ? dateFerm.split('T')[1].substring(0, 5) : '';
+        const [datePartOuv, timePartOuv] = this._splitDateTime(dateOuv);
+        const [datePartFerm, timePartFerm] = this._splitDateTime(dateFerm);
 
         const isProgrammed = statut === 'planifiee' || (statut === 'publiee' && dateOuv);
 
