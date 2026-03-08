@@ -4,6 +4,48 @@
 
 ---
 
+## 2026-03-08 — Session 23 : Refonte bilan évaluation + statuts NR/ABS
+
+### Modifications
+
+1. **Refonte écran bilan évaluation élève** :
+   - Layout 2 colonnes : gauche (résultat, score, points, bouton retour) + droite (conseil + correction scrollable)
+   - Conseil contextuel avec lien vers la banque source pour s'entraîner
+   - Vue review pleine page accessible depuis la liste des évaluations (`?review=1&evalId=...`)
+
+2. **Fix cache et attribution des évaluations** :
+   - Cache `SheetsAPI` : désactivation du cache arrière-plan qui écrasait les données fraîches
+   - Attribution verrouillée : une fois qu'un élève a une banque_id attribuée, elle ne change plus (même après refresh)
+   - Fix écrasement `banque_id` lors de la sauvegarde des résultats
+
+3. **Affichage banque/exercice dans le tableau de saisie admin** :
+   - Chaque ligne élève affiche la banque et l'exercice réellement passés (lu depuis `EVALUATION_RESULTATS`)
+
+4. **Statuts spéciaux NR (non rendu) / ABS (absent)** :
+   - Colonne `statut_resultat` dans `EVALUATION_RESULTATS` : 'normal', 'non_rendu', 'absent'
+   - Admin saisie : boutons NR/ABS par élève avec couleurs de ligne (orange/rouge)
+   - Évals terminées côté élève : cartes visibles avec badge non rendu/absent + tag visuel + +0 point
+   - Backend : `saveEvaluationResult` gère le champ `statut_resultat`, migration progressive de la colonne
+
+### Fichiers modifiés
+- `js/eleve-evaluation.js` : refonte écran bilan, vue review, conseil contextuel
+- `css/eleve-evaluation.css` : layout 2 colonnes bilan, responsive
+- `js/eleve-evaluations.js` : affichage tags NR/ABS sur les cartes
+- `css/eleve-evaluations.css` : styles tags NR/ABS
+- `js/admin-evaluations.js` : boutons NR/ABS dans saisie, affichage banque/exercice
+- `css/admin-evaluations.css` : styles lignes NR/ABS
+- `js/sheets.js` : fix cache arrière-plan
+- `google-apps-script/Evaluations.gs` : colonne `statut_resultat`, migration progressive
+- `google-apps-script/Code.gs` : routage nouvelle action
+- `google-apps-script/TOUT-EN-UN.gs` : rebuild
+
+### Décisions
+- Le conseil post-évaluation renvoie vers la banque source (connaissances ou SF) pour s'entraîner avant de retenter
+- Les évaluations NR/ABS restent visibles côté élève (pas masquées) avec +0 point explicite
+- `statut_resultat` ajouté par migration progressive (la colonne est créée automatiquement si absente)
+
+---
+
 ## 2026-03-07 — Session 22 : Ajustements page évaluations élève
 
 ### Modifications

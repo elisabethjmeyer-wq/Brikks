@@ -193,20 +193,21 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - L'élève voit la liste de ses évaluations avec onglets (Évaluations / Bonus) et compteurs
 - Carte de progression en haut à droite : moyenne /20, points par catégorie (conn, SF, comp, bonus), lien vers la page notes
 - Toggle matière (FR / HG-EMC) filtre les évaluations et recalcule la moyenne
-- Cartes enrichies : badge type, statut (à faire, en cours, validée, non validée, terminée), score en cercle, points gagnés/perdus
+- Cartes enrichies : badge type, statut (à faire, en cours, validée, non validée, terminée, absent, non rendu), score en cercle, points gagnés/perdus
 - Regroupement par statut : « À PASSER » en haut, « TERMINÉES » en bas
 - Lien « Voir le détail → » pour consulter la correction après passage
+- Tags visuels pour les statuts spéciaux : absent (rouge) et non rendu (orange) avec +0 point affiché
 
 **Appels API** (chargement, 8 en parallèle) :
 `EVALUATIONS`, `EVALUATION_RESULTATS`, `NOTES_SOMMATIVES`, `RESULTATS_SOMMATIVES`, `PARAMETRES_NOTES`, `OBJECTIFS_ELEVES` (via SheetsAPI) + `getEleveEntrainementsCompetences`, `getBanquesCompetences` (via callAPI)
 
-**État** : refondu (session 21). Design cohérent avec la page notes. Fonctionnel.
+**État** : refondu (session 21), statuts NR/ABS ajoutés (session 23). Fonctionnel.
 
-### Évaluation élève (passage d'évaluation) — REFONDU SESSION 17, SF AJOUTÉ SESSION 20
+### Évaluation élève (passage d'évaluation) — REFONDU SESSION 17, SF SESSION 20, BILAN SESSION 23
 
 **Page** : `eleve/evaluation.html`
-**Fichiers** : `js/eleve-evaluation.js` (~864 lignes), `css/eleve-evaluation.css` (~281 lignes)
-**Backend** : `Evaluations.gs` (lecture évaluations + sauvegarde résultats)
+**Fichiers** : `js/eleve-evaluation.js` (~1081 lignes), `css/eleve-evaluation.css` (~392 lignes)
+**Backend** : `Evaluations.gs` (~2066 lignes)
 
 **Ce que fait le module :**
 - L'élève passe une évaluation chronométrée (connaissances, savoir-faire, compétences, bonus)
@@ -214,7 +215,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - **Savoir-faire** : piloté via `EleveExercices` (exercice unique, formats tableau/carte/document/etc.)
 - Timer compte à rebours avec alerte visuelle en dessous de 60s
 - Modal de confirmation pour quitter (avec les boutons Annuler / Confirmer)
-- Écran de résultat après soumission (points gagnés/perdus, seuil, correction détaillée)
+- **Écran bilan 2 colonnes** (session 23) : colonne gauche (résultat, score, points, bouton retour) + colonne droite (conseil personnalisé + correction détaillée scrollable)
 
 **Bifurcation par type (session 20)** :
 - `init()` détecte le type et appelle `setupConnaissancesModule()` ou `setupSFModule()`
@@ -222,6 +223,12 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - `renderSFExerciseView()` : rendu SF avec bandeau orange, timer, bouton Terminer
 - `_finishSF()` : validation via le handler SF, capture du HTML corrigé
 - SF seuil = 100% (zéro erreur), résultat sauvegardé avec `banque_id` pour la progression
+
+**Écran bilan (session 23)** :
+- Layout 2 colonnes desktop, empilé mobile
+- Conseil contextuel : lien vers la banque source de l'évaluation pour s'entraîner (réussite ou échec)
+- Correction détaillée dans un conteneur scrollable à droite
+- Vue review pleine page accessible depuis la liste des évaluations (via `?review=1&evalId=...`)
 
 **Layout** : plein écran sans sidebar. Design cohérent avec les entraînements :
 - Bandeau `exercise-header.connaissances` (bleu) ou `.savoir-faire` (orange) selon le type
@@ -231,7 +238,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **Appels API** : mêmes que EleveConnaissances/EleveExercices (via override), + `saveEvaluationResult`
 
-**État** : connaissances refondu (session 17), SF ajouté (session 20). Fonctionnel.
+**État** : connaissances refondu (session 17), SF ajouté (session 20), bilan refondu (session 23). Fonctionnel.
 
 ## Architecture technique
 
@@ -451,15 +458,15 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 ### Évaluations & Notes admin — PHASES 1-3 COMPLÈTES
 
 **Pages** : `admin/evaluations.html`, `admin/parametrage-eval.html`, `admin/tableau-bord.html` (placeholder)
-**Fichiers** : `js/admin-evaluations.js` (~2187 lignes), `js/admin-parametrage-eval.js` (~616 lignes), `css/admin-evaluations.css`, `css/admin-parametrage-eval.css`
-**Backend** : `Evaluations.gs` (~1843 lignes)
+**Fichiers** : `js/admin-evaluations.js` (~2223 lignes), `js/admin-parametrage-eval.js` (~616 lignes), `css/admin-evaluations.css`, `css/admin-parametrage-eval.css`
+**Backend** : `Evaluations.gs` (~2066 lignes)
 
 **Ce que fait le module :**
 - **Page Évaluations** : gestion des évaluations de progression (4 types : connaissances, savoir-faire, compétences, bonus) + sommatives (5ème onglet)
 - Toggle matière (FR / HG-EMC / Toutes) pour filtrer les évaluations par matière
 - Chaque évaluation a un champ `matiere` (FR, HG-EMC, Les deux) — les "Les deux" comptent 100% dans chaque matière
 - Onglet **Sommatives** : CRUD évaluations sommatives (note /barème, coefficient, date, semestre)
-- **Saisie des résultats** : vue pleine page avec tableau des élèves, colonnes score, points, mode (papier/numérique), source (auto/manuel), remarque
+- **Saisie des résultats** : vue pleine page avec tableau des élèves, colonnes score, points, mode (papier/numérique), source (auto/manuel), remarque. Affiche la banque/exercice réellement passés par chaque élève. Statuts spéciaux NR (non rendu) / ABS (absent) avec couleurs de ligne distinctes.
 - **Saisie des notes sommatives** : vue similaire avec note /barème et remarque
 - **Bandeau corrections** : compte les copies à corriger (EleveEntrainementsCompetences avec statut='soumis')
 - **Page Paramétrage** : 2 onglets — Notes de progression (semestres, config par matière) et Référentiel compétences (CRUD avec filtre matière)
@@ -471,7 +478,7 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - `NOTES_SOMMATIVES` : id, titre, matiere, bareme, coefficient, date, semestre
 - `RESULTATS_SOMMATIVES` : id, sommative_id, eleve_id, note, statut, remarque_texte, remarque_media, date_saisie
 - `OBJECTIFS_ELEVES` : id, eleve_id, matiere, semestre, objectif_note
-- `EVALUATION_RESULTATS` : ajout colonnes mode, source, remarque_texte, remarque_media, statut, statut_resultat (upsert)
+- `EVALUATION_RESULTATS` : ajout colonnes mode, source, remarque_texte, remarque_media, statut, statut_resultat (upsert). `statut_resultat` : 'normal' (défaut), 'non_rendu', 'absent' — géré par l'admin dans la saisie des résultats
 - `EVALUATIONS` : ajout colonnes date_ouverture, date_fermeture, mode_passation
 
 **Appels API (évaluations)** : `createEvaluation`, `updateEvaluation`, `deleteEvaluation`, `saveEvaluationResult`, `getEvaluationResults`
@@ -486,9 +493,7 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - Moyenne pondérée : `(prog × coefProg + Σ(som × coef)) / Σ(coefs)`
 - Vue classe triable + panneau détail élève (slide-in) + toggle semestre S1/S2
 
-**Phase restante** : afficher banque + sujet attribué dans le tableau de saisie des résultats (pour faciliter la correction papier).
-
-**État** : Phases 1-3 complètes. Mode passation papier/numérique ajouté (session 18). Page notes élève créée (session 16).
+**État** : Phases 1-3 complètes. Mode passation papier/numérique ajouté (session 18). Page notes élève créée (session 16). Saisie résultats enrichie (session 23).
 
 ### Points structurels
 
