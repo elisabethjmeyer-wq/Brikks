@@ -653,6 +653,11 @@ const AdminEvaluations = {
             };
         }
 
+        // Compétences = toujours tâche complexe
+        if (type === 'competences') {
+            this.wizardData.sous_type_comp = 'tache_complexe';
+        }
+
         // Always start at step 1 (Paramètres) — no type selection step
         this.wizardStep = 1;
         this._renderWizardStep();
@@ -670,8 +675,7 @@ const AdminEvaluations = {
 
     _getMaxStep() {
         const type = this.wizardData.type;
-        if (type === 'connaissances' || type === 'savoir-faire') return 2;
-        if (type === 'competences' && this.wizardData.sous_type_comp === 'tache_complexe') return 2;
+        if (type === 'connaissances' || type === 'savoir-faire' || type === 'competences') return 2;
         if (type === 'bonus' && (this.wizardData.sous_type_bonus === 'competence' || this.wizardData.sous_type_bonus === 'ponctuel')) return 2;
         return 1;
     },
@@ -773,15 +777,9 @@ const AdminEvaluations = {
                                 <option value="Les deux" ${d.matiere === 'Les deux' ? 'selected' : ''}>🔗 Les deux</option>
                             </select>
                         </div>
-                        <div class="form-group" id="evalCategorieGroup">
-                            <label>Catégorie de points</label>
-                            <select class="form-select" id="evalCategorie">
-                                <option value="connaissances" ${d.categorie === 'connaissances' || !d.categorie ? 'selected' : ''}>Connaissances</option>
-                                <option value="savoir-faire" ${d.categorie === 'savoir-faire' ? 'selected' : ''}>Savoir-faire</option>
-                                <option value="competences" ${d.categorie === 'competences' ? 'selected' : ''}>Compétences</option>
-                            </select>
-                        </div>
-                    </div>` : `
+                        <div class="form-group"></div>
+                    </div>
+                    <select id="evalCategorie" style="display:none"><option value="" selected></option></select>` : `
                     <div style="display:none">
                         <select id="evalMatiere"><option value="FR" selected></option></select>
                         <select id="evalCategorie"><option value="" selected></option></select>
@@ -1161,38 +1159,10 @@ const AdminEvaluations = {
         return '';
     },
 
-    _renderCompFields(d) {
-        const sousType = d.sous_type_comp || 'classique';
-
-        return `
-            <div class="form-group">
-                <label>Type d'évaluation <span class="req">*</span></label>
-                <div class="sous-type-toggle" id="compSousTypeToggle">
-                    <button type="button" class="sous-type-btn ${sousType === 'classique' ? 'active' : ''}" data-value="classique" onclick="AdminEvaluations._onCompSousTypeChange('classique')">
-                        🟣 Compétence classique
-                    </button>
-                    <button type="button" class="sous-type-btn ${sousType === 'tache_complexe' ? 'active' : ''}" data-value="tache_complexe" onclick="AdminEvaluations._onCompSousTypeChange('tache_complexe')">
-                        🧩 Tâche complexe
-                    </button>
-                </div>
-                <div class="form-help">${sousType === 'tache_complexe' ? 'Exercice multi-compétences avec sélection du sujet' : 'Attribution automatique selon la progression'}</div>
-            </div>
-        `;
-    },
-
-    _onCompSousTypeChange(value) {
-        this.wizardData.sous_type_comp = value;
-        // Update toggle buttons
-        document.querySelectorAll('#compSousTypeToggle .sous-type-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.value === value);
-        });
-        // Update help text
-        const help = document.querySelector('#compSousTypeToggle + .form-help');
-        if (help) {
-            help.textContent = value === 'tache_complexe'
-                ? 'Exercice multi-compétences avec sélection du sujet'
-                : 'Attribution automatique selon la progression';
-        }
+    _renderCompFields() {
+        // Compétences = toujours tâche complexe (sélection du sujet en step 2)
+        // Pas de champs spécifiques en step 1
+        return '';
     },
 
     _renderBonusFields(d) {
@@ -1273,7 +1243,7 @@ const AdminEvaluations = {
             return this._renderStep3Auto();
         }
 
-        if (type === 'competences' && this.wizardData.sous_type_comp === 'tache_complexe') {
+        if (type === 'competences') {
             return this._renderStep3TC();
         }
 
@@ -1335,16 +1305,16 @@ const AdminEvaluations = {
     _renderStep3TC() {
         const d = this.wizardData;
         const banques = (this.banquesTachesComplexes || [])
-            .filter(b => b.statut === 'publie')
+            .filter(b => String(b.statut).trim() === 'publie')
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         const selectedBanqueId = d.banque_tc_id || '';
         const exercices = selectedBanqueId
-            ? (this.entrainementsCompetences || []).filter(e => e.banque_id === selectedBanqueId && e.statut === 'publie')
+            ? (this.entrainementsCompetences || []).filter(e => String(e.banque_id).trim() === String(selectedBanqueId).trim() && String(e.statut).trim() === 'publie')
             : [];
 
         const banqueOptions = banques.map(b =>
-            `<option value="${b.id}" ${b.id === selectedBanqueId ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
+            `<option value="${b.id}" ${String(b.id) === String(selectedBanqueId) ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
         ).join('');
 
         const exerciceOptions = exercices.map(e =>
@@ -1381,7 +1351,7 @@ const AdminEvaluations = {
         this.wizardData.banque_tc_id = banqueId;
         this.wizardData.exercice_tc_id = '';
         const exercices = (this.entrainementsCompetences || [])
-            .filter(e => e.banque_id === banqueId && e.statut === 'publie')
+            .filter(e => String(e.banque_id).trim() === String(banqueId).trim() && String(e.statut).trim() === 'publie')
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
         const select = document.getElementById('evalExerciceTC');
         if (select) {
@@ -1397,18 +1367,18 @@ const AdminEvaluations = {
     _renderStep3BonusComp() {
         const d = this.wizardData;
         const banques = (this.banquesCompetences || [])
-            .filter(b => b.statut === 'publie')
+            .filter(b => String(b.statut).trim() === 'publie')
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         const selectedBanqueId = d.banque_comp_id || '';
         const exercices = selectedBanqueId
-            ? (this.entrainementsCompetences || []).filter(e => e.banque_id === selectedBanqueId && e.statut === 'publie')
+            ? (this.entrainementsCompetences || []).filter(e => String(e.banque_id).trim() === String(selectedBanqueId).trim() && String(e.statut).trim() === 'publie')
             : [];
 
         const banqueOptions = banques.map(b => {
-            const comp = (this.competencesReferentiel || []).find(c => c.id === b.competence_id);
+            const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(b.competence_id));
             const label = b.titre || (comp ? comp.nom : 'Sans titre');
-            return `<option value="${b.id}" ${b.id === selectedBanqueId ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+            return `<option value="${b.id}" ${String(b.id) === String(selectedBanqueId) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
         }).join('');
 
         const exerciceOptions = exercices.map(e =>
@@ -1445,7 +1415,7 @@ const AdminEvaluations = {
         this.wizardData.banque_comp_id = banqueId;
         this.wizardData.exercice_comp_id = '';
         const exercices = (this.entrainementsCompetences || [])
-            .filter(e => e.banque_id === banqueId && e.statut === 'publie')
+            .filter(e => String(e.banque_id).trim() === String(banqueId).trim() && String(e.statut).trim() === 'publie')
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
         const select = document.getElementById('evalExerciceBonusComp');
         if (select) {
@@ -1461,16 +1431,16 @@ const AdminEvaluations = {
     _renderStep3BonusPonctuel() {
         const d = this.wizardData;
         const banques = (this.banquesBonusPonctuels || [])
-            .filter(b => b.statut === 'publie')
+            .filter(b => String(b.statut).trim() === 'publie')
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
         const selectedBanqueId = d.banque_bonus_id || '';
         const exercices = selectedBanqueId
-            ? (this.entrainementsCompetences || []).filter(e => e.banque_id === selectedBanqueId && e.statut === 'publie')
+            ? (this.entrainementsCompetences || []).filter(e => String(e.banque_id).trim() === String(selectedBanqueId).trim() && String(e.statut).trim() === 'publie')
             : [];
 
         const banqueOptions = banques.map(b =>
-            `<option value="${b.id}" ${b.id === selectedBanqueId ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
+            `<option value="${b.id}" ${String(b.id) === String(selectedBanqueId) ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
         ).join('');
 
         const exerciceOptions = exercices.map(e =>
@@ -1507,7 +1477,7 @@ const AdminEvaluations = {
         this.wizardData.banque_bonus_id = banqueId;
         this.wizardData.exercice_bonus_id = '';
         const exercices = (this.entrainementsCompetences || [])
-            .filter(e => e.banque_id === banqueId && e.statut === 'publie')
+            .filter(e => String(e.banque_id).trim() === String(banqueId).trim() && String(e.statut).trim() === 'publie')
             .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
         const select = document.getElementById('evalExerciceBonusPonctuel');
         if (select) {
@@ -1637,7 +1607,12 @@ const AdminEvaluations = {
                 const matiereGroup = document.getElementById('evalMatiereGroup');
                 const matiereVisible = matiereGroup && matiereGroup.style.display !== 'none';
                 this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
-                this.wizardData.categorie = this.wizardData.type === 'bonus' ? (document.getElementById('evalCategorie')?.value || 'connaissances') : '';
+                // Catégorie auto-déterminée pour bonus selon le sous-type
+                if (this.wizardData.type === 'bonus') {
+                    this.wizardData.categorie = this.wizardData.sous_type_bonus === 'competence' ? 'competences' : 'bonus';
+                } else {
+                    this.wizardData.categorie = '';
+                }
 
                 // Les dates sont gérées via le dropdown statut, pas le wizard.
                 // On garde les valeurs existantes dans wizardData (pré-remplies à l'ouverture).
@@ -1660,7 +1635,7 @@ const AdminEvaluations = {
             case 2: {
                 // Step 2 = Sujet — validate selections
                 const type = this.wizardData.type;
-                if (type === 'competences' && this.wizardData.sous_type_comp === 'tache_complexe') {
+                if (type === 'competences') {
                     if (!this.wizardData.banque_tc_id || !this.wizardData.exercice_tc_id) {
                         this.showNotification('Veuillez sélectionner une banque et un exercice', 'error');
                         return false;
