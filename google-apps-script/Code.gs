@@ -434,6 +434,17 @@ function handleRequest(e) {
         result = getAttributionSujetEleve(request);
         break;
 
+      // WORKFLOW DEMANDE D'ÉVALUATION
+      case 'demanderEvaluation':
+        result = demanderEvaluation(request);
+        break;
+      case 'repondreDemandeEvaluation':
+        result = repondreDemandeEvaluation(request);
+        break;
+      case 'saveValidationSuivi':
+        result = saveValidationSuivi(request);
+        break;
+
       // PARAMETRES NOTES & SOMMATIVES
       case 'getParametresNotes':
         result = getParametresNotes(request);

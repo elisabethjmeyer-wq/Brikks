@@ -322,6 +322,13 @@ function getBanquesCompetences(data) {
     });
   }
 
+  // Filtrer par type_usage si fourni (entrainement, eval_bonus, tache_complexe)
+  if (data && data.type_usage) {
+    banques = banques.filter(function(b) {
+      return String(b.type_usage || 'entrainement') === String(data.type_usage);
+    });
+  }
+
   return { success: true, data: banques };
 }
 
@@ -338,16 +345,34 @@ function createBanqueCompetence(data) {
     sheet.appendRow(['id', 'competence_id', 'titre', 'description', 'ordre', 'statut', 'date_creation']);
   }
 
+  // Migration progressive : nouvelles colonnes
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var newCols = ['type_usage', 'competence_ids'];
+  newCols.forEach(function(col) {
+    if (headers.indexOf(col) === -1) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
+      headers.push(col);
+    }
+  });
+
   var id = 'bc_' + new Date().getTime();
-  var rowData = [
-    id,
-    data.competence_id || '',
-    data.titre || '',
-    data.description || '',
-    data.ordre || 1,
-    data.statut || 'brouillon',
-    new Date().toISOString()
-  ];
+
+  // Relire les headers après migration
+  headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var rowData = headers.map(function(h) {
+    switch (h) {
+      case 'id': return id;
+      case 'competence_id': return data.competence_id || '';
+      case 'titre': return data.titre || '';
+      case 'description': return data.description || '';
+      case 'ordre': return data.ordre || 1;
+      case 'statut': return data.statut || 'brouillon';
+      case 'date_creation': return new Date().toISOString();
+      case 'type_usage': return data.type_usage || 'entrainement';
+      case 'competence_ids': return data.competence_ids || '';
+      default: return data[h] !== undefined ? data[h] : '';
+    }
+  });
 
   sheet.appendRow(rowData);
   return { success: true, id: id };

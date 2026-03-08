@@ -1764,6 +1764,12 @@ Object.assign(AdminBanquesExercices, {
             const comp = this.competencesReferentiel.find(c => c.id === banque.competence_id);
             const compNom = comp ? comp.nom : '(competence inconnue)';
 
+            // Badge type_usage
+            const typeUsage = banque.type_usage || 'entrainement';
+            const typeLabels = { entrainement: 'Entrainement', eval_bonus: 'Eval bonus', tache_complexe: 'Tache complexe' };
+            const typeColors = { entrainement: '#10b981', eval_bonus: '#f59e0b', tache_complexe: '#8b5cf6' };
+            const typeBadge = `<span class="type-usage-badge" style="background: ${typeColors[typeUsage] || '#6b7280'}; color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">${typeLabels[typeUsage] || typeUsage}</span>`;
+
             // Entraînements dans cette banque (par banque_id ou competence_id en fallback)
             const entrainements = this.tachesComplexes
                 .filter(t => t.banque_id === banque.id || (!t.banque_id && t.competence_id === banque.competence_id))
@@ -1776,7 +1782,7 @@ Object.assign(AdminBanquesExercices, {
                         <div class="banque-card-icon competences">&#128995;</div>
                         <div class="banque-card-content">
                             <div class="banque-card-title">
-                                ${escapeHtml(banque.titre || compNom)}
+                                ${escapeHtml(banque.titre || compNom)} ${typeBadge}
                             </div>
                             <div class="banque-card-meta">
                                 Competence : ${escapeHtml(compNom)}
@@ -2034,6 +2040,10 @@ Object.assign(AdminBanquesExercices, {
         // Masquer les champs spécifiques aux entraînements
         this._toggleBanqueFields(true);
 
+        // Sélecteur type_usage
+        const typeUsageSelect = document.getElementById('tacheTypeUsage');
+        const typeUsageGroup = document.getElementById('typeUsageGroup');
+
         if (banque) {
             title.textContent = 'Modifier la banque de competences';
             document.getElementById('editTacheId').value = banque.id;
@@ -2042,6 +2052,7 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('tacheOrdre').value = banque.ordre || 1;
             document.getElementById('tacheStatut').value = banque.statut || 'brouillon';
             compSelect.value = banque.competence_id || '';
+            if (typeUsageSelect) typeUsageSelect.value = banque.type_usage || 'entrainement';
         } else {
             title.textContent = 'Nouvelle banque de competences';
             document.getElementById('editTacheId').value = '';
@@ -2051,7 +2062,11 @@ Object.assign(AdminBanquesExercices, {
             document.getElementById('tacheStatut').value = 'brouillon';
             compSelect.value = '';
             compSelect.disabled = false;
+            if (typeUsageSelect) typeUsageSelect.value = 'entrainement';
         }
+
+        // Afficher/masquer type_usage uniquement en mode banque
+        if (typeUsageGroup) typeUsageGroup.style.display = this._banqueCompMode ? '' : 'none';
 
         modal.classList.remove('hidden');
     },
@@ -2592,12 +2607,17 @@ Object.assign(AdminBanquesExercices, {
         const comp = this.competencesReferentiel.find(c => c.id === competenceId);
         const finalTitre = titre || (comp ? comp.nom : '');
 
+        // Type d'usage de la banque
+        const typeUsageEl = document.getElementById('tacheTypeUsage');
+        const typeUsage = typeUsageEl ? typeUsageEl.value : 'entrainement';
+
         const data = {
             competence_id: competenceId,
             titre: finalTitre,
             description,
             ordre,
-            statut
+            statut,
+            type_usage: typeUsage
         };
 
         this._savingBanqueComp = true;

@@ -395,29 +395,13 @@ Object.assign(EleveCompetences, {
         const container = document.getElementById('competences-content');
         const duree = (entrainement.duree || 30) * 60;
 
-        // Mode évaluation : restaurer le timer persistant
-        if (mode === 'evalue') {
-            const restored = this._loadEvalTimer(entrainement.id);
-            if (restored !== null) {
-                if (restored <= 0) {
-                    this.timeRemaining = 0;
-                    this._autoSubmitExpired(entrainement);
-                    return;
-                }
-                this.timeRemaining = restored;
-            } else {
-                this.timeRemaining = duree;
-            }
-            this._addBeforeUnload();
+        // Mode entraînement uniquement : restaurer le timer si reprise, sinon repartir de zéro
+        const savedTrainTime = this._loadTrainTimer(entrainement.id);
+        if (savedTrainTime !== null) {
+            this.timeRemaining = Math.max(0, savedTrainTime);
+            this._clearTrainTimer(entrainement.id);
         } else {
-            // Mode entraînement : restaurer le timer si reprise, sinon repartir de zéro
-            const savedTrainTime = this._loadTrainTimer(entrainement.id);
-            if (savedTrainTime !== null) {
-                this.timeRemaining = Math.max(0, savedTrainTime);
-                this._clearTrainTimer(entrainement.id);
-            } else {
-                this.timeRemaining = duree;
-            }
+            this.timeRemaining = duree;
         }
 
         // Compétence associée
@@ -451,23 +435,14 @@ Object.assign(EleveCompetences, {
         // Consigne : priorité compétence > exercice
         const consigneText = (comp && comp.consigne) ? comp.consigne : (entrainement.description || '');
 
-        const modeBadgeLabel = mode === 'entrainement' ? 'Entra\u00EEnement libre' : '\u00C9valuation';
+        const modeBadgeLabel = 'Entra\u00EEnement libre';
 
-        // Boutons selon le mode
-        let actionButtonsHTML;
-        if (mode === 'evalue') {
-            actionButtonsHTML = `
-                <button class="comp-btn comp-btn-finish" id="compFinishBtn" onclick="EleveCompetences.showSubmissionPopup(false)">
-                    Terminer
-                </button>
-            `;
-        } else {
-            actionButtonsHTML = `
-                <button class="comp-btn comp-btn-finish" id="compFinishBtn" onclick="EleveCompetences.finishEntrainement()">
-                    J'ai termin\u00E9 \u2014 voir le corrig\u00E9
-                </button>
-            `;
-        }
+        // Bouton entraînement uniquement
+        const actionButtonsHTML = `
+            <button class="comp-btn comp-btn-finish" id="compFinishBtn" onclick="EleveCompetences.finishEntrainement()">
+                J'ai termin\u00E9 \u2014 voir le corrig\u00E9
+            </button>
+        `;
 
         container.innerHTML = `
             <div class="comp-exercise-view">
@@ -715,7 +690,6 @@ Object.assign(EleveCompetences, {
         if (!this.currentEntrainement) return;
 
         const entr = this.currentEntrainement;
-        const mode = this.currentMode;
         const dureeSec = (entr.duree || 30) * 60;
         // tempsPasse = durée totale - temps restant (gère reprises et overtime)
         const tempsPasse = Math.max(0, dureeSec - this.timeRemaining);
@@ -724,13 +698,8 @@ Object.assign(EleveCompetences, {
         this._clearEvalTimer(entr.id);
         this._clearTrainTimer(entr.id);
 
-        // Déterminer le statut selon le mode de rendu
-        var statut;
-        if (mode === 'evalue') {
-            statut = modeRendu === 'non_soumis' ? 'non_soumis' : 'soumis';
-        } else {
-            statut = 'entraine';
-        }
+        // Entraînement uniquement
+        var statut = 'entraine';
 
         // Sauvegarder au backend
         let saveFailed = false;
@@ -757,12 +726,7 @@ Object.assign(EleveCompetences, {
                     if (prog) {
                         prog.statut = statut;
                         prog.temps_passe = tempsPasse;
-                        if (modeRendu) prog.mode_rendu = modeRendu;
-                        if (mode === 'evalue' && statut === 'soumis') {
-                            prog.date_soumission = new Date().toISOString();
-                        } else {
-                            prog.date_fin = new Date().toISOString();
-                        }
+                        prog.date_fin = new Date().toISOString();
                     }
                     this.saveToCache();
                 }
@@ -776,23 +740,8 @@ Object.assign(EleveCompetences, {
             this._showNotification('La sauvegarde a \u00E9chou\u00E9. Ta progression pourrait ne pas \u00EAtre enregistr\u00E9e.', 'error');
         }
 
-        if (mode === 'entrainement') {
-            this.showTrainingResult(entr);
-        } else if (modeRendu === 'non_soumis') {
-            // L'élève a refusé d'être évalué — afficher confirmation et retour
-            SubmissionUtils.showDeclineConfirmation(document.body, function() {
-                EleveCompetences.backToList();
-            });
-        } else {
-            // Soumission effectuée — afficher la page de suivi directement
-            const container = document.getElementById('competences-content');
-            const prog = this.progressions.find(p => String(p.entrainement_id) === String(entr.id));
-            if (container && prog) {
-                this._renderSoumisView(container, entr, prog);
-            } else {
-                this.backToList();
-            }
-        }
+        // Toujours afficher le résultat d'entraînement
+        this.showTrainingResult(entr);
     },
 
     // ==========================================

@@ -37,7 +37,8 @@ const AdminLayout = {
                 { icon: '📝', label: 'Évaluations', href: '/Brikks/admin/evaluations.html', id: 'evaluations', badge: true },
                 { icon: '📈', label: 'Tableau de bord', href: '/Brikks/admin/tableau-bord.html', id: 'tableau-bord' },
                 { icon: '⚙️', label: 'Paramétrage', href: '/Brikks/admin/parametrage-eval.html', id: 'parametrage-eval' },
-                { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi' }
+                { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi' },
+                { icon: '✏️', label: 'Corrections', href: '/Brikks/admin/corrections.html', id: 'corrections', badge: true }
             ]
         },
         {
@@ -279,7 +280,7 @@ const AdminLayout = {
      * Redirige vers la page Corrections
      */
     goToCorrections() {
-        window.location.href = '/Brikks/admin/evaluations.html';
+        window.location.href = '/Brikks/admin/corrections.html';
     },
 
     /**
@@ -328,7 +329,7 @@ const AdminLayout = {
         }
 
         var count = pendingSubmissions.length;
-        var html = '<a href="/Brikks/admin/evaluations.html" class="notification-item">';
+        var html = '<a href="/Brikks/admin/corrections.html" class="notification-item">';
         html += '<span class="notification-item-icon">✏️</span>';
         html += '<span class="notification-item-text">' + count + ' copie' + (count > 1 ? 's' : '') + ' à corriger</span>';
         html += '</a>';
