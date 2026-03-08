@@ -486,10 +486,7 @@ const EleveResultats = {
         this._render();
     },
 
-    toggleSemMenu() {
-        this._semOpen = !this._semOpen;
-        this._render();
-    },
+    // toggleSemMenu removed — using simple S1/S2 buttons now
 
     toggleShowAllBanques() {
         this._showAllBanques = !this._showAllBanques;
@@ -558,10 +555,8 @@ const EleveResultats = {
         const mat = this.currentMatiere;
         const sem = this.currentSemestre;
         const acColor = mat === 'FR' ? this.COLORS.ac : this.COLORS.pur;
-        const isWide = this.currentPage === 'conn' || this.currentPage === 'sf';
 
-        let html = '<div class="res-container' + (isWide ? ' wide' : '') + '">';
-        html += this._renderBreadcrumb();
+        let html = '';
 
         if (this.currentPage === null) {
             html += this._renderHeader(acColor);
@@ -575,58 +570,38 @@ const EleveResultats = {
             html += this._renderBonusSubPage(mat, sem);
         }
 
-        html += '</div>';
         container.innerHTML = html;
-    },
-
-    // ========== BREADCRUMB ==========
-    _renderBreadcrumb() {
-        let h = '<div class="res-breadcrumb">';
-        h += '<a>\u{1F3E0} Accueil</a><span class="crumb-sep">\u203A</span>';
-        if (this.currentPage) {
-            h += '<span class="crumb-link" onclick="EleveResultats.setPage(null)">Mes résultats</span>';
-            h += '<span class="crumb-sep">\u203A</span>';
-            const labels = { conn: 'Connaissances', sf: 'Savoir-faire', comp: 'Compétences', bonus: 'Bonus' };
-            h += '<span>' + labels[this.currentPage] + '</span>';
-        } else {
-            h += '<span>Mes résultats</span>';
-        }
-        h += '</div>';
-        return h;
     },
 
     // ========== HEADER + TOGGLES ==========
     _renderHeader(_acColor) {
         const isRO = this.currentSemestre === '1';
-        let h = '<div class="res-header"><div>';
-        h += '<h1 class="res-title">\u{1F4CA} Mes résultats</h1>';
-        h += '<p class="res-subtitle">Comprends ta note et suis ta progression. \u00B7 ';
-        h += '<a href="evaluations.html">\u{1F4CB} Mes évaluations \u2192</a></p>';
+        let h = '<header class="hero-header res-hero-header">';
+        h += '<div class="hero-left">';
+        h += '<h1 class="hero-title">Mes résultats</h1>';
+        h += '<p class="hero-subtitle">Comprends ta note et suis ta progression.</p>';
+        h += '<div class="hero-btn" onclick="window.location.href=\'evaluations.html\'">\u{1F4CB} Mes évaluations</div>';
         h += '</div>';
-        // Semester dropdown
-        h += '<div class="sem-dropdown">';
-        h += '<div class="sem-trigger' + (isRO ? ' readonly' : '') + '" onclick="EleveResultats.toggleSemMenu()">';
-        h += 'Semestre ' + (this.currentSemestre === '2' ? '2' : '1');
-        if (isRO) h += '<span style="font-size:9px;font-weight:500"> \u00B7 lecture seule</span>';
-        h += ' <span style="font-size:8px;">\u25BE</span></div>';
-        h += '<div class="sem-menu' + (this._semOpen ? ' open' : '') + '">';
-        [{k:'2',l:'Semestre 2',s:'en cours'},{k:'1',l:'Semestre 1',s:'terminé \u00B7 lecture seule'}].forEach(s => {
-            h += '<div class="sem-option' + (this.currentSemestre === s.k ? ' active' : '') + '" onclick="EleveResultats.setSemestre(\'' + s.k + '\')">';
-            h += '<div><div class="sem-option-label">' + s.l + '</div><div class="sem-option-sub">' + s.s + '</div></div>';
-            if (this.currentSemestre === s.k) h += '<span class="sem-option-check">\u2713</span>';
-            h += '</div>';
+        h += '<div class="hero-separator"></div>';
+        // Semester selector
+        h += '<div class="res-sem-area">';
+        h += '<div class="res-sem-buttons">';
+        [{k:'1',l:'S1'},{k:'2',l:'S2'}].forEach(s => {
+            const active = this.currentSemestre === s.k;
+            h += '<button class="res-sem-btn' + (active ? ' active' : '') + '" onclick="EleveResultats.setSemestre(\'' + s.k + '\')">' + s.l + '</button>';
         });
-        h += '</div></div>';
         h += '</div>';
-        h += '<div class="res-divider"></div>';
+        if (isRO) h += '<div class="res-sem-hint">Semestre terminé \u00B7 lecture seule</div>';
+        h += '</div>';
+        h += '</header>';
         return h;
     },
 
     _renderMatiereToggle() {
-        let h = '<div class="matiere-toggle">';
-        [{k:'FR',l:'\u{1F1EB}\u{1F1F7} Français',ac:'active-fr'},{k:'HG-EMC',l:'\u{1F30D} HG-EMC',ac:'active-hg'}].forEach(t => {
-            const cls = this.currentMatiere === t.k ? ' ' + t.ac : '';
-            h += '<button class="matiere-btn' + cls + '" onclick="EleveResultats.setMatiere(\'' + t.k + '\')">' + t.l + '</button>';
+        let h = '<div class="tabs-bar res-matiere-bar">';
+        [{k:'FR',l:'\u{1F1EB}\u{1F1F7} Français',tab:'fr'},{k:'HG-EMC',l:'\u{1F30D} HG-EMC',tab:'hg'}].forEach(t => {
+            const active = this.currentMatiere === t.k;
+            h += '<button class="tab-btn' + (active ? ' active' : '') + '" data-tab="' + t.tab + '" onclick="EleveResultats.setMatiere(\'' + t.k + '\')">' + t.l + '</button>';
         });
         h += '</div>';
         return h;
