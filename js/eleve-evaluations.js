@@ -596,7 +596,7 @@ const EleveEvaluations = {
         if (cardStatus === 'failed' || isMissed) cardClass += ' failed';
 
         let clickAttr = '';
-        if (resultat && isDone && !isMissed) {
+        if (resultat && isDone && !isMissed && !isPapier) {
             clickAttr = ` onclick="EleveEvaluations.openReview('${evaluation.id}')"`;
             cardClass += ' clickable';
         }
@@ -646,7 +646,7 @@ const EleveEvaluations = {
             actionHtml = `<div class="card-action-info upcoming">${escapeHtml(this.getCountdown(evaluation.date_ouverture))}</div>`;
         } else if (isMissed) {
             actionHtml = '';
-        } else if (isDone) {
+        } else if (isDone && !isPapier) {
             actionHtml = '<div class="card-detail-link">Voir le détail →</div>';
         }
 
