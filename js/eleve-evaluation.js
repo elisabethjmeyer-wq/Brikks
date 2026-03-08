@@ -180,7 +180,7 @@ const EleveEvaluation = {
             isValidated: isValidated,
             pointsEarned: validations,
             elapsedTime: tempsPasse,
-            correctionHtml: resultat.correction_html || ''
+            correctionHtml: resultat.correction_html || this._getLocalCorrection(evalId, eleveId)
         };
 
         // Masquer le container d'exercice, afficher le résultat
@@ -828,23 +828,6 @@ const EleveEvaluation = {
                 } : null);
             }
 
-            // Correction HTML pour review ultérieure
-            let correctionHtml = '';
-            if (this.evaluation.type === 'savoir-faire') {
-                if (this._sfCorrectedHTML) {
-                    correctionHtml = this._sfCorrectedHTML;
-                }
-            } else {
-                const EC = EleveConnaissances;
-                if (globalResult.detailedResults && typeof EC.generateErrorDetails === 'function') {
-                    correctionHtml = EC.generateErrorDetails(globalResult.detailedResults);
-                }
-            }
-            // Tronquer si trop long pour Google Sheets (limite ~50k chars)
-            if (correctionHtml.length > 40000) {
-                correctionHtml = correctionHtml.substring(0, 40000) + '<!-- tronqué -->';
-            }
-
             const attribution = this.evaluation.attribution || {};
             const params = {
                 evaluation_id: this.evaluation.id,
@@ -855,10 +838,12 @@ const EleveEvaluation = {
                 temps_passe: globalResult.elapsedTime,
                 details: JSON.stringify(detailsCompact),
                 banque_id: attribution.banque_id || '',
-                entrainement_id: attribution.entrainement_id || '',
-                correction_html: correctionHtml,
-                detailed_results: JSON.stringify(detailsCompact)
+                entrainement_id: attribution.entrainement_id || ''
             };
+
+            // Stocker la correction HTML en localStorage pour le mode review
+            // (ne pas l'envoyer via JSONP GET — l'URL serait trop longue et provoque des erreurs réseau)
+            this._storeCorrectionLocally(this.evaluation.id, eleveId, globalResult);
 
             console.log('[EVAL SAVE] Envoi:', JSON.stringify(params));
             const result = await this.callAPI('saveEvaluationResult', params);
@@ -895,6 +880,43 @@ const EleveEvaluation = {
 
         // Init carrousel navigation si présent
         this._initCarouselNav();
+    },
+
+    /**
+     * Stocke la correction HTML en localStorage pour le mode review.
+     * Évite d'envoyer des données volumineuses via JSONP GET.
+     */
+    _storeCorrectionLocally(evalId, eleveId, globalResult) {
+        try {
+            const type = this.evaluation.type || 'connaissances';
+            let correctionHtml = '';
+            if (type === 'savoir-faire') {
+                if (this._sfCorrectedHTML) correctionHtml = this._sfCorrectedHTML;
+            } else {
+                const EC = typeof EleveConnaissances !== 'undefined' ? EleveConnaissances : null;
+                if (globalResult.detailedResults && EC && typeof EC.generateErrorDetails === 'function') {
+                    correctionHtml = EC.generateErrorDetails(globalResult.detailedResults);
+                }
+            }
+            if (correctionHtml) {
+                const key = 'eval_correction_' + evalId + '_' + eleveId;
+                localStorage.setItem(key, correctionHtml);
+            }
+        } catch (e) {
+            // localStorage plein ou indisponible — pas critique
+            console.warn('[EVAL] Impossible de stocker la correction localement:', e.message);
+        }
+    },
+
+    /**
+     * Récupère la correction HTML depuis localStorage (fallback si non stockée côté serveur).
+     */
+    _getLocalCorrection(evalId, eleveId) {
+        try {
+            return localStorage.getItem('eval_correction_' + evalId + '_' + eleveId) || '';
+        } catch (e) {
+            return '';
+        }
     },
 
     /**
