@@ -846,12 +846,26 @@ const AdminEvaluations = {
      * Après ça, la carte affiche toujours evaluation.statut (pas de recalcul à chaque rendu).
      */
     _syncStatutsFromDates() {
+        const toUpdate = [];
         for (const ev of this.evaluations) {
             if (ev.mode_passation === 'papier') continue;
             // Brouillon = décision manuelle de la prof, on ne l'écrase jamais
             if (ev.statut === 'brouillon') continue;
             if (!ev.date_ouverture && !ev.date_fermeture) continue;
-            ev.statut = this._computeAutoStatut(ev.date_ouverture, ev.date_fermeture);
+            const newStatut = this._computeAutoStatut(ev.date_ouverture, ev.date_fermeture);
+            if (newStatut !== ev.statut) {
+                toUpdate.push({ id: ev.id, oldStatut: ev.statut, newStatut });
+                ev.statut = newStatut;
+            }
+        }
+        // Persister les changements de statut en arrière-plan (fire-and-forget)
+        for (const u of toUpdate) {
+            this.callAPI('updateEvaluation', { id: u.id, statut: u.newStatut }).catch(() => {
+                console.warn('Échec sync statut auto pour eval', u.id);
+            });
+        }
+        if (toUpdate.length > 0) {
+            SheetsAPI.clearCacheFor('EVALUATIONS');
         }
     },
 

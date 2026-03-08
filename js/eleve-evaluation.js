@@ -71,6 +71,18 @@ const EleveEvaluation = {
 
         const data = response.data;
 
+        // Vérification côté client : l'évaluation doit être accessible
+        const effectiveStatut = this._computeEffectiveStatut(data);
+        if (effectiveStatut === 'brouillon') {
+            throw new Error('Cette évaluation n\'est pas encore disponible.');
+        }
+        if (effectiveStatut === 'planifiee') {
+            throw new Error('Cette évaluation n\'est pas encore ouverte.');
+        }
+        if (effectiveStatut === 'terminee') {
+            throw new Error('Cette évaluation est terminée.');
+        }
+
         this.evaluation = {
             id: data.id,
             titre: data.titre,
@@ -751,6 +763,22 @@ const EleveEvaluation = {
             pointsEarned: isValidated ? this.evaluation.briques : 0,
             elapsedTime: this.getElapsedTime()
         };
+    },
+
+    /**
+     * Calcule le statut effectif d'une évaluation à partir de ses dates.
+     * Même logique que le backend et que EleveEvaluations.
+     */
+    _computeEffectiveStatut(evaluation) {
+        if (evaluation.statut === 'brouillon') return 'brouillon';
+        if (evaluation.mode_passation === 'papier') return evaluation.statut || 'brouillon';
+        const now = new Date();
+        if (evaluation.date_ouverture || evaluation.date_fermeture) {
+            if (evaluation.date_ouverture && new Date(evaluation.date_ouverture) > now) return 'planifiee';
+            if (evaluation.date_fermeture && new Date(evaluation.date_fermeture) < now) return 'terminee';
+            return 'publiee';
+        }
+        return evaluation.statut || 'brouillon';
     },
 
     _getCurrentUserId() {
