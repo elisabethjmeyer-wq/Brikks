@@ -3082,4 +3082,300 @@ Object.assign(AdminBanquesExercices, {
             }
         }
     },
+
+    // =============================================
+    // ONGLET BONUS PONCTUELS
+    // =============================================
+
+    renderBonusPonctuelsTab(container, emptyState) {
+        const banques = [...this.banquesBonusPonctuels].sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+        if (banques.length === 0) {
+            container.innerHTML = '';
+            emptyState.style.display = '';
+            emptyState.innerHTML = `
+                <div class="empty-icon">&#127873;</div>
+                <h3>Aucune banque de bonus ponctuels</h3>
+                <p>Les bonus ponctuels sont des evaluations avec des criteres personnalises. Creez une banque pour organiser vos exercices.</p>
+                <button class="btn btn-primary" id="addBanqueBtnEmpty">+ Nouvelle banque</button>
+            `;
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        container.innerHTML = banques.map(banque => {
+            const entrainements = this.tachesComplexes
+                .filter(t => t.banque_id === banque.id)
+                .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+
+            return `
+                <div class="banque-card" data-banque-bonus-id="${banque.id}">
+                    <div class="banque-card-header" onclick="AdminBanquesExercices.toggleTache('bonus_${banque.id}')">
+                        <span class="drag-handle" title="Glisser pour reordonner">&#8942;&#8942;</span>
+                        <div class="banque-card-icon bonus-ponctuels">&#127873;</div>
+                        <div class="banque-card-content">
+                            <div class="banque-card-title">
+                                ${escapeHtml(banque.titre || 'Sans titre')}
+                            </div>
+                            ${banque.description ? `<div class="banque-card-meta">${escapeHtml(banque.description)}</div>` : ''}
+                        </div>
+                        <div class="banque-card-stats">
+                            <div class="banque-stat">
+                                <div class="banque-stat-value">${entrainements.length}</div>
+                                <div class="banque-stat-label">exerc.</div>
+                            </div>
+                        </div>
+                        <span class="status-badge ${banque.statut}">${banque.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
+                        <div class="banque-card-actions">
+                            <button class="btn-icon" onclick="event.stopPropagation(); AdminBanquesExercices.editBanqueBonus('${banque.id}')" title="Modifier la banque">&#9998;</button>
+                            <button class="btn-icon add" onclick="event.stopPropagation(); AdminBanquesExercices.addExerciceBonus('${banque.id}')" title="Ajouter un exercice">+</button>
+                            <button class="btn-icon danger" onclick="event.stopPropagation(); AdminBanquesExercices.deleteBanqueBonus('${banque.id}')" title="Supprimer la banque">&#128465;</button>
+                        </div>
+                        <div class="banque-card-toggle">&#9660;</div>
+                    </div>
+                    <div class="banque-exercices" id="bonus_${banque.id}_list">
+                        <div class="exercices-header">
+                            <h4>Exercices</h4>
+                        </div>
+                        ${this._renderBonusEntrainements(entrainements, banque.id)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    _renderBonusEntrainements(entrainements, banqueId) {
+        if (entrainements.length === 0) {
+            return '<div class="exercices-empty">Aucun exercice dans cette banque</div>';
+        }
+
+        return `
+            <div class="exercices-list" data-banque-id="${banqueId}">
+                ${entrainements.map(tache => {
+                    const dureeMin = tache.duree || 30;
+                    const hasCorrige = this._hasCorrectionCommentee(tache);
+
+                    // Compter les critères libres
+                    let nbCriteres = 0;
+                    if (tache.criteres_libres) {
+                        try {
+                            const parsed = typeof tache.criteres_libres === 'string' ? JSON.parse(tache.criteres_libres) : tache.criteres_libres;
+                            if (Array.isArray(parsed)) nbCriteres = parsed.length;
+                        } catch (_e) { /* ignore */ }
+                    }
+
+                    return `
+                        <div class="exercice-item" data-id="${tache.id}">
+                            <span class="drag-handle drag-handle-sm" title="Glisser pour reordonner">&#8942;&#8942;</span>
+                            <div class="exercice-numero">${tache.ordre || '?'}</div>
+                            <div class="exercice-info">
+                                <div class="exercice-title">${escapeHtml(tache.titre || 'Sans titre')}</div>
+                                <div class="exercice-meta">
+                                    ${dureeMin} min
+                                    ${hasCorrige ? ' · &#9989; corrige' : ' · &#9888; sans corrige'}
+                                    ${nbCriteres > 0 ? ` · ${nbCriteres} critere${nbCriteres > 1 ? 's' : ''}` : ''}
+                                </div>
+                            </div>
+                            <span class="status-badge ${tache.statut}">${tache.statut === 'publie' ? 'Publie' : 'Brouillon'}</span>
+                            <div class="exercice-actions">
+                                <button class="btn-icon" onclick="AdminBanquesExercices.editExerciceBonus('${tache.id}')" title="Modifier">&#9998;</button>
+                                <button class="btn-icon danger" onclick="AdminBanquesExercices.deleteExerciceBonus('${tache.id}')" title="Supprimer">&#128465;</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    },
+
+    // ========== MODAL BANQUE BONUS ==========
+
+    openBanqueBonusModal(banque = null) {
+        const modal = document.getElementById('banqueBonusModal');
+        if (!modal) return;
+
+        const title = document.getElementById('banqueBonusModalTitle');
+
+        if (banque) {
+            title.textContent = 'Modifier la banque bonus ponctuel';
+            document.getElementById('editBanqueBonusId').value = banque.id;
+            document.getElementById('banqueBonusTitre').value = banque.titre || '';
+            document.getElementById('banqueBonusDescription').value = banque.description || '';
+            document.getElementById('banqueBonusOrdre').value = banque.ordre || 1;
+            document.getElementById('banqueBonusStatut').value = banque.statut || 'brouillon';
+        } else {
+            title.textContent = 'Nouvelle banque bonus ponctuel';
+            document.getElementById('editBanqueBonusId').value = '';
+            document.getElementById('banqueBonusTitre').value = '';
+            document.getElementById('banqueBonusDescription').value = '';
+            document.getElementById('banqueBonusOrdre').value = this.banquesBonusPonctuels.length + 1;
+            document.getElementById('banqueBonusStatut').value = 'brouillon';
+        }
+
+        modal.classList.remove('hidden');
+    },
+
+    closeBanqueBonusModal() {
+        const modal = document.getElementById('banqueBonusModal');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    editBanqueBonus(banqueId) {
+        const banque = this.banquesBonusPonctuels.find(b => b.id === banqueId);
+        if (banque) this.openBanqueBonusModal(banque);
+    },
+
+    async saveBanqueBonus() {
+        if (this._savingBanqueBonus) return;
+
+        const id = document.getElementById('editBanqueBonusId').value;
+        const titre = document.getElementById('banqueBonusTitre').value.trim();
+        const description = document.getElementById('banqueBonusDescription').value.trim();
+        const ordre = parseInt(document.getElementById('banqueBonusOrdre').value) || 1;
+        const statut = document.getElementById('banqueBonusStatut').value;
+
+        if (!titre) {
+            alert('Le titre est requis');
+            return;
+        }
+
+        this._savingBanqueBonus = true;
+        const saveBtn = document.querySelector('#banqueBonusModal .btn-primary');
+        const saveBtnText = saveBtn ? saveBtn.textContent : '';
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
+
+        const data = {
+            titre,
+            description,
+            ordre,
+            statut,
+            type_usage: 'bonus_ponctuel'
+        };
+
+        try {
+            let result;
+            if (id) {
+                data.id = id;
+                result = await this.callAPI('updateBanqueCompetence', data);
+            } else {
+                result = await this.callAPI('createBanqueCompetence', data);
+            }
+
+            if (result.success) {
+                await this.loadDataFromAPI();
+                this.updateCounts();
+                this.renderBanques();
+                this.closeBanqueBonusModal();
+            } else {
+                alert('Erreur: ' + (result.error || 'Erreur inconnue'));
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde banque bonus:', error);
+            alert('Erreur lors de la sauvegarde');
+        } finally {
+            this._savingBanqueBonus = false;
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtnText; }
+        }
+    },
+
+    // ========== EXERCICES BONUS ==========
+
+    addExerciceBonus(banqueId) {
+        this.openBonusWizard(null, banqueId);
+    },
+
+    editExerciceBonus(tacheId) {
+        const tache = this.tachesComplexes.find(t => t.id === tacheId);
+        if (tache) this.openBonusWizard(tache);
+    },
+
+    deleteExerciceBonus(tacheId) {
+        const tache = this.tachesComplexes.find(t => t.id === tacheId);
+        if (!tache) return;
+
+        document.getElementById('deleteType').value = 'tacheComplexe';
+        document.getElementById('deleteId').value = tacheId;
+        document.getElementById('deleteMessage').textContent =
+            `Supprimer l'exercice "${tache.titre || 'Sans titre'}" ?`;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    },
+
+    deleteBanqueBonus(banqueId) {
+        const banque = this.banquesBonusPonctuels.find(b => b.id === banqueId);
+        if (!banque) return;
+
+        const entrainements = this.tachesComplexes.filter(t => t.banque_id === banqueId);
+        const msg = entrainements.length > 0
+            ? `Supprimer la banque "${banque.titre}" et ses ${entrainements.length} exercice(s) ?`
+            : `Supprimer la banque "${banque.titre}" ?`;
+
+        document.getElementById('deleteType').value = 'banqueCompetence';
+        document.getElementById('deleteId').value = banqueId;
+        document.getElementById('deleteMessage').textContent = msg;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    },
+
+    // ========== DRAG & DROP BONUS ==========
+
+    initBonusDragDrop() {
+        // Réutilise le même pattern que les TC
+        const self = this;
+
+        // Drag & drop des banques
+        const banqueCards = document.querySelectorAll('[data-banque-bonus-id]');
+        banqueCards.forEach(card => {
+            const handle = card.querySelector('.banque-card-header > .drag-handle');
+            if (handle) {
+                handle.draggable = true;
+                handle.addEventListener('dragstart', (e) => {
+                    card.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', card.dataset.banqueBonusId);
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                card.addEventListener('dragend', () => card.classList.remove('dragging'));
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    card.classList.add('drag-over');
+                });
+                card.addEventListener('dragleave', () => card.classList.remove('drag-over'));
+                card.addEventListener('drop', async (e) => {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+                    const draggedId = e.dataTransfer.getData('text/plain');
+                    const targetId = card.dataset.banqueBonusId;
+                    if (draggedId && targetId && draggedId !== targetId) {
+                        await self._reorderBonusBanques(draggedId, targetId);
+                    }
+                });
+            }
+        });
+    },
+
+    async _reorderBonusBanques(draggedId, targetId) {
+        const banques = [...this.banquesBonusPonctuels].sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const draggedIdx = banques.findIndex(b => b.id === draggedId);
+        const targetIdx = banques.findIndex(b => b.id === targetId);
+        if (draggedIdx === -1 || targetIdx === -1) return;
+
+        const [moved] = banques.splice(draggedIdx, 1);
+        banques.splice(targetIdx, 0, moved);
+
+        const updates = banques.map((b, i) => ({ id: b.id, ordre: i + 1 }));
+        updates.forEach(u => {
+            const banque = this.banquesBonusPonctuels.find(b => b.id === u.id);
+            if (banque) banque.ordre = u.ordre;
+        });
+
+        this.renderBanques();
+
+        for (const item of updates) {
+            const banque = this.banquesBonusPonctuels.find(b => b.id === item.id);
+            if (banque && banque.ordre !== item.ordre) {
+                banque.ordre = item.ordre;
+                await this.callAPI('updateBanqueCompetence', { id: item.id, ordre: item.ordre });
+            }
+        }
+    },
 });

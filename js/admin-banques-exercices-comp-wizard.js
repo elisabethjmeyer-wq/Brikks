@@ -28,9 +28,14 @@ Object.assign(AdminBanquesExercices, {
     // ========== OUVERTURE / FERMETURE ==========
 
     openCompWizard(tache = null, lockedBanqueId = null) {
-        // Détecter si c'est un exercice TC (banque dans banquesTachesComplexes)
+        // Détecter le mode : tc, bonus, ou competences (défaut)
         var effectiveBanqueId = lockedBanqueId || (tache ? tache.banque_id : null);
-        var isTCMode = !!(effectiveBanqueId && (this.banquesTachesComplexes || []).some(function(b) { return b.id === effectiveBanqueId; }));
+        var wizardMode = 'competences'; // défaut : 4 étapes
+        if (effectiveBanqueId && (this.banquesTachesComplexes || []).some(function(b) { return b.id === effectiveBanqueId; })) {
+            wizardMode = 'tc';
+        } else if (effectiveBanqueId && (this.banquesBonusPonctuels || []).some(function(b) { return b.id === effectiveBanqueId; })) {
+            wizardMode = 'bonus';
+        }
 
         // Initialiser les données du wizard
         this.compWizardData = {
@@ -38,8 +43,10 @@ Object.assign(AdminBanquesExercices, {
             banqueId: effectiveBanqueId,
             currentStep: 1,
             isEditing: !!tache,
-            isTCMode: isTCMode,
-            totalSteps: isTCMode ? 5 : 4
+            isTCMode: wizardMode === 'tc',
+            isBonusMode: wizardMode === 'bonus',
+            wizardMode: wizardMode,
+            totalSteps: wizardMode === 'competences' ? 4 : 5
         };
 
         // Supprimer une éventuelle instance précédente
@@ -57,29 +64,7 @@ Object.assign(AdminBanquesExercices, {
                         '<h2>' + (tache ? '&#9998; Modifier l\'entra\u00EEnement' : '&#10133; Nouvel entra\u00EEnement') + '</h2>' +
                         '<span class="wizard-subtitle">Comp\u00E9tences \u2022 ' + (tache ? escapeHtml(tache.titre) : 'Cr\u00E9ez un exercice') + '</span>' +
                     '</div>' +
-                    '<div class="wizard-steps">' +
-                        '<button class="wizard-step active" data-step="1" onclick="AdminBanquesExercices.goToCompWizardStep(1)">' +
-                            '<span class="step-number">1</span>' +
-                            '<span class="step-label">Param\u00E8tres</span>' +
-                        '</button>' +
-                        (isTCMode ?
-                        '<button class="wizard-step" data-step="2" onclick="AdminBanquesExercices.goToCompWizardStep(2)">' +
-                            '<span class="step-number">2</span>' +
-                            '<span class="step-label">Comp\u00E9tences</span>' +
-                        '</button>' : '') +
-                        '<button class="wizard-step" data-step="' + (isTCMode ? '3' : '2') + '" onclick="AdminBanquesExercices.goToCompWizardStep(' + (isTCMode ? 3 : 2) + ')">' +
-                            '<span class="step-number">' + (isTCMode ? '3' : '2') + '</span>' +
-                            '<span class="step-label">Document</span>' +
-                        '</button>' +
-                        '<button class="wizard-step" data-step="' + (isTCMode ? '4' : '3') + '" onclick="AdminBanquesExercices.goToCompWizardStep(' + (isTCMode ? 4 : 3) + ')">' +
-                            '<span class="step-number">' + (isTCMode ? '4' : '3') + '</span>' +
-                            '<span class="step-label">Corrig\u00E9</span>' +
-                        '</button>' +
-                        '<button class="wizard-step" data-step="' + (isTCMode ? '5' : '4') + '" onclick="AdminBanquesExercices.goToCompWizardStep(' + (isTCMode ? 5 : 4) + ')">' +
-                            '<span class="step-number">' + (isTCMode ? '5' : '4') + '</span>' +
-                            '<span class="step-label">R\u00E9sum\u00E9</span>' +
-                        '</button>' +
-                    '</div>' +
+                    this._cwBuildStepButtons(wizardMode) +
                     '<button class="modal-close" onclick="AdminBanquesExercices.closeCompWizard()">&times;</button>' +
                 '</div>' +
                 '<div class="wizard-body" id="compWizardContent"></div>' +
@@ -100,6 +85,11 @@ Object.assign(AdminBanquesExercices, {
         this.renderCompWizardStep(1);
     },
 
+    /** Alias pour ouvrir le wizard en mode bonus ponctuel */
+    openBonusWizard(tache, lockedBanqueId) {
+        this.openCompWizard(tache, lockedBanqueId);
+    },
+
     closeCompWizard() {
         var modal = document.getElementById('compWizardModal');
         if (modal) modal.remove();
@@ -116,6 +106,8 @@ Object.assign(AdminBanquesExercices, {
             banqueId: null,
             currentStep: 1,
             isTCMode: false,
+            isBonusMode: false,
+            wizardMode: 'competences',
             totalSteps: 4,
             isEditing: false
         };
@@ -174,15 +166,41 @@ Object.assign(AdminBanquesExercices, {
     },
 
     /**
-     * Retourne le nom logique d'une étape selon le mode (TC ou normal).
-     * TC mode : 1=params, 2=competences, 3=document, 4=corrige, 5=resume
-     * Normal : 1=params, 2=document, 3=corrige, 4=resume
+     * Retourne le nom logique d'une étape selon le mode.
+     * TC :          1=params, 2=competences, 3=document, 4=corrige, 5=resume
+     * Bonus :       1=params, 2=document, 3=corrige, 4=criteres, 5=resume
+     * Compétences : 1=params, 2=document, 3=corrige, 4=resume
      */
     _cwLogicalStep(step) {
-        if (this.compWizardData.isTCMode) {
+        var mode = this.compWizardData.wizardMode || 'competences';
+        if (mode === 'tc') {
             return ['params', 'competences', 'document', 'corrige', 'resume'][step - 1] || 'unknown';
         }
+        if (mode === 'bonus') {
+            return ['params', 'document', 'corrige', 'criteres', 'resume'][step - 1] || 'unknown';
+        }
         return ['params', 'document', 'corrige', 'resume'][step - 1] || 'unknown';
+    },
+
+    _cwBuildStepButtons(mode) {
+        var labels;
+        if (mode === 'tc') {
+            labels = ['Param\u00E8tres', 'Comp\u00E9tences', 'Document', 'Corrig\u00E9', 'R\u00E9sum\u00E9'];
+        } else if (mode === 'bonus') {
+            labels = ['Param\u00E8tres', 'Document', 'Corrig\u00E9', 'Crit\u00E8res', 'R\u00E9sum\u00E9'];
+        } else {
+            labels = ['Param\u00E8tres', 'Document', 'Corrig\u00E9', 'R\u00E9sum\u00E9'];
+        }
+        var html = '<div class="wizard-steps">';
+        labels.forEach(function(label, i) {
+            var n = i + 1;
+            html += '<button class="wizard-step' + (n === 1 ? ' active' : '') + '" data-step="' + n + '" onclick="AdminBanquesExercices.goToCompWizardStep(' + n + ')">' +
+                '<span class="step-number">' + n + '</span>' +
+                '<span class="step-label">' + label + '</span>' +
+            '</button>';
+        });
+        html += '</div>';
+        return html;
     },
 
     // ========== VALIDATION ==========
@@ -218,6 +236,16 @@ Object.assign(AdminBanquesExercices, {
             var checked = document.querySelectorAll('#cwCompetencesCheckboxes input[type="checkbox"]:checked');
             if (checked.length === 0) {
                 this.showNotification('Veuillez s\u00E9lectionner au moins une comp\u00E9tence', 'warning');
+                return false;
+            }
+            return true;
+        }
+        case 'criteres': {
+            var inputs = document.querySelectorAll('#cwCriteresList .critere-libre-input');
+            var hasOne = false;
+            inputs.forEach(function(input) { if (input.value.trim()) hasOne = true; });
+            if (!hasOne) {
+                this.showNotification('Ajoutez au moins un crit\u00E8re de r\u00E9ussite', 'warning');
                 return false;
             }
             return true;
@@ -304,6 +332,18 @@ Object.assign(AdminBanquesExercices, {
             this.compWizardData.entrainement = e;
             break;
         }
+        case 'criteres': {
+            // Sauvegarder les critères libres
+            var inputs = document.querySelectorAll('#cwCriteresList .critere-libre-input');
+            var criteres = [];
+            inputs.forEach(function(input) {
+                var val = input.value.trim();
+                if (val) criteres.push(val);
+            });
+            e.criteres_libres = JSON.stringify(criteres);
+            this.compWizardData.entrainement = e;
+            break;
+        }
         case 'resume':
             // Résumé — rien à sauvegarder
             break;
@@ -364,6 +404,10 @@ Object.assign(AdminBanquesExercices, {
             content.innerHTML = this._renderCompWizardStep3();
             this._initCompWizardStep3();
             break;
+        case 'criteres':
+            content.innerHTML = this._renderCWStepCriteres();
+            this._initCWStepCriteres();
+            break;
         case 'resume':
             content.innerHTML = this._renderCompWizardStep4();
             break;
@@ -378,7 +422,7 @@ Object.assign(AdminBanquesExercices, {
         var dureeMin = e.duree || 30;
 
         // Construire les options du select banque
-        var sourceList = this.compWizardData.isTCMode ? (this.banquesTachesComplexes || []) : (this.banquesCompetences || []);
+        var sourceList = this.compWizardData.isTCMode ? (this.banquesTachesComplexes || []) : this.compWizardData.isBonusMode ? (this.banquesBonusPonctuels || []) : (this.banquesCompetences || []);
         var banques = sourceList.slice().sort(function(a, b) {
             return (a.ordre || 0) - (b.ordre || 0);
         });
@@ -959,6 +1003,92 @@ Object.assign(AdminBanquesExercices, {
         }
     },
 
+    // ========== ÉTAPE CRITÈRES LIBRES (BONUS uniquement) ==========
+
+    _renderCWStepCriteres() {
+        var e = this.compWizardData.entrainement || {};
+        var criteres = [];
+        if (e.criteres_libres) {
+            try {
+                var parsed = typeof e.criteres_libres === 'string' ? JSON.parse(e.criteres_libres) : e.criteres_libres;
+                if (Array.isArray(parsed)) criteres = parsed;
+            } catch (_err) { /* ignore */ }
+        }
+        // Au moins 1 champ vide par défaut
+        if (criteres.length === 0) criteres.push('');
+
+        var rows = criteres.map(function(c, i) {
+            return '<div class="critere-libre-row">' +
+                '<span class="critere-libre-num">' + (i + 1) + '</span>' +
+                '<input type="text" class="form-input critere-libre-input" value="' + escapeHtml(c) + '" placeholder="Ex: R\u00E9pondre avec une phrase compl\u00E8te">' +
+                '<button class="btn-icon btn-remove" onclick="AdminBanquesExercices._cwRemoveCritere(' + i + ')" title="Supprimer">\u00D7</button>' +
+            '</div>';
+        }).join('');
+
+        return '<div class="wizard-step-content">' +
+            '<div class="step-header">' +
+                '<span class="step-icon">\u2705</span>' +
+                '<div>' +
+                    '<h3>Crit\u00E8res de r\u00E9ussite</h3>' +
+                    '<p>D\u00E9finissez les crit\u00E8res pour \u00E9valuer cet exercice</p>' +
+                '</div>' +
+            '</div>' +
+            '<div id="cwCriteresList" class="cw-criteres-list">' +
+                rows +
+            '</div>' +
+            '<button class="btn btn-secondary btn-sm" onclick="AdminBanquesExercices._cwAddCritere()" style="margin-top: 8px;">' +
+                '+ Ajouter un crit\u00E8re' +
+            '</button>' +
+        '</div>';
+    },
+
+    _initCWStepCriteres() {
+        // Focus le dernier champ vide
+        var inputs = document.querySelectorAll('#cwCriteresList .critere-libre-input');
+        if (inputs.length > 0) {
+            var last = inputs[inputs.length - 1];
+            if (!last.value) last.focus();
+        }
+    },
+
+    _cwAddCritere() {
+        var container = document.getElementById('cwCriteresList');
+        if (!container) return;
+        var count = container.querySelectorAll('.critere-libre-row').length;
+        var div = document.createElement('div');
+        div.className = 'critere-libre-row';
+        div.innerHTML =
+            '<span class="critere-libre-num">' + (count + 1) + '</span>' +
+            '<input type="text" class="form-input critere-libre-input" value="" placeholder="Ex: R\u00E9pondre avec une phrase compl\u00E8te">' +
+            '<button class="btn-icon btn-remove" onclick="AdminBanquesExercices._cwRemoveCritere(' + count + ')" title="Supprimer">\u00D7</button>';
+        container.appendChild(div);
+        div.querySelector('.critere-libre-input').focus();
+    },
+
+    _cwRemoveCritere(index) {
+        // Sauvegarder les valeurs, retirer l'index, re-render
+        var inputs = document.querySelectorAll('#cwCriteresList .critere-libre-input');
+        var values = [];
+        inputs.forEach(function(input) { values.push(input.value); });
+        values.splice(index, 1);
+        if (values.length === 0) values.push('');
+
+        var e = this.compWizardData.entrainement || {};
+        e.criteres_libres = JSON.stringify(values.filter(function(v) { return v.trim(); }));
+        this.compWizardData.entrainement = e;
+
+        var container = document.getElementById('cwCriteresList');
+        if (container) {
+            container.innerHTML = values.map(function(c, i) {
+                return '<div class="critere-libre-row">' +
+                    '<span class="critere-libre-num">' + (i + 1) + '</span>' +
+                    '<input type="text" class="form-input critere-libre-input" value="' + escapeHtml(c) + '" placeholder="Ex: R\u00E9pondre avec une phrase compl\u00E8te">' +
+                    '<button class="btn-icon btn-remove" onclick="AdminBanquesExercices._cwRemoveCritere(' + i + ')" title="Supprimer">\u00D7</button>' +
+                '</div>';
+            }).join('');
+        }
+    },
+
     // ========== ÉTAPE RÉSUMÉ ==========
 
     _renderCompWizardStep4() {
@@ -966,7 +1096,7 @@ Object.assign(AdminBanquesExercices, {
         var self = this;
 
         // Résumé de l'entraînement
-        var sourceList = this.compWizardData.isTCMode ? (this.banquesTachesComplexes || []) : (this.banquesCompetences || []);
+        var sourceList = this.compWizardData.isTCMode ? (this.banquesTachesComplexes || []) : this.compWizardData.isBonusMode ? (this.banquesBonusPonctuels || []) : (this.banquesCompetences || []);
         var banque = sourceList.find(function(b) { return b.id === e.banque_id; });
         var comp = banque ? this.competencesReferentiel.find(function(c) { return c.id === banque.competence_id; }) : null;
         var banqueLabel = banque ? (banque.titre || (comp ? comp.nom : '')) : '(non s\u00E9lectionn\u00E9e)';
@@ -1012,6 +1142,7 @@ Object.assign(AdminBanquesExercices, {
                     '<div class="summary-row"><span class="label">Titre</span><span class="value">' + escapeHtml(e.titre || '(vide)') + '</span></div>' +
                     (e.description ? '<div class="summary-row"><span class="label">Consigne</span><span class="value">' + escapeHtml(e.description) + '</span></div>' : '') +
                     this._cwRenderCompetencesSummary(e) +
+                    this._cwRenderCriteresSummary(e) +
                     '<div class="summary-row"><span class="label">Dur\u00E9e</span><span class="value">' + dureeMin + ' min</span></div>' +
                     '<div class="summary-row"><span class="label">Blocs de contenu</span><span class="value">' + nbDocBlocks + '</span></div>' +
                     '<div class="summary-row"><span class="label">Corrig\u00E9</span><span class="value">' + corrLabel + '</span></div>' +
@@ -1041,6 +1172,22 @@ Object.assign(AdminBanquesExercices, {
         return '<div class="summary-row"><span class="label">Comp\u00E9tences</span><span class="value" style="display: flex; flex-wrap: wrap; gap: 2px;">' + (badges || 'Aucune') + '</span></div>';
     },
 
+    _cwRenderCriteresSummary(e) {
+        if (!this.compWizardData.isBonusMode) return '';
+        var criteres = [];
+        if (e.criteres_libres) {
+            try {
+                var parsed = typeof e.criteres_libres === 'string' ? JSON.parse(e.criteres_libres) : e.criteres_libres;
+                if (Array.isArray(parsed)) criteres = parsed;
+            } catch (_err) { /* ignore */ }
+        }
+        if (criteres.length === 0) return '<div class="summary-row"><span class="label">Crit\u00E8res</span><span class="value">Aucun</span></div>';
+        var list = criteres.map(function(c, i) {
+            return '<div style="font-size: 0.8rem; padding: 2px 0;">' + (i + 1) + '. ' + escapeHtml(c) + '</div>';
+        }).join('');
+        return '<div class="summary-row"><span class="label">Crit\u00E8res</span><span class="value" style="flex-direction: column;">' + list + '</span></div>';
+    },
+
     // ========== SAUVEGARDE FINALE ==========
 
     async _saveCompWizardData() {
@@ -1061,7 +1208,8 @@ Object.assign(AdminBanquesExercices, {
             ordre: e.ordre || 1,
             statut: e.statut || 'brouillon',
             delai_mail_minutes: e.delai_mail_minutes || 30,
-            delai_papier_jours: e.delai_papier_jours || 1
+            delai_papier_jours: e.delai_papier_jours || 1,
+            criteres_libres: e.criteres_libres || ''
         };
 
         try {
