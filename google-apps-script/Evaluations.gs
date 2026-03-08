@@ -723,7 +723,8 @@ function createEvaluation(data) {
   var headerRow = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
   var requiredCols = ['date_ouverture', 'date_fermeture', 'mode_passation',
-    'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id',
+    'sous_type_comp', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id',
+    'exercice_comp_id', 'banque_tc_id', 'exercice_tc_id', 'banque_bonus_id', 'exercice_bonus_id',
     'points_par_competence', 'competence_ids'];
   requiredCols.forEach(function(col) {
     if (headerNames.indexOf(col) < 0) {
@@ -782,7 +783,7 @@ function updateEvaluation(data) {
     return { success: false, error: 'Evaluation non trouvee' };
   }
 
-  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id', 'mode_passation', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id', 'points_par_competence', 'competence_ids'];
+  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id', 'mode_passation', 'sous_type_comp', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id', 'exercice_comp_id', 'banque_tc_id', 'exercice_tc_id', 'banque_bonus_id', 'exercice_bonus_id', 'points_par_competence', 'competence_ids'];
   updates.forEach(col => {
     if (data[col] !== undefined) {
       const colIndex = headers.indexOf(col);

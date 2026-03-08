@@ -1619,6 +1619,58 @@
     gap: 16px;
 }
 
+/* Sous-type toggle buttons */
+.sous-type-toggle {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.sous-type-btn {
+    flex: 1;
+    min-width: 120px;
+    padding: 10px 14px;
+    border: 2px solid var(--gray-200);
+    border-radius: 10px;
+    background: white;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.sous-type-btn:hover {
+    border-color: var(--gray-300);
+    background: var(--gray-50);
+}
+
+.sous-type-btn.active {
+    border-color: var(--accent-purple);
+    background: var(--accent-purple-light);
+    color: var(--accent-purple);
+}
+
+/* Bonus toggle: different colors per type */
+#bonusSousTypeToggle .sous-type-btn[data-value="competence"].active {
+    border-color: var(--accent-purple);
+    background: var(--accent-purple-light);
+    color: var(--accent-purple);
+}
+
+#bonusSousTypeToggle .sous-type-btn[data-value="ponctuel"].active {
+    border-color: var(--accent-yellow);
+    background: var(--accent-yellow-light);
+    color: #92400e;
+}
+
+#bonusSousTypeToggle .sous-type-btn[data-value="suivi"].active {
+    border-color: var(--accent-blue);
+    background: var(--accent-blue-light);
+    color: var(--accent-blue);
+}
+
 /* Attribution auto info (wizard step 3) */
 .attribution-auto-info {
     display: flex;
