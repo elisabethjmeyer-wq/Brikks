@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-03-08 — Session 24 : Wizard papier simplifié + statut sur carte
+
+### Modifications
+
+1. **Wizard éval papier : date simple** :
+   - Quand mode passation = papier, les champs date/heure d'ouverture et fermeture sont remplacés par un unique champ "Date de l'évaluation" (type `date`, sans heure)
+   - La date est stockée dans `date_ouverture`, `date_fermeture` reste vide
+   - Le switch de mode (numérique ↔ papier) re-rend dynamiquement la section dates
+
+2. **Statut retiré du wizard, ajouté sur la carte** :
+   - Le select Brouillon/Publiée/Terminée est supprimé du wizard de création/modification
+   - Un 4ème bouton (pastille colorée) apparaît sur chaque carte évaluation
+   - Clic sur la pastille ouvre un dropdown avec les 3 statuts
+   - Changement de statut instantané (mise à jour optimiste + appel API)
+   - À la création, le statut est automatiquement "brouillon"
+
+3. **Auto-terminée pour évals papier** :
+   - Quand l'admin saisit des résultats sur une évaluation papier, le backend passe automatiquement le statut à "terminée"
+   - Fonction `autoTerminePapier_()` ajoutée dans `Evaluations.gs`
+   - Le rechargement des données après sauvegarde met à jour la carte automatiquement
+
+4. **Côté élève** :
+   - Les évaluations papier utilisent le statut manuel (pas d'auto-calcul depuis les dates)
+
+### Fichiers modifiés
+- `js/admin-evaluations.js` : wizard mode papier, `_renderProgrammation()`, `_onModePassationChange()`, `toggleStatusDropdown()`, `changeStatut()`, statut retiré du wizard
+- `css/admin-evaluations.css` : styles dropdown statut (`.status-dropdown`, `.status-dot`)
+- `js/eleve-evaluations.js` : `_computeEffectiveStatut()` gère le mode papier
+- `google-apps-script/Evaluations.gs` : `autoTerminePapier_()`, appels dans `saveEvaluationResult`
+- `google-apps-script/TOUT-EN-UN.gs` : rebuild
+
+### Décisions
+- Le statut n'est plus modifiable dans le wizard — uniquement via la pastille sur la carte (plus rapide, moins de clics)
+- Pour les évals papier, le statut est entièrement manuel (pas de logique de dates d'ouverture/fermeture)
+- L'auto-terminée se déclenche dès la première saisie de résultat sur une éval papier
+
+---
+
 ## 2026-03-08 — Session 23 : Refonte bilan évaluation + statuts NR/ABS
 
 ### Modifications

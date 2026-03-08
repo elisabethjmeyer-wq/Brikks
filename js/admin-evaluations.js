@@ -208,6 +208,11 @@ const AdminEvaluations = {
             });
         });
 
+        // Fermer les dropdowns de statut au clic extérieur
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.status-dropdown.open').forEach(d => d.classList.remove('open'));
+        });
+
         // Filter statut
         document.getElementById('filterStatut').addEventListener('change', (e) => {
             this.filters.statut = e.target.value;
@@ -360,8 +365,8 @@ const AdminEvaluations = {
 
     renderEvaluationCard(evaluation) {
         const typeClass = evaluation.type || 'connaissances';
-        // Auto-compute status from dates if set
-        const statusClass = (evaluation.date_ouverture || evaluation.date_fermeture)
+        // Papier : statut manuel uniquement. Numérique : auto-calculé depuis les dates si présentes
+        const statusClass = (evaluation.mode_passation !== 'papier' && (evaluation.date_ouverture || evaluation.date_fermeture))
             ? this._computeAutoStatut(evaluation.date_ouverture, evaluation.date_fermeture)
             : (evaluation.statut || 'brouillon');
         const order = evaluation.ordre || this._getEvaluationOrder(evaluation);
@@ -428,11 +433,15 @@ const AdminEvaluations = {
         }
 
         // Add date info if present
-        if (evaluation.date_ouverture) {
-            metaItems.push(`📅 Ouverture: ${this._formatDateShort(evaluation.date_ouverture)}`);
-        }
-        if (evaluation.date_fermeture) {
-            metaItems.push(`🔒 Fermeture: ${this._formatDateShort(evaluation.date_fermeture)}`);
+        if (evaluation.mode_passation === 'papier' && evaluation.date_ouverture) {
+            metaItems.push(`📅 ${this._formatDateShort(evaluation.date_ouverture)}`);
+        } else {
+            if (evaluation.date_ouverture) {
+                metaItems.push(`📅 Ouverture: ${this._formatDateShort(evaluation.date_ouverture)}`);
+            }
+            if (evaluation.date_fermeture) {
+                metaItems.push(`🔒 Fermeture: ${this._formatDateShort(evaluation.date_fermeture)}`);
+            }
         }
 
         const statsHtml = `
@@ -470,6 +479,16 @@ const AdminEvaluations = {
                     <div class="eval-card-actions">
                         <button class="btn-icon" onclick="AdminEvaluations.editEvaluation('${evaluation.id}')" title="Modifier">✏️</button>
                         ${canSaisir ? `<button class="btn-icon" onclick="AdminEvaluations.openSaisie('${evaluation.id}')" title="Saisir résultats">📝</button>` : ''}
+                        <div class="status-dropdown-wrapper">
+                            <button class="btn-icon" onclick="AdminEvaluations.toggleStatusDropdown(event, '${evaluation.id}')" title="Changer le statut">
+                                <span class="status-dot ${statusClass}"></span>
+                            </button>
+                            <div class="status-dropdown" id="status-dropdown-${evaluation.id}">
+                                <button class="${statusClass === 'brouillon' ? 'active' : ''}" onclick="AdminEvaluations.changeStatut('${evaluation.id}', 'brouillon')">📝 Brouillon</button>
+                                <button class="${statusClass === 'publiee' ? 'active' : ''}" onclick="AdminEvaluations.changeStatut('${evaluation.id}', 'publiee')">🟢 Publiée</button>
+                                <button class="${statusClass === 'terminee' ? 'active' : ''}" onclick="AdminEvaluations.changeStatut('${evaluation.id}', 'terminee')">✅ Terminée</button>
+                            </div>
+                        </div>
                         <button class="btn-icon danger" onclick="AdminEvaluations.confirmDelete('${evaluation.id}', 'evaluation')" title="Supprimer">🗑️</button>
                     </div>
                 </div>
@@ -610,6 +629,10 @@ const AdminEvaluations = {
             // Normalise dates pour input datetime-local
             this.wizardData.date_ouverture = this._toDateTimeLocal(evaluation.date_ouverture);
             this.wizardData.date_fermeture = this._toDateTimeLocal(evaluation.date_fermeture);
+            // Pour les évals papier, extraire la date simple depuis date_ouverture
+            if (evaluation.mode_passation === 'papier' && evaluation.date_ouverture) {
+                this.wizardData.date_evaluation = evaluation.date_ouverture.split('T')[0];
+            }
         } else {
             title.textContent = `Nouvelle évaluation de ${typeLabels[type] || type}`;
             document.getElementById('editEvaluationId').value = '';
@@ -741,7 +764,7 @@ const AdminEvaluations = {
                         </div>
                         <div class="form-group">
                             <label>Mode de passation</label>
-                            <select class="form-select" id="evalModePassation">
+                            <select class="form-select" id="evalModePassation" onchange="AdminEvaluations._onModePassationChange()">
                                 <option value="numerique" ${d.mode_passation === 'numerique' || !d.mode_passation ? 'selected' : ''}>💻 Numérique</option>
                                 <option value="papier" ${d.mode_passation === 'papier' ? 'selected' : ''}>📄 Papier</option>
                             </select>
@@ -780,34 +803,32 @@ const AdminEvaluations = {
                     <label>Durée</label>
                     <div class="form-info-display" id="evalDureeInfo">⏱️ Automatique : celle de l'entraînement attribué à chaque élève</div>
                 </div>
-                ${this._renderStatutSelect(d)}
+                <div class="form-group"></div>
             </div>
+            ${this._renderProgrammation(d)}
         `;
     },
 
-    _renderStatutSelect(d) {
-        const hasDates = d.date_ouverture || d.date_fermeture;
-        const statutAuto = hasDates ? this._computeAutoStatut(d.date_ouverture, d.date_fermeture) : '';
-        // If dates are set, show computed status; otherwise manual select
-        const isAutoMode = hasDates;
+    _renderProgrammation(d) {
+        const isPapier = d.mode_passation === 'papier';
 
+        if (isPapier) {
+            // Mode papier : un seul champ date (sans heure)
+            const dateVal = d.date_evaluation || (d.date_ouverture ? d.date_ouverture.split('T')[0] : '');
+            return `
+                <div class="form-section">Date de l'évaluation</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" class="form-input" id="evalDateEvaluation" value="${dateVal}">
+                        <div class="form-help">Date à laquelle l'évaluation est passée en classe</div>
+                    </div>
+                    <div class="form-group"></div>
+                </div>`;
+        }
+
+        // Mode numérique : dates d'ouverture et fermeture avec heure
         return `
-                <div class="form-group">
-                    <label>Statut</label>
-                    ${isAutoMode ? `
-                        <div class="statut-auto-display">
-                            <span class="status-badge ${statutAuto}">${this._getStatutLabel(statutAuto)}</span>
-                            <span class="form-help">Calculé automatiquement depuis les dates</span>
-                        </div>
-                        <input type="hidden" id="evalStatut" value="${statutAuto}">
-                    ` : `
-                        <select class="form-select" id="evalStatut">
-                            <option value="brouillon" ${d.statut === 'brouillon' || !d.statut ? 'selected' : ''}>Brouillon</option>
-                            <option value="publiee" ${d.statut === 'publiee' ? 'selected' : ''}>Publiée</option>
-                            <option value="terminee" ${d.statut === 'terminee' ? 'selected' : ''}>Terminée</option>
-                        </select>
-                    `}
-                </div>
                 <div class="form-section">Programmation (optionnel)</div>
                 <div class="form-row">
                     <div class="form-group">
@@ -866,7 +887,20 @@ const AdminEvaluations = {
         this.wizardData.date_ouverture = dateOuverture;
         this.wizardData.date_fermeture = dateFermeture;
 
-        // Re-render step to update statut display
+        this._renderWizardStep();
+    },
+
+    _onModePassationChange() {
+        this._collectCurrentFormFields();
+        this.wizardData.mode_passation = document.getElementById('evalModePassation')?.value || 'numerique';
+        // Nettoyer les dates lors du switch de mode
+        if (this.wizardData.mode_passation === 'papier') {
+            // Conserver la date d'ouverture comme date d'évaluation si elle existe
+            this.wizardData.date_evaluation = this.wizardData.date_ouverture ? this.wizardData.date_ouverture.split('T')[0] : '';
+            this.wizardData.date_fermeture = '';
+        } else {
+            this.wizardData.date_evaluation = '';
+        }
         this._renderWizardStep();
     },
 
@@ -901,6 +935,14 @@ const AdminEvaluations = {
 
         const methodologie = document.getElementById('evalMethodologieTC')?.value;
         if (methodologie !== undefined) this.wizardData.methodologie_id = methodologie;
+
+        // Dates selon le mode
+        const dateEval = document.getElementById('evalDateEvaluation')?.value;
+        if (dateEval !== undefined) this.wizardData.date_evaluation = dateEval;
+        const dateOuv = document.getElementById('evalDateOuverture')?.value;
+        if (dateOuv !== undefined) this.wizardData.date_ouverture = dateOuv;
+        const dateFerm = document.getElementById('evalDateFermeture')?.value;
+        if (dateFerm !== undefined) this.wizardData.date_fermeture = dateFerm;
     },
 
     _renderDefaultFields(d) {
@@ -915,10 +957,7 @@ const AdminEvaluations = {
                     <div class="form-info-display" id="evalDureeInfo">⏱️ Automatique : celle de l'exercice attribué à chaque élève</div>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group"></div>
-                ${this._renderStatutSelect(d)}
-            </div>
+            ${this._renderProgrammation(d)}
         `;
     },
 
@@ -941,10 +980,7 @@ const AdminEvaluations = {
                     </select>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group"></div>
-                ${this._renderStatutSelect(d)}
-            </div>
+            ${this._renderProgrammation(d)}
         `;
     },
 
@@ -955,12 +991,13 @@ const AdminEvaluations = {
                     <label>Points mis en jeu <span class="req">*</span></label>
                     <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
                 </div>
-                ${this._renderStatutSelect(d)}
+                <div class="form-group"></div>
             </div>
             <div class="form-group">
                 <label>Critères de validation</label>
                 <textarea class="form-textarea" id="evalCriteres" rows="3" placeholder="Décrivez les critères...">${escapeHtml(d.criteres || '')}</textarea>
             </div>
+            ${this._renderProgrammation(d)}
         `;
     },
 
@@ -1138,16 +1175,19 @@ const AdminEvaluations = {
                 this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
                 this.wizardData.categorie = this.wizardData.type === 'bonus' ? (document.getElementById('evalCategorie')?.value || 'connaissances') : '';
 
-                // Dates
-                this.wizardData.date_ouverture = document.getElementById('evalDateOuverture')?.value || '';
-                this.wizardData.date_fermeture = document.getElementById('evalDateFermeture')?.value || '';
-
-                // Statut: auto from dates, or manual
-                if (this.wizardData.date_ouverture || this.wizardData.date_fermeture) {
-                    this.wizardData.statut = this._computeAutoStatut(this.wizardData.date_ouverture, this.wizardData.date_fermeture);
+                // Dates : mode papier = date simple, mode numérique = ouverture/fermeture
+                if (this.wizardData.mode_passation === 'papier') {
+                    const dateEval = document.getElementById('evalDateEvaluation')?.value || '';
+                    this.wizardData.date_evaluation = dateEval;
+                    this.wizardData.date_ouverture = dateEval || '';
+                    this.wizardData.date_fermeture = '';
                 } else {
-                    this.wizardData.statut = document.getElementById('evalStatut')?.value || 'brouillon';
+                    this.wizardData.date_ouverture = document.getElementById('evalDateOuverture')?.value || '';
+                    this.wizardData.date_fermeture = document.getElementById('evalDateFermeture')?.value || '';
+                    this.wizardData.date_evaluation = '';
                 }
+
+                // Statut : ne change plus depuis le wizard (géré via le bouton sur la carte)
 
                 if (this.wizardData.type === 'connaissances') {
                     this.wizardData.seuil = parseInt(document.getElementById('evalSeuil')?.value) || 80;
@@ -1185,13 +1225,17 @@ const AdminEvaluations = {
             titre: d.titre,
             briques: d.briques || 3,
             matiere: d.matiere || 'FR',
-            statut: d.statut || 'brouillon',
             categorie: d.categorie || d.type,
             date_creation: new Date().toISOString().split('T')[0],
             date_ouverture: d.date_ouverture || '',
             date_fermeture: d.date_fermeture || '',
             mode_passation: d.mode_passation || 'numerique'
         };
+
+        // Statut : seulement pour la création (pas de changement via le wizard en édition)
+        if (!id) {
+            data.statut = 'brouillon';
+        }
 
         // Durée : résolue automatiquement par le backend depuis l'entraînement attribué à chaque élève
 
@@ -2061,6 +2105,44 @@ const AdminEvaluations = {
     editEvaluation(id) {
         const evaluation = this.evaluations.find(e => e.id === id);
         if (evaluation) this.openModal(evaluation);
+    },
+
+    toggleStatusDropdown(event, evalId) {
+        event.stopPropagation();
+        const dropdown = document.getElementById(`status-dropdown-${evalId}`);
+        // Fermer tous les autres dropdowns
+        document.querySelectorAll('.status-dropdown.open').forEach(d => {
+            if (d.id !== `status-dropdown-${evalId}`) d.classList.remove('open');
+        });
+        dropdown.classList.toggle('open');
+    },
+
+    async changeStatut(evalId, newStatut) {
+        // Fermer le dropdown
+        document.querySelectorAll('.status-dropdown.open').forEach(d => d.classList.remove('open'));
+
+        const evaluation = this.evaluations.find(e => e.id === evalId);
+        if (!evaluation) return;
+
+        const oldStatut = evaluation.statut;
+        if (oldStatut === newStatut) return;
+
+        // Mise à jour optimiste
+        evaluation.statut = newStatut;
+        this.renderEvaluations();
+
+        try {
+            const result = await this.callAPI('updateEvaluation', { id: evalId, statut: newStatut });
+            if (!result.success) {
+                evaluation.statut = oldStatut;
+                this.renderEvaluations();
+                this.showNotification('Erreur lors du changement de statut', 'error');
+            }
+        } catch (err) {
+            evaluation.statut = oldStatut;
+            this.renderEvaluations();
+            this.showNotification('Erreur réseau', 'error');
+        }
     },
 
     confirmDelete(id, type) {

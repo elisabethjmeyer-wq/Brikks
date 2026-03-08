@@ -540,6 +540,81 @@
     color: var(--accent-purple);
 }
 
+/* ===== STATUS DROPDOWN (bouton sur carte) ===== */
+.status-dropdown-wrapper {
+    position: relative;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+}
+
+.status-dot.brouillon {
+    background: var(--gray-400);
+    border-color: var(--gray-300);
+}
+
+.status-dot.planifiee {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue-light);
+}
+
+.status-dot.publiee {
+    background: var(--accent-green);
+    border-color: var(--accent-green-light);
+}
+
+.status-dot.terminee {
+    background: var(--accent-purple);
+    border-color: var(--accent-purple-light);
+}
+
+.status-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    min-width: 160px;
+    overflow: hidden;
+}
+
+.status-dropdown.open {
+    display: flex;
+    flex-direction: column;
+}
+
+.status-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--gray-700);
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.status-dropdown button:hover {
+    background: var(--gray-50);
+}
+
+.status-dropdown button.active {
+    background: var(--gray-100);
+    font-weight: 600;
+}
+
 /* Progress bar mini */
 .progress-mini {
     width: 60px;
