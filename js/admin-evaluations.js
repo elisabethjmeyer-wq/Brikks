@@ -1381,7 +1381,7 @@ const AdminEvaluations = {
 
     // ========== SAISIE DES RÉSULTATS (progression) ==========
     async openSaisie(evaluationId) {
-        const evaluation = this.evaluations.find(e => e.id === evaluationId);
+        const evaluation = this.evaluations.find(e => String(e.id) === String(evaluationId));
         if (!evaluation) return;
 
         this.saisieEvaluation = evaluation;
@@ -1906,7 +1906,7 @@ const AdminEvaluations = {
         const modal = document.getElementById('attributionModal');
         document.getElementById('attributionEvaluationId').value = evaluationId;
 
-        const evaluation = this.evaluations.find(e => e.id === evaluationId);
+        const evaluation = this.evaluations.find(e => String(e.id) === String(evaluationId));
         if (!evaluation) return;
 
         // Show modal with loading state
@@ -2055,7 +2055,7 @@ const AdminEvaluations = {
         const evaluationId = document.getElementById('attributionEvaluationId').value;
         if (!evaluationId) return;
 
-        const evaluation = this.evaluations.find(e => e.id === evaluationId);
+        const evaluation = this.evaluations.find(e => String(e.id) === String(evaluationId));
         if (!evaluation) return;
 
         const isConn = evaluation.type === 'connaissances';
@@ -2112,7 +2112,7 @@ const AdminEvaluations = {
 
     // ========== DELETE ==========
     editEvaluation(id) {
-        const evaluation = this.evaluations.find(e => e.id === id);
+        const evaluation = this.evaluations.find(e => String(e.id) === String(id));
         if (evaluation) this.openModal(evaluation);
     },
 
@@ -2130,7 +2130,7 @@ const AdminEvaluations = {
         // Fermer le dropdown
         document.querySelectorAll('.status-dropdown.open').forEach(d => d.classList.remove('open'));
 
-        const evaluation = this.evaluations.find(e => e.id === evalId);
+        const evaluation = this.evaluations.find(e => String(e.id) === String(evalId));
         if (!evaluation) return;
 
         const oldStatut = evaluation.statut;
@@ -2146,6 +2146,9 @@ const AdminEvaluations = {
                 evaluation.statut = oldStatut;
                 this.renderEvaluations();
                 this.showNotification('Erreur lors du changement de statut', 'error');
+            } else {
+                // Invalider le cache pour que le rechargement reflète le changement
+                SheetsAPI.clearCacheFor('EVALUATIONS');
             }
         } catch (err) {
             evaluation.statut = oldStatut;
