@@ -4882,6 +4882,18 @@ function getEvaluationForEleve(data) {
     return { success: false, error: 'Evaluation non trouvee: ' + data.id };
   }
 
+  // Vérifier que l'évaluation est accessible (pas brouillon, pas planifiée)
+  var effectiveStatut = _computeEffectiveStatut_(evaluation);
+  if (effectiveStatut === 'brouillon') {
+    return { success: false, error: 'Cette évaluation n\'est pas encore disponible' };
+  }
+  if (effectiveStatut === 'planifiee') {
+    return { success: false, error: 'Cette évaluation n\'est pas encore ouverte' };
+  }
+  if (effectiveStatut === 'terminee') {
+    return { success: false, error: 'Cette évaluation est terminée' };
+  }
+
   var type = String(evaluation.type).trim();
   var matiere = String(evaluation.matiere || '').trim();
 
@@ -6008,8 +6020,11 @@ function getEleveEvaluations(data) {
       item[header] = row[index];
     });
 
-    // Ne garder que les evaluations publiees ou terminees
-    if (item.statut !== 'publiee' && item.statut !== 'terminee') continue;
+    // Calculer le statut effectif depuis les dates
+    var effectiveStatut = _computeEffectiveStatut_(item);
+    // Ne garder que les évaluations visibles pour les élèves (planifiée, publiée, terminée)
+    if (effectiveStatut !== 'planifiee' && effectiveStatut !== 'publiee' && effectiveStatut !== 'terminee') continue;
+    item.statut = effectiveStatut;
 
     if (item.id) {
       evaluations.push(item);
@@ -6758,6 +6773,33 @@ function getAttributionSujetEleve(data) {
   }
 
   return { success: true, data: null };
+}
+
+// ========================================
+// HELPERS — STATUT EFFECTIF
+// ========================================
+
+/**
+ * Calcule le statut effectif d'une évaluation à partir de ses dates.
+ * Brouillon = décision manuelle de la prof, jamais écrasé.
+ * Papier = pas d'auto-calcul depuis les dates.
+ * @param {Object} evaluation - objet avec statut, date_ouverture, date_fermeture, mode_passation
+ * @returns {string} statut effectif ('brouillon', 'planifiee', 'publiee', 'terminee')
+ */
+function _computeEffectiveStatut_(evaluation) {
+  var statut = String(evaluation.statut || 'brouillon').trim();
+  if (statut === 'brouillon') return 'brouillon';
+  if (String(evaluation.mode_passation || '').trim() === 'papier') return statut;
+
+  var now = new Date();
+  var dateOuverture = evaluation.date_ouverture ? new Date(evaluation.date_ouverture) : null;
+  var dateFermeture = evaluation.date_fermeture ? new Date(evaluation.date_fermeture) : null;
+
+  if (!dateOuverture && !dateFermeture) return statut;
+
+  if (dateOuverture && !isNaN(dateOuverture.getTime()) && dateOuverture > now) return 'planifiee';
+  if (dateFermeture && !isNaN(dateFermeture.getTime()) && dateFermeture < now) return 'terminee';
+  return 'publiee';
 }
 
 // ================================================================
