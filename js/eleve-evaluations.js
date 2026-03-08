@@ -112,8 +112,8 @@ const EleveEvaluations = {
 
     // ========== STATUS ==========
     _computeEffectiveStatut(evaluation) {
-        // Brouillon = décision manuelle de la prof, jamais écrasé par les dates
-        if (evaluation.statut === 'brouillon') return 'brouillon';
+        // Brouillon/terminée = décision manuelle de la prof, jamais écrasé par les dates
+        if (evaluation.statut === 'brouillon' || evaluation.statut === 'terminee') return evaluation.statut;
         // Papier : statut géré manuellement (pas d'auto-calcul depuis les dates)
         if (evaluation.mode_passation === 'papier') {
             return evaluation.statut || 'brouillon';

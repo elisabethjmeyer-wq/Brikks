@@ -770,7 +770,7 @@ const EleveEvaluation = {
      * Même logique que le backend et que EleveEvaluations.
      */
     _computeEffectiveStatut(evaluation) {
-        if (evaluation.statut === 'brouillon') return 'brouillon';
+        if (evaluation.statut === 'brouillon' || evaluation.statut === 'terminee') return evaluation.statut;
         if (evaluation.mode_passation === 'papier') return evaluation.statut || 'brouillon';
         const now = new Date();
         if (evaluation.date_ouverture || evaluation.date_fermeture) {
