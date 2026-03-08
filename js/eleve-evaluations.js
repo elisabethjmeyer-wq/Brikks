@@ -631,7 +631,7 @@ const EleveEvaluations = {
         if (matiere && matiere !== 'Les deux') metaParts.push(`<span class="meta-matiere">${escapeHtml(matiere)}</span>`);
         if (matiere === 'Les deux') metaParts.push('<span class="meta-matiere">FR + HG</span>');
         if (isPapier) metaParts.push('<span class="meta-mode papier">Papier</span>');
-        else if (cardStatus !== 'upcoming') metaParts.push('<span class="meta-mode numerique">Numérique</span>');
+        else metaParts.push('<span class="meta-mode numerique">Numérique</span>');
         const metaLine = metaParts.length > 0
             ? `<div class="card-meta">${metaParts.join('<span class="meta-sep">·</span>')}</div>`
             : '';
