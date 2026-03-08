@@ -12,6 +12,7 @@ const AdminBanquesExercices = {
     competencesReferentiel: [],
     criteresReussite: [],
     banquesCompetences: [],
+    banquesTachesComplexes: [],
 
     // Data pour connaissances (ancien système - conservé pour compatibilité)
     banquesQuestions: [],
@@ -90,7 +91,9 @@ const AdminBanquesExercices = {
                 this.tachesComplexes = cached.tachesComplexes || [];
                 this.competencesReferentiel = cached.competencesReferentiel || [];
                 this.criteresReussite = cached.criteresReussite || [];
-                this.banquesCompetences = cached.banquesCompetences || [];
+                const allBanquesCompCached = cached.banquesCompetences || [];
+                this.banquesCompetences = allBanquesCompCached.filter(b => (b.type_usage || 'entrainement') !== 'tache_complexe');
+                this.banquesTachesComplexes = allBanquesCompCached.filter(b => b.type_usage === 'tache_complexe');
                 this.banquesQuestions = cached.banquesQuestions || [];
                 this.questionsConnaissances = cached.questionsConnaissances || [];
                 // Données connaissances (nouveau système)
@@ -145,7 +148,7 @@ const AdminBanquesExercices = {
                 tachesComplexes: this.tachesComplexes,
                 competencesReferentiel: this.competencesReferentiel,
                 criteresReussite: this.criteresReussite,
-                banquesCompetences: this.banquesCompetences,
+                banquesCompetences: [...this.banquesCompetences, ...this.banquesTachesComplexes],
                 banquesQuestions: this.banquesQuestions,
                 questionsConnaissances: this.questionsConnaissances,
                 // Données connaissances (nouveau système)
@@ -245,7 +248,9 @@ const AdminBanquesExercices = {
                 this.criteresReussite = criteresResult.data || [];
             }
             if (banquesCompResult.success) {
-                this.banquesCompetences = banquesCompResult.data || [];
+                const allBanquesComp = banquesCompResult.data || [];
+                this.banquesCompetences = allBanquesComp.filter(b => (b.type_usage || 'entrainement') !== 'tache_complexe');
+                this.banquesTachesComplexes = allBanquesComp.filter(b => b.type_usage === 'tache_complexe');
             }
             if (banquesQResult.success) {
                 this.banquesQuestions = banquesQResult.data || [];
@@ -377,7 +382,9 @@ const AdminBanquesExercices = {
                 // Add banque/tache buttons
                 case 'addBanqueBtn':
                 case 'addBanqueBtnEmpty':
-                    if (this.currentType === 'competences') {
+                    if (this.currentType === 'taches-complexes') {
+                        this.openBanqueTCModal();
+                    } else if (this.currentType === 'competences') {
                         this.openBanqueCompetenceModal();
                     } else if (this.currentType === 'connaissances') {
                         // Selon la sous-vue active
@@ -582,7 +589,7 @@ const AdminBanquesExercices = {
         const addBtn = document.getElementById('addBanqueBtn');
         const formatsBtn = document.getElementById('manageFormatsBtn');
 
-        if (type === 'competences') {
+        if (type === 'competences' || type === 'taches-complexes') {
             if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
             if (formatsBtn) formatsBtn.style.display = 'none';
         } else if (type === 'connaissances') {
@@ -623,6 +630,12 @@ const AdminBanquesExercices = {
         if (compEl) {
             compEl.textContent = this.banquesCompetences.length;
         }
+
+        // Count tâches complexes
+        const tcEl = document.getElementById('countTachesComplexes');
+        if (tcEl) {
+            tcEl.textContent = this.banquesTachesComplexes.length;
+        }
     },
 
     // ========== ACCORDION STATE ==========
@@ -630,7 +643,7 @@ const AdminBanquesExercices = {
     _getExpandedBanques() {
         const expanded = new Set();
         document.querySelectorAll('.banque-card.expanded').forEach(card => {
-            const id = card.dataset.id || card.dataset.banqueCompId;
+            const id = card.dataset.id || card.dataset.banqueCompId || card.dataset.banqueTcId;
             if (id) expanded.add(id);
         });
         return expanded;
@@ -639,7 +652,7 @@ const AdminBanquesExercices = {
     _restoreExpandedBanques(expanded) {
         if (!expanded || expanded.size === 0) return;
         document.querySelectorAll('.banque-card').forEach(card => {
-            const id = card.dataset.id || card.dataset.banqueCompId;
+            const id = card.dataset.id || card.dataset.banqueCompId || card.dataset.banqueTcId;
             if (id && expanded.has(id)) {
                 card.classList.add('expanded');
             }
@@ -652,11 +665,19 @@ const AdminBanquesExercices = {
         const container = document.getElementById('banquesList');
         const emptyState = document.getElementById('emptyState');
 
-        // For competences tab, render tâches complexes instead
+        // For competences tab, render compétences banques
         if (this.currentType === 'competences') {
             this.renderTachesComplexes(container, emptyState);
             this._restoreExpandedBanques(expanded);
             setTimeout(() => this.initCompetencesDragDrop(), 0);
+            return;
+        }
+
+        // For tâches complexes tab
+        if (this.currentType === 'taches-complexes') {
+            this.renderTachesComplexesTab(container, emptyState);
+            this._restoreExpandedBanques(expanded);
+            setTimeout(() => this.initTCDragDrop(), 0);
             return;
         }
 
@@ -1535,6 +1556,7 @@ const AdminBanquesExercices = {
         const backupFormats = [...this.formats];
         const backupTaches = [...this.tachesComplexes];
         const backupBanquesComp = [...this.banquesCompetences];
+        const backupBanquesTC = [...this.banquesTachesComplexes];
 
         // Identifier la banque de l'élément supprimé (pour renuméroter)
         let deletedBanqueId = null;
@@ -1567,6 +1589,7 @@ const AdminBanquesExercices = {
             }
         } else if (type === 'banqueCompetence') {
             this.banquesCompetences = this.banquesCompetences.filter(b => b.id !== id);
+            this.banquesTachesComplexes = this.banquesTachesComplexes.filter(b => b.id !== id);
             // Also remove associated entrainements
             this.tachesComplexes = this.tachesComplexes.filter(t => t.banque_id !== id);
         }
@@ -1604,6 +1627,7 @@ const AdminBanquesExercices = {
                 this.formats = backupFormats;
                 this.tachesComplexes = backupTaches;
                 this.banquesCompetences = backupBanquesComp;
+                this.banquesTachesComplexes = backupBanquesTC;
                 this.updateCounts();
                 this.renderBanques();
                 if (type === 'format') {
@@ -1618,6 +1642,7 @@ const AdminBanquesExercices = {
             this.formats = backupFormats;
             this.tachesComplexes = backupTaches;
             this.banquesCompetences = backupBanquesComp;
+            this.banquesTachesComplexes = backupBanquesTC;
             this.updateCounts();
             this.renderBanques();
             if (type === 'format') {

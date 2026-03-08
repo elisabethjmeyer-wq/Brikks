@@ -212,6 +212,13 @@
     color: var(--accent-purple);
 }
 
+/* Onglet Tâches complexes (rouge) actif */
+.type-tab.red.active {
+    background: white;
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+}
+
 .tab-icon {
     font-size: 18px;
     line-height: 1;
@@ -335,6 +342,27 @@
 
 .banque-card-icon.competences {
     background: var(--accent-purple-light);
+}
+
+.banque-card-icon.taches-complexes {
+    background: var(--accent-red-light, #fee2e2);
+}
+
+.tc-competences-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.tc-comp-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--accent-purple-light, #f3e8ff);
+    color: var(--accent-purple, #8b5cf6);
 }
 
 .banque-card-content {
@@ -509,6 +537,44 @@
 .exercice-actions {
     display: flex;
     gap: 4px;
+}
+
+.tc-checkboxes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 8px;
+    background: var(--gray-50, #f9fafb);
+}
+
+.tc-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.tc-checkbox-item:hover {
+    background: white;
+}
+
+.tc-checkbox-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-purple, #8b5cf6);
+}
+
+.tc-checkbox-item label {
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--gray-700, #374151);
 }
 
 .exercices-empty {
