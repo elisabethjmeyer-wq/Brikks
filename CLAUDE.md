@@ -160,14 +160,16 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **État** : créé et audité (session 14). Code propre et maintenable.
 
-### Notes élève — CRÉÉ SESSION 16
+### Notes élève — CRÉÉ SESSION 16, HARMONISÉ SESSION 25
 
 **Page** : `eleve/notes.html`
-**Fichiers** : `js/eleve-notes.js` (~483 lignes), `css/eleve-notes.css` (~280 lignes)
+**Fichiers** : `js/eleve-notes.js` (~470 lignes), `css/eleve-notes.css` (~640 lignes)
+**CSS importé** : `eleve-evaluations.css` (pour `.hero-header`, `.tabs-bar`, `.tab-btn`)
 **Backend** : lecture seule via `SheetsAPI` (6 tables) + `saveObjectifEleve` (JSONP)
 
 **Ce que fait le module :**
-- L'élève voit ses notes pour une matière (toggle FR / HG-EMC)
+- L'élève voit ses notes pour une matière (toggle FR / HG-EMC via `.tabs-bar`)
+- Hero header avec titre, lien évaluations, et sélecteur semestre S1/S2
 - Note de progression avec barre visuelle et formule détaillée
 - Points par catégorie (connaissances, savoir-faire, compétences, bonus) en barres colorées
 - Liste des évaluations sommatives avec notes et coefficients
@@ -181,7 +183,15 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **Appels API** (écriture) : `saveObjectifEleve` (JSONP)
 
-**État** : créé (session 16). Fonctionnel.
+**Harmonisation session 25** :
+- Breadcrumb supprimé (géré par `eleve-layout.js`)
+- Container `.res-container` supprimé (largeur gérée par `<main>`)
+- Header adopte le pattern `.hero-header` de la page évaluations
+- Dropdown semestre remplacé par boutons S1/S2 simples
+- Toggle matière réutilise `.tabs-bar` + `.tab-btn` existants
+- CSS réécrit : variables CSS du site (`--primary`, `--gray-*`, `--accent-*`), tailles augmentées (14-16px), cards avec padding 22-26px et `box-shadow` aligné
+
+**État** : créé (session 16), harmonisé visuellement (session 25). Fonctionnel.
 
 ### Mes évaluations élève (liste) — REFONDU SESSION 21
 
