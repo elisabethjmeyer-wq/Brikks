@@ -426,11 +426,6 @@ const AdminEvaluations = {
             ];
         }
 
-        // Add mode de passation info
-        if (evaluation.mode_passation === 'papier') {
-            metaItems.push('📄 Papier');
-        }
-
         // Add date info if present
         if (evaluation.mode_passation === 'papier' && evaluation.date_ouverture) {
             metaItems.push(`📅 ${this._formatDateShort(evaluation.date_ouverture)}`);
@@ -468,6 +463,7 @@ const AdminEvaluations = {
                             ${escapeHtml(evaluation.titre || 'Sans titre')}
                             ${matiereBadge}
                             ${(() => { const sem = this._getSemestreTag(evaluation); return sem ? `<span class="sem-tag">${sem}</span>` : ''; })()}
+                            <span class="mode-badge ${evaluation.mode_passation === 'papier' ? 'papier' : 'numerique'}">${evaluation.mode_passation === 'papier' ? '📄 Papier' : '💻 Numérique'}</span>
                             <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
                         </div>
                         <div class="eval-card-meta">
