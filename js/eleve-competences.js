@@ -96,7 +96,9 @@ const EleveCompetences = {
             this.criteres = results[1].data || [];
         }
         if (results[2].success) {
-            this.banques = (results[2].data || []).filter(b => b.statut === 'publie');
+            this.banques = (results[2].data || []).filter(b =>
+                b.statut === 'publie' && (!b.type_usage || b.type_usage === 'entrainement')
+            );
         }
         if (results[3].success) {
             this.entrainements = (results[3].data || []).filter(e => e.statut === 'publie');
@@ -171,28 +173,17 @@ const EleveCompetences = {
             if (prog) banqueProgressions.push(prog);
         });
 
-        if (banqueProgressions.some(p => p.mode === 'evalue' && p.statut === 'valide')) {
-            return { status: 'validee', label: 'Validée', cssClass: 'validated' };
+        // Entraînement uniquement : terminé ou en cours
+        if (banqueProgressions.some(p => p.statut === 'entraine')) {
+            return { status: 'entraine', label: 'Terminé', cssClass: 'completed' };
         }
 
-        if (banqueProgressions.some(p => p.mode === 'evalue' && p.statut === 'non_valide')) {
-            return { status: 'non_validee', label: 'Non validée', cssClass: 'not-validated' };
-        }
-
-        if (banqueProgressions.some(p => p.mode === 'evalue' && p.statut === 'corrige')) {
-            return { status: 'corrigee', label: 'Corrigée', cssClass: 'corrected' };
-        }
-
-        if (banqueProgressions.some(p => p.mode === 'evalue' && p.statut === 'soumis')) {
-            return { status: 'soumise', label: 'En attente', cssClass: 'submitted' };
-        }
-
-        if (banqueProgressions.some(p => p.statut !== 'non_soumis')) {
+        if (banqueProgressions.some(p => p.statut === 'en_cours')) {
             return { status: 'en_cours', label: 'En cours', cssClass: 'in-progress' };
         }
 
         if (banqueProgressions.length > 0) {
-            return { status: 'non_soumise', label: 'Non soumise', cssClass: 'declined' };
+            return { status: 'en_cours', label: 'En cours', cssClass: 'in-progress' };
         }
 
         return { status: 'pas_commencee', label: 'Pas commencée', cssClass: 'not-started' };
@@ -215,30 +206,18 @@ const EleveCompetences = {
      * @param {Object|null} progression
      * @param {Object} [entrainement] — nécessaire pour calculer la deadline (soumis sans envoi)
      */
-    getExerciseStatus(progression, entrainement) {
+    getExerciseStatus(progression) {
         if (!progression) {
             return { status: 'pas_commence', label: '', cssClass: 'not-started', icon: '' };
         }
         switch (progression.statut) {
             case 'en_cours':
-                if (progression.mode === 'evalue') {
-                    return { status: 'en_cours_eval', label: 'Évaluation en cours', cssClass: 'in-progress-eval', icon: '⏱' };
-                }
                 return { status: 'en_cours', label: 'En cours', cssClass: 'in-progress', icon: '▶' };
             case 'entraine':
                 return { status: 'entraine', label: 'Terminé', cssClass: 'trained', icon: '✓' };
-            case 'soumis':
-                return this._getSoumisStatus(progression, entrainement);
-            case 'corrige':
-                return { status: 'corrige', label: 'Corrigé', cssClass: 'corrected', icon: '📋' };
-            case 'valide':
-                return { status: 'valide', label: 'Validé', cssClass: 'validated', icon: '✓' };
-            case 'non_valide':
-                return { status: 'non_valide', label: 'Non validé', cssClass: 'not-validated', icon: '✕' };
-            case 'non_soumis':
-                return { status: 'non_soumis', label: 'Non évalué', cssClass: 'declined', icon: '✕' };
             default:
-                return { status: 'pas_commence', label: '', cssClass: 'not-started', icon: '' };
+                // Statuts legacy (soumis, valide, etc.) — afficher comme terminé
+                return { status: 'entraine', label: 'Terminé', cssClass: 'trained', icon: '✓' };
         }
     },
 
@@ -333,13 +312,14 @@ const EleveCompetences = {
         const container = document.getElementById('competences-content');
         const sorted = [...this.banques].sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
 
-        // Calcul progression
-        let nbValidees = 0;
+        // Calcul progression (nombre de banques terminées)
+        let nbTerminees = 0;
         sorted.forEach(b => {
-            if (this.getBanqueStatus(b.id).status === 'validee') nbValidees++;
+            const st = this.getBanqueStatus(b.id).status;
+            if (st === 'entraine') nbTerminees++;
         });
         const total = sorted.length;
-        const percent = total > 0 ? Math.round((nbValidees / total) * 100) : 0;
+        const percent = total > 0 ? Math.round((nbTerminees / total) * 100) : 0;
 
         if (total === 0) {
             container.innerHTML = `
@@ -361,16 +341,20 @@ const EleveCompetences = {
         const cardsHTML = sorted.map(banque => {
             const comp = this.competences.find(c => String(c.id) === String(banque.competence_id));
             const compNom = comp ? comp.nom : (banque.titre || 'Sans titre');
+            const matiere = comp ? (comp.matiere || '') : '';
             const banqueEntr = this.getEntrainementsForBanque(banque.id);
 
             // Calcul de la progression par banque
             const metaParts = this._getBanqueMetaParts(banqueEntr);
 
+            // Badge matière
+            const matiereBadge = matiere ? `<span class="comp-matiere-badge">${escapeHtml(matiere)}</span>` : '';
+
             return `
                 <div class="comp-card" onclick="EleveCompetences.openBanque('${banque.id}')">
                     <div class="comp-card-left">
                         <div class="comp-card-info">
-                            <h3 class="comp-card-title">${escapeHtml(banque.titre || compNom)}</h3>
+                            <h3 class="comp-card-title">${escapeHtml(banque.titre || compNom)} ${matiereBadge}</h3>
                             <div class="comp-card-meta">
                                 ${metaParts.join('<span class="comp-meta-sep">·</span>')}
                             </div>
@@ -391,8 +375,8 @@ const EleveCompetences = {
                 </div>
                 <div class="comp-header-stats">
                     <div class="comp-stat">
-                        <div class="comp-stat-value">${nbValidees}/${total}</div>
-                        <div class="comp-stat-label">validées</div>
+                        <div class="comp-stat-value">${nbTerminees}/${total}</div>
+                        <div class="comp-stat-label">terminées</div>
                     </div>
                 </div>
             </div>
@@ -400,7 +384,7 @@ const EleveCompetences = {
             <div class="comp-progress-container">
                 <div class="comp-progress-label">
                     <span>Progression</span>
-                    <span class="comp-progress-value">${nbValidees}/${total} compétences validées</span>
+                    <span class="comp-progress-value">${nbTerminees}/${total} compétences terminées</span>
                 </div>
                 <div class="comp-progress-bar">
                     <div class="comp-progress-fill" style="width: ${percent}%;"></div>
@@ -578,39 +562,17 @@ const EleveCompetences = {
         );
 
         if (!prog) {
-            // Jamais commencé → modal de choix (première fois)
-            this.openChoiceModal(entrainementId);
+            // Jamais commencé → démarrer directement en mode entraînement
+            this.currentEntrainement = entr;
+            this.startEntrainement('entrainement');
         } else if (prog.statut === 'en_cours') {
-            if (prog.mode === 'evalue') {
-                // Mode évaluation en cours : vérifier si le timer a expiré
-                const restored = this._loadEvalTimer(entrainementId);
-                if (restored !== null && restored <= 0) {
-                    this.currentEntrainement = entr;
-                    this.currentMode = 'evalue';
-                    this._autoSubmitExpired(entr);
-                    return;
-                }
-                // Reprendre directement (pas de popup pour évaluation)
-                this.currentEntrainement = entr;
-                this.showExercise(entr, 'evalue');
-            } else {
-                // Mode entraînement en cours → popup Reprendre / Recommencer
-                this._showResumeOrRestartModal(entr);
-            }
+            // En cours → popup Reprendre / Recommencer
+            this._showResumeOrRestartModal(entr);
         } else if (prog.statut === 'entraine') {
             // Entraîné → popup Se ré-entraîner / Consulter correction
             this._showRetrainOrReviewModal(entr, prog);
-        } else if (prog.statut === 'non_soumis') {
-            // Refusé → bascule définitive en entraînement (pas de retour en évaluation)
-            this.currentEntrainement = entr;
-            this.startEntrainement('entrainement');
-        } else if (prog.statut === 'soumis') {
-            this.showExerciseReview(entr, prog);
-        } else if (prog.statut === 'corrige') {
-            this.showExerciseReview(entr, prog);
-        } else if (prog.statut === 'valide') {
-            this.showExerciseReview(entr, prog);
-        } else if (prog.statut === 'non_valide') {
+        } else {
+            // Tout autre statut (legacy évaluation) → consulter la correction
             this.showExerciseReview(entr, prog);
         }
     },
@@ -619,64 +581,8 @@ const EleveCompetences = {
     // MODALS
     // ==========================================
 
-    openChoiceModal(entrainementId) {
-        const entr = this.entrainements.find(e => String(e.id) === String(entrainementId));
-        if (!entr) return;
-
-        this.currentEntrainement = entr;
-
-        this._showChoiceModal(entr, {
-            title: escapeHtml(entr.titre),
-            question: 'Comment veux-tu faire cet exercice ?',
-            option1: { label: "M'entraîner", desc: 'Travaille \u00E0 ton rythme. Tu verras le corrig\u00E9 comment\u00E9 \u00E0 la fin.', mode: 'entrainement' },
-            option2: { label: 'Être évalué(e)', desc: 'Soumets ta production pour validation par le professeur.', mode: 'evalue' }
-        });
-    },
-
-    _showChoiceModal(entr, opts) {
-        const dureeMin = entr.duree || 30;
-
-        const modal = document.createElement('div');
-        modal.id = 'compChoiceModal';
-        modal.className = 'comp-modal-overlay';
-        modal.innerHTML = `
-            <div class="comp-modal">
-                <div class="comp-modal-body">
-                    <div class="comp-choice-info">
-                        <h3>${opts.title}</h3>
-                        <p>Durée indicative : <strong>${dureeMin} minutes</strong></p>
-                    </div>
-
-                    <p class="comp-choice-question">${opts.question}</p>
-
-                    <div class="comp-choice-options">
-                        <div class="comp-choice-option entrainement" onclick="EleveCompetences.startEntrainement('${opts.option1.mode}')">
-                            <div class="comp-choice-icon">📝</div>
-                            <div class="comp-choice-content">
-                                <h4>${opts.option1.label}</h4>
-                                <p>${opts.option1.desc}</p>
-                            </div>
-                        </div>
-
-                        <div class="comp-choice-option evalue" onclick="EleveCompetences.startEntrainement('${opts.option2.mode}')">
-                            <div class="comp-choice-icon">🎯</div>
-                            <div class="comp-choice-content">
-                                <h4>${opts.option2.label}</h4>
-                                <p>${opts.option2.desc}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="comp-modal-footer">
-                        <button class="comp-btn comp-btn-secondary" onclick="EleveCompetences.closeModal()">Annuler</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(modal);
-        document.body.style.overflow = 'hidden';
-    },
+    // openChoiceModal supprimé — plus de mode évaluation dans les entraînements.
+    // L'élève démarre toujours en mode entraînement.
 
     closeModal() {
         const modal = document.getElementById('compChoiceModal');

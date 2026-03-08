@@ -444,6 +444,17 @@ function handleRequest(e) {
         result = getAttributionSujetEleve(request);
         break;
 
+      // WORKFLOW DEMANDE D'ÉVALUATION
+      case 'demanderEvaluation':
+        result = demanderEvaluation(request);
+        break;
+      case 'repondreDemandeEvaluation':
+        result = repondreDemandeEvaluation(request);
+        break;
+      case 'saveValidationSuivi':
+        result = saveValidationSuivi(request);
+        break;
+
       // PARAMETRES NOTES & SOMMATIVES
       case 'getParametresNotes':
         result = getParametresNotes(request);
@@ -1213,6 +1224,13 @@ function getBanquesCompetences(data) {
     });
   }
 
+  // Filtrer par type_usage si fourni (entrainement, eval_bonus, tache_complexe)
+  if (data && data.type_usage) {
+    banques = banques.filter(function(b) {
+      return String(b.type_usage || 'entrainement') === String(data.type_usage);
+    });
+  }
+
   return { success: true, data: banques };
 }
 
@@ -1229,16 +1247,34 @@ function createBanqueCompetence(data) {
     sheet.appendRow(['id', 'competence_id', 'titre', 'description', 'ordre', 'statut', 'date_creation']);
   }
 
+  // Migration progressive : nouvelles colonnes
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var newCols = ['type_usage', 'competence_ids'];
+  newCols.forEach(function(col) {
+    if (headers.indexOf(col) === -1) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
+      headers.push(col);
+    }
+  });
+
   var id = 'bc_' + new Date().getTime();
-  var rowData = [
-    id,
-    data.competence_id || '',
-    data.titre || '',
-    data.description || '',
-    data.ordre || 1,
-    data.statut || 'brouillon',
-    new Date().toISOString()
-  ];
+
+  // Relire les headers après migration
+  headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var rowData = headers.map(function(h) {
+    switch (h) {
+      case 'id': return id;
+      case 'competence_id': return data.competence_id || '';
+      case 'titre': return data.titre || '';
+      case 'description': return data.description || '';
+      case 'ordre': return data.ordre || 1;
+      case 'statut': return data.statut || 'brouillon';
+      case 'date_creation': return new Date().toISOString();
+      case 'type_usage': return data.type_usage || 'entrainement';
+      case 'competence_ids': return data.competence_ids || '';
+      default: return data[h] !== undefined ? data[h] : '';
+    }
+  });
 
   sheet.appendRow(rowData);
   return { success: true, id: id };
@@ -5381,7 +5417,9 @@ function createEvaluation(data) {
   var lastCol = sheet.getLastColumn();
   var headerRow = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
-  var requiredCols = ['date_ouverture', 'date_fermeture', 'mode_passation'];
+  var requiredCols = ['date_ouverture', 'date_fermeture', 'mode_passation',
+    'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id',
+    'points_par_competence', 'competence_ids'];
   requiredCols.forEach(function(col) {
     if (headerNames.indexOf(col) < 0) {
       lastCol++;
@@ -5439,7 +5477,7 @@ function updateEvaluation(data) {
     return { success: false, error: 'Evaluation non trouvee' };
   }
 
-  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id', 'mode_passation'];
+  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id', 'mode_passation', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id', 'points_par_competence', 'competence_ids'];
   updates.forEach(col => {
     if (data[col] !== undefined) {
       const colIndex = headers.indexOf(col);
@@ -5656,7 +5694,8 @@ function saveEvaluationResult(data) {
   // Migration progressive : ajouter les colonnes manquantes
   var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
-  var migrationCols = ['banque_id', 'entrainement_id', 'correction_html', 'detailed_results', 'statut_resultat'];
+  var migrationCols = ['banque_id', 'entrainement_id', 'correction_html', 'detailed_results', 'statut_resultat',
+    'validation_numero', 'competence_ids_validees', 'demande_statut', 'date_demande', 'date_acceptation', 'date_rendu'];
   migrationCols.forEach(function(col) {
     if (headerNames.indexOf(col) < 0) {
       sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
@@ -6800,6 +6839,182 @@ function _computeEffectiveStatut_(evaluation) {
   if (dateOuverture && !isNaN(dateOuverture.getTime()) && dateOuverture > now) return 'planifiee';
   if (dateFermeture && !isNaN(dateFermeture.getTime()) && dateFermeture < now) return 'terminee';
   return 'publiee';
+}
+
+// ========================================
+// WORKFLOW DEMANDE D'ÉVALUATION (bonus / tâches complexes)
+// États : demande → accepte → soumis → corrige
+// ========================================
+
+/**
+ * Élève demande à passer une évaluation (bonus compétence, bonus ponctuel, tâche complexe sur demande)
+ * Crée un résultat avec demande_statut='demande'
+ * @param {Object} data - { evaluation_id, eleve_id }
+ */
+function demanderEvaluation(data) {
+  if (!data.evaluation_id || !data.eleve_id) {
+    return { success: false, error: 'evaluation_id et eleve_id requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet EVALUATION_RESULTATS non trouvée' };
+  }
+
+  // Migration progressive
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
+  var migrationCols = ['demande_statut', 'date_demande', 'date_acceptation', 'date_rendu'];
+  migrationCols.forEach(function(col) {
+    if (headerNames.indexOf(col) < 0) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
+      headerNames.push(col);
+    }
+  });
+
+  // Vérifier qu'il n'y a pas déjà une demande en cours
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var evalIdCol = headers.indexOf('evaluation_id');
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var demandeCol = headers.indexOf('demande_statut');
+
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][evalIdCol]).trim() === String(data.evaluation_id).trim() &&
+        String(allData[i][eleveIdCol]).trim() === String(data.eleve_id).trim()) {
+      var existingStatut = demandeCol >= 0 ? String(allData[i][demandeCol]).trim() : '';
+      if (existingStatut === 'demande' || existingStatut === 'accepte') {
+        return { success: false, error: 'Une demande est déjà en cours' };
+      }
+    }
+  }
+
+  // Créer le résultat avec statut demande
+  var id = 'res_' + new Date().getTime();
+  var newRow = headers.map(function(col) {
+    if (col === 'id') return id;
+    if (col === 'evaluation_id') return data.evaluation_id;
+    if (col === 'eleve_id') return data.eleve_id;
+    if (col === 'demande_statut') return 'demande';
+    if (col === 'date_demande') return new Date().toISOString();
+    if (col === 'source') return 'demande_eleve';
+    return '';
+  });
+
+  sheet.appendRow(newRow);
+  return { success: true, id: id, message: 'Demande enregistrée' };
+}
+
+/**
+ * Prof accepte ou refuse une demande d'évaluation
+ * @param {Object} data - { evaluation_id, eleve_id, decision: 'accepte'|'refuse', date_rendu? }
+ */
+function repondreDemandeEvaluation(data) {
+  if (!data.evaluation_id || !data.eleve_id || !data.decision) {
+    return { success: false, error: 'evaluation_id, eleve_id et decision requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet non trouvée' };
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var evalIdCol = headers.indexOf('evaluation_id');
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var demandeCol = headers.indexOf('demande_statut');
+  var dateAcceptCol = headers.indexOf('date_acceptation');
+  var dateRenduCol = headers.indexOf('date_rendu');
+
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][evalIdCol]).trim() === String(data.evaluation_id).trim() &&
+        String(allData[i][eleveIdCol]).trim() === String(data.eleve_id).trim() &&
+        demandeCol >= 0 && String(allData[i][demandeCol]).trim() === 'demande') {
+      // Mettre à jour le statut
+      sheet.getRange(i + 1, demandeCol + 1).setValue(data.decision);
+      if (dateAcceptCol >= 0) {
+        sheet.getRange(i + 1, dateAcceptCol + 1).setValue(new Date().toISOString());
+      }
+      if (data.date_rendu && dateRenduCol >= 0) {
+        sheet.getRange(i + 1, dateRenduCol + 1).setValue(data.date_rendu);
+      }
+      return { success: true, message: 'Demande ' + data.decision };
+    }
+  }
+
+  return { success: false, error: 'Demande non trouvée' };
+}
+
+/**
+ * Sauvegarde une validation de suivi (bonus suivi — ex: gestion du matériel)
+ * Incrémente le compteur de validations pour un élève
+ * @param {Object} data - { evaluation_id, eleve_id, validation_numero }
+ */
+function saveValidationSuivi(data) {
+  if (!data.evaluation_id || !data.eleve_id || !data.validation_numero) {
+    return { success: false, error: 'evaluation_id, eleve_id et validation_numero requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet non trouvée' };
+  }
+
+  // Migration progressive
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
+  ['validation_numero'].forEach(function(col) {
+    if (headerNames.indexOf(col) < 0) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
+      headerNames.push(col);
+    }
+  });
+
+  // Chercher un résultat existant pour cet élève/évaluation
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var evalIdCol = headers.indexOf('evaluation_id');
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var validNumCol = headers.indexOf('validation_numero');
+  var validationsCol = headers.indexOf('validations');
+  var dateCol = headers.indexOf('date_passage');
+
+  var existingRow = -1;
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][evalIdCol]).trim() === String(data.evaluation_id).trim() &&
+        String(allData[i][eleveIdCol]).trim() === String(data.eleve_id).trim()) {
+      existingRow = i + 1;
+      break;
+    }
+  }
+
+  if (existingRow > 0) {
+    // Mettre à jour le nombre de validations et la date
+    if (validNumCol >= 0) sheet.getRange(existingRow, validNumCol + 1).setValue(data.validation_numero);
+    if (validationsCol >= 0) sheet.getRange(existingRow, validationsCol + 1).setValue(data.validation_numero);
+    if (dateCol >= 0) sheet.getRange(existingRow, dateCol + 1).setValue(new Date().toISOString());
+    return { success: true, message: 'Validation ' + data.validation_numero + ' enregistrée' };
+  }
+
+  // Créer un nouveau résultat
+  var id = 'res_' + new Date().getTime();
+  var newRow = headers.map(function(col) {
+    if (col === 'id') return id;
+    if (col === 'evaluation_id') return data.evaluation_id;
+    if (col === 'eleve_id') return data.eleve_id;
+    if (col === 'validation_numero') return data.validation_numero;
+    if (col === 'validations') return data.validation_numero;
+    if (col === 'source') return 'saisie_admin';
+    if (col === 'date_passage') return new Date().toISOString();
+    return '';
+  });
+
+  sheet.appendRow(newRow);
+  return { success: true, id: id, message: 'Validation ' + data.validation_numero + ' enregistrée' };
 }
 
 // ================================================================
