@@ -6106,12 +6106,40 @@ function getEvaluationResultForReview(data) {
     }
   }
 
+  // 4. Si évaluation de type competences (TC), charger les compétences et critères
+  var competences = [];
+  var criteres = [];
+  if (evaluation && String(evaluation.type || '').trim() === 'competences') {
+    var compSheet = ss.getSheetByName('CompetencesReferentiel');
+    if (compSheet) {
+      var compData = compSheet.getDataRange().getValues();
+      var compHeaders = compData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      for (var ci = 1; ci < compData.length; ci++) {
+        var compRow = {};
+        compHeaders.forEach(function(h, idx) { compRow[h] = compData[ci][idx]; });
+        competences.push(compRow);
+      }
+    }
+    var critSheet = ss.getSheetByName('CriteresReussite');
+    if (critSheet) {
+      var critData = critSheet.getDataRange().getValues();
+      var critHeaders = critData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      for (var cri = 1; cri < critData.length; cri++) {
+        var critRow = {};
+        critHeaders.forEach(function(h, idx) { critRow[h] = critData[cri][idx]; });
+        criteres.push(critRow);
+      }
+    }
+  }
+
   return {
     success: true,
     data: {
       resultat: resultat,
       evaluation: evaluation,
-      banque_titre: banqueTitre
+      banque_titre: banqueTitre,
+      competences: competences,
+      criteres: criteres
     }
   };
 }
@@ -7173,7 +7201,21 @@ function saveEvaluationCorrection(data) {
   }
 
   if (targetRow < 0) {
-    return { success: false, error: 'Résultat non trouvé pour cet élève/évaluation' };
+    // Créer la ligne si elle n'existe pas (TC obligatoires sans demande préalable)
+    var newId = 'res_' + new Date().getTime();
+    var newRow = headers.map(function(col) {
+      if (col === 'id') return newId;
+      if (col === 'evaluation_id') return data.evaluation_id;
+      if (col === 'eleve_id') return data.eleve_id;
+      if (col === 'source') return 'manuel';
+      if (col === 'date_passage') return new Date().toISOString();
+      return '';
+    });
+    sheet.appendRow(newRow);
+    targetRow = sheet.getLastRow();
+    // Relire les headers (appendRow peut changer la structure)
+    allData = sheet.getDataRange().getValues();
+    headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
   }
 
   // Écrire les champs de correction

@@ -744,3 +744,229 @@
         position: static;
     }
 }
+
+/* ===== VUE REVIEW TC (2 colonnes) ===== */
+.tc-review-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.tc-review-header {
+    margin-bottom: 20px;
+}
+
+.tc-review-back {
+    display: inline-block;
+    margin-bottom: 12px;
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+.tc-review-back:hover { color: #374151; }
+
+.tc-review-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 8px;
+}
+
+.tc-review-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tc-review-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.tc-review-badge.type-competences {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+.tc-review-badge.matiere {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+/* Bandeau points */
+.tc-review-points-banner {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.tc-review-points-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.tc-review-points-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.tc-review-points-matiere {
+    font-size: 13px;
+    color: #6b7280;
+    padding: 2px 10px;
+    background: #f3f4f6;
+    border-radius: 10px;
+}
+
+.tc-review-points-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.tc-review-points-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+/* 2 colonnes */
+.tc-review-columns {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.tc-review-left,
+.tc-review-right {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+/* Onglets Remarque / Corrigé */
+.tc-review-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0;
+}
+
+.tc-review-tab {
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+.tc-review-tab.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+}
+.tc-review-tab:hover { color: #374151; }
+
+.tc-review-tab-content { display: none; }
+.tc-review-tab-content.active { display: block; }
+
+.tc-review-empty {
+    color: #9ca3af;
+    text-align: center;
+    padding: 32px 16px;
+    font-size: 14px;
+}
+
+/* Contenu correction */
+.tc-review-doc-embed {
+    border-radius: 8px;
+    overflow: hidden;
+}
+.tc-review-iframe {
+    width: 100%;
+    height: 500px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+.tc-review-richtext {
+    line-height: 1.7;
+    font-size: 15px;
+}
+
+/* Critères */
+.tc-review-criteres-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+
+.tc-review-criteres-summary {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0 0 16px;
+}
+
+.tc-review-comp-section {
+    margin-bottom: 16px;
+}
+
+.tc-review-comp-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: #374151;
+}
+
+.tc-review-criteres-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tc-review-critere {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.tc-review-critere.valid {
+    background: #f0fdf4;
+    color: #166534;
+}
+.tc-review-critere.invalid {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.tc-review-critere-icon {
+    flex-shrink: 0;
+    font-size: 14px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .tc-review-columns {
+        grid-template-columns: 1fr;
+    }
+    .tc-review-container {
+        padding: 16px;
+    }
+}

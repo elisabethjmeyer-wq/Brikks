@@ -1076,6 +1076,16 @@ const EleveEvaluations = {
             actionHtml = `<div class="card-action-info upcoming">${escapeHtml(this.getCountdown(evaluation.date_ouverture))}</div>`;
         } else if (isMissed) {
             actionHtml = '';
+        } else if (isDone && resultat && isTC) {
+            // TC : "Voir le détail" uniquement si la correction est publiée
+            const corrPubliee = String(resultat.statut_correction || '').trim() === 'publie';
+            if (corrPubliee) {
+                clickAttr = ` onclick="EleveEvaluations.openReview('${evaluation.id}')"`;
+                cardClass += ' clickable';
+                actionHtml = '<div class="card-detail-link">Voir le détail →</div>';
+            } else {
+                statusExtra += '<span class="bonus-status en-attente" style="align-self:flex-start">En attente de correction</span>';
+            }
         } else if (isDone && resultat) {
             clickAttr = ` onclick="EleveEvaluations.openReview('${evaluation.id}')"`;
             cardClass += ' clickable';
