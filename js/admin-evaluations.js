@@ -954,7 +954,7 @@ const AdminEvaluations = {
                         <label>Titre <span class="req">*</span></label>
                         <input type="text" class="form-input" id="evalTitre" value="${escapeHtml(d.titre || '')}" placeholder="Ex: Evaluation chapitre 1">
                     </div>
-                    ${(type === 'bonus' || type === 'competences') ? `
+                    ${type === 'bonus' ? `
                     <div class="form-row">
                         <div class="form-group" id="evalMatiereGroup">
                             <label>Matière <span class="req">*</span></label>
@@ -963,13 +963,12 @@ const AdminEvaluations = {
                                 <option value="HG-EMC" ${d.matiere === 'HG-EMC' ? 'selected' : ''}>🌍 HG-EMC</option>
                                 <option value="Les deux" ${d.matiere === 'Les deux' ? 'selected' : ''}>🔗 Les deux</option>
                             </select>
-                            ${type === 'competences' ? '<div class="form-help">Détermine dans quel onglet l\'évaluation apparaît</div>' : ''}
                         </div>
                         <div class="form-group"></div>
                     </div>
                     <select id="evalCategorie" style="display:none"><option value="" selected></option></select>` : `
                     <div style="display:none">
-                        <select id="evalMatiere"><option value="FR" selected></option></select>
+                        <select id="evalMatiere"><option value="${type === 'competences' ? 'Les deux' : 'FR'}" selected></option></select>
                         <select id="evalCategorie"><option value="" selected></option></select>
                     </div>`}
                     <div class="form-row">
@@ -1359,31 +1358,10 @@ const AdminEvaluations = {
         return '';
     },
 
-    _renderCompFields(d) {
-        return `
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Date d'ouverture</label>
-                    <input type="date" class="form-input" id="evalDateOuverture" value="${d.date_ouverture ? d.date_ouverture.split('T')[0] : ''}">
-                    <div class="form-help">Date à partir de laquelle l'évaluation est visible</div>
-                </div>
-                <div class="form-group">
-                    <label>Date de fermeture</label>
-                    <input type="date" class="form-input" id="evalDateFermeture" value="${d.date_fermeture ? d.date_fermeture.split('T')[0] : ''}">
-                    <div class="form-help">Date après laquelle l'évaluation est terminée</div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="toggle-label">
-                        <input type="checkbox" id="evalSujetAvance" ${d.sujet_disponible_avance === true || d.sujet_disponible_avance === 'true' || d.sujet_disponible_avance === 'TRUE' ? 'checked' : ''}>
-                        Sujet disponible à l'avance
-                    </label>
-                    <div class="form-help">Si coché, les élèves peuvent consulter le sujet avant la date de l'évaluation</div>
-                </div>
-                <div class="form-group"></div>
-            </div>
-        `;
+    _renderCompFields() {
+        // Les dates ouverture/fermeture se configurent via le bouton statut (programmation)
+        // La matière est déterminée par les compétences sélectionnées, pas au niveau de l'évaluation
+        return '';
     },
 
     _renderBonusFields(d) {
@@ -4046,6 +4024,62 @@ const AdminEvaluations = {
     },
 
     /**
+     * Retourne un map { compId: { pts, matiere, color, label } } pour une évaluation.
+     */
+    _getCompPointsMapForEval(evaluation) {
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        const matiereLabels = { 'FR': 'FR', 'HG-EMC': 'HG-EMC', 'Transversal': 'Trans.' };
+
+        let evalPpc = {};
+        if (evaluation && evaluation.points_par_competence) {
+            try {
+                evalPpc = typeof evaluation.points_par_competence === 'string' ? JSON.parse(evaluation.points_par_competence) : evaluation.points_par_competence;
+            } catch (_e) { /* ignore */ }
+        }
+        const hasEvalPpc = Object.keys(evalPpc).length > 0;
+
+        const compIds = this._getCompetenceIdsForEval(evaluation);
+        const totalBriques = parseFloat(evaluation ? evaluation.briques : 0) || 0;
+        const fallbackPerComp = compIds.length > 0 ? totalBriques / compIds.length : 1;
+        const map = {};
+
+        compIds.forEach(compId => {
+            const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
+            const compMat = comp ? (comp.matiere || 'Transversal') : 'Transversal';
+            const pts = hasEvalPpc ? (parseFloat(evalPpc[String(compId)]) || 1) : (fallbackPerComp || 1);
+            map[String(compId)] = {
+                pts: pts,
+                matiere: compMat,
+                color: matiereColors[compMat] || '#6b7280',
+                label: matiereLabels[compMat] || compMat
+            };
+        });
+        return map;
+    },
+
+    /**
+     * Calcule automatiquement les points par compétence depuis les critères validés.
+     * Tous critères cochés = points gagnés, sinon 0.
+     */
+    _computePointsParCompetence(evaluation, wd) {
+        const ptsMap = this._getCompPointsMapForEval(evaluation);
+        const ppc = {};
+        let total = 0;
+
+        for (const compId in ptsMap) {
+            const info = ptsMap[compId];
+            const criteres = this._getCriteresByCompetence(compId);
+            const valides = (wd.competenceValidees && wd.competenceValidees[compId]) ? wd.competenceValidees[compId] : [];
+            const allValid = criteres.length > 0 && criteres.every(c => valides.indexOf(String(c.id)) !== -1);
+            const pts = allValid ? info.pts : 0;
+            ppc[compId] = pts;
+            total += pts;
+        }
+
+        return { ppc, total };
+    },
+
+    /**
      * Ouvre le wizard de correction pour un élève dans la saisie TC.
      */
     openCorrectionWizard(eleveId) {
@@ -4073,9 +4107,6 @@ const AdminEvaluations = {
             // Critères
             criteresValides: [],
             competenceValidees: {},
-            // Points
-            points: resultat.validations !== undefined && resultat.validations !== '' ? String(resultat.validations) : '',
-            maxPoints: evaluation.briques || 3,
             // Statut publication
             statutCorrection: resultat.statut_correction || 'brouillon'
         };
@@ -4170,10 +4201,6 @@ const AdminEvaluations = {
                 wd.correctionType = blocksJson ? 'blocks' : null;
                 wd.correctionValue = blocksJson || '';
             }
-        } else if (wd.step === 2) {
-            // Points
-            const ptsInput = document.getElementById('corrTCPoints');
-            if (ptsInput) wd.points = ptsInput.value;
         }
     },
 
@@ -4279,6 +4306,7 @@ const AdminEvaluations = {
         const wd = this._corrWizardData;
         const evaluation = this.saisieEvaluation;
         const compIds = this._getCompetenceIdsForEval(evaluation);
+        const ptsMap = this._getCompPointsMapForEval(evaluation);
 
         let criteresHtml = '';
         if (compIds.length === 0) {
@@ -4289,12 +4317,14 @@ const AdminEvaluations = {
                 const criteres = this._getCriteresByCompetence(compId);
                 const compValides = wd.competenceValidees[compId] || [];
                 const allChecked = criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
+                const info = ptsMap[String(compId)] || { pts: 1, matiere: 'Transversal', color: '#6b7280', label: 'Trans.' };
 
                 criteresHtml += `<div class="tc-competence-section${allChecked ? ' comp-validated' : ''}" data-comp-id="${compId}">
-                    <div class="tc-comp-header">
+                    <div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <span class="tc-comp-icon">🎯</span>
-                        <h4>${escapeHtml(comp ? comp.nom : 'Compétence inconnue')}</h4>
-                        <span class="tc-comp-status ${allChecked ? 'validated' : 'not-validated'}">${allChecked ? '✅ Validée' : '❌ Non validée'}</span>
+                        <h4 style="flex:1;margin:0;">${escapeHtml(comp ? comp.nom : 'Compétence inconnue')}</h4>
+                        <span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:${info.color}20;color:${info.color};font-weight:600;white-space:nowrap;">${info.pts} pt${info.pts > 1 ? 's' : ''} · ${escapeHtml(info.label)}</span>
+                        <span class="comp-valid-badge" id="compBadge_${compId}" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;${allChecked ? 'background:#dcfce7;color:#16a34a;">✅ Validée' : 'background:#fee2e2;color:#dc2626;">❌ Non validée'}</span>
                     </div>`;
 
                 if (criteres.length > 0) {
@@ -4318,18 +4348,10 @@ const AdminEvaluations = {
             <div class="step-header">
                 <span class="step-icon">✅</span>
                 <div><h3>Compétences</h3>
-                <p>Cochez les critères validés — une compétence est validée quand tous ses critères sont cochés</p></div>
+                <p>Cochez les critères validés — tous les critères cochés = compétence validée = points gagnés</p></div>
             </div>
 
             ${criteresHtml}
-
-            <div class="corr-points-section">
-                <label>Points attribués</label>
-                <div class="corr-points-input">
-                    <input type="number" id="corrTCPoints" class="form-input" min="0" max="${wd.maxPoints}" value="${escapeHtml(wd.points)}" placeholder="0">
-                    <span class="corr-points-max">/ ${wd.maxPoints}</span>
-                </div>
-            </div>
         `;
     },
 
@@ -4362,10 +4384,11 @@ const AdminEvaluations = {
             const criteres = this._getCriteresByCompetence(compId);
             const compValides = wd.competenceValidees[compId] || [];
             const allChecked = criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
-            const statusEl = section.querySelector('.tc-comp-status');
-            if (statusEl) {
-                statusEl.className = `tc-comp-status ${allChecked ? 'validated' : 'not-validated'}`;
-                statusEl.textContent = allChecked ? '✅ Validée' : '❌ Non validée';
+            const badgeEl = document.getElementById('compBadge_' + compId);
+            if (badgeEl) {
+                badgeEl.style.background = allChecked ? '#dcfce7' : '#fee2e2';
+                badgeEl.style.color = allChecked ? '#16a34a' : '#dc2626';
+                badgeEl.innerHTML = allChecked ? '✅ Validée' : '❌ Non validée';
             }
             section.classList.toggle('comp-validated', allChecked);
         }
@@ -4376,24 +4399,49 @@ const AdminEvaluations = {
     _renderCorrStep3() {
         const wd = this._corrWizardData;
         const evaluation = this.saisieEvaluation;
+        const ptsMap = this._getCompPointsMapForEval(evaluation);
+        const computed = this._computePointsParCompetence(evaluation, wd);
         const compIds = this._getCompetenceIdsForEval(evaluation);
-        const totalComps = compIds.length;
-        let nbCompsValidees = 0;
-        const compDetails = compIds.map(cid => {
-            const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(cid));
-            const criteres = this._getCriteresByCompetence(cid);
-            const compValides = wd.competenceValidees[cid] || [];
-            const allChecked = criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
-            if (allChecked) nbCompsValidees++;
-            return { nom: comp ? comp.nom : 'Compétence', allChecked };
-        });
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
 
         const hasRemarque = wd.correctionType === 'blocks' ? !!wd.correctionValue : (wd.correctionType === 'url' ? !!wd.correctionValue : false);
-        const matiere = evaluation.matiere || '';
 
-        const compDetailHtml = compDetails.map(c =>
-            `<div style="font-size:13px;padding:2px 0;">${c.allChecked ? '✅' : '❌'} ${escapeHtml(c.nom)}</div>`
-        ).join('');
+        // Grouper par matière
+        const byMatiere = {};
+        compIds.forEach(compId => {
+            const info = ptsMap[String(compId)] || { pts: 1, matiere: 'Transversal', color: '#6b7280' };
+            const mat = info.matiere;
+            if (!byMatiere[mat]) byMatiere[mat] = { earned: 0, max: 0, color: info.color };
+            byMatiere[mat].max += info.pts;
+            byMatiere[mat].earned += computed.ppc[compId] || 0;
+        });
+
+        // Résumé par matière
+        let matiereHtml = '';
+        ['FR', 'HG-EMC', 'Transversal'].forEach(mat => {
+            if (!byMatiere[mat]) return;
+            const m = byMatiere[mat];
+            const color = m.color || matiereColors[mat] || '#6b7280';
+            const matLabel = mat === 'Transversal' ? 'Transversal (FR + HG-EMC)' : mat;
+            matiereHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100, #f3f4f6);">
+                <span style="display:inline-block;font-size:0.8rem;padding:3px 10px;border-radius:4px;background:${color}20;color:${color};font-weight:600;min-width:60px;text-align:center;">${escapeHtml(matLabel)}</span>
+                <span style="font-size:0.95rem;font-weight:600;">${m.earned} / ${m.max} pt${m.max > 1 ? 's' : ''}</span>
+                ${m.earned >= m.max && m.max > 0 ? '<span style="color:#16a34a;">✅</span>' : m.earned > 0 ? '<span style="color:#f59e0b;">⚠️</span>' : ''}
+            </div>`;
+        });
+
+        // Détail par compétence
+        let compDetailHtml = '';
+        compIds.forEach(compId => {
+            const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
+            const info = ptsMap[String(compId)] || { pts: 1 };
+            const earned = computed.ppc[compId] || 0;
+            compDetailHtml += `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.8rem;">
+                <span>${earned > 0 ? '✅' : '❌'}</span>
+                <span style="flex:1;">${escapeHtml(comp ? comp.nom : 'Compétence')}</span>
+                <span style="font-weight:600;">${earned} / ${info.pts}</span>
+            </div>`;
+        });
 
         return `
             <div class="step-header">
@@ -4403,8 +4451,14 @@ const AdminEvaluations = {
             </div>
 
             <div class="bilan-section">
-                <div class="summary-row"><span class="label">Points</span><span class="value">${escapeHtml(wd.points || '0')} / ${wd.maxPoints}${matiere ? ' (' + escapeHtml(matiere) + ')' : ''}</span></div>
-                <div class="summary-row"><span class="label">Compétences</span><span class="value" style="flex-direction:column;align-items:flex-start;">${nbCompsValidees}/${totalComps} validée${nbCompsValidees > 1 ? 's' : ''}${compDetailHtml}</span></div>
+                <h4>Points gagnés par matière</h4>
+                ${matiereHtml}
+                <div style="margin-top:12px;">
+                    <details><summary style="cursor:pointer;font-size:0.85rem;color:var(--gray-400);margin-bottom:6px;">Détail par compétence</summary>${compDetailHtml}</details>
+                </div>
+            </div>
+
+            <div class="bilan-section">
                 <div class="summary-row"><span class="label">Remarque</span><span class="value">${hasRemarque ? '✅ Rédigée' : '— Aucune'}</span></div>
             </div>
 
@@ -4448,6 +4502,9 @@ const AdminEvaluations = {
                 return criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
             });
 
+            // Calculer les points automatiquement depuis les critères
+            const computed = this._computePointsParCompetence(evaluation, wd);
+
             const params = {
                 evaluation_id: wd.evaluationId,
                 eleve_id: wd.eleveId,
@@ -4456,8 +4513,9 @@ const AdminEvaluations = {
                 criteres_valides: JSON.stringify(wd.criteresValides),
                 competence_ids_validees: JSON.stringify(validatedCompIds),
                 is_validated: validatedCompIds.length > 0,
-                validations: wd.points || '0',
-                score: wd.points || '0'
+                validations: String(computed.total),
+                score: String(computed.total),
+                points_par_competence: JSON.stringify(computed.ppc)
             };
 
             const result = await this.callAPI('saveEvaluationCorrection', params);
