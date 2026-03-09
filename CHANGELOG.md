@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-03-09 — Session 33 : UX évaluations élève + wizards admin
+
+### Wizard admin TC et bonus (admin-evaluations.js)
+
+1. **Wizard TC** : taille modal corrigée (trop étroite), dates ouverture/fermeture restaurées dans l'étape 1, toggle "Sujet visible à l'avance" rétabli, refonte wizard correction intégré à la saisie des résultats (tags matière, badges validation live, points automatiques par critères).
+2. **Wizard bonus** : simplifié — mode passation supprimé (toujours papier implicite), dropdown compétences remplace la popup modale.
+
+### Vue sujet TC élève (eleve-evaluation.js, eleve-evaluation.css)
+
+1. **Sidebar compétences** : structure emboîtée (compétences → critères en dessous) au lieu d'un listing plat. Ratio 60/40 sujet-critères au lieu de 50/50.
+2. **Bandeau points TC** : supprimé, remplacé par affichage des points par discipline dans le bloc compétences.
+
+### Cartes bonus élève (eleve-evaluations.js)
+
+1. **Tag "Disponible"** sur les bonus demandables + bouton "Demander" directement sur la carte.
+2. **Description** visible sur les cartes bonus comp/ponctuel (texte tronqué à 2 lignes).
+3. **Bouton "J'ai rendu ma copie"** supprimé (pas de rendu en ligne).
+4. **Condition de réussite** : masquée pour les bonus (pas pertinent).
+5. **Mention "Réussite : Critères de réussite"** masquée pour les bonus et TC.
+6. **Fix doublon statut** : le statut n'apparaît plus 2 fois sur les cartes bonus.
+
+**Fichiers modifiés** : `js/admin-evaluations.js`, `js/eleve-evaluation.js`, `js/eleve-evaluations.js`, `css/eleve-evaluation.css`
+
+---
+
 ## 2026-03-09 — Session 32 : Correction wizard — points automatiques par critères
 
 ### Wizard de correction (admin-corrections.js) — étapes 3 et 4
@@ -15,10 +40,10 @@
 
 **Fichier modifié** : `js/admin-corrections.js`
 
-### Ce qui reste à faire (signalé par l'utilisatrice)
+### Ce qui reste à faire (signalé par l'utilisatrice) — ✅ CORRIGÉ SESSION 33
 
-- **Wizard de création TC** (`admin-evaluations.js`) : l'étape 1 (Paramètres) affiche les dates ouverture/fermeture alors qu'elles ne devraient pas y être (se paramètrent via le bouton statut). La modal est aussi trop étroite ("étriquée"). À investiguer et corriger.
-- **Wizard de correction dans la saisie des résultats** (`admin-evaluations.js`) : le wizard de correction qui apparaît depuis la page Évaluations (vue saisie) n'a pas été mis à jour avec les mêmes améliorations (tags matière, badges validation, points automatiques). C'est celui-ci que l'utilisatrice voulait modifier en priorité, pas celui de la page Corrections.
+- ~~**Wizard de création TC** : modal trop étroite + dates mal placées~~ → **CORRIGÉ** (taille modal, dates restaurées, toggle sujet visible)
+- ~~**Wizard de correction dans la saisie des résultats** : pas mis à jour avec les améliorations~~ → **CORRIGÉ** (tags matière, badges validation, points automatiques)
 
 ---
 
