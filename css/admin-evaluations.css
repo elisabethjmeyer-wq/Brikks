@@ -294,6 +294,70 @@
     margin-left: 16px;
 }
 
+/* Demande traitée : carte grisée */
+.demande-card.treated {
+    background: var(--gray-50);
+    border-color: var(--gray-200);
+    opacity: 0.75;
+}
+.demande-card.treated .demande-eleve { color: var(--gray-500); }
+.demande-card.treated .demande-eval { color: var(--gray-400); }
+.demande-card.treated .demande-date { color: var(--gray-400); }
+
+.demande-status-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.demande-status-tag.accepted { background: #dcfce7; color: #16a34a; }
+.demande-status-tag.refused { background: #fee2e2; color: #dc2626; }
+
+/* Dépliant demandes traitées */
+.demandes-traitees-details {
+    margin-top: 24px;
+    border-top: 1px solid var(--gray-200);
+    padding-top: 16px;
+}
+.demandes-traitees-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-500);
+    list-style: none;
+    user-select: none;
+    padding: 8px 0;
+}
+.demandes-traitees-summary::-webkit-details-marker { display: none; }
+.demandes-traitees-summary::before {
+    content: '▸';
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+.demandes-traitees-details[open] > .demandes-traitees-summary::before {
+    transform: rotate(90deg);
+}
+.demandes-traitees-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--gray-200);
+    color: var(--gray-600);
+    font-size: 11px;
+    font-weight: 700;
+}
+.demandes-list.treated {
+    padding-top: 10px;
+}
+
 /* Réponse demande modal */
 .demande-info {
     background: var(--gray-50);

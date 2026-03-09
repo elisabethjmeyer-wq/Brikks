@@ -382,7 +382,7 @@ const AdminLayout = {
             // Charger copies à corriger + demandes bonus en parallèle
             var [result, resultatsData] = await Promise.all([
                 this.callAPI('getEleveTachesComplexes', {}),
-                SheetsAPI.getSheetData('EVALUATION_RESULTATS').catch(function() { return []; })
+                SheetsAPI.getSheetData('EVALUATION_RESULTATS', '', { forceRefresh: true }).catch(function() { return []; })
             ]);
 
             var pending = [];
