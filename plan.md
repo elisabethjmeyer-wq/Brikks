@@ -1,199 +1,150 @@
-# Plan : Refonte page bilan/correction des évaluations
+# Plan de correction/évolution des évaluations
 
-## Contexte
-
-Actuellement, la page de résultat après une évaluation (connaissances ou SF) est un layout simple en une colonne : bandeau vert/rouge, 4 stats, seuil, et une section "correction détaillée" plate. C'est très différent des pages de résultat des entraînements qui ont un vrai layout 2 colonnes navigable (bilan + carrousel d'erreurs).
-
-De plus, quand l'élève revient sur la liste et clique sur une évaluation terminée, il ne voit qu'un petit modal avec des stats agrégées — pas le détail de ses erreurs question par question.
-
-## Objectif
-
-1. Adopter le layout 2 colonnes des entraînements pour le bilan post-évaluation
-2. Ajouter un message conseil renvoyant vers les banques d'entraînement à retravailler
-3. Permettre de revoir le bilan complet depuis la liste des évaluations
-4. Vérifier le comportement du bouton "Commencer" après passage
+> 11 points remontés, regroupés en blocs logiques. Chaque bloc est indépendant.
 
 ---
 
-## Phase 1 — Enrichir les données sauvegardées
+## Bloc A — Points décimaux (point 1)
 
-**Problème** : Actuellement, `EVALUATION_RESULTATS.details` ne stocke que des stats compactes par étape (`{f: "qcm", c: 2, t: 3, p: 67}`). Pas les réponses de l'élève, pas les corrections. Impossible de re-afficher le détail a posteriori.
+**Problème** : Le champ "Points mis en jeu" n'accepte que des entiers (`parseInt()`).
+**Impact** : La prof ne peut pas mettre 0.25, 0.5, 1.5 pts.
 
-**Solution** : Ajouter une colonne `correction_html` dans `EVALUATION_RESULTATS` qui stocke le HTML de correction complet au moment de la soumission.
-
-### Fichiers modifiés :
-
-**`js/eleve-evaluation.js`** — `saveResults()` :
-- Pour **connaissances** : appeler `EleveConnaissances.generateErrorDetails(detailedResults)` et stocker le HTML résultant dans un nouveau paramètre `correction_html`
-- Pour **SF** : envoyer `this._sfCorrectedHTML` dans le paramètre `correction_html`
-- Ajouter aussi un champ `detailed_results` avec le JSON complet des résultats détaillés (pour connaissances : le retour de `compileResults()`, pour SF : les réponses via `collectExerciseDetails()`)
-
-**`google-apps-script/Evaluations.gs`** — `saveEvaluationResult()` :
-- Gérer la migration progressive de 2 nouvelles colonnes : `correction_html` et `detailed_results`
-- Stocker ces données à l'écriture (même logique que les autres colonnes à migration progressive)
-
-**Impact élève** : aucun impact visible à cette phase — on enrichit juste ce qui est sauvegardé.
-
-**Limite Google Sheets** : une cellule peut contenir jusqu'à ~50 000 caractères. Le HTML de correction est typiquement < 10 000 caractères, donc pas de problème. En sécurité, on tronquera si > 40 000 caractères.
+**Correction** :
+- `admin-evaluations.js` : remplacer `parseInt()` par `parseFloat()` pour le champ `briques` (2 endroits)
+- Ajouter `step="0.25"` au champ HTML `<input type="number" id="evalBriques">`
+- Ajuster le `min` à `0.25` au lieu de `1`
+- Backend (`Evaluations.gs`) : `parseFloat` au lieu de `parseInt` si utilisé
 
 ---
 
-## Phase 2 — Refonte du layout bilan post-évaluation
+## Bloc B — Wizard bonus suivi : critères/consignes pour l'élève (point 2)
 
-**Fichiers modifiés** : `js/eleve-evaluation.js` (fonction `showResults`), `css/eleve-evaluation.css`
+**Problème** : Le wizard bonus suivi n'a qu'une étape (paramètres + nb validations). Pas de champ pour expliquer à l'élève ce qu'il doit faire (ex: "Gestion du matériel : apporter ses affaires à chaque cours").
 
-### Layout cible (2 colonnes, identique aux entraînements) :
-
-```
-.eval-result-card (grid: 1fr 1.5fr)
-├── GAUCHE : .eval-result-bilan
-│   ├── Icône + message (Évaluation validée / Non validée)
-│   ├── Score en cercle (ex: 80%)
-│   ├── Barre de stats : correct/total, temps passé
-│   ├── Points gagnés/perdus (badge coloré : +3 ou +0)
-│   ├── Seuil de validation (rappel : "Il fallait X% pour valider")
-│   ├── 💡 Message conseil (voir Phase 3 ci-dessous)
-│   └── Bouton "Retour aux évaluations"
-│
-└── DROITE : .eval-result-correction
-    ├── Si AUCUNE ERREUR → panneau félicitation (comme entraînements)
-    └── Si ERREURS :
-        ├── Pour CONNAISSANCES → carrousel d'erreurs (réutiliser generateErrorDetails)
-        │   ├── Slide 0 : Vue d'ensemble (liste des étapes avec erreurs)
-        │   └── Slides 1+ : Détail par étape (rendu format par format)
-        └── Pour SF → HTML corrigé avec onglets Corrigé / Sujet (comme entraînements SF)
-```
-
-### Adaptation par rapport aux entraînements :
-- **Pas de section "répétition espacée"** (pas de dots 1-7 ou 1-5) — remplacée par les **points gagnés/perdus**
-- **Pas de bouton "Réessayer"** — l'élève ne peut pas relancer une évaluation depuis le bilan (elle sera automatiquement re-proposée avec de nouvelles questions si applicable)
-- **Ajout section "conseil"** (voir Phase 3)
-- Même code couleur : vert (réussi), orange (partiel), rouge (échoué)
-
-### CSS :
-- Réutiliser le maximum des classes existantes (`.result-card-conn`, `.result-bilan`, `.result-correction`)
-- Créer des variantes `.eval-*` pour les spécificités évaluation (points au lieu de niveaux)
-- Responsive : passage en 1 colonne sous 900px (comme les entraînements)
+**Proposition** : Ajouter un champ `description_eleve` (texte long) dans le wizard, visible côté élève sur la carte bonus suivi.
+- Step 1 du wizard bonus suivi : ajouter un textarea "Consignes pour l'élève" sous le champ nb_validations
+- Colonne `description_eleve` dans EVALUATIONS (migration progressive)
+- Côté élève : afficher cette description sur la carte bonus suivi
 
 ---
 
-## Phase 3 — Message conseil avec lien vers les entraînements
+## Bloc C — Réorganisation TC obligatoire vs Bonus (point 3)
 
-### Logique métier :
+**Problème actuel** : Les TC obligatoires (évaluations de compétences) apparaissent dans l'onglet Bonus côté élève au lieu de l'onglet Évaluations.
 
-L'évaluation pioche dans une banque d'entraînement (`evaluation.attribution.banque_id`). On connaît donc la banque source.
+**Règle métier clarifiée** :
+- **Onglet Évaluations** : connaissances + savoir-faire + **tâches complexes obligatoires** (avec dates ouverture/fermeture)
+- **Onglet Bonus** : bonus compétence + bonus ponctuel + bonus suivi + **tâches complexes bonus** (sur demande, sans dates)
 
-**Si l'évaluation est réussie** :
-> "Bravo ! Continue à t'entraîner pour consolider tes acquis."
-> (pas de lien spécifique nécessaire)
-
-**Si l'évaluation est ratée** :
-> "Pour progresser, retravaille tes entraînements sur **[Nom de la banque]**."
-> + Lien direct vers la page d'entraînement correspondante (connaissances ou SF)
-
-### Données nécessaires :
-
-- `this.evaluation.attribution.banque_id` — déjà disponible côté frontend au moment du résultat
-- Nom de la banque — il faut le récupérer. Deux options :
-  - **Option A** : Le backend inclut déjà `chapitre_nom` dans l'évaluation. On peut ajouter `banque_titre` dans la réponse de `getEvaluationForEleve`.
-  - **Option B** : Le frontend charge les banques depuis le cache (déjà présent dans `EleveConnaissances.banques` ou `EleveExercices.banques`). Mais ces modules ne sont pas forcément initialisés avec toutes les banques au moment de l'évaluation.
-
-→ **Option A retenue** : enrichir la réponse backend avec `banque_titre` dans l'objet `attribution`.
-
-### Fichiers modifiés :
-- `google-apps-script/Evaluations.gs` — `getEvaluationForEleve` : ajouter le titre de la banque dans `attribution`
-- `js/eleve-evaluation.js` — `showResults` : afficher le message conseil avec lien
-
-### Lien de navigation :
-- Connaissances → `entrainements-conn.html` (la banque sera visible dans l'accordéon)
-- SF → `entrainements-sf.html` (idem)
+**Correction** :
+- `eleve-evaluations.js` : modifier la logique de tri des évaluations entre les onglets
+  - TC avec `date_ouverture` ou `date_fermeture` → onglet Évaluations
+  - TC sans dates (sur demande) → onglet Bonus
+  - Tous les autres bonus → onglet Bonus
 
 ---
 
-## Phase 4 — Revoir le bilan depuis la liste des évaluations
+## Bloc D — Badge "Disponible" trop large (point 4)
 
-### Approche : remplacer le modal par une navigation pleine page
+**Problème** : Le tag "Disponible" sur les cartes bonus prend toute la largeur en bleu.
 
-Actuellement, `openReview()` dans `eleve-evaluations.js` ouvre un petit modal. On va le remplacer par une navigation vers `evaluation.html?id=X&mode=review`.
-
-### Modifications :
-
-**`js/eleve-evaluation.js`** — mode review :
-- Dans `init()`, détecter le paramètre `mode=review` dans l'URL
-- Si review : ne pas lancer l'exercice, charger le résultat depuis `EVALUATION_RESULTATS` et afficher directement le bilan
-- Utiliser `correction_html` (stocké en Phase 1) pour le panneau droit
-- Utiliser `detailed_results` pour les stats du panneau gauche
-- Si `correction_html` est vide (anciennes évaluations passées avant la migration) : afficher un message "Détail non disponible pour cette évaluation" avec juste les stats
-
-**`js/eleve-evaluations.js`** — navigation :
-- `openReview(evaluationId)` → au lieu d'ouvrir un modal, faire `window.location.href = 'evaluation.html?id=' + evaluationId + '&mode=review'`
-- Supprimer le code du modal review (HTML + JS + CSS) devenu inutile
-
-**`google-apps-script/Evaluations.gs`** — nouvelle action API :
-- `getEvaluationResult({ evaluation_id, eleve_id })` : retourne la ligne complète de `EVALUATION_RESULTATS` incluant `correction_html`, `detailed_results`, `banque_id`, etc.
-- Enrichir avec les infos de l'évaluation (titre, type, seuil, briques) et le nom de la banque
-
-**`js/eleve-evaluation.js`** — rendu review :
-- Réutiliser exactement la même fonction `showResults()` de la Phase 2
-- Construire un objet `globalResult` depuis les données stockées
-- Afficher le layout 2 colonnes identique au bilan post-passage
-
-### Avantage :
-- Un seul code de rendu pour le bilan (post-passage ET review)
-- Cohérence visuelle totale
-- Pas de duplication
+**Correction** : CSS — le badge `.bonus-status.disponible` doit être `display: inline-block` / `width: fit-content` au lieu de prendre toute la ligne. Vérifier le conteneur parent.
 
 ---
 
-## Phase 5 — Vérification du bouton "Commencer"
+## Bloc E — Demande bonus : feedback élève + notification admin (point 5)
 
-### État actuel du code (`eleve-evaluations.js`, lignes 606-614) :
+**Problèmes** :
+1. Quand l'élève clique "Demander", le bouton ne change pas visuellement
+2. Pas de notification dans la cloche admin
 
-```javascript
-if (cardStatus === 'available' && !isPapier) {
-    actionHtml = `<a href="evaluation.html?id=..." class="card-btn">Commencer</a>`;
-} else if (isDone) {
-    actionHtml = '<div class="card-detail-link">Voir le détail →</div>';
-}
-```
-
-Le bouton "Commencer" n'apparaît que si `cardStatus === 'available'`, qui requiert qu'il n'y ait pas de résultat enregistré. **La logique est correcte.**
-
-### Vérification à faire :
-- Confirmer que `_getCardStatus()` retourne bien un statut "done" quand un résultat existe
-- Tester le cas où le cache SheetsAPI n'est pas encore rafraîchi après la sauvegarde (l'élève revient vite sur la liste) → le `clearCacheFor('EVALUATION_RESULTATS')` dans `saveResults` devrait résoudre ça
-- Si un bug est trouvé, le corriger
-
-### Fichiers à vérifier :
-- `js/eleve-evaluations.js` — `_getCardStatus()`
-- `js/eleve-evaluation.js` — `saveResults()` (vérifier le clearCache)
+**Corrections** :
+1. **Élève** : après `demanderEvaluation` réussie, mettre à jour l'état local de la carte immédiatement (statut → `demande_envoyee`, remplacer le bouton par un badge "Demande envoyée")
+2. **Admin** : intégrer le compteur de demandes dans le système de cloche existant (sidebar notification)
 
 ---
 
-## Résumé des fichiers impactés
+## Bloc F — Acceptation bonus → carte dans "Mes évaluations" + option voir sujet (point 6)
 
-| Fichier | Modifications |
-|---------|--------------|
-| `js/eleve-evaluation.js` | Phase 1 (saveResults enrichi) + Phase 2 (showResults refondu) + Phase 4 (mode review) |
-| `css/eleve-evaluation.css` | Phase 2 (nouveau layout 2 colonnes) |
-| `google-apps-script/Evaluations.gs` | Phase 1 (colonnes migration) + Phase 3 (banque_titre) + Phase 4 (getEvaluationResult) |
-| `google-apps-script/Code.gs` | Phase 4 (route getEvaluationResult) |
-| `js/eleve-evaluations.js` | Phase 4 (navigation au lieu du modal) |
-| `css/eleve-evaluations.css` | Phase 4 (supprimer CSS modal review) |
+**Problèmes** :
+1. Quand la prof accepte un bonus, la carte devrait passer dans "Mes évaluations" côté élève
+2. La prof doit pouvoir choisir si l'élève peut voir le sujet avant l'évaluation
 
-## Ordre d'exécution recommandé
+**Corrections** :
+1. Côté élève : les bonus avec `demande_statut='accepte'` et `type_date='passage_classe'` apparaissent dans l'onglet Évaluations (à passer). Les bonus avec `type_date='date_butoir'` restent dans Bonus avec le lien vers le sujet.
+2. Admin : ajouter un toggle "L'élève peut consulter le sujet" dans le modal d'acceptation → colonne `sujet_visible` dans EVALUATION_RESULTATS (migration progressive)
 
-1. **Phase 5** d'abord (vérification rapide du bouton)
-2. **Phase 1** (enrichir les données — pas d'impact visuel)
-3. **Phase 2** (refonte visuelle du bilan)
-4. **Phase 3** (message conseil)
-5. **Phase 4** (review depuis la liste)
+---
 
-Les phases 2 et 3 peuvent être fusionnées en un seul développement.
+## Bloc G — Erreur getDataRange consultation sujet (point 7)
 
-## Risques et points d'attention
+**Problème** : Quand on clique sur une évaluation de compétences ou bonus, erreur "Cannot read properties of null (reading 'getDataRange')".
 
-- **Rétro-compatibilité** : les évaluations déjà passées n'auront pas de `correction_html`. Le mode review affichera juste les stats sans détail — c'est acceptable.
-- **Taille des données** : le HTML de correction peut être volumineux pour les formats carte/association avec images. Prévoir un fallback si > 40 000 caractères.
-- **Build GAS** : penser à `npm run build:gas` après modification d'Evaluations.gs.
-- **Pas de tests automatisés** : tester manuellement après chaque phase.
+**Cause probable** : Le backend cherche un sheet de questions qui n'existe pas pour les types bonus/TC.
+
+**Correction** :
+- Backend : dans `Evaluations.gs`, gérer le cas bonus/TC → ne pas chercher les questions
+- Frontend : `eleve-evaluation.js` doit détecter le mode sujet et afficher le document en lecture seule
+
+---
+
+## Bloc H — Refonte gestion des demandes admin (point 8)
+
+**Problème** : Le bandeau de demandes prend trop de place. Mieux vaut la cloche + toggle dans l'onglet Bonus.
+
+**Proposition** :
+1. **Cloche admin** : compteur de demandes en attente (badge rouge)
+2. **Onglet Bonus admin** : toggle "Créer évaluations / Gérer les demandes"
+   - Vue "Créer" : liste des évaluations bonus (actuelle)
+   - Vue "Demandes" : cartes des demandes en attente avec accepter/refuser
+3. **Suppression du bandeau** bleu
+4. Demande acceptée → carte dans Corrections avec infos (date demande, date passage/butoir, consignes)
+
+---
+
+## Bloc I — Supprimer remarque du tableau de saisie (point 9)
+
+**Problème** : Le champ "Remarque" est inutile dans le tableau de saisie pour bonus et TC.
+
+**Correction** : masquer la colonne "Remarque" quand le type est bonus ou compétences.
+
+---
+
+## Bloc J — Attribution des points dans la correction (point 10)
+
+**Problème** : La page Corrections ne permet pas d'attribuer les points gagnés.
+
+**Corrections** :
+1. Wizard correction : ajouter un champ "Points attribués" (0 à `briques` max) dans l'étape Bilan
+2. Backend : `saveEvaluationCorrection` enregistre `score` dans EVALUATION_RESULTATS
+3. Tableau de saisie : afficher `score` en lecture seule quand il vient de la correction
+
+---
+
+## Bloc K — Feedback élève : rendu copie + correction visible (point 11)
+
+**Problèmes** :
+1. L'élève ne peut pas signaler qu'il a rendu sa copie
+2. Pas de changement visible après correction
+3. L'élève ne peut pas consulter la correction
+
+**Corrections** :
+1. Bouton "J'ai rendu" → `demande_statut='rendu'` → carte "En attente de correction"
+2. Après correction : carte affiche les points, passe dans "Terminées"
+3. Clic sur carte terminée : vue correction (correction_prof + critères)
+
+---
+
+## Ordre de traitement proposé
+
+1. **Bloc A** (points décimaux) — rapide
+2. **Bloc D** (badge CSS) — rapide
+3. **Bloc I** (supprimer remarque saisie) — rapide
+4. **Bloc G** (erreur getDataRange) — bug critique
+5. **Bloc B** (wizard suivi consignes) — moyen
+6. **Bloc C** (TC obligatoire dans Évaluations) — moyen
+7. **Bloc E** (feedback demande élève + notif admin) — moyen
+8. **Bloc H** (refonte demandes admin) — important
+9. **Bloc J** (points dans correction) — moyen
+10. **Bloc F** (acceptation → mes évaluations + option sujet) — moyen
+11. **Bloc K** (rendu copie + correction élève) — important
