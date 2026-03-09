@@ -290,13 +290,10 @@ const EleveEvaluation = {
      * Retourne du HTML groupé par compétence.
      */
     async _loadCriteresHtml(competenceIds) {
-        const [refData, criteresData] = await Promise.all([
+        const [referentiel, criteres] = await Promise.all([
             SheetsAPI.fetchAndParse('CompetencesReferentiel'),
             SheetsAPI.fetchAndParse('CriteresReussite')
         ]);
-
-        const referentiel = SheetsAPI.parseSheetData(refData);
-        const criteres = SheetsAPI.parseSheetData(criteresData);
 
         let html = '';
         for (const compId of competenceIds) {
