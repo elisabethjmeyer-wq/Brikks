@@ -447,7 +447,15 @@ const EleveEvaluation = {
             throw new Error(response.error || 'Résultat non trouvé');
         }
 
-        const { resultat, evaluation, banque_titre } = response.data;
+        const { resultat, evaluation, banque_titre, competences, criteres } = response.data;
+
+        // Si c'est une TC (type competences), rendre la vue spécifique
+        const evalType = evaluation ? String(evaluation.type || '').trim() : '';
+        if (evalType === 'competences') {
+            this._renderTCReview(resultat, evaluation, competences || [], criteres || []);
+            this.showContent();
+            return;
+        }
 
         // Reconstruire this.evaluation pour _buildResultHTML
         this.evaluation = {
@@ -499,6 +507,239 @@ const EleveEvaluation = {
         this._initCarouselNav();
 
         this.showContent();
+    },
+
+    // ========== VUE REVIEW TC (2 colonnes) ==========
+
+    /**
+     * Rendu de la vue review pour une tâche complexe.
+     * Layout 2 colonnes : remarque/corrigé à gauche, critères à droite.
+     */
+    _renderTCReview(resultat, evaluation, competences, criteres) {
+        const exerciseContainer = document.getElementById('exerciseContainer');
+        if (exerciseContainer) exerciseContainer.style.display = 'none';
+
+        const resultContainer = document.getElementById('resultContainer');
+        resultContainer.style.display = 'block';
+
+        const titre = evaluation.titre || 'Évaluation';
+        const matiere = evaluation.matiere || '';
+        const matiereLabel = matiere === 'FR' ? 'Français' : matiere === 'HG-EMC' ? 'HG-EMC' : matiere;
+        const points = parseFloat(resultat.validations) || 0;
+        const maxPoints = parseInt(evaluation.briques) || 1;
+        const pctPoints = Math.min(100, Math.round((points / maxPoints) * 100));
+
+        // Correction brouillon ? Ne pas montrer
+        const isBrouillon = String(resultat.statut_correction || '').trim() === 'brouillon';
+
+        // Parse correction prof (remarque individuelle)
+        const correctionProf = !isBrouillon ? (resultat.correction_prof || '') : '';
+
+        // Corrigé type (de l'évaluation elle-même)
+        const correctionType = !isBrouillon ? (evaluation.correction_contenu || evaluation.correction_commentee || '') : '';
+
+        // Parse critères validés
+        let criteresValides = [];
+        if (!isBrouillon && resultat.criteres_valides) {
+            try { criteresValides = JSON.parse(resultat.criteres_valides); } catch (_e) { /* ignore */ }
+        }
+
+        // Parse competence_ids de l'évaluation
+        let compIds = [];
+        if (evaluation.competence_ids) {
+            try {
+                const parsed = typeof evaluation.competence_ids === 'string' ? JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
+                compIds = Array.isArray(parsed) ? parsed.map(String) : [];
+            } catch (_e) { /* ignore */ }
+        }
+
+        // --- Bandeau points ---
+        const pointsBanner = `
+            <div class="tc-review-points-banner">
+                <div class="tc-review-points-info">
+                    <span class="tc-review-points-value">${points} / ${maxPoints} point${maxPoints > 1 ? 's' : ''}</span>
+                    ${matiereLabel ? `<span class="tc-review-points-matiere">${escapeHtml(matiereLabel)}</span>` : ''}
+                </div>
+                <div class="tc-review-points-bar">
+                    <div class="tc-review-points-fill" style="width: ${pctPoints}%"></div>
+                </div>
+            </div>
+        `;
+
+        // --- Colonne gauche : onglets Remarque / Corrigé ---
+        const hasRemarque = !!correctionProf;
+        const hasCorrige = !!correctionType;
+        const hasTabs = hasRemarque && hasCorrige;
+
+        let tabsHtml = '';
+        if (hasTabs) {
+            tabsHtml = `
+                <div class="tc-review-tabs">
+                    <button class="tc-review-tab active" data-tab="remarque" onclick="EleveEvaluation._switchTCTab('remarque')">📝 Remarque</button>
+                    <button class="tc-review-tab" data-tab="corrige" onclick="EleveEvaluation._switchTCTab('corrige')">📋 Corrigé</button>
+                </div>
+            `;
+        }
+
+        let remarqueHtml = '';
+        if (hasRemarque) {
+            remarqueHtml = `<div class="tc-review-tab-content${hasTabs ? ' active' : ''}" id="tcTabRemarque">${this._buildCorrectionContent(correctionProf)}</div>`;
+        }
+
+        let corrigeHtml = '';
+        if (hasCorrige) {
+            corrigeHtml = `<div class="tc-review-tab-content${!hasRemarque ? ' active' : ''}" id="tcTabCorrige">${this._buildCorrectionContent(correctionType)}</div>`;
+        }
+
+        const leftEmpty = !hasRemarque && !hasCorrige;
+        const leftContent = leftEmpty
+            ? '<div class="tc-review-empty">Pas de remarque ni de correction disponible.</div>'
+            : `${tabsHtml}${remarqueHtml}${corrigeHtml}`;
+
+        // --- Colonne droite : critères par compétence ---
+        let criteresHtml = '';
+        if (!isBrouillon && compIds.length > 0) {
+            let totalAll = 0;
+            let validesAll = 0;
+
+            compIds.forEach(compId => {
+                const comp = competences.find(c => String(c.id) === String(compId));
+                const compCriteres = criteres
+                    .filter(c => String(c.competence_id) === String(compId))
+                    .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+
+                if (compCriteres.length === 0) return;
+
+                totalAll += compCriteres.length;
+                const validesComp = compCriteres.filter(c => criteresValides.indexOf(String(c.id)) !== -1).length;
+                validesAll += validesComp;
+
+                criteresHtml += `
+                    <div class="tc-review-comp-section">
+                        <h4 class="tc-review-comp-title">🎯 ${escapeHtml(comp ? comp.nom : 'Compétence')}</h4>
+                        <div class="tc-review-criteres-list">
+                            ${compCriteres.map(c => {
+                                const isValid = criteresValides.indexOf(String(c.id)) !== -1;
+                                return `<div class="tc-review-critere ${isValid ? 'valid' : 'invalid'}">
+                                    <span class="tc-review-critere-icon">${isValid ? '✅' : '❌'}</span>
+                                    <span>${escapeHtml(c.libelle)}</span>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (totalAll > 0) {
+                criteresHtml = `
+                    <h3 class="tc-review-criteres-title">Compétences évaluées</h3>
+                    <p class="tc-review-criteres-summary">${validesAll} / ${totalAll} critère${totalAll > 1 ? 's' : ''} validé${validesAll > 1 ? 's' : ''}</p>
+                    ${criteresHtml}
+                `;
+            }
+        } else if (isBrouillon) {
+            criteresHtml = '<div class="tc-review-empty">La correction n\'est pas encore disponible.</div>';
+        }
+
+        // --- Assemblage ---
+        resultContainer.innerHTML = `
+            <div class="tc-review-container">
+                <div class="tc-review-header">
+                    <a href="evaluations.html" class="tc-review-back">← Mes évaluations</a>
+                    <h2 class="tc-review-title">${escapeHtml(titre)}</h2>
+                    <div class="tc-review-badges">
+                        <span class="tc-review-badge type-competences">Évaluation de compétence</span>
+                        ${matiereLabel ? `<span class="tc-review-badge matiere">${escapeHtml(matiereLabel)}</span>` : ''}
+                    </div>
+                </div>
+
+                ${pointsBanner}
+
+                <div class="tc-review-columns">
+                    <div class="tc-review-left">
+                        ${leftContent}
+                    </div>
+                    <div class="tc-review-right">
+                        ${criteresHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Construit le HTML d'un contenu de correction (blocs JSON, URL, ou HTML brut).
+     */
+    _buildCorrectionContent(content) {
+        if (!content) return '';
+
+        // URL ?
+        if (typeof content === 'string' && content.indexOf('http') === 0) {
+            const isLoom = content.indexOf('loom.com') !== -1;
+            const embedUrl = content.includes('/edit') ? content.replace('/edit', '/preview') : content;
+            if (isLoom) {
+                return `<div style="position:relative;padding-bottom:56.25%;height:0;"><iframe src="${embedUrl}" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
+            }
+            return `<div class="tc-review-doc-embed"><iframe src="${embedUrl}" class="tc-review-iframe" allowfullscreen></iframe></div>`;
+        }
+
+        // Blocs JSON ?
+        try {
+            const blocks = JSON.parse(content);
+            if (Array.isArray(blocks)) {
+                return this._renderBlocks(blocks);
+            }
+        } catch (_e) { /* pas du JSON */ }
+
+        // HTML brut
+        return `<div class="tc-review-richtext">${content}</div>`;
+    },
+
+    /**
+     * Rendu des blocs (text, image, video, document, group).
+     */
+    _renderBlocks(blocks) {
+        return blocks.map(block => {
+            if (!block || !block.type) return '';
+            switch (block.type) {
+                case 'text':
+                    return `<div class="preview-block preview-text">${block.content || ''}</div>`;
+                case 'image':
+                    return `<div class="preview-block preview-image"><img src="${escapeHtml(block.url || '')}" alt="${escapeHtml(block.legende || '')}" style="max-width:100%;border-radius:8px;"><p class="preview-legende">${escapeHtml(block.legende || '')}</p></div>`;
+                case 'video': {
+                    const vUrl = block.url || '';
+                    const embedUrl = vUrl.includes('youtube.com/watch') ? vUrl.replace('watch?v=', 'embed/') : vUrl;
+                    return `<div class="preview-block preview-video"><div style="position:relative;padding-bottom:56.25%;height:0;"><iframe src="${embedUrl}" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div></div>`;
+                }
+                case 'document': {
+                    const dUrl = block.url || '';
+                    const docEmbed = dUrl.includes('/edit') ? dUrl.replace('/edit', '/preview') : dUrl;
+                    return `<div class="preview-block preview-document"><iframe src="${docEmbed}" style="width:100%;height:400px;border:1px solid #e5e7eb;border-radius:8px;"></iframe></div>`;
+                }
+                case 'group': {
+                    const children = Array.isArray(block.children) ? block.children : [];
+                    const ratio = block.ratio || '1:1';
+                    return `<div class="preview-block preview-group" style="display:flex;gap:16px;">${children.map((child, i) => {
+                        const flex = ratio.split(':')[i] || '1';
+                        return `<div style="flex:${flex}">${this._renderBlocks([child])}</div>`;
+                    }).join('')}</div>`;
+                }
+                default:
+                    return '';
+            }
+        }).join('');
+    },
+
+    /**
+     * Toggle onglet Remarque / Corrigé dans la vue TC review.
+     */
+    _switchTCTab(tab) {
+        document.querySelectorAll('.tc-review-tab').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        document.querySelectorAll('.tc-review-tab-content').forEach(panel => {
+            panel.classList.toggle('active', panel.id === (tab === 'remarque' ? 'tcTabRemarque' : 'tcTabCorrige'));
+        });
     },
 
     // ========== SETUP CONNAISSANCES ==========

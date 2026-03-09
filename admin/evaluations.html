@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/admin-banques-exercices.css">
     <link rel="stylesheet" href="../css/admin-evaluations.css">
+    <link rel="stylesheet" href="../css/admin-corrections.css">
 </head>
 <body>
 
@@ -142,6 +143,11 @@
             </table>
         </div>
 
+        <!-- Publish all bar for TC corrections -->
+        <div class="saisie-publish-bar" id="saisiePublishBar" style="display: none;">
+            <button class="btn btn-primary" id="publishAllBtn" onclick="AdminEvaluations.publishAllCorrections()">Tout publier</button>
+        </div>
+
         <!-- Save bar for saisie -->
         <div class="saisie-save-bar" id="saisieSaveBar" style="display: none;">
             <span class="save-bar-text">Modifications non enregistrées</span>
@@ -150,6 +156,34 @@
                 <button class="btn btn-primary" id="saisieSaveBtn" onclick="AdminEvaluations.saveSaisie()">Enregistrer</button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Modal: Wizard Correction TC (intégré à la saisie) -->
+<div class="modal-overlay hidden" id="correctionTCModal">
+    <div class="modal modal-correction">
+        <div class="modal-header">
+            <h3 id="corrTCModalTitle">Correction</h3>
+            <button class="modal-close" onclick="AdminEvaluations.closeCorrectionWizard()">&times;</button>
+        </div>
+
+        <div class="wizard-steps">
+            <div class="wizard-step active" data-step="1">
+                <span class="step-number">1</span>
+                <span class="step-label">Remarque</span>
+            </div>
+            <div class="wizard-step" data-step="2">
+                <span class="step-number">2</span>
+                <span class="step-label">Critères</span>
+            </div>
+            <div class="wizard-step" data-step="3">
+                <span class="step-number">3</span>
+                <span class="step-label">Résumé</span>
+            </div>
+        </div>
+
+        <div class="modal-body" id="corrTCWizardBody"></div>
+        <div class="modal-footer" id="corrTCWizardFooter"></div>
     </div>
 </div>
 

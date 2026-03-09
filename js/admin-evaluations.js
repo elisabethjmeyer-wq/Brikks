@@ -95,7 +95,8 @@ const AdminEvaluations = {
             exercicesData,
             banquesCompetencesData,
             entrainementsCompetencesData,
-            competencesReferentielData
+            competencesReferentielData,
+            criteresReussiteData
         ] = await Promise.all([
             safeGet('DISCIPLINES'),
             safeGet('THEMES'),
@@ -111,7 +112,8 @@ const AdminEvaluations = {
             safeGet('EXERCICES'),
             safeGet('BanquesCompetences'),
             safeGet('EntrainementsCompetences'),
-            safeGet('CompetencesReferentiel')
+            safeGet('CompetencesReferentiel'),
+            safeGet('CriteresReussite')
         ]);
 
         this.disciplines = SheetsAPI.parseSheetData(disciplinesData);
@@ -147,6 +149,7 @@ const AdminEvaluations = {
         this.banquesBonusPonctuels = allBanquesComp.filter(b => b.type_usage === 'bonus_ponctuel');
         this.entrainementsCompetences = SheetsAPI.parseSheetData(entrainementsCompetencesData);
         this.competencesReferentiel = SheetsAPI.parseSheetData(competencesReferentielData);
+        this.criteresReussite = SheetsAPI.parseSheetData(criteresReussiteData);
 
         // Load evaluations
         try {
@@ -2619,16 +2622,20 @@ const AdminEvaluations = {
         }
 
         // Build table headers — adapté selon le type
+        const isTC = evaluation.type === 'competences';
         const showScoreDuree = !isBonusOrTC;
         const showRemarque = false;
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
             ${showSujet ? '<th class="col-banque">Banque</th>' : ''}
             ${showSujet ? '<th class="col-entrainement">Exercice</th>' : ''}
-            ${isBonusOrTC ? '<th class="col-statut-demande">Statut</th>' : ''}
+            ${isBonusOrTC && !isTC ? '<th class="col-statut-demande">Statut</th>' : ''}
             ${showScoreDuree ? '<th class="col-score">Score (%)</th>' : ''}
             ${showScoreDuree ? '<th class="col-duree">Durée</th>' : ''}
-            <th class="col-resultat">Résultat</th>
+            <th class="col-resultat">${isTC ? 'Points' : 'Résultat'}</th>
+            ${isTC ? '<th class="col-criteres-resume">Critères</th>' : ''}
+            ${isTC ? '<th class="col-correction-action">Correction</th>' : ''}
+            ${isTC ? '<th class="col-statut-correction">Statut</th>' : ''}
             ${showRemarque ? '<th class="col-remarque">Remarque</th>' : ''}
         `;
 
@@ -2657,9 +2664,9 @@ const AdminEvaluations = {
             // Durée : lecture seule
             const dureeCell = showScoreDuree ? `<td class="col-duree">${r.temps_passe ? this._formatDuree(r.temps_passe) : '—'}</td>` : '';
 
-            // Statut demande (pour bonus/TC)
+            // Statut demande (pour bonus, pas TC obligatoire)
             let statutDemandeCell = '';
-            if (isBonusOrTC) {
+            if (isBonusOrTC && !isTC) {
                 const demandeStatut = String(r.demande_statut || '').trim();
                 let statutLabel = '—';
                 let statutClass = '';
@@ -2667,6 +2674,34 @@ const AdminEvaluations = {
                 else if (demandeStatut === 'accepte') { statutLabel = 'Accepté'; statutClass = 'statut-accepte'; }
                 else if (demandeStatut === 'refuse') { statutLabel = 'Refusé'; statutClass = 'statut-refuse'; }
                 statutDemandeCell = `<td class="col-statut-demande"><span class="saisie-statut ${statutClass}">${statutLabel}</span></td>`;
+            }
+
+            // Colonnes TC : critères, correction, statut
+            let criteresResumeCell = '';
+            let correctionActionCell = '';
+            let statutCorrectionCell = '';
+            if (isTC) {
+                // Résumé critères validés
+                const criteresValides = r.criteres_valides ? (() => { try { return JSON.parse(r.criteres_valides); } catch (_e) { return []; } })() : [];
+                const compIds = this._getCompetenceIdsForEval(evaluation);
+                const totalCriteres = compIds.reduce((sum, cid) => sum + (this.criteresReussite || []).filter(c => String(c.competence_id) === String(cid)).length, 0);
+                const nbValides = criteresValides.length;
+                criteresResumeCell = `<td class="col-criteres-resume">${totalCriteres > 0 && nbValides > 0 ? `<span class="criteres-badge">${nbValides}/${totalCriteres}</span>` : '—'}</td>`;
+
+                // Bouton corriger
+                const hasCorrection = r.correction_prof || (criteresValides.length > 0);
+                const corrBtnLabel = hasCorrection ? 'Modifier' : 'Corriger';
+                const corrBtnClass = hasCorrection ? 'btn-modifier' : 'btn-corriger';
+                const isSpecialStatus = isAbsent || isNR;
+                correctionActionCell = `<td class="col-correction-action">${!isSpecialStatus ? `<button class="btn btn-sm ${corrBtnClass}" onclick="event.stopPropagation(); AdminEvaluations.openCorrectionWizard('${eleve.id}')">${corrBtnLabel}</button>` : ''}</td>`;
+
+                // Statut correction
+                const statutCorr = String(r.statut_correction || '').trim();
+                let statutCorrLabel = '—';
+                let statutCorrClass = '';
+                if (statutCorr === 'brouillon') { statutCorrLabel = 'Brouillon'; statutCorrClass = 'statut-brouillon'; }
+                else if (statutCorr === 'publie') { statutCorrLabel = 'Publié'; statutCorrClass = 'statut-publie'; }
+                statutCorrectionCell = `<td class="col-statut-correction"><span class="saisie-statut ${statutCorrClass}">${statutCorrLabel}</span></td>`;
             }
 
             // Remarque (pour bonus/TC)
@@ -2798,6 +2833,9 @@ const AdminEvaluations = {
                             ${resultatOptions}
                         </select>
                     </td>
+                    ${criteresResumeCell}
+                    ${correctionActionCell}
+                    ${statutCorrectionCell}
                     ${remarqueCell}
                 </tr>
             `;
@@ -2806,6 +2844,17 @@ const AdminEvaluations = {
         // Hide loader, show table
         document.getElementById('saisieLoader').style.display = 'none';
         document.getElementById('saisieTableContainer').style.display = '';
+
+        // Afficher la barre "Tout publier" si c'est une TC avec des brouillons
+        const publishBar = document.getElementById('saisiePublishBar');
+        if (publishBar) {
+            if (isTC) {
+                const hasBrouillons = evalResults.some(r => r.correction_prof && String(r.statut_correction).trim() === 'brouillon');
+                publishBar.style.display = hasBrouillons ? 'flex' : 'none';
+            } else {
+                publishBar.style.display = 'none';
+            }
+        }
     },
 
     /**
@@ -3837,6 +3886,483 @@ const AdminEvaluations = {
                 }
             }, 30000);
         });
+    },
+
+    // ========== CORRECTION TC (wizard intégré à la saisie) ==========
+
+    /**
+     * Parse les competence_ids d'une évaluation (JSON array de strings).
+     */
+    _getCompetenceIdsForEval(evaluation) {
+        if (!evaluation.competence_ids) return [];
+        try {
+            const parsed = typeof evaluation.competence_ids === 'string' ? JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
+            return Array.isArray(parsed) ? parsed.map(String) : [];
+        } catch (_e) { return []; }
+    },
+
+    /**
+     * Retourne les critères de réussite pour une compétence donnée.
+     */
+    _getCriteresByCompetence(competenceId) {
+        return (this.criteresReussite || [])
+            .filter(c => String(c.competence_id) === String(competenceId))
+            .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+    },
+
+    /**
+     * Ouvre le wizard de correction pour un élève dans la saisie TC.
+     */
+    openCorrectionWizard(eleveId) {
+        const evaluation = this.saisieEvaluation;
+        if (!evaluation) return;
+
+        const eleve = this.eleves.find(e => String(e.id) === String(eleveId));
+        if (!eleve) return;
+
+        // Charger le résultat existant
+        const resultat = this.resultats.find(r =>
+            String(r.evaluation_id).trim() === String(evaluation.id).trim() &&
+            String(r.eleve_id).trim() === String(eleveId).trim()
+        ) || {};
+
+        // Initialiser wizardData de correction
+        this._corrWizardData = {
+            eleveId: eleveId,
+            eleveName: `${eleve.prenom || ''} ${eleve.nom || ''}`.trim(),
+            evaluationId: evaluation.id,
+            step: 1,
+            // Remarque (block editor)
+            correctionType: null,
+            correctionValue: '',
+            // Critères
+            criteresValides: [],
+            competenceValidees: {},
+            // Points
+            points: resultat.validations !== undefined && resultat.validations !== '' ? String(resultat.validations) : '',
+            maxPoints: evaluation.briques || 3,
+            // Statut publication
+            statutCorrection: resultat.statut_correction || 'brouillon'
+        };
+
+        // Parser correction existante
+        if (resultat.correction_prof) {
+            try {
+                const blocks = JSON.parse(resultat.correction_prof);
+                if (Array.isArray(blocks)) {
+                    this._corrWizardData.correctionType = 'blocks';
+                    this._corrWizardData.correctionValue = resultat.correction_prof;
+                }
+            } catch (_e) {
+                if (resultat.correction_prof.indexOf('http') === 0) {
+                    this._corrWizardData.correctionType = 'url';
+                    this._corrWizardData.correctionValue = resultat.correction_prof;
+                } else {
+                    this._corrWizardData.correctionType = 'blocks';
+                    this._corrWizardData.correctionValue = JSON.stringify([{ type: 'text', content: resultat.correction_prof }]);
+                }
+            }
+        }
+
+        // Parser critères validés existants
+        if (resultat.criteres_valides) {
+            try {
+                this._corrWizardData.criteresValides = JSON.parse(resultat.criteres_valides);
+            } catch (_e) { /* ignore */ }
+        }
+
+        // Parser competenceValidees (TC multi-compétences)
+        const compIds = this._getCompetenceIdsForEval(evaluation);
+        compIds.forEach(compId => {
+            const criteres = this._getCriteresByCompetence(compId);
+            this._corrWizardData.competenceValidees[compId] = criteres
+                .filter(c => this._corrWizardData.criteresValides.indexOf(String(c.id)) !== -1)
+                .map(c => String(c.id));
+        });
+
+        // Afficher le modal
+        this._renderCorrectionWizard();
+        document.getElementById('correctionTCModal').classList.remove('hidden');
+        window.addEventListener('beforeunload', this._corrBeforeUnload);
+    },
+
+    _corrBeforeUnload(e) {
+        e.preventDefault();
+        e.returnValue = '';
+    },
+
+    /**
+     * Ferme le wizard de correction.
+     */
+    closeCorrectionWizard() {
+        document.getElementById('correctionTCModal').classList.add('hidden');
+        window.removeEventListener('beforeunload', this._corrBeforeUnload);
+        this._corrWizardData = null;
+    },
+
+    /**
+     * Navigue entre les étapes du wizard.
+     */
+    corrWizardNav(direction) {
+        const wd = this._corrWizardData;
+        if (!wd) return;
+
+        // Sauvegarder l'état de l'étape courante avant de naviguer
+        this._saveCorrStepState();
+
+        if (direction === 'next' && wd.step < 3) wd.step++;
+        else if (direction === 'prev' && wd.step > 1) wd.step--;
+
+        this._renderCorrectionWizard();
+    },
+
+    /**
+     * Sauvegarde l'état de l'étape courante du wizard.
+     */
+    _saveCorrStepState() {
+        const wd = this._corrWizardData;
+        if (!wd) return;
+
+        if (wd.step === 1) {
+            // Sauver le block editor
+            const urlInput = document.getElementById('corrTCUrlInput');
+            const modeUrl = document.getElementById('corrTCUrlPanel')?.style.display !== 'none';
+            if (modeUrl && urlInput) {
+                wd.correctionType = urlInput.value.trim() ? 'url' : null;
+                wd.correctionValue = urlInput.value.trim();
+            } else {
+                const blocksJson = this.getBlocksJSON();
+                wd.correctionType = blocksJson ? 'blocks' : null;
+                wd.correctionValue = blocksJson || '';
+            }
+        } else if (wd.step === 2) {
+            // Points
+            const ptsInput = document.getElementById('corrTCPoints');
+            if (ptsInput) wd.points = ptsInput.value;
+        }
+    },
+
+    /**
+     * Rendu du wizard de correction TC.
+     */
+    _renderCorrectionWizard() {
+        const wd = this._corrWizardData;
+        if (!wd) return;
+
+        const modal = document.getElementById('correctionTCModal');
+        if (!modal) return;
+
+        // Stepper
+        const steps = modal.querySelectorAll('.wizard-step');
+        steps.forEach((s, i) => {
+            s.classList.toggle('active', i + 1 === wd.step);
+            s.classList.toggle('completed', i + 1 < wd.step);
+        });
+
+        const body = document.getElementById('corrTCWizardBody');
+        const footer = document.getElementById('corrTCWizardFooter');
+
+        if (wd.step === 1) {
+            body.innerHTML = this._renderCorrStep1();
+            footer.innerHTML = `<div></div><button class="btn btn-primary" onclick="AdminEvaluations.corrWizardNav('next')">Suivant →</button>`;
+            this._initCorrStep1();
+        } else if (wd.step === 2) {
+            body.innerHTML = this._renderCorrStep2();
+            footer.innerHTML = `<button class="btn btn-secondary" onclick="AdminEvaluations.corrWizardNav('prev')">← Précédent</button><button class="btn btn-primary" onclick="AdminEvaluations.corrWizardNav('next')">Suivant →</button>`;
+        } else if (wd.step === 3) {
+            body.innerHTML = this._renderCorrStep3();
+            footer.innerHTML = `<button class="btn btn-secondary" onclick="AdminEvaluations.corrWizardNav('prev')">← Précédent</button><button class="btn btn-primary btn-confirm" id="corrTCSaveBtn" onclick="AdminEvaluations.saveCorrectionTC()">Enregistrer</button>`;
+        }
+    },
+
+    // ----- Étape 1 : Remarque individuelle (block editor) -----
+
+    _renderCorrStep1() {
+        const wd = this._corrWizardData;
+        const corrMode = wd.correctionType === 'url' ? 'url' : 'editor';
+
+        return `
+            <div class="step-header">
+                <span class="step-icon">📝</span>
+                <div><h3>Remarque individuelle</h3>
+                <p>Construisez la remarque que ${escapeHtml(wd.eleveName)} verra (optionnel)</p></div>
+            </div>
+
+            <div class="source-toggle" id="corrTCToggle">
+                <button type="button" class="source-toggle-btn${corrMode === 'url' ? ' active' : ''}" data-mode="url" onclick="AdminEvaluations._switchCorrTCMode('url')">Lien externe</button>
+                <button type="button" class="source-toggle-btn${corrMode === 'editor' ? ' active' : ''}" data-mode="editor" onclick="AdminEvaluations._switchCorrTCMode('editor')">Éditeur</button>
+            </div>
+
+            <div class="source-panel" id="corrTCUrlPanel"${corrMode !== 'url' ? ' style="display:none"' : ''}>
+                <div class="form-group">
+                    <label>Lien (Google Doc, vidéo Loom, etc.)</label>
+                    <input type="text" class="form-input" id="corrTCUrlInput" placeholder="https://..." value="${escapeHtml(wd.correctionType === 'url' ? wd.correctionValue : '')}">
+                </div>
+            </div>
+
+            <div class="source-panel" id="corrTCEditorPanel"${corrMode !== 'editor' ? ' style="display:none"' : ''}>
+                <div id="corrTCBlockEditorContainer" class="block-editor"></div>
+                ${this.renderBlockAddBar()}
+            </div>
+        `;
+    },
+
+    _initCorrStep1() {
+        const wd = this._corrWizardData;
+        if (!wd || wd.correctionType === 'url') return;
+
+        // Initialiser le block editor
+        let blocks = [];
+        if (wd.correctionValue) {
+            try {
+                blocks = JSON.parse(wd.correctionValue);
+                if (!Array.isArray(blocks)) blocks = [];
+            } catch (_e) { blocks = []; }
+        }
+
+        this._blockEditorContainerId = 'corrTCBlockEditorContainer';
+        this.initBlockEditor(blocks);
+    },
+
+    _switchCorrTCMode(mode) {
+        document.getElementById('corrTCUrlPanel').style.display = mode === 'url' ? '' : 'none';
+        document.getElementById('corrTCEditorPanel').style.display = mode === 'editor' ? '' : 'none';
+        document.querySelectorAll('#corrTCToggle .source-toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+        if (mode === 'editor') {
+            this._blockEditorContainerId = 'corrTCBlockEditorContainer';
+            if (!document.querySelector('#corrTCBlockEditorContainer .block-item')) {
+                this._initCorrStep1();
+            }
+        }
+    },
+
+    // ----- Étape 2 : Critères + Points -----
+
+    _renderCorrStep2() {
+        const wd = this._corrWizardData;
+        const evaluation = this.saisieEvaluation;
+        const compIds = this._getCompetenceIdsForEval(evaluation);
+
+        let criteresHtml = '';
+        if (compIds.length === 0) {
+            criteresHtml = '<div class="empty-criteres">Aucune compétence associée à cette évaluation.</div>';
+        } else {
+            compIds.forEach(compId => {
+                const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
+                const criteres = this._getCriteresByCompetence(compId);
+                const compValides = wd.competenceValidees[compId] || [];
+
+                criteresHtml += `<div class="tc-competence-section" data-comp-id="${compId}">
+                    <div class="tc-comp-header">
+                        <span class="tc-comp-icon">🎯</span>
+                        <h4>${escapeHtml(comp ? comp.nom : 'Compétence inconnue')}</h4>
+                    </div>`;
+
+                if (criteres.length > 0) {
+                    criteresHtml += '<div class="criteres-correction-list">';
+                    criteres.forEach(c => {
+                        const checked = compValides.indexOf(String(c.id)) !== -1;
+                        criteresHtml += `<div class="critere-check${checked ? ' checked' : ''}" onclick="AdminEvaluations._toggleCritereTC('${compId}', '${c.id}', this)">
+                            <input type="checkbox"${checked ? ' checked' : ''}>
+                            <label>${escapeHtml(c.libelle)}</label>
+                        </div>`;
+                    });
+                    criteresHtml += '</div>';
+                } else {
+                    criteresHtml += '<div class="empty-criteres">Aucun critère défini.</div>';
+                }
+                criteresHtml += '</div>';
+            });
+        }
+
+        return `
+            <div class="step-header">
+                <span class="step-icon">✅</span>
+                <div><h3>Critères de réussite</h3>
+                <p>Cochez les critères validés par ${escapeHtml(wd.eleveName)}</p></div>
+            </div>
+
+            ${criteresHtml}
+
+            <div class="corr-points-section">
+                <label>Points attribués</label>
+                <div class="corr-points-input">
+                    <input type="number" id="corrTCPoints" class="form-input" min="0" max="${wd.maxPoints}" value="${escapeHtml(wd.points)}" placeholder="0">
+                    <span class="corr-points-max">/ ${wd.maxPoints}</span>
+                </div>
+            </div>
+        `;
+    },
+
+    _toggleCritereTC(compId, critereId, el) {
+        const wd = this._corrWizardData;
+        if (!wd) return;
+
+        if (!wd.competenceValidees[compId]) wd.competenceValidees[compId] = [];
+        const arr = wd.competenceValidees[compId];
+        const idx = arr.indexOf(critereId);
+        if (idx >= 0) {
+            arr.splice(idx, 1);
+            el.classList.remove('checked');
+            el.querySelector('input').checked = false;
+        } else {
+            arr.push(critereId);
+            el.classList.add('checked');
+            el.querySelector('input').checked = true;
+        }
+
+        // Mettre à jour criteresValides (flat list)
+        wd.criteresValides = [];
+        Object.values(wd.competenceValidees).forEach(ids => {
+            ids.forEach(id => { if (wd.criteresValides.indexOf(id) === -1) wd.criteresValides.push(id); });
+        });
+    },
+
+    // ----- Étape 3 : Résumé -----
+
+    _renderCorrStep3() {
+        const wd = this._corrWizardData;
+        const evaluation = this.saisieEvaluation;
+        const compIds = this._getCompetenceIdsForEval(evaluation);
+        const totalCriteres = compIds.reduce((sum, cid) => sum + this._getCriteresByCompetence(cid).length, 0);
+        const nbValides = wd.criteresValides.length;
+
+        const hasRemarque = wd.correctionType === 'blocks' ? !!wd.correctionValue : (wd.correctionType === 'url' ? !!wd.correctionValue : false);
+        const matiere = evaluation.matiere || '';
+
+        return `
+            <div class="step-header">
+                <span class="step-icon">📋</span>
+                <div><h3>Résumé</h3>
+                <p>Vérifiez avant d'enregistrer la correction de ${escapeHtml(wd.eleveName)}</p></div>
+            </div>
+
+            <div class="bilan-section">
+                <div class="summary-row"><span class="label">Points</span><span class="value">${escapeHtml(wd.points || '0')} / ${wd.maxPoints}${matiere ? ' (' + escapeHtml(matiere) + ')' : ''}</span></div>
+                <div class="summary-row"><span class="label">Critères validés</span><span class="value">${nbValides} / ${totalCriteres}</span></div>
+                <div class="summary-row"><span class="label">Remarque</span><span class="value">${hasRemarque ? '✅ Rédigée' : '— Aucune'}</span></div>
+            </div>
+
+            <div class="statut-toggle-section">
+                <h4>Visibilité pour l'élève</h4>
+                <div class="statut-toggle">
+                    <button type="button" class="statut-btn${wd.statutCorrection === 'brouillon' ? ' active' : ''}" onclick="AdminEvaluations._setCorrStatut('brouillon')">📝 Brouillon</button>
+                    <button type="button" class="statut-btn${wd.statutCorrection === 'publie' ? ' active' : ''}" onclick="AdminEvaluations._setCorrStatut('publie')">✅ Publié</button>
+                </div>
+                <p class="form-help">${wd.statutCorrection === 'brouillon' ? 'L\'élève ne voit pas encore la correction.' : 'L\'élève peut voir sa correction.'}</p>
+            </div>
+        `;
+    },
+
+    _setCorrStatut(statut) {
+        if (!this._corrWizardData) return;
+        this._corrWizardData.statutCorrection = statut;
+        // Re-render step 3
+        document.getElementById('corrTCWizardBody').innerHTML = this._renderCorrStep3();
+    },
+
+    // ----- Sauvegarde -----
+
+    async saveCorrectionTC() {
+        const wd = this._corrWizardData;
+        if (!wd) return;
+
+        // Sauvegarder l'état de l'étape courante
+        this._saveCorrStepState();
+
+        const btn = document.getElementById('corrTCSaveBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement...'; }
+
+        try {
+            const params = {
+                evaluation_id: wd.evaluationId,
+                eleve_id: wd.eleveId,
+                correction_prof: wd.correctionValue || '',
+                statut_correction: wd.statutCorrection || 'brouillon',
+                criteres_valides: JSON.stringify(wd.criteresValides),
+                competence_ids_validees: JSON.stringify(wd.competenceValidees),
+                is_validated: wd.criteresValides.length > 0,
+                validations: wd.points || '0',
+                score: wd.points || '0'
+            };
+
+            const result = await this.callAPI('saveEvaluationCorrection', params);
+
+            if (result.success) {
+                this.showNotification('Correction enregistrée !');
+                this.closeCorrectionWizard();
+
+                // Recharger les données et réafficher la saisie
+                SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+                try {
+                    const freshData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+                    this.resultats = SheetsAPI.parseSheetData(freshData);
+                } catch (_e) { /* ignore */ }
+                this.openSaisie(wd.evaluationId);
+            } else {
+                this.showNotification(result.error || 'Erreur lors de la sauvegarde', 'error');
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde correction TC:', error);
+            this.showNotification('Erreur réseau', 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer'; }
+        }
+    },
+
+    // ----- Tout publier -----
+
+    async publishAllCorrections() {
+        const evaluation = this.saisieEvaluation;
+        if (!evaluation) return;
+
+        const evalResults = this.resultats.filter(r =>
+            String(r.evaluation_id).trim() === String(evaluation.id).trim() &&
+            r.correction_prof &&
+            String(r.statut_correction).trim() === 'brouillon'
+        );
+
+        if (evalResults.length === 0) {
+            this.showNotification('Aucune correction en brouillon à publier');
+            return;
+        }
+
+        const btn = document.getElementById('publishAllBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Publication...'; }
+
+        let errors = 0;
+        for (const r of evalResults) {
+            try {
+                const result = await this.callAPI('saveEvaluationCorrection', {
+                    evaluation_id: evaluation.id,
+                    eleve_id: r.eleve_id,
+                    correction_prof: r.correction_prof,
+                    statut_correction: 'publie',
+                    criteres_valides: r.criteres_valides || '[]',
+                    competence_ids_validees: r.competence_ids_validees || '[]',
+                    is_validated: r.is_validated,
+                    validations: r.validations
+                });
+                if (!result.success) errors++;
+            } catch (_e) { errors++; }
+        }
+
+        if (errors === 0) {
+            this.showNotification(`${evalResults.length} correction(s) publiée(s) !`);
+        } else {
+            this.showNotification(`${errors} erreur(s) sur ${evalResults.length}`, 'error');
+        }
+
+        // Recharger
+        SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+        try {
+            const freshData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+            this.resultats = SheetsAPI.parseSheetData(freshData);
+        } catch (_e) { /* ignore */ }
+        this.openSaisie(evaluation.id);
+        if (btn) { btn.disabled = false; btn.textContent = 'Tout publier'; }
     },
 };
 
