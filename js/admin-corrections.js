@@ -563,13 +563,18 @@ const AdminCorrections = {
             }
         }
 
+        // Score existant (points attribués lors d'une correction précédente)
+        var existingScore = sub._evalResultat ? parseFloat(sub._evalResultat.score) : undefined;
+        if (isNaN(existingScore)) existingScore = undefined;
+
         this.wizardData = {
             criteresValides: Array.isArray(existingCriteres) ? existingCriteres.map(String) : [],
             competenceValidees: existingCompValidees, // TC: { compId: [critereIds] }
             decision: (sub.statut === 'valide' || sub.statut === 'non_valide') ? sub.statut : null,
             correctionType: corrType,
             correctionValue: corrValue,
-            statutCorrection: sub.statut_correction || 'publie'
+            statutCorrection: sub.statut_correction || 'publie',
+            score: existingScore
         };
 
         this._wizardDirty = false;
@@ -1217,6 +1222,23 @@ const AdminCorrections = {
             html += '</div>';
         }
 
+        // Points attribués (pour bonus/TC uniquement)
+        if (sub._sourceType !== 'competence') {
+            var evaluation = this.getEvaluationForSub(sub);
+            var maxPts = evaluation ? (parseFloat(evaluation.briques) || 1) : 1;
+            var currentScore = wd.score !== undefined ? wd.score : (wd.decision === 'valide' ? maxPts : 0);
+            html += '<div class="bilan-section">';
+            html += '<h4>Points attribués</h4>';
+            html += '<div class="bilan-points-input">';
+            html += '<input type="number" id="correctionScore" class="form-input" ' +
+                'value="' + currentScore + '" min="0" max="' + maxPts + '" step="0.25" ' +
+                'onchange="AdminCorrections.wizardData.score = parseFloat(this.value) || 0" ' +
+                'style="width: 80px; display: inline-block;">';
+            html += ' <span class="bilan-max-pts">/ ' + maxPts + ' pts</span>';
+            html += '</div>';
+            html += '</div>';
+        }
+
         return html;
     },
 
@@ -1350,6 +1372,12 @@ const AdminCorrections = {
                 } else {
                     // Bonus comp / ponctuel: simple critères list
                     params.criteres_valides = JSON.stringify(wd.criteresValides);
+                }
+
+                // Points attribués
+                if (wd.score !== undefined) {
+                    params.score = wd.score;
+                    params.validations = wd.score; // validations = points affichés côté élève
                 }
 
                 result = await this.callAPI('saveEvaluationCorrection', params);

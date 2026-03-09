@@ -1926,7 +1926,7 @@ const AdminEvaluations = {
 
         // Build table headers — adapté selon le type
         const showScoreDuree = !isBonusOrTC;
-        const showRemarque = isBonusOrTC;
+        const showRemarque = false;
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
             ${showSujet ? '<th class="col-banque">Banque</th>' : ''}

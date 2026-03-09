@@ -4958,9 +4958,44 @@ function getEvaluationForEleve(data) {
   var type = String(evaluation.type).trim();
   var matiere = String(evaluation.matiere || '').trim();
 
-  // 2. Si pas connaissances/SF, fallback sur getEvaluation classique
+  // 2. Si pas connaissances/SF (TC ou bonus), retourner les métadonnées sans questions
   if (type !== 'connaissances' && type !== 'savoir-faire') {
-    return getEvaluation(data);
+    // Charger le document/sujet de l'exercice lié si disponible
+    var exerciceId = '';
+    if (type === 'competences') {
+      exerciceId = String(evaluation.exercice_tc_id || '').trim();
+    } else if (type === 'bonus') {
+      var sousType = String(evaluation.sous_type_bonus || '').trim();
+      if (sousType === 'competence') {
+        exerciceId = String(evaluation.exercice_comp_id || '').trim();
+      } else if (sousType === 'ponctuel') {
+        exerciceId = String(evaluation.exercice_bonus_id || '').trim();
+      }
+    }
+
+    // Récupérer le document de l'exercice dans EntrainementsCompetences
+    if (exerciceId) {
+      var entrSheet = ss.getSheetByName(SHEETS.EntrainementsCompetences);
+      if (entrSheet) {
+        var entrData = entrSheet.getDataRange().getValues();
+        var entrHeaders = entrData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+        for (var j = 1; j < entrData.length; j++) {
+          var idCol = entrHeaders.indexOf('id');
+          if (idCol >= 0 && String(entrData[j][idCol]).trim() === exerciceId) {
+            var exercice = {};
+            entrHeaders.forEach(function(header, index) {
+              exercice[header] = entrData[j][index];
+            });
+            evaluation.exercice = exercice;
+            break;
+          }
+        }
+      }
+    }
+
+    // Pas de questions pour TC/bonus — évaluation hors ligne
+    evaluation.questions = [];
+    return { success: true, data: evaluation };
   }
 
   // 3. Determiner la banque : attribution manuelle ou auto-calcul
@@ -7119,8 +7154,9 @@ function saveEvaluationCorrection(data) {
     'demande_statut': 'corrige'
   };
 
-  // Aussi mettre à jour score/statut_resultat si fourni
+  // Aussi mettre à jour score/validations/statut_resultat si fourni
   if (data.score !== undefined) fieldsToWrite['score'] = data.score;
+  if (data.validations !== undefined) fieldsToWrite['validations'] = data.validations;
   if (data.statut_resultat !== undefined) fieldsToWrite['statut_resultat'] = data.statut_resultat;
 
   for (var field in fieldsToWrite) {
