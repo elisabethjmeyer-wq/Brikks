@@ -684,25 +684,20 @@ const EleveEvaluation = {
                 return ia - ib;
             });
 
-            const showBanners = sortedKeys.length > 1;
-
-            let compsHtml = '';
+            let blocksHtml = '';
             sortedKeys.forEach(mat => {
                 const label = matiereLabels[mat] || mat;
                 const color = matiereColors[mat] || '#6b7280';
+                const bg = matiereBgs[mat] || '#f3f4f6';
+                const matPts = pointsParMatiere[mat];
+                const ptsLabel = matPts ? `${matPts.gained} / ${matPts.max} pt${matPts.max > 1 ? 's' : ''}` : '';
 
-                if (showBanners) {
-                    const bg = matiereBgs[mat] || '#f3f4f6';
-                    const matPts = pointsParMatiere[mat];
-                    const ptsLabel = matPts ? ` — ${matPts.gained} / ${matPts.max} pt${matPts.max > 1 ? 's' : ''} gagné${matPts.gained > 1 ? 's' : ''}` : '';
-                    compsHtml += `<div class="sujet-matiere-pill" style="background: ${bg}; color: ${color};">${escapeHtml(label)}${ptsLabel}</div>`;
-                }
-
+                let cardsHtml = '';
                 groups[mat].forEach(cd => {
                     const nbCriteres = cd.criteres.length;
                     const nbValides = cd.criteres.filter(c => criteresValides.indexOf(String(c.id)) !== -1).length;
 
-                    compsHtml += `
+                    cardsHtml += `
                         <div class="sujet-criteres-block" style="border-left: 3px solid ${cd.allValid ? '#10b981' : color};">
                             <button type="button" class="sujet-comp-toggle" onclick="EleveEvaluation._toggleCriteres(this)">
                                 <span class="sujet-comp-arrow">▸</span>
@@ -721,12 +716,24 @@ const EleveEvaluation = {
                         </div>
                     `;
                 });
+
+                blocksHtml += `
+                    <div class="tc-matiere-block">
+                        <div class="tc-matiere-header" style="background: ${bg}; color: ${color};">
+                            <span>${escapeHtml(label)}</span>
+                            ${ptsLabel ? `<span class="tc-matiere-pts">${ptsLabel}</span>` : ''}
+                        </div>
+                        <div class="tc-matiere-body">${cardsHtml}</div>
+                    </div>
+                `;
             });
 
             sidebarContent = `
-                <div class="sujet-sidebar-title">Compétences évaluées</div>
-                <p class="tc-review-criteres-summary">${nbCompsValidees} / ${totalComps} compétence${totalComps > 1 ? 's' : ''} validée${nbCompsValidees > 1 ? 's' : ''}</p>
-                ${compsHtml}
+                <div class="tc-review-comps-container">
+                    <div class="sujet-sidebar-title">Compétences évaluées</div>
+                    <p class="tc-review-criteres-summary">${nbCompsValidees} / ${totalComps} compétence${totalComps > 1 ? 's' : ''} validée${nbCompsValidees > 1 ? 's' : ''}</p>
+                    ${blocksHtml}
+                </div>
             `;
         } else if (isBrouillon) {
             sidebarContent = '<div class="tc-review-empty">La correction n\'est pas encore disponible.</div>';

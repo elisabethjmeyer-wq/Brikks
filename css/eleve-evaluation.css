@@ -636,7 +636,63 @@
     padding: 0 2px;
 }
 
-/* Pill matière */
+/* Conteneur englobant compétences */
+.tc-review-comps-container {
+    background: var(--gray-50, #f9fafb);
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 14px;
+    padding: 18px 16px;
+}
+
+.tc-review-comps-container .sujet-sidebar-title {
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.tc-review-comps-container .tc-review-criteres-summary {
+    margin-bottom: 14px;
+}
+
+/* Bloc matière emboîté */
+.tc-matiere-block {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--gray-200, #e5e7eb);
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.tc-matiere-block:last-child {
+    margin-bottom: 0;
+}
+
+/* Header matière (bandeau pleine largeur) */
+.tc-matiere-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.tc-matiere-header .tc-matiere-pts {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.85;
+}
+
+/* Compétences à l'intérieur du bloc matière */
+.tc-matiere-body {
+    padding: 8px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Pill matière legacy (fallback mode sans matières multiples) */
 .sujet-matiere-pill {
     display: inline-block;
     font-size: 11px;
