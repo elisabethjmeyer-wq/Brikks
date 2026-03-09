@@ -727,13 +727,21 @@ const AdminEvaluations = {
     },
 
     // ========== EVALUATION MODAL (WIZARD) ==========
-    openModal(evaluation = null) {
+    async openModal(evaluation = null) {
         const title = document.getElementById('evaluationModalTitle');
         const isEdit = !!evaluation;
 
         // Type is always determined by current tab (no step 1)
         const type = isEdit ? evaluation.type : (this.currentType !== 'sommatives' ? this.currentType : 'connaissances');
         const typeLabels = { 'connaissances': 'connaissances', 'savoir-faire': 'savoir-faire', 'competences': 'compétences', 'bonus': 'bonus' };
+
+        // Rafraîchir les données TC/comp/bonus pour refléter les changements faits dans Banques d'exercices
+        if (type === 'competences' || type === 'bonus') {
+            SheetsAPI.clearCacheFor('BanquesCompetences');
+            SheetsAPI.clearCacheFor('EntrainementsCompetences');
+            SheetsAPI.clearCacheFor('CompetencesReferentiel');
+            await this.loadData();
+        }
 
         if (isEdit) {
             title.textContent = `Modifier l'évaluation de ${typeLabels[type] || type}`;
@@ -1451,7 +1459,7 @@ const AdminEvaluations = {
         ).join('');
 
         const exerciceOptions = exercices.map(e =>
-            `<option value="${e.id}" ${e.id === d.exercice_tc_id ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
+            `<option value="${e.id}" ${String(e.id) === String(d.exercice_tc_id) ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
         ).join('');
 
         return `
@@ -1515,7 +1523,7 @@ const AdminEvaluations = {
         }).join('');
 
         const exerciceOptions = exercices.map(e =>
-            `<option value="${e.id}" ${e.id === d.exercice_comp_id ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
+            `<option value="${e.id}" ${String(e.id) === String(d.exercice_comp_id) ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
         ).join('');
 
         return `
@@ -1577,7 +1585,7 @@ const AdminEvaluations = {
         ).join('');
 
         const exerciceOptions = exercices.map(e =>
-            `<option value="${e.id}" ${e.id === d.exercice_bonus_id ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
+            `<option value="${e.id}" ${String(e.id) === String(d.exercice_bonus_id) ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
         ).join('');
 
         return `
@@ -1655,22 +1663,22 @@ const AdminEvaluations = {
 
         let selectedBanqueId = d._selectedBanqueSF || '';
         if (!selectedBanqueId && d.exercice_sf_id) {
-            const linked = this.exercicesSF.find(e => e.id === d.exercice_sf_id);
-            if (linked) selectedBanqueId = linked.banque_id;
+            const linked = this.exercicesSF.find(e => String(e.id) === String(d.exercice_sf_id));
+            if (linked) selectedBanqueId = String(linked.banque_id);
         }
 
         const banqueOptions = banques.map(b =>
-            `<option value="${b.id}" ${b.id === selectedBanqueId ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
+            `<option value="${b.id}" ${String(b.id) === String(selectedBanqueId) ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
         ).join('');
 
         let exerciceOptions = '<option value="">-- Sélectionnez d\'abord une banque --</option>';
         if (selectedBanqueId) {
             const banqueExos = this.exercicesSF
-                .filter(e => e.banque_id === selectedBanqueId)
+                .filter(e => String(e.banque_id) === String(selectedBanqueId))
                 .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
             exerciceOptions = '<option value="">Sélectionner...</option>' +
                 banqueExos.map(e =>
-                    `<option value="${e.id}" ${e.id === d.exercice_sf_id ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
+                    `<option value="${e.id}" ${String(e.id) === String(d.exercice_sf_id) ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
                 ).join('');
         }
 
@@ -1710,7 +1718,7 @@ const AdminEvaluations = {
         }
 
         const exercices = this.exercicesSF
-            .filter(e => e.banque_id === banqueId)
+            .filter(e => String(e.banque_id) === String(banqueId))
             .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
 
         select.innerHTML = '<option value="">Sélectionner...</option>' +
