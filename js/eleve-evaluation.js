@@ -207,7 +207,6 @@ const EleveEvaluation = {
                         </div>
                     </div>
                     <div class="sujet-sidebar-section">
-                        <div class="sujet-sidebar-title">Compétences évaluées & critères de réussite</div>
                         ${criteresHtml || '<div class="sujet-no-criteres">Aucun critère défini</div>'}
                     </div>
                 </div>
@@ -333,22 +332,16 @@ const EleveEvaluation = {
             return ia - ib;
         });
 
-        // N'afficher le bandeau matière que s'il y a plusieurs groupes
-        const showBanners = sortedKeys.length > 1;
-
-        let html = '';
+        let blocksHtml = '';
         sortedKeys.forEach(mat => {
             const label = matiereLabels[mat] || mat;
             const color = matiereColors[mat] || '#6b7280';
+            const bg = matiereBgs[mat] || '#f3f4f6';
 
-            if (showBanners) {
-                const bg = matiereBgs[mat] || '#f3f4f6';
-                html += `<div class="sujet-matiere-pill" style="background: ${bg}; color: ${color};">${escapeHtml(label)}</div>`;
-            }
-
+            let cardsHtml = '';
             groups[mat].forEach(cd => {
                 const nbCriteres = cd.criteres.length;
-                html += `
+                cardsHtml += `
                     <div class="sujet-criteres-block" style="border-left: 3px solid ${color};">
                         <button type="button" class="sujet-comp-toggle" onclick="EleveEvaluation._toggleCriteres(this)">
                             <span class="sujet-comp-arrow">▸</span>
@@ -366,8 +359,25 @@ const EleveEvaluation = {
                     </div>
                 `;
             });
+
+            blocksHtml += `
+                <div class="tc-matiere-block">
+                    <div class="tc-matiere-header" style="background: ${bg}; color: ${color};">
+                        <span>${escapeHtml(label)}</span>
+                    </div>
+                    <div class="tc-matiere-body">${cardsHtml}</div>
+                </div>
+            `;
         });
-        return html;
+
+        const totalComps = compsData.length;
+        return `
+            <div class="tc-review-comps-container">
+                <div class="sujet-sidebar-title">Compétences évaluées & critères de réussite</div>
+                <p class="tc-review-criteres-summary">${totalComps} compétence${totalComps > 1 ? 's' : ''} · ${compsData.reduce((s, cd) => s + cd.criteres.length, 0)} critères</p>
+                ${blocksHtml}
+            </div>
+        `;
     },
 
     /**
