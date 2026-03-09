@@ -850,6 +850,7 @@ const EleveEvaluations = {
                             <h3 class="card-title">${escapeHtml(title)}</h3>
                         </div>
                         <div class="card-type" style="color:#0d9488">Bonus suivi</div>
+                        ${evaluation.description_eleve ? `<div class="card-description">${escapeHtml(evaluation.description_eleve)}</div>` : ''}
                         <div class="suivi-progress-container">
                             <div class="suivi-progress-bar">
                                 <div class="suivi-progress-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%"></div>

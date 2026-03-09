@@ -1250,6 +1250,10 @@ const AdminEvaluations = {
 
         if (this.wizardData.type === 'bonus') {
             this.wizardData.categorie = document.getElementById('evalCategorie')?.value || 'connaissances';
+            if (this.wizardData.sous_type_bonus === 'suivi') {
+                const descEl = document.getElementById('evalDescriptionEleve')?.value;
+                if (descEl !== undefined) this.wizardData.description_eleve = descEl.trim();
+            }
         }
 
         const criteres = document.getElementById('evalCriteres')?.value;
@@ -1281,6 +1285,11 @@ const AdminEvaluations = {
                     <label>Nombre de validations requises <span class="req">*</span></label>
                     <input type="number" class="form-input" id="evalNbValidations" value="${d.nb_validations || 5}" min="1" max="50">
                     <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points (saisis dans le tableau de résultats)</div>
+                </div>
+                <div class="form-group">
+                    <label>Consignes pour l'élève</label>
+                    <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Apporter ses affaires à chaque cours, réviser le vocabulaire...">${escapeHtml(d.description_eleve || '')}</textarea>
+                    <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
                 </div>
             `;
         }
@@ -1330,6 +1339,11 @@ const AdminEvaluations = {
                         <label>Nombre de validations requises <span class="req">*</span></label>
                         <input type="number" class="form-input" id="evalNbValidations" value="${this.wizardData.nb_validations || 5}" min="1" max="50">
                         <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points (saisis dans le tableau de résultats)</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Consignes pour l'élève</label>
+                        <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Apporter ses affaires à chaque cours, réviser le vocabulaire...">${escapeHtml(this.wizardData.description_eleve || '')}</textarea>
+                        <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
                     </div>
                 `;
             } else {
@@ -1734,6 +1748,7 @@ const AdminEvaluations = {
                 if (this.wizardData.type === 'bonus') {
                     if (this.wizardData.sous_type_bonus === 'suivi') {
                         this.wizardData.nb_validations = parseInt(document.getElementById('evalNbValidations')?.value) || 5;
+                        this.wizardData.description_eleve = (document.getElementById('evalDescriptionEleve')?.value || '').trim();
                     }
                 }
                 return true;
@@ -1819,6 +1834,7 @@ const AdminEvaluations = {
                 data.exercice_bonus_id = d.exercice_bonus_id || '';
             } else if (d.sous_type_bonus === 'suivi') {
                 data.nb_validations = d.nb_validations || 5;
+                data.description_eleve = d.description_eleve || '';
             }
         }
 
