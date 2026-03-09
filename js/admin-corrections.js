@@ -576,6 +576,15 @@ const AdminCorrections = {
         var existingScore = sub._evalResultat ? parseFloat(sub._evalResultat.score) : undefined;
         if (isNaN(existingScore)) existingScore = undefined;
 
+        // Points par compétence existants (reprise de correction)
+        var existingPpc = {};
+        if (sub._evalResultat && sub._evalResultat.points_par_competence) {
+            try {
+                existingPpc = typeof sub._evalResultat.points_par_competence === 'string' ?
+                    JSON.parse(sub._evalResultat.points_par_competence) : sub._evalResultat.points_par_competence;
+            } catch (_e) { /* ignore */ }
+        }
+
         this.wizardData = {
             criteresValides: Array.isArray(existingCriteres) ? existingCriteres.map(String) : [],
             competenceValidees: existingCompValidees, // TC: { compId: [critereIds] }
@@ -583,7 +592,8 @@ const AdminCorrections = {
             correctionType: corrType,
             correctionValue: corrValue,
             statutCorrection: sub.statut_correction || 'publie',
-            score: existingScore
+            score: existingScore,
+            pointsParCompetence: existingPpc
         };
 
         this._wizardDirty = false;
@@ -1234,18 +1244,7 @@ const AdminCorrections = {
         // Points attribués (pour bonus/TC uniquement)
         if (sub._sourceType !== 'competence') {
             var evaluation = this.getEvaluationForSub(sub);
-            var maxPts = evaluation ? (parseFloat(evaluation.briques) || 1) : 1;
-            var currentScore = wd.score !== undefined ? wd.score : (wd.decision === 'valide' ? maxPts : 0);
-            html += '<div class="bilan-section">';
-            html += '<h4>Points attribués</h4>';
-            html += '<div class="bilan-points-input">';
-            html += '<input type="number" id="correctionScore" class="form-input" ' +
-                'value="' + currentScore + '" min="0" max="' + maxPts + '" step="0.25" ' +
-                'onchange="AdminCorrections.wizardData.score = parseFloat(this.value) || 0" ' +
-                'style="width: 80px; display: inline-block;">';
-            html += ' <span class="bilan-max-pts">/ ' + maxPts + ' pts</span>';
-            html += '</div>';
-            html += '</div>';
+            html += this._renderStep4Points(sub, evaluation, wd);
         }
 
         return html;
@@ -1327,6 +1326,112 @@ const AdminCorrections = {
         return html;
     },
 
+    _renderStep4Points(sub, evaluation, wd) {
+        var html = '';
+        var matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        var matiereLabels = { 'FR': 'FR', 'HG-EMC': 'HG-EMC', 'Transversal': 'Trans.' };
+
+        // Lire points_par_competence de l'évaluation (points misés)
+        var evalPpc = {};
+        if (evaluation && evaluation.points_par_competence) {
+            try {
+                evalPpc = typeof evaluation.points_par_competence === 'string' ? JSON.parse(evaluation.points_par_competence) : evaluation.points_par_competence;
+            } catch (_e) { /* ignore */ }
+        }
+
+        // Lire points_par_competence existants du résultat (points gagnés, pour reprise)
+        var resultPpc = {};
+        if (wd.pointsParCompetence) {
+            resultPpc = wd.pointsParCompetence;
+        }
+
+        var hasPerCompPoints = Object.keys(evalPpc).length > 0;
+
+        if (hasPerCompPoints && (sub._sourceType === 'tc' || sub._sourceType === 'bonus_comp')) {
+            // Mode par compétence : un input par compétence
+            html += '<div class="bilan-section">';
+            html += '<h4>Points attribués par compétence</h4>';
+
+            var self = this;
+            var compIds = sub._sourceType === 'tc' ? this.getCompetenceIdsForTC(evaluation) :
+                (evaluation.competence_id ? [evaluation.competence_id] : []);
+
+            // Parse competence_ids pour bonus comp
+            if (sub._sourceType === 'bonus_comp' && evaluation.competence_ids) {
+                try {
+                    var parsed = typeof evaluation.competence_ids === 'string' ? JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
+                    if (Array.isArray(parsed) && parsed.length > 0) compIds = parsed.map(String);
+                } catch (_e) { /* ignore */ }
+            }
+
+            compIds.forEach(function(compId) {
+                var comp = self.getCompetence(compId);
+                var compMat = comp ? (comp.matiere || 'Transversal') : 'Transversal';
+                var color = matiereColors[compMat] || '#6b7280';
+                var maxPts = parseFloat(evalPpc[String(compId)]) || 1;
+                var compValides = wd.competenceValidees ? (wd.competenceValidees[compId] || []) : [];
+                var criteres = self.getCriteresByCompetence(compId);
+                var allValid = criteres.length > 0 && criteres.every(function(c) { return compValides.indexOf(String(c.id)) !== -1; });
+
+                // Défaut : max si tous critères validés, 0 sinon (modifiable)
+                var defaultPts = allValid ? maxPts : 0;
+                var currentPts = resultPpc[String(compId)] !== undefined ? resultPpc[String(compId)] : defaultPts;
+
+                html += '<div class="bilan-points-per-comp" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gray-100, #f3f4f6);">';
+                html += '<span style="display:inline-block;font-size:0.7rem;padding:2px 6px;border-radius:4px;background:' + color + '20;color:' + color + ';font-weight:600;white-space:nowrap;">' + escapeHtml(matiereLabels[compMat] || compMat) + '</span>';
+                html += '<span style="flex:1;font-size:0.85rem;">' + escapeHtml(comp ? comp.nom : 'Compétence') + '</span>';
+                html += '<input type="number" class="form-input correction-comp-pts" data-comp-id="' + compId + '" ' +
+                    'value="' + currentPts + '" min="0" max="' + maxPts + '" step="0.25" ' +
+                    'onchange="AdminCorrections._onCompPtsChange()" ' +
+                    'style="width: 65px; padding: 4px 6px; font-size: 0.85rem; display: inline-block;">';
+                html += ' <span style="font-size:0.8rem;color:var(--gray-400);">/ ' + maxPts + '</span>';
+                html += '</div>';
+            });
+
+            // Total
+            html += '<div id="correctionPtsTotal" style="margin-top:8px;font-weight:600;font-size:0.9rem;text-align:right;"></div>';
+            html += '</div>';
+
+            // Initialiser le total et le wizardData
+            setTimeout(function() { AdminCorrections._onCompPtsChange(); }, 0);
+        } else {
+            // Mode global (fallback : bonus ponctuel, ou anciennes évals sans points_par_competence)
+            var maxPts = evaluation ? (parseFloat(evaluation.briques) || 1) : 1;
+            var currentScore = wd.score !== undefined ? wd.score : (wd.decision === 'valide' ? maxPts : 0);
+            html += '<div class="bilan-section">';
+            html += '<h4>Points attribués</h4>';
+            html += '<div class="bilan-points-input">';
+            html += '<input type="number" id="correctionScore" class="form-input" ' +
+                'value="' + currentScore + '" min="0" max="' + maxPts + '" step="0.25" ' +
+                'onchange="AdminCorrections.wizardData.score = parseFloat(this.value) || 0" ' +
+                'style="width: 80px; display: inline-block;">';
+            html += ' <span class="bilan-max-pts">/ ' + maxPts + ' pts</span>';
+            html += '</div>';
+            html += '</div>';
+        }
+
+        return html;
+    },
+
+    _onCompPtsChange() {
+        var inputs = document.querySelectorAll('.correction-comp-pts');
+        var ppc = {};
+        var total = 0;
+        inputs.forEach(function(inp) {
+            var compId = inp.dataset.compId;
+            var pts = parseFloat(inp.value) || 0;
+            ppc[compId] = pts;
+            total += pts;
+        });
+        this.wizardData.pointsParCompetence = ppc;
+        this.wizardData.score = total;
+
+        var totalEl = document.getElementById('correctionPtsTotal');
+        if (totalEl) {
+            totalEl.textContent = 'Total : ' + total + ' pt' + (total > 1 ? 's' : '');
+        }
+    },
+
     renderFooter4() {
         return '<div class="footer-left">' +
                 '<button class="btn btn-secondary" onclick="AdminCorrections.goToStep(3)">← Modifier</button>' +
@@ -1383,10 +1488,13 @@ const AdminCorrections = {
                     params.criteres_valides = JSON.stringify(wd.criteresValides);
                 }
 
-                // Points attribués
-                if (wd.score !== undefined) {
+                // Points attribués — par compétence si disponible, sinon global
+                if (wd.pointsParCompetence && Object.keys(wd.pointsParCompetence).length > 0) {
+                    params.points_par_competence = JSON.stringify(wd.pointsParCompetence);
+                    // validations/score calculés automatiquement par le backend
+                } else if (wd.score !== undefined) {
                     params.score = wd.score;
-                    params.validations = wd.score; // validations = points affichés côté élève
+                    params.validations = wd.score;
                 }
 
                 result = await this.callAPI('saveEvaluationCorrection', params);

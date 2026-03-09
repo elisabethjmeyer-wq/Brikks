@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-03-09 — Session 31 : Points par compétence (Phase 10)
+
+### Points par compétence — ventilation automatique par discipline
+
+1. **Wizard création (admin-evaluations.js)** : pour TC et bonus compétence, la prof définit les points mis en jeu par compétence (au lieu d'un total global). Input numérique à côté de chaque checkbox, total calculé en temps réel avec ventilation par matière (FR/HG-EMC/Transversal).
+2. **Wizard correction (admin-corrections.js)** : dans le bilan (étape 4), un input points par compétence avec défaut intelligent (max si tous critères validés, 0 sinon). Tags matière colorés.
+3. **Backend (Evaluations.gs)** : colonnes `points_par_competence` (JSON) dans EVALUATIONS et EVALUATION_RESULTATS. `briques`/`validations` calculés automatiquement comme somme.
+4. **Calcul des notes (admin-tableau-bord.js, eleve-notes.js, eleve-evaluations.js)** : `_calculatePoints()` ventile les points par matière de la compétence dans le référentiel. Transversal = compte dans les deux disciplines.
+5. **Affichage élève review (eleve-evaluation.js)** : bandeau points détaillé par compétence avec tags matière, au lieu du total global.
+6. **Rétro-compatibilité** : fallback automatique sur l'ancien mode global si `points_par_competence` absent.
+7. **Section compétences dans notes élève** : suppression du filtre matière sur les évaluations (filtre par competence_ids à la place).
+
+**Fichiers modifiés** : Evaluations.gs, TOUT-EN-UN.gs, admin-evaluations.js, admin-corrections.js, admin-tableau-bord.js, eleve-evaluation.js, eleve-evaluations.js, eleve-notes.js
+
+---
+
 ## 2026-03-09 — Session 29-30 : Bugfixes + Phase 9 (refonte architecture TC/bonus)
 
 ### Corrections (session 29)
