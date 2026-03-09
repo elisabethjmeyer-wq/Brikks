@@ -42,6 +42,15 @@
         <button class="btn btn-sm btn-secondary" onclick="AdminEvaluations.goToCorrections()">Voir les corrections →</button>
     </div>
 
+    <!-- Demandes banner -->
+    <div class="demandes-banner" id="demandesBanner" style="display: none;">
+        <div class="demandes-banner-left">
+            <span class="demandes-icon">🔔</span>
+            <span><strong id="demandesCount">0</strong> demande(s) d'évaluation en attente</span>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="AdminEvaluations.openDemandesList()">Gérer les demandes →</button>
+    </div>
+
     <!-- Loader -->
     <div class="loader-container" id="loader">
         <div class="loader"></div>
@@ -287,6 +296,80 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" id="cancelDeleteBtn">Annuler</button>
             <button class="btn btn-danger" id="confirmDeleteBtn">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Liste des demandes -->
+<div class="modal-overlay hidden" id="demandesModal">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <h2>Demandes d'évaluation</h2>
+            <button class="modal-close" onclick="AdminEvaluations.closeDemandesModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="demandesLoading" style="text-align:center;padding:2rem;">
+                <div class="loader"></div>
+                <p style="margin-top:12px; color:#64748b;">Chargement des demandes...</p>
+            </div>
+            <div id="demandesListContainer" style="display:none;">
+                <div class="demandes-empty" id="demandesEmpty" style="display:none;">
+                    <p>Aucune demande en attente.</p>
+                </div>
+                <div id="demandesListContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Répondre à une demande -->
+<div class="modal-overlay hidden" id="reponseDemandeModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="reponseDemandeTitle">Répondre à la demande</h2>
+            <button class="modal-close" onclick="AdminEvaluations.closeReponseModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="reponseEvaluationId">
+            <input type="hidden" id="reponseEleveId">
+
+            <div class="demande-info" id="reponseDemandeInfo"></div>
+
+            <div class="form-group">
+                <label>Décision <span class="req">*</span></label>
+                <div class="decision-btns">
+                    <button class="decision-btn accept" id="btnAccepter" onclick="AdminEvaluations.setDecision('accepte')">
+                        ✓ Accepter
+                    </button>
+                    <button class="decision-btn refuse" id="btnRefuser" onclick="AdminEvaluations.setDecision('refuse')">
+                        ✗ Refuser
+                    </button>
+                </div>
+            </div>
+
+            <div id="acceptFields" style="display:none;">
+                <div class="form-group">
+                    <label>Type de date</label>
+                    <select class="form-select" id="reponseTypeDate">
+                        <option value="passage_classe">Date de passage en classe</option>
+                        <option value="date_butoir">Date butoir de rendu</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" class="form-input" id="reponseDate">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Remarque (optionnelle)</label>
+                <textarea class="form-input" id="reponseRemarque" rows="2" placeholder="Message pour l'élève..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminEvaluations.closeReponseModal()">Annuler</button>
+            <button class="btn btn-primary" id="saveReponseBtn" onclick="AdminEvaluations.saveReponse()" disabled>Confirmer</button>
         </div>
     </div>
 </div>
