@@ -317,33 +317,95 @@ const AdminLayout = {
     },
 
     /**
-     * Construit le contenu du dropdown de notifications
+     * Formate une date relative lisible (ex: "il y a 2h", "hier 14:30")
      */
-    _renderNotificationDropdown(pendingSubmissions, demandesCount) {
+    _formatNotifDate(dateStr) {
+        if (!dateStr) return '';
+        try {
+            var d = new Date(dateStr);
+            if (isNaN(d.getTime())) return '';
+            var now = new Date();
+            var diffMs = now - d;
+            var diffMin = Math.floor(diffMs / 60000);
+            var diffH = Math.floor(diffMs / 3600000);
+
+            var time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+            if (diffMin < 1) return "à l'instant";
+            if (diffMin < 60) return 'il y a ' + diffMin + ' min';
+            if (diffH < 24) return 'il y a ' + diffH + 'h';
+
+            // Hier ou date
+            var yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            if (d.toDateString() === yesterday.toDateString()) return 'hier ' + time;
+
+            return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + time;
+        } catch (_e) { return ''; }
+    },
+
+    /**
+     * Construit le contenu du dropdown de notifications (items individuels)
+     */
+    _renderNotificationDropdown(pendingSubmissions, demandes, elevesMap, evaluationsMap) {
         var body = document.getElementById('notification-dropdown-body');
         if (!body) return;
 
         var correctionsCount = pendingSubmissions ? pendingSubmissions.length : 0;
-        var demandes = demandesCount || 0;
+        var demandesCount = demandes ? demandes.length : 0;
 
-        if (correctionsCount === 0 && demandes === 0) {
+        if (correctionsCount === 0 && demandesCount === 0) {
             body.innerHTML = '<div class="notification-empty">Aucune notification</div>';
             return;
         }
 
+        var self = this;
         var html = '';
+
+        // Corrections : on garde agrégé (pas de date individuelle pertinente)
         if (correctionsCount > 0) {
             html += '<a href="/Brikks/admin/corrections.html" class="notification-item">';
             html += '<span class="notification-item-icon">✏️</span>';
             html += '<span class="notification-item-text">' + correctionsCount + ' copie' + (correctionsCount > 1 ? 's' : '') + ' à corriger</span>';
             html += '</a>';
         }
-        if (demandes > 0) {
-            html += '<a href="/Brikks/admin/evaluations.html#bonus-demandes" class="notification-item">';
-            html += '<span class="notification-item-icon">📩</span>';
-            html += '<span class="notification-item-text">' + demandes + ' demande' + (demandes > 1 ? 's' : '') + ' de bonus</span>';
-            html += '</a>';
+
+        // Demandes : items individuels avec nom élève + titre éval + date
+        if (demandesCount > 0) {
+            // Trier par date_demande décroissante (plus récent en haut)
+            var sorted = demandes.slice().sort(function(a, b) {
+                return (b.date_demande || '') > (a.date_demande || '') ? 1 : -1;
+            });
+
+            // Limiter à 8 items pour ne pas surcharger le dropdown
+            var maxItems = 8;
+            var displayed = sorted.slice(0, maxItems);
+
+            displayed.forEach(function(d) {
+                var eleve = elevesMap[String(d.eleve_id)] || {};
+                var prenom = eleve.prenom || '';
+                var evaluation = evaluationsMap[String(d.evaluation_id)] || {};
+                var evalTitre = evaluation.titre || 'bonus';
+                var dateLabel = self._formatNotifDate(d.date_demande);
+
+                html += '<a href="/Brikks/admin/evaluations.html#bonus-demandes" class="notification-item notification-item-demande">';
+                html += '<span class="notification-item-icon">📩</span>';
+                html += '<div class="notification-item-detail">';
+                html += '<span class="notification-item-text">' + escapeHtml(prenom) + ' demande <strong>' + escapeHtml(evalTitre) + '</strong></span>';
+                if (dateLabel) {
+                    html += '<span class="notification-item-time">' + dateLabel + '</span>';
+                }
+                html += '</div>';
+                html += '</a>';
+            });
+
+            if (sorted.length > maxItems) {
+                html += '<a href="/Brikks/admin/evaluations.html#bonus-demandes" class="notification-item notification-item-more">';
+                html += '<span class="notification-item-text">+ ' + (sorted.length - maxItems) + ' autre' + (sorted.length - maxItems > 1 ? 's' : '') + ' demande' + (sorted.length - maxItems > 1 ? 's' : '') + '</span>';
+                html += '</a>';
+            }
         }
+
         body.innerHTML = html;
     },
 
@@ -381,10 +443,12 @@ const AdminLayout = {
         try {
             // Vider le cache pour obtenir les dernières demandes
             SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
-            // Charger copies à corriger + demandes bonus en parallèle
-            var [result, resultatsData] = await Promise.all([
+            // Charger copies à corriger + demandes + élèves + évaluations en parallèle
+            var [result, resultatsData, elevesData, evaluationsData] = await Promise.all([
                 this.callAPI('getEleveTachesComplexes', {}),
-                SheetsAPI.getSheetData('EVALUATION_RESULTATS').catch(function() { return []; })
+                SheetsAPI.getSheetData('EVALUATION_RESULTATS').catch(function() { return []; }),
+                SheetsAPI.getSheetData('UTILISATEURS').catch(function() { return []; }),
+                SheetsAPI.getSheetData('EVALUATIONS').catch(function() { return []; })
             ]);
 
             var pending = [];
@@ -393,17 +457,27 @@ const AdminLayout = {
             }
             var correctionsCount = pending.length;
 
-            // Compter les demandes de bonus en attente
+            // Parser les données
             var allResultats = SheetsAPI.parseSheetData(resultatsData);
-            var demandesCount = allResultats.filter(function(r) {
-                return String(r.demande_statut || '').trim() === 'demande';
-            }).length;
+            var allEleves = SheetsAPI.parseSheetData(elevesData);
+            var allEvaluations = SheetsAPI.parseSheetData(evaluationsData);
 
-            var totalCount = correctionsCount + demandesCount;
+            // Construire des maps id → objet pour lookup rapide
+            var elevesMap = {};
+            allEleves.forEach(function(e) { elevesMap[String(e.id)] = e; });
+            var evaluationsMap = {};
+            allEvaluations.forEach(function(ev) { evaluationsMap[String(ev.id)] = ev; });
+
+            // Filtrer les demandes en attente (objets complets, pas juste le count)
+            var demandes = allResultats.filter(function(r) {
+                return String(r.demande_statut || '').trim() === 'demande';
+            });
+
+            var totalCount = correctionsCount + demandes.length;
             this._pendingCount = totalCount;
 
             // Construire le contenu du dropdown
-            this._renderNotificationDropdown(pending, demandesCount);
+            this._renderNotificationDropdown(pending, demandes, elevesMap, evaluationsMap);
 
             // Si on est sur la page corrections, marquer comme vu automatiquement
             if (this._onCorrectionsPage) {
