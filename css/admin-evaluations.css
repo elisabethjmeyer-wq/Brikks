@@ -1640,30 +1640,38 @@
 }
 
 /* ===== NOTIFICATION ===== */
-.notification {
+#evaluations-page ~ .notification,
+#notification.notification {
     position: fixed;
     top: 20px;
     right: 20px;
+    bottom: auto;
+    left: auto;
     padding: 12px 20px;
     border-radius: 10px;
     font-size: 14px;
     font-weight: 500;
-    z-index: 2000;
+    max-width: 360px;
+    z-index: 10002;
     transform: translateX(120%);
     transition: transform 0.3s ease;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    animation: none;
 }
 
-.notification.show {
+#evaluations-page ~ .notification.show,
+#notification.notification.show {
     transform: translateX(0);
 }
 
-.notification-success {
+#evaluations-page ~ .notification-success,
+#notification.notification-success {
     background: #10b981;
     color: white;
 }
 
-.notification-error {
+#evaluations-page ~ .notification-error,
+#notification.notification-error {
     background: #ef4444;
     color: white;
 }
