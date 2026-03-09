@@ -207,6 +207,7 @@ const EleveEvaluation = {
                         </div>
                     </div>
                     <div class="sujet-sidebar-section">
+                        <div class="sujet-sidebar-title">Compétences évaluées & critères de réussite</div>
                         ${criteresHtml || '<div class="sujet-no-criteres">Aucun critère défini</div>'}
                     </div>
                 </div>
@@ -303,6 +304,7 @@ const EleveEvaluation = {
         const matiereOrder = ['FR', 'HG-EMC', 'Transversal'];
         const matiereLabels = { 'FR': 'Français', 'HG-EMC': 'Histoire-Géo · EMC', 'Transversal': 'Transversal' };
         const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        const matiereBgs = { 'FR': '#eff6ff', 'HG-EMC': '#fffbeb', 'Transversal': '#f3f4f6' };
 
         // Collecter les compétences demandées avec leurs critères
         const compsData = [];
@@ -340,9 +342,8 @@ const EleveEvaluation = {
             const color = matiereColors[mat] || '#6b7280';
 
             if (showBanners) {
-                html += `<div class="sujet-matiere-banner" style="border-color: ${color};">
-                    <span class="sujet-matiere-label" style="color: ${color};">${escapeHtml(label)}</span>
-                </div>`;
+                const bg = matiereBgs[mat] || '#f3f4f6';
+                html += `<div class="sujet-matiere-pill" style="background: ${bg}; color: ${color};">${escapeHtml(label)}</div>`;
             }
 
             groups[mat].forEach(cd => {
@@ -352,7 +353,7 @@ const EleveEvaluation = {
                         <button type="button" class="sujet-comp-toggle" onclick="EleveEvaluation._toggleCriteres(this)">
                             <span class="sujet-comp-arrow">▸</span>
                             <h4 class="sujet-criteres-title">${escapeHtml(cd.name)}</h4>
-                            <span class="sujet-comp-count">${nbCriteres} critère${nbCriteres > 1 ? 's' : ''}</span>
+                            <span class="sujet-comp-count">${nbCriteres} critère${nbCriteres > 1 ? 's' : ''} à valider</span>
                         </button>
                         <div class="sujet-criteres-list" style="display: none;">
                             ${cd.criteres.map(c => `
