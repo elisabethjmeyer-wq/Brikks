@@ -1,83 +1,160 @@
-# Plan de nettoyage — Brikks
+# Plan : Points par compétence (au lieu de points globaux par évaluation)
 
-> Objectif : dédupliquer et centraliser, **pas** restructurer. L'architecture est saine.
+## Objectif
 
----
+Quand la prof crée une TC ou un bonus compétence, elle mise des points **par compétence** (pas un total global). Les points gagnés sont ensuite attribués à la bonne matière (FR, HG-EMC, ou les deux si transversal) automatiquement, grâce au champ `matiere` du référentiel.
 
-## Phase 1 — Quick wins JS (peu de risque, gain immédiat)
+## Périmètre
 
-### 1.1 Extraire `escapeHtml()` en fonction globale
-- Ajouter `escapeHtml()` comme fonction globale dans `app.js` (hors de l'objet `App`)
-- Supprimer les 24 copies dans les autres modules
-- Ajouter `escapeHtml` dans les globals ESLint
+| Type d'évaluation | Changement |
+|---|---|
+| **TC** | Points par compétence (N compétences) |
+| **Bonus compétence** | Points sur 1 compétence (inchangé en pratique, mais stocké comme `points_par_competence`) |
+| **Bonus ponctuel** | Pas de compétences → garde `briques` global, **pas de changement** |
+| **Bonus suivi** | Pas de compétences → garde `briques` global, **pas de changement** |
+| **Connaissances / SF** | Pas de compétences → garde `briques` global, **pas de changement** |
 
-### 1.2 Supprimer les `console.log` de production
-- Supprimer les 43 instances dans 12 fichiers
-- Garder uniquement ceux de `logger.js` (c'est son rôle)
+## Phase 1 — Modèle de données
 
-### 1.3 Fixer les 64 warnings ESLint
-- Préfixer les paramètres inutilisés avec `_` (54 cas)
-- Ajouter un commentaire dans les blocs `catch` vides (10 cas)
+### Nouvelles colonnes (migration progressive)
 
-### 1.4 Supprimer `components/components.js`
-- Vérifier que ses fonctions existent déjà dans les layouts
-- Supprimer le fichier orphelin (159 lignes)
+**EVALUATIONS** :
+- `points_par_competence` — JSON : `{ "comp_id_1": 1, "comp_id_2": 1.5 }` (points misés par compétence)
+- `briques` reste comme **total calculé** (somme des points par compétence) pour rétro-compatibilité
 
----
+**EVALUATION_RESULTATS** :
+- `points_par_competence` — JSON : `{ "comp_id_1": 1, "comp_id_2": 0.5 }` (points gagnés par compétence après correction)
+- `validations` reste comme **total calculé** (somme) pour rétro-compatibilité
 
-## Phase 2 — CSS : dédupliquer et centraliser
+### Backend (Evaluations.gs)
 
-### 2.1 Dédupliquer les classes internes des 3 gros fichiers
-- `eleve-connaissances.css` : 41 classes définies 2-3 fois → garder une seule définition
-- `admin-banques-exercices.css` : 47+ doublons → idem
-- `eleve-exercices.css` : 7 doublons → idem
+- `createEvaluation` / `updateEvaluation` : accepter `points_par_competence` (JSON string), calculer `briques` = somme des valeurs
+- `saveEvaluationCorrection` : accepter `points_par_competence` (JSON string), calculer `validations` = somme des valeurs
 
-### 2.2 Créer `css/shared-components.css`
-- Extraire les composants redéfinis dans 14+ fichiers : modals, boutons, loaders, empty states, formulaires
-- Charger ce fichier dans toutes les pages HTML (après `style.css`)
-- Supprimer ces définitions des fichiers individuels
+## Phase 2 — Wizard de création (admin-evaluations.js)
 
-### 2.3 Fusionner les media queries dupliquées
-- Dans chaque fichier, regrouper les blocs `@media` par breakpoint (11 fichiers concernés)
+### Étape Paramètres (step 1)
+- Pour TC et bonus comp : **masquer** le champ `briques` (sera calculé automatiquement)
+- Pour les autres types : champ `briques` inchangé
 
----
+### Étape Compétences (step 2 pour TC)
+- Ajouter un **input numérique** à côté de chaque checkbox de compétence
+- Quand la prof coche une compétence, un champ "Points misés" apparaît (défaut: 1, step: 0.25)
+- Afficher la matière de la compétence en tag coloré (FR bleu, HG-EMC orange, Transversal gris)
+- En bas de la liste : **total calculé en temps réel** ("Total : 3 pts — 1 pt FR, 1 pt HG-EMC, 1 pt transversal")
 
-## Phase 3 — Centraliser les constantes et utilitaires JS
+### Étape Compétence unique (step 2 pour bonus comp)
+- Ajouter un input "Points misés" sous la sélection radio (défaut: 1, step: 0.25)
+- Afficher la matière de la compétence sélectionnée
 
-### 3.1 Centraliser les clés localStorage dans `CONFIG.STORAGE_KEYS`
-- Ajouter les clés manquantes : `PREVIEW`, `COMP_TIMER`, `SHEETS_PREFIX`, etc.
-- Remplacer les strings en dur dans 5 fichiers
+### Étape Résumé (dernière étape)
+- Afficher le détail des points par compétence au lieu du total global
+- Format : `Compétence X (FR) — 1 pt`, `Compétence Y (Transversal) — 1.5 pt`
+- Ligne totale : `Total : 3.5 pts`
 
-### 3.2 Centraliser les constantes de mémorisation dans `CONFIG`
-- Ajouter `CONFIG.SEUIL_CONNAISSANCES` (7) et `CONFIG.SEUIL_SAVOIR_FAIRE` (5)
-- Remplacer dans `eleve-connaissances.js` et `eleve-exercices.js`
+### Sauvegarde
+- Envoyer `points_par_competence` (JSON) en plus de `briques` (total calculé côté frontend)
+- `wizardData.points_par_competence = { comp_id: points, ... }`
 
-### 3.3 Centraliser le pattern de cache localStorage
-- Créer 2 fonctions dans `app.js` : `App.loadCache(key, ttl)` et `App.saveCache(key, data)`
-- Remplacer le code dupliqué dans les 4 modules concernés
+## Phase 3 — Wizard de correction (admin-corrections.js)
 
----
+### Étape Bilan (step 4)
 
-## Phase 4 — Backend GAS
+**Pour TC** :
+- Remplacer l'input unique "Points attribués : X / Y" par **un input par compétence**
+- Chaque section compétence (déjà affichée dans le bilan) reçoit son propre input
+- Format : `🎯 Compétence X (2/3 critères) — [input] / 1 pt`
+- Logique par défaut : si tous critères validés → points max, sinon → 0 (modifiable par la prof)
+- Total affiché en bas : somme des inputs
+- Tag matière à côté de chaque compétence (FR, HG-EMC, Transversal)
 
-### 4.1 Remplacer les noms de feuilles en dur dans `Competences.gs`
-- 27 occurrences de strings → constantes `SHEETS.xxx`
+**Pour bonus comp** :
+- Un seul input (une seule compétence) — visuellement identique à aujourd'hui, mais stocké dans `points_par_competence`
 
-### 4.2 Script de génération automatique de `TOUT-EN-UN.gs`
-- Créer un script `npm run build:gas` qui concatène tous les `.gs` (sauf TOUT-EN-UN.gs) dans `TOUT-EN-UN.gs`
-- Ordre : `Code.gs` en premier (contient les constantes), puis les autres par ordre alphabétique
-- Ajouter un commentaire en-tête : "Fichier auto-généré, ne pas modifier directement"
-- Documenter la procédure de déploiement
+**Pour bonus ponctuel** :
+- Inchangé (input unique, pas de compétences)
 
----
+### Sauvegarde
+- Envoyer `points_par_competence` (JSON) en plus de `validations` (total)
+- `wd.pointsParCompetence = { comp_id: points, ... }`
 
-## Ce qu'on ne fait PAS (et pourquoi)
+## Phase 4 — Calcul des notes (admin-tableau-bord.js + eleve-notes.js)
 
-| Idée | Pourquoi on ne le fait pas |
-|------|---------------------------|
-| Redécouper les gros fichiers JS | Déjà bien structurés en sous-modules |
-| Restructurer le backend GAS | Déjà organisé par domaine, tailles raisonnables |
-| Centraliser `callAPI()` | Intentionnellement par module (doc CLAUDE.md) |
-| Découper les gros CSS en sous-fichiers | Les doublons internes sont le vrai problème, pas la taille |
-| Ajouter un framework de test | Pas prioritaire pour le nettoyage |
-| Corriger les problèmes de sécurité | Accepté pour le contexte scolaire (~50 élèves) |
+### `_calculatePoints(eleveId, matiere, semestre)`
+
+**Nouvelle logique** :
+```
+Pour chaque évaluation du semestre :
+  Si l'éval a un résultat pour cet élève :
+    Si résultat.points_par_competence existe (JSON) :
+      Pour chaque compétence dans le JSON :
+        Trouver la matière de la compétence dans le référentiel
+        Si compétence.matiere === matiere OU compétence.matiere === 'Transversal' :
+          Ajouter les points à la catégorie de l'éval (competences/bonus)
+    Sinon (rétro-compatibilité) :
+      Si eval.matiere === matiere OU eval.matiere === 'Les deux' :
+        Ajouter résultat.validations à la catégorie
+```
+
+**Impact** : identique dans `admin-tableau-bord.js` et `eleve-notes.js` (même logique dupliquée).
+
+### `maxCats` (budget) — même logique pour les points misés
+
+Pour calculer le budget max par matière, on fait pareil avec `evaluation.points_par_competence` au lieu de `evaluation.briques`.
+
+## Phase 5 — Affichage élève
+
+### Page de résultat TC (eleve-evaluation.js — review mode)
+
+**Points banner** : remplacer le bandeau global `2 / 3 pts` par un bandeau détaillé :
+- Ligne par compétence : `Compétence X (FR) : 1/1 pt ✅` ou `Compétence Y (Transversal) : 0/1.5 pt ❌`
+- Total en dessous : `Total : 1 / 2.5 pts`
+- Tag matière coloré à côté de chaque compétence
+
+**Colonne droite (critères)** : inchangée (affiche déjà les critères par compétence avec ✅/❌)
+
+### Cartes évaluations (eleve-evaluations.js)
+
+- Le badge `+X pts` continue d'afficher le **total** (somme de `points_par_competence`)
+- Pas de changement de l'affichage des cartes (trop petit pour le détail)
+
+### Page notes (eleve-notes.js)
+
+**Section Compétences** :
+- Les passages montrent déjà la source (bonus, TC) avec tags visuels
+- Ajouter les points spécifiques à cette compétence (au lieu du total de l'éval)
+- Ex: passage TC "Explorations portugaises" → `+1 pt` (au lieu de `+2 pts` qui était le total)
+
+**Calcul de la note de progression** :
+- Utilise la nouvelle logique `_calculatePoints()` → les points vont dans la bonne matière
+
+## Ordre d'implémentation
+
+1. **Backend** : colonnes + lecture/écriture `points_par_competence` dans Evaluations.gs
+2. **Wizard création** : UI points par compétence dans admin-evaluations.js
+3. **Wizard correction** : UI points par compétence dans admin-corrections.js
+4. **Calcul des notes** : refactorer `_calculatePoints` dans admin-tableau-bord.js + eleve-notes.js
+5. **Affichage élève review** : bandeau détaillé dans eleve-evaluation.js
+6. **Affichage élève notes** : points par compétence dans eleve-notes.js
+7. **Build GAS** : `npm run build:gas` pour reconstruire TOUT-EN-UN.gs
+8. **Lint** : `npm run lint` pour vérifier
+
+## Rétro-compatibilité
+
+- Les évaluations existantes n'ont pas `points_par_competence` → le code utilise `briques` / `validations` comme avant
+- Le fallback est automatique : si `points_par_competence` est absent/vide, on tombe sur l'ancien calcul
+- Pas besoin de migration de données existantes
+
+## Fichiers modifiés
+
+| Fichier | Changement |
+|---|---|
+| `google-apps-script/Evaluations.gs` | Lecture/écriture `points_par_competence`, calcul auto de `briques`/`validations` |
+| `js/admin-evaluations.js` | Wizard création : inputs points par compétence (step 2) + résumé |
+| `js/admin-corrections.js` | Wizard correction : inputs points par compétence (step 4 bilan) |
+| `js/admin-tableau-bord.js` | `_calculatePoints()` : ventilation par matière via référentiel |
+| `js/eleve-notes.js` | `_calculatePoints()` : même refacto + affichage section compétences |
+| `js/eleve-evaluation.js` | Review TC : bandeau points détaillé par compétence |
+| `css/admin-evaluations.css` | Styles pour inputs points dans les checkboxes compétences |
+| `css/admin-corrections.css` | Styles pour inputs points dans le bilan |
+| `css/eleve-evaluation.css` | Styles pour bandeau points détaillé |
