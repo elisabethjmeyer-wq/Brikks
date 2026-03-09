@@ -1031,7 +1031,8 @@ const EleveEvaluations = {
             ? `<div class="card-meta">${metaParts.join('<span class="meta-sep">·</span>')}</div>`
             : '';
 
-        const conditionLine = isTC ? '' : `<div class="card-condition">Réussite : ${escapeHtml(condition)}</div>`;
+        const isBonusOrTC = isTC || (evaluation.type === 'bonus');
+        const conditionLine = isBonusOrTC ? '' : `<div class="card-condition">Réussite : ${escapeHtml(condition)}</div>`;
 
         // Action
         let actionHtml = '';
