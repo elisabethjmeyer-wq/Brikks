@@ -452,49 +452,90 @@ const AdminEvaluations = {
 
     },
 
-    _renderDemandesView() {
-        const demandes = this._getDemandesEnAttente();
+    _renderDemandeCard(d, options = {}) {
+        const eleve = (this.eleves || []).find(e => String(e.id).trim() === String(d.eleve_id).trim());
+        const evaluation = (this.evaluations || []).find(e => String(e.id).trim() === String(d.evaluation_id).trim());
+        const eleveName = eleve ? `${eleve.prenom || ''} ${eleve.nom || ''}`.trim() : d.eleve_id;
+        const evalTitle = evaluation ? (evaluation.titre || 'Sans titre') : d.evaluation_id;
+        const evalType = evaluation ? (evaluation.type || '') : '';
+        const sousType = evaluation ? (evaluation.sous_type_bonus || evaluation.sous_type_comp || '') : '';
+        const dateStr = d.date_demande ? new Date(d.date_demande).toLocaleDateString('fr-FR') : '';
 
-        if (demandes.length === 0) {
-            return '<div class="demandes-empty-state">Aucune demande en attente.</div>';
+        let typeBadge = '';
+        if (evalType === 'bonus' && sousType === 'competence') {
+            typeBadge = '<span class="demande-badge purple">Bonus compétence</span>';
+        } else if (evalType === 'bonus' && sousType === 'ponctuel') {
+            typeBadge = '<span class="demande-badge teal">Bonus ponctuel</span>';
+        } else if (evalType === 'competences') {
+            typeBadge = '<span class="demande-badge red">Tâche complexe</span>';
+        } else {
+            typeBadge = `<span class="demande-badge gray">${escapeHtml(evalType)}</span>`;
         }
 
-        return '<div class="demandes-list">' + demandes.map(d => {
-            const eleve = (this.eleves || []).find(e => String(e.id).trim() === String(d.eleve_id).trim());
-            const evaluation = (this.evaluations || []).find(e => String(e.id).trim() === String(d.evaluation_id).trim());
-            const eleveName = eleve ? `${eleve.prenom || ''} ${eleve.nom || ''}`.trim() : d.eleve_id;
-            const evalTitle = evaluation ? (evaluation.titre || 'Sans titre') : d.evaluation_id;
-            const evalType = evaluation ? (evaluation.type || '') : '';
-            const sousType = evaluation ? (evaluation.sous_type_bonus || evaluation.sous_type_comp || '') : '';
-            const dateStr = d.date_demande ? new Date(d.date_demande).toLocaleDateString('fr-FR') : '';
-
-            let typeBadge = '';
-            if (evalType === 'bonus' && sousType === 'competence') {
-                typeBadge = '<span class="demande-badge purple">Bonus comp\u00e9tence</span>';
-            } else if (evalType === 'bonus' && sousType === 'ponctuel') {
-                typeBadge = '<span class="demande-badge teal">Bonus ponctuel</span>';
-            } else if (evalType === 'competences') {
-                typeBadge = '<span class="demande-badge red">T\u00e2che complexe</span>';
-            } else {
-                typeBadge = `<span class="demande-badge gray">${escapeHtml(evalType)}</span>`;
+        // Pour les demandes traitées : afficher le statut au lieu du bouton Répondre
+        let actionsHtml = '';
+        if (options.treated) {
+            const ds = String(d.demande_statut || '').trim();
+            if (ds === 'accepte') {
+                actionsHtml = '<span class="demande-status-tag accepted">✓ Acceptée</span>';
+            } else if (ds === 'refuse') {
+                actionsHtml = '<span class="demande-status-tag refused">✗ Refusée</span>';
             }
+        } else {
+            actionsHtml = `<button class="btn btn-sm btn-primary" onclick="AdminEvaluations.openReponseModal('${d.evaluation_id}', '${d.eleve_id}')">Répondre</button>`;
+        }
 
-            return `
-                <div class="demande-card">
-                    <div class="demande-card-left">
-                        <div class="demande-eleve">${escapeHtml(eleveName)}</div>
-                        <div class="demande-eval">
-                            ${typeBadge}
-                            <span class="demande-eval-title">${escapeHtml(evalTitle)}</span>
-                        </div>
-                        <div class="demande-date">Demand\u00e9 le ${escapeHtml(dateStr)}</div>
+        return `
+            <div class="demande-card${options.treated ? ' treated' : ''}">
+                <div class="demande-card-left">
+                    <div class="demande-eleve">${escapeHtml(eleveName)}</div>
+                    <div class="demande-eval">
+                        ${typeBadge}
+                        <span class="demande-eval-title">${escapeHtml(evalTitle)}</span>
                     </div>
-                    <div class="demande-card-actions">
-                        <button class="btn btn-sm btn-primary" onclick="AdminEvaluations.openReponseModal('${d.evaluation_id}', '${d.eleve_id}')">R\u00e9pondre</button>
-                    </div>
+                    <div class="demande-date">Demandé le ${escapeHtml(dateStr)}</div>
                 </div>
+                <div class="demande-card-actions">
+                    ${actionsHtml}
+                </div>
+            </div>
+        `;
+    },
+
+    _renderDemandesView() {
+        const demandes = this._getDemandesEnAttente();
+        const traitees = this._getDemandesTraitees();
+
+        let html = '';
+
+        // Section demandes en attente
+        if (demandes.length === 0 && traitees.length === 0) {
+            return '<div class="demandes-empty-state">Aucune demande.</div>';
+        }
+
+        if (demandes.length > 0) {
+            html += '<div class="demandes-list">';
+            html += demandes.map(d => this._renderDemandeCard(d)).join('');
+            html += '</div>';
+        } else {
+            html += '<div class="demandes-empty-state">Aucune demande en attente.</div>';
+        }
+
+        // Section demandes traitées (dépliant fermé par défaut)
+        if (traitees.length > 0) {
+            html += `
+                <details class="demandes-traitees-details">
+                    <summary class="demandes-traitees-summary">
+                        Demandes traitées <span class="demandes-traitees-count">${traitees.length}</span>
+                    </summary>
+                    <div class="demandes-list treated">
+                        ${traitees.map(d => this._renderDemandeCard(d, { treated: true })).join('')}
+                    </div>
+                </details>
             `;
-        }).join('') + '</div>';
+        }
+
+        return html;
     },
 
     renderEvaluationCard(evaluation) {
@@ -3817,6 +3858,13 @@ const AdminEvaluations = {
         );
     },
 
+    _getDemandesTraitees() {
+        return (this.resultats || []).filter(r => {
+            const ds = String(r.demande_statut || '').trim();
+            return ds === 'accepte' || ds === 'refuse';
+        });
+    },
+
     /**
      * Met à jour le bandeau des demandes en attente
      * (Le bandeau est désactivé — remplacé par le toggle dans l'onglet Bonus)
@@ -3928,11 +3976,29 @@ const AdminEvaluations = {
         // Info about the demande
         const eleve = (this.eleves || []).find(e => String(e.id).trim() === String(eleveId).trim());
         const evaluation = (this.evaluations || []).find(e => String(e.id).trim() === String(evaluationId).trim());
+        const demande = (this.resultats || []).find(r =>
+            String(r.evaluation_id).trim() === String(evaluationId).trim() &&
+            String(r.eleve_id).trim() === String(eleveId).trim() &&
+            String(r.demande_statut || '').trim() === 'demande'
+        );
         const eleveName = eleve ? `${eleve.prenom || ''} ${eleve.nom || ''}`.trim() : eleveId;
         const evalTitle = evaluation ? (evaluation.titre || 'Sans titre') : evaluationId;
+
+        // Formater la date/heure de la demande
+        let dateDemandeHtml = '';
+        if (demande && demande.date_demande) {
+            try {
+                const d = new Date(demande.date_demande);
+                const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+                const timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                dateDemandeHtml = `<p><strong>Demandé le :</strong> ${escapeHtml(dateStr)} à ${escapeHtml(timeStr)}</p>`;
+            } catch (_e) { /* ignore */ }
+        }
+
         document.getElementById('reponseDemandeInfo').innerHTML = `
             <p><strong>Élève :</strong> ${escapeHtml(eleveName)}</p>
             <p><strong>Évaluation :</strong> ${escapeHtml(evalTitle)}</p>
+            ${dateDemandeHtml}
         `;
 
         modal.classList.remove('hidden');
