@@ -2099,9 +2099,11 @@
 }
 
 /* ===== COLONNES TC SAISIE ===== */
-.col-criteres-resume { width: 90px; text-align: center; }
-.col-correction-action { width: 100px; text-align: center; }
-.col-statut-correction { width: 90px; text-align: center; }
+.saisie-table .col-eleve { width: 35%; }
+.col-criteres-resume { width: 12%; text-align: center; }
+.col-correction-action { width: 14%; text-align: center; }
+.col-statut-correction { width: 12%; text-align: center; }
+.saisie-table .col-resultat { width: 12%; }
 
 .criteres-badge {
     display: inline-block;
