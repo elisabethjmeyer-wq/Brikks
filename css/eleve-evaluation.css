@@ -12,6 +12,11 @@
     padding: 24px;
 }
 
+/* TC sujet : pleine largeur */
+.evaluation-main:has(.sujet-view-tc) {
+    max-width: none;
+}
+
 /* ========== CONFIRMATION MODAL ========== */
 #confirmModal .modal {
     width: 100%;
