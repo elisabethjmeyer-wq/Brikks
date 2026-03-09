@@ -60,14 +60,10 @@ const SheetsAPI = {
         }
 
         const fullRange = range ? `${sheetName}!${range}` : sheetName;
-        let url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(fullRange)}?key=${CONFIG.API_KEY}`;
-
-        // Cache-busting pour éviter les réponses HTTP en cache navigateur/CDN
-        if (forceRefresh) {
-            url += `&_t=${Date.now()}`;
-        }
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(fullRange)}?key=${CONFIG.API_KEY}`;
 
         try {
+            // cache: 'no-store' bypass le cache HTTP navigateur quand forceRefresh est demandé
             const response = await fetch(url, forceRefresh ? { cache: 'no-store' } : {});
 
             if (!response.ok) {

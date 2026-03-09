@@ -161,9 +161,10 @@ const AdminEvaluations = {
             this.evaluations = [];
         }
 
-        // Load evaluation results (forceRefresh pour toujours voir les dernières demandes)
+        // Load evaluation results (clearCache pour voir les dernières demandes)
         try {
-            const resultatsData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS', '', { forceRefresh: true });
+            SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+            const resultatsData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
             this.resultats = SheetsAPI.parseSheetData(resultatsData);
         } catch (_e) {
             this.resultats = [];
@@ -376,7 +377,8 @@ const AdminEvaluations = {
         // Rafraîchir les résultats quand on ouvre la vue demandes
         if (view === 'demandes') {
             try {
-                const freshData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS', '', { forceRefresh: true });
+                SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+                const freshData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
                 this.resultats = SheetsAPI.parseSheetData(freshData);
             } catch (_e) { /* garder les données existantes */ }
         }
