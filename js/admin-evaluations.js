@@ -790,9 +790,36 @@ const AdminEvaluations = {
 
     _getMaxStep() {
         const type = this.wizardData.type;
-        if (type === 'connaissances' || type === 'savoir-faire' || type === 'competences') return 2;
-        if (type === 'bonus' && (this.wizardData.sous_type_bonus === 'competence' || this.wizardData.sous_type_bonus === 'ponctuel')) return 2;
+        // Conn/SF : 2 étapes (Paramètres + Sélection sujet)
+        if (type === 'connaissances' || type === 'savoir-faire') return 2;
+        // TC : 5 étapes (Paramètres + Compétences + Document + Corrigé + Résumé)
+        if (type === 'competences') return 5;
+        // Bonus compétence : 5 étapes (Paramètres + Compétence + Document + Corrigé + Résumé)
+        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'competence') return 5;
+        // Bonus ponctuel : 5 étapes (Paramètres + Document + Corrigé + Critères + Résumé)
+        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'ponctuel') return 5;
+        // Bonus suivi : 1 étape (Paramètres)
         return 1;
+    },
+
+    /**
+     * Labels des étapes du wizard selon le type d'évaluation.
+     */
+    _getStepLabels() {
+        const type = this.wizardData.type;
+        if (type === 'connaissances' || type === 'savoir-faire') {
+            return ['Paramètres', 'Sujet'];
+        }
+        if (type === 'competences') {
+            return ['Paramètres', 'Compétences', 'Document', 'Corrigé', 'Résumé'];
+        }
+        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'competence') {
+            return ['Paramètres', 'Compétence', 'Document', 'Corrigé', 'Résumé'];
+        }
+        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'ponctuel') {
+            return ['Paramètres', 'Document', 'Corrigé', 'Critères', 'Résumé'];
+        }
+        return ['Paramètres'];
     },
 
     wizardNext() {
@@ -820,18 +847,21 @@ const AdminEvaluations = {
 
     _updateWizardStepper() {
         const maxStep = this._getMaxStep();
+        const labels = this._getStepLabels();
+        const stepper = document.getElementById('evalWizardStepper');
 
-        document.querySelectorAll('.eval-wizard-step').forEach(el => {
-            const step = parseInt(el.dataset.step);
-            el.classList.toggle('active', step === this.wizardStep);
-            el.classList.toggle('completed', step < this.wizardStep);
-            el.style.display = step <= maxStep ? '' : 'none';
-        });
-        // Hide connectors for hidden steps
-        document.querySelectorAll('.eval-step-connector').forEach((el, i) => {
-            const toStep = i + 2;
-            el.style.display = toStep <= maxStep ? '' : 'none';
-        });
+        // Générer le stepper dynamiquement
+        let html = '';
+        for (let i = 1; i <= maxStep; i++) {
+            if (i > 1) html += '<div class="eval-step-connector"></div>';
+            const active = i === this.wizardStep ? ' active' : '';
+            const completed = i < this.wizardStep ? ' completed' : '';
+            html += `<button class="eval-wizard-step${active}${completed}" data-step="${i}">
+                <span class="eval-step-number">${completed ? '✓' : i}</span>
+                <span class="eval-step-label">${labels[i - 1] || ''}</span>
+            </button>`;
+        }
+        if (stepper) stepper.innerHTML = html;
 
         // Navigation buttons
         const prevBtn = document.getElementById('evalWizardPrevBtn');
@@ -844,13 +874,52 @@ const AdminEvaluations = {
         const content = document.getElementById('evalWizardContent');
         this._updateWizardStepper();
 
-        switch (this.wizardStep) {
-            case 1:
-                content.innerHTML = this._renderStep2();
-                break;
-            case 2:
-                content.innerHTML = this._renderStep3();
-                break;
+        const type = this.wizardData.type;
+        const sousType = this.wizardData.sous_type_bonus || '';
+
+        // Step 1 = Paramètres (all types)
+        if (this.wizardStep === 1) {
+            content.innerHTML = this._renderStep2();
+            return;
+        }
+
+        // Conn/SF : Step 2 = Sujet (cascade dropdown, inchangé)
+        if (type === 'connaissances' || type === 'savoir-faire') {
+            content.innerHTML = this._renderStep3();
+            return;
+        }
+
+        // TC : Steps 2-5
+        if (type === 'competences') {
+            switch (this.wizardStep) {
+                case 2: content.innerHTML = this._renderStepCompetences(); this._initStepCompetences(); break;
+                case 3: content.innerHTML = this._renderStepDocument(); this._initStepDocument(); break;
+                case 4: content.innerHTML = this._renderStepCorrige(); this._initStepCorrige(); break;
+                case 5: content.innerHTML = this._renderStepResume(); break;
+            }
+            return;
+        }
+
+        // Bonus compétence : Steps 2-5
+        if (type === 'bonus' && sousType === 'competence') {
+            switch (this.wizardStep) {
+                case 2: content.innerHTML = this._renderStepCompetenceUnique(); this._initStepCompetenceUnique(); break;
+                case 3: content.innerHTML = this._renderStepDocument(); this._initStepDocument(); break;
+                case 4: content.innerHTML = this._renderStepCorrige(); this._initStepCorrige(); break;
+                case 5: content.innerHTML = this._renderStepResume(); break;
+            }
+            return;
+        }
+
+        // Bonus ponctuel : Steps 2-5
+        if (type === 'bonus' && sousType === 'ponctuel') {
+            switch (this.wizardStep) {
+                case 2: content.innerHTML = this._renderStepDocument(); this._initStepDocument(); break;
+                case 3: content.innerHTML = this._renderStepCorrige(); this._initStepCorrige(); break;
+                case 4: content.innerHTML = this._renderStepCriteresLibres(); this._initStepCriteresLibres(); break;
+                case 5: content.innerHTML = this._renderStepResume(); break;
+            }
+            return;
         }
     },
 
@@ -1378,24 +1447,11 @@ const AdminEvaluations = {
     // ========== STEP 3: SUJET (cascade dropdowns) ==========
 
     _renderStep3() {
+        // Uniquement pour conn/SF (les TC/bonus sont gérés via _renderWizardStep)
         const type = this.wizardData.type;
-
         if (type === 'connaissances' || type === 'savoir-faire') {
             return this._renderStep3Auto();
         }
-
-        if (type === 'competences') {
-            return this._renderStep3TC();
-        }
-
-        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'competence') {
-            return this._renderStep3BonusComp();
-        }
-
-        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'ponctuel') {
-            return this._renderStep3BonusPonctuel();
-        }
-
         return '';
     },
 
@@ -1441,192 +1497,577 @@ const AdminEvaluations = {
         `;
     },
 
-    // ========== STEP 2: SÉLECTION SUJET TC ==========
+    // ========== PHASE 9: WIZARD STEPS FOR TC / BONUS COMP / BONUS PONCTUEL ==========
 
-    _renderStep3TC() {
+    // --- ÉTAPE COMPÉTENCES (TC : sélection multiple) ---
+
+    _renderStepCompetences() {
         const d = this.wizardData;
-        const banques = (this.banquesTachesComplexes || [])
-            .filter(b => String(b.statut).trim() === 'publie')
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        let selectedIds = [];
+        if (d.competence_ids) {
+            try {
+                const parsed = typeof d.competence_ids === 'string' ? JSON.parse(d.competence_ids) : d.competence_ids;
+                if (Array.isArray(parsed)) selectedIds = parsed.map(id => String(id));
+            } catch (_e) { /* ignore */ }
+        }
 
-        const selectedBanqueId = d.banque_tc_id || '';
-        const exercices = selectedBanqueId
-            ? (this.entrainementsCompetences || []).filter(e => String(e.banque_id).trim() === String(selectedBanqueId).trim() && String(e.statut).trim() === 'publie')
-            : [];
+        const comps = (this.competencesReferentiel || []).slice().sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const groups = {};
+        comps.forEach(c => {
+            const mat = c.matiere || 'Transversal';
+            if (!groups[mat]) groups[mat] = [];
+            groups[mat].push(c);
+        });
 
-        const banqueOptions = banques.map(b =>
-            `<option value="${b.id}" ${String(b.id) === String(selectedBanqueId) ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
-        ).join('');
+        const matiereOrder = ['FR', 'HG-EMC', 'Transversal'];
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            const ia = matiereOrder.indexOf(a) === -1 ? 99 : matiereOrder.indexOf(a);
+            const ib = matiereOrder.indexOf(b) === -1 ? 99 : matiereOrder.indexOf(b);
+            return ia - ib;
+        });
 
-        const exerciceOptions = exercices.map(e =>
-            `<option value="${e.id}" ${String(e.id) === String(d.exercice_tc_id) ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
-        ).join('');
+        const matiereLabels = { 'FR': 'Français', 'HG-EMC': 'Histoire-Géo · EMC', 'Transversal': 'Transversal' };
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
 
-        return `
-            <div class="eval-wizard-step-content">
-                <div class="step-header">
-                    <h3>Sélection du sujet</h3>
-                    <p>Choisissez la banque et l'exercice de tâche complexe</p>
-                </div>
-                <div class="wizard-form">
-                    <div class="form-group">
-                        <label>Banque de tâches complexes <span class="req">*</span></label>
-                        <select class="form-select" id="evalBanqueTC" onchange="AdminEvaluations._onBanqueTCChange(this.value)">
-                            <option value="">-- Choisir une banque --</option>
-                            ${banqueOptions}
-                        </select>
-                    </div>
-                    <div class="form-group" id="evalExerciceTCGroup">
-                        <label>Exercice <span class="req">*</span></label>
-                        <select class="form-select" id="evalExerciceTC" onchange="AdminEvaluations.wizardData.exercice_tc_id = this.value">
-                            <option value="">-- Choisir un exercice --</option>
-                            ${exerciceOptions}
-                        </select>
-                    </div>
-                </div>
-            </div>
-        `;
+        let groupsHtml = '';
+        sortedKeys.forEach(mat => {
+            const label = matiereLabels[mat] || mat;
+            const color = matiereColors[mat] || '#6b7280';
+            const items = groups[mat];
+            groupsHtml += `<div class="cw-comp-group">
+                <div class="cw-comp-group-header" style="border-left: 3px solid ${color}; padding-left: 10px; margin-bottom: 8px;">
+                    <span style="font-weight: 600; font-size: 0.875rem; color: ${color};">${label}</span>
+                    <span style="font-size: 0.75rem; color: var(--gray-400); margin-left: 8px;">(${items.length})</span>
+                </div>`;
+            items.forEach(c => {
+                const checked = selectedIds.indexOf(String(c.id)) !== -1 ? ' checked' : '';
+                groupsHtml += `<label class="cw-comp-checkbox-item" data-comp-name="${escapeHtml((c.nom || '').toLowerCase())}">
+                    <input type="checkbox" value="${c.id}"${checked}>
+                    <span class="cw-comp-checkbox-label">${escapeHtml(c.nom)}</span>
+                </label>`;
+            });
+            groupsHtml += '</div>';
+        });
+
+        if (comps.length === 0) {
+            groupsHtml = '<div style="padding: 24px; text-align: center; color: var(--gray-400);">Aucune compétence dans le référentiel</div>';
+        }
+
+        return `<div class="eval-wizard-step-content">
+            <div class="step-header"><h3>Compétences évaluées</h3><p>Sélectionnez les compétences mobilisées par cette évaluation</p></div>
+            <div class="cw-comp-search-bar"><input type="text" class="form-input" id="evalCompSearch" placeholder="Rechercher une compétence..."></div>
+            <div class="cw-comp-counter" id="evalCompCounter">${selectedIds.length} compétence${selectedIds.length > 1 ? 's' : ''} sélectionnée${selectedIds.length > 1 ? 's' : ''}</div>
+            <div class="cw-comp-list" id="evalCompetencesCheckboxes">${groupsHtml}</div>
+        </div>`;
     },
 
-    _onBanqueTCChange(banqueId) {
-        this.wizardData.banque_tc_id = banqueId;
-        this.wizardData.exercice_tc_id = '';
-        const exercices = (this.entrainementsCompetences || [])
-            .filter(e => String(e.banque_id).trim() === String(banqueId).trim() && String(e.statut).trim() === 'publie')
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
-        const select = document.getElementById('evalExerciceTC');
-        if (select) {
-            select.innerHTML = '<option value="">-- Choisir un exercice --</option>' +
-                exercices.map(e =>
-                    `<option value="${e.id}">${escapeHtml(e.titre || 'Sans titre')}</option>`
-                ).join('');
+    _initStepCompetences() {
+        const searchInput = document.getElementById('evalCompSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const query = this.value.toLowerCase().trim();
+                document.querySelectorAll('#evalCompetencesCheckboxes .cw-comp-checkbox-item').forEach(item => {
+                    item.style.display = (!query || (item.dataset.compName || '').indexOf(query) !== -1) ? '' : 'none';
+                });
+                document.querySelectorAll('#evalCompetencesCheckboxes .cw-comp-group').forEach(group => {
+                    const visible = group.querySelectorAll('.cw-comp-checkbox-item:not([style*="display: none"])');
+                    group.style.display = visible.length > 0 ? '' : 'none';
+                });
+            });
+        }
+        const container = document.getElementById('evalCompetencesCheckboxes');
+        if (container) {
+            container.addEventListener('change', () => {
+                const n = container.querySelectorAll('input[type="checkbox"]:checked').length;
+                const counter = document.getElementById('evalCompCounter');
+                if (counter) {
+                    counter.textContent = `${n} compétence${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''}`;
+                    counter.style.color = n > 0 ? 'var(--accent-green, #10b981)' : 'var(--gray-400)';
+                }
+            });
         }
     },
 
-    // ========== STEP 2: SÉLECTION SUJET BONUS COMPÉTENCE ==========
+    // --- ÉTAPE COMPÉTENCE UNIQUE (bonus compétence : sélection d'une seule) ---
 
-    _renderStep3BonusComp() {
+    _renderStepCompetenceUnique() {
         const d = this.wizardData;
-        const banques = (this.banquesCompetences || [])
-            .filter(b => String(b.statut).trim() === 'publie')
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        let selectedId = '';
+        if (d.competence_ids) {
+            try {
+                const parsed = typeof d.competence_ids === 'string' ? JSON.parse(d.competence_ids) : d.competence_ids;
+                if (Array.isArray(parsed) && parsed.length > 0) selectedId = String(parsed[0]);
+                else if (parsed) selectedId = String(parsed);
+            } catch (_e) { /* ignore */ }
+        }
 
-        const selectedBanqueId = d.banque_comp_id || '';
-        const exercices = selectedBanqueId
-            ? (this.entrainementsCompetences || []).filter(e => String(e.banque_id).trim() === String(selectedBanqueId).trim() && String(e.statut).trim() === 'publie')
-            : [];
+        const comps = (this.competencesReferentiel || []).slice().sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const groups = {};
+        comps.forEach(c => {
+            const mat = c.matiere || 'Transversal';
+            if (!groups[mat]) groups[mat] = [];
+            groups[mat].push(c);
+        });
 
-        const banqueOptions = banques.map(b => {
-            const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(b.competence_id));
-            const label = b.titre || (comp ? comp.nom : 'Sans titre');
-            return `<option value="${b.id}" ${String(b.id) === String(selectedBanqueId) ? 'selected' : ''}>${escapeHtml(label)}</option>`;
-        }).join('');
+        const matiereOrder = ['FR', 'HG-EMC', 'Transversal'];
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            const ia = matiereOrder.indexOf(a) === -1 ? 99 : matiereOrder.indexOf(a);
+            const ib = matiereOrder.indexOf(b) === -1 ? 99 : matiereOrder.indexOf(b);
+            return ia - ib;
+        });
 
-        const exerciceOptions = exercices.map(e =>
-            `<option value="${e.id}" ${String(e.id) === String(d.exercice_comp_id) ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
-        ).join('');
+        const matiereLabels = { 'FR': 'Français', 'HG-EMC': 'Histoire-Géo · EMC', 'Transversal': 'Transversal' };
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
 
-        return `
-            <div class="eval-wizard-step-content">
-                <div class="step-header">
-                    <h3>Sélection du sujet</h3>
-                    <p>Choisissez la banque de compétences et l'exercice</p>
-                </div>
-                <div class="wizard-form">
-                    <div class="form-group">
-                        <label>Banque de compétences <span class="req">*</span></label>
-                        <select class="form-select" id="evalBanqueBonusComp" onchange="AdminEvaluations._onBanqueBonusCompChange(this.value)">
-                            <option value="">-- Choisir une banque --</option>
-                            ${banqueOptions}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Exercice <span class="req">*</span></label>
-                        <select class="form-select" id="evalExerciceBonusComp" onchange="AdminEvaluations.wizardData.exercice_comp_id = this.value">
-                            <option value="">-- Choisir un exercice --</option>
-                            ${exerciceOptions}
-                        </select>
-                    </div>
-                </div>
-            </div>
-        `;
+        let groupsHtml = '';
+        sortedKeys.forEach(mat => {
+            const label = matiereLabels[mat] || mat;
+            const color = matiereColors[mat] || '#6b7280';
+            const items = groups[mat];
+            groupsHtml += `<div class="cw-comp-group">
+                <div class="cw-comp-group-header" style="border-left: 3px solid ${color}; padding-left: 10px; margin-bottom: 8px;">
+                    <span style="font-weight: 600; font-size: 0.875rem; color: ${color};">${label}</span>
+                </div>`;
+            items.forEach(c => {
+                const checked = String(c.id) === selectedId ? ' checked' : '';
+                groupsHtml += `<label class="cw-comp-checkbox-item" data-comp-name="${escapeHtml((c.nom || '').toLowerCase())}">
+                    <input type="radio" name="evalBonusCompetence" value="${c.id}"${checked}>
+                    <span class="cw-comp-checkbox-label">${escapeHtml(c.nom)}</span>
+                </label>`;
+            });
+            groupsHtml += '</div>';
+        });
+
+        return `<div class="eval-wizard-step-content">
+            <div class="step-header"><h3>Compétence ciblée</h3><p>Sélectionnez la compétence évaluée par ce bonus</p></div>
+            <div class="cw-comp-search-bar"><input type="text" class="form-input" id="evalCompSearch" placeholder="Rechercher une compétence..."></div>
+            <div class="cw-comp-list" id="evalCompetencesRadios">${groupsHtml}</div>
+        </div>`;
     },
 
-    _onBanqueBonusCompChange(banqueId) {
-        this.wizardData.banque_comp_id = banqueId;
-        this.wizardData.exercice_comp_id = '';
-        const exercices = (this.entrainementsCompetences || [])
-            .filter(e => String(e.banque_id).trim() === String(banqueId).trim() && String(e.statut).trim() === 'publie')
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
-        const select = document.getElementById('evalExerciceBonusComp');
-        if (select) {
-            select.innerHTML = '<option value="">-- Choisir un exercice --</option>' +
-                exercices.map(e =>
-                    `<option value="${e.id}">${escapeHtml(e.titre || 'Sans titre')}</option>`
-                ).join('');
+    _initStepCompetenceUnique() {
+        const searchInput = document.getElementById('evalCompSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const query = this.value.toLowerCase().trim();
+                document.querySelectorAll('#evalCompetencesRadios .cw-comp-checkbox-item').forEach(item => {
+                    item.style.display = (!query || (item.dataset.compName || '').indexOf(query) !== -1) ? '' : 'none';
+                });
+                document.querySelectorAll('#evalCompetencesRadios .cw-comp-group').forEach(group => {
+                    const visible = group.querySelectorAll('.cw-comp-checkbox-item:not([style*="display: none"])');
+                    group.style.display = visible.length > 0 ? '' : 'none';
+                });
+            });
         }
     },
 
-    // ========== STEP 2: SÉLECTION SUJET BONUS PONCTUEL ==========
+    // --- ÉTAPE DOCUMENT (block editor) ---
 
-    _renderStep3BonusPonctuel() {
+    _renderStepDocument() {
         const d = this.wizardData;
-        const banques = (this.banquesBonusPonctuels || [])
-            .filter(b => String(b.statut).trim() === 'publie')
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const description = d.description || '';
 
-        const selectedBanqueId = d.banque_bonus_id || '';
-        const exercices = selectedBanqueId
-            ? (this.entrainementsCompetences || []).filter(e => String(e.banque_id).trim() === String(selectedBanqueId).trim() && String(e.statut).trim() === 'publie')
-            : [];
-
-        const banqueOptions = banques.map(b =>
-            `<option value="${b.id}" ${String(b.id) === String(selectedBanqueId) ? 'selected' : ''}>${escapeHtml(b.titre || 'Sans titre')}</option>`
-        ).join('');
-
-        const exerciceOptions = exercices.map(e =>
-            `<option value="${e.id}" ${String(e.id) === String(d.exercice_bonus_id) ? 'selected' : ''}>${escapeHtml(e.titre || 'Sans titre')}</option>`
-        ).join('');
-
-        return `
-            <div class="eval-wizard-step-content">
-                <div class="step-header">
-                    <h3>Sélection du sujet</h3>
-                    <p>Choisissez la banque et l'exercice bonus ponctuel</p>
-                </div>
-                <div class="wizard-form">
-                    <div class="form-group">
-                        <label>Banque bonus ponctuel <span class="req">*</span></label>
-                        <select class="form-select" id="evalBanqueBonusPonctuel" onchange="AdminEvaluations._onBanqueBonusPonctuelChange(this.value)">
-                            <option value="">-- Choisir une banque --</option>
-                            ${banqueOptions}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Exercice <span class="req">*</span></label>
-                        <select class="form-select" id="evalExerciceBonusPonctuel" onchange="AdminEvaluations.wizardData.exercice_bonus_id = this.value">
-                            <option value="">-- Choisir un exercice --</option>
-                            ${exerciceOptions}
-                        </select>
-                    </div>
+        return `<div class="eval-wizard-step-content">
+            <div class="step-header"><h3>Document / Sujet</h3><p>Construisez le sujet que l'élève verra</p></div>
+            <div class="wizard-form">
+                <div class="form-group">
+                    <label>Consigne (optionnel)</label>
+                    <textarea class="form-input" id="evalDescription" rows="2" placeholder="Consigne générale pour l'élève...">${escapeHtml(description)}</textarea>
                 </div>
             </div>
-        `;
+            <div class="tb-tabs">
+                <button type="button" class="tb-tab active" id="evalTabConstruction" onclick="AdminEvaluations._ewSwitchDocTab('construction')">Construction</button>
+                <button type="button" class="tb-tab" id="evalTabPreview" onclick="AdminEvaluations._ewSwitchDocTab('preview')">Vue élève</button>
+            </div>
+            <div id="evalConstructionPanel">
+                <div id="evalBlockEditorContainer" class="block-editor"></div>
+                ${this._renderBlockAddBar()}
+            </div>
+            <div id="evalPreviewPanel" class="tb-preview-panel" style="display:none;">
+                <div id="evalPreviewContainer" class="cw-preview-frame">
+                    <div class="cw-preview-empty">Ajoutez du contenu pour voir l'aperçu</div>
+                </div>
+            </div>
+        </div>`;
     },
 
-    _onBanqueBonusPonctuelChange(banqueId) {
-        this.wizardData.banque_bonus_id = banqueId;
-        this.wizardData.exercice_bonus_id = '';
-        const exercices = (this.entrainementsCompetences || [])
-            .filter(e => String(e.banque_id).trim() === String(banqueId).trim() && String(e.statut).trim() === 'publie')
-            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
-        const select = document.getElementById('evalExerciceBonusPonctuel');
-        if (select) {
-            select.innerHTML = '<option value="">-- Choisir un exercice --</option>' +
-                exercices.map(e =>
-                    `<option value="${e.id}">${escapeHtml(e.titre || 'Sans titre')}</option>`
-                ).join('');
+    _initStepDocument() {
+        this._blockEditorContainerId = 'evalBlockEditorContainer';
+        this._ewPreviewContainerId = 'evalPreviewContainer';
+
+        const d = this.wizardData;
+        let blocks = null;
+        if (d.document_contenu) {
+            try {
+                const parsed = JSON.parse(d.document_contenu);
+                if (Array.isArray(parsed)) blocks = parsed;
+            } catch (_e) {
+                blocks = [{ type: 'text', content: d.document_contenu }];
+            }
         }
+
+        if (this._origRenderBlocks) {
+            this._renderBlocks = this._origRenderBlocks;
+            this._origRenderBlocks = null;
+        }
+        this.initBlockEditor(blocks);
+    },
+
+    /**
+     * Barre d'ajout de blocs (réutilise les onclick du mixin block editor).
+     */
+    _renderBlockAddBar() {
+        return `<div class="block-add-bar">
+            <button type="button" class="block-add-btn" onclick="AdminEvaluations.addBlock('text')" title="Texte">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Texte
+            </button>
+            <button type="button" class="block-add-btn" onclick="AdminEvaluations.addBlock('document')" title="Document Google">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Document
+            </button>
+            <button type="button" class="block-add-btn" onclick="AdminEvaluations.addBlock('image')" title="Image">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                Image
+            </button>
+            <button type="button" class="block-add-btn" onclick="AdminEvaluations.addBlock('video')" title="Vidéo">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                Vidéo
+            </button>
+        </div>`;
+    },
+
+    _ewSwitchDocTab(tab) {
+        const constructionPanel = document.getElementById('evalConstructionPanel');
+        const previewPanel = document.getElementById('evalPreviewPanel');
+        const tabConstruction = document.getElementById('evalTabConstruction');
+        const tabPreview = document.getElementById('evalTabPreview');
+        if (!constructionPanel || !previewPanel) return;
+
+        if (tab === 'preview') {
+            this._saveEditorsState();
+            this._ewUpdatePreview();
+            constructionPanel.style.display = 'none';
+            previewPanel.style.display = '';
+            if (tabConstruction) tabConstruction.classList.remove('active');
+            if (tabPreview) tabPreview.classList.add('active');
+        } else {
+            constructionPanel.style.display = '';
+            previewPanel.style.display = 'none';
+            if (tabConstruction) tabConstruction.classList.add('active');
+            if (tabPreview) tabPreview.classList.remove('active');
+        }
+    },
+
+    _ewUpdatePreview() {
+        const previewContainer = document.getElementById(this._ewPreviewContainerId);
+        if (!previewContainer) return;
+        this._saveEditorsState();
+        const blocks = (this._blocks || []).map(b => this._serializeBlock(b))
+            .filter(b => {
+                if (b.type === 'text') return b.content && b.content.trim() !== '';
+                if (b.type === 'document' || b.type === 'image' || b.type === 'video') return b.url && b.url.trim() !== '';
+                if (b.type === 'group') return b.children && b.children.length > 0;
+                return false;
+            });
+        if (blocks.length === 0) {
+            previewContainer.innerHTML = '<div class="cw-preview-empty">Ajoutez du contenu pour voir l\'aperçu</div>';
+            return;
+        }
+        // Use the read-only block renderer from eleve-evaluation
+        let html = '<div class="comp-blocks-container">';
+        blocks.forEach(block => {
+            html += this._renderPreviewBlockEval(block);
+        });
+        html += '</div>';
+        previewContainer.innerHTML = html;
+    },
+
+    /** Rendu simplifié d'un bloc pour la preview. */
+    _renderPreviewBlockEval(block) {
+        if (!block) return '';
+        switch (block.type) {
+            case 'text':
+                return `<div class="comp-block-text">${block.content || ''}</div>`;
+            case 'document': {
+                const url = block.url || '';
+                if (!url) return '<div class="cw-preview-placeholder">Saisissez l\'URL du document</div>';
+                const embedUrl = url.includes('/edit') ? url.replace('/edit', '/preview') : url;
+                return `<div class="comp-block-document"><iframe src="${escapeHtml(embedUrl)}" style="width:100%;height:400px;border:none;border-radius:8px;"></iframe></div>`;
+            }
+            case 'image': {
+                let imgUrl = block.url || '';
+                const driveMatch = imgUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (driveMatch) imgUrl = 'https://lh3.googleusercontent.com/d/' + driveMatch[1];
+                const legende = block.legende ? `<div class="comp-block-legende">${escapeHtml(block.legende).replace(/\*([^*]+)\*/g, '<em>$1</em>')}</div>` : '';
+                if (!block.url) return '<div class="cw-preview-placeholder">Saisissez l\'URL de l\'image</div>';
+                return `<div class="comp-block-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(block.legende || 'Image')}"></div>${legende}`;
+            }
+            case 'video': {
+                const vidUrl = block.url || '';
+                if (!vidUrl) return '<div class="cw-preview-placeholder">Saisissez l\'URL de la vidéo</div>';
+                const ytMatch = vidUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+                let embedVid = '';
+                if (ytMatch) embedVid = 'https://www.youtube-nocookie.com/embed/' + ytMatch[1];
+                else {
+                    const driveVid = vidUrl.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+                    if (driveVid) embedVid = 'https://drive.google.com/file/d/' + driveVid[1] + '/preview';
+                }
+                return embedVid
+                    ? `<div class="comp-block-video"><iframe src="${embedVid}" allowfullscreen frameborder="0" style="width:100%;height:350px;border-radius:8px;"></iframe></div>`
+                    : `<div class="comp-block-video"><a href="${escapeHtml(vidUrl)}" target="_blank">Voir la vidéo</a></div>`;
+            }
+            case 'group': {
+                const ratios = (block.ratio || '50-50').split('-').map(Number);
+                let html = '<div class="comp-blocks-group" style="display:flex;gap:12px;">';
+                (block.children || []).forEach((child, idx) => {
+                    const flex = ratios[idx] || 50;
+                    html += `<div style="flex:${flex}">${this._renderPreviewBlockEval(child)}</div>`;
+                });
+                return html + '</div>';
+            }
+            default: return '';
+        }
+    },
+
+    // --- ÉTAPE CORRIGÉ (block editor ou lien Google Doc) ---
+
+    _renderStepCorrige() {
+        const d = this.wizardData;
+        let hasCorrectionBlocks = false;
+        if (d.correction_contenu) {
+            try {
+                const parsed = JSON.parse(d.correction_contenu);
+                if (Array.isArray(parsed)) hasCorrectionBlocks = true;
+            } catch (_e) { hasCorrectionBlocks = true; }
+        }
+        const corrUrl = d.correction_commentee || '';
+        const corrMode = hasCorrectionBlocks ? 'editor' : 'url';
+
+        return `<div class="eval-wizard-step-content">
+            <div class="step-header"><h3>Corrigé commenté</h3><p>Construisez le corrigé que l'élève verra après correction (optionnel)</p></div>
+            <div class="source-toggle" id="evalCorrectionToggle">
+                <button type="button" class="source-toggle-btn${corrMode === 'url' ? ' active' : ''}" data-mode="url" onclick="AdminEvaluations._ewToggleCorrectionMode('url')">Lien Google Doc</button>
+                <button type="button" class="source-toggle-btn${corrMode === 'editor' ? ' active' : ''}" data-mode="editor" onclick="AdminEvaluations._ewToggleCorrectionMode('editor')">Éditeur</button>
+            </div>
+            <div class="source-panel" id="evalCorrectionUrlPanel"${corrMode !== 'url' ? ' style="display:none;"' : ''}>
+                <div class="form-group">
+                    <label>Lien Google Doc du corrigé</label>
+                    <input type="text" class="form-input" id="evalCorrectionUrl" value="${escapeHtml(corrUrl)}" placeholder="https://docs.google.com/document/d/...">
+                    <div class="form-help">Collez le lien de partage du Google Doc (doit être accessible en lecture)</div>
+                </div>
+            </div>
+            <div class="source-panel" id="evalCorrectionEditorPanel"${corrMode !== 'editor' ? ' style="display:none;"' : ''}>
+                <div id="evalCorrBlockEditorContainer" class="block-editor"></div>
+                ${this._renderBlockAddBar()}
+            </div>
+        </div>`;
+    },
+
+    _initStepCorrige() {
+        const d = this.wizardData;
+        let hasCorrectionBlocks = false;
+        if (d.correction_contenu) {
+            try {
+                const parsed = JSON.parse(d.correction_contenu);
+                if (Array.isArray(parsed)) hasCorrectionBlocks = true;
+            } catch (_e) { hasCorrectionBlocks = true; }
+        }
+        if (hasCorrectionBlocks) {
+            this._initCorrectionBlockEditor();
+        }
+    },
+
+    _initCorrectionBlockEditor() {
+        this._blockEditorContainerId = 'evalCorrBlockEditorContainer';
+        this._ewPreviewContainerId = null;
+
+        const d = this.wizardData;
+        let blocks = null;
+        if (d.correction_contenu) {
+            try {
+                const parsed = JSON.parse(d.correction_contenu);
+                if (Array.isArray(parsed)) blocks = parsed;
+            } catch (_e) {
+                blocks = [{ type: 'text', content: d.correction_contenu }];
+            }
+        }
+
+        if (this._origRenderBlocks) {
+            this._renderBlocks = this._origRenderBlocks;
+            this._origRenderBlocks = null;
+        }
+        this.initBlockEditor(blocks);
+    },
+
+    _ewToggleCorrectionMode(mode) {
+        const toggle = document.getElementById('evalCorrectionToggle');
+        if (!toggle) return;
+        toggle.querySelectorAll('.source-toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+        const urlPanel = document.getElementById('evalCorrectionUrlPanel');
+        const editorPanel = document.getElementById('evalCorrectionEditorPanel');
+        if (urlPanel) urlPanel.style.display = mode === 'url' ? '' : 'none';
+        if (editorPanel) editorPanel.style.display = mode === 'editor' ? '' : 'none';
+
+        if (mode === 'editor') {
+            const container = document.getElementById('evalCorrBlockEditorContainer');
+            if (container && !container.hasChildNodes()) {
+                this._initCorrectionBlockEditor();
+            }
+        }
+    },
+
+    // --- ÉTAPE CRITÈRES LIBRES (bonus ponctuel) ---
+
+    _renderStepCriteresLibres() {
+        const d = this.wizardData;
+        let criteres = [];
+        if (d.criteres_libres) {
+            try {
+                const parsed = typeof d.criteres_libres === 'string' ? JSON.parse(d.criteres_libres) : d.criteres_libres;
+                if (Array.isArray(parsed)) criteres = parsed;
+            } catch (_e) { /* ignore */ }
+        }
+        if (criteres.length === 0) criteres.push('');
+
+        const rows = criteres.map((c, i) =>
+            `<div class="critere-libre-row">
+                <span class="critere-libre-num">${i + 1}</span>
+                <input type="text" class="form-input critere-libre-input" value="${escapeHtml(c)}" placeholder="Ex: Répondre avec une phrase complète">
+                <button class="btn-icon btn-remove" onclick="AdminEvaluations._ewRemoveCritere(${i})" title="Supprimer">&times;</button>
+            </div>`
+        ).join('');
+
+        return `<div class="eval-wizard-step-content">
+            <div class="step-header"><h3>Critères de réussite</h3><p>Définissez les critères pour évaluer cet exercice</p></div>
+            <div id="evalCriteresList" class="cw-criteres-list">${rows}</div>
+            <button class="btn btn-secondary btn-sm" onclick="AdminEvaluations._ewAddCritere()" style="margin-top: 8px;">+ Ajouter un critère</button>
+        </div>`;
+    },
+
+    _initStepCriteresLibres() {
+        const inputs = document.querySelectorAll('#evalCriteresList .critere-libre-input');
+        if (inputs.length > 0) {
+            const last = inputs[inputs.length - 1];
+            if (!last.value) last.focus();
+        }
+    },
+
+    _ewAddCritere() {
+        const container = document.getElementById('evalCriteresList');
+        if (!container) return;
+        const count = container.querySelectorAll('.critere-libre-row').length;
+        const div = document.createElement('div');
+        div.className = 'critere-libre-row';
+        div.innerHTML = `<span class="critere-libre-num">${count + 1}</span>
+            <input type="text" class="form-input critere-libre-input" value="" placeholder="Ex: Répondre avec une phrase complète">
+            <button class="btn-icon btn-remove" onclick="AdminEvaluations._ewRemoveCritere(${count})" title="Supprimer">&times;</button>`;
+        container.appendChild(div);
+        div.querySelector('.critere-libre-input').focus();
+    },
+
+    _ewRemoveCritere(index) {
+        const inputs = document.querySelectorAll('#evalCriteresList .critere-libre-input');
+        const values = [];
+        inputs.forEach(input => values.push(input.value));
+        values.splice(index, 1);
+        if (values.length === 0) values.push('');
+
+        const container = document.getElementById('evalCriteresList');
+        if (container) {
+            container.innerHTML = values.map((c, i) =>
+                `<div class="critere-libre-row">
+                    <span class="critere-libre-num">${i + 1}</span>
+                    <input type="text" class="form-input critere-libre-input" value="${escapeHtml(c)}" placeholder="Ex: Répondre avec une phrase complète">
+                    <button class="btn-icon btn-remove" onclick="AdminEvaluations._ewRemoveCritere(${i})" title="Supprimer">&times;</button>
+                </div>`
+            ).join('');
+        }
+    },
+
+    // --- ÉTAPE RÉSUMÉ ---
+
+    _renderStepResume() {
+        const d = this.wizardData;
+        const type = d.type;
+        const sousType = d.sous_type_bonus || '';
+
+        // Titre
+        let typeLabel = 'Évaluation';
+        if (type === 'competences') typeLabel = 'Évaluation de compétences (TC)';
+        else if (type === 'bonus' && sousType === 'competence') typeLabel = 'Bonus compétence';
+        else if (type === 'bonus' && sousType === 'ponctuel') typeLabel = 'Bonus ponctuel';
+
+        // Compétences
+        let compHtml = '';
+        if (type === 'competences' || (type === 'bonus' && sousType === 'competence')) {
+            let ids = [];
+            if (d.competence_ids) {
+                try {
+                    const parsed = typeof d.competence_ids === 'string' ? JSON.parse(d.competence_ids) : d.competence_ids;
+                    if (Array.isArray(parsed)) ids = parsed;
+                } catch (_e) { /* ignore */ }
+            }
+            const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+            const badges = ids.map(cid => {
+                const c = (this.competencesReferentiel || []).find(r => String(r.id) === String(cid));
+                if (!c) return '';
+                const color = matiereColors[c.matiere] || '#6b7280';
+                return `<span style="display:inline-block;font-size:0.7rem;padding:2px 6px;border-radius:4px;background:${color}20;color:${color};font-weight:600;margin:1px 2px;">${escapeHtml(c.nom)}</span>`;
+            }).join('');
+            compHtml = `<div class="summary-row"><span class="label">Compétences</span><span class="value" style="display:flex;flex-wrap:wrap;gap:2px;">${badges || 'Aucune'}</span></div>`;
+        }
+
+        // Critères libres
+        let criteresHtml = '';
+        if (type === 'bonus' && sousType === 'ponctuel' && d.criteres_libres) {
+            let criteres = [];
+            try {
+                const parsed = typeof d.criteres_libres === 'string' ? JSON.parse(d.criteres_libres) : d.criteres_libres;
+                if (Array.isArray(parsed)) criteres = parsed;
+            } catch (_e) { /* ignore */ }
+            if (criteres.length > 0) {
+                const list = criteres.map((c, i) => `<div style="font-size:0.8rem;padding:2px 0;">${i + 1}. ${escapeHtml(c)}</div>`).join('');
+                criteresHtml = `<div class="summary-row"><span class="label">Critères</span><span class="value" style="flex-direction:column;">${list}</span></div>`;
+            }
+        }
+
+        // Document blocs count
+        let nbDocBlocks = 0;
+        if (d.document_contenu) {
+            try {
+                const parsed = JSON.parse(d.document_contenu);
+                if (Array.isArray(parsed)) nbDocBlocks = parsed.length;
+            } catch (_e) { nbDocBlocks = 1; }
+        }
+
+        // Corrigé
+        let corrLabel = 'Aucun';
+        if (d.correction_commentee) corrLabel = 'Lien Google Doc';
+        else if (d.correction_contenu) {
+            try {
+                const parsed = JSON.parse(d.correction_contenu);
+                const n = Array.isArray(parsed) ? parsed.length : 1;
+                corrLabel = `${n} bloc${n > 1 ? 's' : ''}`;
+            } catch (_e) { corrLabel = '1 bloc'; }
+        }
+
+        return `<div class="eval-wizard-step-content">
+            <div class="step-header"><h3>Résumé de l'évaluation</h3><p>Vérifiez les informations avant d'enregistrer</p></div>
+            <div class="cw-summary"><div class="summary-card">
+                <div class="summary-row"><span class="label">Type</span><span class="value">${escapeHtml(typeLabel)}</span></div>
+                <div class="summary-row"><span class="label">Titre</span><span class="value">${escapeHtml(d.titre || '(vide)')}</span></div>
+                ${d.description ? `<div class="summary-row"><span class="label">Consigne</span><span class="value">${escapeHtml(d.description)}</span></div>` : ''}
+                ${compHtml}
+                ${criteresHtml}
+                <div class="summary-row"><span class="label">Points</span><span class="value">${d.briques || 3}</span></div>
+                <div class="summary-row"><span class="label">Blocs de contenu</span><span class="value">${nbDocBlocks}</span></div>
+                <div class="summary-row"><span class="label">Corrigé</span><span class="value">${corrLabel}</span></div>
+                <div class="summary-row"><span class="label">Matière</span><span class="value">${d.matiere || 'FR'}</span></div>
+            </div></div>
+        </div>`;
     },
 
     // Legacy methods kept for backward compatibility with existing evaluations
@@ -1734,72 +2175,153 @@ const AdminEvaluations = {
     // ========== WIZARD DATA COLLECTION ==========
 
     _collectWizardStepData() {
-        switch (this.wizardStep) {
-            case 1: {
-                // Step 1 = Paramètres
-                const titre = document.getElementById('evalTitre')?.value.trim();
-                if (!titre) {
-                    this.showNotification('Le titre est requis', 'error');
+        const type = this.wizardData.type;
+        const sousType = this.wizardData.sous_type_bonus || '';
+        const step = this.wizardStep;
+
+        // Step 1 = Paramètres (all types)
+        if (step === 1) {
+            const titre = document.getElementById('evalTitre')?.value.trim();
+            if (!titre) {
+                this.showNotification('Le titre est requis', 'error');
+                return false;
+            }
+            this.wizardData.titre = titre;
+            this.wizardData.briques = parseFloat(document.getElementById('evalBriques')?.value) || 3;
+            this.wizardData.mode_passation = document.getElementById('evalModePassation')?.value || 'numerique';
+            const matiereGroup = document.getElementById('evalMatiereGroup');
+            const matiereVisible = matiereGroup && matiereGroup.style.display !== 'none';
+            this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
+            if (type === 'bonus') {
+                this.wizardData.categorie = sousType === 'competence' ? 'competences' : 'bonus';
+            } else {
+                this.wizardData.categorie = '';
+            }
+            if (type === 'connaissances') {
+                this.wizardData.seuil = parseInt(document.getElementById('evalSeuil')?.value) || 80;
+            }
+            if (type === 'competences') {
+                this.wizardData.methodologie_id = document.getElementById('evalMethodologieTC')?.value || '';
+                this.wizardData.sujet_disponible_avance = document.getElementById('evalSujetAvance')?.checked || false;
+            }
+            if (type === 'bonus' && sousType === 'suivi') {
+                this.wizardData.nb_validations = parseInt(document.getElementById('evalNbValidations')?.value) || 5;
+                this.wizardData.description_eleve = (document.getElementById('evalDescriptionEleve')?.value || '').trim();
+            }
+            return true;
+        }
+
+        // Conn/SF Step 2 = Sujet selection (unchanged)
+        if ((type === 'connaissances' || type === 'savoir-faire') && step === 2) {
+            return true;
+        }
+
+        // Determine logical step name for TC/bonus
+        const logicalStep = this._getLogicalStepName(step);
+
+        // Collect data based on logical step
+        switch (logicalStep) {
+            case 'competences': {
+                // TC : multiple checkboxes
+                const checked = document.querySelectorAll('#evalCompetencesCheckboxes input[type="checkbox"]:checked');
+                const ids = [];
+                checked.forEach(cb => ids.push(cb.value));
+                if (ids.length === 0) {
+                    this.showNotification('Sélectionnez au moins une compétence', 'error');
                     return false;
                 }
-                this.wizardData.titre = titre;
-                this.wizardData.briques = parseFloat(document.getElementById('evalBriques')?.value) || 3;
-                this.wizardData.mode_passation = document.getElementById('evalModePassation')?.value || 'numerique';
-                const matiereGroup = document.getElementById('evalMatiereGroup');
-                const matiereVisible = matiereGroup && matiereGroup.style.display !== 'none';
-                this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
-                // Catégorie auto-déterminée pour bonus selon le sous-type
-                if (this.wizardData.type === 'bonus') {
-                    this.wizardData.categorie = this.wizardData.sous_type_bonus === 'competence' ? 'competences' : 'bonus';
+                this.wizardData.competence_ids = JSON.stringify(ids);
+                return true;
+            }
+            case 'competence_unique': {
+                // Bonus comp : single radio
+                const selected = document.querySelector('#evalCompetencesRadios input[type="radio"]:checked');
+                if (!selected) {
+                    this.showNotification('Sélectionnez une compétence', 'error');
+                    return false;
+                }
+                this.wizardData.competence_ids = JSON.stringify([selected.value]);
+                return true;
+            }
+            case 'document': {
+                // Save block editor state + description
+                const descEl = document.getElementById('evalDescription');
+                if (descEl) this.wizardData.description = descEl.value.trim();
+                if (this._blocks && this._blocks.length > 0) {
+                    this._saveEditorsState();
+                    const blocks = this._blocks.map(b => this._serializeBlock(b))
+                        .filter(b => {
+                            if (b.type === 'text') return b.content && b.content.trim() !== '';
+                            if (b.type === 'document' || b.type === 'image' || b.type === 'video') return b.url && b.url.trim() !== '';
+                            if (b.type === 'group') return b.children && b.children.length > 0;
+                            return false;
+                        });
+                    this.wizardData.document_contenu = blocks.length > 0 ? JSON.stringify(blocks) : '';
+                }
+                return true;
+            }
+            case 'corrige': {
+                // Save correction mode
+                const toggle = document.getElementById('evalCorrectionToggle');
+                const mode = toggle ? (toggle.querySelector('.source-toggle-btn.active')?.dataset.mode || 'url') : 'url';
+                if (mode === 'url') {
+                    const url = document.getElementById('evalCorrectionUrl')?.value.trim() || '';
+                    this.wizardData.correction_commentee = url;
+                    this.wizardData.correction_contenu = '';
                 } else {
-                    this.wizardData.categorie = '';
-                }
-
-                // Les dates sont gérées via le dropdown statut, pas le wizard.
-                // On garde les valeurs existantes dans wizardData (pré-remplies à l'ouverture).
-
-                // Statut : ne change plus depuis le wizard (géré via le bouton sur la carte)
-
-                if (this.wizardData.type === 'connaissances') {
-                    this.wizardData.seuil = parseInt(document.getElementById('evalSeuil')?.value) || 80;
-                }
-                if (this.wizardData.type === 'competences') {
-                    this.wizardData.methodologie_id = document.getElementById('evalMethodologieTC')?.value || '';
-                    this.wizardData.sujet_disponible_avance = document.getElementById('evalSujetAvance')?.checked || false;
-                }
-                if (this.wizardData.type === 'bonus') {
-                    if (this.wizardData.sous_type_bonus === 'suivi') {
-                        this.wizardData.nb_validations = parseInt(document.getElementById('evalNbValidations')?.value) || 5;
-                        this.wizardData.description_eleve = (document.getElementById('evalDescriptionEleve')?.value || '').trim();
+                    this.wizardData.correction_commentee = '';
+                    if (this._blocks && this._blocks.length > 0) {
+                        this._saveEditorsState();
+                        const blocks = this._blocks.map(b => this._serializeBlock(b))
+                            .filter(b => {
+                                if (b.type === 'text') return b.content && b.content.trim() !== '';
+                                if (b.type === 'document' || b.type === 'image' || b.type === 'video') return b.url && b.url.trim() !== '';
+                                if (b.type === 'group') return b.children && b.children.length > 0;
+                                return false;
+                            });
+                        this.wizardData.correction_contenu = blocks.length > 0 ? JSON.stringify(blocks) : '';
                     }
                 }
                 return true;
             }
-            case 2: {
-                // Step 2 = Sujet — validate selections
-                const type = this.wizardData.type;
-                if (type === 'competences') {
-                    if (!this.wizardData.banque_tc_id || !this.wizardData.exercice_tc_id) {
-                        this.showNotification('Veuillez sélectionner une banque et un exercice', 'error');
-                        return false;
-                    }
+            case 'criteres': {
+                // Bonus ponctuel : collect free-form criteria
+                const inputs = document.querySelectorAll('#evalCriteresList .critere-libre-input');
+                const criteres = [];
+                inputs.forEach(input => {
+                    const v = input.value.trim();
+                    if (v) criteres.push(v);
+                });
+                if (criteres.length === 0) {
+                    this.showNotification('Ajoutez au moins un critère', 'error');
+                    return false;
                 }
-                if (type === 'bonus' && this.wizardData.sous_type_bonus === 'competence') {
-                    if (!this.wizardData.banque_comp_id || !this.wizardData.exercice_comp_id) {
-                        this.showNotification('Veuillez sélectionner une banque et un exercice', 'error');
-                        return false;
-                    }
-                }
-                if (type === 'bonus' && this.wizardData.sous_type_bonus === 'ponctuel') {
-                    if (!this.wizardData.banque_bonus_id || !this.wizardData.exercice_bonus_id) {
-                        this.showNotification('Veuillez sélectionner une banque et un exercice', 'error');
-                        return false;
-                    }
-                }
+                this.wizardData.criteres_libres = JSON.stringify(criteres);
                 return true;
             }
+            case 'resume':
+                return true;
         }
         return true;
+    },
+
+    /**
+     * Map wizard step number to logical step name based on type.
+     */
+    _getLogicalStepName(step) {
+        const type = this.wizardData.type;
+        const sousType = this.wizardData.sous_type_bonus || '';
+
+        if (type === 'competences') {
+            return ['params', 'competences', 'document', 'corrige', 'resume'][step - 1];
+        }
+        if (type === 'bonus' && sousType === 'competence') {
+            return ['params', 'competence_unique', 'document', 'corrige', 'resume'][step - 1];
+        }
+        if (type === 'bonus' && sousType === 'ponctuel') {
+            return ['params', 'document', 'corrige', 'criteres', 'resume'][step - 1];
+        }
+        return 'params';
     },
 
     // ========== SAVE EVALUATION ==========
@@ -1840,21 +2362,29 @@ const AdminEvaluations = {
         }
         if (d.type === 'competences') {
             data.methodologie_id = d.methodologie_id || '';
-            data.sous_type_comp = d.sous_type_comp || 'classique';
+            data.sous_type_comp = d.sous_type_comp || 'tache_complexe';
             data.sujet_disponible_avance = d.sujet_disponible_avance ? 'true' : 'false';
-            if (d.sous_type_comp === 'tache_complexe') {
-                data.banque_tc_id = d.banque_tc_id || '';
-                data.exercice_tc_id = d.exercice_tc_id || '';
-            }
+            // Phase 9 : contenu intégré directement
+            data.document_contenu = d.document_contenu || '';
+            data.correction_contenu = d.correction_contenu || '';
+            data.correction_commentee = d.correction_commentee || '';
+            data.competence_ids = d.competence_ids || '';
+            data.description = d.description || '';
         }
         if (d.type === 'bonus') {
             data.sous_type_bonus = d.sous_type_bonus || 'competence';
-            if (d.sous_type_bonus === 'competence') {
-                data.banque_comp_id = d.banque_comp_id || '';
-                data.exercice_comp_id = d.exercice_comp_id || '';
-            } else if (d.sous_type_bonus === 'ponctuel') {
-                data.banque_bonus_id = d.banque_bonus_id || '';
-                data.exercice_bonus_id = d.exercice_bonus_id || '';
+            if (d.sous_type_bonus === 'competence' || d.sous_type_bonus === 'ponctuel') {
+                // Phase 9 : contenu intégré directement
+                data.document_contenu = d.document_contenu || '';
+                data.correction_contenu = d.correction_contenu || '';
+                data.correction_commentee = d.correction_commentee || '';
+                data.description = d.description || '';
+                if (d.sous_type_bonus === 'competence') {
+                    data.competence_ids = d.competence_ids || '';
+                }
+                if (d.sous_type_bonus === 'ponctuel') {
+                    data.criteres_libres = d.criteres_libres || '';
+                }
             } else if (d.sous_type_bonus === 'suivi') {
                 data.nb_validations = d.nb_validations || 5;
                 data.description_eleve = d.description_eleve || '';
@@ -3277,6 +3807,9 @@ const AdminEvaluations = {
         });
     },
 };
+
+// Mount block editor mixin (Phase 9: TC/bonus wizards with block editor)
+Object.assign(AdminEvaluations, createBlockEditorMixin('AdminEvaluations'));
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {

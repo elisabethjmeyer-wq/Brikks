@@ -62,16 +62,6 @@
                 Competences
                 <span class="tab-count" id="countCompetences">0</span>
             </button>
-            <button class="type-tab red" data-type="taches-complexes">
-                <span class="tab-icon">&#129513;</span>
-                Taches complexes
-                <span class="tab-count" id="countTachesComplexes">0</span>
-            </button>
-            <button class="type-tab teal" data-type="bonus-ponctuels">
-                <span class="tab-icon">&#127873;</span>
-                Bonus ponctuels
-                <span class="tab-count" id="countBonusPonctuels">0</span>
-            </button>
         </div>
 
         <!-- Filters -->
@@ -444,87 +434,7 @@
     </div>
 </div>
 
-<!-- Modal: Creer/Modifier banque de taches complexes -->
-<div class="modal-overlay hidden" id="banqueTCModal">
-    <div class="modal modal-medium">
-        <div class="modal-header">
-            <h2 id="banqueTCModalTitle">Nouvelle banque de taches complexes</h2>
-            <button class="modal-close" onclick="AdminBanquesExercices.closeBanqueTCModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <input type="hidden" id="editBanqueTCId">
-
-            <div class="form-group">
-                <label>Titre de la banque <span class="req">*</span></label>
-                <input type="text" class="form-input" id="banqueTCTitre" placeholder="Ex: Analyse de documents historiques">
-            </div>
-
-            <div class="form-group">
-                <label>Description <span class="optional">(optionnel)</span></label>
-                <textarea class="form-textarea" id="banqueTCDescription" rows="2" placeholder="Description de la banque..."></textarea>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Ordre d'affichage</label>
-                    <input type="number" class="form-input" id="banqueTCOrdre" value="1" min="1">
-                </div>
-                <div class="form-group">
-                    <label>Statut</label>
-                    <select class="form-select" id="banqueTCStatut">
-                        <option value="brouillon">Brouillon</option>
-                        <option value="publie">Publie</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeBanqueTCModal()">Annuler</button>
-            <button class="btn btn-primary" onclick="AdminBanquesExercices.saveBanqueTC()">Enregistrer</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: Creer/Modifier banque bonus ponctuel -->
-<div class="modal-overlay hidden" id="banqueBonusModal">
-    <div class="modal modal-medium">
-        <div class="modal-header">
-            <h2 id="banqueBonusModalTitle">Nouvelle banque bonus ponctuel</h2>
-            <button class="modal-close" onclick="AdminBanquesExercices.closeBanqueBonusModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <input type="hidden" id="editBanqueBonusId">
-
-            <div class="form-group">
-                <label>Titre de la banque <span class="req">*</span></label>
-                <input type="text" class="form-input" id="banqueBonusTitre" placeholder="Ex: Exposés oraux">
-            </div>
-
-            <div class="form-group">
-                <label>Description <span class="optional">(optionnel)</span></label>
-                <textarea class="form-textarea" id="banqueBonusDescription" rows="2" placeholder="Description de la banque..."></textarea>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Ordre d'affichage</label>
-                    <input type="number" class="form-input" id="banqueBonusOrdre" value="1" min="1">
-                </div>
-                <div class="form-group">
-                    <label>Statut</label>
-                    <select class="form-select" id="banqueBonusStatut">
-                        <option value="brouillon">Brouillon</option>
-                        <option value="publie">Publie</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="AdminBanquesExercices.closeBanqueBonusModal()">Annuler</button>
-            <button class="btn btn-primary" onclick="AdminBanquesExercices.saveBanqueBonus()">Enregistrer</button>
-        </div>
-    </div>
-</div>
+<!-- Modals TC et Bonus ponctuels supprimées (Phase 9 — contenu créé directement dans Évaluations) -->
 
 <!-- Scripts -->
 <script src="../js/config.js"></script>

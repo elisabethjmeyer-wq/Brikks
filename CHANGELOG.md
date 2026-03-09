@@ -4,27 +4,36 @@
 
 ---
 
-## 2026-03-09 — Session 29 : Bugfixes + refonte architecture TC/bonus
+## 2026-03-09 — Session 29-30 : Bugfixes + Phase 9 (refonte architecture TC/bonus)
 
-### Corrections
+### Corrections (session 29)
 
 1. **Fix critères "Aucun critère défini" côté élève** : `_loadCriteresHtml()` dans `eleve-evaluation.js` appelait `SheetsAPI.parseSheetData()` sur le résultat de `fetchAndParse()` (double parsing → tableau vide). Supprimé.
 2. **Fix cache périmé cross-page** : quand la prof modifiait les banques TC dans Banques d'exercices puis ouvrait le wizard évaluation, les données étaient périmées. Ajout de `clearCacheFor()` + `loadData()` dans `openModal()`.
 3. **Fix mismatch type ID dans tous les dropdowns du wizard** : `e.id === d.exercice_tc_id` échouait silencieusement (string vs number). Ajout de `String()` sur toutes les comparaisons (TC, bonus comp, bonus ponctuel, SF).
 
-### Décision d'architecture : refonte Phase 9
+### Phase 9 — Refonte architecture TC/bonus (session 29-30)
 
 Séparation claire entraînements / évaluations :
 - **Banques d'exercices** = uniquement entraînements élève (connaissances, savoir-faire, compétences)
 - **Page Évaluations** = création complète des TC, bonus comp, bonus ponctuel (wizard 5 étapes intégré avec block editor)
-- Les onglets TC et Bonus ponctuels seront supprimés de Banques d'exercices
 - Relation 1→1 : contenu stocké directement dans EVALUATIONS (`document_contenu`, `correction_contenu`, `competence_ids`, `criteres_libres`)
-- Bonus compétence dissocié des entraînements (wizard autonome avec sélection d'1 compétence du référentiel)
+
+**Phase A** : Backend — 5 colonnes ajoutées à EVALUATIONS (migration progressive dans `createEvaluation`/`updateEvaluation`)
+**Phase B** : Wizard admin 5 étapes intégré dans la page Évaluations, avec block editor, sélection compétences, critères libres
+**Phase C** : `eleve-evaluation.js` lit le contenu directement depuis EVALUATIONS (fallback vers `data.exercice` pour rétro-compat)
+**Phase D** : `admin-corrections.js` lit `criteres_libres` depuis EVALUATIONS (fallback vers exercice)
+**Phase E** : Onglets TC et Bonus ponctuels supprimés de Banques d'exercices (HTML + JS)
 
 ### Fichiers modifiés
-- `js/eleve-evaluation.js` : fix double parseSheetData dans `_loadCriteresHtml()`
-- `js/admin-evaluations.js` : `openModal()` async + cache refresh, String() sur toutes les comparaisons ID
-- `CLAUDE.md` : sections TC/bonus marquées "en cours de suppression", plan Phase 9 ajouté, décisions session 29
+- `js/admin-evaluations.js` : wizard 5 étapes complet (compétences, document, corrigé, critères libres, résumé), block editor mixin monté
+- `admin/evaluations.html` : ajout block-editor.js + admin-banques-exercices.css, stepper dynamique
+- `css/admin-evaluations.css` : modal élargie 800px, stepper compact
+- `google-apps-script/Evaluations.gs` : 5 colonnes migration progressive, dual-read dans `getEvaluationForEleve`
+- `js/eleve-evaluation.js` : lecture directe depuis data (Phase 9), `_parseCompetenceIds(data, exercice)` dual-source
+- `js/admin-corrections.js` : `getCriteresLibres()` lit depuis evaluation d'abord, exercice en fallback
+- `admin/banques-exercices.html` : onglets TC et Bonus ponctuels supprimés, modals associées supprimées
+- `js/admin-banques-exercices.js` : branches TC/Bonus supprimées de `renderBanques`, `updateCounts`, `applyTabState`
 
 ---
 

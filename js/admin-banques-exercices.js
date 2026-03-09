@@ -385,11 +385,7 @@ const AdminBanquesExercices = {
                 // Add banque/tache buttons
                 case 'addBanqueBtn':
                 case 'addBanqueBtnEmpty':
-                    if (this.currentType === 'taches-complexes') {
-                        this.openBanqueTCModal();
-                    } else if (this.currentType === 'bonus-ponctuels') {
-                        this.openBanqueBonusModal();
-                    } else if (this.currentType === 'competences') {
+                    if (this.currentType === 'competences') {
                         this.openBanqueCompetenceModal();
                     } else if (this.currentType === 'connaissances') {
                         // Selon la sous-vue active
@@ -594,7 +590,7 @@ const AdminBanquesExercices = {
         const addBtn = document.getElementById('addBanqueBtn');
         const formatsBtn = document.getElementById('manageFormatsBtn');
 
-        if (type === 'competences' || type === 'taches-complexes' || type === 'bonus-ponctuels') {
+        if (type === 'competences') {
             if (addBtn) addBtn.innerHTML = '<span>+</span> Nouvelle banque';
             if (formatsBtn) formatsBtn.style.display = 'none';
         } else if (type === 'connaissances') {
@@ -636,17 +632,7 @@ const AdminBanquesExercices = {
             compEl.textContent = this.banquesCompetences.length;
         }
 
-        // Count tâches complexes
-        const tcEl = document.getElementById('countTachesComplexes');
-        if (tcEl) {
-            tcEl.textContent = this.banquesTachesComplexes.length;
-        }
-
-        // Count bonus ponctuels
-        const bpEl = document.getElementById('countBonusPonctuels');
-        if (bpEl) {
-            bpEl.textContent = this.banquesBonusPonctuels.length;
-        }
+        // TC et bonus ponctuels supprimés (Phase 9 — créés directement dans Évaluations)
     },
 
     // ========== ACCORDION STATE ==========
@@ -654,7 +640,7 @@ const AdminBanquesExercices = {
     _getExpandedBanques() {
         const expanded = new Set();
         document.querySelectorAll('.banque-card.expanded').forEach(card => {
-            const id = card.dataset.id || card.dataset.banqueCompId || card.dataset.banqueTcId;
+            const id = card.dataset.id || card.dataset.banqueCompId;
             if (id) expanded.add(id);
         });
         return expanded;
@@ -663,7 +649,7 @@ const AdminBanquesExercices = {
     _restoreExpandedBanques(expanded) {
         if (!expanded || expanded.size === 0) return;
         document.querySelectorAll('.banque-card').forEach(card => {
-            const id = card.dataset.id || card.dataset.banqueCompId || card.dataset.banqueTcId;
+            const id = card.dataset.id || card.dataset.banqueCompId;
             if (id && expanded.has(id)) {
                 card.classList.add('expanded');
             }
@@ -681,22 +667,6 @@ const AdminBanquesExercices = {
             this.renderTachesComplexes(container, emptyState);
             this._restoreExpandedBanques(expanded);
             setTimeout(() => this.initCompetencesDragDrop(), 0);
-            return;
-        }
-
-        // For tâches complexes tab
-        if (this.currentType === 'taches-complexes') {
-            this.renderTachesComplexesTab(container, emptyState);
-            this._restoreExpandedBanques(expanded);
-            setTimeout(() => this.initTCDragDrop(), 0);
-            return;
-        }
-
-        // For bonus ponctuels tab
-        if (this.currentType === 'bonus-ponctuels') {
-            this.renderBonusPonctuelsTab(container, emptyState);
-            this._restoreExpandedBanques(expanded);
-            setTimeout(() => this.initBonusDragDrop(), 0);
             return;
         }
 

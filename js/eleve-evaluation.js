@@ -148,8 +148,9 @@ const EleveEvaluation = {
         const exercice = data.exercice || {};
         const type = String(data.type || '').trim();
 
-        // Document HTML
-        const documentHtml = this._buildDocumentHtml(exercice.document_contenu || '');
+        // Phase 9 : lire le contenu directement depuis data (EVALUATIONS), fallback vers exercice
+        const docContenu = data.document_contenu || exercice.document_contenu || '';
+        const documentHtml = this._buildDocumentHtml(docContenu);
 
         if (type === 'competences') {
             await this._renderTCSujetMode(data, exercice, documentHtml);
@@ -168,9 +169,10 @@ const EleveEvaluation = {
         const title = data.titre || 'Sujet';
 
         // Charger les critères de réussite des compétences liées
+        // Phase 9 : competence_ids peut être directement sur data (EVALUATIONS) ou sur exercice
         let criteresHtml = '';
         try {
-            const competenceIds = this._parseCompetenceIds(exercice);
+            const competenceIds = this._parseCompetenceIds(data, exercice);
             if (competenceIds.length > 0) {
                 criteresHtml = await this._loadCriteresHtml(competenceIds);
             }
@@ -178,8 +180,8 @@ const EleveEvaluation = {
             console.warn('Impossible de charger les critères:', e);
         }
 
-        // Consignes
-        const consigne = exercice.consigne || data.criteres || '';
+        // Consignes : Phase 9 description directement sur data, fallback exercice.consigne
+        const consigne = data.description || exercice.consigne || data.criteres || '';
         const consigneHtml = consigne
             ? `<div class="sujet-consigne">${escapeHtml(consigne)}</div>`
             : '';
@@ -219,7 +221,8 @@ const EleveEvaluation = {
         const title = data.titre || 'Sujet';
         const typeColor = '#eab308';
 
-        const consigne = exercice.consigne || data.criteres || '';
+        // Phase 9 : description directement sur data, fallback exercice.consigne
+        const consigne = data.description || exercice.consigne || data.criteres || '';
         const consigneHtml = consigne
             ? `<div class="sujet-consigne"><strong>Consignes :</strong> ${escapeHtml(consigne)}</div>`
             : '';
@@ -267,10 +270,12 @@ const EleveEvaluation = {
     /**
      * Parse les IDs de compétences depuis un exercice TC.
      */
-    _parseCompetenceIds(exercice) {
-        // competence_ids peut être un JSON array ou competence_id simple
+    _parseCompetenceIds(data, exercice) {
+        // Phase 9 : competence_ids peut être directement sur data (EVALUATIONS) ou sur exercice
+        const source = data || exercice || {};
+        const fallback = exercice || {};
         let ids = [];
-        const rawIds = exercice.competence_ids || '';
+        const rawIds = source.competence_ids || fallback.competence_ids || '';
         if (rawIds) {
             try {
                 const parsed = JSON.parse(rawIds);
@@ -279,8 +284,8 @@ const EleveEvaluation = {
                 ids = [rawIds];
             }
         }
-        if (ids.length === 0 && exercice.competence_id) {
-            ids = [exercice.competence_id];
+        if (ids.length === 0 && (source.competence_id || fallback.competence_id)) {
+            ids = [source.competence_id || fallback.competence_id];
         }
         return ids.map(id => String(id).trim()).filter(Boolean);
     },

@@ -4966,34 +4966,52 @@ function getEvaluationForEleve(data) {
 
   // 2. Si pas connaissances/SF (TC ou bonus), retourner les métadonnées sans questions
   if (type !== 'connaissances' && type !== 'savoir-faire') {
-    // Charger le document/sujet de l'exercice lié si disponible
-    var exerciceId = '';
-    if (type === 'competences') {
-      exerciceId = String(evaluation.exercice_tc_id || '').trim();
-    } else if (type === 'bonus') {
-      var sousType = String(evaluation.sous_type_bonus || '').trim();
-      if (sousType === 'competence') {
-        exerciceId = String(evaluation.exercice_comp_id || '').trim();
-      } else if (sousType === 'ponctuel') {
-        exerciceId = String(evaluation.exercice_bonus_id || '').trim();
-      }
-    }
+    // Phase 9 : le contenu est stocké directement dans EVALUATIONS (document_contenu, correction_contenu, etc.)
+    var hasDirectContent = String(evaluation.document_contenu || '').trim() !== '';
 
-    // Récupérer le document de l'exercice dans EntrainementsCompetences
-    if (exerciceId) {
-      var entrSheet = ss.getSheetByName(SHEETS.EntrainementsCompetences);
-      if (entrSheet) {
-        var entrData = entrSheet.getDataRange().getValues();
-        var entrHeaders = entrData[0].map(function(h) { return String(h).toLowerCase().trim(); });
-        for (var j = 1; j < entrData.length; j++) {
-          var idCol = entrHeaders.indexOf('id');
-          if (idCol >= 0 && String(entrData[j][idCol]).trim() === exerciceId) {
-            var exercice = {};
-            entrHeaders.forEach(function(header, index) {
-              exercice[header] = entrData[j][index];
-            });
-            evaluation.exercice = exercice;
-            break;
+    if (hasDirectContent) {
+      // Nouveau format : tout est dans EVALUATIONS, pas besoin de chercher dans EntrainementsCompetences
+      // evaluation contient déjà document_contenu, correction_contenu, correction_commentee,
+      // competence_ids, criteres_libres, description
+      // On crée un objet exercice virtuel pour la rétro-compatibilité frontend
+      evaluation.exercice = {
+        document_contenu: evaluation.document_contenu || '',
+        correction_contenu: evaluation.correction_contenu || '',
+        correction_commentee: evaluation.correction_commentee || '',
+        competence_ids: evaluation.competence_ids || '',
+        criteres_libres: evaluation.criteres_libres || '',
+        description: evaluation.description || '',
+        titre: evaluation.titre || ''
+      };
+    } else {
+      // Fallback : anciennes évaluations avec lien indirect via EntrainementsCompetences
+      var exerciceId = '';
+      if (type === 'competences') {
+        exerciceId = String(evaluation.exercice_tc_id || '').trim();
+      } else if (type === 'bonus') {
+        var sousType = String(evaluation.sous_type_bonus || '').trim();
+        if (sousType === 'competence') {
+          exerciceId = String(evaluation.exercice_comp_id || '').trim();
+        } else if (sousType === 'ponctuel') {
+          exerciceId = String(evaluation.exercice_bonus_id || '').trim();
+        }
+      }
+
+      if (exerciceId) {
+        var entrSheet = ss.getSheetByName(SHEETS.EntrainementsCompetences);
+        if (entrSheet) {
+          var entrData = entrSheet.getDataRange().getValues();
+          var entrHeaders = entrData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+          for (var j = 1; j < entrData.length; j++) {
+            var idColEntr = entrHeaders.indexOf('id');
+            if (idColEntr >= 0 && String(entrData[j][idColEntr]).trim() === exerciceId) {
+              var exercice = {};
+              entrHeaders.forEach(function(header, index) {
+                exercice[header] = entrData[j][index];
+              });
+              evaluation.exercice = exercice;
+              break;
+            }
           }
         }
       }
@@ -5486,7 +5504,9 @@ function createEvaluation(data) {
   var requiredCols = ['date_ouverture', 'date_fermeture', 'mode_passation',
     'sous_type_comp', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id',
     'exercice_comp_id', 'banque_tc_id', 'exercice_tc_id', 'banque_bonus_id', 'exercice_bonus_id',
-    'points_par_competence', 'competence_ids', 'description_eleve', 'sujet_disponible_avance'];
+    'points_par_competence', 'competence_ids', 'description_eleve', 'sujet_disponible_avance',
+    // Phase 9 : contenu intégré directement dans EVALUATIONS (plus d'indirection via EntrainementsCompetences)
+    'document_contenu', 'correction_contenu', 'correction_commentee', 'criteres_libres', 'description'];
   requiredCols.forEach(function(col) {
     if (headerNames.indexOf(col) < 0) {
       lastCol++;
@@ -5544,7 +5564,9 @@ function updateEvaluation(data) {
     return { success: false, error: 'Evaluation non trouvee' };
   }
 
-  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id', 'mode_passation', 'sous_type_comp', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id', 'exercice_comp_id', 'banque_tc_id', 'exercice_tc_id', 'banque_bonus_id', 'exercice_bonus_id', 'points_par_competence', 'competence_ids', 'description_eleve', 'sujet_disponible_avance'];
+  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id', 'mode_passation', 'sous_type_comp', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id', 'exercice_comp_id', 'banque_tc_id', 'exercice_tc_id', 'banque_bonus_id', 'exercice_bonus_id', 'points_par_competence', 'competence_ids', 'description_eleve', 'sujet_disponible_avance',
+    // Phase 9 : contenu intégré
+    'document_contenu', 'correction_contenu', 'correction_commentee', 'criteres_libres'];
   updates.forEach(col => {
     if (data[col] !== undefined) {
       const colIndex = headers.indexOf(col);
