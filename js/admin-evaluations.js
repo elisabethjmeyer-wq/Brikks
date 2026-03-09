@@ -800,7 +800,7 @@ const AdminEvaluations = {
                     <div class="form-row">
                         <div class="form-group">
                             <label>Points mis en jeu <span class="req">*</span></label>
-                            <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
+                            <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="0.25" max="50" step="0.25">
                         </div>
                         <div class="form-group">
                             <label>Mode de passation</label>
@@ -1142,7 +1142,7 @@ const AdminEvaluations = {
         if (titre !== undefined) this.wizardData.titre = titre.trim();
 
         const briques = document.getElementById('evalBriques')?.value;
-        if (briques) this.wizardData.briques = parseInt(briques) || 3;
+        if (briques) this.wizardData.briques = parseFloat(briques) || 3;
 
         const seuil = document.getElementById('evalSeuil')?.value;
         if (seuil) this.wizardData.seuil = parseInt(seuil) || 80;
@@ -1615,7 +1615,7 @@ const AdminEvaluations = {
                     return false;
                 }
                 this.wizardData.titre = titre;
-                this.wizardData.briques = parseInt(document.getElementById('evalBriques')?.value) || 3;
+                this.wizardData.briques = parseFloat(document.getElementById('evalBriques')?.value) || 3;
                 this.wizardData.mode_passation = document.getElementById('evalModePassation')?.value || 'numerique';
                 const matiereGroup = document.getElementById('evalMatiereGroup');
                 const matiereVisible = matiereGroup && matiereGroup.style.display !== 'none';
