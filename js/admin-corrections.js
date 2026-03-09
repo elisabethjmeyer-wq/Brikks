@@ -1037,10 +1037,18 @@ const AdminCorrections = {
         var sub = this.currentSubmission;
         var wd = this.wizardData;
         var competenceId = null;
+        var evaluation = null;
 
         if (sub._sourceType === 'bonus_comp') {
-            var evaluation = this.getEvaluationForSub(sub);
+            evaluation = this.getEvaluationForSub(sub);
             competenceId = evaluation ? evaluation.competence_id : null;
+            // Try competence_ids if competence_id not set
+            if (!competenceId && evaluation && evaluation.competence_ids) {
+                try {
+                    var parsed = typeof evaluation.competence_ids === 'string' ? JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
+                    if (Array.isArray(parsed) && parsed.length > 0) competenceId = parsed[0];
+                } catch (_e) { /* ignore */ }
+            }
         } else {
             var entrainement = this.getEntrainement(sub.entrainement_id);
             var competence = this.getCompetenceForEntrainement(entrainement);
@@ -1050,7 +1058,23 @@ const AdminCorrections = {
         var criteres = competenceId ? this.getCriteresByCompetence(competenceId) : [];
 
         if (criteres.length > 0) {
-            var html = '<div class="criteres-correction-list">';
+            var html = '';
+
+            // For bonus_comp: show competency header with points + matière
+            if (sub._sourceType === 'bonus_comp' && evaluation && competenceId) {
+                var ptsMap = this._getCompPointsMap(evaluation);
+                var info = ptsMap[String(competenceId)];
+                if (info) {
+                    var allChecked = criteres.every(function(c) { return wd.criteresValides.indexOf(String(c.id)) !== -1; });
+                    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">';
+                    html += '<span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:' + info.color + '20;color:' + info.color + ';font-weight:600;white-space:nowrap;">' + info.pts + ' pt' + (info.pts > 1 ? 's' : '') + ' · ' + escapeHtml(info.label) + '</span>';
+                    html += '<span class="comp-valid-badge" id="compBadge_single" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;' +
+                        (allChecked ? 'background:#dcfce7;color:#16a34a;">' + '✅ Validée' : 'background:#fee2e2;color:#dc2626;">' + '❌ Non validée') + '</span>';
+                    html += '</div>';
+                }
+            }
+
+            html += '<div class="criteres-correction-list">';
             criteres.forEach(function(c) {
                 var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
                 html += '<div class="critere-check' + (checked ? ' checked' : '') + '" onclick="AdminCorrections.toggleCritere(\'' + c.id + '\', this)">';
@@ -1062,6 +1086,52 @@ const AdminCorrections = {
             return html;
         }
         return '<div class="empty-criteres">Aucun critère défini pour cette compétence.</div>';
+    },
+
+    /** Retourne les points par compétence pour une évaluation TC ou bonus comp */
+    _getCompPointsMap(evaluation) {
+        var matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        var matiereLabels = { 'FR': 'FR', 'HG-EMC': 'HG-EMC', 'Transversal': 'Trans.' };
+
+        var evalPpc = {};
+        if (evaluation && evaluation.points_par_competence) {
+            try {
+                evalPpc = typeof evaluation.points_par_competence === 'string' ? JSON.parse(evaluation.points_par_competence) : evaluation.points_par_competence;
+            } catch (_e) { /* ignore */ }
+        }
+        var hasEvalPpc = Object.keys(evalPpc).length > 0;
+
+        var compIds = this.getCompetenceIdsForTC(evaluation);
+        // Bonus comp: single comp from competence_ids or competence_id
+        if (compIds.length === 0 && evaluation) {
+            if (evaluation.competence_ids) {
+                try {
+                    var parsed = typeof evaluation.competence_ids === 'string' ? JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
+                    if (Array.isArray(parsed) && parsed.length > 0) compIds = parsed.map(String);
+                } catch (_e) { /* ignore */ }
+            }
+            if (compIds.length === 0 && evaluation.competence_id) {
+                compIds = [String(evaluation.competence_id)];
+            }
+        }
+
+        var totalBriques = parseFloat(evaluation ? evaluation.briques : 0) || 0;
+        var fallbackPerComp = compIds.length > 0 ? totalBriques / compIds.length : 1;
+        var self = this;
+        var map = {};
+
+        compIds.forEach(function(compId) {
+            var comp = self.getCompetence(compId);
+            var compMat = comp ? (comp.matiere || 'Transversal') : 'Transversal';
+            var pts = hasEvalPpc ? (parseFloat(evalPpc[String(compId)]) || 1) : (fallbackPerComp || 1);
+            map[String(compId)] = {
+                pts: pts,
+                matiere: compMat,
+                color: matiereColors[compMat] || '#6b7280',
+                label: matiereLabels[compMat] || compMat
+            };
+        });
+        return map;
     },
 
     /** Step 3 for TC: grouped by competence */
@@ -1081,17 +1151,25 @@ const AdminCorrections = {
         }
 
         var self = this;
+        var ptsMap = this._getCompPointsMap(evaluation);
         var html = '';
 
         compIds.forEach(function(compId) {
             var comp = self.getCompetence(compId);
             var criteres = self.getCriteresByCompetence(compId);
             var compValides = wd.competenceValidees[compId] || [];
+            var allValid = criteres.length > 0 && criteres.every(function(c) { return compValides.indexOf(String(c.id)) !== -1; });
+            var info = ptsMap[String(compId)] || { pts: 1, matiere: 'Transversal', color: '#6b7280', label: 'Trans.' };
 
             html += '<div class="tc-competence-section" data-comp-id="' + compId + '">';
-            html += '<div class="tc-comp-header">';
+            html += '<div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
             html += '<span class="tc-comp-icon">🎯</span>';
-            html += '<h4>' + escapeHtml(comp ? comp.nom : 'Compétence inconnue') + '</h4>';
+            html += '<h4 style="flex:1;margin:0;">' + escapeHtml(comp ? comp.nom : 'Compétence inconnue') + '</h4>';
+            // Points + matière tag
+            html += '<span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:' + info.color + '20;color:' + info.color + ';font-weight:600;white-space:nowrap;">' + info.pts + ' pt' + (info.pts > 1 ? 's' : '') + ' · ' + escapeHtml(info.label) + '</span>';
+            // Validation badge
+            html += '<span class="comp-valid-badge" id="compBadge_' + compId + '" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;' +
+                (allValid ? 'background:#dcfce7;color:#16a34a;">' + '✅ Validée' : 'background:#fee2e2;color:#dc2626;">' + '❌ Non validée') + '</span>';
             html += '</div>';
 
             if (criteres.length > 0) {
@@ -1155,6 +1233,16 @@ const AdminCorrections = {
             el.classList.remove('checked');
             el.querySelector('input').checked = false;
         }
+
+        // Update validation badge
+        var criteres = this.getCriteresByCompetence(compId);
+        var allValid = criteres.length > 0 && criteres.every(function(c) { return list.indexOf(String(c.id)) !== -1; });
+        var badge = document.getElementById('compBadge_' + compId);
+        if (badge) {
+            badge.innerHTML = allValid ? '✅ Validée' : '❌ Non validée';
+            badge.style.background = allValid ? '#dcfce7' : '#fee2e2';
+            badge.style.color = allValid ? '#16a34a' : '#dc2626';
+        }
     },
 
     toggleCritere(critereId, el) {
@@ -1167,6 +1255,30 @@ const AdminCorrections = {
             this.wizardData.criteresValides.splice(idx, 1);
             el.classList.remove('checked');
             el.querySelector('input').checked = false;
+        }
+
+        // Update bonus_comp validation badge if present
+        var sub = this.currentSubmission;
+        if (sub && sub._sourceType === 'bonus_comp') {
+            var badge = document.getElementById('compBadge_single');
+            if (badge) {
+                var evaluation = this.getEvaluationForSub(sub);
+                var competenceId = evaluation ? evaluation.competence_id : null;
+                if (!competenceId && evaluation && evaluation.competence_ids) {
+                    try {
+                        var parsed = typeof evaluation.competence_ids === 'string' ? JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
+                        if (Array.isArray(parsed) && parsed.length > 0) competenceId = parsed[0];
+                    } catch (_e) { /* ignore */ }
+                }
+                if (competenceId) {
+                    var criteres = this.getCriteresByCompetence(competenceId);
+                    var wd = this.wizardData;
+                    var allValid = criteres.length > 0 && criteres.every(function(c) { return wd.criteresValides.indexOf(String(c.id)) !== -1; });
+                    badge.innerHTML = allValid ? '✅ Validée' : '❌ Non validée';
+                    badge.style.background = allValid ? '#dcfce7' : '#fee2e2';
+                    badge.style.color = allValid ? '#16a34a' : '#dc2626';
+                }
+            }
         }
     },
 
@@ -1326,86 +1438,98 @@ const AdminCorrections = {
         return html;
     },
 
+    /** Calcule les points par compétence automatiquement depuis les critères validés */
+    _computePointsParCompetence(sub, evaluation, wd) {
+        var ptsMap = this._getCompPointsMap(evaluation);
+        var ppc = {};
+        var total = 0;
+
+        for (var compId in ptsMap) {
+            var info = ptsMap[compId];
+            var criteres = this.getCriteresByCompetence(compId);
+
+            // Déterminer les critères validés pour cette compétence
+            var valides;
+            if (sub._sourceType === 'tc') {
+                valides = (wd.competenceValidees && wd.competenceValidees[compId]) ? wd.competenceValidees[compId] : [];
+            } else {
+                // bonus_comp: critères dans criteresValides
+                valides = wd.criteresValides || [];
+            }
+
+            var allValid = criteres.length > 0 && criteres.every(function(c) { return valides.indexOf(String(c.id)) !== -1; });
+            var pts = allValid ? info.pts : 0;
+            ppc[compId] = pts;
+            total += pts;
+        }
+
+        return { ppc: ppc, total: total };
+    },
+
     _renderStep4Points(sub, evaluation, wd) {
         var html = '';
         var matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
-        var matiereLabels = { 'FR': 'FR', 'HG-EMC': 'HG-EMC', 'Transversal': 'Trans.' };
 
-        // Lire points_par_competence de l'évaluation (points misés)
-        var evalPpc = {};
-        if (evaluation && evaluation.points_par_competence) {
-            try {
-                evalPpc = typeof evaluation.points_par_competence === 'string' ? JSON.parse(evaluation.points_par_competence) : evaluation.points_par_competence;
-            } catch (_e) { /* ignore */ }
-        }
-
-        // Lire points_par_competence existants du résultat (points gagnés, pour reprise)
-        var resultPpc = {};
-        if (wd.pointsParCompetence) {
-            resultPpc = wd.pointsParCompetence;
-        }
-
-        // Déterminer les compétences associées (TC ou bonus comp)
-        var compIds = [];
-        if (sub._sourceType === 'tc') {
-            compIds = this.getCompetenceIdsForTC(evaluation);
-        } else if (sub._sourceType === 'bonus_comp') {
-            if (evaluation.competence_ids) {
-                try {
-                    var parsed = typeof evaluation.competence_ids === 'string' ? JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
-                    if (Array.isArray(parsed) && parsed.length > 0) compIds = parsed.map(String);
-                } catch (_e) { /* ignore */ }
-            }
-            if (compIds.length === 0 && evaluation.competence_id) {
-                compIds = [String(evaluation.competence_id)];
-            }
-        }
-
-        var hasCompetences = compIds.length > 0 && (sub._sourceType === 'tc' || sub._sourceType === 'bonus_comp');
+        var ptsMap = this._getCompPointsMap(evaluation);
+        var hasCompetences = Object.keys(ptsMap).length > 0 && (sub._sourceType === 'tc' || sub._sourceType === 'bonus_comp');
 
         if (hasCompetences) {
-            // Mode par compétence : un input par compétence
-            html += '<div class="bilan-section">';
-            html += '<h4>Points attribués par compétence</h4>';
+            // Auto-compute points from criteria validation
+            var computed = this._computePointsParCompetence(sub, evaluation, wd);
+            wd.pointsParCompetence = computed.ppc;
+            wd.score = computed.total;
 
+            // Group by matière for summary
+            var byMatiere = {};
             var self = this;
-            var hasEvalPpc = Object.keys(evalPpc).length > 0;
-            var totalBriques = parseFloat(evaluation.briques) || 0;
-            var fallbackPerComp = compIds.length > 0 ? totalBriques / compIds.length : 1;
+            for (var compId in ptsMap) {
+                var info = ptsMap[compId];
+                var mat = info.matiere;
+                if (!byMatiere[mat]) byMatiere[mat] = { earned: 0, max: 0, color: info.color };
+                byMatiere[mat].max += info.pts;
+                byMatiere[mat].earned += computed.ppc[compId] || 0;
+                // Transversal: also count in FR and HG-EMC for display
+            }
 
-            compIds.forEach(function(compId) {
-                var comp = self.getCompetence(compId);
-                var compMat = comp ? (comp.matiere || 'Transversal') : 'Transversal';
-                var color = matiereColors[compMat] || '#6b7280';
-                // Max = points_par_competence si dispo, sinon briques / nb_comps, sinon 1
-                var maxPts = hasEvalPpc ? (parseFloat(evalPpc[String(compId)]) || 1) : (fallbackPerComp || 1);
-                var compValides = wd.competenceValidees ? (wd.competenceValidees[compId] || []) : [];
-                var criteres = self.getCriteresByCompetence(compId);
-                var allValid = criteres.length > 0 && criteres.every(function(c) { return compValides.indexOf(String(c.id)) !== -1; });
+            html += '<div class="bilan-section">';
+            html += '<h4>Points gagnés par matière</h4>';
 
-                // Défaut : max si tous critères validés, 0 sinon (modifiable)
-                var defaultPts = allValid ? maxPts : 0;
-                var currentPts = resultPpc[String(compId)] !== undefined ? resultPpc[String(compId)] : defaultPts;
-
-                html += '<div class="bilan-points-per-comp" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gray-100, #f3f4f6);">';
-                html += '<span style="display:inline-block;font-size:0.7rem;padding:2px 6px;border-radius:4px;background:' + color + '20;color:' + color + ';font-weight:600;white-space:nowrap;">' + escapeHtml(matiereLabels[compMat] || compMat) + '</span>';
-                html += '<span style="flex:1;font-size:0.85rem;">' + escapeHtml(comp ? comp.nom : 'Compétence') + '</span>';
-                html += '<input type="number" class="form-input correction-comp-pts" data-comp-id="' + compId + '" ' +
-                    'value="' + currentPts + '" min="0" max="' + maxPts + '" step="0.25" ' +
-                    'onchange="AdminCorrections._onCompPtsChange()" ' +
-                    'style="width: 65px; padding: 4px 6px; font-size: 0.85rem; display: inline-block;">';
-                html += ' <span style="font-size:0.8rem;color:var(--gray-400);">/ ' + maxPts + '</span>';
+            var matiereOrder = ['FR', 'HG-EMC', 'Transversal'];
+            matiereOrder.forEach(function(mat) {
+                if (!byMatiere[mat]) return;
+                var m = byMatiere[mat];
+                var color = m.color || matiereColors[mat] || '#6b7280';
+                var matLabel = mat === 'Transversal' ? 'Transversal (FR + HG-EMC)' : mat;
+                html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100, #f3f4f6);">';
+                html += '<span style="display:inline-block;font-size:0.8rem;padding:3px 10px;border-radius:4px;background:' + color + '20;color:' + color + ';font-weight:600;min-width:60px;text-align:center;">' + escapeHtml(matLabel) + '</span>';
+                html += '<span style="font-size:0.95rem;font-weight:600;">' + m.earned + ' / ' + m.max + ' pt' + (m.max > 1 ? 's' : '') + '</span>';
+                if (m.earned >= m.max && m.max > 0) {
+                    html += '<span style="color:#16a34a;">✅</span>';
+                } else if (m.earned > 0) {
+                    html += '<span style="color:#f59e0b;">⚠️</span>';
+                }
                 html += '</div>';
             });
 
-            // Total
-            html += '<div id="correctionPtsTotal" style="margin-top:8px;font-weight:600;font-size:0.9rem;text-align:right;"></div>';
-            html += '</div>';
+            // Per-competency detail
+            html += '<div style="margin-top:12px;">';
+            html += '<details><summary style="cursor:pointer;font-size:0.85rem;color:var(--gray-400);margin-bottom:6px;">Détail par compétence</summary>';
+            for (var cId in ptsMap) {
+                var cInfo = ptsMap[cId];
+                var comp = self.getCompetence(cId);
+                var earned = computed.ppc[cId] || 0;
+                var isValid = earned > 0;
+                html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.8rem;">';
+                html += '<span>' + (isValid ? '✅' : '❌') + '</span>';
+                html += '<span style="flex:1;">' + escapeHtml(comp ? comp.nom : 'Compétence') + '</span>';
+                html += '<span style="font-weight:600;">' + earned + ' / ' + cInfo.pts + '</span>';
+                html += '</div>';
+            }
+            html += '</details></div>';
 
-            // Initialiser le total et le wizardData
-            setTimeout(function() { AdminCorrections._onCompPtsChange(); }, 0);
+            html += '</div>';
         } else {
-            // Mode global (fallback : bonus ponctuel, ou anciennes évals sans points_par_competence)
+            // Mode global (fallback : bonus ponctuel, ou anciennes évals sans compétences)
             var maxPts = evaluation ? (parseFloat(evaluation.briques) || 1) : 1;
             var currentScore = wd.score !== undefined ? wd.score : (wd.decision === 'valide' ? maxPts : 0);
             html += '<div class="bilan-section">';
@@ -1421,25 +1545,6 @@ const AdminCorrections = {
         }
 
         return html;
-    },
-
-    _onCompPtsChange() {
-        var inputs = document.querySelectorAll('.correction-comp-pts');
-        var ppc = {};
-        var total = 0;
-        inputs.forEach(function(inp) {
-            var compId = inp.dataset.compId;
-            var pts = parseFloat(inp.value) || 0;
-            ppc[compId] = pts;
-            total += pts;
-        });
-        this.wizardData.pointsParCompetence = ppc;
-        this.wizardData.score = total;
-
-        var totalEl = document.getElementById('correctionPtsTotal');
-        if (totalEl) {
-            totalEl.textContent = 'Total : ' + total + ' pt' + (total > 1 ? 's' : '');
-        }
     },
 
     renderFooter4() {
@@ -1498,10 +1603,15 @@ const AdminCorrections = {
                     params.criteres_valides = JSON.stringify(wd.criteresValides);
                 }
 
-                // Points attribués — par compétence si disponible, sinon global
-                if (wd.pointsParCompetence && Object.keys(wd.pointsParCompetence).length > 0) {
-                    params.points_par_competence = JSON.stringify(wd.pointsParCompetence);
-                    // validations/score calculés automatiquement par le backend
+                // Points attribués — auto-compute from criteria for TC/bonus comp
+                if (sub._sourceType === 'tc' || sub._sourceType === 'bonus_comp') {
+                    var evaluation = this.getEvaluationForSub(sub);
+                    var computed = this._computePointsParCompetence(sub, evaluation, wd);
+                    if (Object.keys(computed.ppc).length > 0) {
+                        params.points_par_competence = JSON.stringify(computed.ppc);
+                    }
+                    params.score = computed.total;
+                    params.validations = computed.total;
                 } else if (wd.score !== undefined) {
                     params.score = wd.score;
                     params.validations = wd.score;
