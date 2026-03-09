@@ -838,22 +838,6 @@
     margin-top: 2px;
 }
 
-.btn-rendu {
-    background: #f59e0b !important;
-    color: white !important;
-    border: none;
-    font-size: 13px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    margin-top: 6px;
-}
-
-.btn-rendu:hover {
-    background: #d97706 !important;
-}
-
 /* ===== TOAST NOTIFICATION ===== */
 
 .eleve-toast {
