@@ -5544,7 +5544,7 @@ function updateEvaluation(data) {
     return { success: false, error: 'Evaluation non trouvee' };
   }
 
-  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id', 'mode_passation', 'sous_type_comp', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id', 'exercice_comp_id', 'banque_tc_id', 'exercice_tc_id', 'banque_bonus_id', 'exercice_bonus_id', 'points_par_competence', 'competence_ids'];
+  const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id', 'mode_passation', 'sous_type_comp', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id', 'exercice_comp_id', 'banque_tc_id', 'exercice_tc_id', 'banque_bonus_id', 'exercice_bonus_id', 'points_par_competence', 'competence_ids', 'description_eleve', 'sujet_disponible_avance'];
   updates.forEach(col => {
     if (data[col] !== undefined) {
       const colIndex = headers.indexOf(col);
