@@ -391,8 +391,11 @@ const EleveEvaluation = {
             switch (block.type) {
                 case 'text':
                     return `<div class="block-text">${block.content || ''}</div>`;
-                case 'image':
-                    return block.url ? `<div class="block-image"><img src="${escapeHtml(block.url)}" alt="${escapeHtml(block.alt || '')}"></div>` : '';
+                case 'image': {
+                    if (!block.url) return '';
+                    const imgUrl = this._convertDriveUrl(block.url);
+                    return `<div class="block-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(block.alt || '')}"></div>`;
+                }
                 case 'document':
                     if (block.url) {
                         const embedUrl = block.url.includes('/edit') ? block.url.replace('/edit', '/preview') : block.url;
@@ -411,6 +414,17 @@ const EleveEvaluation = {
                     return '';
             }
         }).join('');
+    },
+
+    /**
+     * Convertit une URL Google Drive en URL d'image directe.
+     */
+    _convertDriveUrl(url) {
+        const match = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (match) return 'https://lh3.googleusercontent.com/d/' + match[1];
+        const idMatch = url.match(/drive\.google\.com.*[?&]id=([a-zA-Z0-9_-]+)/);
+        if (idMatch) return 'https://lh3.googleusercontent.com/d/' + idMatch[1];
+        return url;
     },
 
     // ========== MODE REVIEW ==========
