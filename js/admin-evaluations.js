@@ -1358,8 +1358,17 @@ const AdminEvaluations = {
         return '';
     },
 
-    _renderCompFields() {
-        return '';
+    _renderCompFields(d) {
+        const checked = d.sujet_disponible_avance === true || d.sujet_disponible_avance === 'true' || d.sujet_disponible_avance === 'TRUE';
+        return `
+            <div class="form-group">
+                <label class="toggle-label">
+                    <input type="checkbox" id="evalSujetAvance" ${checked ? 'checked' : ''}>
+                    <span>Sujet visible par les élèves</span>
+                </label>
+                <div class="form-help">Si activé, les élèves pourront consulter le sujet depuis leur carte d'évaluation</div>
+            </div>
+        `;
     },
 
     _renderBonusFields(d) {
