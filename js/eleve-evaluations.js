@@ -1218,12 +1218,11 @@ const EleveEvaluations = {
     _formatDateRendu(dateStr, typeDate) {
         if (!dateStr) return '';
         const str = String(dateStr).trim();
-        const hasTime = str.includes('T');
         const dateOnly = this._formatDateOnly(str);
-        const timeStr = hasTime ? this._extractTime(str) : '';
+        const timeStr = this._extractTime(str);
 
         if (typeDate === 'date_butoir') {
-            if (timeStr) return `À rendre le ${dateOnly} (avant ${timeStr})`;
+            if (timeStr) return `À rendre le ${dateOnly} avant ${timeStr}`;
             return `À rendre le ${dateOnly}`;
         }
         // passage_classe
@@ -1231,32 +1230,49 @@ const EleveEvaluations = {
         return `Passage en classe le ${dateOnly}`;
     },
 
-    /** Extrait la partie date formatée (sans heure) */
+    /** Extrait la partie date formatée (sans heure) — format français complet */
     _formatDateOnly(dateStr) {
         const str = String(dateStr).trim();
-        const datePart = str.includes('T') ? str.split('T')[0] : str;
-        const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-        const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
-        const parts = datePart.split('-');
-        const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]}`;
+        let date;
+        // Format ISO : YYYY-MM-DD ou YYYY-MM-DDTHH:MM
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+            const datePart = str.includes('T') ? str.split('T')[0] : str.split(' ')[0];
+            const parts = datePart.split('-');
+            date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        } else {
+            // Fallback : format Google Sheets (ex: "10/03/2026 18:48:00")
+            date = new Date(str);
+        }
+        if (isNaN(date.getTime())) return str;
+        return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     },
 
-    /** Extrait l'heure formatée "14h30" depuis "2026-03-10T14:30" */
+    /** Extrait l'heure formatée "14h30" — gère les formats ISO et Google Sheets */
     _extractTime(dateStr) {
         const str = String(dateStr).trim();
-        if (!str.includes('T')) return '';
-        const timePart = str.split('T')[1];
+        let timePart = '';
+        if (str.includes('T')) {
+            // ISO : "2026-03-10T14:30"
+            timePart = str.split('T')[1];
+        } else if (str.includes(' ') && str.includes(':')) {
+            // Google Sheets : "10/03/2026 18:48:00"
+            const spaceIdx = str.indexOf(' ');
+            timePart = str.substring(spaceIdx + 1);
+        }
+        if (!timePart) return '';
         const tParts = timePart.split(':');
         const h = parseInt(tParts[0]);
-        const min = String(parseInt(tParts[1] || 0)).padStart(2, '0');
-        return `${h}h${min}`;
+        const min = parseInt(tParts[1] || 0);
+        if (isNaN(h)) return '';
+        // Ne pas afficher minuit (00h00) — signifie souvent qu'aucune heure n'a été saisie
+        if (h === 0 && min === 0) return '';
+        return `${h}h${String(min).padStart(2, '0')}`;
     },
 
     /**
      * Formate une date pour affichage.
-     * "2026-03-10" → "Lun 10 mar" (date seule, pas d'heure parasite)
-     * "2026-03-10T14:30" → "Lun 10 mar à 14h30" (date + heure)
+     * "2026-03-10" → "lundi 10 mars 2026"
+     * "2026-03-10T14:30" → "lundi 10 mars 2026 à 14h30"
      */
     formatDate(dateStr) {
         if (!dateStr) return '';
