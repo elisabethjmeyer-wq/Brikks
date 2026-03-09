@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-03-09 — Session 32 : Correction wizard — points automatiques par critères
+
+### Wizard de correction (admin-corrections.js) — étapes 3 et 4
+
+1. **Étape Critères (step 3)** : chaque section compétence (TC) ou compétence unique (bonus comp) affiche maintenant un tag matière coloré (ex: `1 pt · FR`) et un badge de validation (✅ Validée / ❌ Non validée) qui se met à jour en temps réel quand on coche/décoche les critères.
+2. **Étape Bilan (step 4)** : remplacement de l'ancien input manuel "Points attribués par compétence" par un résumé en lecture seule groupé par matière (FR, HG-EMC, Transversal) avec section dépliable "Détail par compétence".
+3. **Calcul automatique** : les points ne sont plus éditables manuellement — tous les critères cochés = compétence validée = points gagnés. Le `points_par_competence` est recalculé automatiquement au moment du save.
+4. **Helper `_getCompPointsMap()`** et **`_computePointsParCompetence()`** ajoutés pour centraliser la logique de calcul.
+
+**Fichier modifié** : `js/admin-corrections.js`
+
+### Ce qui reste à faire (signalé par l'utilisatrice)
+
+- **Wizard de création TC** (`admin-evaluations.js`) : l'étape 1 (Paramètres) affiche les dates ouverture/fermeture alors qu'elles ne devraient pas y être (se paramètrent via le bouton statut). La modal est aussi trop étroite ("étriquée"). À investiguer et corriger.
+- **Wizard de correction dans la saisie des résultats** (`admin-evaluations.js`) : le wizard de correction qui apparaît depuis la page Évaluations (vue saisie) n'a pas été mis à jour avec les mêmes améliorations (tags matière, badges validation, points automatiques). C'est celui-ci que l'utilisatrice voulait modifier en priorité, pas celui de la page Corrections.
+
+---
+
 ## 2026-03-09 — Session 31 : Points par compétence (Phase 10)
 
 ### Points par compétence — ventilation automatique par discipline

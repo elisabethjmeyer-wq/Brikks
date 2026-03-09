@@ -164,7 +164,9 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **Appels API** : `validateEleveEntrainementCompetence` (écriture), `getEleveEntrainementsCompetences` (lecture, retourne toutes les colonnes dynamiquement)
 
-**État** : créé et audité (session 14). Code propre et maintenable.
+**Session 32** : étape Critères enrichie (tags matière + badges validation live par compétence), étape Bilan avec résumé par matière en lecture seule (plus d'input manuel de points). Points calculés automatiquement depuis les critères validés via `_computePointsParCompetence()` et `_getCompPointsMap()`.
+
+**État** : créé et audité (session 14), points auto (session 32). Code propre et maintenable.
 
 ### Notes élève — CRÉÉ SESSION 16, HARMONISÉ SESSION 25
 
