@@ -194,6 +194,7 @@ const EleveEvaluations = {
         const seuil = parseInt(evaluation.seuil) || 80;
         if (type === 'savoir-faire') return '100% de réussite';
         if (type === 'competences') return 'Critères de réussite';
+        if (type === 'bonus') return 'Critères de réussite';
         return seuil + '% de bonnes réponses';
     },
 
@@ -938,32 +939,6 @@ const EleveEvaluations = {
         window.location.href = 'evaluation.html?id=' + evaluationId + '&mode=sujet';
     },
 
-    /**
-     * L'élève signale qu'il a rendu sa copie
-     */
-    async signalerRendu(evaluationId) {
-        if (!confirm('Confirmer que vous avez rendu votre copie ?')) return;
-
-        try {
-            const result = await this.callAPI('signalerRendu', {
-                evaluation_id: evaluationId,
-                eleve_id: this.currentUserId
-            });
-            if (result.success) {
-                SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
-                await this.loadData();
-                this.categorizeEvaluations();
-                this.render();
-                this.updateTabCounts();
-                this._showToast('Rendu signal\u00e9 !');
-            } else {
-                alert(result.error || 'Erreur');
-            }
-        } catch (error) {
-            console.error('Erreur signaler rendu:', error);
-            alert('Erreur r\u00e9seau');
-        }
-    },
 
     _renderSection(title, evals, cssClass) {
         return `
@@ -1076,12 +1051,11 @@ const EleveEvaluations = {
             if (remarque) {
                 statusExtra += `<div class="card-bonus-remarque">${escapeHtml(remarque)}</div>`;
             }
-            // Boutons : consulter sujet (si autorisé) + "J'ai rendu"
+            // Bouton consulter sujet (si autorisé)
             const sujetVisible = resultat && (resultat.sujet_visible === true || resultat.sujet_visible === 'true' || resultat.sujet_visible === 'TRUE');
             if (sujetVisible) {
                 actionHtml = `<a href="evaluation.html?id=${evaluation.id}&mode=sujet" class="card-btn type-bonus" onclick="event.stopPropagation()">Consulter le sujet</a>`;
             }
-            actionHtml += `<button class="card-btn btn-rendu" onclick="event.stopPropagation(); EleveEvaluations.signalerRendu('${evaluation.id}')">J'ai rendu ma copie</button>`;
         } else if (cardStatus === 'rendu') {
             statusExtra = '<span class="bonus-status en-attente" style="align-self:flex-start">En attente de correction</span>';
         } else if (cardStatus === 'available' && isTC && sujetAvance) {
