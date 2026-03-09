@@ -131,7 +131,8 @@ const EleveEvaluation = {
 
     /**
      * Affiche le sujet d'une évaluation TC ou bonus en lecture seule.
-     * Pas de timer, pas de soumission — juste le document à consulter.
+     * TC : layout 2 colonnes (sujet + critères), style entraînement compétences.
+     * Bonus : layout simple (header + document).
      */
     async _initSujetMode(evalId) {
         const eleveId = this._getCurrentUserId();
@@ -145,39 +146,79 @@ const EleveEvaluation = {
 
         const data = response.data;
         const exercice = data.exercice || {};
-
-        // Construire le contenu du sujet
-        const title = data.titre || 'Sujet';
         const type = String(data.type || '').trim();
-        const typeLabel = type === 'competences' ? 'Tâche complexe' : 'Bonus';
-        const typeColor = type === 'competences' ? '#8b5cf6' : '#eab308';
 
-        // Document : soit un lien (iframe Google Doc), soit du HTML
-        let documentHtml = '';
-        const docContenu = exercice.document_contenu || '';
-        if (docContenu) {
-            // Tester si c'est une URL (lien Google Doc) ou du contenu HTML/JSON
-            if (docContenu.startsWith('http')) {
-                const embedUrl = docContenu.includes('/edit') ? docContenu.replace('/edit', '/preview') : docContenu;
-                documentHtml = `<iframe src="${escapeHtml(embedUrl)}" class="sujet-iframe"></iframe>`;
-            } else {
-                // Essayer de parser comme JSON (blocs du block editor)
-                try {
-                    const blocks = JSON.parse(docContenu);
-                    if (Array.isArray(blocks)) {
-                        documentHtml = this._renderBlocksReadOnly(blocks);
-                    } else {
-                        documentHtml = `<div class="sujet-html-content">${docContenu}</div>`;
-                    }
-                } catch (e) {
-                    documentHtml = `<div class="sujet-html-content">${docContenu}</div>`;
-                }
-            }
+        // Document HTML
+        const documentHtml = this._buildDocumentHtml(exercice.document_contenu || '');
+
+        if (type === 'competences') {
+            await this._renderTCSujetMode(data, exercice, documentHtml);
         } else {
-            documentHtml = '<p class="sujet-empty">Aucun document disponible pour cette évaluation.</p>';
+            this._renderBonusSujetMode(data, exercice, documentHtml);
         }
 
-        // Consignes si disponibles
+        this.showContent();
+    },
+
+    /**
+     * Rendu TC : layout 2 colonnes comme les entraînements compétences.
+     * Barre de titre + tag "Évaluation de compétence", sujet à gauche, critères à droite.
+     */
+    async _renderTCSujetMode(data, exercice, documentHtml) {
+        const title = data.titre || 'Sujet';
+
+        // Charger les critères de réussite des compétences liées
+        let criteresHtml = '';
+        try {
+            const competenceIds = this._parseCompetenceIds(exercice);
+            if (competenceIds.length > 0) {
+                criteresHtml = await this._loadCriteresHtml(competenceIds);
+            }
+        } catch (e) {
+            console.warn('Impossible de charger les critères:', e);
+        }
+
+        // Consignes
+        const consigne = exercice.consigne || data.criteres || '';
+        const consigneHtml = consigne
+            ? `<div class="sujet-consigne">${escapeHtml(consigne)}</div>`
+            : '';
+
+        const container = document.getElementById('exerciseContainer');
+        container.innerHTML = `
+            <div class="sujet-view sujet-view-tc">
+                <div class="sujet-topbar">
+                    <button class="sujet-back-btn" onclick="window.history.back()">←</button>
+                    <div class="sujet-topbar-info">
+                        <h1>${escapeHtml(title)}</h1>
+                        <div class="sujet-topbar-meta">
+                            <span class="sujet-mode-badge tc">Évaluation de compétence</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sujet-layout">
+                    <div class="sujet-document-section">
+                        <div class="sujet-section-header">📄 Sujet</div>
+                        ${consigneHtml}
+                        <div class="sujet-document-content">
+                            ${documentHtml}
+                        </div>
+                    </div>
+                    <div class="sujet-sidebar-section">
+                        ${criteresHtml || '<div class="sujet-no-criteres">Aucun critère défini</div>'}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Rendu bonus : layout simple header + document (inchangé).
+     */
+    _renderBonusSujetMode(data, exercice, documentHtml) {
+        const title = data.titre || 'Sujet';
+        const typeColor = '#eab308';
+
         const consigne = exercice.consigne || data.criteres || '';
         const consigneHtml = consigne
             ? `<div class="sujet-consigne"><strong>Consignes :</strong> ${escapeHtml(consigne)}</div>`
@@ -188,7 +229,7 @@ const EleveEvaluation = {
             <div class="sujet-view">
                 <div class="sujet-header" style="border-left: 4px solid ${typeColor}">
                     <div class="sujet-header-top">
-                        <span class="sujet-type-badge" style="background:${typeColor}; color: white">${escapeHtml(typeLabel)}</span>
+                        <span class="sujet-type-badge" style="background:${typeColor}; color: white">Bonus</span>
                         <button class="btn btn-secondary btn-sm" onclick="window.history.back()">← Retour</button>
                     </div>
                     <h1 class="sujet-title">${escapeHtml(title)}</h1>
@@ -199,8 +240,90 @@ const EleveEvaluation = {
                 </div>
             </div>
         `;
+    },
 
-        this.showContent();
+    /**
+     * Construit le HTML du document (URL iframe, blocs JSON, ou HTML brut).
+     */
+    _buildDocumentHtml(docContenu) {
+        if (!docContenu) {
+            return '<p class="sujet-empty">Aucun document disponible pour cette évaluation.</p>';
+        }
+        if (String(docContenu).startsWith('http')) {
+            const embedUrl = docContenu.includes('/edit') ? docContenu.replace('/edit', '/preview') : docContenu;
+            return `<iframe src="${escapeHtml(embedUrl)}" class="sujet-iframe"></iframe>`;
+        }
+        try {
+            const blocks = JSON.parse(docContenu);
+            if (Array.isArray(blocks)) {
+                return this._renderBlocksReadOnly(blocks);
+            }
+            return `<div class="sujet-html-content">${docContenu}</div>`;
+        } catch (e) {
+            return `<div class="sujet-html-content">${docContenu}</div>`;
+        }
+    },
+
+    /**
+     * Parse les IDs de compétences depuis un exercice TC.
+     */
+    _parseCompetenceIds(exercice) {
+        // competence_ids peut être un JSON array ou competence_id simple
+        let ids = [];
+        const rawIds = exercice.competence_ids || '';
+        if (rawIds) {
+            try {
+                const parsed = JSON.parse(rawIds);
+                ids = Array.isArray(parsed) ? parsed : [parsed];
+            } catch (e) {
+                ids = [rawIds];
+            }
+        }
+        if (ids.length === 0 && exercice.competence_id) {
+            ids = [exercice.competence_id];
+        }
+        return ids.map(id => String(id).trim()).filter(Boolean);
+    },
+
+    /**
+     * Charge les critères de réussite pour les compétences données.
+     * Retourne du HTML groupé par compétence.
+     */
+    async _loadCriteresHtml(competenceIds) {
+        const [refData, criteresData] = await Promise.all([
+            SheetsAPI.fetchAndParse('CompetencesReferentiel'),
+            SheetsAPI.fetchAndParse('CriteresReussite')
+        ]);
+
+        const referentiel = SheetsAPI.parseSheetData(refData);
+        const criteres = SheetsAPI.parseSheetData(criteresData);
+
+        let html = '';
+        for (const compId of competenceIds) {
+            const comp = referentiel.find(c => String(c.id).trim() === compId);
+            const compCriteres = criteres
+                .filter(c => String(c.competence_id).trim() === compId)
+                .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
+
+            if (!comp && compCriteres.length === 0) continue;
+
+            const compName = comp ? (comp.nom || 'Compétence') : 'Compétence';
+            html += `
+                <div class="sujet-criteres-block">
+                    <h4 class="sujet-criteres-title">${escapeHtml(compName)}</h4>
+                    <p class="sujet-criteres-hint">Critères de réussite</p>
+                    <div class="sujet-criteres-list">
+                        ${compCriteres.map(c => `
+                            <div class="sujet-critere-item">
+                                <span class="sujet-critere-check">☐</span>
+                                <span class="sujet-critere-label">${escapeHtml(c.libelle || '')}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        return html;
     },
 
     /**

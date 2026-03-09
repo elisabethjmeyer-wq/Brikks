@@ -228,7 +228,10 @@ function getEvaluationForEleve(data) {
   if (effectiveStatut === 'brouillon') {
     return { success: false, error: 'Cette évaluation n\'est pas encore disponible' };
   }
-  if (effectiveStatut === 'planifiee') {
+  // TC avec sujet_disponible_avance : autoriser l'accès même si planifiée
+  var sujetAvance = String(evaluation.sujet_disponible_avance || '').toLowerCase().trim() === 'true';
+  var isTC = String(evaluation.type || '').trim() === 'competences';
+  if (effectiveStatut === 'planifiee' && !(isTC && sujetAvance)) {
     return { success: false, error: 'Cette évaluation n\'est pas encore ouverte' };
   }
   if (effectiveStatut === 'terminee') {
