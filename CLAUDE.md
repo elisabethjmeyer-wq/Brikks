@@ -591,15 +591,16 @@ Entraînements compétences :
   Entraînement uniquement, pas d'évaluation
 
 Évaluations > Bonus :
-  Bonus compétence  → "Demander" → attendre acceptation → passer en classe → voir correction
-  Bonus ponctuel    → statut visible (en attente / validé / remarque)
-  Bonus suivi       → progression visible (3/5 validations)
+  Bonus compétence  → "Demander" → attendre acceptation prof (date passage OU date butoir) → consulter sujet (lecture seule) → rendre papier/mail → voir correction
+  Bonus ponctuel    → "Demander" → attendre acceptation prof → consulter sujet → rendre papier/mail → voir correction
+  Bonus suivi       → progression visible (3/5 validations), points attribués quand complet
 
 Évaluations > Évaluations :
-  Tâche complexe    → passer en classe → voir correction par compétence
+  Tâche complexe obligatoire → dates ouverture/fermeture → consulter sujet (lecture seule) → rendre papier/mail → voir correction par compétence
+  Tâche complexe bonus       → "Demander" → même flux que bonus compétence → voir correction par compétence
 
 Mes résultats :
-  Section Compétences → validations par compétence (issues des bonus comp + tâches complexes)
+  Section Compétences → validations par compétence (issues des bonus comp + tâches complexes), plafond 3 validations = acquise
   Section Bonus       → points bonus (suivi + ponctuel)
 ```
 
@@ -608,7 +609,7 @@ Mes résultats :
 | Type | Description | Parcours élève | Points |
 |------|-------------|----------------|--------|
 | **Bonus compétence** | Évaluation liée au référentiel de compétences. L'élève demande à la passer, la prof accepte/refuse, l'élève passe en classe, la prof corrige. | Demander → Acceptation → Passage → Correction | Points bonus compétence |
-| **Bonus ponctuel** | Évaluation ponctuelle avec critères libres (pas liés au référentiel). La prof la crée et l'attribue. | Voir statut (en attente / validé / remarque) | Points bonus ponctuel |
+| **Bonus ponctuel** | Évaluation ponctuelle avec critères libres (pas liés au référentiel). La prof la crée, l'élève demande à la passer. | Demander → Acceptation → Consulter sujet → Rendu papier/mail → Correction | Points bonus ponctuel |
 | **Bonus suivi** | Suivi progressif (ex: gestion du matériel). Plusieurs validations dans le temps (ex: 3/5). | Voir progression (3/5 validations) | Points bonus suivi |
 
 ### Phases restantes
@@ -620,42 +621,58 @@ Mes résultats :
 - [x] Évaluations > onglet Bonus : créer les 3 sous-types (compétence, ponctuel, suivi)
 - [x] Backend : colonnes pour bonus/TC (sous_type_comp, sous_type_bonus, banque_tc_id, exercice_tc_id, banque_comp_id, exercice_comp_id, banque_bonus_id, exercice_bonus_id, nb_validations) en migration progressive
 
-**Phase 5 — Élève : affichage bonus + système de demandes**
+**Phase 5 — Backend demandes + Admin gestion des demandes**
 
-> **Contrainte fondamentale (session 27)** : les bonus ne se passent JAMAIS en ligne.
-> L'élève peut consulter le sujet (lecture seule) mais le rendu est papier ou par mail.
-> La saisie du résultat est toujours manuelle par la prof.
-> Le bouton "Commencer" ne doit JAMAIS apparaître pour les bonus.
+> **Contraintes fondamentales (sessions 27-28)** :
+> - Les évals bonus et TC ne se passent JAMAIS en ligne — consultation sujet uniquement
+> - Le rendu est papier ou par mail. Terminologie : "sujet papier" / "sujet numérique"
+> - La saisie du résultat est toujours manuelle par la prof
+> - Le bouton "Commencer" ne doit JAMAIS apparaître pour les bonus/TC
+> - Tous les bonus (compétence + ponctuel) fonctionnent sur demande de l'élève
+> - Les TC peuvent être obligatoires (dates ouverture/fermeture) OU sur demande (bonus)
+> - Plafond : 3 validations par compétence → compétence acquise, l'élève ne peut plus demander dessus
+> - Bonus suivi : points attribués uniquement quand toutes les validations sont atteintes (ex: 5/5)
 
-- [ ] **Backend : table DEMANDES_BONUS** (id, eleve_id, evaluation_id, statut [demande/acceptee/refusee], date_demande, date_reponse, date_passage, mode_rendu [papier/mail], remarque_prof)
-- [ ] **Élève : cartes bonus compétence** — bouton "Demander" → statut demandé → attendre réponse prof → si accepté : voir date + consulter sujet (lecture seule) → résultat saisi par la prof
-- [ ] **Élève : cartes bonus ponctuel** — statut visible (en attente / validé / remarque)
-- [ ] **Élève : cartes bonus suivi** — barre de progression X/Y validations (pas d'exercice)
-- [ ] **Élève : cartes tâche complexe** — passage en classe uniquement, voir correction par compétence
-- [ ] **Admin : bandeau "X demandes"** dans la page Évaluations
-- [ ] **Admin : modal accepter/refuser** une demande de bonus compétence + fixer date (passage en classe OU date butoir de rendu) + choisir mode (papier/mail)
-- [ ] **Notifications** prof ↔ élève (demande envoyée, réponse reçue)
+- [ ] **Backend : table DEMANDES_BONUS** (id, eleve_id, evaluation_id, statut [demandee/acceptee/refusee], date_demande, date_reponse, remarque_prof)
+- [ ] **Backend : API demandes** — `demanderEvaluation`, `repondreDemandeEvaluation` (accepter/refuser + type_date [passage_classe/date_butoir] + date + remarque)
+- [ ] **Backend : API suivi** — `saveValidationSuivi` (ajouter/retirer une validation progressive)
+- [ ] **Admin : bandeau "X demandes"** dans la page Évaluations (réutilise le système cloche existant)
+- [ ] **Admin : modal accepter/refuser** — choix type de date (passage en classe OU date butoir de rendu) + date + remarque optionnelle
+- [ ] **Admin : saisie résultats bonus/TC** — dans le tableau de saisie existant, adapté pour saisie manuelle
+- [ ] **Admin : saisie suivi** — checkboxes progressives dans le tableau de saisie (ex: cocher validation 3/5)
 
-**Phase 6 — Admin : corrections + saisie suivi**
-- [ ] Page Corrections : adapter le wizard pour les types TC et bonus
-- [ ] Évaluations > Saisie : tableau progressif pour bonus suivi (cocher les validations)
-- [ ] Saisie résultats manuelle pour tous les bonus (pas de passage en ligne)
+**Phase 6 — Élève : affichage bonus + TC dans "Mes évaluations"**
 
-**Phase 7 — Élève : résultats**
-- [ ] Section Compétences dans "Mes résultats" : validations par compétence (bonus comp + TC)
-- [ ] Section Bonus : points bonus (suivi + ponctuel)
-- [ ] Intégration dans le calcul de la note de progression
+- [ ] **Élève : cartes bonus compétence** — bouton "Demander" → statut demandé → accepté (date passage ou butoir affichée) → lien "Consulter le sujet" (lecture seule) → corrigé (après saisie prof)
+- [ ] **Élève : cartes bonus ponctuel** — même flux que bonus compétence (Demander → acceptation → consulter sujet → correction)
+- [ ] **Élève : cartes bonus suivi** — barre de progression X/Y validations (pas d'exercice, pas de demande)
+- [ ] **Élève : cartes tâche complexe obligatoire** — dates ouverture/fermeture, consulter sujet, voir correction par compétence après
+- [ ] **Élève : cartes tâche complexe bonus** — même flux demande que bonus compétence, correction par compétence
+- [ ] **Élève : consultation sujet** — vue lecture seule du document (block editor ou lien), sans timer ni soumission
+- [ ] **Élève : plafond 3 validations** — compétence acquise → bonus compétence grisé "Compétence acquise"
 
-### Questions ouvertes pour la prochaine session
+**Phase 7 — Admin : corrections bonus + TC**
+- [ ] Page Corrections : remettre dans la sidebar, charger les copies bonus + TC
+- [ ] Wizard correction **bonus compétence** : block editor + critères de la compétence ciblée + validé/non validé
+- [ ] Wizard correction **bonus ponctuel** : block editor + critères libres de l'évaluation + validé/non validé
+- [ ] Wizard correction **tâche complexe** : block editor + N sections de critères (une par compétence) + validé/non validé par compétence
+- [ ] Notification cloche : compteur copies à corriger inclut bonus + TC
 
-> **À clarifier avec la prof avant de coder la phase 5 :**
+**Phase 8 — Élève : résultats**
+- [ ] Section Compétences dans "Mes résultats" : validations par compétence (issues des bonus comp + TC), N/3, "Acquise" si 3/3
+- [ ] Section Bonus : points bonus (suivi avec progression, ponctuel avec statut)
+- [ ] Intégration dans le calcul de la note de progression (points bonus = hors budget)
 
-1. **Bonus ponctuel : qui initie ?** La prof attribue directement le bonus à l'élève, ou l'élève demande aussi ? (Actuellement documenté comme "la prof la crée et l'attribue" mais à confirmer)
-2. **Mode de rendu** : pour les bonus, le "numérique" = rendu par mail (pas passage en ligne). Faut-il renommer le toggle "papier / mail" au lieu de "papier / numérique" ?
-3. **Date fixée par la prof** : c'est une date de passage en classe OU une date butoir de rendu par mail ? Peut-il y avoir les deux cas selon le bonus ?
-4. **Notifications** : comment notifier la prof d'une demande et l'élève de la réponse ? Bandeau dans la page ? Email ? Badge sur la sidebar ? Système simple de "notifications non lues" ?
-5. **Tâches complexes côté élève** : même logique que les bonus (passage en classe, consultation sujet) ? Ou l'élève peut les passer en ligne ?
-6. **Bonus suivi** : la prof valide dans le tableau de saisie existant ou faut-il un écran dédié avec des checkboxes progressives ?
+### Décisions prises (session 28)
+
+> Questions ouvertes de la session 27 — **toutes résolues** :
+
+1. **Bonus ponctuel : qui initie ?** → La prof crée le bonus, l'élève demande à le passer (même flux que bonus compétence)
+2. **Mode de rendu** → Terminologie : "sujet papier" / "sujet numérique". L'élève ne fait jamais l'évaluation en ligne, il consulte le sujet seulement
+3. **Date fixée par la prof** → Deux options : "date de passage en classe" OU "date butoir de rendu". La prof choisit l'un ou l'autre lors de l'acceptation. L'élève voit l'info sur sa carte
+4. **Notifications** → Réutiliser le système existant (cloche dans sidebar + page corrections)
+5. **Tâches complexes côté élève** → Même logique hors-ligne que les bonus. Consultation sujet, rendu papier/mail, saisie résultats manuelle
+6. **Bonus suivi** → Checkboxes progressives dans le tableau de saisie existant
 
 ---
 
