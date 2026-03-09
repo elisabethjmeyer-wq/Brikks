@@ -383,7 +383,8 @@ const EleveEvaluation = {
     },
 
     /**
-     * Rendu en lecture seule des blocs du block editor (simplifié).
+     * Rendu en lecture seule des blocs du block editor.
+     * Gère : text, image (Drive), document (Google), video (YouTube, Loom, Drive), group.
      */
     _renderBlocksReadOnly(blocks) {
         return blocks.map(block => {
@@ -394,16 +395,18 @@ const EleveEvaluation = {
                 case 'image': {
                     if (!block.url) return '';
                     const imgUrl = this._convertDriveUrl(block.url);
-                    return `<div class="block-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(block.alt || '')}"></div>`;
+                    const legend = block.legende || block.alt || '';
+                    return `<div class="block-image"><img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(legend)}">${legend ? `<p class="block-legende">${escapeHtml(legend)}</p>` : ''}</div>`;
                 }
                 case 'document':
                     if (block.url) {
                         const embedUrl = block.url.includes('/edit') ? block.url.replace('/edit', '/preview') : block.url;
-                        return `<div class="block-document"><iframe src="${escapeHtml(embedUrl)}" class="sujet-iframe"></iframe></div>`;
+                        return `<div class="block-document"><iframe src="${escapeHtml(embedUrl)}" class="sujet-iframe" allowfullscreen></iframe></div>`;
                     }
                     return '';
                 case 'video':
-                    return block.url ? `<div class="block-video"><iframe src="${escapeHtml(block.url)}" allowfullscreen></iframe></div>` : '';
+                    if (!block.url) return '';
+                    return `<div class="block-video">${this._buildVideoEmbed(block.url)}</div>`;
                 case 'group':
                     if (Array.isArray(block.children)) {
                         const ratio = block.ratio || '1-1';
@@ -425,6 +428,29 @@ const EleveEvaluation = {
         const idMatch = url.match(/drive\.google\.com.*[?&]id=([a-zA-Z0-9_-]+)/);
         if (idMatch) return 'https://lh3.googleusercontent.com/d/' + idMatch[1];
         return url;
+    },
+
+    /**
+     * Construit un embed vidéo (YouTube, Loom, Google Drive).
+     */
+    _buildVideoEmbed(url) {
+        // YouTube : watch?v= ou youtu.be/
+        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+        if (ytMatch) {
+            return `<div class="block-video-wrapper"><iframe src="https://www.youtube-nocookie.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen></iframe></div>`;
+        }
+        // Loom : loom.com/share/ → loom.com/embed/
+        const loomMatch = url.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+        if (loomMatch) {
+            return `<div class="block-video-wrapper"><iframe src="https://www.loom.com/embed/${loomMatch[1]}" frameborder="0" allowfullscreen></iframe></div>`;
+        }
+        // Google Drive video
+        const driveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) {
+            return `<div class="block-video-wrapper"><iframe src="https://drive.google.com/file/d/${driveMatch[1]}/preview" frameborder="0" allowfullscreen></iframe></div>`;
+        }
+        // Fallback : lien direct
+        return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="block-video-link">🎬 Voir la vidéo</a>`;
     },
 
     // ========== MODE REVIEW ==========
@@ -583,12 +609,16 @@ const EleveEvaluation = {
 
         let remarqueHtml = '';
         if (hasRemarque) {
-            remarqueHtml = `<div class="tc-review-tab-content${hasTabs ? ' active' : ''}" id="tcTabRemarque">${this._buildCorrectionContent(correctionProf)}</div>`;
+            remarqueHtml = `<div class="tc-review-tab-content${hasTabs ? ' active' : ''}" id="tcTabRemarque">
+                <div class="sujet-document-content">${this._buildCorrectionContent(correctionProf)}</div>
+            </div>`;
         }
 
         let corrigeHtml = '';
         if (hasCorrige) {
-            corrigeHtml = `<div class="tc-review-tab-content${!hasRemarque ? ' active' : ''}" id="tcTabCorrige">${this._buildCorrectionContent(correctionType)}</div>`;
+            corrigeHtml = `<div class="tc-review-tab-content${!hasRemarque ? ' active' : ''}" id="tcTabCorrige">
+                <div class="sujet-document-content">${this._buildCorrectionContent(correctionType)}</div>
+            </div>`;
         }
 
         const leftEmpty = !hasRemarque && !hasCorrige;
@@ -596,73 +626,117 @@ const EleveEvaluation = {
             ? '<div class="tc-review-empty">Pas de remarque ni de correction disponible.</div>'
             : `${tabsHtml}${remarqueHtml}${corrigeHtml}`;
 
-        // --- Colonne droite : critères par compétence ---
-        let criteresHtml = '';
+        // --- Colonne droite : compétences groupées par matière, critères collapsibles ---
+        let sidebarContent = '';
         if (!isBrouillon && compIds.length > 0) {
             const totalComps = compIds.length;
             let nbCompsValidees = 0;
 
+            // Regrouper par matière
+            const matiereOrder = ['FR', 'HG-EMC', 'Les deux', 'Transversal'];
+            const matiereLabels = { 'FR': 'Français', 'HG-EMC': 'HG-EMC', 'Les deux': 'Transversal', 'Transversal': 'Transversal' };
+            const matiereColors = { 'FR': '#6366f1', 'HG-EMC': '#ea580c', 'Les deux': '#6b7280', 'Transversal': '#6b7280' };
+            const matiereBgs = { 'FR': '#eef2ff', 'HG-EMC': '#fff7ed', 'Les deux': '#f3f4f6', 'Transversal': '#f3f4f6' };
+
+            const compsData = [];
             compIds.forEach(compId => {
                 const comp = competences.find(c => String(c.id) === String(compId));
                 const compCriteres = criteres
                     .filter(c => String(c.competence_id) === String(compId))
                     .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
-
                 if (compCriteres.length === 0) return;
 
                 const allValid = compCriteres.every(c => criteresValides.indexOf(String(c.id)) !== -1);
                 if (allValid) nbCompsValidees++;
 
-                criteresHtml += `
-                    <div class="tc-review-comp-section ${allValid ? 'comp-validated' : ''}">
-                        <div class="tc-review-comp-header-row">
-                            <h4 class="tc-review-comp-title">🎯 ${escapeHtml(comp ? comp.nom : 'Compétence')}</h4>
-                            <span class="tc-review-comp-badge ${allValid ? 'validated' : 'not-validated'}">${allValid ? '✅ Validée' : '❌ Non validée'}</span>
-                        </div>
-                        <div class="tc-review-criteres-list">
-                            ${compCriteres.map(c => {
-                                const isValid = criteresValides.indexOf(String(c.id)) !== -1;
-                                return `<div class="tc-review-critere ${isValid ? 'valid' : 'invalid'}">
-                                    <span class="tc-review-critere-icon">${isValid ? '✅' : '❌'}</span>
-                                    <span>${escapeHtml(c.libelle)}</span>
-                                </div>`;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
+                compsData.push({
+                    name: comp ? (comp.nom || 'Compétence') : 'Compétence',
+                    matiere: (comp && comp.matiere) || 'Transversal',
+                    allValid,
+                    criteres: compCriteres
+                });
             });
 
-            if (totalComps > 0) {
-                criteresHtml = `
-                    <h3 class="tc-review-criteres-title">Compétences évaluées</h3>
-                    <p class="tc-review-criteres-summary">${nbCompsValidees} / ${totalComps} compétence${totalComps > 1 ? 's' : ''} validée${nbCompsValidees > 1 ? 's' : ''}</p>
-                    ${criteresHtml}
-                `;
-            }
+            // Grouper par matière
+            const groups = {};
+            compsData.forEach(cd => {
+                if (!groups[cd.matiere]) groups[cd.matiere] = [];
+                groups[cd.matiere].push(cd);
+            });
+            const sortedKeys = Object.keys(groups).sort((a, b) => {
+                const ia = matiereOrder.indexOf(a) === -1 ? 99 : matiereOrder.indexOf(a);
+                const ib = matiereOrder.indexOf(b) === -1 ? 99 : matiereOrder.indexOf(b);
+                return ia - ib;
+            });
+
+            const showBanners = sortedKeys.length > 1;
+
+            let compsHtml = '';
+            sortedKeys.forEach(mat => {
+                const label = matiereLabels[mat] || mat;
+                const color = matiereColors[mat] || '#6b7280';
+
+                if (showBanners) {
+                    const bg = matiereBgs[mat] || '#f3f4f6';
+                    compsHtml += `<div class="sujet-matiere-pill" style="background: ${bg}; color: ${color};">${escapeHtml(label)}</div>`;
+                }
+
+                groups[mat].forEach(cd => {
+                    const nbCriteres = cd.criteres.length;
+                    const nbValides = cd.criteres.filter(c => criteresValides.indexOf(String(c.id)) !== -1).length;
+
+                    compsHtml += `
+                        <div class="sujet-criteres-block" style="border-left: 3px solid ${cd.allValid ? '#10b981' : color};">
+                            <button type="button" class="sujet-comp-toggle" onclick="EleveEvaluation._toggleCriteres(this)">
+                                <span class="sujet-comp-arrow">▸</span>
+                                <h4 class="sujet-criteres-title">${escapeHtml(cd.name)}</h4>
+                                <span class="tc-review-comp-badge ${cd.allValid ? 'validated' : 'not-validated'}">${cd.allValid ? '✅ Validée' : `${nbValides}/${nbCriteres}`}</span>
+                            </button>
+                            <div class="sujet-criteres-list" style="display: none;">
+                                ${cd.criteres.map(c => {
+                                    const isValid = criteresValides.indexOf(String(c.id)) !== -1;
+                                    return `<div class="sujet-critere-item" style="background: ${isValid ? '#f0fdf4' : '#fef2f2'};">
+                                        <span class="sujet-critere-check" style="color: ${isValid ? '#10b981' : '#ef4444'};">${isValid ? '✅' : '❌'}</span>
+                                        <span class="sujet-critere-label">${escapeHtml(c.libelle)}</span>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            });
+
+            sidebarContent = `
+                <div class="sujet-sidebar-title">Compétences évaluées</div>
+                <p class="tc-review-criteres-summary">${nbCompsValidees} / ${totalComps} compétence${totalComps > 1 ? 's' : ''} validée${nbCompsValidees > 1 ? 's' : ''}</p>
+                ${compsHtml}
+            `;
         } else if (isBrouillon) {
-            criteresHtml = '<div class="tc-review-empty">La correction n\'est pas encore disponible.</div>';
+            sidebarContent = '<div class="tc-review-empty">La correction n\'est pas encore disponible.</div>';
         }
 
-        // --- Assemblage ---
+        // --- Assemblage : layout pleine largeur comme le sujet ---
         resultContainer.innerHTML = `
-            <div class="tc-review-container">
-                <div class="tc-review-header">
-                    <a href="evaluations.html" class="tc-review-back">← Mes évaluations</a>
-                    <h2 class="tc-review-title">${escapeHtml(titre)}</h2>
-                    <div class="tc-review-badges">
-                        <span class="tc-review-badge type-competences">Évaluation de compétence</span>
-                        ${matiereLabel ? `<span class="tc-review-badge matiere">${escapeHtml(matiereLabel)}</span>` : ''}
+            <div class="sujet-view sujet-view-tc">
+                <div class="sujet-topbar">
+                    <button class="sujet-back-btn" onclick="window.location.href='evaluations.html'">←</button>
+                    <div class="sujet-topbar-info">
+                        <h1>${escapeHtml(titre)}</h1>
+                        <div class="sujet-topbar-meta">
+                            <span class="sujet-mode-badge tc">Évaluation de compétence</span>
+                            ${matiereLabel ? `<span class="sujet-mode-badge matiere">${escapeHtml(matiereLabel)}</span>` : ''}
+                        </div>
                     </div>
                 </div>
 
                 ${pointsBanner}
 
-                <div class="tc-review-columns">
-                    <div class="tc-review-left">
+                <div class="sujet-layout">
+                    <div class="sujet-document-section">
                         ${leftContent}
                     </div>
-                    <div class="tc-review-right">
-                        ${criteresHtml}
+                    <div class="sujet-sidebar-section">
+                        ${sidebarContent}
                     </div>
                 </div>
             </div>
@@ -675,61 +749,31 @@ const EleveEvaluation = {
     _buildCorrectionContent(content) {
         if (!content) return '';
 
-        // URL ?
+        // URL directe ?
         if (typeof content === 'string' && content.indexOf('http') === 0) {
-            const isLoom = content.indexOf('loom.com') !== -1;
-            const embedUrl = content.includes('/edit') ? content.replace('/edit', '/preview') : content;
-            if (isLoom) {
-                return `<div style="position:relative;padding-bottom:56.25%;height:0;"><iframe src="${embedUrl}" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
+            // Vidéo Loom, YouTube, Drive → embed
+            const ytMatch = content.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+            const loomMatch = content.match(/loom\.com\/share\/([a-zA-Z0-9]+)/);
+            const driveVidMatch = content.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+
+            if (ytMatch || loomMatch || driveVidMatch) {
+                return `<div class="block-video">${this._buildVideoEmbed(content)}</div>`;
             }
-            return `<div class="tc-review-doc-embed"><iframe src="${embedUrl}" class="tc-review-iframe" allowfullscreen></iframe></div>`;
+            // Document Google Docs
+            const embedUrl = content.includes('/edit') ? content.replace('/edit', '/preview') : content;
+            return `<div class="block-document"><iframe src="${escapeHtml(embedUrl)}" class="sujet-iframe" allowfullscreen></iframe></div>`;
         }
 
         // Blocs JSON ?
         try {
             const blocks = JSON.parse(content);
             if (Array.isArray(blocks)) {
-                return this._renderBlocks(blocks);
+                return this._renderBlocksReadOnly(blocks);
             }
         } catch (_e) { /* pas du JSON */ }
 
         // HTML brut
-        return `<div class="tc-review-richtext">${content}</div>`;
-    },
-
-    /**
-     * Rendu des blocs (text, image, video, document, group).
-     */
-    _renderBlocks(blocks) {
-        return blocks.map(block => {
-            if (!block || !block.type) return '';
-            switch (block.type) {
-                case 'text':
-                    return `<div class="preview-block preview-text">${block.content || ''}</div>`;
-                case 'image':
-                    return `<div class="preview-block preview-image"><img src="${escapeHtml(block.url || '')}" alt="${escapeHtml(block.legende || '')}" style="max-width:100%;border-radius:8px;"><p class="preview-legende">${escapeHtml(block.legende || '')}</p></div>`;
-                case 'video': {
-                    const vUrl = block.url || '';
-                    const embedUrl = vUrl.includes('youtube.com/watch') ? vUrl.replace('watch?v=', 'embed/') : vUrl;
-                    return `<div class="preview-block preview-video"><div style="position:relative;padding-bottom:56.25%;height:0;"><iframe src="${embedUrl}" frameborder="0" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div></div>`;
-                }
-                case 'document': {
-                    const dUrl = block.url || '';
-                    const docEmbed = dUrl.includes('/edit') ? dUrl.replace('/edit', '/preview') : dUrl;
-                    return `<div class="preview-block preview-document"><iframe src="${docEmbed}" style="width:100%;height:400px;border:1px solid #e5e7eb;border-radius:8px;"></iframe></div>`;
-                }
-                case 'group': {
-                    const children = Array.isArray(block.children) ? block.children : [];
-                    const ratio = block.ratio || '1:1';
-                    return `<div class="preview-block preview-group" style="display:flex;gap:16px;">${children.map((child, i) => {
-                        const flex = ratio.split(':')[i] || '1';
-                        return `<div style="flex:${flex}">${this._renderBlocks([child])}</div>`;
-                    }).join('')}</div>`;
-                }
-                default:
-                    return '';
-            }
-        }).join('');
+        return `<div class="block-text">${content}</div>`;
     },
 
     /**
