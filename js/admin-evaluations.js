@@ -3971,6 +3971,8 @@ const AdminEvaluations = {
         document.getElementById('saveReponseBtn').disabled = true;
         document.getElementById('reponseRemarque').value = '';
         document.getElementById('reponseDate').value = '';
+        const timeInput = document.getElementById('reponseTime');
+        if (timeInput) timeInput.value = '';
         this._reponseDecision = null;
 
         // Info about the demande
@@ -4023,7 +4025,10 @@ const AdminEvaluations = {
         const evaluationId = document.getElementById('reponseEvaluationId').value;
         const eleveId = document.getElementById('reponseEleveId').value;
         const typeDate = document.getElementById('reponseTypeDate').value;
-        const dateRendu = document.getElementById('reponseDate').value;
+        const dateOnly = document.getElementById('reponseDate').value;
+        const timeValue = (document.getElementById('reponseTime') || {}).value || '';
+        // Combiner date + heure : "2026-03-10" ou "2026-03-10T14:30" si heure précisée
+        const dateRendu = dateOnly && timeValue ? `${dateOnly}T${timeValue}` : dateOnly;
         const remarque = document.getElementById('reponseRemarque').value;
         const sujetVisible = document.getElementById('reponseSujetVisible')?.checked || false;
 
