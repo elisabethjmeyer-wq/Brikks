@@ -954,7 +954,7 @@ const AdminEvaluations = {
                         <label>Titre <span class="req">*</span></label>
                         <input type="text" class="form-input" id="evalTitre" value="${escapeHtml(d.titre || '')}" placeholder="Ex: Evaluation chapitre 1">
                     </div>
-                    ${type === 'bonus' ? `
+                    ${(type === 'bonus' || type === 'competences') ? `
                     <div class="form-row">
                         <div class="form-group" id="evalMatiereGroup">
                             <label>Matière <span class="req">*</span></label>
@@ -963,6 +963,7 @@ const AdminEvaluations = {
                                 <option value="HG-EMC" ${d.matiere === 'HG-EMC' ? 'selected' : ''}>🌍 HG-EMC</option>
                                 <option value="Les deux" ${d.matiere === 'Les deux' ? 'selected' : ''}>🔗 Les deux</option>
                             </select>
+                            ${type === 'competences' ? '<div class="form-help">Détermine dans quel onglet l\'évaluation apparaît</div>' : ''}
                         </div>
                         <div class="form-group"></div>
                     </div>
@@ -1347,7 +1348,11 @@ const AdminEvaluations = {
         const sujetAvance = document.getElementById('evalSujetAvance');
         if (sujetAvance) this.wizardData.sujet_disponible_avance = sujetAvance.checked;
 
-        // Les dates sont gérées via le dropdown statut, pas le wizard.
+        const dateOuv = document.getElementById('evalDateOuverture');
+        if (dateOuv) this.wizardData.date_ouverture = dateOuv.value || '';
+
+        const dateFerm = document.getElementById('evalDateFermeture');
+        if (dateFerm) this.wizardData.date_fermeture = dateFerm.value || '';
     },
 
     _renderDefaultFields() {
@@ -1356,6 +1361,18 @@ const AdminEvaluations = {
 
     _renderCompFields(d) {
         return `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date d'ouverture</label>
+                    <input type="date" class="form-input" id="evalDateOuverture" value="${d.date_ouverture ? d.date_ouverture.split('T')[0] : ''}">
+                    <div class="form-help">Date à partir de laquelle l'évaluation est visible</div>
+                </div>
+                <div class="form-group">
+                    <label>Date de fermeture</label>
+                    <input type="date" class="form-input" id="evalDateFermeture" value="${d.date_fermeture ? d.date_fermeture.split('T')[0] : ''}">
+                    <div class="form-help">Date après laquelle l'évaluation est terminée</div>
+                </div>
+            </div>
             <div class="form-row">
                 <div class="form-group">
                     <label class="toggle-label">
