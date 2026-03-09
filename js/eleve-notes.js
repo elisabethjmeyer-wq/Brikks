@@ -198,19 +198,71 @@ const EleveResultats = {
     _calculatePoints(matiere, semestre) {
         const cats = { connaissances: 0, 'savoir-faire': 0, competences: 0, bonus: 0 };
         const maxCats = { connaissances: 0, 'savoir-faire': 0, competences: 0, bonus: 0 };
-        const evals = this._getEvalsForMatiere(matiere, semestre);
-        evals.forEach(ev => {
+
+        // Toutes les évals du semestre
+        const semestreEvals = this.evaluations.filter(ev => {
+            return this._getSemestreForEval(ev) === String(semestre);
+        });
+
+        semestreEvals.forEach(ev => {
             const cat = ev.categorie || ev.type || 'connaissances';
             if (maxCats[cat] === undefined) return;
-            maxCats[cat] += parseFloat(ev.briques) || 2;
+
             const r = this.resultats.find(res =>
                 String(res.evaluation_id).trim() === String(ev.id).trim()
             );
-            if (r) cats[cat] += parseFloat(r.validations) || 0;
+
+            // Budget max : ventiler par compétence si disponible
+            const evalPpc = this._parsePointsParCompetence(ev.points_par_competence);
+            if (evalPpc && Object.keys(evalPpc).length > 0) {
+                for (const compId in evalPpc) {
+                    const compMat = this._getCompetenceMatiere(compId);
+                    if (compMat === matiere || compMat === 'Transversal') {
+                        maxCats[cat] += parseFloat(evalPpc[compId]) || 0;
+                    }
+                }
+            } else {
+                const m = ev.matiere || '';
+                if (m === matiere || m === 'Les deux') {
+                    maxCats[cat] += parseFloat(ev.briques) || 2;
+                }
+            }
+
+            // Points gagnés : ventiler par compétence si disponible
+            if (r) {
+                const resPpc = this._parsePointsParCompetence(r.points_par_competence);
+                if (resPpc && Object.keys(resPpc).length > 0) {
+                    for (const compId in resPpc) {
+                        const compMat = this._getCompetenceMatiere(compId);
+                        if (compMat === matiere || compMat === 'Transversal') {
+                            cats[cat] += parseFloat(resPpc[compId]) || 0;
+                        }
+                    }
+                } else {
+                    const m = ev.matiere || '';
+                    if (m === matiere || m === 'Les deux') {
+                        cats[cat] += parseFloat(r.validations) || 0;
+                    }
+                }
+            }
         });
+
         const total = cats.connaissances + cats['savoir-faire'] + cats.competences + cats.bonus;
         const totalMax = maxCats.connaissances + maxCats['savoir-faire'] + maxCats.competences + maxCats.bonus;
         return { cats, maxCats, total, totalMax };
+    },
+
+    _parsePointsParCompetence(raw) {
+        if (!raw) return null;
+        try {
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : null;
+        } catch (_e) { return null; }
+    },
+
+    _getCompetenceMatiere(compId) {
+        const comp = (this.competencesRef || []).find(c => String(c.id) === String(compId));
+        return comp ? (comp.matiere || 'Transversal') : 'Transversal';
     },
 
     _calculateProgression(matiere, semestre) {
@@ -339,7 +391,7 @@ const EleveResultats = {
     },
 
     // ========== COMPETENCES DATA ==========
-    _getCompetencesData(matiere) {
+    _getCompetencesData(_matiere) {
         const visibleComps = this.competencesRef.filter(c =>
             c.visible !== false && c.visible !== 'false' && c.visible !== 'FALSE'
         );
@@ -380,8 +432,10 @@ const EleveResultats = {
             this.evaluations.forEach(ev => {
                 const evType = String(ev.type || '').trim();
                 const sousTypeBonus = String(ev.sous_type_bonus || '').trim();
-                const evMatiere = ev.matiere || '';
-                if (evMatiere !== matiere && evMatiere !== 'Les deux') return;
+                // Note : on ne filtre plus par matière de l'évaluation ici.
+                // L'évaluation cible des compétences spécifiques (competence_ids),
+                // donc on vérifie si la compétence courante est ciblée,
+                // quelle que soit la matière de l'évaluation.
 
                 // Check if this evaluation targets this competence
                 let targetsComp = false;

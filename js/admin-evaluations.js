@@ -972,9 +972,10 @@ const AdminEvaluations = {
                         <select id="evalCategorie"><option value="" selected></option></select>
                     </div>`}
                     <div class="form-row">
-                        <div class="form-group">
+                        <div class="form-group" ${(type === 'competences' || (type === 'bonus' && d.sous_type_bonus === 'competence')) ? 'style="display:none"' : ''}>
                             <label>Points mis en jeu <span class="req">*</span></label>
                             <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="0.25" max="50" step="0.25">
+                            ${(type === 'competences' || (type === 'bonus' && d.sous_type_bonus === 'competence')) ? '<div class="form-help">Calculé automatiquement depuis les points par compétence</div>' : ''}
                         </div>
                         <div class="form-group" ${type === 'competences' ? 'style="display:none"' : ''}>
                             <label>Mode de passation</label>
@@ -1514,6 +1515,14 @@ const AdminEvaluations = {
             } catch (_e) { /* ignore */ }
         }
 
+        // Lire les points par compétence existants
+        let ppc = {};
+        if (d.points_par_competence) {
+            try {
+                ppc = typeof d.points_par_competence === 'string' ? JSON.parse(d.points_par_competence) : d.points_par_competence;
+            } catch (_e) { /* ignore */ }
+        }
+
         const comps = (this.competencesReferentiel || []).slice().sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
         const groups = {};
         comps.forEach(c => {
@@ -1548,10 +1557,19 @@ const AdminEvaluations = {
                 <div class="cw-comp-group-items"${hasSelection ? '' : ' style="display:none;"'}>`;
             items.forEach(c => {
                 const checked = selectedIds.indexOf(String(c.id)) !== -1 ? ' checked' : '';
-                groupsHtml += `<label class="cw-comp-checkbox-item" data-comp-name="${escapeHtml((c.nom || '').toLowerCase())}">
-                    <input type="checkbox" value="${c.id}"${checked}>
-                    <span class="cw-comp-checkbox-label">${escapeHtml(c.nom)}</span>
-                </label>`;
+                const pts = ppc[String(c.id)] !== undefined ? ppc[String(c.id)] : 1;
+                const isSelected = selectedIds.indexOf(String(c.id)) !== -1;
+                groupsHtml += `<div class="cw-comp-checkbox-item" data-comp-name="${escapeHtml((c.nom || '').toLowerCase())}">
+                    <label class="cw-comp-checkbox-row">
+                        <input type="checkbox" value="${c.id}"${checked} onchange="AdminEvaluations._onCompCheckChange(this)">
+                        <span class="cw-comp-checkbox-label">${escapeHtml(c.nom)}</span>
+                        <span class="cw-comp-matiere-tag" style="background: ${color}20; color: ${color}; border: 1px solid ${color}40; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; white-space: nowrap;">${mat}</span>
+                    </label>
+                    <div class="cw-comp-points-input" style="${isSelected ? '' : 'display:none;'}">
+                        <input type="number" class="form-input cw-comp-pts" data-comp-id="${c.id}" value="${pts}" min="0.25" max="20" step="0.25" onchange="AdminEvaluations._updateCompPointsTotal()" style="width: 70px; padding: 4px 8px; font-size: 0.85rem;">
+                        <span style="font-size: 0.8rem; color: var(--gray-500);">pt${pts > 1 ? 's' : ''}</span>
+                    </div>
+                </div>`;
             });
             groupsHtml += '</div></div>';
         });
@@ -1561,11 +1579,70 @@ const AdminEvaluations = {
         }
 
         return `<div class="eval-wizard-step-content">
-            <div class="step-header"><h3>Compétences évaluées</h3><p>Sélectionnez les compétences mobilisées par cette évaluation</p></div>
+            <div class="step-header"><h3>Compétences évaluées</h3><p>Sélectionnez les compétences et définissez les points mis en jeu pour chacune</p></div>
             <div class="cw-comp-search-bar"><input type="text" class="form-input" id="evalCompSearch" placeholder="Rechercher une compétence..."></div>
             <div class="cw-comp-counter" id="evalCompCounter">${selectedIds.length} compétence${selectedIds.length > 1 ? 's' : ''} sélectionnée${selectedIds.length > 1 ? 's' : ''}</div>
             <div class="cw-comp-list" id="evalCompetencesCheckboxes">${groupsHtml}</div>
+            <div class="cw-comp-points-total" id="evalCompPointsTotal" style="margin-top: 12px; padding: 10px 16px; background: var(--gray-50, #f9fafb); border-radius: 8px; font-weight: 600; font-size: 0.9rem;"></div>
         </div>`;
+    },
+
+    _onCompCheckChange(checkbox) {
+        const item = checkbox.closest('.cw-comp-checkbox-item');
+        if (!item) return;
+        const ptsDiv = item.querySelector('.cw-comp-points-input');
+        if (ptsDiv) ptsDiv.style.display = checkbox.checked ? '' : 'none';
+        // Update counters and total
+        const container = document.getElementById('evalCompetencesCheckboxes');
+        if (container) {
+            const n = container.querySelectorAll('input[type="checkbox"]:checked').length;
+            const counter = document.getElementById('evalCompCounter');
+            if (counter) {
+                counter.textContent = `${n} compétence${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''}`;
+                counter.style.color = n > 0 ? 'var(--accent-green, #10b981)' : 'var(--gray-400)';
+            }
+        }
+        this._updateCompGroupCounters();
+        this._updateCompPointsTotal();
+    },
+
+    _updateCompPointsTotal() {
+        const container = document.getElementById('evalCompetencesCheckboxes');
+        const totalEl = document.getElementById('evalCompPointsTotal');
+        if (!container || !totalEl) return;
+
+        const matiereLabels = { 'FR': 'Français', 'HG-EMC': 'HG-EMC', 'Transversal': 'Transversal' };
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        const byMatiere = {};
+        let total = 0;
+
+        container.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+            const compId = cb.value;
+            const item = cb.closest('.cw-comp-checkbox-item');
+            const ptsInput = item ? item.querySelector('.cw-comp-pts') : null;
+            const pts = ptsInput ? (parseFloat(ptsInput.value) || 0) : 1;
+            total += pts;
+
+            // Trouver la matière de la compétence
+            const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
+            const mat = comp ? (comp.matiere || 'Transversal') : 'Transversal';
+            byMatiere[mat] = (byMatiere[mat] || 0) + pts;
+        });
+
+        if (total === 0) {
+            totalEl.innerHTML = '';
+            return;
+        }
+
+        let detailParts = [];
+        ['FR', 'HG-EMC', 'Transversal'].forEach(mat => {
+            if (byMatiere[mat]) {
+                detailParts.push(`<span style="color: ${matiereColors[mat]};">${byMatiere[mat]} pt${byMatiere[mat] > 1 ? 's' : ''} ${matiereLabels[mat]}</span>`);
+            }
+        });
+
+        totalEl.innerHTML = `Total : ${total} pt${total > 1 ? 's' : ''} mis en jeu` +
+            (detailParts.length > 1 ? ` <span style="color: var(--gray-400); font-weight: 400;">(${detailParts.join(' · ')})</span>` : '');
     },
 
     _toggleCompGroup(btn) {
@@ -1609,18 +1686,8 @@ const AdminEvaluations = {
                 });
             });
         }
-        const container = document.getElementById('evalCompetencesCheckboxes');
-        if (container) {
-            container.addEventListener('change', () => {
-                const n = container.querySelectorAll('input[type="checkbox"]:checked').length;
-                const counter = document.getElementById('evalCompCounter');
-                if (counter) {
-                    counter.textContent = `${n} compétence${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''}`;
-                    counter.style.color = n > 0 ? 'var(--accent-green, #10b981)' : 'var(--gray-400)';
-                }
-                this._updateCompGroupCounters();
-            });
-        }
+        // Calculer le total initial
+        this._updateCompPointsTotal();
     },
 
     // --- ÉTAPE COMPÉTENCE UNIQUE (bonus compétence : sélection d'une seule) ---
@@ -1673,10 +1740,25 @@ const AdminEvaluations = {
             groupsHtml += '</div>';
         });
 
+        // Lire les points existants
+        let existingPts = 1;
+        if (d.points_par_competence) {
+            try {
+                const ppc = typeof d.points_par_competence === 'string' ? JSON.parse(d.points_par_competence) : d.points_par_competence;
+                const vals = Object.values(ppc);
+                if (vals.length > 0) existingPts = parseFloat(vals[0]) || 1;
+            } catch (_e) { /* ignore */ }
+        }
+
         return `<div class="eval-wizard-step-content">
             <div class="step-header"><h3>Compétence ciblée</h3><p>Sélectionnez la compétence évaluée par ce bonus</p></div>
             <div class="cw-comp-search-bar"><input type="text" class="form-input" id="evalCompSearch" placeholder="Rechercher une compétence..."></div>
             <div class="cw-comp-list" id="evalCompetencesRadios">${groupsHtml}</div>
+            <div style="margin-top: 12px; padding: 10px 16px; background: var(--gray-50, #f9fafb); border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+                <label style="font-weight: 600; font-size: 0.9rem;">Points mis en jeu :</label>
+                <input type="number" class="form-input" id="evalBonusCompPts" value="${existingPts}" min="0.25" max="20" step="0.25" style="width: 70px; padding: 4px 8px;">
+                <span style="font-size: 0.85rem; color: var(--gray-500);">pt${existingPts > 1 ? 's' : ''}</span>
+            </div>
         </div>`;
     },
 
@@ -2035,7 +2117,7 @@ const AdminEvaluations = {
         else if (type === 'bonus' && sousType === 'competence') typeLabel = 'Bonus compétence';
         else if (type === 'bonus' && sousType === 'ponctuel') typeLabel = 'Bonus ponctuel';
 
-        // Compétences
+        // Compétences + points par compétence
         let compHtml = '';
         if (type === 'competences' || (type === 'bonus' && sousType === 'competence')) {
             let ids = [];
@@ -2045,14 +2127,26 @@ const AdminEvaluations = {
                     if (Array.isArray(parsed)) ids = parsed;
                 } catch (_e) { /* ignore */ }
             }
+            let ppc = {};
+            if (d.points_par_competence) {
+                try {
+                    ppc = typeof d.points_par_competence === 'string' ? JSON.parse(d.points_par_competence) : d.points_par_competence;
+                } catch (_e) { /* ignore */ }
+            }
             const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+            const matiereLabels = { 'FR': 'FR', 'HG-EMC': 'HG-EMC', 'Transversal': 'Trans.' };
             const badges = ids.map(cid => {
                 const c = (this.competencesReferentiel || []).find(r => String(r.id) === String(cid));
                 if (!c) return '';
                 const color = matiereColors[c.matiere] || '#6b7280';
-                return `<span style="display:inline-block;font-size:0.7rem;padding:2px 6px;border-radius:4px;background:${color}20;color:${color};font-weight:600;margin:1px 2px;">${escapeHtml(c.nom)}</span>`;
+                const pts = ppc[String(cid)] !== undefined ? ppc[String(cid)] : '?';
+                return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+                    <span style="display:inline-block;font-size:0.7rem;padding:2px 6px;border-radius:4px;background:${color}20;color:${color};font-weight:600;">${escapeHtml(matiereLabels[c.matiere] || c.matiere)}</span>
+                    <span style="font-size:0.85rem;">${escapeHtml(c.nom)}</span>
+                    <span style="font-size:0.8rem;font-weight:600;color:var(--gray-600);">${pts} pt${pts > 1 ? 's' : ''}</span>
+                </div>`;
             }).join('');
-            compHtml = `<div class="summary-row"><span class="label">Compétences</span><span class="value" style="display:flex;flex-wrap:wrap;gap:2px;">${badges || 'Aucune'}</span></div>`;
+            compHtml = `<div class="summary-row" style="align-items:flex-start;"><span class="label">Compétences</span><span class="value" style="flex-direction:column;gap:0;">${badges || 'Aucune'}</span></div>`;
         }
 
         // Critères libres
@@ -2097,7 +2191,7 @@ const AdminEvaluations = {
                 ${d.description ? `<div class="summary-row"><span class="label">Consigne</span><span class="value">${escapeHtml(d.description)}</span></div>` : ''}
                 ${compHtml}
                 ${criteresHtml}
-                <div class="summary-row"><span class="label">Points</span><span class="value">${d.briques || 3}</span></div>
+                <div class="summary-row"><span class="label">Points</span><span class="value">${d.briques || 3} pt${(d.briques || 3) > 1 ? 's' : ''}</span></div>
                 <div class="summary-row"><span class="label">Blocs de contenu</span><span class="value">${nbDocBlocks}</span></div>
                 <div class="summary-row"><span class="label">Corrigé</span><span class="value">${corrLabel}</span></div>
                 <div class="summary-row"><span class="label">Matière</span><span class="value">${d.matiere || 'FR'}</span></div>
@@ -2257,25 +2351,41 @@ const AdminEvaluations = {
         // Collect data based on logical step
         switch (logicalStep) {
             case 'competences': {
-                // TC : multiple checkboxes
+                // TC : multiple checkboxes + points par compétence
                 const checked = document.querySelectorAll('#evalCompetencesCheckboxes input[type="checkbox"]:checked');
                 const ids = [];
-                checked.forEach(cb => ids.push(cb.value));
+                const ptsParComp = {};
+                checked.forEach(cb => {
+                    ids.push(cb.value);
+                    const item = cb.closest('.cw-comp-checkbox-item');
+                    const ptsInput = item ? item.querySelector('.cw-comp-pts') : null;
+                    ptsParComp[cb.value] = ptsInput ? (parseFloat(ptsInput.value) || 1) : 1;
+                });
                 if (ids.length === 0) {
                     this.showNotification('Sélectionnez au moins une compétence', 'error');
                     return false;
                 }
                 this.wizardData.competence_ids = JSON.stringify(ids);
+                this.wizardData.points_par_competence = JSON.stringify(ptsParComp);
+                // Calculer briques comme total
+                let totalBriques = 0;
+                for (const k in ptsParComp) totalBriques += ptsParComp[k];
+                this.wizardData.briques = totalBriques;
                 return true;
             }
             case 'competence_unique': {
-                // Bonus comp : single radio
+                // Bonus comp : single radio + points
                 const selected = document.querySelector('#evalCompetencesRadios input[type="radio"]:checked');
                 if (!selected) {
                     this.showNotification('Sélectionnez une compétence', 'error');
                     return false;
                 }
-                this.wizardData.competence_ids = JSON.stringify([selected.value]);
+                const compId = selected.value;
+                const ptsEl = document.getElementById('evalBonusCompPts');
+                const pts = ptsEl ? (parseFloat(ptsEl.value) || 1) : 1;
+                this.wizardData.competence_ids = JSON.stringify([compId]);
+                this.wizardData.points_par_competence = JSON.stringify({ [compId]: pts });
+                this.wizardData.briques = pts;
                 return true;
             }
             case 'document': {
@@ -2404,6 +2514,7 @@ const AdminEvaluations = {
             data.correction_contenu = d.correction_contenu || '';
             data.correction_commentee = d.correction_commentee || '';
             data.competence_ids = d.competence_ids || '';
+            data.points_par_competence = d.points_par_competence || '';
             data.description = d.description || '';
         }
         if (d.type === 'bonus') {
@@ -2416,6 +2527,7 @@ const AdminEvaluations = {
                 data.description = d.description || '';
                 if (d.sous_type_bonus === 'competence') {
                     data.competence_ids = d.competence_ids || '';
+                    data.points_par_competence = d.points_par_competence || '';
                 }
                 if (d.sous_type_bonus === 'ponctuel') {
                     data.criteres_libres = d.criteres_libres || '';

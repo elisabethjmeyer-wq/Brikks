@@ -5519,6 +5519,16 @@ function createEvaluation(data) {
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0];
 
+  // Si points_par_competence fourni, calculer briques comme somme
+  if (data.points_par_competence && !data.briques) {
+    try {
+      var ppc = typeof data.points_par_competence === 'string' ? JSON.parse(data.points_par_competence) : data.points_par_competence;
+      var total = 0;
+      for (var k in ppc) { total += parseFloat(ppc[k]) || 0; }
+      if (total > 0) data.briques = total;
+    } catch (_e) { /* ignore */ }
+  }
+
   const newRow = headers.map(header => {
     const col = String(header).toLowerCase().trim();
     if (col === 'id') return id;
@@ -5562,6 +5572,16 @@ function updateEvaluation(data) {
 
   if (rowIndex === -1) {
     return { success: false, error: 'Evaluation non trouvee' };
+  }
+
+  // Si points_par_competence fourni, calculer briques comme somme
+  if (data.points_par_competence && !data.briques) {
+    try {
+      var ppc = typeof data.points_par_competence === 'string' ? JSON.parse(data.points_par_competence) : data.points_par_competence;
+      var total = 0;
+      for (var k in ppc) { total += parseFloat(ppc[k]) || 0; }
+      if (total > 0) data.briques = total;
+    } catch (_e) { /* ignore */ }
   }
 
   const updates = ['type', 'titre', 'description', 'chapitre_id', 'statut', 'briques', 'seuil', 'duree', 'date_debut', 'date_fin', 'date_ouverture', 'date_fermeture', 'methodologie_id', 'criteres', 'matiere', 'categorie', 'points_mises', 'entrainement_conn_id', 'source_questions', 'exercice_sf_id', 'mode_passation', 'sous_type_comp', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id', 'exercice_comp_id', 'banque_tc_id', 'exercice_tc_id', 'banque_bonus_id', 'exercice_bonus_id', 'points_par_competence', 'competence_ids', 'description_eleve', 'sujet_disponible_avance',
@@ -7176,7 +7196,7 @@ function saveEvaluationCorrection(data) {
   // Migration progressive : colonnes de correction
   var currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var headerNames = currentHeaders.map(function(h) { return String(h).toLowerCase().trim(); });
-  var correctionCols = ['correction_prof', 'criteres_valides', 'statut_correction', 'competence_ids_validees'];
+  var correctionCols = ['correction_prof', 'criteres_valides', 'statut_correction', 'competence_ids_validees', 'points_par_competence'];
   correctionCols.forEach(function(col) {
     if (headerNames.indexOf(col) < 0) {
       var nextCol = sheet.getLastColumn() + 1;
@@ -7228,9 +7248,23 @@ function saveEvaluationCorrection(data) {
     'demande_statut': 'corrige'
   };
 
-  // Aussi mettre à jour score/validations/statut_resultat si fourni
-  if (data.score !== undefined) fieldsToWrite['score'] = data.score;
-  if (data.validations !== undefined) fieldsToWrite['validations'] = data.validations;
+  // Points par compétence : stocker le JSON et calculer validations comme somme
+  if (data.points_par_competence !== undefined) {
+    fieldsToWrite['points_par_competence'] = data.points_par_competence;
+    try {
+      var ppc = typeof data.points_par_competence === 'string' ? JSON.parse(data.points_par_competence) : data.points_par_competence;
+      var totalPts = 0;
+      for (var pk in ppc) { totalPts += parseFloat(ppc[pk]) || 0; }
+      fieldsToWrite['score'] = totalPts;
+      fieldsToWrite['validations'] = totalPts;
+    } catch (_e) { /* ignore */ }
+  }
+
+  // Aussi mettre à jour score/validations/statut_resultat si fourni (fallback si pas de points_par_competence)
+  if (data.points_par_competence === undefined) {
+    if (data.score !== undefined) fieldsToWrite['score'] = data.score;
+    if (data.validations !== undefined) fieldsToWrite['validations'] = data.validations;
+  }
   if (data.statut_resultat !== undefined) fieldsToWrite['statut_resultat'] = data.statut_resultat;
 
   for (var field in fieldsToWrite) {

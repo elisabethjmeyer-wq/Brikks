@@ -211,23 +211,48 @@ const EleveEvaluations = {
 
     _calculatePoints(matiere) {
         const cats = { connaissances: 0, 'savoir-faire': 0, competences: 0, bonus: 0 };
-        const matchingEvals = this.evaluations.filter(ev => {
-            const m = ev.matiere || '';
-            if (m !== matiere && m !== 'Les deux') return false;
+        const semestreEvals = this.evaluations.filter(ev => {
             return this._getSemestreForEval(ev) === String(this.currentSemestre);
         });
-        matchingEvals.forEach(ev => {
+        semestreEvals.forEach(ev => {
             const result = this.resultats.find(r =>
                 String(r.evaluation_id).trim() === String(ev.id).trim()
             );
-            if (result) {
-                const validations = parseFloat(result.validations) || 0;
-                const categorie = ev.categorie || ev.type || 'connaissances';
-                if (cats[categorie] !== undefined) cats[categorie] += validations;
+            if (!result) return;
+            const categorie = ev.categorie || ev.type || 'connaissances';
+            if (cats[categorie] === undefined) return;
+
+            // Mode points par compétence : ventiler par matière
+            const resPpc = this._parsePointsParCompetence(result.points_par_competence);
+            if (resPpc && Object.keys(resPpc).length > 0) {
+                for (const compId in resPpc) {
+                    const compMat = this._getCompetenceMatiere(compId);
+                    if (compMat === matiere || compMat === 'Transversal') {
+                        cats[categorie] += parseFloat(resPpc[compId]) || 0;
+                    }
+                }
+            } else {
+                const m = ev.matiere || '';
+                if (m === matiere || m === 'Les deux') {
+                    cats[categorie] += parseFloat(result.validations) || 0;
+                }
             }
         });
         const total = cats.connaissances + cats['savoir-faire'] + cats.competences + cats.bonus;
         return { ...cats, total };
+    },
+
+    _parsePointsParCompetence(raw) {
+        if (!raw) return null;
+        try {
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : null;
+        } catch (_e) { return null; }
+    },
+
+    _getCompetenceMatiere(compId) {
+        const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
+        return comp ? (comp.matiere || 'Transversal') : 'Transversal';
     },
 
     _calculateProgression(matiere) {

@@ -43,14 +43,16 @@ const AdminTableauBord = {
             resultatsData,
             sommativesData,
             resultatsSommativesData,
-            parametresData
+            parametresData,
+            referentielData
         ] = await Promise.all([
             SheetsAPI.getSheetData('UTILISATEURS').catch(() => []),
             SheetsAPI.getSheetData('EVALUATIONS').catch(() => []),
             SheetsAPI.getSheetData('EVALUATION_RESULTATS').catch(() => []),
             SheetsAPI.getSheetData('NOTES_SOMMATIVES').catch(() => []),
             SheetsAPI.getSheetData('RESULTATS_SOMMATIVES').catch(() => []),
-            SheetsAPI.getSheetData('PARAMETRES_NOTES').catch(() => [])
+            SheetsAPI.getSheetData('PARAMETRES_NOTES').catch(() => []),
+            SheetsAPI.getSheetData('CompetencesReferentiel').catch(() => [])
         ]);
 
         this.eleves = SheetsAPI.parseSheetData(elevesData).filter(u => u.role === 'eleve');
@@ -59,6 +61,7 @@ const AdminTableauBord = {
         this.sommatives = SheetsAPI.parseSheetData(sommativesData);
         this.resultatsSommatives = SheetsAPI.parseSheetData(resultatsSommativesData);
         this.parametresNotes = SheetsAPI.parseSheetData(parametresData);
+        this.competencesReferentiel = SheetsAPI.parseSheetData(referentielData);
     },
 
     showContent() {
@@ -162,30 +165,54 @@ const AdminTableauBord = {
     _calculatePoints(eleveId, matiere, semestre) {
         const cats = { connaissances: 0, 'savoir-faire': 0, competences: 0, bonus: 0 };
 
-        // Get all evaluations matching this matière AND semestre
-        const matchingEvals = this.evaluations.filter(ev => {
-            const m = ev.matiere || '';
-            if (m !== matiere && m !== 'Les deux') return false;
+        // Toutes les évals du semestre (on filtre la matière en dessous, selon le mode)
+        const semestreEvals = this.evaluations.filter(ev => {
             return this._getSemestreForEval(ev) === String(semestre);
         });
 
-        // For each evaluation, find this student's result
-        matchingEvals.forEach(ev => {
+        semestreEvals.forEach(ev => {
             const result = this.resultats.find(r =>
                 String(r.evaluation_id).trim() === String(ev.id).trim() &&
                 String(r.eleve_id).trim() === String(eleveId).trim()
             );
-            if (result) {
-                const validations = parseFloat(result.validations) || 0;
-                const categorie = ev.categorie || ev.type || 'connaissances';
-                if (cats[categorie] !== undefined) {
-                    cats[categorie] += validations;
+            if (!result) return;
+
+            const categorie = ev.categorie || ev.type || 'connaissances';
+            if (cats[categorie] === undefined) return;
+
+            // Mode points par compétence : ventiler par matière de la compétence
+            const resPpc = this._parsePointsParCompetence(result.points_par_competence);
+            if (resPpc && Object.keys(resPpc).length > 0) {
+                for (const compId in resPpc) {
+                    const compMat = this._getCompetenceMatiere(compId);
+                    if (compMat === matiere || compMat === 'Transversal') {
+                        cats[categorie] += parseFloat(resPpc[compId]) || 0;
+                    }
+                }
+            } else {
+                // Fallback : ancien mode global (filtrer par matière de l'éval)
+                const m = ev.matiere || '';
+                if (m === matiere || m === 'Les deux') {
+                    cats[categorie] += parseFloat(result.validations) || 0;
                 }
             }
         });
 
         const total = cats.connaissances + cats['savoir-faire'] + cats.competences + cats.bonus;
         return { ...cats, total };
+    },
+
+    _parsePointsParCompetence(raw) {
+        if (!raw) return null;
+        try {
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            return (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : null;
+        } catch (_e) { return null; }
+    },
+
+    _getCompetenceMatiere(compId) {
+        const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
+        return comp ? (comp.matiere || 'Transversal') : 'Transversal';
     },
 
     /**
