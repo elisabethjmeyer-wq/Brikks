@@ -595,52 +595,16 @@ const EleveEvaluation = {
             } catch (_e) { /* ignore */ }
         }
 
-        // --- Bandeau points ---
-        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
-        const matiereLabels = { 'FR': 'FR', 'HG-EMC': 'HG-EMC', 'Transversal': 'Trans.' };
-        let pointsBanner = '';
-
-        if (resPpc && evalPpc && Object.keys(resPpc).length > 0) {
-            // Mode détaillé : une ligne par compétence
-            let linesHtml = '';
+        // --- Calculer les points gagnés par matière (pour afficher dans la sidebar) ---
+        const pointsParMatiere = {};
+        if (resPpc && evalPpc) {
             compIds.forEach(cid => {
                 const comp = competences.find(c => String(c.id) === String(cid));
                 const compMat = comp ? (comp.matiere || 'Transversal') : 'Transversal';
-                const color = matiereColors[compMat] || '#6b7280';
-                const gained = parseFloat(resPpc[String(cid)]) || 0;
-                const max = parseFloat(evalPpc[String(cid)]) || 1;
-                const ok = gained >= max;
-                linesHtml += `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;">
-                    <span style="font-size:0.7rem;padding:1px 6px;border-radius:4px;background:${color}20;color:${color};font-weight:600;">${escapeHtml(matiereLabels[compMat] || compMat)}</span>
-                    <span style="flex:1;font-size:0.85rem;">${escapeHtml(comp ? comp.nom : 'Compétence')}</span>
-                    <span style="font-weight:600;font-size:0.85rem;color:${ok ? 'var(--accent-green, #10b981)' : 'var(--accent-red, #ef4444)'};">${gained} / ${max} pt${max > 1 ? 's' : ''} ${ok ? '✅' : '❌'}</span>
-                </div>`;
+                if (!pointsParMatiere[compMat]) pointsParMatiere[compMat] = { gained: 0, max: 0 };
+                pointsParMatiere[compMat].gained += parseFloat(resPpc[String(cid)]) || 0;
+                pointsParMatiere[compMat].max += parseFloat(evalPpc[String(cid)]) || 1;
             });
-            pointsBanner = `
-                <div class="tc-review-points-banner">
-                    ${linesHtml}
-                    <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--gray-200, #e5e7eb);display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-weight:600;font-size:0.9rem;">Total</span>
-                        <span style="font-weight:700;font-size:0.9rem;">${points} / ${maxPoints} pt${maxPoints > 1 ? 's' : ''}</span>
-                    </div>
-                    <div class="tc-review-points-bar" style="margin-top:6px;">
-                        <div class="tc-review-points-fill" style="width: ${pctPoints}%"></div>
-                    </div>
-                </div>
-            `;
-        } else {
-            // Mode global (ancien format)
-            pointsBanner = `
-                <div class="tc-review-points-banner">
-                    <div class="tc-review-points-info">
-                        <span class="tc-review-points-value">${points} / ${maxPoints} point${maxPoints > 1 ? 's' : ''}</span>
-                        ${matiereLabel ? `<span class="tc-review-points-matiere">${escapeHtml(matiereLabel)}</span>` : ''}
-                    </div>
-                    <div class="tc-review-points-bar">
-                        <div class="tc-review-points-fill" style="width: ${pctPoints}%"></div>
-                    </div>
-                </div>
-            `;
         }
 
         // --- Colonne gauche : onglets Remarque / Corrigé ---
@@ -729,7 +693,9 @@ const EleveEvaluation = {
 
                 if (showBanners) {
                     const bg = matiereBgs[mat] || '#f3f4f6';
-                    compsHtml += `<div class="sujet-matiere-pill" style="background: ${bg}; color: ${color};">${escapeHtml(label)}</div>`;
+                    const matPts = pointsParMatiere[mat];
+                    const ptsLabel = matPts ? ` — ${matPts.gained} / ${matPts.max} pt${matPts.max > 1 ? 's' : ''} gagné${matPts.gained > 1 ? 's' : ''}` : '';
+                    compsHtml += `<div class="sujet-matiere-pill" style="background: ${bg}; color: ${color};">${escapeHtml(label)}${ptsLabel}</div>`;
                 }
 
                 groups[mat].forEach(cd => {
@@ -779,8 +745,6 @@ const EleveEvaluation = {
                         </div>
                     </div>
                 </div>
-
-                ${pointsBanner}
 
                 <div class="sujet-layout">
                     <div class="sujet-document-section">
