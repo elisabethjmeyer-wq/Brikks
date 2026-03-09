@@ -715,7 +715,8 @@ const AdminEvaluations = {
         if (!dateStr) return '';
         try {
             const d = new Date(dateStr);
-            return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(' ', ' à ');
+            if (isNaN(d.getTime())) return dateStr;
+            return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
         } catch { return dateStr; }
     },
 

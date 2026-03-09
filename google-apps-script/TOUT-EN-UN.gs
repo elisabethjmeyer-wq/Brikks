@@ -7089,7 +7089,9 @@ function repondreDemandeEvaluation(data) {
         sheet.getRange(i + 1, dateAcceptCol + 1).setValue(new Date().toISOString());
       }
       if (data.date_rendu && dateRenduCol >= 0) {
-        sheet.getRange(i + 1, dateRenduCol + 1).setValue(data.date_rendu);
+        var dateCell = sheet.getRange(i + 1, dateRenduCol + 1);
+        dateCell.setNumberFormat('@');  // Forcer format texte pour préserver "YYYY-MM-DDTHH:MM"
+        dateCell.setValue(data.date_rendu);
       }
       if (data.type_date && typeDateCol >= 0) {
         sheet.getRange(i + 1, typeDateCol + 1).setValue(data.type_date);
