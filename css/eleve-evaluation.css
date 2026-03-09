@@ -627,19 +627,24 @@
     align-self: start;
 }
 
-/* Bandeau matière */
-.sujet-matiere-banner {
-    border-left: 3px solid #6b7280;
-    padding: 6px 12px;
-    background: var(--gray-50, #f9fafb);
-    border-radius: 6px;
+/* Titre sidebar */
+.sujet-sidebar-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-500, #6b7280);
+    line-height: 1.4;
+    padding: 0 2px;
 }
 
-.sujet-matiere-label {
-    font-size: 12px;
+/* Pill matière */
+.sujet-matiere-pill {
+    display: inline-block;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 20px;
 }
 
 /* Carte compétence */
