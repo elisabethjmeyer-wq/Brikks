@@ -161,9 +161,9 @@ const AdminEvaluations = {
             this.evaluations = [];
         }
 
-        // Load evaluation results
+        // Load evaluation results (forceRefresh pour toujours voir les dernières demandes)
         try {
-            const resultatsData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+            const resultatsData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS', '', { forceRefresh: true });
             this.resultats = SheetsAPI.parseSheetData(resultatsData);
         } catch (_e) {
             this.resultats = [];
@@ -371,8 +371,15 @@ const AdminEvaluations = {
     // ========== RENDER ==========
     _bonusView: 'creer',
 
-    _setBonusView(view) {
+    async _setBonusView(view) {
         this._bonusView = view;
+        // Rafraîchir les résultats quand on ouvre la vue demandes
+        if (view === 'demandes') {
+            try {
+                const freshData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS', '', { forceRefresh: true });
+                this.resultats = SheetsAPI.parseSheetData(freshData);
+            } catch (_e) { /* garder les données existantes */ }
+        }
         this.renderEvaluations();
     },
 

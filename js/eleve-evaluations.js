@@ -909,13 +909,25 @@ const EleveEvaluations = {
                 eleve_id: this.currentUserId
             });
             if (result.success) {
-                // Invalider le cache avant le reload
-                SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
-                await this.loadData();
+                // Mise à jour optimiste : injecter le résultat localement
+                // pour que l'UI reflète immédiatement la demande,
+                // même si le re-fetch Sheets API retourne des données en cache
+                this.resultats.push({
+                    id: result.id || ('res_' + Date.now()),
+                    evaluation_id: evaluationId,
+                    eleve_id: this.currentUserId,
+                    demande_statut: 'demande',
+                    date_demande: new Date().toISOString(),
+                    source: 'demande_eleve'
+                });
                 this.categorizeEvaluations();
                 this.render();
                 this.updateTabCounts();
                 this._showToast('Demande envoyée !');
+
+                // Rafraîchir en arrière-plan avec forceRefresh pour mettre à jour le cache
+                SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+                SheetsAPI.getSheetData('EVALUATION_RESULTATS', '', { forceRefresh: true }).catch(() => {});
             } else {
                 alert(result.error || 'Erreur lors de la demande');
                 // Re-render pour restaurer le bouton

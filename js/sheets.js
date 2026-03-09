@@ -48,20 +48,27 @@ const SheetsAPI = {
      * @param {string} range - Plage de cellules (optionnel, ex: "A1:Z100")
      * @returns {Promise<Array>} - Tableau de données
      */
-    async getSheetData(sheetName, range = '') {
+    async getSheetData(sheetName, range = '', { forceRefresh = false } = {}) {
         const cacheKey = `${sheetName}_${range}`;
 
-        // Vérifier le cache d'abord
-        const cached = this._getFromCache(cacheKey);
-        if (cached) {
-            return cached;
+        // Vérifier le cache d'abord (sauf si forceRefresh)
+        if (!forceRefresh) {
+            const cached = this._getFromCache(cacheKey);
+            if (cached) {
+                return cached;
+            }
         }
 
         const fullRange = range ? `${sheetName}!${range}` : sheetName;
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(fullRange)}?key=${CONFIG.API_KEY}`;
+        let url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(fullRange)}?key=${CONFIG.API_KEY}`;
+
+        // Cache-busting pour éviter les réponses HTTP en cache navigateur/CDN
+        if (forceRefresh) {
+            url += `&_t=${Date.now()}`;
+        }
 
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, forceRefresh ? { cache: 'no-store' } : {});
 
             if (!response.ok) {
                 throw new Error(`Erreur API: ${response.status}`);
