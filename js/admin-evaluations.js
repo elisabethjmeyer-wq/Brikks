@@ -977,11 +977,11 @@ const AdminEvaluations = {
                             <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="0.25" max="50" step="0.25">
                             ${(type === 'competences' || (type === 'bonus' && d.sous_type_bonus === 'competence')) ? '<div class="form-help">Calculé automatiquement depuis les points par compétence</div>' : ''}
                         </div>
-                        <div class="form-group" ${type === 'competences' ? 'style="display:none"' : ''}>
+                        <div class="form-group" ${(type === 'competences' || type === 'bonus') ? 'style="display:none"' : ''}>
                             <label>Mode de passation</label>
                             <select class="form-select" id="evalModePassation" onchange="AdminEvaluations._onModePassationChange()">
                                 <option value="numerique" ${d.mode_passation === 'numerique' || !d.mode_passation ? 'selected' : ''}>💻 Numérique</option>
-                                <option value="papier" ${d.mode_passation === 'papier' || type === 'competences' ? 'selected' : ''}>📄 Papier</option>
+                                <option value="papier" ${d.mode_passation === 'papier' || type === 'competences' || type === 'bonus' ? 'selected' : ''}>📄 Papier</option>
                             </select>
                             <div class="form-help">Papier : pas de bouton « Commencer » côté élève</div>
                         </div>
@@ -1714,33 +1714,27 @@ const AdminEvaluations = {
         });
 
         const matiereOrder = ['FR', 'HG-EMC', 'Transversal'];
+        const matiereLabels = { 'FR': 'Français', 'HG-EMC': 'Histoire-Géo · EMC', 'Transversal': 'Transversal' };
         const sortedKeys = Object.keys(groups).sort((a, b) => {
             const ia = matiereOrder.indexOf(a) === -1 ? 99 : matiereOrder.indexOf(a);
             const ib = matiereOrder.indexOf(b) === -1 ? 99 : matiereOrder.indexOf(b);
             return ia - ib;
         });
 
-        const matiereLabels = { 'FR': 'Français', 'HG-EMC': 'Histoire-Géo · EMC', 'Transversal': 'Transversal' };
-        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        // Déterminer la discipline pré-sélectionnée (celle de la compétence déjà choisie, ou la 1ère dispo)
+        let selectedMatiere = sortedKeys[0] || '';
+        if (selectedId) {
+            const selComp = comps.find(c => String(c.id) === selectedId);
+            if (selComp) selectedMatiere = selComp.matiere || 'Transversal';
+        }
 
-        let groupsHtml = '';
-        sortedKeys.forEach(mat => {
-            const label = matiereLabels[mat] || mat;
-            const color = matiereColors[mat] || '#6b7280';
-            const items = groups[mat];
-            groupsHtml += `<div class="cw-comp-group">
-                <div class="cw-comp-group-header" style="border-left: 3px solid ${color}; padding-left: 10px; margin-bottom: 8px;">
-                    <span style="font-weight: 600; font-size: 0.875rem; color: ${color};">${label}</span>
-                </div>`;
-            items.forEach(c => {
-                const checked = String(c.id) === selectedId ? ' checked' : '';
-                groupsHtml += `<label class="cw-comp-checkbox-item" data-comp-name="${escapeHtml((c.nom || '').toLowerCase())}">
-                    <input type="radio" name="evalBonusCompetence" value="${c.id}"${checked}>
-                    <span class="cw-comp-checkbox-label">${escapeHtml(c.nom)}</span>
-                </label>`;
-            });
-            groupsHtml += '</div>';
-        });
+        // Dropdown disciplines
+        const matiereOptions = sortedKeys.map(mat =>
+            `<option value="${mat}" ${mat === selectedMatiere ? 'selected' : ''}>${escapeHtml(matiereLabels[mat] || mat)}</option>`
+        ).join('');
+
+        // Dropdown compétences de la discipline sélectionnée
+        const compOptions = this._buildCompOptions(groups[selectedMatiere] || [], selectedId);
 
         // Lire les points existants
         let existingPts = 1;
@@ -1754,8 +1748,20 @@ const AdminEvaluations = {
 
         return `<div class="eval-wizard-step-content">
             <div class="step-header"><h3>Compétence ciblée</h3><p>Sélectionnez la compétence évaluée par ce bonus</p></div>
-            <div class="cw-comp-search-bar"><input type="text" class="form-input" id="evalCompSearch" placeholder="Rechercher une compétence..."></div>
-            <div class="cw-comp-list" id="evalCompetencesRadios">${groupsHtml}</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Discipline</label>
+                    <select class="form-select" id="evalCompMatiere" onchange="AdminEvaluations._onCompMatiereChange()">
+                        ${matiereOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Compétence <span class="req">*</span></label>
+                    <select class="form-select" id="evalCompSelect">
+                        ${compOptions}
+                    </select>
+                </div>
+            </div>
             <div style="margin-top: 12px; padding: 10px 16px; background: var(--gray-50, #f9fafb); border-radius: 8px; display: flex; align-items: center; gap: 8px;">
                 <label style="font-weight: 600; font-size: 0.9rem;">Points mis en jeu :</label>
                 <input type="number" class="form-input" id="evalBonusCompPts" value="${existingPts}" min="0.25" max="20" step="0.25" style="width: 70px; padding: 4px 8px;">
@@ -1764,20 +1770,25 @@ const AdminEvaluations = {
         </div>`;
     },
 
+    _buildCompOptions(comps, selectedId) {
+        if (!comps || comps.length === 0) return '<option value="">Aucune compétence</option>';
+        return comps.map(c =>
+            `<option value="${c.id}" ${String(c.id) === String(selectedId) ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`
+        ).join('');
+    },
+
+    _onCompMatiereChange() {
+        const matiere = document.getElementById('evalCompMatiere')?.value;
+        if (!matiere) return;
+        const comps = (this.competencesReferentiel || [])
+            .filter(c => (c.matiere || 'Transversal') === matiere)
+            .sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const select = document.getElementById('evalCompSelect');
+        if (select) select.innerHTML = this._buildCompOptions(comps, '');
+    },
+
     _initStepCompetenceUnique() {
-        const searchInput = document.getElementById('evalCompSearch');
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                const query = this.value.toLowerCase().trim();
-                document.querySelectorAll('#evalCompetencesRadios .cw-comp-checkbox-item').forEach(item => {
-                    item.style.display = (!query || (item.dataset.compName || '').indexOf(query) !== -1) ? '' : 'none';
-                });
-                document.querySelectorAll('#evalCompetencesRadios .cw-comp-group').forEach(group => {
-                    const visible = group.querySelectorAll('.cw-comp-checkbox-item:not([style*="display: none"])');
-                    group.style.display = visible.length > 0 ? '' : 'none';
-                });
-            });
-        }
+        // Plus de recherche — les 2 dropdowns gèrent la navigation
     },
 
     // --- ÉTAPE DOCUMENT (block editor) ---
@@ -2319,7 +2330,7 @@ const AdminEvaluations = {
             }
             this.wizardData.titre = titre;
             this.wizardData.briques = parseFloat(document.getElementById('evalBriques')?.value) || 3;
-            this.wizardData.mode_passation = document.getElementById('evalModePassation')?.value || 'numerique';
+            this.wizardData.mode_passation = (type === 'competences' || type === 'bonus') ? 'papier' : (document.getElementById('evalModePassation')?.value || 'numerique');
             const matiereGroup = document.getElementById('evalMatiereGroup');
             const matiereVisible = matiereGroup && matiereGroup.style.display !== 'none';
             this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
@@ -2376,13 +2387,12 @@ const AdminEvaluations = {
                 return true;
             }
             case 'competence_unique': {
-                // Bonus comp : single radio + points
-                const selected = document.querySelector('#evalCompetencesRadios input[type="radio"]:checked');
-                if (!selected) {
+                // Bonus comp : dropdown select + points
+                const compId = document.getElementById('evalCompSelect')?.value;
+                if (!compId) {
                     this.showNotification('Sélectionnez une compétence', 'error');
                     return false;
                 }
-                const compId = selected.value;
                 const ptsEl = document.getElementById('evalBonusCompPts');
                 const pts = ptsEl ? (parseFloat(ptsEl.value) || 1) : 1;
                 this.wizardData.competence_ids = JSON.stringify([compId]);
