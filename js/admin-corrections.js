@@ -257,13 +257,22 @@ const AdminCorrections = {
 
     /** Get critères libres for a bonus ponctuel exercise */
     getCriteresLibres(evaluation) {
+        // Phase 9 : critères libres stockés directement dans EVALUATIONS
+        var raw = evaluation ? evaluation.criteres_libres : '';
+        if (raw) {
+            try {
+                var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                if (Array.isArray(parsed)) return parsed;
+            } catch (_e) { /* ignore */ }
+        }
+        // Fallback : chercher dans l'exercice lié (anciennes évaluations)
         var exercise = this.getExerciseForEvaluation(evaluation);
         if (!exercise || !exercise.criteres_libres) return [];
         try {
-            var parsed = typeof exercise.criteres_libres === 'string' ?
+            var parsed2 = typeof exercise.criteres_libres === 'string' ?
                 JSON.parse(exercise.criteres_libres) : exercise.criteres_libres;
-            if (Array.isArray(parsed)) return parsed;
-        } catch (_e) { /* ignore */ }
+            if (Array.isArray(parsed2)) return parsed2;
+        } catch (_e2) { /* ignore */ }
         return [];
     },
 
