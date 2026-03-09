@@ -294,11 +294,17 @@
     margin-left: 16px;
 }
 
-/* Demande traitée : carte grisée */
+/* Demande traitée : carte grisée, cliquable */
 .demande-card.treated {
     background: var(--gray-50);
     border-color: var(--gray-200);
     opacity: 0.75;
+    cursor: pointer;
+    transition: opacity 0.2s, border-color 0.2s;
+}
+.demande-card.treated:hover {
+    opacity: 1;
+    border-color: var(--gray-300);
 }
 .demande-card.treated .demande-eleve { color: var(--gray-500); }
 .demande-card.treated .demande-eval { color: var(--gray-400); }

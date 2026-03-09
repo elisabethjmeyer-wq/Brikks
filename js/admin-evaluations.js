@@ -481,6 +481,7 @@ const AdminEvaluations = {
 
         // Pour les demandes traitées : afficher le statut au lieu du bouton Répondre
         let actionsHtml = '';
+        let cardClickAttr = '';
         if (options.treated) {
             const ds = String(d.demande_statut || '').trim();
             if (ds === 'accepte') {
@@ -488,12 +489,13 @@ const AdminEvaluations = {
             } else if (ds === 'refuse') {
                 actionsHtml = '<span class="demande-status-tag refused">✗ Refusée</span>';
             }
+            cardClickAttr = ` onclick="AdminEvaluations.openDemandeDetailModal('${d.evaluation_id}', '${d.eleve_id}')"`;
         } else {
             actionsHtml = `<button class="btn btn-sm btn-primary" onclick="AdminEvaluations.openReponseModal('${d.evaluation_id}', '${d.eleve_id}')">Répondre</button>`;
         }
 
         return `
-            <div class="demande-card${options.treated ? ' treated' : ''}">
+            <div class="demande-card${options.treated ? ' treated' : ''}"${cardClickAttr}>
                 <div class="demande-card-left">
                     <div class="demande-eleve">${escapeHtml(eleveName)}</div>
                     <div class="demande-eval">
@@ -3973,10 +3975,18 @@ const AdminEvaluations = {
         document.getElementById('reponseEleveId').value = eleveId;
 
         // Reset state
+        this._editingDemande = null;
+        document.getElementById('reponseDemandeTitle').textContent = 'Répondre à la demande';
         document.getElementById('acceptFields').style.display = 'none';
-        document.getElementById('btnAccepter').classList.remove('selected');
-        document.getElementById('btnRefuser').classList.remove('selected');
-        document.getElementById('saveReponseBtn').disabled = true;
+        const btnAccepter = document.getElementById('btnAccepter');
+        const btnRefuser = document.getElementById('btnRefuser');
+        btnAccepter.classList.remove('selected');
+        btnRefuser.classList.remove('selected');
+        btnAccepter.disabled = false;
+        btnRefuser.disabled = false;
+        const saveBtn = document.getElementById('saveReponseBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Confirmer';
         document.getElementById('reponseRemarque').value = '';
         document.getElementById('reponseDate').value = '';
         const timeInput = document.getElementById('reponseTime');
@@ -4017,6 +4027,114 @@ const AdminEvaluations = {
     closeReponseModal() {
         document.getElementById('reponseDemandeModal').classList.add('hidden');
         this._reponseDecision = null;
+        this._editingDemande = null;
+    },
+
+    /**
+     * Ouvre le modal de détail pour une demande déjà traitée (consultation + édition dates)
+     */
+    openDemandeDetailModal(evaluationId, eleveId) {
+        const modal = document.getElementById('reponseDemandeModal');
+        document.getElementById('reponseEvaluationId').value = evaluationId;
+        document.getElementById('reponseEleveId').value = eleveId;
+
+        const eleve = (this.eleves || []).find(e => String(e.id).trim() === String(eleveId).trim());
+        const evaluation = (this.evaluations || []).find(e => String(e.id).trim() === String(evaluationId).trim());
+        const demande = (this.resultats || []).find(r =>
+            String(r.evaluation_id).trim() === String(evaluationId).trim() &&
+            String(r.eleve_id).trim() === String(eleveId).trim() &&
+            (String(r.demande_statut || '').trim() === 'accepte' || String(r.demande_statut || '').trim() === 'refuse')
+        );
+
+        if (!demande) return;
+
+        const eleveName = eleve ? `${eleve.prenom || ''} ${eleve.nom || ''}`.trim() : eleveId;
+        const evalTitle = evaluation ? (evaluation.titre || 'Sans titre') : evaluationId;
+        const ds = String(demande.demande_statut || '').trim();
+        this._editingDemande = demande;
+        this._reponseDecision = ds;
+
+        // Titre du modal
+        document.getElementById('reponseDemandeTitle').textContent = 'Détail de la demande';
+
+        // Infos
+        let dateDemandeHtml = '';
+        if (demande.date_demande) {
+            try {
+                const d = new Date(demande.date_demande);
+                const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+                const timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                dateDemandeHtml = `<p><strong>Demandé le :</strong> ${escapeHtml(dateStr)} à ${escapeHtml(timeStr)}</p>`;
+            } catch (_e) { /* ignore */ }
+        }
+
+        let dateAcceptHtml = '';
+        if (demande.date_acceptation) {
+            try {
+                const d = new Date(demande.date_acceptation);
+                const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+                dateAcceptHtml = `<p><strong>${ds === 'accepte' ? 'Acceptée' : 'Refusée'} le :</strong> ${escapeHtml(dateStr)}</p>`;
+            } catch (_e) { /* ignore */ }
+        }
+
+        document.getElementById('reponseDemandeInfo').innerHTML = `
+            <p><strong>Élève :</strong> ${escapeHtml(eleveName)}</p>
+            <p><strong>Évaluation :</strong> ${escapeHtml(evalTitle)}</p>
+            ${dateDemandeHtml}
+            ${dateAcceptHtml}
+        `;
+
+        // Décision : boutons figés (non modifiables)
+        const btnAccepter = document.getElementById('btnAccepter');
+        const btnRefuser = document.getElementById('btnRefuser');
+        btnAccepter.classList.toggle('selected', ds === 'accepte');
+        btnRefuser.classList.toggle('selected', ds === 'refuse');
+        btnAccepter.disabled = true;
+        btnRefuser.disabled = true;
+
+        // Champs d'acceptation : visibles et pré-remplis si acceptée
+        const acceptFields = document.getElementById('acceptFields');
+        if (ds === 'accepte') {
+            acceptFields.style.display = '';
+
+            // Type de date
+            const typeDateSel = document.getElementById('reponseTypeDate');
+            typeDateSel.value = demande.type_date || 'passage_classe';
+
+            // Date et heure
+            const rawDate = String(demande.date_rendu || '');
+            let dateOnly = '';
+            let timeValue = '';
+            if (rawDate.includes('T')) {
+                const parts = rawDate.split('T');
+                dateOnly = parts[0];
+                timeValue = parts[1] || '';
+            } else if (rawDate.includes(' ') && rawDate.length > 10) {
+                dateOnly = rawDate.substring(0, 10);
+                timeValue = rawDate.substring(11).trim();
+            } else if (rawDate.length >= 10) {
+                dateOnly = rawDate.substring(0, 10);
+            }
+            document.getElementById('reponseDate').value = dateOnly;
+            const timeInput = document.getElementById('reponseTime');
+            if (timeInput) timeInput.value = timeValue;
+
+            // Sujet visible
+            const sujetCb = document.getElementById('reponseSujetVisible');
+            if (sujetCb) sujetCb.checked = demande.sujet_visible === true || demande.sujet_visible === 'true' || demande.sujet_visible === 'TRUE';
+        } else {
+            acceptFields.style.display = 'none';
+        }
+
+        // Remarque
+        document.getElementById('reponseRemarque').value = demande.remarque_prof || '';
+
+        // Bouton : "Enregistrer" au lieu de "Confirmer"
+        const saveBtn = document.getElementById('saveReponseBtn');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Enregistrer';
+
+        modal.classList.remove('hidden');
     },
 
     setDecision(decision) {
@@ -4045,7 +4163,18 @@ const AdminEvaluations = {
         saveBtn.textContent = 'Envoi...';
 
         try {
-            const result = await this.callAPI('repondreDemandeEvaluation', {
+            // Mode édition : mise à jour d'une demande déjà traitée
+            const isEditing = !!this._editingDemande;
+            const apiAction = isEditing ? 'updateDemandeAcceptee' : 'repondreDemandeEvaluation';
+
+            const params = isEditing ? {
+                evaluation_id: evaluationId,
+                eleve_id: eleveId,
+                date_rendu: dateRendu,
+                type_date: typeDate,
+                remarque_prof: remarque,
+                sujet_visible: sujetVisible
+            } : {
                 evaluation_id: evaluationId,
                 eleve_id: eleveId,
                 decision: this._reponseDecision,
@@ -4053,10 +4182,13 @@ const AdminEvaluations = {
                 type_date: this._reponseDecision === 'accepte' ? typeDate : '',
                 remarque_prof: remarque,
                 sujet_visible: this._reponseDecision === 'accepte' ? sujetVisible : false
-            });
+            };
+
+            const result = await this.callAPI(apiAction, params);
 
             if (result.success) {
                 this.showNotification(
+                    isEditing ? 'Demande mise à jour' :
                     this._reponseDecision === 'accepte' ? 'Demande acceptée' : 'Demande refusée'
                 );
                 this.closeReponseModal();

@@ -441,6 +441,9 @@ function handleRequest(e) {
       case 'repondreDemandeEvaluation':
         result = repondreDemandeEvaluation(request);
         break;
+      case 'updateDemandeAcceptee':
+        result = updateDemandeAcceptee(request);
+        break;
       case 'saveValidationSuivi':
         result = saveValidationSuivi(request);
         break;
