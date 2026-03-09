@@ -1534,11 +1534,15 @@ const AdminEvaluations = {
             const label = matiereLabels[mat] || mat;
             const color = matiereColors[mat] || '#6b7280';
             const items = groups[mat];
-            groupsHtml += `<div class="cw-comp-group">
-                <div class="cw-comp-group-header" style="border-left: 3px solid ${color}; padding-left: 10px; margin-bottom: 8px;">
-                    <span style="font-weight: 600; font-size: 0.875rem; color: ${color};">${label}</span>
-                    <span style="font-size: 0.75rem; color: var(--gray-400); margin-left: 8px;">(${items.length})</span>
-                </div>`;
+            const selectedInGroup = items.filter(c => selectedIds.indexOf(String(c.id)) !== -1).length;
+            const hasSelection = selectedInGroup > 0;
+            groupsHtml += `<div class="cw-comp-group${hasSelection ? ' open' : ''}" data-matiere="${escapeHtml(mat)}">
+                <button type="button" class="cw-comp-group-toggle" style="border-left: 3px solid ${color};" onclick="AdminEvaluations._toggleCompGroup(this)">
+                    <span class="cw-comp-group-arrow">${hasSelection ? '▾' : '▸'}</span>
+                    <span class="cw-comp-group-label" style="color: ${color};">${label}</span>
+                    <span class="cw-comp-group-count">${selectedInGroup > 0 ? selectedInGroup + '/' : ''}${items.length}</span>
+                </button>
+                <div class="cw-comp-group-items"${hasSelection ? '' : ' style="display:none;"'}>`;
             items.forEach(c => {
                 const checked = selectedIds.indexOf(String(c.id)) !== -1 ? ' checked' : '';
                 groupsHtml += `<label class="cw-comp-checkbox-item" data-comp-name="${escapeHtml((c.nom || '').toLowerCase())}">
@@ -1546,7 +1550,7 @@ const AdminEvaluations = {
                     <span class="cw-comp-checkbox-label">${escapeHtml(c.nom)}</span>
                 </label>`;
             });
-            groupsHtml += '</div>';
+            groupsHtml += '</div></div>';
         });
 
         if (comps.length === 0) {
@@ -1561,6 +1565,25 @@ const AdminEvaluations = {
         </div>`;
     },
 
+    _toggleCompGroup(btn) {
+        const group = btn.closest('.cw-comp-group');
+        if (!group) return;
+        const items = group.querySelector('.cw-comp-group-items');
+        const arrow = group.querySelector('.cw-comp-group-arrow');
+        const isOpen = group.classList.toggle('open');
+        if (items) items.style.display = isOpen ? '' : 'none';
+        if (arrow) arrow.textContent = isOpen ? '▾' : '▸';
+    },
+
+    _updateCompGroupCounters() {
+        document.querySelectorAll('#evalCompetencesCheckboxes .cw-comp-group').forEach(group => {
+            const total = group.querySelectorAll('input[type="checkbox"]').length;
+            const selected = group.querySelectorAll('input[type="checkbox"]:checked').length;
+            const countEl = group.querySelector('.cw-comp-group-count');
+            if (countEl) countEl.textContent = selected > 0 ? `${selected}/${total}` : `${total}`;
+        });
+    },
+
     _initStepCompetences() {
         const searchInput = document.getElementById('evalCompSearch');
         if (searchInput) {
@@ -1572,6 +1595,14 @@ const AdminEvaluations = {
                 document.querySelectorAll('#evalCompetencesCheckboxes .cw-comp-group').forEach(group => {
                     const visible = group.querySelectorAll('.cw-comp-checkbox-item:not([style*="display: none"])');
                     group.style.display = visible.length > 0 ? '' : 'none';
+                    // Ouvrir automatiquement les groupes filtrés
+                    if (query && visible.length > 0) {
+                        group.classList.add('open');
+                        const items = group.querySelector('.cw-comp-group-items');
+                        const arrow = group.querySelector('.cw-comp-group-arrow');
+                        if (items) items.style.display = '';
+                        if (arrow) arrow.textContent = '▾';
+                    }
                 });
             });
         }
@@ -1584,6 +1615,7 @@ const AdminEvaluations = {
                     counter.textContent = `${n} compétence${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''}`;
                     counter.style.color = n > 0 ? 'var(--accent-green, #10b981)' : 'var(--gray-400)';
                 }
+                this._updateCompGroupCounters();
             });
         }
     },
