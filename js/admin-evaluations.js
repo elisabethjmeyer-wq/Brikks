@@ -1332,10 +1332,8 @@ const AdminEvaluations = {
 
         if (this.wizardData.type === 'bonus') {
             this.wizardData.categorie = document.getElementById('evalCategorie')?.value || 'connaissances';
-            if (this.wizardData.sous_type_bonus === 'suivi') {
-                const descEl = document.getElementById('evalDescriptionEleve')?.value;
-                if (descEl !== undefined) this.wizardData.description_eleve = descEl.trim();
-            }
+            const descEl = document.getElementById('evalDescriptionEleve')?.value;
+            if (descEl !== undefined) this.wizardData.description_eleve = descEl.trim();
         }
 
         const criteres = document.getElementById('evalCriteres')?.value;
@@ -1383,8 +1381,16 @@ const AdminEvaluations = {
                     <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points (saisis dans le tableau de résultats)</div>
                 </div>
                 <div class="form-group">
-                    <label>Consignes pour l'élève</label>
+                    <label>Description pour l'élève</label>
                     <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Apporter ses affaires à chaque cours, réviser le vocabulaire...">${escapeHtml(d.description_eleve || '')}</textarea>
+                    <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
+                </div>
+            `;
+        } else if (sousType === 'competence' || sousType === 'ponctuel') {
+            sousTypeFields = `
+                <div class="form-group">
+                    <label>Description pour l'élève</label>
+                    <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Présenter un document à l'oral en 5 minutes...">${escapeHtml(d.description_eleve || '')}</textarea>
                     <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
                 </div>
             `;
@@ -1437,8 +1443,16 @@ const AdminEvaluations = {
                         <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points (saisis dans le tableau de résultats)</div>
                     </div>
                     <div class="form-group">
-                        <label>Consignes pour l'élève</label>
+                        <label>Description pour l'élève</label>
                         <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Apporter ses affaires à chaque cours, réviser le vocabulaire...">${escapeHtml(this.wizardData.description_eleve || '')}</textarea>
+                        <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
+                    </div>
+                `;
+            } else if (value === 'competence' || value === 'ponctuel') {
+                container.innerHTML = `
+                    <div class="form-group">
+                        <label>Description pour l'élève</label>
+                        <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Présenter un document à l'oral en 5 minutes...">${escapeHtml(this.wizardData.description_eleve || '')}</textarea>
                         <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
                     </div>
                 `;
@@ -2202,6 +2216,7 @@ const AdminEvaluations = {
                 <div class="summary-row"><span class="label">Type</span><span class="value">${escapeHtml(typeLabel)}</span></div>
                 <div class="summary-row"><span class="label">Titre</span><span class="value">${escapeHtml(d.titre || '(vide)')}</span></div>
                 ${d.description ? `<div class="summary-row"><span class="label">Consigne</span><span class="value">${escapeHtml(d.description)}</span></div>` : ''}
+                ${d.description_eleve ? `<div class="summary-row"><span class="label">Description élève</span><span class="value">${escapeHtml(d.description_eleve)}</span></div>` : ''}
                 ${compHtml}
                 ${criteresHtml}
                 <div class="summary-row"><span class="label">Points</span><span class="value">${d.briques || 3} pt${(d.briques || 3) > 1 ? 's' : ''}</span></div>
@@ -2348,6 +2363,8 @@ const AdminEvaluations = {
             }
             if (type === 'bonus' && sousType === 'suivi') {
                 this.wizardData.nb_validations = parseInt(document.getElementById('evalNbValidations')?.value) || 5;
+            }
+            if (type === 'bonus') {
                 this.wizardData.description_eleve = (document.getElementById('evalDescriptionEleve')?.value || '').trim();
             }
             return true;
@@ -2537,6 +2554,7 @@ const AdminEvaluations = {
                 data.correction_contenu = d.correction_contenu || '';
                 data.correction_commentee = d.correction_commentee || '';
                 data.description = d.description || '';
+                data.description_eleve = d.description_eleve || '';
                 if (d.sous_type_bonus === 'competence') {
                     data.competence_ids = d.competence_ids || '';
                     data.points_par_competence = d.points_par_competence || '';

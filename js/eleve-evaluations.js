@@ -775,7 +775,6 @@ const EleveEvaluations = {
             actionHtml = `<button class="card-btn type-bonus" onclick="event.stopPropagation(); EleveEvaluations.demanderEvaluation('${evaluation.id}')">Demander</button>`;
         } else if (cardStatus === 'demande_envoyee') {
             statusHtml = '<span class="bonus-status en-attente">Demande envoyée</span>';
-            actionHtml = '<div class="card-action-info">En attente de réponse</div>';
         } else if (cardStatus === 'demande_acceptee') {
             const dateRendu = resultat ? (resultat.date_rendu || '') : '';
             const typeDate = resultat ? String(resultat.type_date || '').trim() : '';
@@ -829,6 +828,7 @@ const EleveEvaluations = {
                             <h3 class="card-title">${escapeHtml(title)}</h3>
                         </div>
                         <div class="card-type" style="color:${typeColor}">${typeBadge}</div>
+                        ${evaluation.description_eleve ? `<div class="card-description">${escapeHtml(evaluation.description_eleve)}</div>` : ''}
                         ${metaLine}
                         ${statusHtml}
                     </div>
