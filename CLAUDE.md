@@ -662,7 +662,7 @@ Mes résultats :
 - [x] Bonus suivi : barre de progression + checkboxes V1..VN en lecture seule
 - [x] Calcul de la note de progression : déjà intégré via `_calculatePoints` qui lit EVALUATION_RESULTATS
 
-**Phase 9 — Refonte : intégration wizards TC/bonus dans Évaluations** (EN COURS)
+**Phase 9 — Refonte : intégration wizards TC/bonus dans Évaluations** ✅
 
 > **Décision session 29** : séparer clairement entraînements (Banques d'exercices) et évaluations (page Évaluations).
 > Les onglets TC et Bonus ponctuels sont supprimés de Banques d'exercices.
@@ -696,6 +696,25 @@ Note : `competence_ids` existe déjà dans EVALUATIONS.
 **Phase D — Corrections admin** : ✅ (session 30) — `getCriteresLibres()` lit depuis evaluation d'abord
 **Phase E — Nettoyage HTML/JS** : ✅ (session 30) — onglets TC/Bonus supprimés de banques-exercices. Code mort conservé dans questions.js (non appelé)
 **Phase F — Migration données existantes** : à faire manuellement si nécessaire (script GAS pour copier contenu EntrainementsCompetences → EVALUATIONS)
+
+**Phase 10 — Points par compétence** ✅ (session 31)
+
+> Au lieu d'un total global de points (`briques`) par évaluation, les points sont définis et attribués **par compétence**.
+> Chaque compétence du référentiel a un champ `matiere` (FR, HG-EMC, Transversal).
+> Les points gagnés sont automatiquement ventilés vers la bonne note de progression selon la matière de la compétence.
+> Transversal = compte dans FR **et** HG-EMC.
+
+**Nouvelles colonnes** (migration progressive) :
+- `EVALUATIONS.points_par_competence` — JSON `{ "comp_id": pts_misés, ... }`
+- `EVALUATION_RESULTATS.points_par_competence` — JSON `{ "comp_id": pts_gagnés, ... }`
+- `briques` et `validations` restent comme totaux calculés (rétro-compatibilité)
+
+**Changements** :
+- Wizard création : inputs points par compétence dans l'étape Compétences (TC) et Compétence unique (bonus comp)
+- Wizard correction : inputs points par compétence dans le bilan (étape 4), défaut intelligent
+- `_calculatePoints()` refactoré dans 3 fichiers : ventile par matière du référentiel
+- Affichage élève review TC : bandeau détaillé par compétence avec tags matière
+- Section compétences notes élève : ne filtre plus par matière d'évaluation (filtre par competence_ids)
 
 ### Décisions prises (sessions 28-29)
 
