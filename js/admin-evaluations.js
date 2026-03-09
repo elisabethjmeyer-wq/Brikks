@@ -366,6 +366,13 @@ const AdminEvaluations = {
     },
 
     // ========== RENDER ==========
+    _bonusView: 'creer',
+
+    _setBonusView(view) {
+        this._bonusView = view;
+        this.renderEvaluations();
+    },
+
     renderEvaluations() {
         if (this.currentType === 'sommatives') {
             this._renderSommatives();
@@ -375,7 +382,48 @@ const AdminEvaluations = {
         const container = document.getElementById('evaluationsList');
         const emptyState = document.getElementById('emptyState');
 
-        // Filter by current type, matière and statut
+        // Pour l'onglet bonus : toggle Créer / Gérer demandes
+        if (this.currentType === 'bonus') {
+            const demandesCount = this._getDemandesEnAttente().length;
+            const isDemandesView = this._bonusView === 'demandes';
+
+            // Vérifier le hash pour ouvrir directement les demandes
+            if (window.location.hash === '#bonus-demandes' && !this._hashChecked) {
+                this._hashChecked = true;
+                this._bonusView = 'demandes';
+                return this.renderEvaluations();
+            }
+
+            let toggleHtml = '<div class="bonus-view-toggle">';
+            toggleHtml += `<button class="bonus-toggle-btn ${!isDemandesView ? 'active' : ''}" onclick="AdminEvaluations._setBonusView('creer')">Créer évaluations</button>`;
+            toggleHtml += `<button class="bonus-toggle-btn ${isDemandesView ? 'active' : ''}" onclick="AdminEvaluations._setBonusView('demandes')">Gérer les demandes${demandesCount > 0 ? ' <span class="toggle-badge">' + demandesCount + '</span>' : ''}</button>`;
+            toggleHtml += '</div>';
+
+            if (isDemandesView) {
+                emptyState.style.display = 'none';
+                container.innerHTML = toggleHtml + this._renderDemandesView();
+                return;
+            }
+
+            // Vue Créer : toggle + cartes
+            let filtered = this.evaluations.filter(e => {
+                if (e.type !== 'bonus') return false;
+                if (this.filters.statut && e.statut !== this.filters.statut) return false;
+                return true;
+            });
+            filtered = this._filterByMatiere(filtered);
+
+            if (filtered.length === 0) {
+                emptyState.style.display = 'none';
+                container.innerHTML = toggleHtml + '<div class="empty-state-inline">Aucune évaluation bonus pour le moment.</div>';
+            } else {
+                emptyState.style.display = 'none';
+                container.innerHTML = toggleHtml + filtered.map(e => this.renderEvaluationCard(e)).join('');
+            }
+            return;
+        }
+
+        // Autres types (connaissances, SF, compétences)
         let filtered = this.evaluations.filter(e => {
             if (e.type !== this.currentType) return false;
             if (this.filters.statut && e.statut !== this.filters.statut) return false;
@@ -392,6 +440,51 @@ const AdminEvaluations = {
             container.innerHTML = filtered.map(e => this.renderEvaluationCard(e)).join('');
         }
 
+    },
+
+    _renderDemandesView() {
+        const demandes = this._getDemandesEnAttente();
+
+        if (demandes.length === 0) {
+            return '<div class="demandes-empty-state">Aucune demande en attente.</div>';
+        }
+
+        return '<div class="demandes-list">' + demandes.map(d => {
+            const eleve = (this.eleves || []).find(e => String(e.id).trim() === String(d.eleve_id).trim());
+            const evaluation = (this.evaluations || []).find(e => String(e.id).trim() === String(d.evaluation_id).trim());
+            const eleveName = eleve ? `${eleve.prenom || ''} ${eleve.nom || ''}`.trim() : d.eleve_id;
+            const evalTitle = evaluation ? (evaluation.titre || 'Sans titre') : d.evaluation_id;
+            const evalType = evaluation ? (evaluation.type || '') : '';
+            const sousType = evaluation ? (evaluation.sous_type_bonus || evaluation.sous_type_comp || '') : '';
+            const dateStr = d.date_demande ? new Date(d.date_demande).toLocaleDateString('fr-FR') : '';
+
+            let typeBadge = '';
+            if (evalType === 'bonus' && sousType === 'competence') {
+                typeBadge = '<span class="demande-badge purple">Bonus comp\u00e9tence</span>';
+            } else if (evalType === 'bonus' && sousType === 'ponctuel') {
+                typeBadge = '<span class="demande-badge teal">Bonus ponctuel</span>';
+            } else if (evalType === 'competences') {
+                typeBadge = '<span class="demande-badge red">T\u00e2che complexe</span>';
+            } else {
+                typeBadge = `<span class="demande-badge gray">${escapeHtml(evalType)}</span>`;
+            }
+
+            return `
+                <div class="demande-card">
+                    <div class="demande-card-left">
+                        <div class="demande-eleve">${escapeHtml(eleveName)}</div>
+                        <div class="demande-eval">
+                            ${typeBadge}
+                            <span class="demande-eval-title">${escapeHtml(evalTitle)}</span>
+                        </div>
+                        <div class="demande-date">Demand\u00e9 le ${escapeHtml(dateStr)}</div>
+                    </div>
+                    <div class="demande-card-actions">
+                        <button class="btn btn-sm btn-primary" onclick="AdminEvaluations.openReponseModal('${d.evaluation_id}', '${d.eleve_id}')">R\u00e9pondre</button>
+                    </div>
+                </div>
+            `;
+        }).join('') + '</div>';
     },
 
     renderEvaluationCard(evaluation) {
@@ -800,7 +893,7 @@ const AdminEvaluations = {
                     <div class="form-row">
                         <div class="form-group">
                             <label>Points mis en jeu <span class="req">*</span></label>
-                            <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="1" max="50">
+                            <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="0.25" max="50" step="0.25">
                         </div>
                         <div class="form-group">
                             <label>Mode de passation</label>
@@ -1142,7 +1235,7 @@ const AdminEvaluations = {
         if (titre !== undefined) this.wizardData.titre = titre.trim();
 
         const briques = document.getElementById('evalBriques')?.value;
-        if (briques) this.wizardData.briques = parseInt(briques) || 3;
+        if (briques) this.wizardData.briques = parseFloat(briques) || 3;
 
         const seuil = document.getElementById('evalSeuil')?.value;
         if (seuil) this.wizardData.seuil = parseInt(seuil) || 80;
@@ -1157,6 +1250,10 @@ const AdminEvaluations = {
 
         if (this.wizardData.type === 'bonus') {
             this.wizardData.categorie = document.getElementById('evalCategorie')?.value || 'connaissances';
+            if (this.wizardData.sous_type_bonus === 'suivi') {
+                const descEl = document.getElementById('evalDescriptionEleve')?.value;
+                if (descEl !== undefined) this.wizardData.description_eleve = descEl.trim();
+            }
         }
 
         const criteres = document.getElementById('evalCriteres')?.value;
@@ -1188,6 +1285,11 @@ const AdminEvaluations = {
                     <label>Nombre de validations requises <span class="req">*</span></label>
                     <input type="number" class="form-input" id="evalNbValidations" value="${d.nb_validations || 5}" min="1" max="50">
                     <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points (saisis dans le tableau de résultats)</div>
+                </div>
+                <div class="form-group">
+                    <label>Consignes pour l'élève</label>
+                    <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Apporter ses affaires à chaque cours, réviser le vocabulaire...">${escapeHtml(d.description_eleve || '')}</textarea>
+                    <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
                 </div>
             `;
         }
@@ -1237,6 +1339,11 @@ const AdminEvaluations = {
                         <label>Nombre de validations requises <span class="req">*</span></label>
                         <input type="number" class="form-input" id="evalNbValidations" value="${this.wizardData.nb_validations || 5}" min="1" max="50">
                         <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points (saisis dans le tableau de résultats)</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Consignes pour l'élève</label>
+                        <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Apporter ses affaires à chaque cours, réviser le vocabulaire...">${escapeHtml(this.wizardData.description_eleve || '')}</textarea>
+                        <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
                     </div>
                 `;
             } else {
@@ -1615,7 +1722,7 @@ const AdminEvaluations = {
                     return false;
                 }
                 this.wizardData.titre = titre;
-                this.wizardData.briques = parseInt(document.getElementById('evalBriques')?.value) || 3;
+                this.wizardData.briques = parseFloat(document.getElementById('evalBriques')?.value) || 3;
                 this.wizardData.mode_passation = document.getElementById('evalModePassation')?.value || 'numerique';
                 const matiereGroup = document.getElementById('evalMatiereGroup');
                 const matiereVisible = matiereGroup && matiereGroup.style.display !== 'none';
@@ -1641,6 +1748,7 @@ const AdminEvaluations = {
                 if (this.wizardData.type === 'bonus') {
                     if (this.wizardData.sous_type_bonus === 'suivi') {
                         this.wizardData.nb_validations = parseInt(document.getElementById('evalNbValidations')?.value) || 5;
+                        this.wizardData.description_eleve = (document.getElementById('evalDescriptionEleve')?.value || '').trim();
                     }
                 }
                 return true;
@@ -1726,6 +1834,7 @@ const AdminEvaluations = {
                 data.exercice_bonus_id = d.exercice_bonus_id || '';
             } else if (d.sous_type_bonus === 'suivi') {
                 data.nb_validations = d.nb_validations || 5;
+                data.description_eleve = d.description_eleve || '';
             }
         }
 
@@ -1926,7 +2035,7 @@ const AdminEvaluations = {
 
         // Build table headers — adapté selon le type
         const showScoreDuree = !isBonusOrTC;
-        const showRemarque = isBonusOrTC;
+        const showRemarque = false;
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
             ${showSujet ? '<th class="col-banque">Banque</th>' : ''}
@@ -2921,10 +3030,18 @@ const AdminEvaluations = {
 
     /**
      * Met à jour le bandeau des demandes en attente
+     * (Le bandeau est désactivé — remplacé par le toggle dans l'onglet Bonus)
      */
     updateDemandesBanner() {
-        const demandes = this._getDemandesEnAttente();
         const banner = document.getElementById('demandesBanner');
+        if (banner) banner.style.display = 'none';
+        // Re-render l'onglet bonus si actif pour mettre à jour le compteur du toggle
+        if (this.currentType === 'bonus') {
+            this.renderEvaluations();
+        }
+        return;
+        // Code legacy ci-dessous (inactif)
+        const demandes = this._getDemandesEnAttente();
         const countEl = document.getElementById('demandesCount');
         if (banner && countEl) {
             if (demandes.length > 0) {
@@ -3053,6 +3170,7 @@ const AdminEvaluations = {
         const typeDate = document.getElementById('reponseTypeDate').value;
         const dateRendu = document.getElementById('reponseDate').value;
         const remarque = document.getElementById('reponseRemarque').value;
+        const sujetVisible = document.getElementById('reponseSujetVisible')?.checked || false;
 
         const saveBtn = document.getElementById('saveReponseBtn');
         saveBtn.disabled = true;
@@ -3065,7 +3183,8 @@ const AdminEvaluations = {
                 decision: this._reponseDecision,
                 date_rendu: this._reponseDecision === 'accepte' ? dateRendu : '',
                 type_date: this._reponseDecision === 'accepte' ? typeDate : '',
-                remarque_prof: remarque
+                remarque_prof: remarque,
+                sujet_visible: this._reponseDecision === 'accepte' ? sujetVisible : false
             });
 
             if (result.success) {

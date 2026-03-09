@@ -390,3 +390,100 @@
         align-items: center;
     }
 }
+
+/* ========== MODE SUJET (lecture seule TC/bonus) ========== */
+
+.sujet-view {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.sujet-header {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.sujet-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.sujet-type-badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sujet-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0 0 8px 0;
+}
+
+.sujet-consigne {
+    font-size: 14px;
+    color: var(--gray-600);
+    line-height: 1.5;
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border-radius: 8px;
+    margin-top: 12px;
+}
+
+.sujet-document {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    min-height: 300px;
+}
+
+.sujet-iframe {
+    width: 100%;
+    min-height: 600px;
+    border: none;
+    border-radius: 8px;
+}
+
+.sujet-html-content {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--gray-700);
+}
+
+.sujet-empty {
+    text-align: center;
+    color: var(--gray-400);
+    font-size: 15px;
+    padding: 60px 20px;
+}
+
+.sujet-document .block-text {
+    margin-bottom: 16px;
+    line-height: 1.7;
+}
+
+.sujet-document .block-image img {
+    max-width: 100%;
+    border-radius: 8px;
+}
+
+.sujet-document .block-group {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.sujet-document .block-group.ratio-1-1 > * { flex: 1; }
+.sujet-document .block-group.ratio-1-2 > *:first-child { flex: 1; }
+.sujet-document .block-group.ratio-1-2 > *:last-child { flex: 2; }
+.sujet-document .block-group.ratio-2-1 > *:first-child { flex: 2; }
+.sujet-document .block-group.ratio-2-1 > *:last-child { flex: 1; }

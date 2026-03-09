@@ -36,6 +36,12 @@ const EleveEvaluation = {
                 return;
             }
 
+            // Mode sujet : afficher le document en lecture seule (TC/bonus)
+            if (mode === 'sujet') {
+                await this._initSujetMode(evalId);
+                return;
+            }
+
             await this.loadEvaluation(evalId);
 
             // Bifurquer selon le type d'évaluation
@@ -119,6 +125,113 @@ const EleveEvaluation = {
                 throw new Error('Aucune étape disponible pour cette évaluation');
             }
         }
+    },
+
+    // ========== MODE SUJET (lecture seule TC/bonus) ==========
+
+    /**
+     * Affiche le sujet d'une évaluation TC ou bonus en lecture seule.
+     * Pas de timer, pas de soumission — juste le document à consulter.
+     */
+    async _initSujetMode(evalId) {
+        const eleveId = this._getCurrentUserId();
+        const response = eleveId
+            ? await this.callAPI('getEvaluationForEleve', { id: evalId, eleve_id: eleveId })
+            : await this.callAPI('getEvaluation', { id: evalId });
+
+        if (!response.success || !response.data) {
+            throw new Error(response.error || 'Évaluation non trouvée');
+        }
+
+        const data = response.data;
+        const exercice = data.exercice || {};
+
+        // Construire le contenu du sujet
+        const title = data.titre || 'Sujet';
+        const type = String(data.type || '').trim();
+        const typeLabel = type === 'competences' ? 'Tâche complexe' : 'Bonus';
+        const typeColor = type === 'competences' ? '#8b5cf6' : '#eab308';
+
+        // Document : soit un lien (iframe Google Doc), soit du HTML
+        let documentHtml = '';
+        const docContenu = exercice.document_contenu || '';
+        if (docContenu) {
+            // Tester si c'est une URL (lien Google Doc) ou du contenu HTML/JSON
+            if (docContenu.startsWith('http')) {
+                const embedUrl = docContenu.includes('/edit') ? docContenu.replace('/edit', '/preview') : docContenu;
+                documentHtml = `<iframe src="${escapeHtml(embedUrl)}" class="sujet-iframe"></iframe>`;
+            } else {
+                // Essayer de parser comme JSON (blocs du block editor)
+                try {
+                    const blocks = JSON.parse(docContenu);
+                    if (Array.isArray(blocks)) {
+                        documentHtml = this._renderBlocksReadOnly(blocks);
+                    } else {
+                        documentHtml = `<div class="sujet-html-content">${docContenu}</div>`;
+                    }
+                } catch (e) {
+                    documentHtml = `<div class="sujet-html-content">${docContenu}</div>`;
+                }
+            }
+        } else {
+            documentHtml = '<p class="sujet-empty">Aucun document disponible pour cette évaluation.</p>';
+        }
+
+        // Consignes si disponibles
+        const consigne = exercice.consigne || data.criteres || '';
+        const consigneHtml = consigne
+            ? `<div class="sujet-consigne"><strong>Consignes :</strong> ${escapeHtml(consigne)}</div>`
+            : '';
+
+        const container = document.getElementById('exerciseContainer');
+        container.innerHTML = `
+            <div class="sujet-view">
+                <div class="sujet-header" style="border-left: 4px solid ${typeColor}">
+                    <div class="sujet-header-top">
+                        <span class="sujet-type-badge" style="background:${typeColor}; color: white">${escapeHtml(typeLabel)}</span>
+                        <button class="btn btn-secondary btn-sm" onclick="window.history.back()">← Retour</button>
+                    </div>
+                    <h1 class="sujet-title">${escapeHtml(title)}</h1>
+                    ${consigneHtml}
+                </div>
+                <div class="sujet-document">
+                    ${documentHtml}
+                </div>
+            </div>
+        `;
+
+        this.showContent();
+    },
+
+    /**
+     * Rendu en lecture seule des blocs du block editor (simplifié).
+     */
+    _renderBlocksReadOnly(blocks) {
+        return blocks.map(block => {
+            if (!block || !block.type) return '';
+            switch (block.type) {
+                case 'text':
+                    return `<div class="block-text">${block.content || ''}</div>`;
+                case 'image':
+                    return block.url ? `<div class="block-image"><img src="${escapeHtml(block.url)}" alt="${escapeHtml(block.alt || '')}"></div>` : '';
+                case 'document':
+                    if (block.url) {
+                        const embedUrl = block.url.includes('/edit') ? block.url.replace('/edit', '/preview') : block.url;
+                        return `<div class="block-document"><iframe src="${escapeHtml(embedUrl)}" class="sujet-iframe"></iframe></div>`;
+                    }
+                    return '';
+                case 'video':
+                    return block.url ? `<div class="block-video"><iframe src="${escapeHtml(block.url)}" allowfullscreen></iframe></div>` : '';
+                case 'group':
+                    if (Array.isArray(block.children)) {
+                        const ratio = block.ratio || '1-1';
+                        return `<div class="block-group ratio-${escapeHtml(ratio)}">${this._renderBlocksReadOnly(block.children)}</div>`;
+                    }
+                    return '';
+                default:
+                    return '';
+            }
+        }).join('');
     },
 
     // ========== MODE REVIEW ==========
