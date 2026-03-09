@@ -1358,10 +1358,31 @@ const AdminEvaluations = {
         return '';
     },
 
-    _renderCompFields() {
-        // Les dates ouverture/fermeture se configurent via le bouton statut (programmation)
-        // La matière est déterminée par les compétences sélectionnées, pas au niveau de l'évaluation
-        return '';
+    _renderCompFields(d) {
+        return `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date d'ouverture</label>
+                    <input type="date" class="form-input" id="evalDateOuverture" value="${d.date_ouverture ? d.date_ouverture.split('T')[0] : ''}">
+                    <div class="form-help">Date à partir de laquelle l'évaluation est visible</div>
+                </div>
+                <div class="form-group">
+                    <label>Date de fermeture</label>
+                    <input type="date" class="form-input" id="evalDateFermeture" value="${d.date_fermeture ? d.date_fermeture.split('T')[0] : ''}">
+                    <div class="form-help">Date après laquelle l'évaluation est terminée</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="evalSujetAvance" ${d.sujet_disponible_avance === true || d.sujet_disponible_avance === 'true' || d.sujet_disponible_avance === 'TRUE' ? 'checked' : ''}>
+                        Sujet disponible à l'avance
+                    </label>
+                    <div class="form-help">Si coché, les élèves peuvent consulter le sujet avant la date de l'évaluation</div>
+                </div>
+                <div class="form-group"></div>
+            </div>
+        `;
     },
 
     _renderBonusFields(d) {
