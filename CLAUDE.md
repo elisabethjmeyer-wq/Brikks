@@ -129,21 +129,27 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 
 **État** : audité et nettoyé (session 9, popup session 10, vue évaluation session 14). Code propre, factorisé et maintenable.
 
-### Correction des évaluations (admin) — CRÉÉ SESSION 14
+### Correction des évaluations (admin) — CRÉÉ SESSION 14, ÉTENDU SESSION 28
 
 **Page** : `admin/corrections.html`
 **Fichiers** : `js/admin-corrections.js`, `js/block-editor.js` (mixin partagé)
-**Backend** : `Competences.gs` (`validateEleveEntrainementCompetence`)
+**Backend** : `Competences.gs` (`validateEleveEntrainementCompetence`), `Evaluations.gs` (`saveEvaluationCorrection`)
 **CSS** : `css/admin-corrections.css`
 
 **Ce que fait le module :**
-- La prof voit une grille de cartes (1 par copie soumise), avec compteurs par état
+- La prof voit une grille de cartes unifiée : copies d'entraînements compétences + bonus/TC
+- Sources de données : `EleveEntrainementsCompetences` (statut='soumis') + `EVALUATION_RESULTATS` (demande_statut='accepte')
+- Cartes avec badges type : compétence (bleu), TC (rouge), bonus comp (violet), bonus ponctuel (teal)
 - Clic sur une carte ouvre un **wizard 4 étapes** :
   1. **Informations** : infos élève/exercice + toggle brouillon/publié (visibilité élève)
   2. **Correction** : block editor (ou lien Google Doc) + onglets Construction / Vue élève
-  3. **Critères** : liste des critères de réussite à cocher + décision valide / non valide
+  3. **Critères** : adapté selon le type :
+     - Compétence / bonus comp : critères de la compétence ciblée
+     - TC : sections groupées par compétence (multi-critères)
+     - Bonus ponctuel : critères libres de l'exercice
   4. **Bilan** : résumé avant confirmation
 - `statut_correction` (brouillon/publié) persisté côté backend — si brouillon, l'élève ne voit pas le corrigé
+- Save routé vers `saveEvaluationCorrection` (bonus/TC → EVALUATION_RESULTATS) ou `validateEleveEntrainementCompetence` (compétences → EleveEntrainementsCompetences)
 
 **Block editor partagé** (`js/block-editor.js`) :
 - Factory `createBlockEditorMixin(hostName)` retourne un objet de méthodes paramétré par le nom du module hôte
@@ -191,7 +197,15 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - Toggle matière réutilise `.tabs-bar` + `.tab-btn` existants
 - CSS réécrit : variables CSS du site (`--primary`, `--gray-*`, `--accent-*`), tailles augmentées (14-16px), cards avec padding 22-26px et `box-shadow` aligné
 
-**État** : créé (session 16), harmonisé visuellement (session 25). Fonctionnel.
+**Ajouts session 28** :
+- Section Compétences : agrège les passages depuis EleveEntrainementsCompetences + EVALUATION_RESULTATS (bonus comp + TC)
+- Passages montrent la source (bonus, TC) avec tags visuels et le titre de l'évaluation
+- Section Bonus : 3 sous-types distincts (compétence, ponctuel, suivi)
+- Bonus suivi : barre de progression + checkboxes V1..VN en lecture seule
+- Bonus comp/ponctuel : statuts détaillés (demandé, accepté, corrigé, validé, refusé)
+- Type tags sur les cartes bonus (compétence violet, ponctuel teal, suivi jaune)
+
+**État** : créé (session 16), harmonisé visuellement (session 25), bonus/TC intégrés (session 28). Fonctionnel.
 
 ### Mes évaluations élève (liste) — REFONDU SESSION 21
 
@@ -633,35 +647,41 @@ Mes résultats :
 > - Plafond : 3 validations par compétence → compétence acquise, l'élève ne peut plus demander dessus
 > - Bonus suivi : points attribués uniquement quand toutes les validations sont atteintes (ex: 5/5)
 
-- [ ] **Backend : table DEMANDES_BONUS** (id, eleve_id, evaluation_id, statut [demandee/acceptee/refusee], date_demande, date_reponse, remarque_prof)
-- [ ] **Backend : API demandes** — `demanderEvaluation`, `repondreDemandeEvaluation` (accepter/refuser + type_date [passage_classe/date_butoir] + date + remarque)
-- [ ] **Backend : API suivi** — `saveValidationSuivi` (ajouter/retirer une validation progressive)
-- [ ] **Admin : bandeau "X demandes"** dans la page Évaluations (réutilise le système cloche existant)
-- [ ] **Admin : modal accepter/refuser** — choix type de date (passage en classe OU date butoir de rendu) + date + remarque optionnelle
-- [ ] **Admin : saisie résultats bonus/TC** — dans le tableau de saisie existant, adapté pour saisie manuelle
-- [ ] **Admin : saisie suivi** — checkboxes progressives dans le tableau de saisie (ex: cocher validation 3/5)
+- [x] **Backend : demandes dans EVALUATION_RESULTATS** — pas de table séparée, colonnes `demande_statut`, `date_demande`, `date_acceptation`, `date_rendu`, `type_date`, `remarque_prof` en migration progressive
+- [x] **Backend : API demandes** — `demanderEvaluation`, `repondreDemandeEvaluation` (accepter/refuser + type_date [passage_classe/date_butoir] + date + remarque)
+- [x] **Backend : API suivi** — `saveValidationSuivi` (ajouter/retirer une validation progressive)
+- [x] **Admin : bandeau "X demandes"** — bandeau bleu en haut de la page Évaluations, compte les `demande_statut='demande'`
+- [x] **Admin : modal liste demandes** — cartes par demande avec badge type (bonus comp, ponctuel, TC), bouton "Répondre"
+- [x] **Admin : modal accepter/refuser** — boutons Accepter/Refuser, choix type de date (passage classe / date butoir), date, remarque optionnelle
+- [x] **Admin : saisie résultats bonus/TC** — colonne statut demande + colonne remarque (sans score/durée auto)
+- [x] **Admin : saisie suivi** — checkboxes progressives V1..VN, sauvegarde immédiate, points attribués quand complet
 
-**Phase 6 — Élève : affichage bonus + TC dans "Mes évaluations"**
+**Phase 6 — Élève : affichage bonus + TC dans "Mes évaluations"** ✅
 
-- [ ] **Élève : cartes bonus compétence** — bouton "Demander" → statut demandé → accepté (date passage ou butoir affichée) → lien "Consulter le sujet" (lecture seule) → corrigé (après saisie prof)
-- [ ] **Élève : cartes bonus ponctuel** — même flux que bonus compétence (Demander → acceptation → consulter sujet → correction)
-- [ ] **Élève : cartes bonus suivi** — barre de progression X/Y validations (pas d'exercice, pas de demande)
-- [ ] **Élève : cartes tâche complexe obligatoire** — dates ouverture/fermeture, consulter sujet, voir correction par compétence après
-- [ ] **Élève : cartes tâche complexe bonus** — même flux demande que bonus compétence, correction par compétence
-- [ ] **Élève : consultation sujet** — vue lecture seule du document (block editor ou lien), sans timer ni soumission
-- [ ] **Élève : plafond 3 validations** — compétence acquise → bonus compétence grisé "Compétence acquise"
+- [x] **Élève : cartes bonus compétence** — bouton "Demander" → statuts (envoyée, acceptée avec date, refusée avec remarque) → correction
+- [x] **Élève : cartes bonus ponctuel** — même flux demande que bonus compétence
+- [x] **Élève : cartes bonus suivi** — barre de progression X/Y, "Objectif atteint !" quand complet
+- [x] **Élève : cartes tâche complexe obligatoire** — dans onglet Évaluations, mode papier forcé, consulter sujet
+- [x] **Élève : cartes tâche complexe bonus** — dans onglet Bonus, même flux demande
+- [x] **Élève : consultation sujet** — lien vers page évaluation en mode "sujet" (lecture seule)
+- [x] **Élève : plafond 3 validations** — calcul validations par compétence, carte grisée "Compétence acquise" si 3/3
 
-**Phase 7 — Admin : corrections bonus + TC**
-- [ ] Page Corrections : remettre dans la sidebar, charger les copies bonus + TC
-- [ ] Wizard correction **bonus compétence** : block editor + critères de la compétence ciblée + validé/non validé
-- [ ] Wizard correction **bonus ponctuel** : block editor + critères libres de l'évaluation + validé/non validé
-- [ ] Wizard correction **tâche complexe** : block editor + N sections de critères (une par compétence) + validé/non validé par compétence
-- [ ] Notification cloche : compteur copies à corriger inclut bonus + TC
+**Phase 7 — Admin : corrections bonus + TC** ✅
+- [x] Backend : `saveEvaluationCorrection` action (correction_prof, criteres_valides, statut_correction, competence_ids_validees dans EVALUATION_RESULTATS)
+- [x] Page Corrections : charge EVALUATIONS + EVALUATION_RESULTATS, merge bonus/TC avec compétences
+- [x] Cartes avec badges type (TC rouge, bonus comp violet, ponctuel teal)
+- [x] Wizard correction **bonus compétence** : block editor + critères de la compétence ciblée + validé/non validé
+- [x] Wizard correction **bonus ponctuel** : block editor + critères libres de l'évaluation + validé/non validé
+- [x] Wizard correction **tâche complexe** : block editor + N sections de critères (une par compétence) + validé/non validé par compétence
+- [x] Save routé vers `saveEvaluationCorrection` (bonus/TC) ou `validateEleveEntrainementCompetence` (compétences)
+- [x] Compteur copies à corriger dans la page évaluations inclut bonus + TC
 
-**Phase 8 — Élève : résultats**
-- [ ] Section Compétences dans "Mes résultats" : validations par compétence (issues des bonus comp + TC), N/3, "Acquise" si 3/3
-- [ ] Section Bonus : points bonus (suivi avec progression, ponctuel avec statut)
-- [ ] Intégration dans le calcul de la note de progression (points bonus = hors budget)
+**Phase 8 — Élève : résultats** ✅
+- [x] Section Compétences : validations par compétence (training + bonus comp + TC), N/3, "Acquise" si 3/3
+- [x] Passages montrent la source (bonus, TC) avec tags visuels
+- [x] Section Bonus : 3 sous-types (compétence avec statut demande, ponctuel avec critères libres, suivi avec barre de progression)
+- [x] Bonus suivi : barre de progression + checkboxes V1..VN en lecture seule
+- [x] Calcul de la note de progression : déjà intégré via `_calculatePoints` qui lit EVALUATION_RESULTATS
 
 ### Décisions prises (session 28)
 

@@ -1135,3 +1135,89 @@
         padding: 14px 16px;
     }
 }
+
+/* ========== Bonus type tags ========== */
+.bonus-type-tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.bonus-comp-ref {
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* Source tags on competence passages */
+.comp-passage-source-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+
+.comp-passage-source-tag.tc {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* ========== Suivi progress ========== */
+.suivi-progress-section {
+    padding: 0 4px;
+}
+
+.suivi-progress-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.suivi-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.suivi-progress-label {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-bottom: 12px;
+}
+
+.suivi-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.suivi-check {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.suivi-check.done {
+    background: #f0fdf4;
+    color: #059669;
+}
+
+.suivi-check.pending {
+    background: #f9fafb;
+    color: #9ca3af;
+}
+
+.suivi-check-icon {
+    font-size: 0.9rem;
+}
