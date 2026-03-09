@@ -576,7 +576,7 @@
 /* Layout 2 colonnes */
 .sujet-layout {
     display: grid;
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 3fr 2fr;
     gap: 1rem;
     min-height: 500px;
 }
