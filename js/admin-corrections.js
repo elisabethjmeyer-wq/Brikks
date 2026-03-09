@@ -1345,30 +1345,40 @@ const AdminCorrections = {
             resultPpc = wd.pointsParCompetence;
         }
 
-        var hasPerCompPoints = Object.keys(evalPpc).length > 0;
-
-        if (hasPerCompPoints && (sub._sourceType === 'tc' || sub._sourceType === 'bonus_comp')) {
-            // Mode par compétence : un input par compétence
-            html += '<div class="bilan-section">';
-            html += '<h4>Points attribués par compétence</h4>';
-
-            var self = this;
-            var compIds = sub._sourceType === 'tc' ? this.getCompetenceIdsForTC(evaluation) :
-                (evaluation.competence_id ? [evaluation.competence_id] : []);
-
-            // Parse competence_ids pour bonus comp
-            if (sub._sourceType === 'bonus_comp' && evaluation.competence_ids) {
+        // Déterminer les compétences associées (TC ou bonus comp)
+        var compIds = [];
+        if (sub._sourceType === 'tc') {
+            compIds = this.getCompetenceIdsForTC(evaluation);
+        } else if (sub._sourceType === 'bonus_comp') {
+            if (evaluation.competence_ids) {
                 try {
                     var parsed = typeof evaluation.competence_ids === 'string' ? JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
                     if (Array.isArray(parsed) && parsed.length > 0) compIds = parsed.map(String);
                 } catch (_e) { /* ignore */ }
             }
+            if (compIds.length === 0 && evaluation.competence_id) {
+                compIds = [String(evaluation.competence_id)];
+            }
+        }
+
+        var hasCompetences = compIds.length > 0 && (sub._sourceType === 'tc' || sub._sourceType === 'bonus_comp');
+
+        if (hasCompetences) {
+            // Mode par compétence : un input par compétence
+            html += '<div class="bilan-section">';
+            html += '<h4>Points attribués par compétence</h4>';
+
+            var self = this;
+            var hasEvalPpc = Object.keys(evalPpc).length > 0;
+            var totalBriques = parseFloat(evaluation.briques) || 0;
+            var fallbackPerComp = compIds.length > 0 ? totalBriques / compIds.length : 1;
 
             compIds.forEach(function(compId) {
                 var comp = self.getCompetence(compId);
                 var compMat = comp ? (comp.matiere || 'Transversal') : 'Transversal';
                 var color = matiereColors[compMat] || '#6b7280';
-                var maxPts = parseFloat(evalPpc[String(compId)]) || 1;
+                // Max = points_par_competence si dispo, sinon briques / nb_comps, sinon 1
+                var maxPts = hasEvalPpc ? (parseFloat(evalPpc[String(compId)]) || 1) : (fallbackPerComp || 1);
                 var compValides = wd.competenceValidees ? (wd.competenceValidees[compId] || []) : [];
                 var criteres = self.getCriteresByCompetence(compId);
                 var allValid = criteres.length > 0 && criteres.every(function(c) { return compValides.indexOf(String(c.id)) !== -1; });
