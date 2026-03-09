@@ -2388,6 +2388,62 @@ function repondreDemandeEvaluation(data) {
 }
 
 /**
+ * Met à jour les champs d'une demande déjà traitée (acceptée ou refusée)
+ * Permet de modifier la date, le type de date, la remarque et la visibilité du sujet
+ * @param {Object} data - { evaluation_id, eleve_id, date_rendu?, type_date?, remarque_prof?, sujet_visible? }
+ */
+function updateDemandeAcceptee(data) {
+  if (!data.evaluation_id || !data.eleve_id) {
+    return { success: false, error: 'evaluation_id et eleve_id requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet non trouvée' };
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var evalIdCol = headers.indexOf('evaluation_id');
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var demandeCol = headers.indexOf('demande_statut');
+  var dateRenduCol = headers.indexOf('date_rendu');
+  var typeDateCol = headers.indexOf('type_date');
+  var remarqueProfCol = headers.indexOf('remarque_prof');
+  var sujetVisCol = headers.indexOf('sujet_visible');
+
+  for (var i = 1; i < allData.length; i++) {
+    var rowEvalId = String(allData[i][evalIdCol]).trim();
+    var rowEleveId = String(allData[i][eleveIdCol]).trim();
+    var rowStatut = demandeCol >= 0 ? String(allData[i][demandeCol]).trim() : '';
+
+    if (rowEvalId === String(data.evaluation_id).trim() &&
+        rowEleveId === String(data.eleve_id).trim() &&
+        (rowStatut === 'accepte' || rowStatut === 'refuse')) {
+
+      if (dateRenduCol >= 0) {
+        var dateCell = sheet.getRange(i + 1, dateRenduCol + 1);
+        dateCell.setNumberFormat('@');
+        dateCell.setValue(data.date_rendu || '');
+      }
+      if (typeDateCol >= 0) {
+        sheet.getRange(i + 1, typeDateCol + 1).setValue(data.type_date || '');
+      }
+      if (remarqueProfCol >= 0) {
+        sheet.getRange(i + 1, remarqueProfCol + 1).setValue(data.remarque_prof || '');
+      }
+      if (sujetVisCol >= 0) {
+        sheet.getRange(i + 1, sujetVisCol + 1).setValue(data.sujet_visible === true || data.sujet_visible === 'true');
+      }
+      return { success: true, message: 'Demande mise à jour' };
+    }
+  }
+
+  return { success: false, error: 'Demande non trouvée' };
+}
+
+/**
  * Sauvegarde une validation de suivi (bonus suivi — ex: gestion du matériel)
  * Incrémente le compteur de validations pour un élève
  * @param {Object} data - { evaluation_id, eleve_id, validation_numero }

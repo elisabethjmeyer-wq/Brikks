@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-03-09 — Session 34 : Fix erreurs 429 + dates françaises
+
+### Fix erreur 429 Google Sheets (admin-layout.js)
+
+1. **Problème** : au chargement de la page Évaluations, `checkPendingActivities` (4 appels) se lançait en même temps que `loadData` (16 appels) → 20 requêtes simultanées → quota Google Sheets dépassé (erreur 429 "Too Many Requests").
+2. **Correction** : `checkPendingActivities` est maintenant différé de 2 secondes. Les tables UTILISATEURS et EVALUATIONS sont alors déjà en cache localStorage, réduisant les appels réseau à 2 au lieu de 4.
+
+### Fix format de dates français (eleve-evaluations.js, admin-evaluations.js, Evaluations.gs)
+
+1. **Problème 1 — Date tronquée** : `_formatDateOnly()` affichait "Mar 10 mar" (jour/mois abrégés, sans année). Remplacé par `toLocaleDateString('fr-FR')` → affiche maintenant **"mardi 10 mars 2026"**.
+2. **Problème 2 — Heure disparue** : Google Sheets auto-convertissait `"2026-03-10T18:48"` en objet Date, supprimant le séparateur `T`. L'extraction d'heure ne fonctionnait plus.
+   - **Backend** : la cellule `date_rendu` est forcée en format texte (`@`) pour préserver le format ISO
+   - **Frontend** : `_extractTime()` détecte l'heure dans les formats ISO (`T`) ET Google Sheets (espace)
+3. **Admin `_formatDateShort`** : affiche "10 mars 2026" au lieu de "10/03" pour les dates d'ouverture/fermeture.
+
+**Fichiers modifiés** : `components/admin-layout.js`, `js/eleve-evaluations.js`, `js/admin-evaluations.js`, `google-apps-script/Evaluations.gs`, `google-apps-script/TOUT-EN-UN.gs`
+
+---
+
 ## 2026-03-09 — Session 33 : UX évaluations élève + wizards admin
 
 ### Wizard admin TC et bonus (admin-evaluations.js)
