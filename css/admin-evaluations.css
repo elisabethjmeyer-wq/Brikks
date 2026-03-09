@@ -166,6 +166,74 @@
     font-size: 18px;
 }
 
+/* Bonus view toggle */
+.bonus-view-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    overflow: hidden;
+    width: fit-content;
+}
+
+.bonus-toggle-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    background: white;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.bonus-toggle-btn:not(:last-child) {
+    border-right: 1px solid var(--gray-200);
+}
+
+.bonus-toggle-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.bonus-toggle-btn:hover:not(.active) {
+    background: var(--gray-50);
+}
+
+.toggle-badge {
+    display: inline-block;
+    background: #ef4444;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 4px;
+}
+
+.bonus-toggle-btn.active .toggle-badge {
+    background: rgba(255,255,255,0.3);
+}
+
+.demandes-list {
+    margin-top: 8px;
+}
+
+.demandes-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-400);
+    font-size: 15px;
+}
+
+.empty-state-inline {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-400);
+    font-size: 15px;
+}
+
 /* Demandes list */
 .demande-card {
     display: flex;

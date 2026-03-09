@@ -319,20 +319,31 @@ const AdminLayout = {
     /**
      * Construit le contenu du dropdown de notifications
      */
-    _renderNotificationDropdown(pendingSubmissions) {
+    _renderNotificationDropdown(pendingSubmissions, demandesCount) {
         var body = document.getElementById('notification-dropdown-body');
         if (!body) return;
 
-        if (!pendingSubmissions || pendingSubmissions.length === 0) {
-            body.innerHTML = '<div class="notification-empty">Aucune copie à corriger</div>';
+        var correctionsCount = pendingSubmissions ? pendingSubmissions.length : 0;
+        var demandes = demandesCount || 0;
+
+        if (correctionsCount === 0 && demandes === 0) {
+            body.innerHTML = '<div class="notification-empty">Aucune notification</div>';
             return;
         }
 
-        var count = pendingSubmissions.length;
-        var html = '<a href="/Brikks/admin/corrections.html" class="notification-item">';
-        html += '<span class="notification-item-icon">✏️</span>';
-        html += '<span class="notification-item-text">' + count + ' copie' + (count > 1 ? 's' : '') + ' à corriger</span>';
-        html += '</a>';
+        var html = '';
+        if (correctionsCount > 0) {
+            html += '<a href="/Brikks/admin/corrections.html" class="notification-item">';
+            html += '<span class="notification-item-icon">✏️</span>';
+            html += '<span class="notification-item-text">' + correctionsCount + ' copie' + (correctionsCount > 1 ? 's' : '') + ' à corriger</span>';
+            html += '</a>';
+        }
+        if (demandes > 0) {
+            html += '<a href="/Brikks/admin/evaluations.html#bonus-demandes" class="notification-item">';
+            html += '<span class="notification-item-icon">📩</span>';
+            html += '<span class="notification-item-text">' + demandes + ' demande' + (demandes > 1 ? 's' : '') + ' de bonus</span>';
+            html += '</a>';
+        }
         body.innerHTML = html;
     },
 
@@ -368,30 +379,43 @@ const AdminLayout = {
      */
     async checkPendingActivities() {
         try {
-            var result = await this.callAPI('getEleveTachesComplexes', {});
+            // Charger copies à corriger + demandes bonus en parallèle
+            var [result, resultatsData] = await Promise.all([
+                this.callAPI('getEleveTachesComplexes', {}),
+                SheetsAPI.getSheetData('EVALUATION_RESULTATS').catch(function() { return []; })
+            ]);
+
+            var pending = [];
             if (result.success && result.data) {
-                var pending = result.data.filter(function(t) { return t.statut === 'soumis'; });
-                var count = pending.length;
-                this._pendingCount = count;
+                pending = result.data.filter(function(t) { return t.statut === 'soumis'; });
+            }
+            var correctionsCount = pending.length;
 
-                // Construire le contenu du dropdown
-                this._renderNotificationDropdown(pending);
+            // Compter les demandes de bonus en attente
+            var allResultats = SheetsAPI.parseSheetData(resultatsData);
+            var demandesCount = allResultats.filter(function(r) {
+                return String(r.demande_statut || '').trim() === 'demande';
+            }).length;
 
-                // Si on est sur la page corrections, marquer comme vu automatiquement
-                if (this._onCorrectionsPage) {
-                    try { localStorage.setItem('brikks_notif_seen_count', String(count)); } catch (_e) { /* ignore */ }
-                    this.updateNotificationBadges(0);
+            var totalCount = correctionsCount + demandesCount;
+            this._pendingCount = totalCount;
+
+            // Construire le contenu du dropdown
+            this._renderNotificationDropdown(pending, demandesCount);
+
+            // Si on est sur la page corrections, marquer comme vu automatiquement
+            if (this._onCorrectionsPage) {
+                try { localStorage.setItem('brikks_notif_seen_count', String(totalCount)); } catch (_e) { /* ignore */ }
+                this.updateNotificationBadges(0);
+            } else {
+                // Vérifier si l'utilisateur a déjà vu ce nombre
+                var seenCount = 0;
+                try { seenCount = parseInt(localStorage.getItem('brikks_notif_seen_count') || '0', 10); } catch (_e) { /* ignore */ }
+
+                if (totalCount > seenCount) {
+                    this.updateNotificationBadges(totalCount);
                 } else {
-                    // Vérifier si l'utilisateur a déjà vu ce nombre
-                    var seenCount = 0;
-                    try { seenCount = parseInt(localStorage.getItem('brikks_notif_seen_count') || '0', 10); } catch (_e) { /* ignore */ }
-
-                    // Afficher les badges seulement si nouvelles soumissions depuis la dernière consultation
-                    if (count > seenCount) {
-                        this.updateNotificationBadges(count);
-                    } else {
-                        this.updateNotificationBadges(0);
-                    }
+                    this.updateNotificationBadges(0);
                 }
             }
         } catch (error) {

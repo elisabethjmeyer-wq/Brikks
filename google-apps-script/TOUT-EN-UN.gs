@@ -457,6 +457,9 @@ function handleRequest(e) {
       case 'saveEvaluationCorrection':
         result = saveEvaluationCorrection(request);
         break;
+      case 'signalerRendu':
+        result = signalerRendu(request);
+        break;
 
       // PARAMETRES NOTES & SOMMATIVES
       case 'getParametresNotes':
@@ -6985,7 +6988,7 @@ function repondreDemandeEvaluation(data) {
   // Migration progressive — ajouter les colonnes manquantes
   var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
-  var migrationCols = ['type_date', 'remarque_prof'];
+  var migrationCols = ['type_date', 'remarque_prof', 'sujet_visible'];
   migrationCols.forEach(function(col) {
     if (headerNames.indexOf(col) < 0) {
       sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
@@ -7020,6 +7023,10 @@ function repondreDemandeEvaluation(data) {
       }
       if (data.remarque_prof && remarqueProfCol >= 0) {
         sheet.getRange(i + 1, remarqueProfCol + 1).setValue(data.remarque_prof);
+      }
+      var sujetVisCol = headers.indexOf('sujet_visible');
+      if (sujetVisCol >= 0) {
+        sheet.getRange(i + 1, sujetVisCol + 1).setValue(data.sujet_visible === true || data.sujet_visible === 'true');
       }
       return { success: true, message: 'Demande ' + data.decision };
     }
@@ -7173,6 +7180,40 @@ function saveEvaluationCorrection(data) {
   }
 
   return { success: true, message: 'Correction enregistrée' };
+}
+
+/**
+ * L'élève signale qu'il a rendu sa copie (bonus/TC).
+ * Met à jour demande_statut → 'rendu'.
+ * @param {Object} data - { evaluation_id, eleve_id }
+ */
+function signalerRendu(data) {
+  if (!data.evaluation_id || !data.eleve_id) {
+    return { success: false, error: 'evaluation_id et eleve_id requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet non trouvée' };
+  }
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var evalIdCol = headers.indexOf('evaluation_id');
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var demandeCol = headers.indexOf('demande_statut');
+
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][evalIdCol]).trim() === String(data.evaluation_id).trim() &&
+        String(allData[i][eleveIdCol]).trim() === String(data.eleve_id).trim() &&
+        demandeCol >= 0 && String(allData[i][demandeCol]).trim() === 'accepte') {
+      sheet.getRange(i + 1, demandeCol + 1).setValue('rendu');
+      return { success: true, message: 'Rendu signalé' };
+    }
+  }
+
+  return { success: false, error: 'Demande acceptée non trouvée' };
 }
 
 // ================================================================

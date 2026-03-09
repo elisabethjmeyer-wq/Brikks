@@ -447,6 +447,9 @@ function handleRequest(e) {
       case 'saveEvaluationCorrection':
         result = saveEvaluationCorrection(request);
         break;
+      case 'signalerRendu':
+        result = signalerRendu(request);
+        break;
 
       // PARAMETRES NOTES & SOMMATIVES
       case 'getParametresNotes':

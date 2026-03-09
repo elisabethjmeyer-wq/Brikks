@@ -808,3 +808,59 @@
     background: var(--gray-100);
     color: var(--gray-500);
 }
+
+/* ===== BONUS CARDS IN EVALUATIONS TAB ===== */
+
+.card-bonus-date {
+    font-size: 13px;
+    color: var(--gray-600);
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+.card-bonus-remarque {
+    font-size: 12px;
+    color: var(--gray-500);
+    font-style: italic;
+    margin-top: 2px;
+}
+
+.btn-rendu {
+    background: #f59e0b !important;
+    color: white !important;
+    border: none;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+.btn-rendu:hover {
+    background: #d97706 !important;
+}
+
+/* ===== TOAST NOTIFICATION ===== */
+
+.eleve-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1e293b;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.eleve-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}

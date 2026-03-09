@@ -427,6 +427,10 @@ const EleveEvaluations = {
                     cardStatus = 'demande_envoyee';
                 } else if (demandeStatut === 'accepte') {
                     cardStatus = 'demande_acceptee';
+                } else if (demandeStatut === 'rendu') {
+                    cardStatus = 'rendu';
+                } else if (demandeStatut === 'corrige') {
+                    cardStatus = this._isTruthy(resultat.is_validated) ? 'validated' : 'failed';
                 } else if (demandeStatut === 'refuse') {
                     cardStatus = 'demande_refusee';
                 } else if (resultat && this._isTruthy(resultat.is_validated)) {
@@ -436,7 +440,21 @@ const EleveEvaluations = {
                 } else {
                     cardStatus = 'disponible';
                 }
-                this.categories.bonus.push({ ...ev, resultat, cardStatus, demandeStatut });
+
+                const cardData = { ...ev, resultat, cardStatus, demandeStatut, mode_passation: 'papier' };
+
+                // Bonus accepté → migre dans l'onglet Évaluations (section "À passer")
+                if (cardStatus === 'demande_acceptee' || cardStatus === 'rendu') {
+                    this.categories.available.push(cardData);
+                    return;
+                }
+                // Bonus terminé (corrigé/validé/failed) → dans "Terminées"
+                if (cardStatus === 'validated' || cardStatus === 'failed') {
+                    this.categories.done.push(cardData);
+                    return;
+                }
+                // Sinon (disponible, demande_envoyee, refusee, suivi) → onglet Bonus
+                this.categories.bonus.push(cardData);
                 return;
             }
 
@@ -852,23 +870,40 @@ const EleveEvaluations = {
      * Demander à être évalué(e)
      */
     async demanderEvaluation(evaluationId) {
+        // Feedback immédiat : désactiver le bouton
+        const btn = event ? event.target : null;
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Envoi...';
+        }
+
         try {
             const result = await this.callAPI('demanderEvaluation', {
                 evaluation_id: evaluationId,
                 eleve_id: this.currentUserId
             });
             if (result.success) {
-                // Refresh data
+                // Invalider le cache avant le reload
+                SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
                 await this.loadData();
                 this.categorizeEvaluations();
                 this.render();
                 this.updateTabCounts();
+                this._showToast('Demande envoyée !');
             } else {
                 alert(result.error || 'Erreur lors de la demande');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'Demander';
+                }
             }
         } catch (error) {
             console.error('Erreur demande:', error);
             alert('Erreur réseau');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Demander';
+            }
         }
     },
 
@@ -876,9 +911,34 @@ const EleveEvaluations = {
      * Consulter le sujet d'une évaluation acceptée (lecture seule)
      */
     consulterSujet(evaluationId) {
-        // TODO: ouvrir une vue lecture seule du sujet
-        // Pour l'instant, redirige vers la page évaluation en mode review
         window.location.href = 'evaluation.html?id=' + evaluationId + '&mode=sujet';
+    },
+
+    /**
+     * L'élève signale qu'il a rendu sa copie
+     */
+    async signalerRendu(evaluationId) {
+        if (!confirm('Confirmer que vous avez rendu votre copie ?')) return;
+
+        try {
+            const result = await this.callAPI('signalerRendu', {
+                evaluation_id: evaluationId,
+                eleve_id: this.currentUserId
+            });
+            if (result.success) {
+                SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+                await this.loadData();
+                this.categorizeEvaluations();
+                this.render();
+                this.updateTabCounts();
+                this._showToast('Rendu signal\u00e9 !');
+            } else {
+                alert(result.error || 'Erreur');
+            }
+        } catch (error) {
+            console.error('Erreur signaler rendu:', error);
+            alert('Erreur r\u00e9seau');
+        }
     },
 
     _renderSection(title, evals, cssClass) {
@@ -969,7 +1029,28 @@ const EleveEvaluations = {
 
         // Action
         let actionHtml = '';
-        if (cardStatus === 'available' && !isPapier) {
+        let statusExtra = '';
+        if (cardStatus === 'demande_acceptee') {
+            // Bonus accepté migré dans "Évaluations"
+            const dateRendu = resultat ? (resultat.date_rendu || '') : '';
+            const typeDate = resultat ? String(resultat.type_date || '').trim() : '';
+            const dateLabel = typeDate === 'date_butoir' ? 'À rendre avant le' : 'Passage en classe le';
+            if (dateRendu) {
+                statusExtra = `<div class="card-bonus-date">${dateLabel} ${escapeHtml(this.formatDate(dateRendu))}</div>`;
+            }
+            const remarque = resultat ? (resultat.remarque_prof || '') : '';
+            if (remarque) {
+                statusExtra += `<div class="card-bonus-remarque">${escapeHtml(remarque)}</div>`;
+            }
+            // Boutons : consulter sujet (si autorisé) + "J'ai rendu"
+            const sujetVisible = resultat && (resultat.sujet_visible === true || resultat.sujet_visible === 'true' || resultat.sujet_visible === 'TRUE');
+            if (sujetVisible) {
+                actionHtml = `<a href="evaluation.html?id=${evaluation.id}&mode=sujet" class="card-btn type-bonus" onclick="event.stopPropagation()">Consulter le sujet</a>`;
+            }
+            actionHtml += `<button class="card-btn btn-rendu" onclick="event.stopPropagation(); EleveEvaluations.signalerRendu('${evaluation.id}')">J'ai rendu ma copie</button>`;
+        } else if (cardStatus === 'rendu') {
+            statusExtra = '<span class="bonus-status en-attente" style="align-self:flex-start">En attente de correction</span>';
+        } else if (cardStatus === 'available' && !isPapier) {
             actionHtml = `<a href="evaluation.html?id=${evaluation.id}" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Commencer</a>`;
         } else if (cardStatus === 'available' && isPapier) {
             actionHtml = '<div class="card-action-info papier">En classe</div>';
@@ -977,6 +1058,10 @@ const EleveEvaluations = {
             actionHtml = `<div class="card-action-info upcoming">${escapeHtml(this.getCountdown(evaluation.date_ouverture))}</div>`;
         } else if (isMissed) {
             actionHtml = '';
+        } else if (isDone && resultat) {
+            clickAttr = ` onclick="EleveEvaluations.openReview('${evaluation.id}')"`;
+            cardClass += ' clickable';
+            actionHtml = '<div class="card-detail-link">Voir le détail →</div>';
         } else if (isDone && !isPapier) {
             actionHtml = '<div class="card-detail-link">Voir le détail →</div>';
         }
@@ -992,6 +1077,7 @@ const EleveEvaluations = {
                         ${typeSubtitle}
                         ${metaLine}
                         ${conditionLine}
+                        ${statusExtra}
                     </div>
                     <div class="card-right">
                         ${pointsBadge}
@@ -1156,6 +1242,20 @@ const EleveEvaluations = {
                 }
             }, 30000);
         });
+    },
+
+    _showToast(message) {
+        const existing = document.querySelector('.eleve-toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.className = 'eleve-toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.classList.add('visible'), 10);
+        setTimeout(() => {
+            toast.classList.remove('visible');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
 };
 
