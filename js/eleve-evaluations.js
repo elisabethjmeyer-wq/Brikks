@@ -778,11 +778,7 @@ const EleveEvaluations = {
         } else if (cardStatus === 'demande_acceptee') {
             const dateRendu = resultat ? (resultat.date_rendu || '') : '';
             const typeDate = resultat ? String(resultat.type_date || '').trim() : '';
-            let dateInfo = '';
-            if (dateRendu) {
-                const dateLabel = typeDate === 'date_butoir' ? 'À rendre avant le' : 'Passage en classe le';
-                dateInfo = `<div class="bonus-date-info">${dateLabel} ${escapeHtml(this.formatDate(dateRendu))}</div>`;
-            }
+            const dateInfo = dateRendu ? `<div class="bonus-date-info">${escapeHtml(this._formatDateRendu(dateRendu, typeDate))}</div>` : '';
             const remarque = resultat ? (resultat.remarque_prof || '') : '';
             const remarqueHtml = remarque ? `<div class="bonus-remarque">${escapeHtml(remarque)}</div>` : '';
             statusHtml = `<span class="bonus-status accepte">Accepté</span>${dateInfo}${remarqueHtml}`;
@@ -1056,9 +1052,8 @@ const EleveEvaluations = {
             // Bonus accepté migré dans "Évaluations"
             const dateRendu = resultat ? (resultat.date_rendu || '') : '';
             const typeDate = resultat ? String(resultat.type_date || '').trim() : '';
-            const dateLabel = typeDate === 'date_butoir' ? 'À rendre avant le' : 'Passage en classe le';
             if (dateRendu) {
-                statusExtra = `<div class="card-bonus-date">${dateLabel} ${escapeHtml(this.formatDate(dateRendu))}</div>`;
+                statusExtra = `<div class="card-bonus-date">${escapeHtml(this._formatDateRendu(dateRendu, typeDate))}</div>`;
             }
             const remarque = resultat ? (resultat.remarque_prof || '') : '';
             if (remarque) {
@@ -1215,20 +1210,63 @@ const EleveEvaluations = {
     },
 
     // ========== HELPERS ==========
+    /**
+     * Formate une date de rendu avec label adapté au type.
+     * date_butoir : "À rendre le Lun 10 mar" ou "À rendre le Lun 10 mar (avant 14h30)"
+     * passage_classe : "Passage en classe le Lun 10 mar" ou "Passage en classe le Lun 10 mar à 14h30"
+     */
+    _formatDateRendu(dateStr, typeDate) {
+        if (!dateStr) return '';
+        const str = String(dateStr).trim();
+        const hasTime = str.includes('T');
+        const dateOnly = this._formatDateOnly(str);
+        const timeStr = hasTime ? this._extractTime(str) : '';
+
+        if (typeDate === 'date_butoir') {
+            if (timeStr) return `À rendre le ${dateOnly} (avant ${timeStr})`;
+            return `À rendre le ${dateOnly}`;
+        }
+        // passage_classe
+        if (timeStr) return `Passage en classe le ${dateOnly} à ${timeStr}`;
+        return `Passage en classe le ${dateOnly}`;
+    },
+
+    /** Extrait la partie date formatée (sans heure) */
+    _formatDateOnly(dateStr) {
+        const str = String(dateStr).trim();
+        const datePart = str.includes('T') ? str.split('T')[0] : str;
+        const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+        const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
+        const parts = datePart.split('-');
+        const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        return `${days[date.getDay()]} ${date.getDate()} ${months[date.getMonth()]}`;
+    },
+
+    /** Extrait l'heure formatée "14h30" depuis "2026-03-10T14:30" */
+    _extractTime(dateStr) {
+        const str = String(dateStr).trim();
+        if (!str.includes('T')) return '';
+        const timePart = str.split('T')[1];
+        const tParts = timePart.split(':');
+        const h = parseInt(tParts[0]);
+        const min = String(parseInt(tParts[1] || 0)).padStart(2, '0');
+        return `${h}h${min}`;
+    },
+
+    /**
+     * Formate une date pour affichage.
+     * "2026-03-10" → "Lun 10 mar" (date seule, pas d'heure parasite)
+     * "2026-03-10T14:30" → "Lun 10 mar à 14h30" (date + heure)
+     */
     formatDate(dateStr) {
         if (!dateStr) return '';
         try {
-            const date = new Date(dateStr);
-            const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-            const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
-            const d = days[date.getDay()];
-            const num = date.getDate();
-            const m = months[date.getMonth()];
-            const h = date.getHours();
-            const min = String(date.getMinutes()).padStart(2, '0');
-            if (h === 0 && min === '00') return `${d} ${num} ${m}`;
-            return `${d} ${num} ${m} à ${h}h${min}`;
-        } catch { return dateStr; }
+            const str = String(dateStr).trim();
+            const dateOnly = this._formatDateOnly(str);
+            const timeStr = this._extractTime(str);
+            if (timeStr) return `${dateOnly} à ${timeStr}`;
+            return dateOnly;
+        } catch (_e) { return dateStr; }
     },
 
     getCountdown(dateStr) {
