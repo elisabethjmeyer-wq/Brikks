@@ -627,45 +627,91 @@
     align-self: start;
 }
 
+/* Bandeau matière */
+.sujet-matiere-banner {
+    border-left: 3px solid #6b7280;
+    padding: 6px 12px;
+    background: var(--gray-50, #f9fafb);
+    border-radius: 6px;
+}
+
+.sujet-matiere-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Carte compétence */
 .sujet-criteres-block {
     background: white;
     border-radius: 12px;
-    padding: 20px;
+    padding: 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+/* Bouton toggle compétence */
+.sujet-comp-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.sujet-comp-toggle:hover {
+    background: var(--gray-50, #f9fafb);
+}
+
+.sujet-comp-arrow {
+    font-size: 12px;
+    color: var(--gray-400, #9ca3af);
+    flex-shrink: 0;
+    width: 14px;
+    transition: transform 0.15s ease;
 }
 
 .sujet-criteres-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #7c3aed;
-    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-800, #1f2937);
+    margin: 0;
+    flex: 1;
+    line-height: 1.3;
 }
 
-.sujet-criteres-hint {
+.sujet-comp-count {
     font-size: 12px;
     color: var(--gray-400, #9ca3af);
-    margin: 0 0 16px 0;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
+/* Liste critères (repliable) */
 .sujet-criteres-list {
-    display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
+    padding: 0 16px 14px;
 }
 
 .sujet-critere-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 14px;
+    padding: 8px 12px;
     background: var(--gray-50, #f9fafb);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--gray-700, #374151);
 }
 
 .sujet-critere-check {
-    font-size: 16px;
+    font-size: 15px;
     color: var(--gray-300, #d1d5db);
     flex-shrink: 0;
 }
