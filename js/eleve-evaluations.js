@@ -406,8 +406,6 @@ const EleveEvaluations = {
             const effectiveStatut = this._computeEffectiveStatut(ev);
             const isBonus = ev.type === 'bonus';
             const isTC = ev.type === 'competences';
-            // Les TC "sur demande" vont dans bonus, les TC obligatoires restent dans évaluations
-            const isTCBonus = isTC && !ev.date_ouverture && !ev.date_fermeture;
 
             // Détecter le statut de demande pour bonus/TC
             const demandeStatut = resultat ? String(resultat.demande_statut || '').trim() : '';
@@ -415,7 +413,7 @@ const EleveEvaluations = {
 
             // Déterminer le cardStatus en fonction du type
             let cardStatus;
-            if (isBonus || isTCBonus) {
+            if (isBonus) {
                 // Bonus et TC sur demande : statuts basés sur le workflow de demande
                 if (sousType === 'suivi') {
                     // Suivi : progression, pas de demande
