@@ -63,6 +63,18 @@ const AdminEvaluations = {
         try {
             await this.loadData();
             this.setupEventListeners();
+
+            // Si hash #bonus-demandes, basculer sur l'onglet bonus + vue demandes
+            if (window.location.hash === '#bonus-demandes') {
+                this.currentType = 'bonus';
+                this._bonusView = 'demandes';
+                // Mettre à jour l'UI des onglets
+                document.querySelectorAll('.eval-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                    if (tab.dataset.type === 'bonus') tab.classList.add('active');
+                });
+            }
+
             this.updateCounts();
             this.renderEvaluations();
             this.updateCorrectionsBanner();
@@ -398,13 +410,6 @@ const AdminEvaluations = {
         if (this.currentType === 'bonus') {
             const demandesCount = this._getDemandesEnAttente().length;
             const isDemandesView = this._bonusView === 'demandes';
-
-            // Vérifier le hash pour ouvrir directement les demandes
-            if (window.location.hash === '#bonus-demandes' && !this._hashChecked) {
-                this._hashChecked = true;
-                this._bonusView = 'demandes';
-                return this.renderEvaluations();
-            }
 
             let toggleHtml = '<div class="bonus-view-toggle">';
             toggleHtml += `<button class="bonus-toggle-btn ${!isDemandesView ? 'active' : ''}" onclick="AdminEvaluations._setBonusView('creer')">Créer évaluations</button>`;
