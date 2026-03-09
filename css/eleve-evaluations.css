@@ -757,6 +757,11 @@
     color: #991b1b;
 }
 
+.bonus-status.sujet-avance {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
 .bonus-date-info {
     font-size: 13px;
     color: var(--gray-600);
