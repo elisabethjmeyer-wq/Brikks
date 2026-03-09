@@ -66,6 +66,7 @@ const AdminEvaluations = {
             this.updateCounts();
             this.renderEvaluations();
             this.updateCorrectionsBanner();
+            this.updateDemandesBanner();
             this.showContent();
         } catch (error) {
             console.error('Erreur initialisation:', error);
@@ -123,7 +124,12 @@ const AdminEvaluations = {
 
         // Count corrections needed (competences with statut 'soumis')
         const eleveCompetences = SheetsAPI.parseSheetData(eleveCompetencesData);
-        this.correctionsCount = eleveCompetences.filter(ec => ec.statut === 'soumis').length;
+        this.correctionsCountComp = eleveCompetences.filter(ec => ec.statut === 'soumis').length;
+        // Bonus/TC count will be added after resultats are loaded
+        this.correctionsCount = this.correctionsCountComp;
+
+        // Count pending demandes (demande_statut === 'demande')
+        // Will be computed after resultats are loaded
 
         // Connaissances data (for cascade dropdown)
         this.banquesExercicesConn = SheetsAPI.parseSheetData(banquesExercicesConnData);
@@ -159,6 +165,13 @@ const AdminEvaluations = {
         } catch (_e) {
             this.resultats = [];
         }
+
+        // Update corrections count to include bonus/TC copies awaiting correction
+        const bonusTCPending = this.resultats.filter(r => {
+            const ds = String(r.demande_statut || '').trim();
+            return ds === 'accepte' && !r.correction_prof && !r.criteres_valides;
+        }).length;
+        this.correctionsCount = this.correctionsCountComp + bonusTCPending;
 
         // Load progression evaluation
         try {
@@ -1892,6 +1905,14 @@ const AdminEvaluations = {
 
         const showSujet = evaluation.type === 'connaissances' || evaluation.type === 'savoir-faire';
         const isConn = evaluation.type === 'connaissances';
+        const isBonusSuivi = evaluation.type === 'bonus' && String(evaluation.sous_type_bonus || '').trim() === 'suivi';
+        const isBonusOrTC = evaluation.type === 'bonus' || evaluation.type === 'competences';
+
+        // Bonus suivi → tableau spécial avec checkboxes progressives
+        if (isBonusSuivi) {
+            this._renderSaisieSuivi(evaluation, evalResults, resultsMap);
+            return;
+        }
 
         // Prepare banques for attribution dropdowns
         let banques = [];
@@ -1903,14 +1924,18 @@ const AdminEvaluations = {
                 .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
         }
 
-        // Build table headers — structure unifiée conn + SF
+        // Build table headers — adapté selon le type
+        const showScoreDuree = !isBonusOrTC;
+        const showRemarque = isBonusOrTC;
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
             ${showSujet ? '<th class="col-banque">Banque</th>' : ''}
             ${showSujet ? '<th class="col-entrainement">Exercice</th>' : ''}
-            <th class="col-score">Score (%)</th>
-            <th class="col-duree">Durée</th>
+            ${isBonusOrTC ? '<th class="col-statut-demande">Statut</th>' : ''}
+            ${showScoreDuree ? '<th class="col-score">Score (%)</th>' : ''}
+            ${showScoreDuree ? '<th class="col-duree">Durée</th>' : ''}
             <th class="col-resultat">Résultat</th>
+            ${showRemarque ? '<th class="col-remarque">Remarque</th>' : ''}
         `;
 
         // Render student rows
@@ -1933,10 +1958,30 @@ const AdminEvaluations = {
             const isNR = validations === 'non_rendu';
 
             // Score : lecture seule (affiche uniquement les remontées auto)
-            const scoreCell = `<td class="col-score">${score !== '' ? score + '%' : '—'}</td>`;
+            const scoreCell = showScoreDuree ? `<td class="col-score">${score !== '' ? score + '%' : '—'}</td>` : '';
 
             // Durée : lecture seule
-            const dureeCell = `<td class="col-duree">${r.temps_passe ? this._formatDuree(r.temps_passe) : '—'}</td>`;
+            const dureeCell = showScoreDuree ? `<td class="col-duree">${r.temps_passe ? this._formatDuree(r.temps_passe) : '—'}</td>` : '';
+
+            // Statut demande (pour bonus/TC)
+            let statutDemandeCell = '';
+            if (isBonusOrTC) {
+                const demandeStatut = String(r.demande_statut || '').trim();
+                let statutLabel = '—';
+                let statutClass = '';
+                if (demandeStatut === 'demande') { statutLabel = 'Demandé'; statutClass = 'statut-demande'; }
+                else if (demandeStatut === 'accepte') { statutLabel = 'Accepté'; statutClass = 'statut-accepte'; }
+                else if (demandeStatut === 'refuse') { statutLabel = 'Refusé'; statutClass = 'statut-refuse'; }
+                statutDemandeCell = `<td class="col-statut-demande"><span class="saisie-statut ${statutClass}">${statutLabel}</span></td>`;
+            }
+
+            // Remarque (pour bonus/TC)
+            const remarqueVal = r.remarque_texte || '';
+            const remarqueCell = showRemarque ? `<td class="col-remarque">
+                <input type="text" class="saisie-input remarque-input" value="${escapeHtml(remarqueVal)}"
+                    placeholder="Remarque..."
+                    onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'remarque_texte', this.value)">
+            </td>` : '';
 
             // Attribution: banque + entraînement dropdowns
             let banqueCell = '';
@@ -2050,6 +2095,7 @@ const AdminEvaluations = {
                     </td>
                     ${banqueCell}
                     ${entrainementCell}
+                    ${statutDemandeCell}
                     ${scoreCell}
                     ${dureeCell}
                     <td class="col-resultat">
@@ -2058,6 +2104,7 @@ const AdminEvaluations = {
                             ${resultatOptions}
                         </select>
                     </td>
+                    ${remarqueCell}
                 </tr>
             `;
         }).join('');
@@ -2722,6 +2769,331 @@ const AdminEvaluations = {
             return Math.min(lastValidatedIndex + 1, banques.length - 1);
         }
         return 0; // Aucune banque validée → première banque
+    },
+
+    // ========== SAISIE SUIVI (bonus suivi — checkboxes progressives) ==========
+
+    /**
+     * Rendu spécial pour le bonus suivi : checkboxes progressives (1/5, 2/5...)
+     */
+    _renderSaisieSuivi(evaluation, evalResults, resultsMap) {
+        const nbValidations = parseInt(evaluation.nb_validations) || 5;
+        const maxPts = evaluation.briques || 10;
+
+        // Build header: Élève + N colonnes de validation + Total + Points
+        let headerCols = '<th class="col-eleve">Élève</th>';
+        for (let i = 1; i <= nbValidations; i++) {
+            headerCols += `<th class="col-validation">V${i}</th>`;
+        }
+        headerCols += '<th class="col-total">Total</th>';
+        headerCols += '<th class="col-points">Points</th>';
+        document.getElementById('saisieTableHead').innerHTML = headerCols;
+
+        const tbody = document.getElementById('saisieTableBody');
+        tbody.innerHTML = this.eleves.map(eleve => {
+            const r = resultsMap[String(eleve.id).trim()] || {};
+            const currentValidations = parseInt(r.validation_numero) || 0;
+            const isComplete = currentValidations >= nbValidations;
+            const points = isComplete ? maxPts : 0;
+
+            // Build checkbox cells
+            let checkboxCells = '';
+            for (let i = 1; i <= nbValidations; i++) {
+                const checked = i <= currentValidations ? 'checked' : '';
+                const disabled = i > currentValidations + 1 ? 'disabled' : ''; // Only next one is clickable
+                checkboxCells += `
+                    <td class="col-validation">
+                        <input type="checkbox" class="suivi-checkbox" ${checked} ${disabled}
+                            data-eleve="${eleve.id}" data-validation="${i}"
+                            onchange="AdminEvaluations.onSuiviCheckChange('${eleve.id}', ${i}, this.checked)">
+                    </td>`;
+            }
+
+            return `
+                <tr data-eleve-id="${eleve.id}" class="${isComplete ? 'success-row' : ''}">
+                    <td class="col-eleve">
+                        <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
+                    </td>
+                    ${checkboxCells}
+                    <td class="col-total">
+                        <span class="suivi-progress">${currentValidations}/${nbValidations}</span>
+                    </td>
+                    <td class="col-points">
+                        <span class="suivi-points ${isComplete ? 'complete' : ''}">${points}/${maxPts}</span>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Hide loader, show table
+        document.getElementById('saisieLoader').style.display = 'none';
+        document.getElementById('saisieTableContainer').style.display = '';
+    },
+
+    /**
+     * Gère le clic sur une checkbox suivi
+     */
+    async onSuiviCheckChange(eleveId, validationNum, checked) {
+        // Si on décoche, on revient à validation_numero - 1
+        const newValidation = checked ? validationNum : validationNum - 1;
+
+        // Disable all checkboxes during save
+        document.querySelectorAll('.suivi-checkbox').forEach(cb => cb.disabled = true);
+
+        try {
+            const result = await this.callAPI('saveValidationSuivi', {
+                evaluation_id: this.saisieEvaluation.id,
+                eleve_id: eleveId,
+                validation_numero: newValidation
+            });
+
+            if (result.success) {
+                const nbValidations = parseInt(this.saisieEvaluation.nb_validations) || 5;
+                const maxPts = this.saisieEvaluation.briques || 10;
+                const isComplete = newValidation >= nbValidations;
+
+                // Update row visually
+                const row = document.querySelector(`tr[data-eleve-id="${eleveId}"]`);
+                if (row) {
+                    // Update checkboxes
+                    row.querySelectorAll('.suivi-checkbox').forEach(cb => {
+                        const vNum = parseInt(cb.dataset.validation);
+                        cb.checked = vNum <= newValidation;
+                        cb.disabled = vNum > newValidation + 1;
+                    });
+                    // Update total
+                    const totalEl = row.querySelector('.suivi-progress');
+                    if (totalEl) totalEl.textContent = `${newValidation}/${nbValidations}`;
+                    // Update points
+                    const ptsEl = row.querySelector('.suivi-points');
+                    if (ptsEl) {
+                        const pts = isComplete ? maxPts : 0;
+                        ptsEl.textContent = `${pts}/${maxPts}`;
+                        ptsEl.classList.toggle('complete', isComplete);
+                    }
+                    row.classList.toggle('success-row', isComplete);
+                }
+
+                // Si complet → aussi sauvegarder comme résultat d'évaluation validé
+                if (isComplete) {
+                    await this.callAPI('saveEvaluationResult', {
+                        evaluation_id: this.saisieEvaluation.id,
+                        eleve_id: eleveId,
+                        validations: maxPts,
+                        is_validated: true,
+                        source: 'saisie_admin'
+                    });
+                }
+
+                this.showNotification(`Validation ${newValidation}/${nbValidations} enregistrée`);
+            } else {
+                this.showNotification(result.error || 'Erreur', 'error');
+                // Revert checkbox
+                const cb = document.querySelector(`.suivi-checkbox[data-eleve="${eleveId}"][data-validation="${validationNum}"]`);
+                if (cb) cb.checked = !checked;
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde suivi:', error);
+            this.showNotification('Erreur réseau', 'error');
+            const cb = document.querySelector(`.suivi-checkbox[data-eleve="${eleveId}"][data-validation="${validationNum}"]`);
+            if (cb) cb.checked = !checked;
+        } finally {
+            // Re-enable checkboxes
+            document.querySelectorAll('.suivi-checkbox').forEach(cb => {
+                const vNum = parseInt(cb.dataset.validation);
+                const row = cb.closest('tr');
+                const currentVal = parseInt(row.querySelector('.suivi-progress').textContent) || 0;
+                cb.disabled = vNum > currentVal + 1;
+            });
+        }
+    },
+
+    // ========== DEMANDES D'ÉVALUATION ==========
+
+    /**
+     * Retourne les demandes en attente (demande_statut === 'demande')
+     */
+    _getDemandesEnAttente() {
+        return (this.resultats || []).filter(r =>
+            String(r.demande_statut || '').trim() === 'demande'
+        );
+    },
+
+    /**
+     * Met à jour le bandeau des demandes en attente
+     */
+    updateDemandesBanner() {
+        const demandes = this._getDemandesEnAttente();
+        const banner = document.getElementById('demandesBanner');
+        const countEl = document.getElementById('demandesCount');
+        if (banner && countEl) {
+            if (demandes.length > 0) {
+                countEl.textContent = demandes.length;
+                banner.style.display = 'flex';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+    },
+
+    /**
+     * Ouvre la modal avec la liste des demandes en attente
+     */
+    openDemandesList() {
+        const modal = document.getElementById('demandesModal');
+        modal.classList.remove('hidden');
+
+        const demandes = this._getDemandesEnAttente();
+        const loading = document.getElementById('demandesLoading');
+        const container = document.getElementById('demandesListContainer');
+        const empty = document.getElementById('demandesEmpty');
+        const content = document.getElementById('demandesListContent');
+
+        loading.style.display = 'none';
+        container.style.display = '';
+
+        if (demandes.length === 0) {
+            empty.style.display = '';
+            content.innerHTML = '';
+            return;
+        }
+        empty.style.display = 'none';
+
+        content.innerHTML = demandes.map(d => {
+            const eleve = (this.eleves || []).find(e => String(e.id).trim() === String(d.eleve_id).trim());
+            const evaluation = (this.evaluations || []).find(e => String(e.id).trim() === String(d.evaluation_id).trim());
+            const eleveName = eleve ? `${eleve.prenom || ''} ${eleve.nom || ''}`.trim() : d.eleve_id;
+            const evalTitle = evaluation ? (evaluation.titre || 'Sans titre') : d.evaluation_id;
+            const evalType = evaluation ? (evaluation.type || '') : '';
+            const sousType = evaluation ? (evaluation.sous_type_bonus || evaluation.sous_type_comp || '') : '';
+            const dateStr = d.date_demande ? new Date(d.date_demande).toLocaleDateString('fr-FR') : '';
+
+            // Badge type
+            let typeBadge = '';
+            if (evalType === 'bonus' && sousType === 'competence') {
+                typeBadge = '<span class="demande-badge purple">Bonus compétence</span>';
+            } else if (evalType === 'bonus' && sousType === 'ponctuel') {
+                typeBadge = '<span class="demande-badge teal">Bonus ponctuel</span>';
+            } else if (evalType === 'competences') {
+                typeBadge = '<span class="demande-badge red">Tâche complexe</span>';
+            } else {
+                typeBadge = `<span class="demande-badge gray">${escapeHtml(evalType)}</span>`;
+            }
+
+            return `
+                <div class="demande-card">
+                    <div class="demande-card-left">
+                        <div class="demande-eleve">${escapeHtml(eleveName)}</div>
+                        <div class="demande-eval">
+                            ${typeBadge}
+                            <span class="demande-eval-title">${escapeHtml(evalTitle)}</span>
+                        </div>
+                        <div class="demande-date">Demandé le ${escapeHtml(dateStr)}</div>
+                    </div>
+                    <div class="demande-card-actions">
+                        <button class="btn btn-sm btn-primary" onclick="AdminEvaluations.openReponseModal('${d.evaluation_id}', '${d.eleve_id}')">Répondre</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    closeDemandesModal() {
+        document.getElementById('demandesModal').classList.add('hidden');
+    },
+
+    /**
+     * Ouvre la modal de réponse pour une demande
+     */
+    openReponseModal(evaluationId, eleveId) {
+        const modal = document.getElementById('reponseDemandeModal');
+        document.getElementById('reponseEvaluationId').value = evaluationId;
+        document.getElementById('reponseEleveId').value = eleveId;
+
+        // Reset state
+        document.getElementById('acceptFields').style.display = 'none';
+        document.getElementById('btnAccepter').classList.remove('selected');
+        document.getElementById('btnRefuser').classList.remove('selected');
+        document.getElementById('saveReponseBtn').disabled = true;
+        document.getElementById('reponseRemarque').value = '';
+        document.getElementById('reponseDate').value = '';
+        this._reponseDecision = null;
+
+        // Info about the demande
+        const eleve = (this.eleves || []).find(e => String(e.id).trim() === String(eleveId).trim());
+        const evaluation = (this.evaluations || []).find(e => String(e.id).trim() === String(evaluationId).trim());
+        const eleveName = eleve ? `${eleve.prenom || ''} ${eleve.nom || ''}`.trim() : eleveId;
+        const evalTitle = evaluation ? (evaluation.titre || 'Sans titre') : evaluationId;
+        document.getElementById('reponseDemandeInfo').innerHTML = `
+            <p><strong>Élève :</strong> ${escapeHtml(eleveName)}</p>
+            <p><strong>Évaluation :</strong> ${escapeHtml(evalTitle)}</p>
+        `;
+
+        modal.classList.remove('hidden');
+    },
+
+    closeReponseModal() {
+        document.getElementById('reponseDemandeModal').classList.add('hidden');
+        this._reponseDecision = null;
+    },
+
+    setDecision(decision) {
+        this._reponseDecision = decision;
+        document.getElementById('btnAccepter').classList.toggle('selected', decision === 'accepte');
+        document.getElementById('btnRefuser').classList.toggle('selected', decision === 'refuse');
+        document.getElementById('acceptFields').style.display = decision === 'accepte' ? '' : 'none';
+        document.getElementById('saveReponseBtn').disabled = false;
+    },
+
+    async saveReponse() {
+        if (!this._reponseDecision) return;
+
+        const evaluationId = document.getElementById('reponseEvaluationId').value;
+        const eleveId = document.getElementById('reponseEleveId').value;
+        const typeDate = document.getElementById('reponseTypeDate').value;
+        const dateRendu = document.getElementById('reponseDate').value;
+        const remarque = document.getElementById('reponseRemarque').value;
+
+        const saveBtn = document.getElementById('saveReponseBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Envoi...';
+
+        try {
+            const result = await this.callAPI('repondreDemandeEvaluation', {
+                evaluation_id: evaluationId,
+                eleve_id: eleveId,
+                decision: this._reponseDecision,
+                date_rendu: this._reponseDecision === 'accepte' ? dateRendu : '',
+                type_date: this._reponseDecision === 'accepte' ? typeDate : '',
+                remarque_prof: remarque
+            });
+
+            if (result.success) {
+                this.showNotification(
+                    this._reponseDecision === 'accepte' ? 'Demande acceptée' : 'Demande refusée'
+                );
+                this.closeReponseModal();
+
+                // Refresh data
+                SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+                const freshResultats = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+                this.resultats = SheetsAPI.parseSheetData(freshResultats);
+                this.updateDemandesBanner();
+
+                // Refresh demandes list if modal is still open
+                if (!document.getElementById('demandesModal').classList.contains('hidden')) {
+                    this.openDemandesList();
+                }
+            } else {
+                this.showNotification(result.error || 'Erreur lors de la réponse', 'error');
+            }
+        } catch (error) {
+            console.error('Erreur réponse demande:', error);
+            this.showNotification('Erreur réseau', 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Confirmer';
+        }
     },
 
     // ========== API ==========

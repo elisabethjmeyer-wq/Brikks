@@ -444,6 +444,9 @@ function handleRequest(e) {
       case 'saveValidationSuivi':
         result = saveValidationSuivi(request);
         break;
+      case 'saveEvaluationCorrection':
+        result = saveEvaluationCorrection(request);
+        break;
 
       // PARAMETRES NOTES & SOMMATIVES
       case 'getParametresNotes':

@@ -142,6 +142,140 @@
     font-size: 18px;
 }
 
+/* Demandes banner */
+.demandes-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: var(--radius);
+    padding: 14px 24px;
+    margin-bottom: 24px;
+}
+
+.demandes-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--gray-800);
+}
+
+.demandes-icon {
+    font-size: 18px;
+}
+
+/* Demandes list */
+.demande-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    background: white;
+}
+
+.demande-card-left {
+    flex: 1;
+}
+
+.demande-eleve {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+}
+
+.demande-eval {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--gray-600);
+    margin-bottom: 2px;
+}
+
+.demande-eval-title {
+    font-weight: 500;
+}
+
+.demande-date {
+    font-size: 12px;
+    color: var(--gray-400);
+}
+
+.demande-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.demande-badge.purple { background: #f3e8ff; color: #7c3aed; }
+.demande-badge.teal { background: #e0f7f5; color: #0d9488; }
+.demande-badge.red { background: #fee2e2; color: #dc2626; }
+.demande-badge.gray { background: var(--gray-100); color: var(--gray-600); }
+
+.demande-card-actions {
+    flex-shrink: 0;
+    margin-left: 16px;
+}
+
+/* Réponse demande modal */
+.demande-info {
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.demande-info p { margin: 0; }
+
+.decision-btns {
+    display: flex;
+    gap: 12px;
+}
+
+.decision-btn {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid var(--gray-200);
+    border-radius: var(--radius);
+    background: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+}
+
+.decision-btn.accept:hover,
+.decision-btn.accept.selected {
+    border-color: #10b981;
+    background: #ecfdf5;
+    color: #065f46;
+}
+
+.decision-btn.refuse:hover,
+.decision-btn.refuse.selected {
+    border-color: #ef4444;
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.demandes-empty {
+    text-align: center;
+    padding: 32px;
+    color: var(--gray-400);
+}
+
 .btn-sm {
     padding: 6px 12px;
     font-size: 12px;
@@ -1748,4 +1882,81 @@
 .attribution-banque-select,
 .attribution-entrainement-select {
     width: 100%;
+}
+
+/* ===== SAISIE SUIVI (checkboxes progressives) ===== */
+.suivi-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #10b981;
+}
+
+.suivi-checkbox:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.col-validation {
+    text-align: center;
+    width: 50px;
+}
+
+.suivi-progress {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--gray-600);
+}
+
+.suivi-points {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--gray-400);
+}
+
+.suivi-points.complete {
+    color: #10b981;
+}
+
+.col-total, .col-points {
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* ===== STATUT DEMANDE dans la saisie ===== */
+.saisie-statut {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.saisie-statut.statut-demande {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.saisie-statut.statut-accepte {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.saisie-statut.statut-refuse {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.col-statut-demande {
+    width: 100px;
+    text-align: center;
+}
+
+.col-remarque {
+    min-width: 150px;
+}
+
+.col-remarque .remarque-input {
+    width: 100%;
+    font-size: 13px;
 }

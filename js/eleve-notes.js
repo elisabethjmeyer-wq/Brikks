@@ -344,78 +344,98 @@ const EleveResultats = {
             c.visible !== false && c.visible !== 'false' && c.visible !== 'FALSE'
         );
 
+        const self = this;
+
         return visibleComps.map(comp => {
+            const compIdStr = String(comp.id).trim();
             const criteres = this.criteresReussite
-                .filter(cr => String(cr.competence_id).trim() === String(comp.id).trim())
+                .filter(cr => String(cr.competence_id).trim() === compIdStr)
                 .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0))
                 .map(cr => cr.libelle || '');
 
-            // Find banques for this competence
+            // ---- Source 1: EleveEntrainementsCompetences (competence training) ----
             const compBanques = this.banquesComps.filter(bc =>
-                String(bc.competence_id).trim() === String(comp.id).trim()
+                String(bc.competence_id).trim() === compIdStr
             );
             const banqueIds = new Set(compBanques.map(bc => String(bc.id).trim()));
-
-            // Find entrainements in those banques
             const entrIds = new Set(
                 this.entrComps
                     .filter(e => banqueIds.has(String(e.banque_id).trim()))
                     .map(e => String(e.id).trim())
             );
 
-            // Find student entries for those entrainements
-            const passages = this.eleveEntrComps
+            const trainingPassages = this.eleveEntrComps
                 .filter(ec => entrIds.has(String(ec.entrainement_id).trim()))
                 .filter(ec => ec.statut === 'valide' || ec.statut === 'non_valide')
-                .sort((a, b) => {
-                    const da = a.date_soumission || a.date_debut || '';
-                    const db = b.date_soumission || b.date_debut || '';
-                    return da.localeCompare(db);
-                });
+                .map(p => ({
+                    id: p.id,
+                    date: self._formatDate(p.date_soumission || p.date_debut) || '',
+                    reussi: p.statut === 'valide',
+                    source: 'training',
+                    bonus: false
+                }));
 
-            // Get points from evaluation results for this competence's evaluations
-            const compEvals = this.evaluations.filter(ev => {
-                const cat = ev.categorie || ev.type;
-                if (cat !== 'competences') return false;
-                const m = ev.matiere || '';
-                return m === matiere || m === 'Les deux';
-            });
+            // ---- Source 2: EVALUATION_RESULTATS (bonus comp + TC) ----
+            const evalPassages = [];
+            this.evaluations.forEach(ev => {
+                const evType = String(ev.type || '').trim();
+                const sousTypeBonus = String(ev.sous_type_bonus || '').trim();
+                const evMatiere = ev.matiere || '';
+                if (evMatiere !== matiere && evMatiere !== 'Les deux') return;
 
-            let validationCount = 0;
-            const mappedPassages = passages.map(p => {
-                const reussi = p.statut === 'valide';
-                if (reussi) validationCount++;
-                const date = this._formatDate(p.date_soumission || p.date_debut) || '';
+                // Check if this evaluation targets this competence
+                let targetsComp = false;
+                let isBonus = false;
 
-                // Try to find associated eval result for points
-                let pts = 0;
-                if (reussi) {
-                    // Find evaluation with matching competence
-                    for (const ev of compEvals) {
-                        const r = this.resultats.find(res =>
-                            String(res.evaluation_id).trim() === String(ev.id).trim()
-                        );
-                        if (r && parseFloat(r.validations) > 0) {
-                            pts = parseFloat(r.validations) || 0;
-                            break;
-                        }
-                    }
-                    // Fallback: use increasing points per validation
-                    if (!pts) pts = validationCount <= 1 ? 1 : validationCount <= 2 ? 1.5 : 2;
+                if (evType === 'competences') {
+                    // TC: check competence_ids
+                    const compIds = self._parseJSON(ev.competence_ids, []);
+                    targetsComp = compIds.map(String).indexOf(compIdStr) !== -1;
+                } else if (evType === 'bonus' && sousTypeBonus === 'competence') {
+                    // Bonus comp: check competence_id
+                    targetsComp = String(ev.competence_id || '').trim() === compIdStr;
+                    isBonus = true;
                 }
 
-                // Check if bonus passage
-                const entrainement = this.entrComps.find(e => String(e.id).trim() === String(p.entrainement_id).trim());
-                const banque = entrainement ? this.banquesComps.find(bc => String(bc.id).trim() === String(entrainement.banque_id).trim()) : null;
-                const isBonus = banque ? (banque.type === 'bonus') : false;
+                if (!targetsComp) return;
 
+                // Find corrected result for this evaluation
+                const r = self.resultats.find(res =>
+                    String(res.evaluation_id).trim() === String(ev.id).trim() &&
+                    String(res.demande_statut || '').trim() === 'corrige'
+                );
+                if (!r) return;
+
+                const isValid = r.is_validated === true || r.is_validated === 'true' || String(r.is_validated) === 'TRUE';
+                evalPassages.push({
+                    id: r.id || ev.id,
+                    date: self._formatDate(r.date_passage) || '',
+                    reussi: isValid,
+                    source: evType === 'competences' ? 'tc' : 'bonus_comp',
+                    bonus: isBonus,
+                    evalTitle: ev.titre || ''
+                });
+            });
+
+            // Merge and sort all passages by date
+            const allPassages = trainingPassages.concat(evalPassages).sort((a, b) =>
+                (a.date || '').localeCompare(b.date || '')
+            );
+
+            // Count validations and assign points
+            let validationCount = 0;
+            const mappedPassages = allPassages.map(p => {
+                if (p.reussi) validationCount++;
+                const pts = p.reussi ? (validationCount <= 1 ? 1 : validationCount <= 2 ? 1.5 : 2) : 0;
                 return {
                     id: p.id,
-                    date,
-                    reussi,
-                    pts: reussi ? pts : 0,
-                    validation: reussi ? validationCount : null,
-                    bonus: isBonus
+                    date: p.date,
+                    reussi: p.reussi,
+                    pts,
+                    validation: p.reussi ? validationCount : null,
+                    bonus: p.bonus,
+                    source: p.source,
+                    evalTitle: p.evalTitle || ''
                 };
             });
 
@@ -436,6 +456,7 @@ const EleveResultats = {
     _getBonusData(matiere, semestre) {
         const bonusEvals = this._getEvalsForMatiere(matiere, semestre)
             .filter(ev => (ev.categorie || ev.type) === 'bonus');
+        const self = this;
 
         return bonusEvals.map(ev => {
             const r = this.resultats.find(res => String(res.evaluation_id).trim() === String(ev.id).trim());
@@ -443,16 +464,57 @@ const EleveResultats = {
             const acquis = r ? parseFloat(r.validations) || 0 : 0;
             const valide = r && (r.is_validated === true || r.is_validated === 'true' || r.is_validated === 'TRUE');
             const date = r ? this._formatDate(r.date_passage) : null;
+            const sousType = String(ev.sous_type_bonus || 'ponctuel').trim();
+
+            // Determine critères based on sub-type
+            let criteres = [];
+            if (sousType === 'ponctuel') {
+                // Critères libres from the linked exercise
+                const exId = ev.exercice_bonus_id || '';
+                if (exId) {
+                    const exercise = self.entrComps.find(e => String(e.id).trim() === String(exId).trim());
+                    if (exercise && exercise.criteres_libres) {
+                        criteres = self._parseJSON(exercise.criteres_libres, []);
+                    }
+                }
+                if (criteres.length === 0) {
+                    criteres = ev.criteres ? self._parseJSON(ev.criteres, []) : [];
+                }
+            } else if (sousType === 'competence') {
+                // Critères from the linked competence
+                const compId = ev.competence_id || '';
+                if (compId) {
+                    criteres = self.criteresReussite
+                        .filter(cr => String(cr.competence_id).trim() === String(compId).trim())
+                        .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0))
+                        .map(cr => cr.libelle || '');
+                }
+            }
+
+            // Suivi: count validations
+            let suiviProgress = null;
+            if (sousType === 'suivi') {
+                const nbValidations = parseInt(ev.nb_validations) || 5;
+                const validationsDone = r ? (parseInt(r.validations) || 0) : 0;
+                suiviProgress = { done: validationsDone, total: nbValidations };
+            }
+
+            // Demande statut for bonus comp/ponctuel
+            const demandeStatut = r ? String(r.demande_statut || '').trim() : '';
 
             return {
                 id: ev.id,
                 nom: ev.titre || 'Bonus',
-                type: 'ponctuel',
+                sousType,
                 pts,
                 valide: !!valide,
                 date,
                 acquis,
-                criteres: ev.criteres ? (typeof ev.criteres === 'string' ? this._parseJSON(ev.criteres, []) : ev.criteres) : []
+                criteres,
+                suiviProgress,
+                demandeStatut,
+                competenceNom: sousType === 'competence' && ev.competence_id ?
+                    (self.competencesRef.find(c => String(c.id).trim() === String(ev.competence_id).trim()) || {}).nom || '' : ''
             };
         });
     },
@@ -896,8 +958,11 @@ const EleveResultats = {
                 h += '<div class="comp-passage-info"><div class="comp-passage-name ' + (p.reussi ? 'success' : 'fail') + '">';
                 h += p.reussi ? 'Validation ' + p.validation : 'Non validé';
                 if (isBonus) h += ' <span class="comp-passage-bonus-tag">\u2B50 Bonus</span>';
+                if (p.source === 'tc') h += ' <span class="comp-passage-source-tag tc">\u{1F534} TC</span>';
                 h += '</div>';
-                h += '<div class="comp-passage-date">' + p.date + '</div></div>';
+                h += '<div class="comp-passage-date">' + p.date;
+                if (p.evalTitle) h += ' \u2014 ' + escapeHtml(p.evalTitle);
+                h += '</div></div>';
                 if (p.reussi) {
                     const ptsBg = isBonus ? C.yelBg : C.purBg;
                     const ptsColor = isBonus ? C.yel : C.pur;
@@ -943,15 +1008,42 @@ const EleveResultats = {
         const isOpen = this._openBonus[b.id];
         const showCrit = this._openBonusCrit[b.id];
         const C = this.COLORS;
+
+        if (b.sousType === 'suivi') return this._renderBonusSuiviCard(b, isOpen);
+
         const complet = b.valide;
         const ptsDisplay = b.valide ? b.acquis : 0;
+
+        // Type badge info
+        const typeInfo = b.sousType === 'competence'
+            ? { label: 'Compétence', color: '#7c3aed', bg: '#f5f3ff' }
+            : { label: 'Ponctuel', color: '#0d9488', bg: '#f0fdfa' };
 
         let h = '<div class="bonus-card' + (isOpen ? ' open' : '') + '">';
         h += '<div class="bonus-header" onclick="EleveResultats.toggleBonus(\'' + b.id + '\')">';
         h += '<span class="bonus-icon">\u2B50</span>';
         h += '<div class="bonus-name"><div class="bonus-name-text" style="color:' + (complet ? '#1f2937' : '#6b7280') + '">' + escapeHtml(b.nom) + '</div>';
-        h += '<div class="bonus-name-sub">' + (b.valide ? 'Validé le ' + (b.date || '') : 'En attente');
+        h += '<div class="bonus-name-sub">';
+        h += '<span class="bonus-type-tag" style="background:' + typeInfo.bg + ';color:' + typeInfo.color + '">' + typeInfo.label + '</span> ';
+
+        // Status text
+        if (b.demandeStatut === 'demande') {
+            h += 'Demandé';
+        } else if (b.demandeStatut === 'accepte' || b.demandeStatut === 'acceptée') {
+            h += 'Accepté — en attente de correction';
+        } else if (b.demandeStatut === 'refuse') {
+            h += '<span style="color:#ef4444">Refusé</span>';
+        } else if (b.valide) {
+            h += 'Validé le ' + (b.date || '');
+        } else if (b.demandeStatut === 'corrige') {
+            h += 'Non validé';
+        } else {
+            h += 'Disponible';
+        }
         if (complet) h += '<span class="complete">Complet \u2713</span>';
+        if (b.sousType === 'competence' && b.competenceNom) {
+            h += '<span class="bonus-comp-ref" style="color:' + C.pur + '"> \u2014 ' + escapeHtml(b.competenceNom) + '</span>';
+        }
         h += '</div></div>';
 
         const badgeBg = complet ? '#d1fae5' : ptsDisplay > 0 ? C.yelBg : '#f3f4f6';
@@ -959,7 +1051,9 @@ const EleveResultats = {
         h += '<span class="bonus-pts-badge" style="background:' + badgeBg + ';color:' + badgeColor + '">' + (ptsDisplay > 0 ? '+' + ptsDisplay + ' pts' : b.pts + ' pts') + '</span>';
 
         // Status dot
-        h += '<div class="bonus-ponctuel-dot" style="background:' + (b.valide ? '#059669' : '#e5e7eb') + '">' + (b.valide ? '\u2713' : '?') + '</div>';
+        const dotBg = b.valide ? '#059669' : b.demandeStatut === 'corrige' ? '#ef4444' : '#e5e7eb';
+        const dotText = b.valide ? '\u2713' : b.demandeStatut === 'corrige' ? '\u2717' : '?';
+        h += '<div class="bonus-ponctuel-dot" style="background:' + dotBg + '">' + dotText + '</div>';
         h += '<span class="bonus-chevron">\u203A</span>';
         h += '</div>';
 
@@ -980,18 +1074,76 @@ const EleveResultats = {
         }
 
         // Status box
-        const statusBg = b.valide ? '#f0fdf4' : '#f9fafb';
-        const statusBorder = b.valide ? '#bbf7d0' : '#e5e7eb';
+        const statusBg = b.valide ? '#f0fdf4' : b.demandeStatut === 'corrige' ? '#fef2f2' : '#f9fafb';
+        const statusBorder = b.valide ? '#bbf7d0' : b.demandeStatut === 'corrige' ? '#fecaca' : '#e5e7eb';
         h += '<div class="bonus-status-box" style="background:' + statusBg + ';border:1px solid ' + statusBorder + '">';
-        h += '<span class="bonus-status-icon">' + (b.valide ? '\u2705' : '\u23F3') + '</span>';
-        h += '<div class="bonus-status-info"><div class="bonus-status-text" style="color:' + (b.valide ? '#059669' : '#6b7280') + '">' + (b.valide ? 'Validé' : 'En attente de validation') + '</div>';
-        if (b.valide && b.date) h += '<div class="bonus-status-date">' + b.date + '</div>';
-        h += '</div>';
+
         if (b.valide) {
+            h += '<span class="bonus-status-icon">\u2705</span>';
+            h += '<div class="bonus-status-info"><div class="bonus-status-text" style="color:#059669">Validé</div>';
+            if (b.date) h += '<div class="bonus-status-date">' + b.date + '</div>';
+            h += '</div>';
             h += '<span class="comp-passage-pts" style="background:' + C.yelBg + ';color:' + C.yel + '">+' + b.acquis + '</span>';
-            h += '<span class="res-detail-link">Remarque et correction \u2192</span>';
+        } else if (b.demandeStatut === 'corrige') {
+            h += '<span class="bonus-status-icon">\u274C</span>';
+            h += '<div class="bonus-status-info"><div class="bonus-status-text" style="color:#ef4444">Non validé</div></div>';
+        } else if (b.demandeStatut === 'accepte' || b.demandeStatut === 'acceptée') {
+            h += '<span class="bonus-status-icon">\u{1F4DD}</span>';
+            h += '<div class="bonus-status-info"><div class="bonus-status-text" style="color:#f59e0b">En attente de correction</div></div>';
+        } else if (b.demandeStatut === 'demande') {
+            h += '<span class="bonus-status-icon">\u23F3</span>';
+            h += '<div class="bonus-status-info"><div class="bonus-status-text" style="color:#6b7280">Demande en cours</div></div>';
+        } else {
+            h += '<span class="bonus-status-icon">\u23F3</span>';
+            h += '<div class="bonus-status-info"><div class="bonus-status-text" style="color:#6b7280">En attente</div></div>';
         }
         h += '</div>';
+
+        h += '</div></div>';
+        return h;
+    },
+
+    /** Render a bonus suivi card with progress bar */
+    _renderBonusSuiviCard(b, isOpen) {
+        const C = this.COLORS;
+        const sp = b.suiviProgress || { done: 0, total: 5 };
+        const pct = sp.total > 0 ? Math.round((sp.done / sp.total) * 100) : 0;
+        const isComplete = sp.done >= sp.total;
+
+        let h = '<div class="bonus-card' + (isOpen ? ' open' : '') + '">';
+        h += '<div class="bonus-header" onclick="EleveResultats.toggleBonus(\'' + b.id + '\')">';
+        h += '<span class="bonus-icon">\u2B50</span>';
+        h += '<div class="bonus-name"><div class="bonus-name-text" style="color:' + (isComplete ? '#1f2937' : '#6b7280') + '">' + escapeHtml(b.nom) + '</div>';
+        h += '<div class="bonus-name-sub">';
+        h += '<span class="bonus-type-tag" style="background:#fefce8;color:#ca8a04">Suivi</span> ';
+        h += sp.done + '/' + sp.total + ' validation' + (sp.done > 1 ? 's' : '');
+        if (isComplete) h += '<span class="complete">Objectif atteint \u2713</span>';
+        h += '</div></div>';
+
+        const badgeBg = isComplete ? '#d1fae5' : sp.done > 0 ? C.yelBg : '#f3f4f6';
+        const badgeColor = isComplete ? '#059669' : sp.done > 0 ? C.yel : '#d1d5db';
+        h += '<span class="bonus-pts-badge" style="background:' + badgeBg + ';color:' + badgeColor + '">' + (b.acquis > 0 ? '+' + b.acquis : b.pts) + ' pts</span>';
+
+        h += '<span class="bonus-chevron">\u203A</span>';
+        h += '</div>';
+
+        // Detail
+        h += '<div class="bonus-detail">';
+
+        // Progress bar
+        h += '<div class="suivi-progress-section" style="margin-top:12px">';
+        h += '<div class="suivi-progress-bar"><div class="suivi-progress-fill" style="width:' + pct + '%;background:' + (isComplete ? '#059669' : C.yel) + '"></div></div>';
+        h += '<div class="suivi-progress-label">' + pct + '% — ' + sp.done + ' / ' + sp.total + '</div>';
+
+        // Checkboxes (read-only)
+        h += '<div class="suivi-checks">';
+        for (let i = 1; i <= sp.total; i++) {
+            const done = i <= sp.done;
+            h += '<div class="suivi-check ' + (done ? 'done' : 'pending') + '">';
+            h += '<span class="suivi-check-icon">' + (done ? '\u2705' : '\u2B1C') + '</span>';
+            h += '<span>V' + i + '</span></div>';
+        }
+        h += '</div></div>';
 
         h += '</div></div>';
         return h;

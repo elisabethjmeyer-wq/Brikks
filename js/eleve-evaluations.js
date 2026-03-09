@@ -64,13 +64,14 @@ const EleveEvaluations = {
     },
 
     async loadData() {
-        const [evaluationsData, resultatsData, parametresData, sommativesData, resSommativesData, objectifsData] = await Promise.all([
+        const [evaluationsData, resultatsData, parametresData, sommativesData, resSommativesData, objectifsData, competencesRefData] = await Promise.all([
             SheetsAPI.getSheetData('EVALUATIONS').catch(() => []),
             SheetsAPI.getSheetData('EVALUATION_RESULTATS').catch(() => []),
             SheetsAPI.getSheetData('PARAMETRES_NOTES').catch(() => []),
             SheetsAPI.getSheetData('NOTES_SOMMATIVES').catch(() => []),
             SheetsAPI.getSheetData('RESULTATS_SOMMATIVES').catch(() => []),
-            SheetsAPI.getSheetData('OBJECTIFS_ELEVES').catch(() => [])
+            SheetsAPI.getSheetData('OBJECTIFS_ELEVES').catch(() => []),
+            SheetsAPI.getSheetData('CompetencesReferentiel').catch(() => [])
         ]);
 
         this.evaluations = SheetsAPI.parseSheetData(evaluationsData);
@@ -88,11 +89,59 @@ const EleveEvaluations = {
             String(r.eleve_id).trim() === String(this.currentUserId).trim()
         );
 
+        this.competencesReferentiel = SheetsAPI.parseSheetData(competencesRefData);
+
+        // Calculer les validations par compétence pour le plafond (3 max)
+        this._computeCompetenceValidations();
+
         // Only visible evaluations
         this.evaluations = this.evaluations.filter(e => {
             const s = this._computeEffectiveStatut(e);
             return s === 'planifiee' || s === 'publiee' || s === 'terminee';
         });
+    },
+
+    /**
+     * Calcule le nombre de validations par compétence pour l'élève courant
+     * Sources : resultats d'évaluations validés liés à une compétence
+     */
+    _computeCompetenceValidations() {
+        this.competenceValidations = {}; // { competence_id: count }
+        const allResultats = this.resultats.filter(r => this._isTruthy(r.is_validated));
+        allResultats.forEach(r => {
+            const evalId = String(r.evaluation_id || '').trim();
+            const evaluation = this.evaluations.find(e => String(e.id).trim() === evalId);
+            if (!evaluation) return;
+            // Bonus compétence : 1 compétence via competence_id
+            if (evaluation.type === 'bonus' && String(evaluation.sous_type_bonus || '').trim() === 'competence') {
+                const compId = String(evaluation.competence_id || '').trim();
+                if (compId) {
+                    this.competenceValidations[compId] = (this.competenceValidations[compId] || 0) + 1;
+                }
+            }
+            // TC : plusieurs compétences via competence_ids
+            if (evaluation.type === 'competences') {
+                try {
+                    const ids = JSON.parse(evaluation.competence_ids || '[]');
+                    // Vérifier quelles compétences ont été validées
+                    let validIds = ids;
+                    if (r.competence_ids_validees) {
+                        try { validIds = JSON.parse(r.competence_ids_validees); } catch (_e) { /* use all */ }
+                    }
+                    validIds.forEach(id => {
+                        const cid = String(id).trim();
+                        if (cid) this.competenceValidations[cid] = (this.competenceValidations[cid] || 0) + 1;
+                    });
+                } catch (_e) { /* ignore */ }
+            }
+        });
+    },
+
+    /**
+     * Vérifie si une compétence est acquise (3 validations atteintes)
+     */
+    _isCompetenceAcquise(competenceId) {
+        return (this.competenceValidations[String(competenceId).trim()] || 0) >= 3;
     },
 
     // ========== SEMESTRE ==========
@@ -356,10 +405,63 @@ const EleveEvaluations = {
             );
             const effectiveStatut = this._computeEffectiveStatut(ev);
             const isBonus = ev.type === 'bonus';
+            const isTC = ev.type === 'competences';
+            // Les TC "sur demande" vont dans bonus, les TC obligatoires restent dans évaluations
+            const isTCBonus = isTC && !ev.date_ouverture && !ev.date_fermeture;
 
+            // Détecter le statut de demande pour bonus/TC
+            const demandeStatut = resultat ? String(resultat.demande_statut || '').trim() : '';
+            const sousType = String(ev.sous_type_bonus || '').trim();
+
+            // Déterminer le cardStatus en fonction du type
+            let cardStatus;
+            if (isBonus || isTCBonus) {
+                // Bonus et TC sur demande : statuts basés sur le workflow de demande
+                if (sousType === 'suivi') {
+                    // Suivi : progression, pas de demande
+                    const validNum = resultat ? (parseInt(resultat.validation_numero) || 0) : 0;
+                    const nbTotal = parseInt(ev.nb_validations) || 5;
+                    const isComplete = validNum >= nbTotal;
+                    cardStatus = isComplete ? 'suivi_complete' : 'suivi_en_cours';
+                } else if (demandeStatut === 'demande') {
+                    cardStatus = 'demande_envoyee';
+                } else if (demandeStatut === 'accepte') {
+                    cardStatus = 'demande_acceptee';
+                } else if (demandeStatut === 'refuse') {
+                    cardStatus = 'demande_refusee';
+                } else if (resultat && this._isTruthy(resultat.is_validated)) {
+                    cardStatus = 'validated';
+                } else if (resultat && resultat.id && !this._isTruthy(resultat.is_validated) && resultat.validations !== undefined && resultat.validations !== '') {
+                    cardStatus = 'failed';
+                } else {
+                    cardStatus = 'disponible';
+                }
+                this.categories.bonus.push({ ...ev, resultat, cardStatus, demandeStatut });
+                return;
+            }
+
+            // TC obligatoire (avec dates) → va dans évaluations classiques
+            if (isTC) {
+                if (resultat && this._isTruthy(resultat.is_validated)) {
+                    cardStatus = 'validated';
+                } else if (resultat && resultat.id) {
+                    cardStatus = 'done';
+                } else if (effectiveStatut === 'planifiee') {
+                    cardStatus = 'upcoming';
+                } else {
+                    cardStatus = 'available';
+                }
+                // Les TC ne se passent pas en ligne → forcer mode papier
+                const evWithPapier = { ...ev, resultat, cardStatus, mode_passation: 'papier' };
+                if (cardStatus === 'upcoming') this.categories.upcoming.push(evWithPapier);
+                else if (cardStatus === 'available') this.categories.available.push(evWithPapier);
+                else this.categories.done.push(evWithPapier);
+                return;
+            }
+
+            // Types classiques (connaissances, savoir-faire)
             if (effectiveStatut === 'terminee') {
                 if (resultat) {
-                    // statut_resultat contient 'non_rendu' ou 'absent' si la prof l'a saisi
                     const statutRes = String(resultat.statut_resultat || '').trim();
                     if (statutRes === 'non_rendu') {
                         this.categories.done.push({ ...ev, resultat, cardStatus: 'non_rendu' });
@@ -369,34 +471,28 @@ const EleveEvaluations = {
                         this.categories.done.push({ ...ev, resultat, cardStatus: 'done' });
                     }
                 } else {
-                    // Pas de résultat du tout → carte visible en "non passée"
                     this.categories.done.push({ ...ev, cardStatus: 'not_done' });
                 }
                 return;
             }
 
             if (effectiveStatut === 'planifiee') {
-                if (isBonus) this.categories.bonus.push({ ...ev, cardStatus: 'upcoming' });
-                else this.categories.upcoming.push({ ...ev, cardStatus: 'upcoming' });
+                this.categories.upcoming.push({ ...ev, cardStatus: 'upcoming' });
                 return;
             }
 
             if (resultat) {
-                // Vérifier NR/ABS même si l'éval n'est pas encore terminée
                 const statutRes = String(resultat.statut_resultat || '').trim();
                 if (statutRes === 'non_rendu' || statutRes === 'absent') {
                     const cs = statutRes === 'non_rendu' ? 'non_rendu' : 'absent';
-                    if (isBonus) this.categories.bonus.push({ ...ev, resultat, cardStatus: cs });
-                    else this.categories.done.push({ ...ev, resultat, cardStatus: cs });
+                    this.categories.done.push({ ...ev, resultat, cardStatus: cs });
                     return;
                 }
                 const isValidated = this._isTruthy(resultat.is_validated);
                 const status = isValidated ? 'validated' : 'failed';
-                if (isBonus) this.categories.bonus.push({ ...ev, resultat, cardStatus: status });
-                else this.categories.done.push({ ...ev, resultat, cardStatus: status });
+                this.categories.done.push({ ...ev, resultat, cardStatus: status });
             } else {
-                if (isBonus) this.categories.bonus.push({ ...ev, cardStatus: 'available' });
-                else this.categories.available.push({ ...ev, cardStatus: 'available' });
+                this.categories.available.push({ ...ev, cardStatus: 'available' });
             }
         });
 
@@ -522,34 +618,267 @@ const EleveEvaluations = {
                 <div class="empty-state">
                     <div class="empty-icon">⭐</div>
                     <h3>Aucun bonus disponible</h3>
-                    <p>Passe des évaluations bonus pour gagner des points supplémentaires !</p>
+                    <p>Des évaluations bonus apparaîtront ici pour gagner des points supplémentaires !</p>
                 </div>
             `;
             return;
         }
 
-        const availableBonus = bonus.filter(b => b.cardStatus === 'available');
-        const doneBonus = bonus.filter(b => b.cardStatus === 'validated' || b.cardStatus === 'failed');
-        const upcomingBonus = bonus.filter(b => b.cardStatus === 'upcoming');
+        // Séparer par état
+        const actifs = bonus.filter(b =>
+            b.cardStatus === 'disponible' || b.cardStatus === 'demande_envoyee' ||
+            b.cardStatus === 'demande_acceptee' || b.cardStatus === 'demande_refusee' ||
+            b.cardStatus === 'suivi_en_cours'
+        );
+        const termines = bonus.filter(b =>
+            b.cardStatus === 'validated' || b.cardStatus === 'failed' ||
+            b.cardStatus === 'suivi_complete'
+        );
 
         let html = '';
-        if (availableBonus.length > 0) html += this._renderSection('Disponibles', availableBonus, 'section-active');
-        if (upcomingBonus.length > 0) html += this._renderSection('À venir', upcomingBonus, 'section-upcoming');
-        if (doneBonus.length > 0) {
+        if (actifs.length > 0) {
+            html += this._renderBonusSection('Disponibles', actifs, 'section-active');
+        }
+        if (termines.length > 0) {
             html += `
                 <div class="eval-section section-done">
                     <button class="section-header collapsible" onclick="EleveEvaluations.toggleSection(this)">
-                        <h2>Terminés <span class="section-count">${doneBonus.length}</span></h2>
+                        <h2>Terminés <span class="section-count">${termines.length}</span></h2>
                         <span class="section-toggle">▼</span>
                     </button>
                     <div class="section-cards collapsed">
-                        ${doneBonus.map(e => this.renderCard(e)).join('')}
+                        ${termines.map(e => this.renderBonusCard(e)).join('')}
                     </div>
                 </div>
             `;
         }
 
         container.innerHTML = html;
+    },
+
+    _renderBonusSection(title, evals, cssClass) {
+        return `
+            <div class="eval-section ${cssClass}">
+                <div class="section-header">
+                    <h2>${title} <span class="section-count">${evals.length}</span></h2>
+                </div>
+                <div class="section-cards">
+                    ${evals.map(e => this.renderBonusCard(e)).join('')}
+                </div>
+            </div>
+        `;
+    },
+
+    // ========== BONUS CARD ==========
+    renderBonusCard(evaluation) {
+        const sousType = String(evaluation.sous_type_bonus || '').trim();
+        const isTC = evaluation.type === 'competences';
+
+        if (sousType === 'suivi') return this._renderBonusSuiviCard(evaluation);
+        // Bonus compétence, ponctuel, ou TC sur demande
+        return this._renderBonusDemandeCard(evaluation, isTC);
+    },
+
+    /**
+     * Carte bonus avec workflow de demande (compétence, ponctuel, TC)
+     */
+    _renderBonusDemandeCard(evaluation, isTC) {
+        const sousType = String(evaluation.sous_type_bonus || '').trim();
+        const cardStatus = evaluation.cardStatus;
+        const resultat = evaluation.resultat;
+        const briques = parseInt(evaluation.briques) || 1;
+        const title = evaluation.titre || 'Évaluation bonus';
+
+        // Plafond 3 validations pour bonus compétence
+        const competenceId = String(evaluation.competence_id || '').trim();
+        const isAcquise = sousType === 'competence' && competenceId && this._isCompetenceAcquise(competenceId);
+
+        // Badge type
+        let typeBadge, typeColor;
+        if (isTC) {
+            typeBadge = 'Tâche complexe';
+            typeColor = '#dc2626';
+        } else if (sousType === 'competence') {
+            typeBadge = 'Bonus compétence';
+            typeColor = '#8b5cf6';
+        } else {
+            typeBadge = 'Bonus ponctuel';
+            typeColor = '#0d9488';
+        }
+
+        let cardClass = 'eval-card bonus-card';
+        if (isAcquise) cardClass += ' acquise';
+        if (cardStatus === 'validated') cardClass += ' done validated';
+        if (cardStatus === 'failed') cardClass += ' done failed';
+
+        // Points badge
+        let pointsBadge;
+        if (cardStatus === 'validated' && resultat) {
+            const pts = parseFloat(resultat.validations) || 0;
+            pointsBadge = `<span class="card-points earned">+${pts}</span>`;
+        } else if (cardStatus === 'failed') {
+            pointsBadge = '<span class="card-points lost">+0</span>';
+        } else {
+            pointsBadge = `<span class="card-points pending">${briques} point${briques > 1 ? 's' : ''} à gagner</span>`;
+        }
+
+        // Statut + action
+        let statusHtml = '';
+        let actionHtml = '';
+
+        if (isAcquise && cardStatus === 'disponible') {
+            statusHtml = '<span class="bonus-status acquise">Compétence acquise</span>';
+            actionHtml = '';
+        } else if (cardStatus === 'disponible') {
+            statusHtml = '<span class="bonus-status disponible">Disponible</span>';
+            actionHtml = `<button class="card-btn type-bonus" onclick="event.stopPropagation(); EleveEvaluations.demanderEvaluation('${evaluation.id}')">Demander</button>`;
+        } else if (cardStatus === 'demande_envoyee') {
+            statusHtml = '<span class="bonus-status en-attente">Demande envoyée</span>';
+            actionHtml = '<div class="card-action-info">En attente de réponse</div>';
+        } else if (cardStatus === 'demande_acceptee') {
+            const dateRendu = resultat ? (resultat.date_rendu || '') : '';
+            const typeDate = resultat ? String(resultat.type_date || '').trim() : '';
+            let dateInfo = '';
+            if (dateRendu) {
+                const dateLabel = typeDate === 'date_butoir' ? 'À rendre avant le' : 'Passage en classe le';
+                dateInfo = `<div class="bonus-date-info">${dateLabel} ${escapeHtml(this.formatDate(dateRendu))}</div>`;
+            }
+            const remarque = resultat ? (resultat.remarque_prof || '') : '';
+            const remarqueHtml = remarque ? `<div class="bonus-remarque">${escapeHtml(remarque)}</div>` : '';
+            statusHtml = `<span class="bonus-status accepte">Accepté</span>${dateInfo}${remarqueHtml}`;
+            actionHtml = '<div class="card-action-info">Consulter le sujet</div>';
+            cardClass += ' clickable';
+        } else if (cardStatus === 'demande_refusee') {
+            const remarque = resultat ? (resultat.remarque_prof || '') : '';
+            const remarqueHtml = remarque ? `<div class="bonus-remarque">${escapeHtml(remarque)}</div>` : '';
+            statusHtml = `<span class="bonus-status refuse">Refusé</span>${remarqueHtml}`;
+        } else if (cardStatus === 'validated') {
+            statusHtml = '<span class="bonus-status valide">Validé</span>';
+            actionHtml = '<div class="card-detail-link">Voir la correction →</div>';
+            cardClass += ' clickable';
+        } else if (cardStatus === 'failed') {
+            statusHtml = '<span class="bonus-status non-valide">Non validé</span>';
+            actionHtml = '<div class="card-detail-link">Voir la correction →</div>';
+            cardClass += ' clickable';
+        }
+
+        // Click handler for review
+        let clickAttr = '';
+        if (cardStatus === 'validated' || cardStatus === 'failed') {
+            clickAttr = ` onclick="EleveEvaluations.openReview('${evaluation.id}')"`;
+        } else if (cardStatus === 'demande_acceptee') {
+            clickAttr = ` onclick="EleveEvaluations.consulterSujet('${evaluation.id}')"`;
+        }
+
+        // Meta
+        const metaParts = [];
+        const matiere = evaluation.matiere || '';
+        if (matiere && matiere !== 'Les deux') metaParts.push(`<span class="meta-matiere">${escapeHtml(matiere)}</span>`);
+        if (matiere === 'Les deux') metaParts.push('<span class="meta-matiere">FR + HG</span>');
+        const metaLine = metaParts.length > 0
+            ? `<div class="card-meta">${metaParts.join('<span class="meta-sep">·</span>')}</div>`
+            : '';
+
+        return `
+            <div class="${cardClass}"${clickAttr}>
+                <div class="card-layout">
+                    <div class="card-info">
+                        <div class="card-title-row">
+                            <span class="card-bullet" style="background:${typeColor}"></span>
+                            <h3 class="card-title">${escapeHtml(title)}</h3>
+                        </div>
+                        <div class="card-type" style="color:${typeColor}">${typeBadge}</div>
+                        ${metaLine}
+                        ${statusHtml}
+                    </div>
+                    <div class="card-right">
+                        ${pointsBadge}
+                        ${actionHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Carte bonus suivi (progression X/Y)
+     */
+    _renderBonusSuiviCard(evaluation) {
+        const resultat = evaluation.resultat;
+        const briques = parseInt(evaluation.briques) || 1;
+        const nbTotal = parseInt(evaluation.nb_validations) || 5;
+        const currentVal = resultat ? (parseInt(resultat.validation_numero) || 0) : 0;
+        const isComplete = currentVal >= nbTotal;
+        const title = evaluation.titre || 'Suivi';
+        const pct = Math.round((currentVal / nbTotal) * 100);
+
+        let cardClass = 'eval-card bonus-card bonus-suivi';
+        if (isComplete) cardClass += ' done validated';
+
+        // Points
+        let pointsBadge;
+        if (isComplete) {
+            pointsBadge = `<span class="card-points earned">+${briques}</span>`;
+        } else {
+            pointsBadge = `<span class="card-points pending">${briques} point${briques > 1 ? 's' : ''} à gagner</span>`;
+        }
+
+        return `
+            <div class="${cardClass}">
+                <div class="card-layout">
+                    <div class="card-info">
+                        <div class="card-title-row">
+                            <span class="card-bullet" style="background:#0d9488"></span>
+                            <h3 class="card-title">${escapeHtml(title)}</h3>
+                        </div>
+                        <div class="card-type" style="color:#0d9488">Bonus suivi</div>
+                        <div class="suivi-progress-container">
+                            <div class="suivi-progress-bar">
+                                <div class="suivi-progress-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%"></div>
+                            </div>
+                            <span class="suivi-progress-label">${currentVal}/${nbTotal}</span>
+                        </div>
+                        ${isComplete ? '<span class="bonus-status valide">Objectif atteint !</span>' : ''}
+                    </div>
+                    <div class="card-right">
+                        ${pointsBadge}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Demander à être évalué(e)
+     */
+    async demanderEvaluation(evaluationId) {
+        try {
+            const result = await this.callAPI('demanderEvaluation', {
+                evaluation_id: evaluationId,
+                eleve_id: this.currentUserId
+            });
+            if (result.success) {
+                // Refresh data
+                await this.loadData();
+                this.categorizeEvaluations();
+                this.render();
+                this.updateTabCounts();
+            } else {
+                alert(result.error || 'Erreur lors de la demande');
+            }
+        } catch (error) {
+            console.error('Erreur demande:', error);
+            alert('Erreur réseau');
+        }
+    },
+
+    /**
+     * Consulter le sujet d'une évaluation acceptée (lecture seule)
+     */
+    consulterSujet(evaluationId) {
+        // TODO: ouvrir une vue lecture seule du sujet
+        // Pour l'instant, redirige vers la page évaluation en mode review
+        window.location.href = 'evaluation.html?id=' + evaluationId + '&mode=sujet';
     },
 
     _renderSection(title, evals, cssClass) {
@@ -788,6 +1117,45 @@ const EleveEvaluations = {
             if (hours > 0) return `Dans ${hours}h ${mins}min`;
             return `Dans ${mins}min`;
         } catch { return 'Pas encore ouvert'; }
+    },
+
+    // ========== API ==========
+    async callAPI(action, data = {}) {
+        const url = new URL(CONFIG.WEBAPP_URL);
+        url.searchParams.set('action', action);
+
+        return new Promise((resolve, reject) => {
+            const callbackName = 'eleveEvalsCallback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            const script = document.createElement('script');
+
+            window[callbackName] = (response) => {
+                delete window[callbackName];
+                if (script.parentNode) document.body.removeChild(script);
+                resolve(response);
+            };
+
+            script.onerror = () => {
+                delete window[callbackName];
+                if (script.parentNode) document.body.removeChild(script);
+                reject(new Error('Erreur réseau'));
+            };
+
+            Object.keys(data).forEach(key => {
+                url.searchParams.set(key, typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key]);
+            });
+
+            url.searchParams.set('callback', callbackName);
+            script.src = url.toString();
+            document.body.appendChild(script);
+
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    delete window[callbackName];
+                    if (script.parentNode) document.body.removeChild(script);
+                    reject(new Error('Timeout'));
+                }
+            }, 30000);
+        });
     }
 };
 
