@@ -292,7 +292,7 @@ const EleveEvaluation = {
 
     /**
      * Charge les critères de réussite pour les compétences données.
-     * Retourne du HTML groupé par compétence.
+     * Retourne du HTML groupé par matière, avec critères repliables.
      */
     async _loadCriteresHtml(competenceIds) {
         const [referentiel, criteres] = await Promise.all([
@@ -300,32 +300,85 @@ const EleveEvaluation = {
             SheetsAPI.fetchAndParse('CriteresReussite')
         ]);
 
-        let html = '';
+        const matiereOrder = ['FR', 'HG-EMC', 'Transversal'];
+        const matiereLabels = { 'FR': 'Français', 'HG-EMC': 'Histoire-Géo · EMC', 'Transversal': 'Transversal' };
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+
+        // Collecter les compétences demandées avec leurs critères
+        const compsData = [];
         for (const compId of competenceIds) {
             const comp = referentiel.find(c => String(c.id).trim() === compId);
             const compCriteres = criteres
                 .filter(c => String(c.competence_id).trim() === compId)
                 .sort((a, b) => (parseInt(a.ordre) || 0) - (parseInt(b.ordre) || 0));
-
             if (!comp && compCriteres.length === 0) continue;
-
-            const compName = comp ? (comp.nom || 'Compétence') : 'Compétence';
-            html += `
-                <div class="sujet-criteres-block">
-                    <h4 class="sujet-criteres-title">${escapeHtml(compName)}</h4>
-                    <p class="sujet-criteres-hint">Critères de réussite</p>
-                    <div class="sujet-criteres-list">
-                        ${compCriteres.map(c => `
-                            <div class="sujet-critere-item">
-                                <span class="sujet-critere-check">☐</span>
-                                <span class="sujet-critere-label">${escapeHtml(c.libelle || '')}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
+            compsData.push({
+                name: comp ? (comp.nom || 'Compétence') : 'Compétence',
+                matiere: (comp && comp.matiere) || 'Transversal',
+                criteres: compCriteres
+            });
         }
+
+        // Grouper par matière
+        const groups = {};
+        compsData.forEach(cd => {
+            if (!groups[cd.matiere]) groups[cd.matiere] = [];
+            groups[cd.matiere].push(cd);
+        });
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            const ia = matiereOrder.indexOf(a) === -1 ? 99 : matiereOrder.indexOf(a);
+            const ib = matiereOrder.indexOf(b) === -1 ? 99 : matiereOrder.indexOf(b);
+            return ia - ib;
+        });
+
+        // N'afficher le bandeau matière que s'il y a plusieurs groupes
+        const showBanners = sortedKeys.length > 1;
+
+        let html = '';
+        sortedKeys.forEach(mat => {
+            const label = matiereLabels[mat] || mat;
+            const color = matiereColors[mat] || '#6b7280';
+
+            if (showBanners) {
+                html += `<div class="sujet-matiere-banner" style="border-color: ${color};">
+                    <span class="sujet-matiere-label" style="color: ${color};">${escapeHtml(label)}</span>
+                </div>`;
+            }
+
+            groups[mat].forEach(cd => {
+                const nbCriteres = cd.criteres.length;
+                html += `
+                    <div class="sujet-criteres-block" style="border-left: 3px solid ${color};">
+                        <button type="button" class="sujet-comp-toggle" onclick="EleveEvaluation._toggleCriteres(this)">
+                            <span class="sujet-comp-arrow">▸</span>
+                            <h4 class="sujet-criteres-title">${escapeHtml(cd.name)}</h4>
+                            <span class="sujet-comp-count">${nbCriteres} critère${nbCriteres > 1 ? 's' : ''}</span>
+                        </button>
+                        <div class="sujet-criteres-list" style="display: none;">
+                            ${cd.criteres.map(c => `
+                                <div class="sujet-critere-item">
+                                    <span class="sujet-critere-check">☐</span>
+                                    <span class="sujet-critere-label">${escapeHtml(c.libelle || '')}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+        });
         return html;
+    },
+
+    /**
+     * Toggle l'affichage des critères d'une compétence.
+     */
+    _toggleCriteres(btn) {
+        const block = btn.closest('.sujet-criteres-block');
+        const list = block.querySelector('.sujet-criteres-list');
+        const arrow = btn.querySelector('.sujet-comp-arrow');
+        const isOpen = list.style.display !== 'none';
+        list.style.display = isOpen ? 'none' : 'flex';
+        arrow.textContent = isOpen ? '▸' : '▾';
     },
 
     /**
