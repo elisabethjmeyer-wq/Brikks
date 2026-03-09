@@ -772,10 +772,9 @@ const EleveEvaluations = {
             statusHtml = '<span class="bonus-status acquise">Compétence acquise</span>';
             actionHtml = '';
         } else if (cardStatus === 'disponible') {
-            statusHtml = '<span class="bonus-status disponible">Disponible</span>';
-            actionHtml = `<button class="card-btn type-bonus" onclick="event.stopPropagation(); EleveEvaluations.demanderEvaluation('${evaluation.id}')">Demander</button>`;
+            actionHtml = `<button class="card-btn type-bonus" id="btnDemande_${evaluation.id}" onclick="event.stopPropagation(); EleveEvaluations.demanderEvaluation('${evaluation.id}')">Demander cette évaluation</button>`;
         } else if (cardStatus === 'demande_envoyee') {
-            statusHtml = '<span class="bonus-status en-attente">Demande envoyée</span>';
+            actionHtml = '<span class="bonus-status en-attente">Demande envoyée</span>';
         } else if (cardStatus === 'demande_acceptee') {
             const dateRendu = resultat ? (resultat.date_rendu || '') : '';
             const typeDate = resultat ? String(resultat.type_date || '').trim() : '';
@@ -895,11 +894,13 @@ const EleveEvaluations = {
      * Demander à être évalué(e)
      */
     async demanderEvaluation(evaluationId) {
-        // Feedback immédiat : désactiver le bouton
+        // Feedback immédiat : remplacer le bouton par le tag "Demande envoyée"
         const btn = event ? event.target : null;
         if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'Envoi...';
+            const tag = document.createElement('span');
+            tag.className = 'bonus-status en-attente';
+            tag.textContent = 'Demande envoyée';
+            btn.replaceWith(tag);
         }
 
         try {
@@ -917,18 +918,17 @@ const EleveEvaluations = {
                 this._showToast('Demande envoyée !');
             } else {
                 alert(result.error || 'Erreur lors de la demande');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'Demander';
-                }
+                // Re-render pour restaurer le bouton
+                this.categorizeEvaluations();
+                this.render();
+                this.updateTabCounts();
             }
         } catch (error) {
             console.error('Erreur demande:', error);
             alert('Erreur réseau');
-            if (btn) {
-                btn.disabled = false;
-                btn.textContent = 'Demander';
-            }
+            this.categorizeEvaluations();
+            this.render();
+            this.updateTabCounts();
         }
     },
 
