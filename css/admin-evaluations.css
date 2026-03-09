@@ -1715,7 +1715,7 @@
 /* ===== EVALUATION WIZARD ===== */
 
 .modal-wizard-eval {
-    max-width: 640px;
+    max-width: 800px;
     width: 95vw;
     max-height: 90vh;
     display: flex;
@@ -1741,14 +1741,15 @@
 .eval-wizard-step {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
+    gap: 6px;
+    padding: 5px 10px;
     border: none;
     background: none;
     cursor: pointer;
     border-radius: 20px;
     transition: all 0.2s;
     color: var(--gray-400);
+    font-size: 0.8rem;
 }
 
 .eval-wizard-step.active {
