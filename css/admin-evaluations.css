@@ -1763,7 +1763,7 @@
 
 /* ===== EVALUATION WIZARD ===== */
 
-.modal-wizard-eval {
+.modal.modal-wizard-eval {
     max-width: 800px;
     width: 95vw;
     max-height: 90vh;
