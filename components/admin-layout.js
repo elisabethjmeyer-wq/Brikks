@@ -185,8 +185,9 @@ const AdminLayout = {
             this.displayUserInfo(updatedUser);
         }
 
-        // Vérifier les notifications (copies à corriger, etc.)
-        this.checkPendingActivities();
+        // Vérifier les notifications après un délai pour laisser la page charger ses données
+        // (évite de dépasser le quota Google Sheets API avec trop de requêtes simultanées)
+        setTimeout(() => this.checkPendingActivities(), 2000);
 
         // Si on est sur la page évaluations (qui inclut les corrections), marquer comme vu
         if (pageId === 'evaluations' || pageId === 'corrections') {
