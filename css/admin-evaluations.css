@@ -713,6 +713,11 @@
     color: #92400e;
 }
 
+.mode-badge.sujet-avance {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
 /* Semestre tag */
 .sem-tag {
     display: inline-flex;
@@ -1437,6 +1442,20 @@
 
 .form-group label .req {
     color: var(--accent-red);
+}
+
+.form-group .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.form-group .toggle-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
 }
 
 .form-row {

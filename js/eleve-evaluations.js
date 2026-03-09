@@ -1008,8 +1008,14 @@ const EleveEvaluations = {
             pointsBadge = `<span class="card-points pending">${briques} point${briques > 1 ? 's' : ''} à gagner</span>`;
         }
 
+        // TC : sujet disponible à l'avance ?
+        const isTC = type === 'competences';
+        const sujetAvance = isTC && (evaluation.sujet_disponible_avance === true || evaluation.sujet_disponible_avance === 'true' || evaluation.sujet_disponible_avance === 'TRUE');
+
         // Type subtitle
-        const typeSubtitle = `<div class="card-type ${config.cssClass}">${escapeHtml(config.label)} · <span class="card-sublabel">Progression</span></div>`;
+        let typeLabel = config.label;
+        if (isTC) typeLabel = 'Tâche complexe';
+        const typeSubtitle = `<div class="card-type ${config.cssClass}">${escapeHtml(typeLabel)} · <span class="card-sublabel">Progression</span></div>`;
 
         // Meta
         const metaParts = [];
@@ -1018,17 +1024,21 @@ const EleveEvaluations = {
         if (duree > 0) metaParts.push(`<span class="meta-duree">${duree} min</span>`);
         if (matiere && matiere !== 'Les deux') metaParts.push(`<span class="meta-matiere">${escapeHtml(matiere)}</span>`);
         if (matiere === 'Les deux') metaParts.push('<span class="meta-matiere">FR + HG</span>');
-        if (isPapier) metaParts.push('<span class="meta-mode papier">Papier</span>');
+        if (isTC) metaParts.push('<span class="meta-mode papier">En classe</span>');
+        else if (isPapier) metaParts.push('<span class="meta-mode papier">Papier</span>');
         else metaParts.push('<span class="meta-mode numerique">Numérique</span>');
         const metaLine = metaParts.length > 0
             ? `<div class="card-meta">${metaParts.join('<span class="meta-sep">·</span>')}</div>`
             : '';
 
-        const conditionLine = `<div class="card-condition">Réussite : ${escapeHtml(condition)}</div>`;
+        const conditionLine = isTC ? '' : `<div class="card-condition">Réussite : ${escapeHtml(condition)}</div>`;
 
         // Action
         let actionHtml = '';
         let statusExtra = '';
+        if (sujetAvance && !isDone) {
+            statusExtra += '<span class="bonus-status sujet-avance" style="align-self:flex-start">Sujet consultable</span>';
+        }
         if (cardStatus === 'demande_acceptee') {
             // Bonus accepté migré dans "Évaluations"
             const dateRendu = resultat ? (resultat.date_rendu || '') : '';
@@ -1049,10 +1059,16 @@ const EleveEvaluations = {
             actionHtml += `<button class="card-btn btn-rendu" onclick="event.stopPropagation(); EleveEvaluations.signalerRendu('${evaluation.id}')">J'ai rendu ma copie</button>`;
         } else if (cardStatus === 'rendu') {
             statusExtra = '<span class="bonus-status en-attente" style="align-self:flex-start">En attente de correction</span>';
+        } else if (cardStatus === 'available' && isTC) {
+            // TC ouverte → consulter le sujet
+            actionHtml = `<a href="evaluation.html?id=${evaluation.id}&mode=sujet" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
         } else if (cardStatus === 'available' && !isPapier) {
             actionHtml = `<a href="evaluation.html?id=${evaluation.id}" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Commencer</a>`;
         } else if (cardStatus === 'available' && isPapier) {
             actionHtml = '<div class="card-action-info papier">En classe</div>';
+        } else if (cardStatus === 'upcoming' && sujetAvance) {
+            // TC planifiée mais sujet consultable à l'avance
+            actionHtml = `<a href="evaluation.html?id=${evaluation.id}&mode=sujet" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
         } else if (cardStatus === 'upcoming') {
             actionHtml = `<div class="card-action-info upcoming">${escapeHtml(this.getCountdown(evaluation.date_ouverture))}</div>`;
         } else if (isMissed) {

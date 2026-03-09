@@ -760,7 +760,7 @@ function createEvaluation(data) {
   var requiredCols = ['date_ouverture', 'date_fermeture', 'mode_passation',
     'sous_type_comp', 'sous_type_bonus', 'nb_validations', 'competence_id', 'banque_comp_id',
     'exercice_comp_id', 'banque_tc_id', 'exercice_tc_id', 'banque_bonus_id', 'exercice_bonus_id',
-    'points_par_competence', 'competence_ids', 'description_eleve'];
+    'points_par_competence', 'competence_ids', 'description_eleve', 'sujet_disponible_avance'];
   requiredCols.forEach(function(col) {
     if (headerNames.indexOf(col) < 0) {
       lastCol++;

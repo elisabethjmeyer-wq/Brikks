@@ -585,8 +585,9 @@ const AdminEvaluations = {
                             ${escapeHtml(evaluation.titre || 'Sans titre')}
                             ${matiereBadge}
                             ${(() => { const sem = this._getSemestreTag(evaluation); return sem ? `<span class="sem-tag">${sem}</span>` : ''; })()}
-                            <span class="mode-badge ${evaluation.mode_passation === 'papier' ? 'papier' : 'numerique'}">${evaluation.mode_passation === 'papier' ? '📄 Papier' : '💻 Numérique'}</span>
+                            <span class="mode-badge ${evaluation.type === 'competences' || evaluation.mode_passation === 'papier' ? 'papier' : 'numerique'}">${evaluation.type === 'competences' ? '📝 En classe' : evaluation.mode_passation === 'papier' ? '📄 Papier' : '💻 Numérique'}</span>
                             <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
+                            ${evaluation.type === 'competences' && (evaluation.sujet_disponible_avance === true || evaluation.sujet_disponible_avance === 'true' || evaluation.sujet_disponible_avance === 'TRUE') ? '<span class="mode-badge sujet-avance">👁 Sujet visible</span>' : ''}
                         </div>
                         <div class="eval-card-meta">
                             ${metaItems.map(item => `<span>${item}</span>`).join('')}
@@ -895,11 +896,11 @@ const AdminEvaluations = {
                             <label>Points mis en jeu <span class="req">*</span></label>
                             <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="0.25" max="50" step="0.25">
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" ${type === 'competences' ? 'style="display:none"' : ''}>
                             <label>Mode de passation</label>
                             <select class="form-select" id="evalModePassation" onchange="AdminEvaluations._onModePassationChange()">
                                 <option value="numerique" ${d.mode_passation === 'numerique' || !d.mode_passation ? 'selected' : ''}>💻 Numérique</option>
-                                <option value="papier" ${d.mode_passation === 'papier' ? 'selected' : ''}>📄 Papier</option>
+                                <option value="papier" ${d.mode_passation === 'papier' || type === 'competences' ? 'selected' : ''}>📄 Papier</option>
                             </select>
                             <div class="form-help">Papier : pas de bouton « Commencer » côté élève</div>
                         </div>
@@ -1262,6 +1263,9 @@ const AdminEvaluations = {
         const methodologie = document.getElementById('evalMethodologieTC')?.value;
         if (methodologie !== undefined) this.wizardData.methodologie_id = methodologie;
 
+        const sujetAvance = document.getElementById('evalSujetAvance');
+        if (sujetAvance) this.wizardData.sujet_disponible_avance = sujetAvance.checked;
+
         // Les dates sont gérées via le dropdown statut, pas le wizard.
     },
 
@@ -1269,10 +1273,19 @@ const AdminEvaluations = {
         return '';
     },
 
-    _renderCompFields() {
-        // Compétences = toujours tâche complexe (sélection du sujet en step 2)
-        // Pas de champs spécifiques en step 1
-        return '';
+    _renderCompFields(d) {
+        return `
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="evalSujetAvance" ${d.sujet_disponible_avance === true || d.sujet_disponible_avance === 'true' || d.sujet_disponible_avance === 'TRUE' ? 'checked' : ''}>
+                        Sujet disponible à l'avance
+                    </label>
+                    <div class="form-help">Si coché, les élèves peuvent consulter le sujet avant la date de l'évaluation</div>
+                </div>
+                <div class="form-group"></div>
+            </div>
+        `;
     },
 
     _renderBonusFields(d) {
@@ -1744,6 +1757,7 @@ const AdminEvaluations = {
                 }
                 if (this.wizardData.type === 'competences') {
                     this.wizardData.methodologie_id = document.getElementById('evalMethodologieTC')?.value || '';
+                    this.wizardData.sujet_disponible_avance = document.getElementById('evalSujetAvance')?.checked || false;
                 }
                 if (this.wizardData.type === 'bonus') {
                     if (this.wizardData.sous_type_bonus === 'suivi') {
@@ -1819,6 +1833,7 @@ const AdminEvaluations = {
         if (d.type === 'competences') {
             data.methodologie_id = d.methodologie_id || '';
             data.sous_type_comp = d.sous_type_comp || 'classique';
+            data.sujet_disponible_avance = d.sujet_disponible_avance ? 'true' : 'false';
             if (d.sous_type_comp === 'tache_complexe') {
                 data.banque_tc_id = d.banque_tc_id || '';
                 data.exercice_tc_id = d.exercice_tc_id || '';
