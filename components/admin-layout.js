@@ -379,10 +379,12 @@ const AdminLayout = {
      */
     async checkPendingActivities() {
         try {
+            // Vider le cache pour obtenir les dernières demandes
+            SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
             // Charger copies à corriger + demandes bonus en parallèle
             var [result, resultatsData] = await Promise.all([
                 this.callAPI('getEleveTachesComplexes', {}),
-                SheetsAPI.getSheetData('EVALUATION_RESULTATS', '', { forceRefresh: true }).catch(function() { return []; })
+                SheetsAPI.getSheetData('EVALUATION_RESULTATS').catch(function() { return []; })
             ]);
 
             var pending = [];

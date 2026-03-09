@@ -921,9 +921,9 @@ const EleveEvaluations = {
                 this.updateTabCounts();
                 this._showToast('Demande envoyée !');
 
-                // Rafraîchir en arrière-plan avec forceRefresh pour mettre à jour le cache
+                // Rafraîchir en arrière-plan pour mettre à jour le cache
                 SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
-                SheetsAPI.getSheetData('EVALUATION_RESULTATS', '', { forceRefresh: true }).catch(() => {});
+                SheetsAPI.getSheetData('EVALUATION_RESULTATS').catch(() => {});
             } else {
                 alert(result.error || 'Erreur lors de la demande');
                 // Re-render pour restaurer le bouton
