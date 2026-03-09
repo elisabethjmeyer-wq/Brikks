@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-03-09 — Session 29 : Bugfixes + refonte architecture TC/bonus
+
+### Corrections
+
+1. **Fix critères "Aucun critère défini" côté élève** : `_loadCriteresHtml()` dans `eleve-evaluation.js` appelait `SheetsAPI.parseSheetData()` sur le résultat de `fetchAndParse()` (double parsing → tableau vide). Supprimé.
+2. **Fix cache périmé cross-page** : quand la prof modifiait les banques TC dans Banques d'exercices puis ouvrait le wizard évaluation, les données étaient périmées. Ajout de `clearCacheFor()` + `loadData()` dans `openModal()`.
+3. **Fix mismatch type ID dans tous les dropdowns du wizard** : `e.id === d.exercice_tc_id` échouait silencieusement (string vs number). Ajout de `String()` sur toutes les comparaisons (TC, bonus comp, bonus ponctuel, SF).
+
+### Décision d'architecture : refonte Phase 9
+
+Séparation claire entraînements / évaluations :
+- **Banques d'exercices** = uniquement entraînements élève (connaissances, savoir-faire, compétences)
+- **Page Évaluations** = création complète des TC, bonus comp, bonus ponctuel (wizard 5 étapes intégré avec block editor)
+- Les onglets TC et Bonus ponctuels seront supprimés de Banques d'exercices
+- Relation 1→1 : contenu stocké directement dans EVALUATIONS (`document_contenu`, `correction_contenu`, `competence_ids`, `criteres_libres`)
+- Bonus compétence dissocié des entraînements (wizard autonome avec sélection d'1 compétence du référentiel)
+
+### Fichiers modifiés
+- `js/eleve-evaluation.js` : fix double parseSheetData dans `_loadCriteresHtml()`
+- `js/admin-evaluations.js` : `openModal()` async + cache refresh, String() sur toutes les comparaisons ID
+- `CLAUDE.md` : sections TC/bonus marquées "en cours de suppression", plan Phase 9 ajouté, décisions session 29
+
+---
+
 ## 2026-03-08 — Session 27 : Wizard évaluations TC + bonus + 5ème onglet bonus ponctuels
 
 ### Modifications

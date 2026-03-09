@@ -519,61 +519,46 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 
 **État** : Phases 1-3 complètes. Mode passation papier/numérique ajouté (session 18). Page notes élève créée (session 16). Saisie résultats enrichie (session 23).
 
-### Onglet Tâches complexes (admin banques d'exercices) — CRÉÉ SESSION 26
+### Onglet Tâches complexes (admin banques d'exercices) — ⚠️ EN COURS DE SUPPRESSION (Phase 9)
 
 **Page** : `admin/banques-exercices.html` (4ème onglet)
 **Fichiers** : `js/admin-banques-exercices-questions.js` (rendu TC, CRUD), `js/admin-banques-exercices-comp-wizard.js` (wizard 5 étapes mode TC)
 **Backend** : `Competences.gs` (réutilise `BanquesCompetences` + `EntrainementsCompetences` avec `type_usage='tache_complexe'`)
 
-**Ce que fait le module :**
-- 4ème onglet « Tâches complexes » (couleur rouge) dans la page Banques d'exercices
-- **Banque TC = conteneur simple** : titre, description, ordre, statut (pas de lien compétence)
-- **Exercices TC** : chaque exercice a ses propres `competence_ids` (JSON array multi-compétences)
-- **Wizard 5 étapes (mode TC)** : Paramètres → Compétences → Document → Corrigé → Résumé
-- **Étape Compétences** : checkboxes groupées par matière (FR / HG-EMC / Transversal), barre de recherche, compteur temps réel
-- **Badges matière** sur les cartes d'exercices : bleu (FR), orange (HG-EMC), gris (Transversal)
-- Le wizard détecte automatiquement le mode (TC 5 étapes vs Compétences 4 étapes) selon la banque
+**⚠️ Migration en cours** : cet onglet va être supprimé. Le wizard de création TC est déplacé directement dans la page Évaluations (wizard 5 étapes intégré). Le contenu (document, corrigé, compétences) sera stocké dans la table EVALUATIONS au lieu de EntrainementsCompetences. Voir Phase 9 ci-dessous.
 
-**Données** : `BanquesCompetences` avec `type_usage='tache_complexe'`, `EntrainementsCompetences` avec `competence_ids` (migration progressive)
+**État** : CRUD fonctionnel mais en cours de dépréciation.
 
-**État** : CRUD fonctionnel, wizard opérationnel.
-
-### Onglet Bonus ponctuels (admin banques d'exercices) — CRÉÉ SESSION 27
+### Onglet Bonus ponctuels (admin banques d'exercices) — ⚠️ EN COURS DE SUPPRESSION (Phase 9)
 
 **Page** : `admin/banques-exercices.html` (5ème onglet)
 **Fichiers** : `js/admin-banques-exercices-questions.js` (rendu bonus, CRUD), `js/admin-banques-exercices-comp-wizard.js` (wizard 5 étapes mode bonus)
 **Backend** : `Competences.gs` (réutilise `BanquesCompetences` + `EntrainementsCompetences` avec `type_usage='bonus_ponctuel'`)
 
-**Ce que fait le module :**
-- 5ème onglet « Bonus ponctuels » (couleur teal) dans la page Banques d'exercices
-- **Banque bonus = conteneur simple** : titre, description, ordre, statut
-- **Exercices bonus** : wizard 5 étapes : Paramètres → Document → Corrigé → Critères libres → Résumé
-- **Critères libres** : liste dynamique (ajouter/supprimer), stockés en `criteres_libres` (JSON array)
-- Pas de lien au référentiel de compétences
+**⚠️ Migration en cours** : cet onglet va être supprimé. Le wizard de création bonus ponctuel est déplacé dans la page Évaluations. Voir Phase 9 ci-dessous.
 
-**Données** : `BanquesCompetences` avec `type_usage='bonus_ponctuel'`, `EntrainementsCompetences` avec `criteres_libres` (migration progressive)
+**État** : CRUD fonctionnel mais en cours de dépréciation.
 
-**État** : CRUD fonctionnel, wizard opérationnel.
-
-### Admin Évaluations — wizard création TC + bonus — SESSION 27
+### Admin Évaluations — wizard création — SESSIONS 27-29, REFONTE EN COURS
 
 **Page** : `admin/evaluations.html` (onglets Compétences et Bonus)
 **Fichiers** : `js/admin-evaluations.js`, `css/admin-evaluations.css`
 **Backend** : `Evaluations.gs` (migration progressive nouvelles colonnes)
 
-**Ce qui a été fait :**
-- **Onglet Compétences** : toujours = tâche complexe (pas de toggle). Wizard 2 étapes : Paramètres → Sélection sujet (cascade dropdown banque TC → exercice)
+**État actuel (avant Phase 9)** :
+- **Onglet Compétences** : wizard 2 étapes avec cascade dropdown banque TC → exercice (lien indirect via EntrainementsCompetences)
 - **Onglet Bonus** : 3 sous-types via toggle (compétence / ponctuel / suivi)
-  - **Bonus compétence** : step 2 = cascade dropdown banque compétences → exercice
-  - **Bonus ponctuel** : step 2 = cascade dropdown banque bonus → exercice
-  - **Bonus suivi** : champ "nombre de validations" (pas de step 2, pas d'exercice)
+  - **Bonus compétence** : cascade dropdown banque compétences → exercice
+  - **Bonus ponctuel** : cascade dropdown banque bonus → exercice
+  - **Bonus suivi** : champ "nombre de validations" (pas de step 2)
 - **Catégorie de points** auto-déterminée : bonus compétence → "competences", ponctuel/suivi → "bonus"
-- **Chargement données** : `BanquesCompetences`, `EntrainementsCompetences`, `CompetencesReferentiel` ajoutés au batch SheetsAPI
-- **Backend** : colonnes `sous_type_comp`, `banque_tc_id`, `exercice_tc_id`, `sous_type_bonus`, `banque_comp_id`, `exercice_comp_id`, `banque_bonus_id`, `exercice_bonus_id`, `nb_validations` en migration progressive
 
-**Bug corrigé** : comparaisons `===` dans les filtres cascade dropdown échouaient (type mismatch string/number de SheetsAPI) → remplacé par `String().trim()`
+**Bugs corrigés (session 29)** :
+- ~~Cache périmé cross-page~~ : le wizard ouvrait avec des données SheetsAPI périmées quand les banques étaient modifiées dans une autre page → `clearCacheFor()` + `loadData()` ajoutés à `openModal()`
+- ~~Mismatch type ID dans tous les dropdowns~~ : `e.id === d.exercice_tc_id` échouait (string vs number) → `String()` ajouté sur toutes les comparaisons (TC, bonus comp, bonus ponctuel, SF)
+- ~~Double parseSheetData côté élève~~ : `_loadCriteresHtml()` dans `eleve-evaluation.js` appelait `parseSheetData()` sur le résultat de `fetchAndParse()` → supprimé
 
-**État** : wizard création fonctionnel. Pas encore d'affichage élève ni de gestion des demandes.
+**Refonte Phase 9 en cours** : les wizards TC, bonus comp et bonus ponctuel deviennent des wizards 5 étapes intégrés directement dans cette page (plus de lien vers Banques d'exercices). Voir plan Phase 9.
 
 ---
 
@@ -683,7 +668,64 @@ Mes résultats :
 - [x] Bonus suivi : barre de progression + checkboxes V1..VN en lecture seule
 - [x] Calcul de la note de progression : déjà intégré via `_calculatePoints` qui lit EVALUATION_RESULTATS
 
-### Décisions prises (session 28)
+**Phase 9 — Refonte : intégration wizards TC/bonus dans Évaluations** (EN COURS)
+
+> **Décision session 29** : séparer clairement entraînements (Banques d'exercices) et évaluations (page Évaluations).
+> Les onglets TC et Bonus ponctuels sont supprimés de Banques d'exercices.
+> Les wizards de création sont intégrés directement dans la page Évaluations.
+> Le contenu (document, corrigé, compétences, critères) est stocké dans EVALUATIONS (relation 1→1, pas d'indirection via EntrainementsCompetences).
+> Les bonus compétence sont aussi dissociés des entraînements : wizard intégré avec sélection d'une compétence du référentiel.
+
+**Nouvelles colonnes EVALUATIONS** (migration progressive) :
+| Colonne | Usage | Types |
+|---------|-------|-------|
+| `document_contenu` | JSON blocs ou HTML (sujet) | TC, bonus comp, bonus ponctuel |
+| `correction_contenu` | JSON blocs ou HTML (corrigé) | TC, bonus comp, bonus ponctuel |
+| `correction_commentee` | URL Google Doc (alt au block editor) | TC, bonus comp, bonus ponctuel |
+| `criteres_libres` | JSON array de strings | bonus ponctuel |
+| `description` | Consigne/description | TC, bonus comp, bonus ponctuel |
+
+Note : `competence_ids` existe déjà dans EVALUATIONS.
+
+**Nouveaux wizards dans page Évaluations** :
+| Type | Étapes |
+|------|--------|
+| **TC** | Paramètres → Compétences (N checkboxes) → Document (block editor) → Corrigé → Résumé |
+| **Bonus compétence** | Paramètres → Compétence (1 sélection) → Document (block editor) → Corrigé → Résumé |
+| **Bonus ponctuel** | Paramètres → Document (block editor) → Corrigé → Critères libres → Résumé |
+| **Bonus suivi** | Paramètres (1 étape, inchangé) |
+| **Conn / SF** | Paramètres → Sélection entraînement (inchangé) |
+
+**Phase A — Backend + colonnes** :
+- [ ] Ajouter colonnes dans `Evaluations.gs` (migration progressive)
+- [ ] Mettre à jour `createEvaluation` / `updateEvaluation` pour accepter les nouveaux champs
+- [ ] Mettre à jour `getEvaluationForEleve` : lire document/correction/compétences directement depuis EVALUATIONS
+
+**Phase B — Wizard admin** (le plus gros morceau) :
+- [ ] Ajouter `block-editor.js` au chargement de `admin/evaluations.html`
+- [ ] Monter le mixin : `Object.assign(AdminEvaluations, createBlockEditorMixin('AdminEvaluations'))`
+- [ ] Réécrire `_getMaxStep()` : 5 étapes pour TC/bonus comp/bonus ponctuel
+- [ ] Implémenter les rendus pour chaque étape (adapter depuis `comp-wizard.js`)
+- [ ] Mettre à jour `_collectWizardStepData()` et `saveEvaluation()`
+
+**Phase C — Côté élève** :
+- [ ] `eleve-evaluation.js` : `_initSujetMode` lit `document_contenu`, `competence_ids` depuis l'évaluation directement (plus `data.exercice`)
+- [ ] Bonus comp : afficher les critères de la compétence (comme TC mais 1 seule)
+
+**Phase D — Corrections admin** :
+- [ ] `admin-corrections.js` : lire `document_contenu`, `competence_ids`, `criteres_libres` depuis l'évaluation
+
+**Phase E — Nettoyage** :
+- [ ] Supprimer onglet TC de `admin-banques-exercices-questions.js`
+- [ ] Supprimer onglet Bonus ponctuels de `admin-banques-exercices-questions.js`
+- [ ] Supprimer le code wizard TC/bonus de `admin-banques-exercices-comp-wizard.js`
+- [ ] Retirer anciennes colonnes de liaison du wizard (garder en lecture seule backend pour rétro-compat)
+
+**Phase F — Migration des données existantes** :
+- [ ] Script GAS : copier contenu des exercices TC/bonus existants depuis EntrainementsCompetences vers EVALUATIONS
+- [ ] Vérification manuelle
+
+### Décisions prises (sessions 28-29)
 
 > Questions ouvertes de la session 27 — **toutes résolues** :
 
@@ -693,6 +735,13 @@ Mes résultats :
 4. **Notifications** → Réutiliser le système existant (cloche dans sidebar + page corrections)
 5. **Tâches complexes côté élève** → Même logique hors-ligne que les bonus. Consultation sujet, rendu papier/mail, saisie résultats manuelle
 6. **Bonus suivi** → Checkboxes progressives dans le tableau de saisie existant
+
+> Décisions session 29 — **refonte architecture** :
+
+7. **Séparation entraînements / évaluations** → Banques d'exercices = entraînements élève uniquement (conn, SF, comp). Page Évaluations = création complète TC, bonus, sommatives
+8. **Relation 1→1** → Un exercice TC/bonus = une évaluation. Plus de banques intermédiaires ni de cascade dropdown
+9. **Bonus compétence dissocié des entraînements** → Wizard intégré dans Évaluations avec sélection d'1 compétence du référentiel (plus de lien vers les exercices de la banque compétences)
+10. **Stockage direct dans EVALUATIONS** → `document_contenu`, `correction_contenu`, `competence_ids`, `criteres_libres` stockés dans la table EVALUATIONS
 
 ---
 
