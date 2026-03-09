@@ -1676,6 +1676,47 @@
     color: white;
 }
 
+/* ===== ACCORDÉON COMPÉTENCES (wizard étape 2) ===== */
+.cw-comp-group-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.12s;
+}
+
+.cw-comp-group-toggle:hover {
+    background: white;
+}
+
+.cw-comp-group-arrow {
+    font-size: 0.8rem;
+    color: var(--gray-400);
+    width: 14px;
+    flex-shrink: 0;
+}
+
+.cw-comp-group-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.cw-comp-group-count {
+    font-size: 0.75rem;
+    color: var(--gray-400);
+    margin-left: auto;
+    font-weight: 500;
+}
+
+.cw-comp-group-items {
+    padding-left: 6px;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
     .eval-card-main {
