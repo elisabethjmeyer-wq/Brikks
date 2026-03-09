@@ -922,13 +922,43 @@
 
 .tc-review-comp-section {
     margin-bottom: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+.tc-review-comp-section.comp-validated {
+    border-color: #10b981;
+    background: #f0fdf4;
+}
+
+.tc-review-comp-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
 }
 
 .tc-review-comp-title {
     font-size: 14px;
     font-weight: 600;
-    margin: 0 0 8px;
+    margin: 0;
     color: #374151;
+}
+
+.tc-review-comp-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+.tc-review-comp-badge.validated {
+    background: #d1fae5;
+    color: #065f46;
+}
+.tc-review-comp-badge.not-validated {
+    background: #fee2e2;
+    color: #991b1b;
 }
 
 .tc-review-criteres-list {

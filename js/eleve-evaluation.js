@@ -599,8 +599,8 @@ const EleveEvaluation = {
         // --- Colonne droite : critères par compétence ---
         let criteresHtml = '';
         if (!isBrouillon && compIds.length > 0) {
-            let totalAll = 0;
-            let validesAll = 0;
+            const totalComps = compIds.length;
+            let nbCompsValidees = 0;
 
             compIds.forEach(compId => {
                 const comp = competences.find(c => String(c.id) === String(compId));
@@ -610,13 +610,15 @@ const EleveEvaluation = {
 
                 if (compCriteres.length === 0) return;
 
-                totalAll += compCriteres.length;
-                const validesComp = compCriteres.filter(c => criteresValides.indexOf(String(c.id)) !== -1).length;
-                validesAll += validesComp;
+                const allValid = compCriteres.every(c => criteresValides.indexOf(String(c.id)) !== -1);
+                if (allValid) nbCompsValidees++;
 
                 criteresHtml += `
-                    <div class="tc-review-comp-section">
-                        <h4 class="tc-review-comp-title">🎯 ${escapeHtml(comp ? comp.nom : 'Compétence')}</h4>
+                    <div class="tc-review-comp-section ${allValid ? 'comp-validated' : ''}">
+                        <div class="tc-review-comp-header-row">
+                            <h4 class="tc-review-comp-title">🎯 ${escapeHtml(comp ? comp.nom : 'Compétence')}</h4>
+                            <span class="tc-review-comp-badge ${allValid ? 'validated' : 'not-validated'}">${allValid ? '✅ Validée' : '❌ Non validée'}</span>
+                        </div>
                         <div class="tc-review-criteres-list">
                             ${compCriteres.map(c => {
                                 const isValid = criteresValides.indexOf(String(c.id)) !== -1;
@@ -630,10 +632,10 @@ const EleveEvaluation = {
                 `;
             });
 
-            if (totalAll > 0) {
+            if (totalComps > 0) {
                 criteresHtml = `
                     <h3 class="tc-review-criteres-title">Compétences évaluées</h3>
-                    <p class="tc-review-criteres-summary">${validesAll} / ${totalAll} critère${totalAll > 1 ? 's' : ''} validé${validesAll > 1 ? 's' : ''}</p>
+                    <p class="tc-review-criteres-summary">${nbCompsValidees} / ${totalComps} compétence${totalComps > 1 ? 's' : ''} validée${nbCompsValidees > 1 ? 's' : ''}</p>
                     ${criteresHtml}
                 `;
             }

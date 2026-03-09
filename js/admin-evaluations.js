@@ -2633,7 +2633,7 @@ const AdminEvaluations = {
             ${showScoreDuree ? '<th class="col-score">Score (%)</th>' : ''}
             ${showScoreDuree ? '<th class="col-duree">Durée</th>' : ''}
             <th class="col-resultat">${isTC ? 'Points' : 'Résultat'}</th>
-            ${isTC ? '<th class="col-criteres-resume">Critères</th>' : ''}
+            ${isTC ? '<th class="col-criteres-resume">Compétences</th>' : ''}
             ${isTC ? '<th class="col-correction-action">Correction</th>' : ''}
             ${isTC ? '<th class="col-statut-correction">Statut</th>' : ''}
             ${showRemarque ? '<th class="col-remarque">Remarque</th>' : ''}
@@ -2681,12 +2681,18 @@ const AdminEvaluations = {
             let correctionActionCell = '';
             let statutCorrectionCell = '';
             if (isTC) {
-                // Résumé critères validés
+                // Résumé compétences validées (une compétence = tous ses critères cochés)
                 const criteresValides = r.criteres_valides ? (() => { try { return JSON.parse(r.criteres_valides); } catch (_e) { return []; } })() : [];
                 const compIds = this._getCompetenceIdsForEval(evaluation);
-                const totalCriteres = compIds.reduce((sum, cid) => sum + (this.criteresReussite || []).filter(c => String(c.competence_id) === String(cid)).length, 0);
-                const nbValides = criteresValides.length;
-                criteresResumeCell = `<td class="col-criteres-resume">${totalCriteres > 0 && nbValides > 0 ? `<span class="criteres-badge">${nbValides}/${totalCriteres}</span>` : '—'}</td>`;
+                const totalComps = compIds.length;
+                let nbCompsValidees = 0;
+                compIds.forEach(cid => {
+                    const compCriteres = (this.criteresReussite || []).filter(c => String(c.competence_id) === String(cid));
+                    if (compCriteres.length > 0 && compCriteres.every(c => criteresValides.indexOf(String(c.id)) !== -1)) {
+                        nbCompsValidees++;
+                    }
+                });
+                criteresResumeCell = `<td class="col-criteres-resume">${totalComps > 0 && nbCompsValidees > 0 ? `<span class="criteres-badge">${nbCompsValidees}/${totalComps}</span>` : '—'}</td>`;
 
                 // Bouton corriger
                 const hasCorrection = r.correction_prof || (criteresValides.length > 0);
@@ -4153,11 +4159,13 @@ const AdminEvaluations = {
                 const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
                 const criteres = this._getCriteresByCompetence(compId);
                 const compValides = wd.competenceValidees[compId] || [];
+                const allChecked = criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
 
-                criteresHtml += `<div class="tc-competence-section" data-comp-id="${compId}">
+                criteresHtml += `<div class="tc-competence-section${allChecked ? ' comp-validated' : ''}" data-comp-id="${compId}">
                     <div class="tc-comp-header">
                         <span class="tc-comp-icon">🎯</span>
                         <h4>${escapeHtml(comp ? comp.nom : 'Compétence inconnue')}</h4>
+                        <span class="tc-comp-status ${allChecked ? 'validated' : 'not-validated'}">${allChecked ? '✅ Validée' : '❌ Non validée'}</span>
                     </div>`;
 
                 if (criteres.length > 0) {
@@ -4180,8 +4188,8 @@ const AdminEvaluations = {
         return `
             <div class="step-header">
                 <span class="step-icon">✅</span>
-                <div><h3>Critères de réussite</h3>
-                <p>Cochez les critères validés par ${escapeHtml(wd.eleveName)}</p></div>
+                <div><h3>Compétences</h3>
+                <p>Cochez les critères validés — une compétence est validée quand tous ses critères sont cochés</p></div>
             </div>
 
             ${criteresHtml}
@@ -4218,6 +4226,20 @@ const AdminEvaluations = {
         Object.values(wd.competenceValidees).forEach(ids => {
             ids.forEach(id => { if (wd.criteresValides.indexOf(id) === -1) wd.criteresValides.push(id); });
         });
+
+        // Mettre à jour le badge de la compétence parente
+        const section = el.closest('.tc-competence-section');
+        if (section) {
+            const criteres = this._getCriteresByCompetence(compId);
+            const compValides = wd.competenceValidees[compId] || [];
+            const allChecked = criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
+            const statusEl = section.querySelector('.tc-comp-status');
+            if (statusEl) {
+                statusEl.className = `tc-comp-status ${allChecked ? 'validated' : 'not-validated'}`;
+                statusEl.textContent = allChecked ? '✅ Validée' : '❌ Non validée';
+            }
+            section.classList.toggle('comp-validated', allChecked);
+        }
     },
 
     // ----- Étape 3 : Résumé -----
@@ -4226,11 +4248,23 @@ const AdminEvaluations = {
         const wd = this._corrWizardData;
         const evaluation = this.saisieEvaluation;
         const compIds = this._getCompetenceIdsForEval(evaluation);
-        const totalCriteres = compIds.reduce((sum, cid) => sum + this._getCriteresByCompetence(cid).length, 0);
-        const nbValides = wd.criteresValides.length;
+        const totalComps = compIds.length;
+        let nbCompsValidees = 0;
+        const compDetails = compIds.map(cid => {
+            const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(cid));
+            const criteres = this._getCriteresByCompetence(cid);
+            const compValides = wd.competenceValidees[cid] || [];
+            const allChecked = criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
+            if (allChecked) nbCompsValidees++;
+            return { nom: comp ? comp.nom : 'Compétence', allChecked };
+        });
 
         const hasRemarque = wd.correctionType === 'blocks' ? !!wd.correctionValue : (wd.correctionType === 'url' ? !!wd.correctionValue : false);
         const matiere = evaluation.matiere || '';
+
+        const compDetailHtml = compDetails.map(c =>
+            `<div style="font-size:13px;padding:2px 0;">${c.allChecked ? '✅' : '❌'} ${escapeHtml(c.nom)}</div>`
+        ).join('');
 
         return `
             <div class="step-header">
@@ -4241,7 +4275,7 @@ const AdminEvaluations = {
 
             <div class="bilan-section">
                 <div class="summary-row"><span class="label">Points</span><span class="value">${escapeHtml(wd.points || '0')} / ${wd.maxPoints}${matiere ? ' (' + escapeHtml(matiere) + ')' : ''}</span></div>
-                <div class="summary-row"><span class="label">Critères validés</span><span class="value">${nbValides} / ${totalCriteres}</span></div>
+                <div class="summary-row"><span class="label">Compétences</span><span class="value" style="flex-direction:column;align-items:flex-start;">${nbCompsValidees}/${totalComps} validée${nbCompsValidees > 1 ? 's' : ''}${compDetailHtml}</span></div>
                 <div class="summary-row"><span class="label">Remarque</span><span class="value">${hasRemarque ? '✅ Rédigée' : '— Aucune'}</span></div>
             </div>
 
@@ -4276,14 +4310,23 @@ const AdminEvaluations = {
         if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement...'; }
 
         try {
+            // Calculer les compétences validées (tous critères cochés)
+            const evaluation = this.saisieEvaluation;
+            const compIds = this._getCompetenceIdsForEval(evaluation);
+            const validatedCompIds = compIds.filter(cid => {
+                const criteres = this._getCriteresByCompetence(cid);
+                const compValides = wd.competenceValidees[cid] || [];
+                return criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
+            });
+
             const params = {
                 evaluation_id: wd.evaluationId,
                 eleve_id: wd.eleveId,
                 correction_prof: wd.correctionValue || '',
                 statut_correction: wd.statutCorrection || 'brouillon',
                 criteres_valides: JSON.stringify(wd.criteresValides),
-                competence_ids_validees: JSON.stringify(wd.competenceValidees),
-                is_validated: wd.criteresValides.length > 0,
+                competence_ids_validees: JSON.stringify(validatedCompIds),
+                is_validated: validatedCompIds.length > 0,
                 validations: wd.points || '0',
                 score: wd.points || '0'
             };

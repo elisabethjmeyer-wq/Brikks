@@ -2160,6 +2160,33 @@
 }
 
 /* ===== WIZARD CORRECTION TC ===== */
+
+/* Badge statut compétence dans le wizard */
+.tc-comp-status {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+.tc-comp-status.validated {
+    background: #d1fae5;
+    color: #065f46;
+}
+.tc-comp-status.not-validated {
+    background: #fee2e2;
+    color: #991b1b;
+}
+.tc-comp-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.tc-competence-section.comp-validated {
+    border-left: 3px solid #10b981;
+    padding-left: 12px;
+}
 .corr-points-section {
     margin-top: 24px;
     padding-top: 20px;
