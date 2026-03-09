@@ -124,7 +124,9 @@ const AdminEvaluations = {
 
         // Count corrections needed (competences with statut 'soumis')
         const eleveCompetences = SheetsAPI.parseSheetData(eleveCompetencesData);
-        this.correctionsCount = eleveCompetences.filter(ec => ec.statut === 'soumis').length;
+        this.correctionsCountComp = eleveCompetences.filter(ec => ec.statut === 'soumis').length;
+        // Bonus/TC count will be added after resultats are loaded
+        this.correctionsCount = this.correctionsCountComp;
 
         // Count pending demandes (demande_statut === 'demande')
         // Will be computed after resultats are loaded
@@ -163,6 +165,13 @@ const AdminEvaluations = {
         } catch (_e) {
             this.resultats = [];
         }
+
+        // Update corrections count to include bonus/TC copies awaiting correction
+        const bonusTCPending = this.resultats.filter(r => {
+            const ds = String(r.demande_statut || '').trim();
+            return ds === 'accepte' && !r.correction_prof && !r.criteres_valides;
+        }).length;
+        this.correctionsCount = this.correctionsCountComp + bonusTCPending;
 
         // Load progression evaluation
         try {

@@ -1,17 +1,23 @@
 /**
- * Admin Corrections — Correction des entraînements de compétences
+ * Admin Corrections — Correction des copies (compétences + bonus + TC)
  * Wizard 4 étapes : Informations → Correction → Critères → Bilan
+ *
+ * Sources :
+ *  - EleveEntrainementsCompetences (statut='soumis') → entraînements compétences
+ *  - EVALUATION_RESULTATS (demande_statut='accepte') → bonus comp, bonus ponctuel, TC
  */
 
 const AdminCorrections = {
 
     // Données chargées
-    submissions: [],
-    entrainements: [],
-    banques: [],
-    competences: [],
-    criteres: [],
-    utilisateurs: [],
+    submissions: [],       // Unified list (competence + bonus/TC)
+    entrainements: [],     // EntrainementsCompetences
+    banques: [],           // BanquesCompetences
+    competences: [],       // CompetencesReferentiel
+    criteres: [],          // CriteresReussite
+    utilisateurs: [],      // UTILISATEURS
+    evaluations: [],       // EVALUATIONS (bonus/TC)
+    evalResultats: [],     // EVALUATION_RESULTATS (bonus/TC)
 
     // État du wizard
     currentTab: 'pending',
@@ -51,15 +57,100 @@ const AdminCorrections = {
             SheetsAPI.fetchAndParse('BanquesCompetences'),
             SheetsAPI.fetchAndParse('CompetencesReferentiel'),
             SheetsAPI.fetchAndParse('CriteresReussite'),
-            SheetsAPI.fetchAndParse('UTILISATEURS')
+            SheetsAPI.fetchAndParse('UTILISATEURS'),
+            SheetsAPI.fetchAndParse('EVALUATIONS'),
+            SheetsAPI.fetchAndParse('EVALUATION_RESULTATS')
         ]);
 
-        this.submissions = results[0] || [];
+        var eleveEntComp = results[0] || [];
         this.entrainements = results[1] || [];
         this.banques = results[2] || [];
         this.competences = results[3] || [];
         this.criteres = results[4] || [];
         this.utilisateurs = results[5] || [];
+        this.evaluations = results[6] || [];
+        this.evalResultats = results[7] || [];
+
+        // Build unified submissions list
+        this.submissions = this._buildUnifiedSubmissions(eleveEntComp);
+    },
+
+    /**
+     * Merge competence training submissions + bonus/TC evaluation results
+     * into a single list with a _sourceType field.
+     */
+    _buildUnifiedSubmissions(eleveEntComp) {
+        var subs = [];
+        var self = this;
+
+        // 1. Competence training submissions (existing behavior)
+        eleveEntComp.forEach(function(s) {
+            if (s.statut === 'soumis' || s.statut === 'valide' || s.statut === 'non_valide') {
+                s._sourceType = 'competence';
+                s._sourceTable = 'EleveEntrainementsCompetences';
+                subs.push(s);
+            }
+        });
+
+        // 2. Bonus/TC evaluation results where demande_statut='accepte' (awaiting correction)
+        //    or already corrected (demande_statut='corrige')
+        this.evalResultats.forEach(function(r) {
+            var ds = String(r.demande_statut || '').trim();
+            if (ds !== 'accepte' && ds !== 'corrige') return;
+
+            // Find the parent evaluation to determine type
+            var evaluation = self.evaluations.find(function(ev) {
+                return String(ev.id) === String(r.evaluation_id);
+            });
+            if (!evaluation) return;
+
+            var evalType = String(evaluation.type || '').trim();
+            var sousTypeBonus = String(evaluation.sous_type_bonus || '').trim();
+
+            // Only include bonus comp, bonus ponctuel, and TC (competences)
+            var sourceType = null;
+            if (evalType === 'competences') {
+                sourceType = 'tc';
+            } else if (evalType === 'bonus' && sousTypeBonus === 'competence') {
+                sourceType = 'bonus_comp';
+            } else if (evalType === 'bonus' && sousTypeBonus === 'ponctuel') {
+                sourceType = 'bonus_ponctuel';
+            }
+            // Skip suivi — no correction wizard for those
+            if (!sourceType) return;
+
+            // Map to unified submission shape
+            var sub = {
+                id: r.id || (r.eleve_id + '_eval_' + r.evaluation_id),
+                eleve_id: r.eleve_id,
+                evaluation_id: r.evaluation_id,
+                date_soumission: r.date_demande || r.date_passage || '',
+                date_correction: r.date_passage || '',
+                correction_prof: r.correction_prof || '',
+                criteres_valides: r.criteres_valides || '',
+                statut_correction: r.statut_correction || '',
+                competence_ids_validees: r.competence_ids_validees || '',
+                _sourceType: sourceType,
+                _sourceTable: 'EVALUATION_RESULTATS',
+                _evaluation: evaluation,
+                _evalResultat: r
+            };
+
+            // Map statut for pending vs done
+            if (ds === 'accepte' && !r.correction_prof && !r.criteres_valides) {
+                sub.statut = 'soumis'; // Awaiting correction
+            } else if (ds === 'corrige') {
+                // Check is_validated to determine valide/non_valide
+                var isValid = r.is_validated === true || r.is_validated === 'true' || String(r.is_validated) === 'TRUE';
+                sub.statut = isValid ? 'valide' : 'non_valide';
+            } else {
+                sub.statut = 'soumis';
+            }
+
+            subs.push(sub);
+        });
+
+        return subs;
     },
 
     callAPI(action, params) {
@@ -122,6 +213,100 @@ const AdminCorrections = {
         }
         if (entrainement.competence_id) return this.getCompetence(entrainement.competence_id);
         return null;
+    },
+
+    /** Get the evaluation object for a bonus/TC submission */
+    getEvaluationForSub(sub) {
+        if (sub._evaluation) return sub._evaluation;
+        if (!sub.evaluation_id) return null;
+        return this.evaluations.find(function(ev) { return String(ev.id) === String(sub.evaluation_id); });
+    },
+
+    /** Get the exercise (EntrainementsCompetences) linked to a bonus/TC evaluation */
+    getExerciseForEvaluation(evaluation) {
+        if (!evaluation) return null;
+        var exId = evaluation.exercice_tc_id || evaluation.exercice_comp_id || evaluation.exercice_bonus_id || '';
+        if (!exId) return null;
+        return this.entrainements.find(function(e) { return String(e.id) === String(exId); });
+    },
+
+    /** Get competence IDs for a TC evaluation (multi-competence) */
+    getCompetenceIdsForTC(evaluation) {
+        if (!evaluation) return [];
+        // Try competence_ids (JSON array) first
+        if (evaluation.competence_ids) {
+            try {
+                var parsed = typeof evaluation.competence_ids === 'string' ?
+                    JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
+                if (Array.isArray(parsed)) return parsed.map(String);
+            } catch (_e) { /* ignore */ }
+        }
+        // Fallback: get from the linked exercise
+        var exercise = this.getExerciseForEvaluation(evaluation);
+        if (exercise && exercise.competence_ids) {
+            try {
+                var parsed2 = typeof exercise.competence_ids === 'string' ?
+                    JSON.parse(exercise.competence_ids) : exercise.competence_ids;
+                if (Array.isArray(parsed2)) return parsed2.map(String);
+            } catch (_e2) { /* ignore */ }
+        }
+        // Last fallback: single competence_id
+        if (evaluation.competence_id) return [String(evaluation.competence_id)];
+        return [];
+    },
+
+    /** Get critères libres for a bonus ponctuel exercise */
+    getCriteresLibres(evaluation) {
+        var exercise = this.getExerciseForEvaluation(evaluation);
+        if (!exercise || !exercise.criteres_libres) return [];
+        try {
+            var parsed = typeof exercise.criteres_libres === 'string' ?
+                JSON.parse(exercise.criteres_libres) : exercise.criteres_libres;
+            if (Array.isArray(parsed)) return parsed;
+        } catch (_e) { /* ignore */ }
+        return [];
+    },
+
+    /** Get display info for a submission (title, competence, type label) */
+    getSubDisplayInfo(sub) {
+        var info = { title: '', competence: '', typeLabel: '', typeBadgeClass: '' };
+
+        if (sub._sourceType === 'competence') {
+            var ent = this.getEntrainement(sub.entrainement_id);
+            var comp = this.getCompetenceForEntrainement(ent);
+            info.title = ent ? ent.titre : 'Entraînement inconnu';
+            info.competence = comp ? comp.nom : '';
+            info.typeLabel = 'Compétence';
+            info.typeBadgeClass = 'badge-type-competence';
+        } else {
+            var evaluation = this.getEvaluationForSub(sub);
+            info.title = evaluation ? evaluation.titre : 'Évaluation inconnue';
+
+            if (sub._sourceType === 'tc') {
+                info.typeLabel = 'Tâche complexe';
+                info.typeBadgeClass = 'badge-type-tc';
+                var compIds = this.getCompetenceIdsForTC(evaluation);
+                if (compIds.length > 0) {
+                    var self = this;
+                    info.competence = compIds.map(function(cid) {
+                        var c = self.getCompetence(cid);
+                        return c ? c.nom : '';
+                    }).filter(Boolean).join(', ');
+                }
+            } else if (sub._sourceType === 'bonus_comp') {
+                info.typeLabel = 'Bonus compétence';
+                info.typeBadgeClass = 'badge-type-bonus-comp';
+                if (evaluation && evaluation.competence_id) {
+                    var comp2 = this.getCompetence(evaluation.competence_id);
+                    info.competence = comp2 ? comp2.nom : '';
+                }
+            } else if (sub._sourceType === 'bonus_ponctuel') {
+                info.typeLabel = 'Bonus ponctuel';
+                info.typeBadgeClass = 'badge-type-bonus-ponctuel';
+            }
+        }
+
+        return info;
     },
 
     getPendingSubmissions() {
@@ -267,22 +452,23 @@ const AdminCorrections = {
 
     renderCard(sub) {
         var eleve = this.getEleve(sub.eleve_id);
-        var entrainement = this.getEntrainement(sub.entrainement_id);
-        var competence = this.getCompetenceForEntrainement(entrainement);
-
         var eleveName = this.getEleveName(eleve);
-        var entrainementTitle = entrainement ? entrainement.titre : 'Entraînement inconnu';
-        var competenceNom = competence ? competence.nom : '';
+        var displayInfo = this.getSubDisplayInfo(sub);
         var isDone = sub.statut === 'valide' || sub.statut === 'non_valide';
 
-        var subKey = sub.id || (sub.eleve_id + '_' + sub.entrainement_id);
+        var subKey = sub.id || (sub.eleve_id + '_' + (sub.entrainement_id || sub.evaluation_id));
 
         var stripeClass = isDone ? ('stripe-' + sub.statut) : 'stripe-pending';
 
         var badgesHtml = '<div class="card-badges">';
 
-        if (competenceNom) {
-            badgesHtml += '<span class="card-badge badge-competence">' + escapeHtml(competenceNom) + '</span>';
+        // Type badge (TC, bonus comp, bonus ponctuel, compétence)
+        if (sub._sourceType !== 'competence') {
+            badgesHtml += '<span class="card-badge ' + displayInfo.typeBadgeClass + '">' + displayInfo.typeLabel + '</span>';
+        }
+
+        if (displayInfo.competence) {
+            badgesHtml += '<span class="card-badge badge-competence">' + escapeHtml(displayInfo.competence) + '</span>';
         }
 
         var modeLabel = this.getModeLabel(sub.mode_rendu);
@@ -292,7 +478,9 @@ const AdminCorrections = {
         }
 
         if (!isDone) {
-            if (sub.date_envoi) {
+            if (sub._sourceType !== 'competence') {
+                badgesHtml += '<span class="card-badge badge-waiting">📝 À corriger</span>';
+            } else if (sub.date_envoi) {
                 var envoyeLabel = sub.mode_rendu === 'papier' ? '✅ Copie déposée' : '✅ Copie envoyée';
                 badgesHtml += '<span class="card-badge badge-sent">' + envoyeLabel + '</span>';
             } else if (sub.mode_rendu === 'papier' || sub.mode_rendu === 'numerique') {
@@ -321,7 +509,7 @@ const AdminCorrections = {
                 '<div class="card-avatar">' + this.getInitials(eleveName) + '</div>' +
                 '<div class="card-main">' +
                     '<div class="card-eleve">' + escapeHtml(eleveName) + '</div>' +
-                    '<div class="card-entrainement">' + escapeHtml(entrainementTitle) + '</div>' +
+                    '<div class="card-entrainement">' + escapeHtml(displayInfo.title) + '</div>' +
                 '</div>' +
                 badgesHtml +
                 '<div class="card-right">' +
@@ -338,7 +526,8 @@ const AdminCorrections = {
     openModal(subId) {
         var sub = this.submissions.find(function(s) {
             return String(s.id) === String(subId) ||
-                   (s.eleve_id + '_' + s.entrainement_id) === subId;
+                   (s.eleve_id + '_' + s.entrainement_id) === subId ||
+                   (s.eleve_id + '_eval_' + s.evaluation_id) === subId;
         });
         if (!sub) return;
 
@@ -350,6 +539,14 @@ const AdminCorrections = {
             try {
                 existingCriteres = JSON.parse(sub.criteres_valides);
             } catch (_e) { /* ignore */ }
+        }
+
+        // For TC: parse competence_ids_validees (JSON object { compId: [critereIds] })
+        var existingCompValidees = {};
+        if (sub.competence_ids_validees) {
+            try {
+                existingCompValidees = JSON.parse(sub.competence_ids_validees);
+            } catch (_e2) { /* ignore */ }
         }
 
         // Détecter le type de correction existante
@@ -368,6 +565,7 @@ const AdminCorrections = {
 
         this.wizardData = {
             criteresValides: Array.isArray(existingCriteres) ? existingCriteres.map(String) : [],
+            competenceValidees: existingCompValidees, // TC: { compId: [critereIds] }
             decision: (sub.statut === 'valide' || sub.statut === 'non_valide') ? sub.statut : null,
             correctionType: corrType,
             correctionValue: corrValue,
@@ -410,8 +608,8 @@ const AdminCorrections = {
     updateModalTitle() {
         var sub = this.currentSubmission;
         var eleve = this.getEleve(sub.eleve_id);
-        var entrainement = this.getEntrainement(sub.entrainement_id);
-        var title = this.getEleveName(eleve) + ' — ' + (entrainement ? entrainement.titre : 'Entraînement');
+        var displayInfo = this.getSubDisplayInfo(sub);
+        var title = this.getEleveName(eleve) + ' — ' + displayInfo.title;
         document.getElementById('correctionModalTitle').textContent = title;
     },
 
@@ -462,16 +660,27 @@ const AdminCorrections = {
     renderStep1() {
         var sub = this.currentSubmission;
         var eleve = this.getEleve(sub.eleve_id);
-        var entrainement = this.getEntrainement(sub.entrainement_id);
-        var competence = this.getCompetenceForEntrainement(entrainement);
+        var displayInfo = this.getSubDisplayInfo(sub);
 
         var html = '<div class="info-grid">';
         html += this._infoItem('👤', 'Élève', this.getEleveName(eleve));
-        html += this._infoItem('📅', 'Soumis le', this.formatDateLong(sub.date_soumission));
-        html += this._infoItem('⏱', 'Temps passé', this.formatTime(sub.temps_passe));
-        html += this._infoItem('📄', 'Mode de rendu', this.getModeLabel(sub.mode_rendu) || '—');
-        html += this._infoItem('🎯', 'Compétence', competence ? competence.nom : '—');
-        html += this._infoItem('📝', 'Exercice', entrainement ? entrainement.titre : '—');
+
+        if (sub._sourceType !== 'competence') {
+            // Bonus/TC: show type + evaluation title
+            html += this._infoItem('🏷', 'Type', displayInfo.typeLabel);
+            html += this._infoItem('📝', 'Évaluation', displayInfo.title);
+            if (displayInfo.competence) {
+                html += this._infoItem('🎯', sub._sourceType === 'tc' ? 'Compétences' : 'Compétence', displayInfo.competence);
+            }
+            html += this._infoItem('📅', 'Date demande', this.formatDateLong(sub.date_soumission));
+        } else {
+            // Competence training (existing)
+            html += this._infoItem('📅', 'Soumis le', this.formatDateLong(sub.date_soumission));
+            html += this._infoItem('⏱', 'Temps passé', this.formatTime(sub.temps_passe));
+            html += this._infoItem('📄', 'Mode de rendu', this.getModeLabel(sub.mode_rendu) || '—');
+            html += this._infoItem('🎯', 'Compétence', displayInfo.competence || '—');
+            html += this._infoItem('📝', 'Exercice', displayInfo.title);
+        }
         html += '</div>';
 
         // Statut brouillon / publié
@@ -766,10 +975,6 @@ const AdminCorrections = {
 
     renderStep3() {
         var sub = this.currentSubmission;
-        var entrainement = this.getEntrainement(sub.entrainement_id);
-        var competence = this.getCompetenceForEntrainement(entrainement);
-        var competenceId = competence ? competence.id : null;
-        var criteres = competenceId ? this.getCriteresByCompetence(competenceId) : [];
         var wd = this.wizardData;
 
         var html = '';
@@ -781,19 +986,15 @@ const AdminCorrections = {
         html += '<p>Cochez les critères validés par l\'élève</p></div>';
         html += '</div>';
 
-        // Critères de réussite
-        if (criteres.length > 0) {
-            html += '<div class="criteres-correction-list">';
-            criteres.forEach(function(c) {
-                var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
-                html += '<div class="critere-check' + (checked ? ' checked' : '') + '" onclick="AdminCorrections.toggleCritere(\'' + c.id + '\', this)">';
-                html += '<input type="checkbox" id="critere_' + c.id + '"' + (checked ? ' checked' : '') + '>';
-                html += '<label for="critere_' + c.id + '">' + escapeHtml(c.libelle) + '</label>';
-                html += '</div>';
-            });
-            html += '</div>';
+        if (sub._sourceType === 'tc') {
+            // TC: multiple competences, each with its own critères
+            html += this._renderStep3TC();
+        } else if (sub._sourceType === 'bonus_ponctuel') {
+            // Bonus ponctuel: critères libres
+            html += this._renderStep3BonusPonctuel();
         } else {
-            html += '<div class="empty-criteres">Aucun critère défini pour cette compétence.</div>';
+            // Competence training OR bonus comp: single competence critères
+            html += this._renderStep3SingleCompetence();
         }
 
         // Décision
@@ -805,6 +1006,131 @@ const AdminCorrections = {
         html += '</div></div>';
 
         return html;
+    },
+
+    /** Step 3 for competence training + bonus compétence (single competence) */
+    _renderStep3SingleCompetence() {
+        var sub = this.currentSubmission;
+        var wd = this.wizardData;
+        var competenceId = null;
+
+        if (sub._sourceType === 'bonus_comp') {
+            var evaluation = this.getEvaluationForSub(sub);
+            competenceId = evaluation ? evaluation.competence_id : null;
+        } else {
+            var entrainement = this.getEntrainement(sub.entrainement_id);
+            var competence = this.getCompetenceForEntrainement(entrainement);
+            competenceId = competence ? competence.id : null;
+        }
+
+        var criteres = competenceId ? this.getCriteresByCompetence(competenceId) : [];
+
+        if (criteres.length > 0) {
+            var html = '<div class="criteres-correction-list">';
+            criteres.forEach(function(c) {
+                var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
+                html += '<div class="critere-check' + (checked ? ' checked' : '') + '" onclick="AdminCorrections.toggleCritere(\'' + c.id + '\', this)">';
+                html += '<input type="checkbox" id="critere_' + c.id + '"' + (checked ? ' checked' : '') + '>';
+                html += '<label for="critere_' + c.id + '">' + escapeHtml(c.libelle) + '</label>';
+                html += '</div>';
+            });
+            html += '</div>';
+            return html;
+        }
+        return '<div class="empty-criteres">Aucun critère défini pour cette compétence.</div>';
+    },
+
+    /** Step 3 for TC: grouped by competence */
+    _renderStep3TC() {
+        var sub = this.currentSubmission;
+        var wd = this.wizardData;
+        var evaluation = this.getEvaluationForSub(sub);
+        var compIds = this.getCompetenceIdsForTC(evaluation);
+
+        if (compIds.length === 0) {
+            return '<div class="empty-criteres">Aucune compétence associée à cette tâche complexe.</div>';
+        }
+
+        // Initialize competenceValidees if empty
+        if (!wd.competenceValidees || typeof wd.competenceValidees !== 'object') {
+            wd.competenceValidees = {};
+        }
+
+        var self = this;
+        var html = '';
+
+        compIds.forEach(function(compId) {
+            var comp = self.getCompetence(compId);
+            var criteres = self.getCriteresByCompetence(compId);
+            var compValides = wd.competenceValidees[compId] || [];
+
+            html += '<div class="tc-competence-section" data-comp-id="' + compId + '">';
+            html += '<div class="tc-comp-header">';
+            html += '<span class="tc-comp-icon">🎯</span>';
+            html += '<h4>' + escapeHtml(comp ? comp.nom : 'Compétence inconnue') + '</h4>';
+            html += '</div>';
+
+            if (criteres.length > 0) {
+                html += '<div class="criteres-correction-list">';
+                criteres.forEach(function(c) {
+                    var checked = compValides.indexOf(String(c.id)) !== -1;
+                    html += '<div class="critere-check' + (checked ? ' checked' : '') + '" onclick="AdminCorrections.toggleCritereTC(\'' + compId + '\', \'' + c.id + '\', this)">';
+                    html += '<input type="checkbox"' + (checked ? ' checked' : '') + '>';
+                    html += '<label>' + escapeHtml(c.libelle) + '</label>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            } else {
+                html += '<div class="empty-criteres">Aucun critère défini.</div>';
+            }
+
+            html += '</div>';
+        });
+
+        return html;
+    },
+
+    /** Step 3 for bonus ponctuel: critères libres */
+    _renderStep3BonusPonctuel() {
+        var sub = this.currentSubmission;
+        var wd = this.wizardData;
+        var evaluation = this.getEvaluationForSub(sub);
+        var criteresLibres = this.getCriteresLibres(evaluation);
+
+        if (criteresLibres.length === 0) {
+            return '<div class="empty-criteres">Aucun critère libre défini pour cette évaluation.</div>';
+        }
+
+        var html = '<div class="criteres-correction-list">';
+        criteresLibres.forEach(function(label, idx) {
+            var critId = 'libre_' + idx;
+            var checked = wd.criteresValides.indexOf(critId) !== -1;
+            html += '<div class="critere-check' + (checked ? ' checked' : '') + '" onclick="AdminCorrections.toggleCritere(\'' + critId + '\', this)">';
+            html += '<input type="checkbox" id="critere_' + critId + '"' + (checked ? ' checked' : '') + '>';
+            html += '<label for="critere_' + critId + '">' + escapeHtml(label) + '</label>';
+            html += '</div>';
+        });
+        html += '</div>';
+        return html;
+    },
+
+    /** Toggle critère for TC (per competence) */
+    toggleCritereTC(compId, critereId, el) {
+        var wd = this.wizardData;
+        if (!wd.competenceValidees) wd.competenceValidees = {};
+        if (!wd.competenceValidees[compId]) wd.competenceValidees[compId] = [];
+
+        var list = wd.competenceValidees[compId];
+        var idx = list.indexOf(String(critereId));
+        if (idx === -1) {
+            list.push(String(critereId));
+            el.classList.add('checked');
+            el.querySelector('input').checked = true;
+        } else {
+            list.splice(idx, 1);
+            el.classList.remove('checked');
+            el.querySelector('input').checked = false;
+        }
     },
 
     toggleCritere(critereId, el) {
@@ -852,10 +1178,7 @@ const AdminCorrections = {
     renderStep4() {
         var sub = this.currentSubmission;
         var eleve = this.getEleve(sub.eleve_id);
-        var entrainement = this.getEntrainement(sub.entrainement_id);
-        var competence = this.getCompetenceForEntrainement(entrainement);
-        var competenceId = competence ? competence.id : null;
-        var criteres = competenceId ? this.getCriteresByCompetence(competenceId) : [];
+        var displayInfo = this.getSubDisplayInfo(sub);
         var wd = this.wizardData;
 
         var html = '';
@@ -866,8 +1189,11 @@ const AdminCorrections = {
         html += '</div>';
 
         html += '<div class="bilan-section">';
-        html += '<h4>Entraînement</h4>';
-        html += '<div class="bilan-value">' + escapeHtml(entrainement ? entrainement.titre : 'Inconnu') + '</div>';
+        html += '<h4>' + (sub._sourceType === 'competence' ? 'Entraînement' : 'Évaluation') + '</h4>';
+        html += '<div class="bilan-value">' + escapeHtml(displayInfo.title) + '</div>';
+        if (sub._sourceType !== 'competence') {
+            html += '<div class="bilan-type-badge ' + displayInfo.typeBadgeClass + '">' + displayInfo.typeLabel + '</div>';
+        }
         html += '</div>';
 
         // Décision
@@ -878,19 +1204,8 @@ const AdminCorrections = {
             (isValide ? '✅ Validé' : '❌ Non validé') + '</div>';
         html += '</div>';
 
-        // Critères
-        if (criteres.length > 0) {
-            html += '<div class="bilan-section">';
-            html += '<h4>Critères de réussite (' + wd.criteresValides.length + '/' + criteres.length + ')</h4>';
-            html += '<div class="bilan-criteres-list">';
-            criteres.forEach(function(c) {
-                var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
-                html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
-                html += (checked ? '✅' : '❌') + ' ' + escapeHtml(c.libelle);
-                html += '</div>';
-            });
-            html += '</div></div>';
-        }
+        // Critères — depends on type
+        html += this._renderStep4Criteres(sub);
 
         // Corrigé
         if (wd.correctionValue) {
@@ -900,6 +1215,82 @@ const AdminCorrections = {
                 (wd.correctionType === 'url' ? '🔗 Lien Google Doc' : '📝 Contenu riche (blocs)') +
                 '</div>';
             html += '</div>';
+        }
+
+        return html;
+    },
+
+    _renderStep4Criteres(sub) {
+        var wd = this.wizardData;
+        var html = '';
+
+        if (sub._sourceType === 'tc') {
+            // TC: show critères per competence
+            var evaluation = this.getEvaluationForSub(sub);
+            var compIds = this.getCompetenceIdsForTC(evaluation);
+            var self = this;
+
+            compIds.forEach(function(compId) {
+                var comp = self.getCompetence(compId);
+                var criteres = self.getCriteresByCompetence(compId);
+                var compValides = wd.competenceValidees[compId] || [];
+
+                if (criteres.length === 0) return;
+
+                html += '<div class="bilan-section">';
+                html += '<h4>🎯 ' + escapeHtml(comp ? comp.nom : 'Compétence') +
+                    ' (' + compValides.length + '/' + criteres.length + ')</h4>';
+                html += '<div class="bilan-criteres-list">';
+                criteres.forEach(function(c) {
+                    var checked = compValides.indexOf(String(c.id)) !== -1;
+                    html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
+                    html += (checked ? '✅' : '❌') + ' ' + escapeHtml(c.libelle);
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            });
+        } else if (sub._sourceType === 'bonus_ponctuel') {
+            // Bonus ponctuel: critères libres
+            var evaluation2 = this.getEvaluationForSub(sub);
+            var criteresLibres = this.getCriteresLibres(evaluation2);
+            if (criteresLibres.length > 0) {
+                html += '<div class="bilan-section">';
+                html += '<h4>Critères libres (' + wd.criteresValides.length + '/' + criteresLibres.length + ')</h4>';
+                html += '<div class="bilan-criteres-list">';
+                criteresLibres.forEach(function(label, idx) {
+                    var critId = 'libre_' + idx;
+                    var checked = wd.criteresValides.indexOf(critId) !== -1;
+                    html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
+                    html += (checked ? '✅' : '❌') + ' ' + escapeHtml(label);
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            }
+        } else {
+            // Competence training + bonus comp: single competence
+            var competenceId = null;
+            if (sub._sourceType === 'bonus_comp') {
+                var eval3 = this.getEvaluationForSub(sub);
+                competenceId = eval3 ? eval3.competence_id : null;
+            } else {
+                var ent = this.getEntrainement(sub.entrainement_id);
+                var comp2 = this.getCompetenceForEntrainement(ent);
+                competenceId = comp2 ? comp2.id : null;
+            }
+
+            var criteres2 = competenceId ? this.getCriteresByCompetence(competenceId) : [];
+            if (criteres2.length > 0) {
+                html += '<div class="bilan-section">';
+                html += '<h4>Critères de réussite (' + wd.criteresValides.length + '/' + criteres2.length + ')</h4>';
+                html += '<div class="bilan-criteres-list">';
+                criteres2.forEach(function(c) {
+                    var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
+                    html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
+                    html += (checked ? '✅' : '❌') + ' ' + escapeHtml(c.libelle);
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            }
         }
 
         return html;
@@ -929,17 +1320,40 @@ const AdminCorrections = {
         var sub = this.currentSubmission;
         var wd = this.wizardData;
 
-        var params = {
-            eleve_id: sub.eleve_id,
-            entrainement_id: sub.entrainement_id,
-            statut: wd.decision,
-            criteres_valides: JSON.stringify(wd.criteresValides),
-            correction_prof: wd.correctionValue || '',
-            statut_correction: wd.statutCorrection || 'publie'
-        };
-
         try {
-            var result = await this.callAPI('validateEleveEntrainementCompetence', params);
+            var result;
+
+            if (sub._sourceType === 'competence') {
+                // Existing flow: save to EleveEntrainementsCompetences
+                result = await this.callAPI('validateEleveEntrainementCompetence', {
+                    eleve_id: sub.eleve_id,
+                    entrainement_id: sub.entrainement_id,
+                    statut: wd.decision,
+                    criteres_valides: JSON.stringify(wd.criteresValides),
+                    correction_prof: wd.correctionValue || '',
+                    statut_correction: wd.statutCorrection || 'publie'
+                });
+            } else {
+                // Bonus/TC flow: save to EVALUATION_RESULTATS via saveEvaluationCorrection
+                var params = {
+                    evaluation_id: sub.evaluation_id,
+                    eleve_id: sub.eleve_id,
+                    correction_prof: wd.correctionValue || '',
+                    statut_correction: wd.statutCorrection || 'publie',
+                    is_validated: wd.decision === 'valide'
+                };
+
+                if (sub._sourceType === 'tc') {
+                    // TC: save per-competence critères as JSON object
+                    params.competence_ids_validees = JSON.stringify(wd.competenceValidees || {});
+                    params.criteres_valides = JSON.stringify(wd.criteresValides);
+                } else {
+                    // Bonus comp / ponctuel: simple critères list
+                    params.criteres_valides = JSON.stringify(wd.criteresValides);
+                }
+
+                result = await this.callAPI('saveEvaluationCorrection', params);
+            }
 
             if (result.success) {
                 sub.statut = wd.decision;
@@ -948,7 +1362,14 @@ const AdminCorrections = {
                 sub.statut_correction = wd.statutCorrection || 'publie';
                 sub.date_correction = new Date().toISOString();
 
-                try { localStorage.removeItem('brikks_sheets_EleveEntrainementsCompetences'); } catch (_e) { /* ignore */ }
+                // Invalidate relevant caches
+                try {
+                    if (sub._sourceType === 'competence') {
+                        localStorage.removeItem('brikks_sheets_EleveEntrainementsCompetences');
+                    } else {
+                        localStorage.removeItem('brikks_sheets_EVALUATION_RESULTATS');
+                    }
+                } catch (_e) { /* ignore */ }
 
                 this.closeModal();
                 this.updateCounts();
