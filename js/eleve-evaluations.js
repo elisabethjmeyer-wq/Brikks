@@ -1059,9 +1059,12 @@ const EleveEvaluations = {
             actionHtml += `<button class="card-btn btn-rendu" onclick="event.stopPropagation(); EleveEvaluations.signalerRendu('${evaluation.id}')">J'ai rendu ma copie</button>`;
         } else if (cardStatus === 'rendu') {
             statusExtra = '<span class="bonus-status en-attente" style="align-self:flex-start">En attente de correction</span>';
-        } else if (cardStatus === 'available' && isTC) {
-            // TC ouverte → consulter le sujet
+        } else if (cardStatus === 'available' && isTC && sujetAvance) {
+            // TC ouverte + sujet disponible à l'avance → consulter le sujet
             actionHtml = `<a href="evaluation.html?id=${evaluation.id}&mode=sujet" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
+        } else if (cardStatus === 'available' && isTC && !sujetAvance) {
+            // TC ouverte mais sujet non consultable → en classe seulement
+            actionHtml = '<div class="card-action-info papier">En classe</div>';
         } else if (cardStatus === 'available' && !isPapier) {
             actionHtml = `<a href="evaluation.html?id=${evaluation.id}" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Commencer</a>`;
         } else if (cardStatus === 'available' && isPapier) {
