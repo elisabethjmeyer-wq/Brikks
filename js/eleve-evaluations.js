@@ -476,16 +476,16 @@ const EleveEvaluations = {
                 const cardData = { ...ev, resultat, cardStatus, demandeStatut, mode_passation: 'papier' };
 
                 // Bonus accepté → migre dans l'onglet Évaluations (section "À passer")
-                if (cardStatus === 'demande_acceptee' || cardStatus === 'rendu') {
+                if (cardStatus === 'demande_acceptee' || cardStatus === 'rendu' || cardStatus === 'suivi_en_cours') {
                     this.categories.available.push(cardData);
                     return;
                 }
-                // Bonus terminé (corrigé/validé/failed) → dans "Terminées"
-                if (cardStatus === 'validated' || cardStatus === 'failed') {
+                // Bonus terminé (corrigé/validé/failed/suivi complet) → dans "Terminées"
+                if (cardStatus === 'validated' || cardStatus === 'failed' || cardStatus === 'suivi_complete') {
                     this.categories.done.push(cardData);
                     return;
                 }
-                // Sinon (disponible, demande_envoyee, refusee, suivi) → onglet Bonus
+                // Sinon (disponible, demande_envoyee, refusee, suivi_disponible, suivi_demande, suivi_refuse) → onglet Bonus
                 this.categories.bonus.push(cardData);
                 return;
             }
@@ -650,7 +650,7 @@ const EleveEvaluations = {
                         <span class="section-toggle">▼</span>
                     </button>
                     <div class="section-cards collapsed">
-                        ${allDone.map(e => e.isSommative ? this.renderSommativeCard(e) : this.renderCard(e)).join('')}
+                        ${allDone.map(e => e.isSommative ? this.renderSommativeCard(e) : this._renderAnyCard(e)).join('')}
                     </div>
                 </div>
             `;
@@ -679,11 +679,10 @@ const EleveEvaluations = {
             b.cardStatus === 'disponible' || b.cardStatus === 'demande_envoyee' ||
             b.cardStatus === 'demande_acceptee' || b.cardStatus === 'demande_refusee' ||
             b.cardStatus === 'suivi_disponible' || b.cardStatus === 'suivi_demande' ||
-            b.cardStatus === 'suivi_refuse' || b.cardStatus === 'suivi_en_cours'
+            b.cardStatus === 'suivi_refuse'
         );
         const termines = bonus.filter(b =>
-            b.cardStatus === 'validated' || b.cardStatus === 'failed' ||
-            b.cardStatus === 'suivi_complete'
+            b.cardStatus === 'validated' || b.cardStatus === 'failed'
         );
 
         let html = '';
@@ -1064,10 +1063,19 @@ const EleveEvaluations = {
                     <h2>${title} <span class="section-count">${evals.length}</span></h2>
                 </div>
                 <div class="section-cards">
-                    ${evals.map(e => e.isSommative ? this.renderSommativeCard(e) : this.renderCard(e)).join('')}
+                    ${evals.map(e => e.isSommative ? this.renderSommativeCard(e) : this._renderAnyCard(e)).join('')}
                 </div>
             </div>
         `;
+    },
+
+    /**
+     * Route vers le bon renderer selon le type de carte (bonus suivi → renderBonusCard, sinon renderCard)
+     */
+    _renderAnyCard(e) {
+        const sousType = String(e.sous_type_bonus || '').trim();
+        if (sousType === 'suivi') return this.renderBonusCard(e);
+        return this.renderCard(e);
     },
 
     toggleSection(btn) {
