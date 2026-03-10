@@ -814,7 +814,8 @@ const AdminEvaluations = {
         if (type === 'bonus' && this.wizardData.sous_type_bonus === 'competence') return 5;
         // Bonus ponctuel : 5 étapes (Paramètres + Document + Corrigé + Critères + Résumé)
         if (type === 'bonus' && this.wizardData.sous_type_bonus === 'ponctuel') return 5;
-        // Bonus suivi : 1 étape (Paramètres)
+        // Bonus suivi : 2 étapes (Paramètres + Détails)
+        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'suivi') return 2;
         return 1;
     },
 
@@ -834,6 +835,9 @@ const AdminEvaluations = {
         }
         if (type === 'bonus' && this.wizardData.sous_type_bonus === 'ponctuel') {
             return ['Paramètres', 'Document', 'Corrigé', 'Critères', 'Résumé'];
+        }
+        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'suivi') {
+            return ['Paramètres', 'Détails'];
         }
         return ['Paramètres'];
     },
@@ -934,6 +938,15 @@ const AdminEvaluations = {
                 case 3: content.innerHTML = this._renderStepCorrige(); this._initStepCorrige(); break;
                 case 4: content.innerHTML = this._renderStepCriteresLibres(); this._initStepCriteresLibres(); break;
                 case 5: content.innerHTML = this._renderStepResume(); break;
+            }
+            return;
+        }
+
+        // Bonus suivi : Step 2 = Détails
+        if (type === 'bonus' && sousType === 'suivi') {
+            if (this.wizardStep === 2) {
+                content.innerHTML = this._renderStepSuiviDetails();
+                this._initStepSuiviDetails();
             }
             return;
         }
@@ -1387,18 +1400,8 @@ const AdminEvaluations = {
 
         let sousTypeFields = '';
         if (sousType === 'suivi') {
-            sousTypeFields = `
-                <div class="form-group">
-                    <label>Nombre de validations requises <span class="req">*</span></label>
-                    <input type="number" class="form-input" id="evalNbValidations" value="${d.nb_validations || 5}" min="1" max="50">
-                    <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points (saisis dans le tableau de résultats)</div>
-                </div>
-                <div class="form-group">
-                    <label>Description pour l'élève</label>
-                    <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Apporter ses affaires à chaque cours, réviser le vocabulaire...">${escapeHtml(d.description_eleve || '')}</textarea>
-                    <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
-                </div>
-            `;
+            // Champs description + nb_validations + critères déplacés en étape 2 (Détails)
+            sousTypeFields = '';
         } else if (sousType === 'competence' || sousType === 'ponctuel') {
             sousTypeFields = `
                 <div class="form-group">
@@ -2076,6 +2079,92 @@ const AdminEvaluations = {
         }
     },
 
+    // --- ÉTAPE DÉTAILS SUIVI (bonus suivi) ---
+
+    _renderStepSuiviDetails() {
+        const d = this.wizardData;
+
+        // Parse existing critères
+        let criteres = [];
+        if (d.criteres_libres) {
+            try {
+                const parsed = typeof d.criteres_libres === 'string' ? JSON.parse(d.criteres_libres) : d.criteres_libres;
+                if (Array.isArray(parsed)) criteres = parsed;
+            } catch (_e) { /* ignore */ }
+        }
+        if (criteres.length === 0) criteres.push('');
+
+        const criteresRows = criteres.map((c, i) =>
+            `<div class="critere-libre-row">
+                <span class="critere-libre-num">${i + 1}</span>
+                <input type="text" class="form-input critere-libre-input" value="${escapeHtml(c)}" placeholder="Ex: Avoir son cahier à jour">
+                <button class="btn-icon btn-remove" onclick="AdminEvaluations._ewRemoveSuiviCritere(${i})" title="Supprimer">&times;</button>
+            </div>`
+        ).join('');
+
+        return `<div class="eval-wizard-step-content">
+            <div class="step-header">
+                <h3>Détails du suivi</h3>
+                <p>Décrivez ce que l'élève devra faire et comment il sera évalué</p>
+            </div>
+            <div class="wizard-form">
+                <div class="form-group full-width">
+                    <label>Description pour l'élève</label>
+                    <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Apporter ses affaires à chaque cours, réviser le vocabulaire...">${escapeHtml(d.description_eleve || '')}</textarea>
+                    <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
+                </div>
+                <div class="form-group">
+                    <label>Nombre de validations requises <span class="req">*</span></label>
+                    <input type="number" class="form-input" id="evalNbValidations" value="${d.nb_validations || 5}" min="1" max="50">
+                    <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points</div>
+                </div>
+                <div class="form-group full-width" style="margin-top: 16px;">
+                    <label>Critères de réussite</label>
+                    <div class="form-help" style="margin-bottom: 8px;">Ce que l'élève devra réussir à chaque validation</div>
+                    <div id="evalSuiviCriteresList" class="cw-criteres-list">${criteresRows}</div>
+                    <button class="btn btn-secondary btn-sm" onclick="AdminEvaluations._ewAddSuiviCritere()" style="margin-top: 8px;">+ Ajouter un critère</button>
+                </div>
+            </div>
+        </div>`;
+    },
+
+    _initStepSuiviDetails() {
+        const textarea = document.getElementById('evalDescriptionEleve');
+        if (textarea && !textarea.value) textarea.focus();
+    },
+
+    _ewAddSuiviCritere() {
+        const container = document.getElementById('evalSuiviCriteresList');
+        if (!container) return;
+        const count = container.querySelectorAll('.critere-libre-row').length;
+        const div = document.createElement('div');
+        div.className = 'critere-libre-row';
+        div.innerHTML = `<span class="critere-libre-num">${count + 1}</span>
+            <input type="text" class="form-input critere-libre-input" value="" placeholder="Ex: Avoir son cahier à jour">
+            <button class="btn-icon btn-remove" onclick="AdminEvaluations._ewRemoveSuiviCritere(${count})" title="Supprimer">&times;</button>`;
+        container.appendChild(div);
+        div.querySelector('.critere-libre-input').focus();
+    },
+
+    _ewRemoveSuiviCritere(index) {
+        const inputs = document.querySelectorAll('#evalSuiviCriteresList .critere-libre-input');
+        const values = [];
+        inputs.forEach(input => values.push(input.value));
+        values.splice(index, 1);
+        if (values.length === 0) values.push('');
+
+        const container = document.getElementById('evalSuiviCriteresList');
+        if (container) {
+            container.innerHTML = values.map((c, i) =>
+                `<div class="critere-libre-row">
+                    <span class="critere-libre-num">${i + 1}</span>
+                    <input type="text" class="form-input critere-libre-input" value="${escapeHtml(c)}" placeholder="Ex: Avoir son cahier à jour">
+                    <button class="btn-icon btn-remove" onclick="AdminEvaluations._ewRemoveSuiviCritere(${i})" title="Supprimer">&times;</button>
+                </div>`
+            ).join('');
+        }
+    },
+
     // --- ÉTAPE CRITÈRES LIBRES (bonus ponctuel) ---
 
     _renderStepCriteresLibres() {
@@ -2374,10 +2463,7 @@ const AdminEvaluations = {
                 this.wizardData.methodologie_id = document.getElementById('evalMethodologieTC')?.value || '';
                 this.wizardData.sujet_disponible_avance = document.getElementById('evalSujetAvance')?.checked || false;
             }
-            if (type === 'bonus' && sousType === 'suivi') {
-                this.wizardData.nb_validations = parseInt(document.getElementById('evalNbValidations')?.value) || 5;
-            }
-            if (type === 'bonus') {
+            if (type === 'bonus' && sousType !== 'suivi') {
                 this.wizardData.description_eleve = (document.getElementById('evalDescriptionEleve')?.value || '').trim();
             }
             return true;
@@ -2486,6 +2572,20 @@ const AdminEvaluations = {
                 this.wizardData.criteres_libres = JSON.stringify(criteres);
                 return true;
             }
+            case 'suivi_details': {
+                // Bonus suivi : description + nb_validations + critères
+                this.wizardData.description_eleve = (document.getElementById('evalDescriptionEleve')?.value || '').trim();
+                this.wizardData.nb_validations = parseInt(document.getElementById('evalNbValidations')?.value) || 5;
+                // Collect critères (optional for suivi)
+                const suiviInputs = document.querySelectorAll('#evalSuiviCriteresList .critere-libre-input');
+                const suiviCriteres = [];
+                suiviInputs.forEach(input => {
+                    const v = input.value.trim();
+                    if (v) suiviCriteres.push(v);
+                });
+                this.wizardData.criteres_libres = suiviCriteres.length > 0 ? JSON.stringify(suiviCriteres) : '';
+                return true;
+            }
             case 'resume':
                 return true;
         }
@@ -2507,6 +2607,9 @@ const AdminEvaluations = {
         }
         if (type === 'bonus' && sousType === 'ponctuel') {
             return ['params', 'document', 'corrige', 'criteres', 'resume'][step - 1];
+        }
+        if (type === 'bonus' && sousType === 'suivi') {
+            return ['params', 'suivi_details'][step - 1];
         }
         return 'params';
     },
@@ -2578,6 +2681,7 @@ const AdminEvaluations = {
             } else if (d.sous_type_bonus === 'suivi') {
                 data.nb_validations = d.nb_validations || 5;
                 data.description_eleve = d.description_eleve || '';
+                data.criteres_libres = d.criteres_libres || '';
             }
         }
 
