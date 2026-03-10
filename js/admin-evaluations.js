@@ -517,16 +517,23 @@ const AdminEvaluations = {
         const evalResults = this.resultats.filter(r =>
             String(r.evaluation_id).trim() === String(evaluation.id).trim()
         );
-        const isBonusType = evaluation.type === 'bonus' && String(evaluation.sous_type_bonus || '').trim() !== 'suivi';
+        const sousTypeBonusCard = String(evaluation.sous_type_bonus || '').trim();
+        const isBonusType = evaluation.type === 'bonus';
 
-        // Pour les bonus comp/ponctuel : compter les demandes, pas tous les élèves
+        // Pour tous les bonus : compter les demandes/inscrits, pas tous les élèves
         let totalEleves, saisis, validated, statsLabel;
         if (isBonusType) {
             const demandes = evalResults.filter(r => String(r.demande_statut || '').trim());
             totalEleves = demandes.length;
             saisis = demandes.length;
             validated = evalResults.filter(r => r.is_validated === true || r.is_validated === 'true').length;
-            statsLabel = totalEleves === 1 ? 'Demande' : 'Demandes';
+            if (sousTypeBonusCard === 'suivi') {
+                const inscrits = demandes.filter(r => { const s = String(r.demande_statut || '').trim(); return s === 'accepte' || s === 'rendu' || s === 'corrige'; });
+                totalEleves = inscrits.length;
+                statsLabel = totalEleves === 1 ? 'Inscrit' : 'Inscrits';
+            } else {
+                statsLabel = totalEleves === 1 ? 'Demande' : 'Demandes';
+            }
         } else {
             totalEleves = this.eleves.length || 25;
             saisis = evalResults.length;
