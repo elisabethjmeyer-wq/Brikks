@@ -1808,7 +1808,7 @@ const AdminEvaluations = {
                     // Ancien format : strings simples → convertir
                     else if (parsed.length > 0 && typeof parsed[0] === 'string') {
                         customComps = parsed.filter(s => s && s.trim()).map((s, i) => ({
-                            id: 'custom_' + Date.now() + '_' + i,
+                            id: 'c' + i,
                             nom: s,
                             matiere: 'FR',
                             points: 1,
@@ -2479,7 +2479,7 @@ const AdminEvaluations = {
         if (!container) return;
         const count = container.querySelectorAll('.custom-comp-card').length;
         const newComp = {
-            id: 'custom_' + Date.now() + '_' + count,
+            id: 'c' + count,
             nom: '',
             matiere: 'FR',
             points: 1,
@@ -2536,8 +2536,9 @@ const AdminEvaluations = {
                 const v = inp.value.trim();
                 if (v) criteres.push(v);
             });
+            // IDs courts pour minimiser la taille du payload JSONP
             comps.push({
-                id: 'custom_' + Date.now() + '_' + idx,
+                id: 'c' + idx,
                 nom: nom,
                 matiere: matiere,
                 points: points,
@@ -2934,11 +2935,17 @@ const AdminEvaluations = {
                     return false;
                 }
                 this.wizardData.criteres_libres = validCustomComps.length > 0 ? JSON.stringify(validCustomComps) : '';
-                // Ajouter les points des compétences personnalisées au total
+                // Ajouter les points des compétences perso au total et à points_par_competence
                 if (validCustomComps.length > 0) {
                     let totalCustomPts = 0;
-                    validCustomComps.forEach(cc => { totalCustomPts += (cc.points || 0); });
+                    // Fusionner dans points_par_competence
+                    let ppc = ptsParCompMerged; // déjà collecté plus haut (compétences référentiel)
+                    validCustomComps.forEach(cc => {
+                        totalCustomPts += (cc.points || 0);
+                        ppc[cc.id] = cc.points || 1;
+                    });
                     this.wizardData.briques = (this.wizardData.briques || 0) + totalCustomPts;
+                    this.wizardData.points_par_competence = JSON.stringify(ppc);
                 }
                 return true;
             }
@@ -3018,33 +3025,34 @@ const AdminEvaluations = {
             data.source_questions = 'banque';
         }
         if (d.type === 'competences') {
-            data.methodologie_id = d.methodologie_id || '';
             data.sous_type_comp = d.sous_type_comp || 'tache_complexe';
             data.sujet_disponible_avance = d.sujet_disponible_avance ? 'true' : 'false';
-            // Phase 9 : contenu intégré directement
-            data.document_contenu = d.document_contenu || '';
-            data.correction_contenu = d.correction_contenu || '';
-            data.correction_commentee = d.correction_commentee || '';
-            data.competence_ids = d.competence_ids || '';
-            data.points_par_competence = d.points_par_competence || '';
-            data.description = d.description || '';
+            // Phase 9 : contenu intégré directement — n'envoyer que les champs non vides
+            if (d.methodologie_id) data.methodologie_id = d.methodologie_id;
+            if (d.document_contenu) data.document_contenu = d.document_contenu;
+            if (d.correction_contenu) data.correction_contenu = d.correction_contenu;
+            if (d.correction_commentee) data.correction_commentee = d.correction_commentee;
+            if (d.competence_ids) data.competence_ids = d.competence_ids;
+            if (d.points_par_competence) data.points_par_competence = d.points_par_competence;
+            if (d.description) data.description = d.description;
         }
         if (d.type === 'bonus') {
             data.sous_type_bonus = d.sous_type_bonus || 'mission';
             if (d.sous_type_bonus !== 'suivi') {
                 // Bonus mission : contenu + compétences + critères libres
-                data.document_contenu = d.document_contenu || '';
-                data.correction_contenu = d.correction_contenu || '';
-                data.correction_commentee = d.correction_commentee || '';
-                data.description = d.description || '';
-                data.description_eleve = d.description_eleve || '';
-                data.competence_ids = d.competence_ids || '';
-                data.points_par_competence = d.points_par_competence || '';
-                data.criteres_libres = d.criteres_libres || '';
+                // N'envoyer que les champs non vides pour minimiser le payload JSONP
+                if (d.document_contenu) data.document_contenu = d.document_contenu;
+                if (d.correction_contenu) data.correction_contenu = d.correction_contenu;
+                if (d.correction_commentee) data.correction_commentee = d.correction_commentee;
+                if (d.description) data.description = d.description;
+                if (d.description_eleve) data.description_eleve = d.description_eleve;
+                if (d.competence_ids) data.competence_ids = d.competence_ids;
+                if (d.points_par_competence) data.points_par_competence = d.points_par_competence;
+                if (d.criteres_libres) data.criteres_libres = d.criteres_libres;
             } else if (d.sous_type_bonus === 'suivi') {
                 data.nb_validations = d.nb_validations || 5;
-                data.description_eleve = d.description_eleve || '';
-                data.criteres_libres = d.criteres_libres || '';
+                if (d.description_eleve) data.description_eleve = d.description_eleve;
+                if (d.criteres_libres) data.criteres_libres = d.criteres_libres;
             }
         }
 
