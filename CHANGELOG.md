@@ -4,6 +4,32 @@
 
 ---
 
+## 2026-03-10 — Session 36 : Fusion étapes wizard bonus mission + fix sauvegarde
+
+### Wizard bonus mission : 6 → 5 étapes (admin-evaluations.js, css/admin-evaluations.css)
+
+1. **Étapes fusionnées** : les anciennes étapes 2 (Compétences) et 5 (Critères libres) sont regroupées en une seule étape 2 « Évaluation »
+2. **2 sections pliables** : section Compétences du référentiel (📋 violet) + section Critères libres (✏️ turquoise)
+3. **Badges dynamiques** sur chaque section ("Optionnel", "X sélectionnée(s)", "X critère(s)")
+4. **Validation** : bloque si ni compétence ni critère libre renseigné
+5. **Nouvelles fonctions** : `_renderStepCompetencesEtCriteres()`, `_initStepCompetencesEtCriteres()`, `_toggleCecSection()`
+6. **CSS** : classes `.cec-*` pour les sections pliables fusionnées
+
+### Fix sauvegarde bonus mission (admin-evaluations.js, Code.gs)
+
+1. **Cause** : l'URL JSONP dépassait la limite avec les champs JSON URL-encodés (`document_contenu`, `competence_ids`, `points_par_competence`, `criteres_libres`)
+2. **Fix frontend** : `callAPI` encode maintenant toutes les données en Base64 dans un seul param `d` — bien plus compact que du JSON URL-encodé
+3. **Fix backend** : `handleRequest` (Code.gs) décode le param `d` si présent (`Utilities.base64Decode` → UTF-8 → JSON → merge dans request)
+4. **Rétro-compatible** : les appels sans param `d` (autres modules) continuent de fonctionner normalement
+
+**Fichiers modifiés** : `js/admin-evaluations.js`, `css/admin-evaluations.css`, `google-apps-script/Code.gs`, `google-apps-script/TOUT-EN-UN.gs`
+
+**Décisions prises** :
+- Le terme "Bonus mission" unifie les anciens "bonus compétence" et "bonus ponctuel" — un seul wizard avec compétences et critères libres optionnels
+- L'encodage Base64 n'est appliqué qu'à `admin-evaluations.js` pour l'instant — à propager aux autres modules si le même problème d'URL longue survient
+
+---
+
 ## 2026-03-10 — Session 35 : Refonte bonus suivi (Phase 11)
 
 ### Wizard admin bonus suivi (admin-evaluations.js)
