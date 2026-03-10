@@ -3897,11 +3897,11 @@ const AdminEvaluations = {
 
         tbody.innerHTML = rowsHtml;
 
-        // Bouton compact "+ Ajouter une vérification" à côté du titre
-        const titleArea = document.querySelector('.saisie-title-area');
-        let addBtn = titleArea?.querySelector('.suivi-add-verif-btn');
-        if (!addBtn && titleArea) {
-            titleArea.insertAdjacentHTML('beforeend',
+        // Bouton compact "+ Ajouter une vérification" à droite du header
+        const saisieHeader = document.querySelector('.saisie-header');
+        let addBtn = saisieHeader?.querySelector('.suivi-add-verif-btn');
+        if (!addBtn && saisieHeader) {
+            saisieHeader.insertAdjacentHTML('beforeend',
                 `<button class="btn btn-primary btn-sm suivi-add-verif-btn" onclick="AdminEvaluations._openAddVerification()">+ Ajouter une vérification</button>`);
         }
 
