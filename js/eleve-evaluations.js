@@ -962,18 +962,17 @@ const EleveEvaluations = {
      * Barre de progression + date dernière validation
      */
     _renderSuiviProgress(currentVal, nbTotal, pct, isComplete, resultat) {
-        // Dernière date de validation
+        // Dernière date de vérification
         let lastDateHtml = '';
-        if (resultat && resultat.validations_dates) {
+        if (resultat && resultat.validations_historique) {
             try {
-                const dates = typeof resultat.validations_dates === 'string'
-                    ? JSON.parse(resultat.validations_dates) : resultat.validations_dates;
-                // Trouver la date la plus récente
-                const lastKey = String(currentVal);
-                if (dates[lastKey]) {
-                    const d = new Date(dates[lastKey]);
+                const hist = typeof resultat.validations_historique === 'string'
+                    ? JSON.parse(resultat.validations_historique) : resultat.validations_historique;
+                if (Array.isArray(hist) && hist.length > 0) {
+                    const lastEntry = hist[hist.length - 1];
+                    const d = new Date(lastEntry.date);
                     if (!isNaN(d.getTime())) {
-                        lastDateHtml = `<div class="suivi-last-date">Dernière validation : ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
+                        lastDateHtml = `<div class="suivi-last-date">Dernière vérification : ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
                     }
                 }
             } catch (_e) { /* ignore */ }

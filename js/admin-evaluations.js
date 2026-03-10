@@ -1454,9 +1454,9 @@ const AdminEvaluations = {
             if (value === 'suivi') {
                 container.innerHTML = `
                     <div class="form-group">
-                        <label>Nombre de validations requises <span class="req">*</span></label>
+                        <label>Nombre de réussites requises <span class="req">*</span></label>
                         <input type="number" class="form-input" id="evalNbValidations" value="${this.wizardData.nb_validations || 5}" min="1" max="50">
-                        <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points (saisis dans le tableau de résultats)</div>
+                        <div class="form-help">Nombre de vérifications réussies nécessaires pour obtenir les points. L'élève n'est pas pénalisé en cas d'échec</div>
                     </div>
                     <div class="form-group">
                         <label>Description pour l'élève</label>
@@ -2114,7 +2114,7 @@ const AdminEvaluations = {
                     <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
                 </div>
                 <div class="form-group">
-                    <label>Nombre de validations requises <span class="req">*</span></label>
+                    <label>Nombre de réussites requises <span class="req">*</span></label>
                     <input type="number" class="form-input" id="evalNbValidations" value="${d.nb_validations || 5}" min="1" max="50">
                     <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points</div>
                 </div>
@@ -2864,8 +2864,9 @@ const AdminEvaluations = {
         const isTC = evaluation.type === 'competences';
         const sousTypeBonus = String(evaluation.sous_type_bonus || '').trim();
 
-        // Bonus suivi → tableau spécial avec checkboxes progressives
+        // Bonus suivi → tableau avec vérifications datées
         if (evaluation.type === 'bonus' && sousTypeBonus === 'suivi') {
+            this._saisieResults = evalResults;
             this._renderSaisieSuivi(evaluation, evalResults, resultsMap);
             return;
         }
@@ -3766,59 +3767,78 @@ const AdminEvaluations = {
      * Rendu spécial pour le bonus suivi : checkboxes progressives (1/5, 2/5...)
      */
     _renderSaisieSuivi(evaluation, evalResults, resultsMap) {
-        const nbValidations = parseInt(evaluation.nb_validations) || 5;
+        const nbReussitesRequises = parseInt(evaluation.nb_validations) || 5;
         const maxPts = evaluation.briques || 10;
 
-        // Build header: Élève + N colonnes de validation + Total + Points
-        let headerCols = '<th class="col-eleve">Élève</th>';
-        for (let i = 1; i <= nbValidations; i++) {
-            headerCols += `<th class="col-validation">V${i}</th>`;
+        // Filtrer : seuls les élèves ayant demandé (demande_statut = accepte ou plus loin)
+        const elevesInscrits = this.eleves.filter(eleve => {
+            const r = resultsMap[String(eleve.id).trim()];
+            if (!r) return false;
+            const statut = String(r.demande_statut || '').trim();
+            return statut === 'accepte' || statut === 'rendu' || statut === 'corrige';
+        });
+
+        if (elevesInscrits.length === 0) {
+            document.getElementById('saisieLoader').style.display = 'none';
+            document.getElementById('saisieTableContainer').style.display = '';
+            document.getElementById('saisieTableHead').innerHTML = '';
+            document.getElementById('saisieTableBody').innerHTML = `
+                <tr><td colspan="5" style="text-align:center; padding:40px; color:var(--gray-400)">
+                    Aucun élève inscrit. Les élèves doivent d'abord demander cette évaluation.
+                </td></tr>`;
+            return;
         }
-        headerCols += '<th class="col-total">Total</th>';
-        headerCols += '<th class="col-points">Points</th>';
-        document.getElementById('saisieTableHead').innerHTML = headerCols;
+
+        // Header
+        document.getElementById('saisieTableHead').innerHTML = `
+            <th class="col-eleve">Élève</th>
+            <th class="col-historique">Historique</th>
+            <th class="col-total">Réussites</th>
+            <th class="col-points">Points</th>`;
+
+        // Bouton ajouter une vérification
+        const addVerifHtml = `
+            <div class="suivi-add-verif">
+                <button class="btn btn-primary btn-sm" onclick="AdminEvaluations._openAddVerification()">
+                    + Ajouter une vérification
+                </button>
+            </div>`;
 
         const tbody = document.getElementById('saisieTableBody');
-        tbody.innerHTML = this.eleves.map(eleve => {
+        tbody.innerHTML = elevesInscrits.map(eleve => {
             const r = resultsMap[String(eleve.id).trim()] || {};
-            const currentValidations = parseInt(r.validation_numero) || 0;
-            const isComplete = currentValidations >= nbValidations;
-            const points = isComplete ? maxPts : 0;
 
-            // Parse dates par validation
-            let vDates = {};
-            if (r.validations_dates) {
+            // Parser l'historique
+            let historique = [];
+            if (r.validations_historique) {
                 try {
-                    vDates = typeof r.validations_dates === 'string' ? JSON.parse(r.validations_dates) : r.validations_dates;
+                    historique = typeof r.validations_historique === 'string'
+                        ? JSON.parse(r.validations_historique) : r.validations_historique;
                 } catch (_e) { /* ignore */ }
             }
 
-            // Build checkbox cells
-            let checkboxCells = '';
-            for (let i = 1; i <= nbValidations; i++) {
-                const isChecked = i <= currentValidations;
-                const checked = isChecked ? 'checked' : '';
-                const disabled = i > currentValidations + 1 ? 'disabled' : ''; // Only next one is clickable
-                const dateStr = vDates[String(i)] || '';
-                const dateLabel = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
-                const titleAttr = dateStr ? ` title="${dateLabel}"` : '';
-                checkboxCells += `
-                    <td class="col-validation">
-                        <input type="checkbox" class="suivi-checkbox" ${checked} ${disabled}${titleAttr}
-                            data-eleve="${eleve.id}" data-validation="${i}"
-                            onchange="AdminEvaluations.onSuiviCheckChange('${eleve.id}', ${i}, this.checked)">
-                        ${isChecked && dateLabel ? `<div class="suivi-date-label">${dateLabel}</div>` : ''}
-                    </td>`;
-            }
+            const nbReussites = historique.filter(h => h.resultat).length;
+            const isComplete = nbReussites >= nbReussitesRequises;
+            const points = isComplete ? maxPts : 0;
+
+            // Historique compact : pastilles ✓/✗ avec dates
+            const historiqueHtml = historique.length > 0
+                ? historique.map((h, i) => {
+                    const dateLabel = new Date(h.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                    const cls = h.resultat ? 'verif-ok' : 'verif-ko';
+                    const icon = h.resultat ? '✓' : '✗';
+                    return `<span class="verif-pastille ${cls}" title="${dateLabel}" data-eleve="${eleve.id}" data-index="${i}">${icon}<span class="verif-date">${dateLabel}</span></span>`;
+                }).join('')
+                : '<span class="suivi-no-verif">Aucune vérification</span>';
 
             return `
                 <tr data-eleve-id="${eleve.id}" class="${isComplete ? 'success-row' : ''}">
                     <td class="col-eleve">
                         <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
                     </td>
-                    ${checkboxCells}
+                    <td class="col-historique">${historiqueHtml}</td>
                     <td class="col-total">
-                        <span class="suivi-progress">${currentValidations}/${nbValidations}</span>
+                        <span class="suivi-progress ${isComplete ? 'complete' : ''}">${nbReussites}/${nbReussitesRequises}</span>
                     </td>
                     <td class="col-points">
                         <span class="suivi-points ${isComplete ? 'complete' : ''}">${points}/${maxPts}</span>
@@ -3827,86 +3847,180 @@ const AdminEvaluations = {
             `;
         }).join('');
 
-        // Hide loader, show table
+        // Insert add verification button above the table
+        const container = document.getElementById('saisieTableContainer');
+        let addBtn = container.querySelector('.suivi-add-verif');
+        if (!addBtn) {
+            container.insertAdjacentHTML('afterbegin', addVerifHtml);
+        }
+
         document.getElementById('saisieLoader').style.display = 'none';
-        document.getElementById('saisieTableContainer').style.display = '';
+        container.style.display = '';
     },
 
     /**
-     * Gère le clic sur une checkbox suivi
+     * Ouvre le panneau d'ajout de vérification : date + toggle par élève
      */
-    async onSuiviCheckChange(eleveId, validationNum, checked) {
-        // Si on décoche, on revient à validation_numero - 1
-        const newValidation = checked ? validationNum : validationNum - 1;
+    _openAddVerification() {
+        const evaluation = this.saisieEvaluation;
+        const nbReussitesRequises = parseInt(evaluation.nb_validations) || 5;
 
-        // Disable all checkboxes during save
-        document.querySelectorAll('.suivi-checkbox').forEach(cb => cb.disabled = true);
+        // Trouver les élèves inscrits (même filtre que le tableau)
+        const evalResults = this._saisieResults || [];
+        const resultsMap = {};
+        evalResults.forEach(r => { resultsMap[String(r.eleve_id).trim()] = r; });
 
-        try {
-            const result = await this.callAPI('saveValidationSuivi', {
-                evaluation_id: this.saisieEvaluation.id,
-                eleve_id: eleveId,
-                validation_numero: newValidation
-            });
+        const elevesInscrits = this.eleves.filter(eleve => {
+            const r = resultsMap[String(eleve.id).trim()];
+            if (!r) return false;
+            const statut = String(r.demande_statut || '').trim();
+            return statut === 'accepte' || statut === 'rendu' || statut === 'corrige';
+        });
 
-            if (result.success) {
-                const nbValidations = parseInt(this.saisieEvaluation.nb_validations) || 5;
-                const maxPts = this.saisieEvaluation.briques || 10;
-                const isComplete = newValidation >= nbValidations;
+        // Filtrer les élèves qui ont déjà atteint l'objectif
+        const elevesActifs = elevesInscrits.filter(eleve => {
+            const r = resultsMap[String(eleve.id).trim()] || {};
+            let historique = [];
+            try {
+                if (r.validations_historique) historique = JSON.parse(r.validations_historique);
+            } catch (_e) { /* ignore */ }
+            const nbReussites = historique.filter(h => h.resultat).length;
+            return nbReussites < nbReussitesRequises;
+        });
 
-                // Update row visually
-                const row = document.querySelector(`tr[data-eleve-id="${eleveId}"]`);
-                if (row) {
-                    // Update checkboxes
-                    row.querySelectorAll('.suivi-checkbox').forEach(cb => {
-                        const vNum = parseInt(cb.dataset.validation);
-                        cb.checked = vNum <= newValidation;
-                        cb.disabled = vNum > newValidation + 1;
-                    });
-                    // Update total
-                    const totalEl = row.querySelector('.suivi-progress');
-                    if (totalEl) totalEl.textContent = `${newValidation}/${nbValidations}`;
-                    // Update points
-                    const ptsEl = row.querySelector('.suivi-points');
-                    if (ptsEl) {
-                        const pts = isComplete ? maxPts : 0;
-                        ptsEl.textContent = `${pts}/${maxPts}`;
-                        ptsEl.classList.toggle('complete', isComplete);
-                    }
-                    row.classList.toggle('success-row', isComplete);
+        const today = new Date().toISOString().split('T')[0];
+
+        const rows = elevesActifs.map(eleve =>
+            `<div class="verif-row">
+                <span class="verif-eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
+                <div class="verif-toggle" data-eleve="${eleve.id}" data-resultat="true">
+                    <button class="verif-btn ok active" onclick="AdminEvaluations._toggleVerifResult(this, true)">✓</button>
+                    <button class="verif-btn ko" onclick="AdminEvaluations._toggleVerifResult(this, false)">✗</button>
+                </div>
+            </div>`
+        ).join('');
+
+        const noEleves = elevesActifs.length === 0
+            ? '<p style="text-align:center; color:var(--gray-400); padding:20px">Tous les élèves ont atteint l\'objectif.</p>'
+            : '';
+
+        // Afficher le panneau
+        const html = `
+            <div class="suivi-verif-panel">
+                <div class="verif-panel-header">
+                    <h3>Nouvelle vérification</h3>
+                    <div class="verif-date-picker">
+                        <label>Date :</label>
+                        <input type="date" id="verifDate" value="${today}" class="form-input">
+                    </div>
+                </div>
+                ${noEleves || `
+                <div class="verif-list">${rows}</div>
+                <div class="verif-actions">
+                    <button class="btn btn-secondary" onclick="AdminEvaluations._closeVerifPanel()">Annuler</button>
+                    <button class="btn btn-primary" onclick="AdminEvaluations._saveAllVerifications()">Enregistrer</button>
+                </div>`}
+            </div>`;
+
+        // Insérer après le bouton, avant le tableau
+        const container = document.getElementById('saisieTableContainer');
+        let panel = container.querySelector('.suivi-verif-panel');
+        if (panel) panel.remove();
+        const addBtn = container.querySelector('.suivi-add-verif');
+        if (addBtn) {
+            addBtn.insertAdjacentHTML('afterend', html);
+        } else {
+            container.insertAdjacentHTML('afterbegin', html);
+        }
+    },
+
+    /**
+     * Toggle ✓/✗ pour un élève dans le panneau de vérification
+     */
+    _toggleVerifResult(btn, resultat) {
+        const toggle = btn.closest('.verif-toggle');
+        toggle.dataset.resultat = String(resultat);
+        toggle.querySelectorAll('.verif-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    },
+
+    /**
+     * Fermer le panneau de vérification
+     */
+    _closeVerifPanel() {
+        const panel = document.querySelector('.suivi-verif-panel');
+        if (panel) panel.remove();
+    },
+
+    /**
+     * Sauvegarder toutes les vérifications du panneau
+     */
+    async _saveAllVerifications() {
+        const date = document.getElementById('verifDate')?.value;
+        if (!date) {
+            this.showNotification('Veuillez saisir une date', 'error');
+            return;
+        }
+
+        const toggles = document.querySelectorAll('.verif-toggle');
+        if (toggles.length === 0) return;
+
+        // Disable save button
+        const saveBtn = document.querySelector('.suivi-verif-panel .btn-primary');
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
+
+        let errors = 0;
+        for (const toggle of toggles) {
+            const eleveId = toggle.dataset.eleve;
+            const resultat = toggle.dataset.resultat === 'true';
+
+            try {
+                const result = await this.callAPI('saveVerificationSuivi', {
+                    evaluation_id: this.saisieEvaluation.id,
+                    eleve_id: eleveId,
+                    date: date,
+                    resultat: resultat
+                });
+
+                if (!result.success) {
+                    errors++;
+                    console.error('Erreur sauvegarde vérif:', result.error);
                 }
-
-                // Si complet → aussi sauvegarder comme résultat d'évaluation validé
-                if (isComplete) {
-                    await this.callAPI('saveEvaluationResult', {
-                        evaluation_id: this.saisieEvaluation.id,
-                        eleve_id: eleveId,
-                        validations: maxPts,
-                        is_validated: true,
-                        source: 'saisie_admin'
-                    });
-                }
-
-                this.showNotification(`Validation ${newValidation}/${nbValidations} enregistrée`);
-            } else {
-                this.showNotification(result.error || 'Erreur', 'error');
-                // Revert checkbox
-                const cb = document.querySelector(`.suivi-checkbox[data-eleve="${eleveId}"][data-validation="${validationNum}"]`);
-                if (cb) cb.checked = !checked;
+            } catch (error) {
+                errors++;
+                console.error('Erreur réseau vérif:', error);
             }
+        }
+
+        // Fermer le panneau et rafraîchir le tableau
+        this._closeVerifPanel();
+
+        if (errors > 0) {
+            this.showNotification(`${errors} erreur(s) lors de l'enregistrement`, 'error');
+        } else {
+            this.showNotification('Vérification enregistrée');
+        }
+
+        // Recharger les résultats pour rafraîchir le tableau
+        await this._refreshSaisieSuivi();
+    },
+
+    /**
+     * Recharger les données et re-render le tableau suivi
+     */
+    async _refreshSaisieSuivi() {
+        try {
+            SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+            const results = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+            const evalId = String(this.saisieEvaluation.id).trim();
+            const evalResults = results.filter(r => String(r.evaluation_id).trim() === evalId);
+            const resultsMap = {};
+            evalResults.forEach(r => { resultsMap[String(r.eleve_id).trim()] = r; });
+            this._saisieResults = evalResults;
+            this._renderSaisieSuivi(this.saisieEvaluation, evalResults, resultsMap);
         } catch (error) {
-            console.error('Erreur sauvegarde suivi:', error);
-            this.showNotification('Erreur réseau', 'error');
-            const cb = document.querySelector(`.suivi-checkbox[data-eleve="${eleveId}"][data-validation="${validationNum}"]`);
-            if (cb) cb.checked = !checked;
-        } finally {
-            // Re-enable checkboxes
-            document.querySelectorAll('.suivi-checkbox').forEach(cb => {
-                const vNum = parseInt(cb.dataset.validation);
-                const row = cb.closest('tr');
-                const currentVal = parseInt(row.querySelector('.suivi-progress').textContent) || 0;
-                cb.disabled = vNum > currentVal + 1;
-            });
+            console.error('Erreur refresh suivi:', error);
+            this.showNotification('Erreur de rechargement', 'error');
         }
     },
 

@@ -447,6 +447,9 @@ function handleRequest(e) {
       case 'saveValidationSuivi':
         result = saveValidationSuivi(request);
         break;
+      case 'saveVerificationSuivi':
+        result = saveVerificationSuivi(request);
+        break;
       case 'saveEvaluationCorrection':
         result = saveEvaluationCorrection(request);
         break;

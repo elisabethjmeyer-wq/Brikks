@@ -2545,6 +2545,118 @@ function saveValidationSuivi(data) {
 }
 
 /**
+ * Sauvegarde une vérification de suivi (date + résultat validé/non validé).
+ * Stocke l'historique complet dans validations_historique (JSON array).
+ * Recalcule validation_numero = nombre de true dans l'historique.
+ */
+function saveVerificationSuivi(data) {
+  if (!data.evaluation_id || !data.eleve_id || !data.date || data.resultat === undefined) {
+    return { success: false, error: 'evaluation_id, eleve_id, date et resultat requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
+  if (!sheet) {
+    return { success: false, error: 'Sheet non trouvée' };
+  }
+
+  // Migration progressive
+  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
+  ['validation_numero', 'validations_historique'].forEach(function(col) {
+    if (headerNames.indexOf(col) < 0) {
+      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
+      headerNames.push(col);
+    }
+  });
+
+  // Lire toutes les données
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var evalIdCol = headers.indexOf('evaluation_id');
+  var eleveIdCol = headers.indexOf('eleve_id');
+  var validNumCol = headers.indexOf('validation_numero');
+  var validationsCol = headers.indexOf('validations');
+  var histCol = headers.indexOf('validations_historique');
+  var dateCol = headers.indexOf('date_passage');
+
+  // Chercher la ligne existante
+  var existingRow = -1;
+  for (var i = 1; i < allData.length; i++) {
+    if (String(allData[i][evalIdCol]).trim() === String(data.evaluation_id).trim() &&
+        String(allData[i][eleveIdCol]).trim() === String(data.eleve_id).trim()) {
+      existingRow = i + 1;
+      break;
+    }
+  }
+
+  // Construire/mettre à jour l'historique
+  var historique = [];
+  if (existingRow > 0 && histCol >= 0) {
+    try {
+      var raw = String(allData[existingRow - 1][histCol] || '').trim();
+      if (raw) historique = JSON.parse(raw);
+    } catch (_e) { /* ignore */ }
+  }
+
+  // Mode : ajout, modification ou suppression d'une entrée
+  if (data.action_type === 'delete') {
+    // Supprimer l'entrée à l'index donné
+    var idx = parseInt(data.index);
+    if (idx >= 0 && idx < historique.length) {
+      historique.splice(idx, 1);
+    }
+  } else if (data.action_type === 'update') {
+    // Modifier une entrée existante
+    var updateIdx = parseInt(data.index);
+    if (updateIdx >= 0 && updateIdx < historique.length) {
+      historique[updateIdx] = { date: data.date, resultat: data.resultat === true || data.resultat === 'true' };
+    }
+  } else {
+    // Ajouter une nouvelle vérification
+    historique.push({
+      date: data.date,
+      resultat: data.resultat === true || data.resultat === 'true'
+    });
+  }
+
+  // Trier par date
+  historique.sort(function(a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+
+  // Calculer validation_numero = nombre de réussites
+  var nbReussites = 0;
+  for (var j = 0; j < historique.length; j++) {
+    if (historique[j].resultat) nbReussites++;
+  }
+
+  if (existingRow > 0) {
+    // Mettre à jour la ligne existante
+    if (histCol >= 0) sheet.getRange(existingRow, histCol + 1).setValue(JSON.stringify(historique));
+    if (validNumCol >= 0) sheet.getRange(existingRow, validNumCol + 1).setValue(nbReussites);
+    if (validationsCol >= 0) sheet.getRange(existingRow, validationsCol + 1).setValue(nbReussites);
+    if (dateCol >= 0) sheet.getRange(existingRow, dateCol + 1).setValue(new Date().toISOString());
+    return { success: true, nb_reussites: nbReussites, historique: historique };
+  }
+
+  // Créer une nouvelle ligne
+  var id = 'res_' + new Date().getTime();
+  var newRow = headers.map(function(col) {
+    if (col === 'id') return id;
+    if (col === 'evaluation_id') return data.evaluation_id;
+    if (col === 'eleve_id') return data.eleve_id;
+    if (col === 'validation_numero') return nbReussites;
+    if (col === 'validations') return nbReussites;
+    if (col === 'validations_historique') return JSON.stringify(historique);
+    if (col === 'source') return 'saisie_admin';
+    if (col === 'date_passage') return new Date().toISOString();
+    return '';
+  });
+
+  sheet.appendRow(newRow);
+  return { success: true, id: id, nb_reussites: nbReussites, historique: historique };
+}
+
+/**
  * Sauvegarde la correction d'une évaluation bonus/TC dans EVALUATION_RESULTATS.
  * Ajoute correction_prof, criteres_valides, statut_correction, competence_ids_validees.
  * Met à jour demande_statut → 'corrige' et le statut du résultat.
