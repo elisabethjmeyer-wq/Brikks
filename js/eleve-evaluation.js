@@ -578,10 +578,6 @@ const EleveEvaluation = {
         const titre = evaluation.titre || 'Évaluation';
         const matiere = evaluation.matiere || '';
         const matiereLabel = matiere === 'FR' ? 'Français' : matiere === 'HG-EMC' ? 'HG-EMC' : matiere;
-        const points = parseFloat(resultat.validations) || 0;
-        const maxPoints = parseInt(evaluation.briques) || 1;
-        const pctPoints = Math.min(100, Math.round((points / maxPoints) * 100));
-
         // Correction brouillon ? Ne pas montrer
         const isBrouillon = String(resultat.statut_correction || '').trim() === 'brouillon';
 
