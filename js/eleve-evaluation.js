@@ -155,21 +155,24 @@ const EleveEvaluation = {
         if (type === 'competences') {
             await this._renderTCSujetMode(data, exercice, documentHtml);
         } else {
-            this._renderBonusSujetMode(data, exercice, documentHtml);
+            await this._renderBonusSujetMode(data, exercice, documentHtml);
         }
 
         this.showContent();
     },
 
     /**
-     * Rendu TC : layout 2 colonnes comme les entraînements compétences.
-     * Barre de titre + tag "Évaluation de compétence", sujet à gauche, critères à droite.
+     * Rendu TC / bonus compétence : layout 2 colonnes.
+     * Barre de titre + tag, sujet à gauche, critères à droite.
+     * @param {string} variant - 'tc' (défaut) ou 'bonus' pour le badge
      */
-    async _renderTCSujetMode(data, exercice, documentHtml) {
+    async _renderTCSujetMode(data, exercice, documentHtml, variant) {
         const title = data.titre || 'Sujet';
+        const isBonus = variant === 'bonus';
+        const badgeLabel = isBonus ? 'Bonus compétence' : 'Évaluation de compétence';
+        const badgeClass = isBonus ? 'bonus' : 'tc';
 
         // Charger les critères de réussite des compétences liées
-        // Phase 9 : competence_ids peut être directement sur data (EVALUATIONS) ou sur exercice
         let criteresHtml = '';
         try {
             const competenceIds = this._parseCompetenceIds(data, exercice);
@@ -180,7 +183,7 @@ const EleveEvaluation = {
             console.warn('Impossible de charger les critères:', e);
         }
 
-        // Consignes : Phase 9 description directement sur data, fallback exercice.consigne
+        // Consignes
         const consigne = data.description || exercice.consigne || data.criteres || '';
         const consigneHtml = consigne
             ? `<div class="sujet-consigne">${escapeHtml(consigne)}</div>`
@@ -194,7 +197,7 @@ const EleveEvaluation = {
                     <div class="sujet-topbar-info">
                         <h1>${escapeHtml(title)}</h1>
                         <div class="sujet-topbar-meta">
-                            <span class="sujet-mode-badge tc">Évaluation de compétence</span>
+                            <span class="sujet-mode-badge ${badgeClass}">${escapeHtml(badgeLabel)}</span>
                         </div>
                     </div>
                 </div>
@@ -215,11 +218,18 @@ const EleveEvaluation = {
     },
 
     /**
-     * Rendu bonus : layout simple header + document (inchangé).
+     * Rendu bonus : layout simple header + document pour bonus ponctuel,
+     * layout 2 colonnes (comme TC) pour bonus compétence.
      */
-    _renderBonusSujetMode(data, exercice, documentHtml) {
+    async _renderBonusSujetMode(data, exercice, documentHtml) {
+        // Bonus compétence : a des competence_ids → layout 2 colonnes comme TC
+        const competenceIds = this._parseCompetenceIds(data, exercice);
+        if (competenceIds.length > 0) {
+            return this._renderTCSujetMode(data, exercice, documentHtml, 'bonus');
+        }
+
+        // Bonus ponctuel : layout simple (plein écran, sans sidebar critères)
         const title = data.titre || 'Sujet';
-        const typeColor = '#eab308';
 
         // Phase 9 : description directement sur data, fallback exercice.consigne
         const consigne = data.description || exercice.consigne || data.criteres || '';
@@ -229,17 +239,22 @@ const EleveEvaluation = {
 
         const container = document.getElementById('exerciseContainer');
         container.innerHTML = `
-            <div class="sujet-view">
-                <div class="sujet-header" style="border-left: 4px solid ${typeColor}">
-                    <div class="sujet-header-top">
-                        <span class="sujet-type-badge" style="background:${typeColor}; color: white">Bonus</span>
-                        <button class="btn btn-secondary btn-sm" onclick="window.history.back()">← Retour</button>
+            <div class="sujet-view sujet-view-tc">
+                <div class="sujet-topbar">
+                    <button class="sujet-back-btn" onclick="window.history.back()">←</button>
+                    <div class="sujet-topbar-info">
+                        <h1>${escapeHtml(title)}</h1>
+                        <div class="sujet-topbar-meta">
+                            <span class="sujet-mode-badge bonus">Bonus ponctuel</span>
+                        </div>
                     </div>
-                    <h1 class="sujet-title">${escapeHtml(title)}</h1>
-                    ${consigneHtml}
                 </div>
-                <div class="sujet-document">
-                    ${documentHtml}
+                <div class="sujet-document-section" style="max-width: 900px;">
+                    <div class="sujet-section-header">📄 Sujet</div>
+                    ${consigneHtml}
+                    <div class="sujet-document-content">
+                        ${documentHtml}
+                    </div>
                 </div>
             </div>
         `;

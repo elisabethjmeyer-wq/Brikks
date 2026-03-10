@@ -573,6 +573,11 @@
     color: #7c3aed;
 }
 
+.sujet-mode-badge.bonus {
+    background: #fef3c7;
+    color: #92400e;
+}
+
 /* Layout 2 colonnes */
 .sujet-layout {
     display: grid;
