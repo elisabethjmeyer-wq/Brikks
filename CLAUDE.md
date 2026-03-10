@@ -203,7 +203,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - Section Compétences : agrège les passages depuis EleveEntrainementsCompetences + EVALUATION_RESULTATS (bonus comp + TC)
 - Passages montrent la source (bonus, TC) avec tags visuels et le titre de l'évaluation
 - Section Bonus : 3 sous-types distincts (compétence, ponctuel, suivi)
-- Bonus suivi : barre de progression + checkboxes V1..VN en lecture seule
+- Bonus suivi : barre de progression (historique complet au clic prévu en phase future)
 - Bonus comp/ponctuel : statuts détaillés (demandé, accepté, corrigé, validé, refusé)
 - Type tags sur les cartes bonus (compétence violet, ponctuel teal, suivi jaune)
 
@@ -541,7 +541,7 @@ Le code mort (`renderTachesComplexesTab`, `renderBonusPonctuelsTab`, modals asso
 5. **Résumé** : récapitulatif avant sauvegarde (TC/bonus comp) ou **Critères libres** : liste dynamique (bonus ponctuel) + résumé
 
 **Connaissances / SF** : wizard 2 étapes (paramètres + sélection banque/entrainement) — inchangé
-**Bonus suivi** : wizard 1 étape (paramètres + nombre de validations) — inchangé
+**Bonus suivi** : wizard 2 étapes (Paramètres → Détails : description + nb réussites + critères de réussite)
 
 **Contenu stocké directement dans EVALUATIONS** : pas d'indirection via EntrainementsCompetences.
 **Rétro-compatibilité** : `getEvaluationForEleve` (backend) crée un objet `exercice` virtuel pour les anciennes évaluations liées via `exercice_tc_id` / `exercice_comp_id` / `exercice_bonus_id`.
@@ -588,7 +588,7 @@ Entraînements compétences :
 Évaluations > Bonus :
   Bonus compétence  → "Demander" → attendre acceptation prof (date passage OU date butoir) → consulter sujet (lecture seule) → rendre papier/mail → voir correction
   Bonus ponctuel    → "Demander" → attendre acceptation prof → consulter sujet → rendre papier/mail → voir correction
-  Bonus suivi       → progression visible (3/5 validations), points attribués quand complet
+  Bonus suivi       → "Demander" → attendre acceptation prof → vérifications périodiques (✓/✗) → points quand objectif atteint
 
 Évaluations > Évaluations :
   Tâche complexe obligatoire → dates ouverture/fermeture → consulter sujet (lecture seule) → rendre papier/mail → voir correction par compétence
@@ -605,7 +605,7 @@ Mes résultats :
 |------|-------------|----------------|--------|
 | **Bonus compétence** | Évaluation liée au référentiel de compétences. L'élève demande à la passer, la prof accepte/refuse, l'élève passe en classe, la prof corrige. | Demander → Acceptation → Passage → Correction | Points bonus compétence |
 | **Bonus ponctuel** | Évaluation ponctuelle avec critères libres (pas liés au référentiel). La prof la crée, l'élève demande à la passer. | Demander → Acceptation → Consulter sujet → Rendu papier/mail → Correction | Points bonus ponctuel |
-| **Bonus suivi** | Suivi progressif (ex: gestion du matériel). Plusieurs validations dans le temps (ex: 3/5). | Voir progression (3/5 validations) | Points bonus suivi |
+| **Bonus suivi** | Suivi progressif (ex: gestion du matériel). L'élève demande à être évalué, la prof vérifie périodiquement (✓/✗). L'élève n'est pas pénalisé en cas d'échec. | Demander → Acceptation → Vérifications datées (✓/✗) → Points quand objectif atteint | Points bonus suivi |
 
 ### Phases restantes
 
@@ -623,25 +623,25 @@ Mes résultats :
 > - Le rendu est papier ou par mail. Terminologie : "sujet papier" / "sujet numérique"
 > - La saisie du résultat est toujours manuelle par la prof
 > - Le bouton "Commencer" ne doit JAMAIS apparaître pour les bonus/TC
-> - Tous les bonus (compétence + ponctuel) fonctionnent sur demande de l'élève
+> - Tous les bonus (compétence + ponctuel + suivi) fonctionnent sur demande de l'élève
 > - Les TC peuvent être obligatoires (dates ouverture/fermeture) OU sur demande (bonus)
 > - Plafond : 3 validations par compétence → compétence acquise, l'élève ne peut plus demander dessus
-> - Bonus suivi : points attribués uniquement quand toutes les validations sont atteintes (ex: 5/5)
+> - Bonus suivi : l'élève demande, la prof vérifie périodiquement (✓/✗ datés), l'élève n'est pas pénalisé si échec, points attribués quand nb réussites atteint (ex: 5 ✓)
 
 - [x] **Backend : demandes dans EVALUATION_RESULTATS** — pas de table séparée, colonnes `demande_statut`, `date_demande`, `date_acceptation`, `date_rendu`, `type_date`, `remarque_prof` en migration progressive
 - [x] **Backend : API demandes** — `demanderEvaluation`, `repondreDemandeEvaluation` (accepter/refuser + type_date [passage_classe/date_butoir] + date + remarque)
-- [x] **Backend : API suivi** — `saveValidationSuivi` (ajouter/retirer une validation progressive)
+- [x] **Backend : API suivi** — `saveValidationSuivi` (legacy), `saveVerificationSuivi` (vérifications datées ✓/✗ avec historique JSON)
 - [x] **Admin : bandeau "X demandes"** — bandeau bleu en haut de la page Évaluations, compte les `demande_statut='demande'`
 - [x] **Admin : modal liste demandes** — cartes par demande avec badge type (bonus comp, ponctuel, TC), bouton "Répondre"
 - [x] **Admin : modal accepter/refuser** — boutons Accepter/Refuser, choix type de date (passage classe / date butoir), date, remarque optionnelle
 - [x] **Admin : saisie résultats bonus/TC** — colonne statut demande + colonne remarque (sans score/durée auto)
-- [x] **Admin : saisie suivi** — checkboxes progressives V1..VN, sauvegarde immédiate, points attribués quand complet
+- [x] **Admin : saisie suivi** — tableau filtré (élèves inscrits uniquement), panneau "Ajouter une vérification" (date + toggle ✓/✗ par élève), pastilles historique, points attribués quand objectif atteint
 
 **Phase 6 — Élève : affichage bonus + TC dans "Mes évaluations"** ✅
 
 - [x] **Élève : cartes bonus compétence** — bouton "Demander" → statuts (envoyée, acceptée avec date, refusée avec remarque) → correction
 - [x] **Élève : cartes bonus ponctuel** — même flux demande que bonus compétence
-- [x] **Élève : cartes bonus suivi** — barre de progression X/Y, "Objectif atteint !" quand complet
+- [x] **Élève : cartes bonus suivi** — flux demande (bouton "Demander"), critères dépliables (chevron), barre de progression X/Y après acceptation, date dernière vérification, "Objectif atteint !" quand complet
 - [x] **Élève : cartes tâche complexe obligatoire** — dans onglet Évaluations, mode papier forcé, consulter sujet
 - [x] **Élève : cartes tâche complexe bonus** — dans onglet Bonus, même flux demande
 - [x] **Élève : consultation sujet** — lien vers page évaluation en mode "sujet" (lecture seule)
@@ -661,7 +661,7 @@ Mes résultats :
 - [x] Section Compétences : validations par compétence (training + bonus comp + TC), N/3, "Acquise" si 3/3
 - [x] Passages montrent la source (bonus, TC) avec tags visuels
 - [x] Section Bonus : 3 sous-types (compétence avec statut demande, ponctuel avec critères libres, suivi avec barre de progression)
-- [x] Bonus suivi : barre de progression + checkboxes V1..VN en lecture seule
+- [x] Bonus suivi : barre de progression + historique complet au clic (à venir dans page résultats)
 - [x] Calcul de la note de progression : déjà intégré via `_calculatePoints` qui lit EVALUATION_RESULTATS
 
 **Phase 9 — Refonte : intégration wizards TC/bonus dans Évaluations** ✅
@@ -689,7 +689,7 @@ Note : `competence_ids` existe déjà dans EVALUATIONS.
 | **TC** | Paramètres → Compétences (N checkboxes) → Document (block editor) → Corrigé → Résumé |
 | **Bonus compétence** | Paramètres → Compétence (1 sélection) → Document (block editor) → Corrigé → Résumé |
 | **Bonus ponctuel** | Paramètres → Document (block editor) → Corrigé → Critères libres → Résumé |
-| **Bonus suivi** | Paramètres (1 étape, inchangé) |
+| **Bonus suivi** | Paramètres → Détails (description + nb réussites + critères de réussite) |
 | **Conn / SF** | Paramètres → Sélection entraînement (inchangé) |
 
 **Phase A — Backend + colonnes** : ✅ (session 29)
@@ -718,6 +718,26 @@ Note : `competence_ids` existe déjà dans EVALUATIONS.
 - Affichage élève review TC : bandeau détaillé par compétence avec tags matière
 - Section compétences notes élève : ne filtre plus par matière d'évaluation (filtre par competence_ids)
 
+**Phase 11 — Refonte bonus suivi** ✅ (session 35)
+
+> Le bonus suivi passe d'un simple compteur progressif à un vrai flux demande + vérifications datées.
+> L'élève demande à être évalué (s'engage sur la durée), la prof vérifie périodiquement avec résultat ✓/✗.
+> L'élève n'est pas pénalisé en cas d'échec — seules les réussites comptent vers l'objectif.
+
+**Nouveau modèle de données** :
+- `EVALUATION_RESULTATS.validations_historique` — JSON array `[{"date":"2026-01-15","resultat":true},{"date":"2026-02-03","resultat":false},...]`
+- `validation_numero` recalculé = nombre de `true` dans l'historique (rétro-compatible)
+- `EVALUATIONS.criteres_libres` utilisé pour les critères de réussite du suivi
+
+**Changements** :
+- Wizard admin : 2 étapes (Paramètres → Détails : description + nb réussites requises + critères de réussite)
+- Admin saisie : tableau filtré (élèves inscrits uniquement), panneau "Ajouter une vérification" (date picker + toggle ✓/✗), pastilles historique colorées
+- Carte élève : 5 statuts (`suivi_disponible`, `suivi_demande`, `suivi_refuse`, `suivi_en_cours`, `suivi_complete`), bouton "Demander", critères dépliables (chevron), barre de progression, date dernière vérification
+- Carte admin : compteur "Inscrits" (élèves acceptés) au lieu de "0/26 Saisis"
+- Backend : action `saveVerificationSuivi` (ajout/modif/suppression avec historique JSON)
+
+**À faire** : historique complet visible au clic sur la carte suivi dans la page résultats (`eleve-notes.js`)
+
 ### Décisions prises (sessions 28-29)
 
 > Questions ouvertes de la session 27 — **toutes résolues** :
@@ -727,7 +747,7 @@ Note : `competence_ids` existe déjà dans EVALUATIONS.
 3. **Date fixée par la prof** → Deux options : "date de passage en classe" OU "date butoir de rendu". La prof choisit l'un ou l'autre lors de l'acceptation. L'élève voit l'info sur sa carte
 4. **Notifications** → Réutiliser le système existant (cloche dans sidebar + page corrections)
 5. **Tâches complexes côté élève** → Même logique hors-ligne que les bonus. Consultation sujet, rendu papier/mail, saisie résultats manuelle
-6. **Bonus suivi** → Checkboxes progressives dans le tableau de saisie existant
+6. **Bonus suivi** → Flux demande élève + vérifications datées (✓/✗) par la prof, historique JSON, critères de réussite, l'élève n'est pas pénalisé en cas d'échec
 
 > Décisions session 29 — **refonte architecture** :
 
