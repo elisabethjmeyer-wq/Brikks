@@ -611,7 +611,7 @@ const AdminEvaluations = {
                             ${escapeHtml(evaluation.titre || 'Sans titre')}
                             ${matiereBadge}
                             ${(() => { const sem = this._getSemestreTag(evaluation); return sem ? `<span class="sem-tag">${sem}</span>` : ''; })()}
-                            <span class="mode-badge ${evaluation.type === 'competences' || evaluation.mode_passation === 'papier' ? 'papier' : 'numerique'}">${evaluation.type === 'competences' ? '📝 En classe' : evaluation.mode_passation === 'papier' ? '📄 Papier' : '💻 Numérique'}</span>
+                            ${sousTypeBonusCard !== 'suivi' ? `<span class="mode-badge ${evaluation.type === 'competences' || evaluation.mode_passation === 'papier' ? 'papier' : 'numerique'}">${evaluation.type === 'competences' ? '📝 En classe' : evaluation.mode_passation === 'papier' ? '📄 Papier' : '💻 Numérique'}</span>` : ''}
                             <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
                             ${evaluation.type === 'competences' && (evaluation.sujet_disponible_avance === true || evaluation.sujet_disponible_avance === 'true' || evaluation.sujet_disponible_avance === 'TRUE') ? '<span class="mode-badge sujet-avance">👁 Sujet visible</span>' : ''}
                         </div>
