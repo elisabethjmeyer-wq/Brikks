@@ -2232,56 +2232,48 @@
     font-weight: 600;
 }
 
-/* ===== SAISIE BONUS (comp/ponctuel) ===== */
-.demande-inline-actions {
-    display: flex;
-    gap: 4px;
-    margin-top: 4px;
-}
+/* ===== SAISIE BONUS (comp/ponctuel) — colonnes ===== */
+.col-bonus-eleve { width: 15%; }
+.col-bonus-demande { width: 15%; text-align: center; }
+.col-bonus-date { width: 20%; }
+.col-bonus-correction { width: 18%; text-align: center; }
+.col-bonus-statut { width: 15%; text-align: center; }
+.col-bonus-points { width: 17%; text-align: center; }
 
-.btn-xs {
-    padding: 2px 8px;
-    font-size: 11px;
-    border-radius: 4px;
+/* Badge-bouton cliquable (demande + statut) */
+.saisie-badge-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 20px;
     border: none;
     cursor: pointer;
-    font-weight: 600;
+    transition: filter 0.15s, transform 0.1s;
+    white-space: nowrap;
+}
+.saisie-badge-btn:hover {
+    filter: brightness(0.92);
+    transform: scale(1.03);
+}
+.saisie-badge-btn:active {
+    transform: scale(0.97);
 }
 
-.btn-xs.btn-success {
-    background: #d1fae5;
-    color: #065f46;
-}
-.btn-xs.btn-success:hover {
-    background: #a7f3d0;
-}
+.badge-en-attente { background: #fef3c7; color: #92400e; }
+.badge-acceptee { background: #d1fae5; color: #065f46; }
+.badge-refusee { background: #fee2e2; color: #991b1b; }
+.badge-brouillon { background: #fef3c7; color: #92400e; }
+.badge-publie { background: #d1fae5; color: #065f46; }
 
-.btn-xs.btn-danger {
-    background: #fee2e2;
-    color: #991b1b;
-}
-.btn-xs.btn-danger:hover {
-    background: #fecaca;
-}
-
-.btn-xs.btn-secondary {
-    background: #f3f4f6;
-    color: #374151;
-}
-.btn-xs.btn-secondary:hover {
-    background: #e5e7eb;
-}
-
-.col-date-rendu {
-    min-width: 120px;
-}
-
-.date-info {
+.col-bonus-date .date-info {
     font-size: 13px;
     font-weight: 500;
 }
 
-.date-type {
+.col-bonus-date .date-type {
     font-size: 11px;
     color: var(--gray-400, #9ca3af);
 }
