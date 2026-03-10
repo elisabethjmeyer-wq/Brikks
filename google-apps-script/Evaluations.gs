@@ -2575,15 +2575,21 @@ function saveEvaluationCorrection(data) {
     headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
   }
 
+  // Mode partiel : si seul statut_correction est fourni, ne toucher qu'à ce champ
+  var isPartialUpdate = data.statut_correction && !data.correction_prof && !data.criteres_valides && !data.competence_ids_validees;
+
   // Écrire les champs de correction
-  var fieldsToWrite = {
-    'correction_prof': data.correction_prof || '',
-    'criteres_valides': data.criteres_valides || '[]',
-    'statut_correction': data.statut_correction || 'publie',
-    'competence_ids_validees': data.competence_ids_validees || '[]',
-    'is_validated': data.is_validated === true || data.is_validated === 'true',
-    'demande_statut': 'corrige'
-  };
+  var fieldsToWrite = {};
+  if (isPartialUpdate) {
+    fieldsToWrite['statut_correction'] = data.statut_correction;
+  } else {
+    fieldsToWrite['correction_prof'] = data.correction_prof || '';
+    fieldsToWrite['criteres_valides'] = data.criteres_valides || '[]';
+    fieldsToWrite['statut_correction'] = data.statut_correction || 'publie';
+    fieldsToWrite['competence_ids_validees'] = data.competence_ids_validees || '[]';
+    fieldsToWrite['is_validated'] = data.is_validated === true || data.is_validated === 'true';
+    fieldsToWrite['demande_statut'] = 'corrige';
+  }
 
   // Points par compétence : stocker le JSON et calculer validations comme somme
   if (data.points_par_competence !== undefined) {

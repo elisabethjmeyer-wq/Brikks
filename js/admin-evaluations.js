@@ -3811,12 +3811,12 @@ const AdminEvaluations = {
 
         // Headers
         document.getElementById('saisieTableHead').innerHTML = `
-            <th class="col-eleve">Élève</th>
-            <th class="col-statut-demande">Demande</th>
-            <th class="col-date-rendu">Date</th>
-            <th class="col-correction-action">Correction</th>
-            <th class="col-statut-correction">Statut</th>
-            <th class="col-points">Points</th>
+            <th class="col-bonus-eleve">Élève</th>
+            <th class="col-bonus-demande">Demande</th>
+            <th class="col-bonus-date">Date</th>
+            <th class="col-bonus-correction">Correction</th>
+            <th class="col-bonus-statut">Statut</th>
+            <th class="col-bonus-points">Points</th>
         `;
 
         const tbody = document.getElementById('saisieTableBody');
@@ -3828,24 +3828,14 @@ const AdminEvaluations = {
                 const r = resultsMap[String(eleve.id).trim()] || {};
                 const demandeStatut = String(r.demande_statut || '').trim();
 
-                // --- Colonne Demande ---
+                // --- Colonne Demande : badge cliquable ---
                 let demandeHtml = '';
                 if (demandeStatut === 'demande') {
-                    demandeHtml = `
-                        <span class="saisie-statut statut-demande">🟡 En attente</span>
-                        <div class="demande-inline-actions">
-                            <button class="btn btn-xs btn-success" onclick="event.stopPropagation(); AdminEvaluations._inlineAcceptDemande('${evaluation.id}', '${eleve.id}')">Accepter</button>
-                            <button class="btn btn-xs btn-danger" onclick="event.stopPropagation(); AdminEvaluations._inlineRefuseDemande('${evaluation.id}', '${eleve.id}')">Refuser</button>
-                        </div>`;
+                    demandeHtml = `<button class="saisie-badge-btn badge-en-attente" onclick="event.stopPropagation(); AdminEvaluations.openReponseModal('${evaluation.id}', '${eleve.id}')">🟡 En attente</button>`;
                 } else if (demandeStatut === 'accepte' || demandeStatut === 'corrige') {
-                    demandeHtml = `
-                        <span class="saisie-statut statut-accepte">🟢 Acceptée</span>
-                        <div class="demande-inline-actions">
-                            <button class="btn btn-xs btn-secondary" onclick="event.stopPropagation(); AdminEvaluations.openReponseModal('${evaluation.id}', '${eleve.id}')">Modifier</button>
-                        </div>`;
+                    demandeHtml = `<button class="saisie-badge-btn badge-acceptee" onclick="event.stopPropagation(); AdminEvaluations.openReponseModal('${evaluation.id}', '${eleve.id}')">🟢 Acceptée</button>`;
                 } else if (demandeStatut === 'refuse') {
-                    demandeHtml = `
-                        <span class="saisie-statut statut-refuse">🔴 Refusée</span>`;
+                    demandeHtml = `<button class="saisie-badge-btn badge-refusee" onclick="event.stopPropagation(); AdminEvaluations.openReponseModal('${evaluation.id}', '${eleve.id}')">🔴 Refusée</button>`;
                 }
 
                 // --- Colonne Date ---
@@ -3870,11 +3860,14 @@ const AdminEvaluations = {
                     ? `<button class="btn btn-sm ${corrBtnClass}" onclick="event.stopPropagation(); AdminEvaluations.openCorrectionWizard('${eleve.id}')">${corrBtnLabel}</button>`
                     : '—';
 
-                // --- Colonne Statut correction ---
+                // --- Colonne Statut correction : toggle cliquable ---
                 const statutCorr = String(r.statut_correction || '').trim();
                 let statutCorrHtml = '—';
-                if (statutCorr === 'brouillon') statutCorrHtml = '<span class="saisie-statut statut-brouillon">🟠 Brouillon</span>';
-                else if (statutCorr === 'publie') statutCorrHtml = '<span class="saisie-statut statut-publie">🟢 Publié</span>';
+                if (statutCorr === 'brouillon') {
+                    statutCorrHtml = `<button class="saisie-badge-btn badge-brouillon" onclick="event.stopPropagation(); AdminEvaluations._toggleStatutCorrection('${evaluation.id}', '${eleve.id}', 'publie', this)">🟠 Brouillon</button>`;
+                } else if (statutCorr === 'publie') {
+                    statutCorrHtml = `<button class="saisie-badge-btn badge-publie" onclick="event.stopPropagation(); AdminEvaluations._toggleStatutCorrection('${evaluation.id}', '${eleve.id}', 'brouillon', this)">🟢 Publié</button>`;
+                }
 
                 // --- Colonne Points ---
                 let pointsHtml = '—';
@@ -3889,12 +3882,12 @@ const AdminEvaluations = {
 
                 return `
                     <tr data-eleve-id="${eleve.id}" class="${rowClass}">
-                        <td class="col-eleve"><span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span></td>
-                        <td class="col-statut-demande">${demandeHtml}</td>
-                        <td class="col-date-rendu">${dateHtml}</td>
-                        <td class="col-correction-action">${correctionHtml}</td>
-                        <td class="col-statut-correction">${statutCorrHtml}</td>
-                        <td class="col-points">${pointsHtml}</td>
+                        <td class="col-bonus-eleve"><span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml((eleve.nom || '').charAt(0) + '.')}</span></td>
+                        <td class="col-bonus-demande">${demandeHtml}</td>
+                        <td class="col-bonus-date">${dateHtml}</td>
+                        <td class="col-bonus-correction">${correctionHtml}</td>
+                        <td class="col-bonus-statut">${statutCorrHtml}</td>
+                        <td class="col-bonus-points">${pointsHtml}</td>
                     </tr>
                 `;
             }).join('');
@@ -3913,29 +3906,39 @@ const AdminEvaluations = {
     },
 
     /**
-     * Accepter une demande directement depuis le tableau de saisie (raccourci).
-     * Ouvre la modal de réponse pré-remplie en mode acceptation.
+     * Toggle le statut de correction (brouillon ↔ publié) directement depuis le tableau.
      */
-    _inlineAcceptDemande(evaluationId, eleveId) {
-        this.openReponseModal(evaluationId, eleveId);
-        // Simuler un clic sur "Accepter"
-        setTimeout(() => {
-            const btnAccepter = document.getElementById('btnAccepter');
-            if (btnAccepter) btnAccepter.click();
-        }, 100);
-    },
+    async _toggleStatutCorrection(evaluationId, eleveId, newStatut, btnEl) {
+        // Mise à jour optimiste du bouton
+        const prevHtml = btnEl.outerHTML;
+        if (newStatut === 'publie') {
+            btnEl.className = 'saisie-badge-btn badge-publie';
+            btnEl.textContent = '🟢 Publié';
+            btnEl.setAttribute('onclick', `event.stopPropagation(); AdminEvaluations._toggleStatutCorrection('${evaluationId}', '${eleveId}', 'brouillon', this)`);
+        } else {
+            btnEl.className = 'saisie-badge-btn badge-brouillon';
+            btnEl.textContent = '🟠 Brouillon';
+            btnEl.setAttribute('onclick', `event.stopPropagation(); AdminEvaluations._toggleStatutCorrection('${evaluationId}', '${eleveId}', 'publie', this)`);
+        }
 
-    /**
-     * Refuser une demande directement depuis le tableau de saisie (raccourci).
-     * Ouvre la modal de réponse pré-remplie en mode refus.
-     */
-    _inlineRefuseDemande(evaluationId, eleveId) {
-        this.openReponseModal(evaluationId, eleveId);
-        // Simuler un clic sur "Refuser"
-        setTimeout(() => {
-            const btnRefuser = document.getElementById('btnRefuser');
-            if (btnRefuser) btnRefuser.click();
-        }, 100);
+        try {
+            const result = await this.callAPI('saveEvaluationCorrection', {
+                evaluation_id: evaluationId,
+                eleve_id: eleveId,
+                statut_correction: newStatut
+            });
+            if (!result || !result.success) throw new Error('Échec');
+            // Mettre à jour le cache local
+            const r = (this.resultats || []).find(res =>
+                String(res.evaluation_id).trim() === String(evaluationId).trim() &&
+                String(res.eleve_id).trim() === String(eleveId).trim()
+            );
+            if (r) r.statut_correction = newStatut;
+        } catch (_e) {
+            // Rollback
+            btnEl.outerHTML = prevHtml;
+            this.showNotification('Erreur lors du changement de statut', 'error');
+        }
     },
 
     // ========== DEMANDES D'ÉVALUATION ==========
