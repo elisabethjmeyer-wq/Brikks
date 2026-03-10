@@ -547,9 +547,22 @@ const AdminEvaluations = {
         const evalResults = this.resultats.filter(r =>
             String(r.evaluation_id).trim() === String(evaluation.id).trim()
         );
-        const totalEleves = this.eleves.length || 25;
-        const saisis = evalResults.length;
-        const validated = evalResults.filter(r => r.is_validated === true || r.is_validated === 'true').length;
+        const isBonusType = evaluation.type === 'bonus' && String(evaluation.sous_type_bonus || '').trim() !== 'suivi';
+
+        // Pour les bonus comp/ponctuel : compter les demandes, pas tous les élèves
+        let totalEleves, saisis, validated, statsLabel;
+        if (isBonusType) {
+            const demandes = evalResults.filter(r => String(r.demande_statut || '').trim());
+            totalEleves = demandes.length;
+            saisis = demandes.length;
+            validated = evalResults.filter(r => r.is_validated === true || r.is_validated === 'true').length;
+            statsLabel = totalEleves === 1 ? 'Demande' : 'Demandes';
+        } else {
+            totalEleves = this.eleves.length || 25;
+            saisis = evalResults.length;
+            validated = evalResults.filter(r => r.is_validated === true || r.is_validated === 'true').length;
+            statsLabel = 'Saisis';
+        }
 
         // Type-specific meta info
         let metaItems = [];
@@ -587,8 +600,8 @@ const AdminEvaluations = {
         const statsHtml = `
             <div class="eval-card-stats">
                 <div class="eval-stat">
-                    <div class="eval-stat-value">${saisis}/${totalEleves}</div>
-                    <div class="eval-stat-label">Saisis</div>
+                    <div class="eval-stat-value">${isBonusType ? totalEleves : `${saisis}/${totalEleves}`}</div>
+                    <div class="eval-stat-label">${statsLabel}</div>
                 </div>
                 ${validated > 0 ? `
                 <div class="eval-stat">
@@ -2766,16 +2779,18 @@ const AdminEvaluations = {
 
         const showSujet = evaluation.type === 'connaissances' || evaluation.type === 'savoir-faire';
         const isConn = evaluation.type === 'connaissances';
-        const isBonusSuivi = evaluation.type === 'bonus' && String(evaluation.sous_type_bonus || '').trim() === 'suivi';
-        const isBonusOrTC = evaluation.type === 'bonus' || evaluation.type === 'competences';
         const isTC = evaluation.type === 'competences';
         const sousTypeBonus = String(evaluation.sous_type_bonus || '').trim();
-        const isBonusWithCorrection = evaluation.type === 'bonus' && sousTypeBonus !== 'suivi';
-        const showCorrectionCols = isTC || isBonusWithCorrection;
 
         // Bonus suivi → tableau spécial avec checkboxes progressives
-        if (isBonusSuivi) {
+        if (evaluation.type === 'bonus' && sousTypeBonus === 'suivi') {
             this._renderSaisieSuivi(evaluation, evalResults, resultsMap);
+            return;
+        }
+
+        // Bonus comp/ponctuel → tableau spécial avec demandes + correction
+        if (evaluation.type === 'bonus' && sousTypeBonus !== 'suivi') {
+            this._renderSaisieBonus(evaluation, evalResults, resultsMap);
             return;
         }
 
@@ -2789,22 +2804,19 @@ const AdminEvaluations = {
                 .sort((a, b) => (parseInt(a.ordre) || 9999) - (parseInt(b.ordre) || 9999));
         }
 
-        // Build table headers — adapté selon le type
-        const showScoreDuree = !isBonusOrTC;
-        const showRemarque = false;
-        const showDemandeCol = isBonusWithCorrection;
+        // Build table headers — adapté selon le type (conn, SF, TC)
+        // Note : les bonus comp/ponctuel sortent plus haut via _renderSaisieBonus
+        const showScoreDuree = !isTC;
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
             ${showSujet ? '<th class="col-banque">Banque</th>' : ''}
             ${showSujet ? '<th class="col-entrainement">Exercice</th>' : ''}
-            ${showDemandeCol ? '<th class="col-statut-demande">Demande</th>' : ''}
             ${showScoreDuree ? '<th class="col-score">Score (%)</th>' : ''}
             ${showScoreDuree ? '<th class="col-duree">Durée</th>' : ''}
-            <th class="col-resultat">${showCorrectionCols ? 'Points' : 'Résultat'}</th>
-            ${showCorrectionCols ? `<th class="col-criteres-resume">${sousTypeBonus === 'ponctuel' ? 'Critères' : 'Compétences'}</th>` : ''}
-            ${showCorrectionCols ? '<th class="col-correction-action">Correction</th>' : ''}
-            ${showCorrectionCols ? '<th class="col-statut-correction">Statut</th>' : ''}
-            ${showRemarque ? '<th class="col-remarque">Remarque</th>' : ''}
+            <th class="col-resultat">${isTC ? 'Points' : 'Résultat'}</th>
+            ${isTC ? '<th class="col-criteres-resume">Compétences</th>' : ''}
+            ${isTC ? '<th class="col-correction-action">Correction</th>' : ''}
+            ${isTC ? '<th class="col-statut-correction">Statut</th>' : ''}
         `;
 
         // Render student rows
@@ -2832,53 +2844,29 @@ const AdminEvaluations = {
             // Durée : lecture seule
             const dureeCell = showScoreDuree ? `<td class="col-duree">${r.temps_passe ? this._formatDuree(r.temps_passe) : '—'}</td>` : '';
 
-            // Statut demande (pour bonus comp/ponctuel)
-            let statutDemandeCell = '';
-            if (showDemandeCol) {
-                const demandeStatut = String(r.demande_statut || '').trim();
-                let statutLabel = '—';
-                let statutClass = '';
-                if (demandeStatut === 'demande') { statutLabel = 'Demandé'; statutClass = 'statut-demande'; }
-                else if (demandeStatut === 'accepte') { statutLabel = 'Accepté'; statutClass = 'statut-accepte'; }
-                else if (demandeStatut === 'refuse') { statutLabel = 'Refusé'; statutClass = 'statut-refuse'; }
-                else if (demandeStatut === 'corrige') { statutLabel = 'Corrigé'; statutClass = 'statut-publie'; }
-                statutDemandeCell = `<td class="col-statut-demande"><span class="saisie-statut ${statutClass}">${statutLabel}</span></td>`;
-            }
-
-            // Colonnes correction : critères, bouton corriger, statut
+            // Colonnes TC : critères, bouton corriger, statut
             let criteresResumeCell = '';
             let correctionActionCell = '';
             let statutCorrectionCell = '';
-            if (showCorrectionCols) {
+            if (isTC) {
                 const criteresValides = r.criteres_valides ? (() => { try { return JSON.parse(r.criteres_valides); } catch (_e) { return []; } })() : [];
+                const compIds = this._getCompetenceIdsForEval(evaluation);
+                const totalComps = compIds.length;
+                let nbCompsValidees = 0;
+                compIds.forEach(cid => {
+                    const compCriteres = (this.criteresReussite || []).filter(c => String(c.competence_id) === String(cid));
+                    if (compCriteres.length > 0 && compCriteres.every(c => criteresValides.indexOf(String(c.id)) !== -1)) {
+                        nbCompsValidees++;
+                    }
+                });
+                criteresResumeCell = `<td class="col-criteres-resume">${totalComps > 0 && nbCompsValidees > 0 ? `<span class="criteres-badge">${nbCompsValidees}/${totalComps}</span>` : '—'}</td>`;
 
-                if (sousTypeBonus === 'ponctuel') {
-                    // Bonus ponctuel : critères libres
-                    const criteresLibres = this._getCriteresLibresForEval(evaluation);
-                    const nbLibresValides = criteresLibres.filter((_l, idx) => criteresValides.indexOf('libre_' + idx) !== -1).length;
-                    criteresResumeCell = `<td class="col-criteres-resume">${criteresLibres.length > 0 && nbLibresValides > 0 ? `<span class="criteres-badge">${nbLibresValides}/${criteresLibres.length}</span>` : '—'}</td>`;
-                } else {
-                    // TC ou bonus comp : compétences du référentiel
-                    const compIds = this._getCompetenceIdsForEval(evaluation);
-                    const totalComps = compIds.length;
-                    let nbCompsValidees = 0;
-                    compIds.forEach(cid => {
-                        const compCriteres = (this.criteresReussite || []).filter(c => String(c.competence_id) === String(cid));
-                        if (compCriteres.length > 0 && compCriteres.every(c => criteresValides.indexOf(String(c.id)) !== -1)) {
-                            nbCompsValidees++;
-                        }
-                    });
-                    criteresResumeCell = `<td class="col-criteres-resume">${totalComps > 0 && nbCompsValidees > 0 ? `<span class="criteres-badge">${nbCompsValidees}/${totalComps}</span>` : '—'}</td>`;
-                }
-
-                // Bouton corriger (masqué si ABS/NR, ou si demande pas encore acceptée pour bonus)
+                // Bouton corriger
                 const hasCorrection = r.correction_prof || (criteresValides.length > 0);
                 const corrBtnLabel = hasCorrection ? 'Modifier' : 'Corriger';
                 const corrBtnClass = hasCorrection ? 'btn-modifier' : 'btn-corriger';
                 const isSpecialStatus = isAbsent || isNR;
-                const demandeStatut = String(r.demande_statut || '').trim();
-                const canCorrect = !isSpecialStatus && (!isBonusWithCorrection || demandeStatut === 'accepte' || demandeStatut === 'corrige');
-                correctionActionCell = `<td class="col-correction-action">${canCorrect ? `<button class="btn btn-sm ${corrBtnClass}" onclick="event.stopPropagation(); AdminEvaluations.openCorrectionWizard('${eleve.id}')">${corrBtnLabel}</button>` : ''}</td>`;
+                correctionActionCell = `<td class="col-correction-action">${!isSpecialStatus ? `<button class="btn btn-sm ${corrBtnClass}" onclick="event.stopPropagation(); AdminEvaluations.openCorrectionWizard('${eleve.id}')">${corrBtnLabel}</button>` : ''}</td>`;
 
                 // Statut correction
                 const statutCorr = String(r.statut_correction || '').trim();
@@ -2889,13 +2877,6 @@ const AdminEvaluations = {
                 statutCorrectionCell = `<td class="col-statut-correction"><span class="saisie-statut ${statutCorrClass}">${statutCorrLabel}</span></td>`;
             }
 
-            // Remarque (pour bonus/TC)
-            const remarqueVal = r.remarque_texte || '';
-            const remarqueCell = showRemarque ? `<td class="col-remarque">
-                <input type="text" class="saisie-input remarque-input" value="${escapeHtml(remarqueVal)}"
-                    placeholder="Remarque..."
-                    onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'remarque_texte', this.value)">
-            </td>` : '';
 
             // Attribution: banque + entraînement dropdowns
             let banqueCell = '';
@@ -3009,7 +2990,6 @@ const AdminEvaluations = {
                     </td>
                     ${banqueCell}
                     ${entrainementCell}
-                    ${statutDemandeCell}
                     ${scoreCell}
                     ${dureeCell}
                     <td class="col-resultat">
@@ -3021,7 +3001,6 @@ const AdminEvaluations = {
                     ${criteresResumeCell}
                     ${correctionActionCell}
                     ${statutCorrectionCell}
-                    ${remarqueCell}
                 </tr>
             `;
         }).join('');
@@ -3030,10 +3009,10 @@ const AdminEvaluations = {
         document.getElementById('saisieLoader').style.display = 'none';
         document.getElementById('saisieTableContainer').style.display = '';
 
-        // Afficher la barre "Tout publier" si c'est une éval avec correction et des brouillons
+        // Afficher la barre "Tout publier" si c'est une TC avec des brouillons
         const publishBar = document.getElementById('saisiePublishBar');
         if (publishBar) {
-            if (showCorrectionCols) {
+            if (isTC) {
                 const hasBrouillons = evalResults.some(r => r.correction_prof && String(r.statut_correction).trim() === 'brouillon');
                 publishBar.style.display = hasBrouillons ? 'flex' : 'none';
             } else {
@@ -3836,6 +3815,151 @@ const AdminEvaluations = {
         }
     },
 
+    // ========== SAISIE BONUS (comp/ponctuel — demandes + correction) ==========
+
+    /**
+     * Rendu spécial pour bonus compétence et bonus ponctuel :
+     * seuls les élèves ayant fait une demande apparaissent.
+     * Colonnes : Élève | Demande [actions] | Date | Correction | Statut | Points
+     */
+    _renderSaisieBonus(evaluation, evalResults, resultsMap) {
+        const maxPts = evaluation.briques || 10;
+
+        // Filtrer : uniquement les élèves avec une demande (demande_statut non vide)
+        const elevesAvecDemande = this.eleves.filter(eleve => {
+            const r = resultsMap[String(eleve.id).trim()];
+            return r && String(r.demande_statut || '').trim();
+        });
+
+        // Headers
+        document.getElementById('saisieTableHead').innerHTML = `
+            <th class="col-eleve">Élève</th>
+            <th class="col-statut-demande">Demande</th>
+            <th class="col-date-rendu">Date</th>
+            <th class="col-correction-action">Correction</th>
+            <th class="col-statut-correction">Statut</th>
+            <th class="col-points">Points</th>
+        `;
+
+        const tbody = document.getElementById('saisieTableBody');
+
+        if (elevesAvecDemande.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">Aucun élève n'a encore demandé cette évaluation.</td></tr>`;
+        } else {
+            tbody.innerHTML = elevesAvecDemande.map(eleve => {
+                const r = resultsMap[String(eleve.id).trim()] || {};
+                const demandeStatut = String(r.demande_statut || '').trim();
+
+                // --- Colonne Demande ---
+                let demandeHtml = '';
+                if (demandeStatut === 'demande') {
+                    demandeHtml = `
+                        <span class="saisie-statut statut-demande">🟡 En attente</span>
+                        <div class="demande-inline-actions">
+                            <button class="btn btn-xs btn-success" onclick="event.stopPropagation(); AdminEvaluations._inlineAcceptDemande('${evaluation.id}', '${eleve.id}')">Accepter</button>
+                            <button class="btn btn-xs btn-danger" onclick="event.stopPropagation(); AdminEvaluations._inlineRefuseDemande('${evaluation.id}', '${eleve.id}')">Refuser</button>
+                        </div>`;
+                } else if (demandeStatut === 'accepte' || demandeStatut === 'corrige') {
+                    demandeHtml = `
+                        <span class="saisie-statut statut-accepte">🟢 Acceptée</span>
+                        <div class="demande-inline-actions">
+                            <button class="btn btn-xs btn-secondary" onclick="event.stopPropagation(); AdminEvaluations.openReponseModal('${evaluation.id}', '${eleve.id}')">Modifier</button>
+                        </div>`;
+                } else if (demandeStatut === 'refuse') {
+                    demandeHtml = `
+                        <span class="saisie-statut statut-refuse">🔴 Refusée</span>`;
+                }
+
+                // --- Colonne Date ---
+                let dateHtml = '—';
+                if (demandeStatut === 'accepte' || demandeStatut === 'corrige') {
+                    const typeDate = r.type_date || '';
+                    const dateRendu = r.date_rendu || r.date_acceptation || '';
+                    if (dateRendu) {
+                        const dateLabel = typeDate === 'date_butoir' ? 'Date butoir' : 'Passage classe';
+                        const dateFormatted = new Date(dateRendu).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+                        dateHtml = `<div class="date-info">${dateFormatted}</div><div class="date-type">${dateLabel}</div>`;
+                    }
+                }
+
+                // --- Colonne Correction ---
+                const criteresValides = r.criteres_valides ? (() => { try { return JSON.parse(r.criteres_valides); } catch (_e) { return []; } })() : [];
+                const hasCorrection = r.correction_prof || criteresValides.length > 0;
+                const corrBtnLabel = hasCorrection ? 'Modifier' : 'Corriger';
+                const corrBtnClass = hasCorrection ? 'btn-modifier' : 'btn-corriger';
+                const canCorrect = demandeStatut === 'accepte' || demandeStatut === 'corrige';
+                const correctionHtml = canCorrect
+                    ? `<button class="btn btn-sm ${corrBtnClass}" onclick="event.stopPropagation(); AdminEvaluations.openCorrectionWizard('${eleve.id}')">${corrBtnLabel}</button>`
+                    : '—';
+
+                // --- Colonne Statut correction ---
+                const statutCorr = String(r.statut_correction || '').trim();
+                let statutCorrHtml = '—';
+                if (statutCorr === 'brouillon') statutCorrHtml = '<span class="saisie-statut statut-brouillon">🟠 Brouillon</span>';
+                else if (statutCorr === 'publie') statutCorrHtml = '<span class="saisie-statut statut-publie">🟢 Publié</span>';
+
+                // --- Colonne Points ---
+                let pointsHtml = '—';
+                if (hasCorrection) {
+                    const pts = parseInt(r.validations) || 0;
+                    pointsHtml = `<span class="points-display">${pts}/${maxPts} pt${maxPts > 1 ? 's' : ''}</span>`;
+                }
+
+                // Row class
+                const isValidated = r.is_validated === true || r.is_validated === 'true';
+                const rowClass = isValidated ? 'success-row' : (demandeStatut === 'refuse' ? 'nr-row' : '');
+
+                return `
+                    <tr data-eleve-id="${eleve.id}" class="${rowClass}">
+                        <td class="col-eleve"><span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span></td>
+                        <td class="col-statut-demande">${demandeHtml}</td>
+                        <td class="col-date-rendu">${dateHtml}</td>
+                        <td class="col-correction-action">${correctionHtml}</td>
+                        <td class="col-statut-correction">${statutCorrHtml}</td>
+                        <td class="col-points">${pointsHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Hide loader, show table
+        document.getElementById('saisieLoader').style.display = 'none';
+        document.getElementById('saisieTableContainer').style.display = '';
+
+        // Barre "Tout publier" si des brouillons existent
+        const publishBar = document.getElementById('saisiePublishBar');
+        if (publishBar) {
+            const hasBrouillons = evalResults.some(r => r.correction_prof && String(r.statut_correction).trim() === 'brouillon');
+            publishBar.style.display = hasBrouillons ? 'flex' : 'none';
+        }
+    },
+
+    /**
+     * Accepter une demande directement depuis le tableau de saisie (raccourci).
+     * Ouvre la modal de réponse pré-remplie en mode acceptation.
+     */
+    _inlineAcceptDemande(evaluationId, eleveId) {
+        this.openReponseModal(evaluationId, eleveId);
+        // Simuler un clic sur "Accepter"
+        setTimeout(() => {
+            const btnAccepter = document.getElementById('btnAccepter');
+            if (btnAccepter) btnAccepter.click();
+        }, 100);
+    },
+
+    /**
+     * Refuser une demande directement depuis le tableau de saisie (raccourci).
+     * Ouvre la modal de réponse pré-remplie en mode refus.
+     */
+    _inlineRefuseDemande(evaluationId, eleveId) {
+        this.openReponseModal(evaluationId, eleveId);
+        // Simuler un clic sur "Refuser"
+        setTimeout(() => {
+            const btnRefuser = document.getElementById('btnRefuser');
+            if (btnRefuser) btnRefuser.click();
+        }, 100);
+    },
+
     // ========== DEMANDES D'ÉVALUATION ==========
 
     /**
@@ -4169,6 +4293,11 @@ const AdminEvaluations = {
                 // Refresh demandes list if modal is still open
                 if (!document.getElementById('demandesModal').classList.contains('hidden')) {
                     this.openDemandesList();
+                }
+
+                // Si la vue saisie est ouverte, la rafraîchir
+                if (this.saisieEvaluation && String(this.saisieEvaluation.id) === String(evaluationId)) {
+                    this.openSaisie(evaluationId);
                 }
             } else {
                 this.showNotification(result.error || 'Erreur lors de la réponse', 'error');
