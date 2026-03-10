@@ -527,19 +527,18 @@ Les onglets TC (4ème) et Bonus ponctuels (5ème) de Banques d'exercices ont ét
 Le contenu (document, corrigé, compétences, critères libres) est maintenant créé directement dans la page Évaluations via un wizard 5 étapes avec block editor.
 Le code mort (`renderTachesComplexesTab`, `renderBonusPonctuelsTab`, modals associées) reste dans `admin-banques-exercices-questions.js` (non appelé).
 
-### Admin Évaluations — wizard création — REFONDU SESSION 30 (Phase 9)
+### Admin Évaluations — wizard création — REFONDU SESSION 30 (Phase 9), AMÉLIORÉ SESSION 36
 
 **Page** : `admin/evaluations.html` (onglets Compétences et Bonus)
 **Fichiers** : `js/admin-evaluations.js` (~3800 lignes), `css/admin-evaluations.css`, `js/block-editor.js` (mixin)
 **Backend** : `Evaluations.gs` (colonnes `document_contenu`, `correction_contenu`, `correction_commentee`, `competence_ids`, `criteres_libres`, `description`)
 
-**Wizard 5 étapes intégré** (TC, bonus comp, bonus ponctuel) :
-1. **Paramètres** : titre, matière, briques, seuil, dates, mode passation
-2. **Compétences** : checkboxes multi-compétences groupées par matière (TC) ou sélection unique (bonus comp)
-3. **Document** : block editor (texte riche, images, vidéos, documents Google)
-4. **Corrigé** : block editor + toggle mode (lien / texte)
-5. **Résumé** : récapitulatif avant sauvegarde (TC/bonus comp) ou **Critères libres** : liste dynamique (bonus ponctuel) + résumé
-
+**Wizard TC** : 5 étapes (Paramètres → Compétences → Document → Corrigé → Résumé)
+**Wizard bonus mission** : 5 étapes (Paramètres → Évaluation → Document → Corrigé → Résumé)
+- L'étape 2 "Évaluation" fusionne compétences du référentiel + critères libres dans 2 sections pliables
+- Section compétences : checkboxes groupées par matière, points par compétence, recherche
+- Section critères libres : inputs texte personnalisés, ajout/suppression dynamique
+- Validation : au moins une compétence OU un critère libre requis
 **Connaissances / SF** : wizard 2 étapes (paramètres + sélection banque/entrainement) — inchangé
 **Bonus suivi** : wizard 2 étapes (Paramètres → Détails : description + nb réussites + critères de réussite)
 
@@ -549,10 +548,15 @@ Le code mort (`renderTachesComplexesTab`, `renderBonusPonctuelsTab`, modals asso
 **Block editor** : monté via `Object.assign(AdminEvaluations, createBlockEditorMixin('AdminEvaluations'))`.
 CSS partagé depuis `admin-banques-exercices.css` (chargé dans evaluations.html).
 
+**Transport API** : `callAPI` utilise l'encodage Base64 (param `d`) pour éviter la limite URL JSONP avec les champs JSON volumineux. Le backend (`Code.gs:handleRequest`) décode automatiquement ce param.
+
 **Bugs corrigés (session 29)** :
 - ~~Cache périmé cross-page~~ → `clearCacheFor()` + `loadData()` dans `openModal()`
 - ~~Mismatch type ID dropdowns~~ → `String()` sur toutes les comparaisons
 - ~~Double parseSheetData côté élève~~ → supprimé dans `_loadCriteresHtml()`
+
+**Bugs corrigés (session 36)** :
+- ~~Erreur réseau (script.onerror) à la sauvegarde bonus mission~~ → URL JSONP trop longue avec les champs JSON URL-encodés. Fix : encodage Base64 du payload dans un seul param `d`
 
 **État** : Phase 9 (A-E) complète. Wizard fonctionnel, rétro-compatible.
 
@@ -687,8 +691,7 @@ Note : `competence_ids` existe déjà dans EVALUATIONS.
 | Type | Étapes |
 |------|--------|
 | **TC** | Paramètres → Compétences (N checkboxes) → Document (block editor) → Corrigé → Résumé |
-| **Bonus compétence** | Paramètres → Compétence (1 sélection) → Document (block editor) → Corrigé → Résumé |
-| **Bonus ponctuel** | Paramètres → Document (block editor) → Corrigé → Critères libres → Résumé |
+| **Bonus mission** | Paramètres → Évaluation (compétences + critères libres fusionnés, sections pliables) → Document → Corrigé → Résumé |
 | **Bonus suivi** | Paramètres → Détails (description + nb réussites + critères de réussite) |
 | **Conn / SF** | Paramètres → Sélection entraînement (inchangé) |
 
@@ -767,7 +770,7 @@ Note : `competence_ids` existe déjà dans EVALUATIONS.
 - **Code admin connaissances** : audité et nettoyé. Reste : CSS du wizard avec ~7 sélecteurs `.etape-*` dupliqués (fonctionnel mais fragile), `getQuestionPreview()` dupliqué dans 3 fichiers différents (à extraire dans un helper partagé un jour)
 - **Module exercices élève SF** : audité et restructuré (session 4). L'ancien sous-module compétences (`eleve-exercices-competences.js`) a été supprimé — remplacé par `eleve-competences.js` + `eleve-competences-exercice.js`.
 - **Tests** : aucun test automatisé (pas de framework de test configuré)
-- **7 copies de `callAPI`** : chaque module a sa propre implémentation. Seul `admin-banques-exercices.js` a un timeout (15s). Les 6 autres peuvent rester bloqués indéfiniment. À centraliser un jour dans un fichier partagé.
+- **7 copies de `callAPI`** : chaque module a sa propre implémentation. Seul `admin-banques-exercices.js` a un timeout (15s). Les 6 autres peuvent rester bloqués indéfiniment. À centraliser un jour dans un fichier partagé. `admin-evaluations.js` utilise l'encodage Base64 (param `d`) pour éviter la limite URL avec les payloads JSON volumineux — à propager aux autres modules si le même problème survient.
 - **Double système de lecture** : `callAPI` (JSONP) et `SheetsAPI` (REST direct) avec caches indépendants (TTL 3-5 min). Peut causer des décalages de données entre pages admin.
 - **`SheetsAPI.clearCache()` trop large** : efface le cache de toutes les tables au lieu de celle modifiée. `SheetsAPI.clearCacheFor(sheetName)` ajouté (session 21) pour invalider une table spécifique — mais seul `admin-evaluations.js` l'utilise. Les autres modules appellent encore `clearCache()` global.
 - **Block editor : listeners non nettoyés** : `_initBlockDragDrop()` dans `block-editor.js` ajoute des listeners à chaque re-render (`_renderBlocks()`). Les anciens listeners sont orphelins. Pas de bug observable sur des sessions courtes, mais memory leak théorique sur de longues sessions d'édition.
