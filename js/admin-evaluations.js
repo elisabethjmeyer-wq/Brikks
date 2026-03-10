@@ -4948,9 +4948,9 @@ const AdminEvaluations = {
                 reject(new Error('Erreur reseau'));
             };
 
-            Object.keys(data).forEach(key => {
-                url.searchParams.set(key, typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key]);
-            });
+            // Encode data as Base64 to avoid URL length limits with JSON fields
+            const jsonStr = JSON.stringify(data);
+            url.searchParams.set('d', btoa(unescape(encodeURIComponent(jsonStr))));
 
             url.searchParams.set('callback', callbackName);
             script.src = url.toString();
