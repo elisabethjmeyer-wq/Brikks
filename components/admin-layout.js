@@ -37,8 +37,7 @@ const AdminLayout = {
                 { icon: '📝', label: 'Évaluations', href: '/Brikks/admin/evaluations.html', id: 'evaluations', badge: true },
                 { icon: '📈', label: 'Tableau de bord', href: '/Brikks/admin/tableau-bord.html', id: 'tableau-bord' },
                 { icon: '⚙️', label: 'Paramétrage', href: '/Brikks/admin/parametrage-eval.html', id: 'parametrage-eval' },
-                { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi' },
-                { icon: '✏️', label: 'Corrections', href: '/Brikks/admin/corrections.html', id: 'corrections', badge: true }
+                { icon: '👁️', label: 'Suivi', href: '/Brikks/admin/suivi.html', id: 'suivi' }
             ]
         },
         {
@@ -189,8 +188,8 @@ const AdminLayout = {
         // (évite de dépasser le quota Google Sheets API avec trop de requêtes simultanées)
         setTimeout(() => this.checkPendingActivities(), 2000);
 
-        // Si on est sur la page évaluations (qui inclut les corrections), marquer comme vu
-        if (pageId === 'evaluations' || pageId === 'corrections') {
+        // Si on est sur la page évaluations, marquer les notifications comme vues
+        if (pageId === 'evaluations') {
             this._onCorrectionsPage = true;
         }
     },
@@ -278,13 +277,6 @@ const AdminLayout = {
     },
 
     /**
-     * Redirige vers la page Corrections
-     */
-    goToCorrections() {
-        window.location.href = '/Brikks/admin/corrections.html';
-    },
-
-    /**
      * Toggle le dropdown de notifications
      */
     toggleNotificationDropdown(e) {
@@ -363,9 +355,9 @@ const AdminLayout = {
         var self = this;
         var html = '';
 
-        // Corrections : on garde agrégé (pas de date individuelle pertinente)
+        // Corrections : lien vers la page évaluations
         if (correctionsCount > 0) {
-            html += '<a href="/Brikks/admin/corrections.html" class="notification-item">';
+            html += '<a href="/Brikks/admin/evaluations.html" class="notification-item">';
             html += '<span class="notification-item-icon">✏️</span>';
             html += '<span class="notification-item-text">' + correctionsCount + ' copie' + (correctionsCount > 1 ? 's' : '') + ' à corriger</span>';
             html += '</a>';

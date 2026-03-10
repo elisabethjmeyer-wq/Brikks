@@ -15,7 +15,6 @@ const AdminEvaluations = {
     methodologies: [],
     bexConfig: [],
     eleves: [],
-    correctionsCount: 0,
 
     // Connaissances data (for cascade dropdown)
     banquesExercicesConn: [],
@@ -77,7 +76,6 @@ const AdminEvaluations = {
 
             this.updateCounts();
             this.renderEvaluations();
-            this.updateCorrectionsBanner();
             this.updateDemandesBanner();
             this.showContent();
         } catch (error) {
@@ -100,7 +98,6 @@ const AdminEvaluations = {
             elevesData,
             sommativesData,
             resultatsSommativesData,
-            eleveCompetencesData,
             banquesExercicesConnData,
             entrainementsConnData,
             banquesExercicesData,
@@ -117,7 +114,6 @@ const AdminEvaluations = {
             safeGet('UTILISATEURS'),
             safeGet('NOTES_SOMMATIVES'),
             safeGet('RESULTATS_SOMMATIVES'),
-            safeGet('EleveEntrainementsCompetences'),
             safeGet('BANQUES_EXERCICES_CONN'),
             safeGet('ENTRAINEMENTS_CONN'),
             safeGet('BANQUES_EXERCICES'),
@@ -135,15 +131,6 @@ const AdminEvaluations = {
         this.eleves = SheetsAPI.parseSheetData(elevesData).filter(u => u.role === 'eleve');
         this.sommatives = SheetsAPI.parseSheetData(sommativesData);
         this.resultatsSommatives = SheetsAPI.parseSheetData(resultatsSommativesData);
-
-        // Count corrections needed (competences with statut 'soumis')
-        const eleveCompetences = SheetsAPI.parseSheetData(eleveCompetencesData);
-        this.correctionsCountComp = eleveCompetences.filter(ec => ec.statut === 'soumis').length;
-        // Bonus/TC count will be added after resultats are loaded
-        this.correctionsCount = this.correctionsCountComp;
-
-        // Count pending demandes (demande_statut === 'demande')
-        // Will be computed after resultats are loaded
 
         // Connaissances data (for cascade dropdown)
         this.banquesExercicesConn = SheetsAPI.parseSheetData(banquesExercicesConnData);
@@ -181,13 +168,6 @@ const AdminEvaluations = {
         } catch (_e) {
             this.resultats = [];
         }
-
-        // Update corrections count to include bonus/TC copies awaiting correction
-        const bonusTCPending = this.resultats.filter(r => {
-            const ds = String(r.demande_statut || '').trim();
-            return ds === 'accepte' && !r.correction_prof && !r.criteres_valides;
-        }).length;
-        this.correctionsCount = this.correctionsCountComp + bonusTCPending;
 
         // Load progression evaluation
         try {
@@ -298,22 +278,6 @@ const AdminEvaluations = {
 
         // Saisie back button
         document.getElementById('saisieBackBtn').addEventListener('click', () => this.closeSaisie());
-    },
-
-    // ========== CORRECTIONS BANNER ==========
-    updateCorrectionsBanner() {
-        const banner = document.getElementById('correctionsBanner');
-        const countEl = document.getElementById('correctionsCount');
-        if (this.correctionsCount > 0) {
-            countEl.textContent = this.correctionsCount;
-            banner.style.display = 'flex';
-        } else {
-            banner.style.display = 'none';
-        }
-    },
-
-    goToCorrections() {
-        window.location.href = '/Brikks/admin/corrections.html';
     },
 
     _handleAddClick() {
@@ -2804,6 +2768,10 @@ const AdminEvaluations = {
         const isConn = evaluation.type === 'connaissances';
         const isBonusSuivi = evaluation.type === 'bonus' && String(evaluation.sous_type_bonus || '').trim() === 'suivi';
         const isBonusOrTC = evaluation.type === 'bonus' || evaluation.type === 'competences';
+        const isTC = evaluation.type === 'competences';
+        const sousTypeBonus = String(evaluation.sous_type_bonus || '').trim();
+        const isBonusWithCorrection = evaluation.type === 'bonus' && sousTypeBonus !== 'suivi';
+        const showCorrectionCols = isTC || isBonusWithCorrection;
 
         // Bonus suivi → tableau spécial avec checkboxes progressives
         if (isBonusSuivi) {
@@ -2822,20 +2790,20 @@ const AdminEvaluations = {
         }
 
         // Build table headers — adapté selon le type
-        const isTC = evaluation.type === 'competences';
         const showScoreDuree = !isBonusOrTC;
         const showRemarque = false;
+        const showDemandeCol = isBonusWithCorrection;
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
             ${showSujet ? '<th class="col-banque">Banque</th>' : ''}
             ${showSujet ? '<th class="col-entrainement">Exercice</th>' : ''}
-            ${isBonusOrTC && !isTC ? '<th class="col-statut-demande">Statut</th>' : ''}
+            ${showDemandeCol ? '<th class="col-statut-demande">Demande</th>' : ''}
             ${showScoreDuree ? '<th class="col-score">Score (%)</th>' : ''}
             ${showScoreDuree ? '<th class="col-duree">Durée</th>' : ''}
-            <th class="col-resultat">${isTC ? 'Points' : 'Résultat'}</th>
-            ${isTC ? '<th class="col-criteres-resume">Compétences</th>' : ''}
-            ${isTC ? '<th class="col-correction-action">Correction</th>' : ''}
-            ${isTC ? '<th class="col-statut-correction">Statut</th>' : ''}
+            <th class="col-resultat">${showCorrectionCols ? 'Points' : 'Résultat'}</th>
+            ${showCorrectionCols ? `<th class="col-criteres-resume">${sousTypeBonus === 'ponctuel' ? 'Critères' : 'Compétences'}</th>` : ''}
+            ${showCorrectionCols ? '<th class="col-correction-action">Correction</th>' : ''}
+            ${showCorrectionCols ? '<th class="col-statut-correction">Statut</th>' : ''}
             ${showRemarque ? '<th class="col-remarque">Remarque</th>' : ''}
         `;
 
@@ -2864,42 +2832,53 @@ const AdminEvaluations = {
             // Durée : lecture seule
             const dureeCell = showScoreDuree ? `<td class="col-duree">${r.temps_passe ? this._formatDuree(r.temps_passe) : '—'}</td>` : '';
 
-            // Statut demande (pour bonus, pas TC obligatoire)
+            // Statut demande (pour bonus comp/ponctuel)
             let statutDemandeCell = '';
-            if (isBonusOrTC && !isTC) {
+            if (showDemandeCol) {
                 const demandeStatut = String(r.demande_statut || '').trim();
                 let statutLabel = '—';
                 let statutClass = '';
                 if (demandeStatut === 'demande') { statutLabel = 'Demandé'; statutClass = 'statut-demande'; }
                 else if (demandeStatut === 'accepte') { statutLabel = 'Accepté'; statutClass = 'statut-accepte'; }
                 else if (demandeStatut === 'refuse') { statutLabel = 'Refusé'; statutClass = 'statut-refuse'; }
+                else if (demandeStatut === 'corrige') { statutLabel = 'Corrigé'; statutClass = 'statut-publie'; }
                 statutDemandeCell = `<td class="col-statut-demande"><span class="saisie-statut ${statutClass}">${statutLabel}</span></td>`;
             }
 
-            // Colonnes TC : critères, correction, statut
+            // Colonnes correction : critères, bouton corriger, statut
             let criteresResumeCell = '';
             let correctionActionCell = '';
             let statutCorrectionCell = '';
-            if (isTC) {
-                // Résumé compétences validées (une compétence = tous ses critères cochés)
+            if (showCorrectionCols) {
                 const criteresValides = r.criteres_valides ? (() => { try { return JSON.parse(r.criteres_valides); } catch (_e) { return []; } })() : [];
-                const compIds = this._getCompetenceIdsForEval(evaluation);
-                const totalComps = compIds.length;
-                let nbCompsValidees = 0;
-                compIds.forEach(cid => {
-                    const compCriteres = (this.criteresReussite || []).filter(c => String(c.competence_id) === String(cid));
-                    if (compCriteres.length > 0 && compCriteres.every(c => criteresValides.indexOf(String(c.id)) !== -1)) {
-                        nbCompsValidees++;
-                    }
-                });
-                criteresResumeCell = `<td class="col-criteres-resume">${totalComps > 0 && nbCompsValidees > 0 ? `<span class="criteres-badge">${nbCompsValidees}/${totalComps}</span>` : '—'}</td>`;
 
-                // Bouton corriger
+                if (sousTypeBonus === 'ponctuel') {
+                    // Bonus ponctuel : critères libres
+                    const criteresLibres = this._getCriteresLibresForEval(evaluation);
+                    const nbLibresValides = criteresLibres.filter((_l, idx) => criteresValides.indexOf('libre_' + idx) !== -1).length;
+                    criteresResumeCell = `<td class="col-criteres-resume">${criteresLibres.length > 0 && nbLibresValides > 0 ? `<span class="criteres-badge">${nbLibresValides}/${criteresLibres.length}</span>` : '—'}</td>`;
+                } else {
+                    // TC ou bonus comp : compétences du référentiel
+                    const compIds = this._getCompetenceIdsForEval(evaluation);
+                    const totalComps = compIds.length;
+                    let nbCompsValidees = 0;
+                    compIds.forEach(cid => {
+                        const compCriteres = (this.criteresReussite || []).filter(c => String(c.competence_id) === String(cid));
+                        if (compCriteres.length > 0 && compCriteres.every(c => criteresValides.indexOf(String(c.id)) !== -1)) {
+                            nbCompsValidees++;
+                        }
+                    });
+                    criteresResumeCell = `<td class="col-criteres-resume">${totalComps > 0 && nbCompsValidees > 0 ? `<span class="criteres-badge">${nbCompsValidees}/${totalComps}</span>` : '—'}</td>`;
+                }
+
+                // Bouton corriger (masqué si ABS/NR, ou si demande pas encore acceptée pour bonus)
                 const hasCorrection = r.correction_prof || (criteresValides.length > 0);
                 const corrBtnLabel = hasCorrection ? 'Modifier' : 'Corriger';
                 const corrBtnClass = hasCorrection ? 'btn-modifier' : 'btn-corriger';
                 const isSpecialStatus = isAbsent || isNR;
-                correctionActionCell = `<td class="col-correction-action">${!isSpecialStatus ? `<button class="btn btn-sm ${corrBtnClass}" onclick="event.stopPropagation(); AdminEvaluations.openCorrectionWizard('${eleve.id}')">${corrBtnLabel}</button>` : ''}</td>`;
+                const demandeStatut = String(r.demande_statut || '').trim();
+                const canCorrect = !isSpecialStatus && (!isBonusWithCorrection || demandeStatut === 'accepte' || demandeStatut === 'corrige');
+                correctionActionCell = `<td class="col-correction-action">${canCorrect ? `<button class="btn btn-sm ${corrBtnClass}" onclick="event.stopPropagation(); AdminEvaluations.openCorrectionWizard('${eleve.id}')">${corrBtnLabel}</button>` : ''}</td>`;
 
                 // Statut correction
                 const statutCorr = String(r.statut_correction || '').trim();
@@ -3051,10 +3030,10 @@ const AdminEvaluations = {
         document.getElementById('saisieLoader').style.display = 'none';
         document.getElementById('saisieTableContainer').style.display = '';
 
-        // Afficher la barre "Tout publier" si c'est une TC avec des brouillons
+        // Afficher la barre "Tout publier" si c'est une éval avec correction et des brouillons
         const publishBar = document.getElementById('saisiePublishBar');
         if (publishBar) {
-            if (isTC) {
+            if (showCorrectionCols) {
                 const hasBrouillons = evalResults.some(r => r.correction_prof && String(r.statut_correction).trim() === 'brouillon');
                 publishBar.style.display = hasBrouillons ? 'flex' : 'none';
             } else {
@@ -3886,18 +3865,6 @@ const AdminEvaluations = {
         if (this.currentType === 'bonus') {
             this.renderEvaluations();
         }
-        return;
-        // Code legacy ci-dessous (inactif)
-        const demandes = this._getDemandesEnAttente();
-        const countEl = document.getElementById('demandesCount');
-        if (banner && countEl) {
-            if (demandes.length > 0) {
-                countEl.textContent = demandes.length;
-                banner.style.display = 'flex';
-            } else {
-                banner.style.display = 'none';
-            }
-        }
     },
 
     /**
@@ -4254,7 +4221,19 @@ const AdminEvaluations = {
         });
     },
 
-    // ========== CORRECTION TC (wizard intégré à la saisie) ==========
+    // ========== CORRECTION (wizard intégré à la saisie — TC, bonus comp, bonus ponctuel) ==========
+
+    /**
+     * Parse les critères libres d'une évaluation bonus ponctuel (JSON array de strings).
+     */
+    _getCriteresLibresForEval(evaluation) {
+        const raw = evaluation ? evaluation.criteres_libres : '';
+        if (!raw) return [];
+        try {
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (_e) { return []; }
+    },
 
     /**
      * Parse les competence_ids d'une évaluation (JSON array de strings).
@@ -4333,7 +4312,7 @@ const AdminEvaluations = {
     },
 
     /**
-     * Ouvre le wizard de correction pour un élève dans la saisie TC.
+     * Ouvre le wizard de correction pour un élève (TC, bonus comp, bonus ponctuel).
      */
     openCorrectionWizard(eleveId) {
         const evaluation = this.saisieEvaluation;
@@ -4558,10 +4537,53 @@ const AdminEvaluations = {
     _renderCorrStep2() {
         const wd = this._corrWizardData;
         const evaluation = this.saisieEvaluation;
+        const sousType = String(evaluation.sous_type_bonus || '').trim();
+        const isBonusPonctuel = evaluation.type === 'bonus' && sousType === 'ponctuel';
+
+        let criteresHtml = '';
+
+        if (isBonusPonctuel) {
+            // Bonus ponctuel : critères libres
+            const criteresLibres = this._getCriteresLibresForEval(evaluation);
+            if (criteresLibres.length === 0) {
+                criteresHtml = '<div class="empty-criteres">Aucun critère libre défini pour cette évaluation.</div>';
+            } else {
+                const maxPts = evaluation.briques || 10;
+                const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
+                const allChecked = nbValides === criteresLibres.length;
+                criteresHtml += `<div class="tc-competence-section${allChecked ? ' comp-validated' : ''}">
+                    <div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span class="tc-comp-icon">📋</span>
+                        <h4 style="flex:1;margin:0;">Critères libres</h4>
+                        <span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:#0d9488;color:white;font-weight:600;white-space:nowrap;">${maxPts} pt${maxPts > 1 ? 's' : ''}</span>
+                        <span class="comp-valid-badge" id="compBadge_ponctuel" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;${allChecked ? 'background:#dcfce7;color:#16a34a;">✅ Validé' : 'background:#fee2e2;color:#dc2626;">❌ Non validé'}</span>
+                    </div>
+                    <div class="criteres-correction-list">`;
+                criteresLibres.forEach((label, idx) => {
+                    const critId = 'libre_' + idx;
+                    const checked = wd.criteresValides.indexOf(critId) !== -1;
+                    criteresHtml += `<div class="critere-check${checked ? ' checked' : ''}" onclick="AdminEvaluations._toggleCritereLibre('${critId}', this)">
+                        <input type="checkbox"${checked ? ' checked' : ''}>
+                        <label>${escapeHtml(label)}</label>
+                    </div>`;
+                });
+                criteresHtml += '</div></div>';
+            }
+
+            return `
+                <div class="step-header">
+                    <span class="step-icon">✅</span>
+                    <div><h3>Critères</h3>
+                    <p>Cochez les critères validés — tous cochés = points gagnés</p></div>
+                </div>
+                ${criteresHtml}
+            `;
+        }
+
+        // TC ou bonus compétence : critères par compétence
         const compIds = this._getCompetenceIdsForEval(evaluation);
         const ptsMap = this._getCompPointsMapForEval(evaluation);
 
-        let criteresHtml = '';
         if (compIds.length === 0) {
             criteresHtml = '<div class="empty-criteres">Aucune compétence associée à cette évaluation.</div>';
         } else {
@@ -4603,7 +4625,6 @@ const AdminEvaluations = {
                 <div><h3>Compétences</h3>
                 <p>Cochez les critères validés — tous les critères cochés = compétence validée = points gagnés</p></div>
             </div>
-
             ${criteresHtml}
         `;
     },
@@ -4647,54 +4668,115 @@ const AdminEvaluations = {
         }
     },
 
+    /**
+     * Toggle un critère libre (bonus ponctuel) dans le wizard de correction.
+     */
+    _toggleCritereLibre(critereId, el) {
+        const wd = this._corrWizardData;
+        if (!wd) return;
+
+        const idx = wd.criteresValides.indexOf(critereId);
+        if (idx >= 0) {
+            wd.criteresValides.splice(idx, 1);
+            el.classList.remove('checked');
+            el.querySelector('input').checked = false;
+        } else {
+            wd.criteresValides.push(critereId);
+            el.classList.add('checked');
+            el.querySelector('input').checked = true;
+        }
+
+        // Mettre à jour le badge
+        const evaluation = this.saisieEvaluation;
+        const criteresLibres = this._getCriteresLibresForEval(evaluation);
+        const nbValides = criteresLibres.filter((_l, i) => wd.criteresValides.indexOf('libre_' + i) !== -1).length;
+        const allChecked = nbValides === criteresLibres.length && criteresLibres.length > 0;
+        const badgeEl = document.getElementById('compBadge_ponctuel');
+        if (badgeEl) {
+            badgeEl.style.background = allChecked ? '#dcfce7' : '#fee2e2';
+            badgeEl.style.color = allChecked ? '#16a34a' : '#dc2626';
+            badgeEl.innerHTML = allChecked ? '✅ Validé' : '❌ Non validé';
+        }
+        const section = el.closest('.tc-competence-section');
+        if (section) section.classList.toggle('comp-validated', allChecked);
+    },
+
     // ----- Étape 3 : Résumé -----
 
     _renderCorrStep3() {
         const wd = this._corrWizardData;
         const evaluation = this.saisieEvaluation;
-        const ptsMap = this._getCompPointsMapForEval(evaluation);
-        const computed = this._computePointsParCompetence(evaluation, wd);
-        const compIds = this._getCompetenceIdsForEval(evaluation);
-        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
-
+        const sousType = String(evaluation.sous_type_bonus || '').trim();
+        const isBonusPonctuel = evaluation.type === 'bonus' && sousType === 'ponctuel';
         const hasRemarque = wd.correctionType === 'blocks' ? !!wd.correctionValue : (wd.correctionType === 'url' ? !!wd.correctionValue : false);
 
-        // Grouper par matière
-        const byMatiere = {};
-        compIds.forEach(compId => {
-            const info = ptsMap[String(compId)] || { pts: 1, matiere: 'Transversal', color: '#6b7280' };
-            const mat = info.matiere;
-            if (!byMatiere[mat]) byMatiere[mat] = { earned: 0, max: 0, color: info.color };
-            byMatiere[mat].max += info.pts;
-            byMatiere[mat].earned += computed.ppc[compId] || 0;
-        });
+        let pointsHtml = '';
 
-        // Résumé par matière
-        let matiereHtml = '';
-        ['FR', 'HG-EMC', 'Transversal'].forEach(mat => {
-            if (!byMatiere[mat]) return;
-            const m = byMatiere[mat];
-            const color = m.color || matiereColors[mat] || '#6b7280';
-            const matLabel = mat === 'Transversal' ? 'Transversal (FR + HG-EMC)' : mat;
-            matiereHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100, #f3f4f6);">
-                <span style="display:inline-block;font-size:0.8rem;padding:3px 10px;border-radius:4px;background:${color}20;color:${color};font-weight:600;min-width:60px;text-align:center;">${escapeHtml(matLabel)}</span>
-                <span style="font-size:0.95rem;font-weight:600;">${m.earned} / ${m.max} pt${m.max > 1 ? 's' : ''}</span>
-                ${m.earned >= m.max && m.max > 0 ? '<span style="color:#16a34a;">✅</span>' : m.earned > 0 ? '<span style="color:#f59e0b;">⚠️</span>' : ''}
-            </div>`;
-        });
+        if (isBonusPonctuel) {
+            // Bonus ponctuel : résumé simple (critères libres)
+            const criteresLibres = this._getCriteresLibresForEval(evaluation);
+            const maxPts = evaluation.briques || 10;
+            const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
+            const allValid = nbValides === criteresLibres.length && criteresLibres.length > 0;
+            const earnedPts = allValid ? maxPts : 0;
 
-        // Détail par compétence
-        let compDetailHtml = '';
-        compIds.forEach(compId => {
-            const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
-            const info = ptsMap[String(compId)] || { pts: 1 };
-            const earned = computed.ppc[compId] || 0;
-            compDetailHtml += `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.8rem;">
-                <span>${earned > 0 ? '✅' : '❌'}</span>
-                <span style="flex:1;">${escapeHtml(comp ? comp.nom : 'Compétence')}</span>
-                <span style="font-weight:600;">${earned} / ${info.pts}</span>
+            pointsHtml = `<div class="bilan-section">
+                <h4>Points gagnés</h4>
+                <div style="display:flex;align-items:center;gap:10px;padding:8px 0;">
+                    <span style="font-size:1.1rem;font-weight:700;">${earnedPts} / ${maxPts} pt${maxPts > 1 ? 's' : ''}</span>
+                    ${allValid ? '<span style="color:#16a34a;">✅</span>' : ''}
+                </div>
+                <div style="font-size:0.85rem;color:var(--gray-400);">Critères validés : ${nbValides}/${criteresLibres.length}</div>
             </div>`;
-        });
+        } else {
+            // TC ou bonus comp : résumé par matière
+            const ptsMap = this._getCompPointsMapForEval(evaluation);
+            const computed = this._computePointsParCompetence(evaluation, wd);
+            const compIds = this._getCompetenceIdsForEval(evaluation);
+            const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+
+            const byMatiere = {};
+            compIds.forEach(compId => {
+                const info = ptsMap[String(compId)] || { pts: 1, matiere: 'Transversal', color: '#6b7280' };
+                const mat = info.matiere;
+                if (!byMatiere[mat]) byMatiere[mat] = { earned: 0, max: 0, color: info.color };
+                byMatiere[mat].max += info.pts;
+                byMatiere[mat].earned += computed.ppc[compId] || 0;
+            });
+
+            let matiereHtml = '';
+            ['FR', 'HG-EMC', 'Transversal'].forEach(mat => {
+                if (!byMatiere[mat]) return;
+                const m = byMatiere[mat];
+                const color = m.color || matiereColors[mat] || '#6b7280';
+                const matLabel = mat === 'Transversal' ? 'Transversal (FR + HG-EMC)' : mat;
+                matiereHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100, #f3f4f6);">
+                    <span style="display:inline-block;font-size:0.8rem;padding:3px 10px;border-radius:4px;background:${color}20;color:${color};font-weight:600;min-width:60px;text-align:center;">${escapeHtml(matLabel)}</span>
+                    <span style="font-size:0.95rem;font-weight:600;">${m.earned} / ${m.max} pt${m.max > 1 ? 's' : ''}</span>
+                    ${m.earned >= m.max && m.max > 0 ? '<span style="color:#16a34a;">✅</span>' : m.earned > 0 ? '<span style="color:#f59e0b;">⚠️</span>' : ''}
+                </div>`;
+            });
+
+            let compDetailHtml = '';
+            compIds.forEach(compId => {
+                const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
+                const info = ptsMap[String(compId)] || { pts: 1 };
+                const earned = computed.ppc[compId] || 0;
+                compDetailHtml += `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.8rem;">
+                    <span>${earned > 0 ? '✅' : '❌'}</span>
+                    <span style="flex:1;">${escapeHtml(comp ? comp.nom : 'Compétence')}</span>
+                    <span style="font-weight:600;">${earned} / ${info.pts}</span>
+                </div>`;
+            });
+
+            pointsHtml = `<div class="bilan-section">
+                <h4>Points gagnés par matière</h4>
+                ${matiereHtml}
+                <div style="margin-top:12px;">
+                    <details><summary style="cursor:pointer;font-size:0.85rem;color:var(--gray-400);margin-bottom:6px;">Détail par compétence</summary>${compDetailHtml}</details>
+                </div>
+            </div>`;
+        }
 
         return `
             <div class="step-header">
@@ -4703,13 +4785,7 @@ const AdminEvaluations = {
                 <p>Vérifiez avant d'enregistrer la correction de ${escapeHtml(wd.eleveName)}</p></div>
             </div>
 
-            <div class="bilan-section">
-                <h4>Points gagnés par matière</h4>
-                ${matiereHtml}
-                <div style="margin-top:12px;">
-                    <details><summary style="cursor:pointer;font-size:0.85rem;color:var(--gray-400);margin-bottom:6px;">Détail par compétence</summary>${compDetailHtml}</details>
-                </div>
-            </div>
+            ${pointsHtml}
 
             <div class="bilan-section">
                 <div class="summary-row"><span class="label">Remarque</span><span class="value">${hasRemarque ? '✅ Rédigée' : '— Aucune'}</span></div>
@@ -4746,17 +4822,33 @@ const AdminEvaluations = {
         if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement...'; }
 
         try {
-            // Calculer les compétences validées (tous critères cochés)
             const evaluation = this.saisieEvaluation;
-            const compIds = this._getCompetenceIdsForEval(evaluation);
-            const validatedCompIds = compIds.filter(cid => {
-                const criteres = this._getCriteresByCompetence(cid);
-                const compValides = wd.competenceValidees[cid] || [];
-                return criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
-            });
+            const sousType = String(evaluation.sous_type_bonus || '').trim();
+            const isBonusPonctuel = evaluation.type === 'bonus' && sousType === 'ponctuel';
 
-            // Calculer les points automatiquement depuis les critères
-            const computed = this._computePointsParCompetence(evaluation, wd);
+            let validatedCompIds = [];
+            let total = 0;
+            let ppc = {};
+
+            if (isBonusPonctuel) {
+                // Bonus ponctuel : points = briques si tous critères validés, sinon 0
+                const criteresLibres = this._getCriteresLibresForEval(evaluation);
+                const maxPts = evaluation.briques || 10;
+                const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
+                const allValid = nbValides === criteresLibres.length && criteresLibres.length > 0;
+                total = allValid ? maxPts : 0;
+            } else {
+                // TC ou bonus comp : points par compétence
+                const compIds = this._getCompetenceIdsForEval(evaluation);
+                validatedCompIds = compIds.filter(cid => {
+                    const criteres = this._getCriteresByCompetence(cid);
+                    const compValides = wd.competenceValidees[cid] || [];
+                    return criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
+                });
+                const computed = this._computePointsParCompetence(evaluation, wd);
+                total = computed.total;
+                ppc = computed.ppc;
+            }
 
             const params = {
                 evaluation_id: wd.evaluationId,
@@ -4765,10 +4857,10 @@ const AdminEvaluations = {
                 statut_correction: wd.statutCorrection || 'brouillon',
                 criteres_valides: JSON.stringify(wd.criteresValides),
                 competence_ids_validees: JSON.stringify(validatedCompIds),
-                is_validated: validatedCompIds.length > 0,
-                validations: String(computed.total),
-                score: String(computed.total),
-                points_par_competence: JSON.stringify(computed.ppc)
+                is_validated: isBonusPonctuel ? total > 0 : validatedCompIds.length > 0,
+                validations: String(total),
+                score: String(total),
+                points_par_competence: JSON.stringify(ppc)
             };
 
             const result = await this.callAPI('saveEvaluationCorrection', params);
