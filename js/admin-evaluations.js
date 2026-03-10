@@ -5163,7 +5163,6 @@ const AdminEvaluations = {
 
             url.searchParams.set('callback', callbackName);
             script.src = url.toString();
-            console.log('[callAPI]', action, '- URL length:', script.src.length, '- Data JSON length:', jsonStr.length);
             document.body.appendChild(script);
 
             setTimeout(() => {
