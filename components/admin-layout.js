@@ -274,6 +274,30 @@ const AdminLayout = {
     },
 
     /**
+     * Navigation intelligente vers les demandes bonus.
+     * Si on est déjà sur la page évaluations, bascule l'onglet sans rechargement.
+     */
+    _navigateTodemandes(e) {
+        var isOnEvalPage = window.location.pathname.indexOf('evaluations.html') !== -1;
+        if (isOnEvalPage && typeof AdminEvaluations !== 'undefined') {
+            e.preventDefault();
+            // Fermer le dropdown
+            var dropdown = document.getElementById('notification-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+            // Basculer sur l'onglet bonus
+            AdminEvaluations.currentType = 'bonus';
+            document.querySelectorAll('.eval-tab').forEach(function(tab) {
+                tab.classList.remove('active');
+                if (tab.dataset.type === 'bonus') tab.classList.add('active');
+            });
+            AdminEvaluations.renderEvaluations();
+            AdminEvaluations.updateDemandesBanner();
+            window.location.hash = 'bonus-demandes';
+        }
+        // Sinon, laisser le lien href naviguer normalement
+    },
+
+    /**
      * Toggle le dropdown de notifications
      */
     toggleNotificationDropdown(e) {
@@ -347,7 +371,7 @@ const AdminLayout = {
 
         // Corrections : lien vers la page évaluations
         if (correctionsCount > 0) {
-            html += '<a href="/Brikks/admin/evaluations.html" class="notification-item">';
+            html += '<a href="/Brikks/admin/corrections.html" class="notification-item">';
             html += '<span class="notification-item-icon">✏️</span>';
             html += '<span class="notification-item-text">' + correctionsCount + ' copie' + (correctionsCount > 1 ? 's' : '') + ' à corriger</span>';
             html += '</a>';
@@ -371,7 +395,7 @@ const AdminLayout = {
                 var evalTitre = evaluation.titre || 'bonus';
                 var dateLabel = self._formatNotifDate(d.date_demande);
 
-                html += '<a href="/Brikks/admin/evaluations.html#bonus-demandes" class="notification-item notification-item-demande">';
+                html += '<a href="/Brikks/admin/evaluations.html#bonus-demandes" class="notification-item notification-item-demande" onclick="AdminLayout._navigateTodemandes(event)">';
                 html += '<span class="notification-item-icon">📩</span>';
                 html += '<div class="notification-item-detail">';
                 html += '<span class="notification-item-text">' + escapeHtml(prenom) + ' demande <strong>' + escapeHtml(evalTitre) + '</strong></span>';
@@ -383,7 +407,7 @@ const AdminLayout = {
             });
 
             if (sorted.length > maxItems) {
-                html += '<a href="/Brikks/admin/evaluations.html#bonus-demandes" class="notification-item notification-item-more">';
+                html += '<a href="/Brikks/admin/evaluations.html#bonus-demandes" class="notification-item notification-item-more" onclick="AdminLayout._navigateTodemandes(event)">';
                 html += '<span class="notification-item-text">+ ' + (sorted.length - maxItems) + ' autre' + (sorted.length - maxItems > 1 ? 's' : '') + ' demande' + (sorted.length - maxItems > 1 ? 's' : '') + '</span>';
                 html += '</a>';
             }
