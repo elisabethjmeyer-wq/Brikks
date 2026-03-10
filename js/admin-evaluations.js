@@ -3846,7 +3846,7 @@ const AdminEvaluations = {
                     const dateLabel = new Date(h.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
                     const cls = h.resultat ? 'verif-ok' : 'verif-ko';
                     const icon = h.resultat ? '✓' : '✗';
-                    return `<span class="verif-pastille ${cls}" title="${dateLabel}" data-eleve="${eleve.id}" data-index="${i}">${icon}<span class="verif-date">${dateLabel}</span></span>`;
+                    return `<span class="verif-pastille ${cls}" title="Cliquer pour modifier" data-eleve="${eleve.id}" data-index="${i}" data-date="${h.date}" data-resultat="${h.resultat}" onclick="AdminEvaluations._openEditVerification('${eleve.id}', ${i}, '${h.date}', ${h.resultat})">${icon}<span class="verif-date">${dateLabel}</span></span>`;
                 }).join('')
                 : '<span class="suivi-no-verif">Aucune vérification</span>';
 
@@ -4001,6 +4001,126 @@ const AdminEvaluations = {
         document.getElementById('verificationModal').classList.add('hidden');
     },
 
+    /**
+     * Ouvre le modal d'édition d'une vérification individuelle (clic sur pastille)
+     */
+    _openEditVerification(eleveId, index, date, resultat) {
+        this._editVerifData = { eleveId, index, originalDate: date, resultat };
+
+        // Nom de l'élève
+        const eleve = this.eleves.find(e => String(e.id).trim() === String(eleveId).trim());
+        const nameEl = document.getElementById('editVerifEleveName');
+        if (nameEl) nameEl.textContent = eleve ? `${eleve.prenom || ''} ${eleve.nom || ''}` : eleveId;
+
+        // Date
+        document.getElementById('editVerifDate').value = date;
+
+        // Résultat
+        const toggle = document.getElementById('editVerifToggle');
+        toggle.querySelectorAll('.verif-btn').forEach(b => b.classList.remove('active'));
+        if (resultat) {
+            toggle.querySelector('.verif-btn.ok').classList.add('active');
+        } else {
+            toggle.querySelector('.verif-btn.ko').classList.add('active');
+        }
+        this._editVerifData.resultat = resultat;
+
+        // Réactiver les boutons
+        const saveBtn = document.getElementById('editVerifSaveBtn');
+        const deleteBtn = document.getElementById('editVerifDeleteBtn');
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Enregistrer'; }
+        if (deleteBtn) { deleteBtn.disabled = false; deleteBtn.textContent = 'Supprimer'; }
+
+        document.getElementById('editVerifModal').classList.remove('hidden');
+    },
+
+    _closeEditVerifModal() {
+        document.getElementById('editVerifModal').classList.add('hidden');
+    },
+
+    _setEditVerifResult(resultat) {
+        const toggle = document.getElementById('editVerifToggle');
+        toggle.querySelectorAll('.verif-btn').forEach(b => b.classList.remove('active'));
+        if (resultat) {
+            toggle.querySelector('.verif-btn.ok').classList.add('active');
+        } else {
+            toggle.querySelector('.verif-btn.ko').classList.add('active');
+        }
+        this._editVerifData.resultat = resultat;
+    },
+
+    async _saveEditVerification() {
+        const data = this._editVerifData;
+        if (!data) return;
+
+        const newDate = document.getElementById('editVerifDate').value;
+        if (!newDate) {
+            this.showNotification('Veuillez saisir une date', 'error');
+            return;
+        }
+
+        const saveBtn = document.getElementById('editVerifSaveBtn');
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
+
+        try {
+            const result = await this.callAPI('saveVerificationSuivi', {
+                evaluation_id: this.saisieEvaluation.id,
+                eleve_id: data.eleveId,
+                date: newDate,
+                resultat: data.resultat,
+                action_type: 'update',
+                original_date: data.originalDate,
+                index: data.index
+            });
+
+            this._closeEditVerifModal();
+
+            if (result.success) {
+                this.showNotification('Vérification modifiée');
+            } else {
+                this.showNotification(result.error || 'Erreur lors de la modification', 'error');
+            }
+        } catch (error) {
+            this._closeEditVerifModal();
+            this.showNotification('Erreur réseau', 'error');
+        }
+
+        await this._refreshSaisieSuivi();
+    },
+
+    async _deleteVerification() {
+        const data = this._editVerifData;
+        if (!data) return;
+
+        const deleteBtn = document.getElementById('editVerifDeleteBtn');
+        if (deleteBtn) { deleteBtn.disabled = true; deleteBtn.textContent = 'Suppression...'; }
+
+        try {
+            const result = await this.callAPI('saveVerificationSuivi', {
+                evaluation_id: this.saisieEvaluation.id,
+                eleve_id: data.eleveId,
+                date: data.originalDate,
+                resultat: data.resultat,
+                action_type: 'delete',
+                original_date: data.originalDate,
+                index: data.index
+            });
+
+            this._closeEditVerifModal();
+
+            if (result.success) {
+                this.showNotification('Vérification supprimée');
+            } else {
+                this.showNotification(result.error || 'Erreur lors de la suppression', 'error');
+            }
+        } catch (error) {
+            this._closeEditVerifModal();
+            this.showNotification('Erreur réseau', 'error');
+        }
+
+        await this._refreshSaisieSuivi();
+    },
+
     _updateVerifCounter() {
         const toggles = document.querySelectorAll('#verifElevesList .verif-toggle');
         const selected = [...toggles].filter(t => t.dataset.resultat !== undefined).length;
@@ -4086,9 +4206,11 @@ const AdminEvaluations = {
     async _refreshSaisieSuivi() {
         try {
             SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
-            const results = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+            const rawData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+            const allResults = SheetsAPI.parseSheetData(rawData);
+            this.resultats = allResults;
             const evalId = String(this.saisieEvaluation.id).trim();
-            const evalResults = results.filter(r => String(r.evaluation_id).trim() === evalId);
+            const evalResults = allResults.filter(r => String(r.evaluation_id).trim() === evalId);
             const resultsMap = {};
             evalResults.forEach(r => { resultsMap[String(r.eleve_id).trim()] = r; });
             this._saisieResults = evalResults;
