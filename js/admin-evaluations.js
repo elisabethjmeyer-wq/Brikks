@@ -4042,6 +4042,16 @@ const AdminEvaluations = {
      * Ouvre la modal de réponse pour une demande
      */
     openReponseModal(evaluationId, eleveId) {
+        // Si la demande est déjà traitée (acceptée/refusée), déléguer vers le détail
+        const existingResult = (this.resultats || []).find(r =>
+            String(r.evaluation_id).trim() === String(evaluationId).trim() &&
+            String(r.eleve_id).trim() === String(eleveId).trim()
+        );
+        const ds = String(existingResult?.demande_statut || '').trim();
+        if (ds === 'accepte' || ds === 'refuse' || ds === 'corrige') {
+            return this.openDemandeDetailModal(evaluationId, eleveId);
+        }
+
         const modal = document.getElementById('reponseDemandeModal');
         document.getElementById('reponseEvaluationId').value = evaluationId;
         document.getElementById('reponseEleveId').value = eleveId;
@@ -4115,7 +4125,7 @@ const AdminEvaluations = {
         const demande = (this.resultats || []).find(r =>
             String(r.evaluation_id).trim() === String(evaluationId).trim() &&
             String(r.eleve_id).trim() === String(eleveId).trim() &&
-            (String(r.demande_statut || '').trim() === 'accepte' || String(r.demande_statut || '').trim() === 'refuse')
+            ['accepte', 'refuse', 'corrige'].includes(String(r.demande_statut || '').trim())
         );
 
         if (!demande) return;
@@ -4123,8 +4133,9 @@ const AdminEvaluations = {
         const eleveName = eleve ? `${eleve.prenom || ''} ${eleve.nom || ''}`.trim() : eleveId;
         const evalTitle = evaluation ? (evaluation.titre || 'Sans titre') : evaluationId;
         const ds = String(demande.demande_statut || '').trim();
+        const dsNormalized = ds === 'corrige' ? 'accepte' : ds;
         this._editingDemande = demande;
-        this._reponseDecision = ds;
+        this._reponseDecision = dsNormalized;
 
         // Titre du modal
         document.getElementById('reponseDemandeTitle').textContent = 'Détail de la demande';
@@ -4145,7 +4156,7 @@ const AdminEvaluations = {
             try {
                 const d = new Date(demande.date_acceptation);
                 const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-                dateAcceptHtml = `<p><strong>${ds === 'accepte' ? 'Acceptée' : 'Refusée'} le :</strong> ${escapeHtml(dateStr)}</p>`;
+                dateAcceptHtml = `<p><strong>${dsNormalized === 'accepte' ? 'Acceptée' : 'Refusée'} le :</strong> ${escapeHtml(dateStr)}</p>`;
             } catch (_e) { /* ignore */ }
         }
 
@@ -4159,14 +4170,14 @@ const AdminEvaluations = {
         // Décision : boutons figés (non modifiables)
         const btnAccepter = document.getElementById('btnAccepter');
         const btnRefuser = document.getElementById('btnRefuser');
-        btnAccepter.classList.toggle('selected', ds === 'accepte');
-        btnRefuser.classList.toggle('selected', ds === 'refuse');
+        btnAccepter.classList.toggle('selected', dsNormalized === 'accepte');
+        btnRefuser.classList.toggle('selected', dsNormalized === 'refuse');
         btnAccepter.disabled = true;
         btnRefuser.disabled = true;
 
         // Champs d'acceptation : visibles et pré-remplis si acceptée
         const acceptFields = document.getElementById('acceptFields');
-        if (ds === 'accepte') {
+        if (dsNormalized === 'accepte') {
             acceptFields.style.display = '';
 
             // Type de date
