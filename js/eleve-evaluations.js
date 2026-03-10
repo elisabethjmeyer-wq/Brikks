@@ -112,8 +112,8 @@ const EleveEvaluations = {
             const evalId = String(r.evaluation_id || '').trim();
             const evaluation = this.evaluations.find(e => String(e.id).trim() === evalId);
             if (!evaluation) return;
-            // Bonus compétence : 1 compétence via competence_id
-            if (evaluation.type === 'bonus' && String(evaluation.sous_type_bonus || '').trim() === 'competence') {
+            // Bonus mission : 1 compétence via competence_id (si présent)
+            if (evaluation.type === 'bonus' && String(evaluation.sous_type_bonus || '').trim() !== 'suivi') {
                 const compId = String(evaluation.competence_id || '').trim();
                 if (compId) {
                     this.competenceValidations[compId] = (this.competenceValidations[compId] || 0) + 1;
@@ -725,34 +725,30 @@ const EleveEvaluations = {
         const isTC = evaluation.type === 'competences';
 
         if (sousType === 'suivi') return this._renderBonusSuiviCard(evaluation);
-        // Bonus compétence, ponctuel, ou TC sur demande
+        // Bonus mission ou TC sur demande
         return this._renderBonusDemandeCard(evaluation, isTC);
     },
 
     /**
-     * Carte bonus avec workflow de demande (compétence, ponctuel, TC)
+     * Carte bonus avec workflow de demande (mission, TC)
      */
     _renderBonusDemandeCard(evaluation, isTC) {
-        const sousType = String(evaluation.sous_type_bonus || '').trim();
         const cardStatus = evaluation.cardStatus;
         const resultat = evaluation.resultat;
         const briques = parseInt(evaluation.briques) || 1;
         const title = evaluation.titre || 'Évaluation bonus';
 
-        // Plafond 3 validations pour bonus compétence
+        // Plafond 3 validations si la mission cible une compétence
         const competenceId = String(evaluation.competence_id || '').trim();
-        const isAcquise = sousType === 'competence' && competenceId && this._isCompetenceAcquise(competenceId);
+        const isAcquise = competenceId && this._isCompetenceAcquise(competenceId);
 
         // Badge type
         let typeBadge, typeColor;
         if (isTC) {
             typeBadge = 'Tâche complexe';
             typeColor = '#dc2626';
-        } else if (sousType === 'competence') {
-            typeBadge = 'Bonus compétence';
-            typeColor = '#8b5cf6';
         } else {
-            typeBadge = 'Bonus ponctuel';
+            typeBadge = 'Bonus mission';
             typeColor = '#0d9488';
         }
 

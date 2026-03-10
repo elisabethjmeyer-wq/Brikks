@@ -1403,12 +1403,12 @@ function getEvaluationResultForReview(data) {
     }
   }
 
-  // 4. Si évaluation de type competences (TC) ou bonus compétence, charger les compétences et critères
+  // 4. Si évaluation a des competence_ids (TC, bonus mission), charger les compétences et critères
   var competences = [];
   var criteres = [];
   var evalTypeForComp = evaluation ? String(evaluation.type || '').trim() : '';
-  var sousTypeBonusForComp = evaluation ? String(evaluation.sous_type_bonus || '').trim() : '';
-  if (evaluation && (evalTypeForComp === 'competences' || (evalTypeForComp === 'bonus' && sousTypeBonusForComp === 'competence'))) {
+  var hasCompetenceIds = evaluation && evaluation.competence_ids && String(evaluation.competence_ids).trim() !== '' && String(evaluation.competence_ids).trim() !== '[]';
+  if (evaluation && (evalTypeForComp === 'competences' || hasCompetenceIds)) {
     var compSheet = ss.getSheetByName('CompetencesReferentiel');
     if (compSheet) {
       var compData = compSheet.getDataRange().getValues();

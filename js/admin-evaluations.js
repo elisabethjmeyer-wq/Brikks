@@ -406,9 +406,9 @@ const AdminEvaluations = {
 
         let typeBadge = '';
         if (evalType === 'bonus' && sousType === 'competence') {
-            typeBadge = '<span class="demande-badge purple">Bonus compétence</span>';
-        } else if (evalType === 'bonus' && sousType === 'ponctuel') {
-            typeBadge = '<span class="demande-badge teal">Bonus ponctuel</span>';
+            typeBadge = '<span class="demande-badge teal">Bonus mission</span>';
+        } else if (evalType === 'bonus' && (sousType === 'ponctuel' || sousType === 'mission')) {
+            typeBadge = '<span class="demande-badge teal">Bonus mission</span>';
         } else if (evalType === 'competences') {
             typeBadge = '<span class="demande-badge red">Tâche complexe</span>';
         } else {
@@ -801,6 +801,13 @@ const AdminEvaluations = {
         if (type === 'competences') {
             this.wizardData.sous_type_comp = 'tache_complexe';
         }
+        // Normaliser les anciens sous-types bonus vers 'mission'
+        if (type === 'bonus') {
+            const st = this.wizardData.sous_type_bonus;
+            if (st === 'competence' || st === 'ponctuel') {
+                this.wizardData.sous_type_bonus = 'mission';
+            }
+        }
 
         // Always start at step 1 (Paramètres) — no type selection step
         this.wizardStep = 1;
@@ -823,12 +830,10 @@ const AdminEvaluations = {
         if (type === 'connaissances' || type === 'savoir-faire') return 2;
         // TC : 5 étapes (Paramètres + Compétences + Document + Corrigé + Résumé)
         if (type === 'competences') return 5;
-        // Bonus compétence : 5 étapes (Paramètres + Compétence + Document + Corrigé + Résumé)
-        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'competence') return 5;
-        // Bonus ponctuel : 5 étapes (Paramètres + Document + Corrigé + Critères + Résumé)
-        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'ponctuel') return 5;
         // Bonus suivi : 2 étapes (Paramètres + Détails)
         if (type === 'bonus' && this.wizardData.sous_type_bonus === 'suivi') return 2;
+        // Bonus mission : 6 étapes (Paramètres + Compétences + Document + Corrigé + Critères + Résumé)
+        if (type === 'bonus') return 6;
         return 1;
     },
 
@@ -843,14 +848,11 @@ const AdminEvaluations = {
         if (type === 'competences') {
             return ['Paramètres', 'Compétences', 'Document', 'Corrigé', 'Résumé'];
         }
-        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'competence') {
-            return ['Paramètres', 'Compétence', 'Document', 'Corrigé', 'Résumé'];
-        }
-        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'ponctuel') {
-            return ['Paramètres', 'Document', 'Corrigé', 'Critères', 'Résumé'];
-        }
         if (type === 'bonus' && this.wizardData.sous_type_bonus === 'suivi') {
             return ['Paramètres', 'Détails'];
+        }
+        if (type === 'bonus') {
+            return ['Paramètres', 'Compétences', 'Document', 'Corrigé', 'Critères', 'Résumé'];
         }
         return ['Paramètres'];
     },
@@ -933,24 +935,14 @@ const AdminEvaluations = {
             return;
         }
 
-        // Bonus compétence : Steps 2-5
-        if (type === 'bonus' && sousType === 'competence') {
+        // Bonus mission : Steps 2-6
+        if (type === 'bonus' && sousType !== 'suivi') {
             switch (this.wizardStep) {
-                case 2: content.innerHTML = this._renderStepCompetenceUnique(); this._initStepCompetenceUnique(); break;
+                case 2: content.innerHTML = this._renderStepCompetences(); this._initStepCompetences(); break;
                 case 3: content.innerHTML = this._renderStepDocument(); this._initStepDocument(); break;
                 case 4: content.innerHTML = this._renderStepCorrige(); this._initStepCorrige(); break;
-                case 5: content.innerHTML = this._renderStepResume(); break;
-            }
-            return;
-        }
-
-        // Bonus ponctuel : Steps 2-5
-        if (type === 'bonus' && sousType === 'ponctuel') {
-            switch (this.wizardStep) {
-                case 2: content.innerHTML = this._renderStepDocument(); this._initStepDocument(); break;
-                case 3: content.innerHTML = this._renderStepCorrige(); this._initStepCorrige(); break;
-                case 4: content.innerHTML = this._renderStepCriteresLibres(); this._initStepCriteresLibres(); break;
-                case 5: content.innerHTML = this._renderStepResume(); break;
+                case 5: content.innerHTML = this._renderStepCriteresLibres(); this._initStepCriteresLibres(); break;
+                case 6: content.innerHTML = this._renderStepResume(); break;
             }
             return;
         }
@@ -1011,10 +1003,10 @@ const AdminEvaluations = {
                         <select id="evalCategorie"><option value="" selected></option></select>
                     </div>`}
                     <div class="form-row">
-                        <div class="form-group" ${(type === 'competences' || (type === 'bonus' && d.sous_type_bonus === 'competence')) ? 'style="display:none"' : ''}>
+                        <div class="form-group" ${(type === 'competences' || type === 'bonus') ? 'style="display:none"' : ''}>
                             <label>Points mis en jeu <span class="req">*</span></label>
                             <input type="number" class="form-input" id="evalBriques" value="${d.briques || 3}" min="0.25" max="50" step="0.25">
-                            ${(type === 'competences' || (type === 'bonus' && d.sous_type_bonus === 'competence')) ? '<div class="form-help">Calculé automatiquement depuis les points par compétence</div>' : ''}
+                            ${(type === 'competences' || type === 'bonus') ? '<div class="form-help">Définis à l\'étape Compétences et/ou calculés depuis les critères</div>' : ''}
                         </div>
                         <div class="form-group" ${(type === 'competences' || type === 'bonus') ? 'style="display:none"' : ''}>
                             <label>Mode de passation</label>
@@ -1409,13 +1401,17 @@ const AdminEvaluations = {
     },
 
     _renderBonusFields(d) {
-        const sousType = d.sous_type_bonus || 'competence';
+        // Normaliser les anciens sous-types vers 'mission'
+        const rawSousType = d.sous_type_bonus || 'mission';
+        const sousType = (rawSousType === 'competence' || rawSousType === 'ponctuel') ? 'mission' : rawSousType;
+        // Mettre à jour wizardData pour que le reste du wizard utilise la valeur normalisée
+        d.sous_type_bonus = sousType;
 
         let sousTypeFields = '';
         if (sousType === 'suivi') {
             // Champs description + nb_validations + critères déplacés en étape 2 (Détails)
             sousTypeFields = '';
-        } else if (sousType === 'competence' || sousType === 'ponctuel') {
+        } else {
             sousTypeFields = `
                 <div class="form-group">
                     <label>Description pour l'élève</label>
@@ -1429,11 +1425,8 @@ const AdminEvaluations = {
             <div class="form-group">
                 <label>Type de bonus <span class="req">*</span></label>
                 <div class="sous-type-toggle" id="bonusSousTypeToggle">
-                    <button type="button" class="sous-type-btn ${sousType === 'competence' ? 'active' : ''}" data-value="competence" onclick="AdminEvaluations._onBonusSousTypeChange('competence')">
-                        🟣 Compétence
-                    </button>
-                    <button type="button" class="sous-type-btn ${sousType === 'ponctuel' ? 'active' : ''}" data-value="ponctuel" onclick="AdminEvaluations._onBonusSousTypeChange('ponctuel')">
-                        🎁 Ponctuel
+                    <button type="button" class="sous-type-btn ${sousType === 'mission' ? 'active' : ''}" data-value="mission" onclick="AdminEvaluations._onBonusSousTypeChange('mission')">
+                        🎯 Mission
                     </button>
                     <button type="button" class="sous-type-btn ${sousType === 'suivi' ? 'active' : ''}" data-value="suivi" onclick="AdminEvaluations._onBonusSousTypeChange('suivi')">
                         📊 Suivi
@@ -1446,8 +1439,7 @@ const AdminEvaluations = {
     },
 
     _getBonusSousTypeHelp(sousType) {
-        if (sousType === 'competence') return 'Lié à une compétence du référentiel (comme un entraînement)';
-        if (sousType === 'ponctuel') return 'Exercice ponctuel avec critères libres';
+        if (sousType === 'mission') return 'Exercice bonus : compétences du référentiel et/ou critères libres';
         if (sousType === 'suivi') return 'Compteur de validations (pas d\'exercice, points saisis manuellement)';
         return '';
     },
@@ -1465,9 +1457,8 @@ const AdminEvaluations = {
         var container = document.getElementById('bonusSousTypeFields');
         if (container) {
             if (value === 'suivi') {
-                // Champs description + nb_validations + critères déplacés en étape 2 (Détails)
                 container.innerHTML = '';
-            } else if (value === 'competence' || value === 'ponctuel') {
+            } else {
                 container.innerHTML = `
                     <div class="form-group">
                         <label>Description pour l'élève</label>
@@ -1475,8 +1466,6 @@ const AdminEvaluations = {
                         <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
                     </div>
                 `;
-            } else {
-                container.innerHTML = '';
             }
         }
         // Update stepper (step count changes based on sous-type)
@@ -1538,10 +1527,11 @@ const AdminEvaluations = {
 
     // ========== PHASE 9: WIZARD STEPS FOR TC / BONUS COMP / BONUS PONCTUEL ==========
 
-    // --- ÉTAPE COMPÉTENCES (TC : sélection multiple) ---
+    // --- ÉTAPE COMPÉTENCES (TC + bonus mission : sélection multiple) ---
 
     _renderStepCompetences() {
         const d = this.wizardData;
+        const type = d.type;
         let selectedIds = [];
         if (d.competence_ids) {
             try {
@@ -1613,8 +1603,13 @@ const AdminEvaluations = {
             groupsHtml = '<div style="padding: 24px; text-align: center; color: var(--gray-400);">Aucune compétence dans le référentiel</div>';
         }
 
+        const isMission = type === 'bonus';
+        const stepSubtitle = isMission
+            ? 'Optionnel — sélectionnez des compétences du référentiel, ou passez cette étape pour utiliser uniquement des critères libres'
+            : 'Sélectionnez les compétences et définissez les points mis en jeu pour chacune';
+
         return `<div class="eval-wizard-step-content">
-            <div class="step-header"><h3>Compétences évaluées</h3><p>Sélectionnez les compétences et définissez les points mis en jeu pour chacune</p></div>
+            <div class="step-header"><h3>Compétences évaluées</h3><p>${stepSubtitle}</p></div>
             <div class="cw-comp-search-bar"><input type="text" class="form-input" id="evalCompSearch" placeholder="Rechercher une compétence..."></div>
             <div class="cw-comp-counter" id="evalCompCounter">${selectedIds.length} compétence${selectedIds.length > 1 ? 's' : ''} sélectionnée${selectedIds.length > 1 ? 's' : ''}</div>
             <div class="cw-comp-list" id="evalCompetencesCheckboxes">${groupsHtml}</div>
@@ -2168,7 +2163,7 @@ const AdminEvaluations = {
         }
     },
 
-    // --- ÉTAPE CRITÈRES LIBRES (bonus ponctuel) ---
+    // --- ÉTAPE CRITÈRES LIBRES (bonus mission) ---
 
     _renderStepCriteresLibres() {
         const d = this.wizardData;
@@ -2189,8 +2184,13 @@ const AdminEvaluations = {
             </div>`
         ).join('');
 
+        const hasCompetences = !!d.competence_ids;
+        const subtitle = hasCompetences
+            ? 'Optionnel — vous pouvez ajouter des critères libres en plus des compétences du référentiel'
+            : 'Définissez les critères pour évaluer cet exercice';
+
         return `<div class="eval-wizard-step-content">
-            <div class="step-header"><h3>Critères de réussite</h3><p>Définissez les critères pour évaluer cet exercice</p></div>
+            <div class="step-header"><h3>Critères de réussite</h3><p>${subtitle}</p></div>
             <div id="evalCriteresList" class="cw-criteres-list">${rows}</div>
             <button class="btn btn-secondary btn-sm" onclick="AdminEvaluations._ewAddCritere()" style="margin-top: 8px;">+ Ajouter un critère</button>
         </div>`;
@@ -2246,12 +2246,11 @@ const AdminEvaluations = {
         // Titre
         let typeLabel = 'Évaluation';
         if (type === 'competences') typeLabel = 'Évaluation de compétences (TC)';
-        else if (type === 'bonus' && sousType === 'competence') typeLabel = 'Bonus compétence';
-        else if (type === 'bonus' && sousType === 'ponctuel') typeLabel = 'Bonus ponctuel';
+        else if (type === 'bonus' && sousType !== 'suivi') typeLabel = 'Bonus mission';
 
         // Compétences + points par compétence
         let compHtml = '';
-        if (type === 'competences' || (type === 'bonus' && sousType === 'competence')) {
+        if (d.competence_ids) {
             let ids = [];
             if (d.competence_ids) {
                 try {
@@ -2283,7 +2282,7 @@ const AdminEvaluations = {
 
         // Critères libres
         let criteresHtml = '';
-        if (type === 'bonus' && sousType === 'ponctuel' && d.criteres_libres) {
+        if (d.criteres_libres) {
             let criteres = [];
             try {
                 const parsed = typeof d.criteres_libres === 'string' ? JSON.parse(d.criteres_libres) : d.criteres_libres;
@@ -2455,7 +2454,7 @@ const AdminEvaluations = {
             const matiereVisible = matiereGroup && matiereGroup.style.display !== 'none';
             this.wizardData.matiere = matiereVisible ? (document.getElementById('evalMatiere')?.value || 'FR') : this.currentMatiere;
             if (type === 'bonus') {
-                this.wizardData.categorie = sousType === 'competence' ? 'competences' : 'bonus';
+                this.wizardData.categorie = 'bonus';
             } else {
                 this.wizardData.categorie = '';
             }
@@ -2483,7 +2482,7 @@ const AdminEvaluations = {
         // Collect data based on logical step
         switch (logicalStep) {
             case 'competences': {
-                // TC : multiple checkboxes + points par compétence
+                // TC ou bonus mission : multiple checkboxes + points par compétence
                 const checked = document.querySelectorAll('#evalCompetencesCheckboxes input[type="checkbox"]:checked');
                 const ids = [];
                 const ptsParComp = {};
@@ -2493,30 +2492,19 @@ const AdminEvaluations = {
                     const ptsInput = item ? item.querySelector('.cw-comp-pts') : null;
                     ptsParComp[cb.value] = ptsInput ? (parseFloat(ptsInput.value) || 1) : 1;
                 });
-                if (ids.length === 0) {
+                // TC = obligatoire. Bonus mission = optionnel (peut avoir seulement des critères libres)
+                if (ids.length === 0 && type === 'competences') {
                     this.showNotification('Sélectionnez au moins une compétence', 'error');
                     return false;
                 }
-                this.wizardData.competence_ids = JSON.stringify(ids);
-                this.wizardData.points_par_competence = JSON.stringify(ptsParComp);
-                // Calculer briques comme total
-                let totalBriques = 0;
-                for (const k in ptsParComp) totalBriques += ptsParComp[k];
-                this.wizardData.briques = totalBriques;
-                return true;
-            }
-            case 'competence_unique': {
-                // Bonus comp : dropdown select + points
-                const compId = document.getElementById('evalCompSelect')?.value;
-                if (!compId) {
-                    this.showNotification('Sélectionnez une compétence', 'error');
-                    return false;
+                this.wizardData.competence_ids = ids.length > 0 ? JSON.stringify(ids) : '';
+                this.wizardData.points_par_competence = ids.length > 0 ? JSON.stringify(ptsParComp) : '';
+                // Calculer briques comme total des points par compétence
+                if (ids.length > 0) {
+                    let totalBriques = 0;
+                    for (const k in ptsParComp) totalBriques += ptsParComp[k];
+                    this.wizardData.briques = totalBriques;
                 }
-                const ptsEl = document.getElementById('evalBonusCompPts');
-                const pts = ptsEl ? (parseFloat(ptsEl.value) || 1) : 1;
-                this.wizardData.competence_ids = JSON.stringify([compId]);
-                this.wizardData.points_par_competence = JSON.stringify({ [compId]: pts });
-                this.wizardData.briques = pts;
                 return true;
             }
             case 'document': {
@@ -2561,18 +2549,19 @@ const AdminEvaluations = {
                 return true;
             }
             case 'criteres': {
-                // Bonus ponctuel : collect free-form criteria
+                // Bonus mission : collect free-form criteria (optionnel si compétences sélectionnées)
                 const inputs = document.querySelectorAll('#evalCriteresList .critere-libre-input');
                 const criteres = [];
                 inputs.forEach(input => {
                     const v = input.value.trim();
                     if (v) criteres.push(v);
                 });
-                if (criteres.length === 0) {
-                    this.showNotification('Ajoutez au moins un critère', 'error');
+                const hasCompetences = !!this.wizardData.competence_ids;
+                if (criteres.length === 0 && !hasCompetences) {
+                    this.showNotification('Ajoutez au moins un critère ou sélectionnez des compétences à l\'étape 2', 'error');
                     return false;
                 }
-                this.wizardData.criteres_libres = JSON.stringify(criteres);
+                this.wizardData.criteres_libres = criteres.length > 0 ? JSON.stringify(criteres) : '';
                 return true;
             }
             case 'suivi_details': {
@@ -2605,14 +2594,11 @@ const AdminEvaluations = {
         if (type === 'competences') {
             return ['params', 'competences', 'document', 'corrige', 'resume'][step - 1];
         }
-        if (type === 'bonus' && sousType === 'competence') {
-            return ['params', 'competence_unique', 'document', 'corrige', 'resume'][step - 1];
-        }
-        if (type === 'bonus' && sousType === 'ponctuel') {
-            return ['params', 'document', 'corrige', 'criteres', 'resume'][step - 1];
-        }
         if (type === 'bonus' && sousType === 'suivi') {
             return ['params', 'suivi_details'][step - 1];
+        }
+        if (type === 'bonus') {
+            return ['params', 'competences', 'document', 'corrige', 'criteres', 'resume'][step - 1];
         }
         return 'params';
     },
@@ -2666,21 +2652,17 @@ const AdminEvaluations = {
             data.description = d.description || '';
         }
         if (d.type === 'bonus') {
-            data.sous_type_bonus = d.sous_type_bonus || 'competence';
-            if (d.sous_type_bonus === 'competence' || d.sous_type_bonus === 'ponctuel') {
-                // Phase 9 : contenu intégré directement
+            data.sous_type_bonus = d.sous_type_bonus || 'mission';
+            if (d.sous_type_bonus !== 'suivi') {
+                // Bonus mission : contenu + compétences + critères libres
                 data.document_contenu = d.document_contenu || '';
                 data.correction_contenu = d.correction_contenu || '';
                 data.correction_commentee = d.correction_commentee || '';
                 data.description = d.description || '';
                 data.description_eleve = d.description_eleve || '';
-                if (d.sous_type_bonus === 'competence') {
-                    data.competence_ids = d.competence_ids || '';
-                    data.points_par_competence = d.points_par_competence || '';
-                }
-                if (d.sous_type_bonus === 'ponctuel') {
-                    data.criteres_libres = d.criteres_libres || '';
-                }
+                data.competence_ids = d.competence_ids || '';
+                data.points_par_competence = d.points_par_competence || '';
+                data.criteres_libres = d.criteres_libres || '';
             } else if (d.sous_type_bonus === 'suivi') {
                 data.nb_validations = d.nb_validations || 5;
                 data.description_eleve = d.description_eleve || '';
@@ -4224,7 +4206,7 @@ const AdminEvaluations = {
     // ========== SAISIE BONUS (comp/ponctuel — demandes + correction) ==========
 
     /**
-     * Rendu spécial pour bonus compétence et bonus ponctuel :
+     * Rendu spécial pour bonus mission :
      * seuls les élèves ayant fait une demande apparaissent.
      * Colonnes : Élève | Demande [actions] | Date | Correction | Statut | Points
      */
@@ -4434,10 +4416,8 @@ const AdminEvaluations = {
 
             // Badge type
             let typeBadge = '';
-            if (evalType === 'bonus' && sousType === 'competence') {
-                typeBadge = '<span class="demande-badge purple">Bonus compétence</span>';
-            } else if (evalType === 'bonus' && sousType === 'ponctuel') {
-                typeBadge = '<span class="demande-badge teal">Bonus ponctuel</span>';
+            if (evalType === 'bonus' && sousType !== 'suivi') {
+                typeBadge = '<span class="demande-badge teal">Bonus mission</span>';
             } else if (evalType === 'competences') {
                 typeBadge = '<span class="demande-badge red">Tâche complexe</span>';
             } else {
@@ -4780,7 +4760,7 @@ const AdminEvaluations = {
         });
     },
 
-    // ========== CORRECTION (wizard intégré à la saisie — TC, bonus comp, bonus ponctuel) ==========
+    // ========== CORRECTION (wizard intégré à la saisie — TC, bonus mission) ==========
 
     /**
      * Parse les critères libres d'une évaluation bonus ponctuel (JSON array de strings).
@@ -4871,7 +4851,7 @@ const AdminEvaluations = {
     },
 
     /**
-     * Ouvre le wizard de correction pour un élève (TC, bonus comp, bonus ponctuel).
+     * Ouvre le wizard de correction pour un élève (TC, bonus mission).
      */
     openCorrectionWizard(eleveId) {
         const evaluation = this.saisieEvaluation;
@@ -5096,38 +5076,37 @@ const AdminEvaluations = {
     _renderCorrStep2() {
         const wd = this._corrWizardData;
         const evaluation = this.saisieEvaluation;
-        const sousType = String(evaluation.sous_type_bonus || '').trim();
-        const isBonusPonctuel = evaluation.type === 'bonus' && sousType === 'ponctuel';
 
         let criteresHtml = '';
 
-        if (isBonusPonctuel) {
-            // Bonus ponctuel : critères libres
-            const criteresLibres = this._getCriteresLibresForEval(evaluation);
-            if (criteresLibres.length === 0) {
-                criteresHtml = '<div class="empty-criteres">Aucun critère libre défini pour cette évaluation.</div>';
-            } else {
-                const maxPts = evaluation.briques || 10;
-                const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
-                const allChecked = nbValides === criteresLibres.length;
-                criteresHtml += `<div class="tc-competence-section${allChecked ? ' comp-validated' : ''}">
-                    <div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                        <span class="tc-comp-icon">📋</span>
-                        <h4 style="flex:1;margin:0;">Critères libres</h4>
-                        <span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:#0d9488;color:white;font-weight:600;white-space:nowrap;">${maxPts} pt${maxPts > 1 ? 's' : ''}</span>
-                        <span class="comp-valid-badge" id="compBadge_ponctuel" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;${allChecked ? 'background:#dcfce7;color:#16a34a;">✅ Validé' : 'background:#fee2e2;color:#dc2626;">❌ Non validé'}</span>
-                    </div>
-                    <div class="criteres-correction-list">`;
-                criteresLibres.forEach((label, idx) => {
-                    const critId = 'libre_' + idx;
-                    const checked = wd.criteresValides.indexOf(critId) !== -1;
-                    criteresHtml += `<div class="critere-check${checked ? ' checked' : ''}" onclick="AdminEvaluations._toggleCritereLibre('${critId}', this)">
-                        <input type="checkbox"${checked ? ' checked' : ''}>
-                        <label>${escapeHtml(label)}</label>
-                    </div>`;
-                });
-                criteresHtml += '</div></div>';
-            }
+        // Approche data-driven : afficher compétences si présentes, puis critères libres si présents
+        const compIds = this._getCompetenceIdsForEval(evaluation);
+        const criteresLibres = this._getCriteresLibresForEval(evaluation);
+        const hasCompetences = compIds.length > 0;
+        const hasCriteresLibres = criteresLibres.length > 0;
+
+        // Section critères libres (si présents)
+        if (hasCriteresLibres && !hasCompetences) {
+            const maxPts = evaluation.briques || 10;
+            const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
+            const allChecked = nbValides === criteresLibres.length;
+            criteresHtml += `<div class="tc-competence-section${allChecked ? ' comp-validated' : ''}">
+                <div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span class="tc-comp-icon">📋</span>
+                    <h4 style="flex:1;margin:0;">Critères libres</h4>
+                    <span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:#0d9488;color:white;font-weight:600;white-space:nowrap;">${maxPts} pt${maxPts > 1 ? 's' : ''}</span>
+                    <span class="comp-valid-badge" id="compBadge_ponctuel" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;${allChecked ? 'background:#dcfce7;color:#16a34a;">✅ Validé' : 'background:#fee2e2;color:#dc2626;">❌ Non validé'}</span>
+                </div>
+                <div class="criteres-correction-list">`;
+            criteresLibres.forEach((label, idx) => {
+                const critId = 'libre_' + idx;
+                const checked = wd.criteresValides.indexOf(critId) !== -1;
+                criteresHtml += `<div class="critere-check${checked ? ' checked' : ''}" onclick="AdminEvaluations._toggleCritereLibre('${critId}', this)">
+                    <input type="checkbox"${checked ? ' checked' : ''}>
+                    <label>${escapeHtml(label)}</label>
+                </div>`;
+            });
+            criteresHtml += '</div></div>';
 
             return `
                 <div class="step-header">
@@ -5139,8 +5118,9 @@ const AdminEvaluations = {
             `;
         }
 
-        // TC ou bonus compétence : critères par compétence
-        const compIds = this._getCompetenceIdsForEval(evaluation);
+        // Compétences (TC ou bonus mission avec compétences)
+        // NOTE: si l'éval a à la fois compétences ET critères libres, on affiche les compétences ici
+        // et les critères libres en section supplémentaire
         const ptsMap = this._getCompPointsMapForEval(evaluation);
 
         if (compIds.length === 0) {
@@ -5178,11 +5158,36 @@ const AdminEvaluations = {
             });
         }
 
+        // Si l'évaluation a aussi des critères libres (bonus mission avec les deux)
+        if (hasCriteresLibres) {
+            const nbValidesLibres = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
+            const allLibresChecked = nbValidesLibres === criteresLibres.length;
+            criteresHtml += `<div class="tc-competence-section${allLibresChecked ? ' comp-validated' : ''}" style="margin-top:16px;">
+                <div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span class="tc-comp-icon">📋</span>
+                    <h4 style="flex:1;margin:0;">Critères libres</h4>
+                    <span class="comp-valid-badge" id="compBadge_ponctuel" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;${allLibresChecked ? 'background:#dcfce7;color:#16a34a;">✅ Validé' : 'background:#fee2e2;color:#dc2626;">❌ Non validé'}</span>
+                </div>
+                <div class="criteres-correction-list">`;
+            criteresLibres.forEach((label, idx) => {
+                const critId = 'libre_' + idx;
+                const checked = wd.criteresValides.indexOf(critId) !== -1;
+                criteresHtml += `<div class="critere-check${checked ? ' checked' : ''}" onclick="AdminEvaluations._toggleCritereLibre('${critId}', this)">
+                    <input type="checkbox"${checked ? ' checked' : ''}>
+                    <label>${escapeHtml(label)}</label>
+                </div>`;
+            });
+            criteresHtml += '</div></div>';
+        }
+
+        const headerTitle = hasCompetences ? 'Compétences' : 'Critères';
+        const headerDesc = hasCompetences ? 'Cochez les critères validés — tous les critères cochés = compétence validée = points gagnés' : 'Cochez les critères validés — tous cochés = points gagnés';
+
         return `
             <div class="step-header">
                 <span class="step-icon">✅</span>
-                <div><h3>Compétences</h3>
-                <p>Cochez les critères validés — tous les critères cochés = compétence validée = points gagnés</p></div>
+                <div><h3>${headerTitle}</h3>
+                <p>${headerDesc}</p></div>
             </div>
             ${criteresHtml}
         `;
@@ -5205,8 +5210,9 @@ const AdminEvaluations = {
             el.querySelector('input').checked = true;
         }
 
-        // Mettre à jour criteresValides (flat list)
-        wd.criteresValides = [];
+        // Mettre à jour criteresValides (flat list) — préserver les critères libres
+        const libreIds = (wd.criteresValides || []).filter(id => String(id).startsWith('libre_'));
+        wd.criteresValides = [...libreIds];
         Object.values(wd.competenceValidees).forEach(ids => {
             ids.forEach(id => { if (wd.criteresValides.indexOf(id) === -1) wd.criteresValides.push(id); });
         });
@@ -5265,15 +5271,18 @@ const AdminEvaluations = {
     _renderCorrStep3() {
         const wd = this._corrWizardData;
         const evaluation = this.saisieEvaluation;
-        const sousType = String(evaluation.sous_type_bonus || '').trim();
-        const isBonusPonctuel = evaluation.type === 'bonus' && sousType === 'ponctuel';
         const hasRemarque = wd.correctionType === 'blocks' ? !!wd.correctionValue : (wd.correctionType === 'url' ? !!wd.correctionValue : false);
 
         let pointsHtml = '';
 
-        if (isBonusPonctuel) {
-            // Bonus ponctuel : résumé simple (critères libres)
-            const criteresLibres = this._getCriteresLibresForEval(evaluation);
+        // Data-driven : vérifier la présence de compétences et/ou critères libres
+        const compIds = this._getCompetenceIdsForEval(evaluation);
+        const criteresLibres = this._getCriteresLibresForEval(evaluation);
+        const hasCompetences = compIds.length > 0;
+        const hasCriteresLibres = criteresLibres.length > 0;
+
+        if (!hasCompetences && hasCriteresLibres) {
+            // Critères libres uniquement : résumé simple
             const maxPts = evaluation.briques || 10;
             const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
             const allValid = nbValides === criteresLibres.length && criteresLibres.length > 0;
@@ -5287,8 +5296,8 @@ const AdminEvaluations = {
                 </div>
                 <div style="font-size:0.85rem;color:var(--gray-400);">Critères validés : ${nbValides}/${criteresLibres.length}</div>
             </div>`;
-        } else {
-            // TC ou bonus comp : résumé par matière
+        } else if (hasCompetences) {
+            // Compétences (TC ou bonus mission) : résumé par matière
             const ptsMap = this._getCompPointsMapForEval(evaluation);
             const computed = this._computePointsParCompetence(evaluation, wd);
             const compIds = this._getCompetenceIdsForEval(evaluation);
@@ -5382,23 +5391,19 @@ const AdminEvaluations = {
 
         try {
             const evaluation = this.saisieEvaluation;
-            const sousType = String(evaluation.sous_type_bonus || '').trim();
-            const isBonusPonctuel = evaluation.type === 'bonus' && sousType === 'ponctuel';
+
+            // Data-driven : vérifier la présence de compétences et/ou critères libres
+            const compIds = this._getCompetenceIdsForEval(evaluation);
+            const criteresLibres = this._getCriteresLibresForEval(evaluation);
+            const hasCompetences = compIds.length > 0;
+            const hasCriteresLibres = criteresLibres.length > 0;
 
             let validatedCompIds = [];
             let total = 0;
             let ppc = {};
 
-            if (isBonusPonctuel) {
-                // Bonus ponctuel : points = briques si tous critères validés, sinon 0
-                const criteresLibres = this._getCriteresLibresForEval(evaluation);
-                const maxPts = evaluation.briques || 10;
-                const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
-                const allValid = nbValides === criteresLibres.length && criteresLibres.length > 0;
-                total = allValid ? maxPts : 0;
-            } else {
-                // TC ou bonus comp : points par compétence
-                const compIds = this._getCompetenceIdsForEval(evaluation);
+            if (hasCompetences) {
+                // Points par compétence (TC ou bonus mission avec compétences)
                 validatedCompIds = compIds.filter(cid => {
                     const criteres = this._getCriteresByCompetence(cid);
                     const compValides = wd.competenceValidees[cid] || [];
@@ -5407,6 +5412,12 @@ const AdminEvaluations = {
                 const computed = this._computePointsParCompetence(evaluation, wd);
                 total = computed.total;
                 ppc = computed.ppc;
+            } else if (hasCriteresLibres) {
+                // Critères libres uniquement : points = briques si tous critères validés, sinon 0
+                const maxPts = evaluation.briques || 10;
+                const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
+                const allValid = nbValides === criteresLibres.length && criteresLibres.length > 0;
+                total = allValid ? maxPts : 0;
             }
 
             const params = {
@@ -5416,7 +5427,7 @@ const AdminEvaluations = {
                 statut_correction: wd.statutCorrection || 'brouillon',
                 criteres_valides: JSON.stringify(wd.criteresValides),
                 competence_ids_validees: JSON.stringify(validatedCompIds),
-                is_validated: isBonusPonctuel ? total > 0 : validatedCompIds.length > 0,
+                is_validated: hasCompetences ? validatedCompIds.length > 0 : total > 0,
                 validations: String(total),
                 score: String(total),
                 points_par_competence: JSON.stringify(ppc)

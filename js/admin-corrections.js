@@ -4,7 +4,7 @@
  *
  * Sources :
  *  - EleveEntrainementsCompetences (statut='soumis') → entraînements compétences
- *  - EVALUATION_RESULTATS (demande_statut='accepte') → bonus comp, bonus ponctuel, TC
+ *  - EVALUATION_RESULTATS (demande_statut='accepte') → bonus mission, TC
  */
 
 const AdminCorrections = {
@@ -107,14 +107,12 @@ const AdminCorrections = {
             var evalType = String(evaluation.type || '').trim();
             var sousTypeBonus = String(evaluation.sous_type_bonus || '').trim();
 
-            // Only include bonus comp, bonus ponctuel, and TC (competences)
+            // Only include bonus mission and TC (competences)
             var sourceType = null;
             if (evalType === 'competences') {
                 sourceType = 'tc';
-            } else if (evalType === 'bonus' && sousTypeBonus === 'competence') {
-                sourceType = 'bonus_comp';
-            } else if (evalType === 'bonus' && sousTypeBonus === 'ponctuel') {
-                sourceType = 'bonus_ponctuel';
+            } else if (evalType === 'bonus' && (sousTypeBonus === 'competence' || sousTypeBonus === 'ponctuel')) {
+                sourceType = 'bonus_mission';
             }
             // Skip suivi — no correction wizard for those
             if (!sourceType) return;
@@ -255,7 +253,7 @@ const AdminCorrections = {
         return [];
     },
 
-    /** Get critères libres for a bonus ponctuel exercise */
+    /** Get critères libres for an evaluation (bonus mission or other) */
     getCriteresLibres(evaluation) {
         // Phase 9 : critères libres stockés directement dans EVALUATIONS
         var raw = evaluation ? evaluation.criteres_libres : '';
@@ -302,16 +300,22 @@ const AdminCorrections = {
                         return c ? c.nom : '';
                     }).filter(Boolean).join(', ');
                 }
-            } else if (sub._sourceType === 'bonus_comp') {
-                info.typeLabel = 'Bonus compétence';
-                info.typeBadgeClass = 'badge-type-bonus-comp';
-                if (evaluation && evaluation.competence_id) {
-                    var comp2 = this.getCompetence(evaluation.competence_id);
-                    info.competence = comp2 ? comp2.nom : '';
+            } else if (sub._sourceType === 'bonus_mission') {
+                info.typeLabel = 'Bonus mission';
+                info.typeBadgeClass = 'badge-type-bonus-mission';
+                // Data-driven: check competence_ids for competence name display
+                if (evaluation && evaluation.competence_ids) {
+                    try {
+                        var parsedIds = typeof evaluation.competence_ids === 'string' ? JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
+                        if (Array.isArray(parsedIds) && parsedIds.length > 0) {
+                            var self2 = this;
+                            info.competence = parsedIds.map(function(cid) {
+                                var c = self2.getCompetence(cid);
+                                return c ? c.nom : '';
+                            }).filter(Boolean).join(', ');
+                        }
+                    } catch (_e) { /* ignore */ }
                 }
-            } else if (sub._sourceType === 'bonus_ponctuel') {
-                info.typeLabel = 'Bonus ponctuel';
-                info.typeBadgeClass = 'badge-type-bonus-ponctuel';
             }
         }
 
@@ -471,7 +475,7 @@ const AdminCorrections = {
 
         var badgesHtml = '<div class="card-badges">';
 
-        // Type badge (TC, bonus comp, bonus ponctuel, compétence)
+        // Type badge (TC, bonus mission, compétence)
         if (sub._sourceType !== 'competence') {
             badgesHtml += '<span class="card-badge ' + displayInfo.typeBadgeClass + '">' + displayInfo.typeLabel + '</span>';
         }
@@ -1010,15 +1014,43 @@ const AdminCorrections = {
         html += '<p>Cochez les critères validés par l\'élève</p></div>';
         html += '</div>';
 
-        if (sub._sourceType === 'tc') {
-            // TC: multiple competences, each with its own critères
-            html += this._renderStep3TC();
-        } else if (sub._sourceType === 'bonus_ponctuel') {
-            // Bonus ponctuel: critères libres
-            html += this._renderStep3BonusPonctuel();
-        } else {
-            // Competence training OR bonus comp: single competence critères
+        if (sub._sourceType === 'competence') {
+            // Competence training: single competence critères from referentiel
             html += this._renderStep3SingleCompetence();
+        } else {
+            // Bonus mission / TC: data-driven approach
+            var evaluation = this.getEvaluationForSub(sub);
+            var hasCompetenceIds = false;
+            var hasCriteresLibres = false;
+
+            if (evaluation) {
+                var compIds = this.getCompetenceIdsForTC(evaluation);
+                hasCompetenceIds = compIds.length > 0;
+                var criteresLibres = this.getCriteresLibres(evaluation);
+                hasCriteresLibres = criteresLibres.length > 0;
+            }
+
+            if (hasCompetenceIds && sub._sourceType === 'tc') {
+                // TC: multiple competences, each with its own critères
+                html += this._renderStep3TC();
+            } else if (hasCompetenceIds) {
+                // Bonus mission with competence: single competence critères
+                html += this._renderStep3SingleCompetence();
+            }
+
+            if (hasCriteresLibres) {
+                // Critères libres section (can appear alone or below competence critères)
+                if (hasCompetenceIds) {
+                    html += '<div class="criteres-separator" style="margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--gray-200, #e5e7eb);">';
+                    html += '<h4 style="margin:0 0 8px;">Critères libres</h4>';
+                    html += '</div>';
+                }
+                html += this._renderStep3BonusPonctuel();
+            }
+
+            if (!hasCompetenceIds && !hasCriteresLibres) {
+                html += '<div class="empty-criteres">Aucun critère défini pour cette évaluation.</div>';
+            }
         }
 
         // Décision
@@ -1039,11 +1071,10 @@ const AdminCorrections = {
         var competenceId = null;
         var evaluation = null;
 
-        if (sub._sourceType === 'bonus_comp') {
+        if (sub._sourceType === 'bonus_mission') {
             evaluation = this.getEvaluationForSub(sub);
-            competenceId = evaluation ? evaluation.competence_id : null;
-            // Try competence_ids if competence_id not set
-            if (!competenceId && evaluation && evaluation.competence_ids) {
+            // Data-driven: get competence from competence_ids
+            if (evaluation && evaluation.competence_ids) {
                 try {
                     var parsed = typeof evaluation.competence_ids === 'string' ? JSON.parse(evaluation.competence_ids) : evaluation.competence_ids;
                     if (Array.isArray(parsed) && parsed.length > 0) competenceId = parsed[0];
@@ -1060,8 +1091,8 @@ const AdminCorrections = {
         if (criteres.length > 0) {
             var html = '';
 
-            // For bonus_comp: show competency header with points + matière
-            if (sub._sourceType === 'bonus_comp' && evaluation && competenceId) {
+            // For bonus_mission with competence: show competency header with points + matière
+            if (sub._sourceType === 'bonus_mission' && evaluation && competenceId) {
                 var ptsMap = this._getCompPointsMap(evaluation);
                 var info = ptsMap[String(competenceId)];
                 if (info) {
@@ -1088,7 +1119,7 @@ const AdminCorrections = {
         return '<div class="empty-criteres">Aucun critère défini pour cette compétence.</div>';
     },
 
-    /** Retourne les points par compétence pour une évaluation TC ou bonus comp */
+    /** Retourne les points par compétence pour une évaluation TC ou bonus mission */
     _getCompPointsMap(evaluation) {
         var matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
         var matiereLabels = { 'FR': 'FR', 'HG-EMC': 'HG-EMC', 'Transversal': 'Trans.' };
@@ -1192,7 +1223,7 @@ const AdminCorrections = {
         return html;
     },
 
-    /** Step 3 for bonus ponctuel: critères libres */
+    /** Step 3 for critères libres section (bonus mission without competences, or additional critères) */
     _renderStep3BonusPonctuel() {
         var sub = this.currentSubmission;
         var wd = this.wizardData;
@@ -1257,9 +1288,9 @@ const AdminCorrections = {
             el.querySelector('input').checked = false;
         }
 
-        // Update bonus_comp validation badge if present
+        // Update bonus_mission validation badge if present
         var sub = this.currentSubmission;
-        if (sub && sub._sourceType === 'bonus_comp') {
+        if (sub && sub._sourceType === 'bonus_mission') {
             var badge = document.getElementById('compBadge_single');
             if (badge) {
                 var evaluation = this.getEvaluationForSub(sub);
@@ -1366,59 +1397,11 @@ const AdminCorrections = {
         var wd = this.wizardData;
         var html = '';
 
-        if (sub._sourceType === 'tc') {
-            // TC: show critères per competence
-            var evaluation = this.getEvaluationForSub(sub);
-            var compIds = this.getCompetenceIdsForTC(evaluation);
-            var self = this;
-
-            compIds.forEach(function(compId) {
-                var comp = self.getCompetence(compId);
-                var criteres = self.getCriteresByCompetence(compId);
-                var compValides = wd.competenceValidees[compId] || [];
-
-                if (criteres.length === 0) return;
-
-                html += '<div class="bilan-section">';
-                html += '<h4>🎯 ' + escapeHtml(comp ? comp.nom : 'Compétence') +
-                    ' (' + compValides.length + '/' + criteres.length + ')</h4>';
-                html += '<div class="bilan-criteres-list">';
-                criteres.forEach(function(c) {
-                    var checked = compValides.indexOf(String(c.id)) !== -1;
-                    html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
-                    html += (checked ? '✅' : '❌') + ' ' + escapeHtml(c.libelle);
-                    html += '</div>';
-                });
-                html += '</div></div>';
-            });
-        } else if (sub._sourceType === 'bonus_ponctuel') {
-            // Bonus ponctuel: critères libres
-            var evaluation2 = this.getEvaluationForSub(sub);
-            var criteresLibres = this.getCriteresLibres(evaluation2);
-            if (criteresLibres.length > 0) {
-                html += '<div class="bilan-section">';
-                html += '<h4>Critères libres (' + wd.criteresValides.length + '/' + criteresLibres.length + ')</h4>';
-                html += '<div class="bilan-criteres-list">';
-                criteresLibres.forEach(function(label, idx) {
-                    var critId = 'libre_' + idx;
-                    var checked = wd.criteresValides.indexOf(critId) !== -1;
-                    html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
-                    html += (checked ? '✅' : '❌') + ' ' + escapeHtml(label);
-                    html += '</div>';
-                });
-                html += '</div></div>';
-            }
-        } else {
-            // Competence training + bonus comp: single competence
-            var competenceId = null;
-            if (sub._sourceType === 'bonus_comp') {
-                var eval3 = this.getEvaluationForSub(sub);
-                competenceId = eval3 ? eval3.competence_id : null;
-            } else {
-                var ent = this.getEntrainement(sub.entrainement_id);
-                var comp2 = this.getCompetenceForEntrainement(ent);
-                competenceId = comp2 ? comp2.id : null;
-            }
+        if (sub._sourceType === 'competence') {
+            // Competence training: single competence
+            var ent = this.getEntrainement(sub.entrainement_id);
+            var comp2 = this.getCompetenceForEntrainement(ent);
+            var competenceId = comp2 ? comp2.id : null;
 
             var criteres2 = competenceId ? this.getCriteresByCompetence(competenceId) : [];
             if (criteres2.length > 0) {
@@ -1429,6 +1412,69 @@ const AdminCorrections = {
                     var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
                     html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
                     html += (checked ? '✅' : '❌') + ' ' + escapeHtml(c.libelle);
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            }
+        } else {
+            // Bonus mission / TC: data-driven approach
+            var evaluation = this.getEvaluationForSub(sub);
+            var compIds = evaluation ? this.getCompetenceIdsForTC(evaluation) : [];
+            var criteresLibres = evaluation ? this.getCriteresLibres(evaluation) : [];
+            var self = this;
+
+            // Competence critères (if competence_ids present)
+            if (compIds.length > 0) {
+                if (sub._sourceType === 'tc') {
+                    // TC: show critères per competence (multi)
+                    compIds.forEach(function(compId) {
+                        var comp = self.getCompetence(compId);
+                        var criteres = self.getCriteresByCompetence(compId);
+                        var compValides = wd.competenceValidees[compId] || [];
+
+                        if (criteres.length === 0) return;
+
+                        html += '<div class="bilan-section">';
+                        html += '<h4>🎯 ' + escapeHtml(comp ? comp.nom : 'Compétence') +
+                            ' (' + compValides.length + '/' + criteres.length + ')</h4>';
+                        html += '<div class="bilan-criteres-list">';
+                        criteres.forEach(function(c) {
+                            var checked = compValides.indexOf(String(c.id)) !== -1;
+                            html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
+                            html += (checked ? '✅' : '❌') + ' ' + escapeHtml(c.libelle);
+                            html += '</div>';
+                        });
+                        html += '</div></div>';
+                    });
+                } else {
+                    // Bonus mission with competence: single competence
+                    var singleCompId = compIds[0];
+                    var singleCriteres = this.getCriteresByCompetence(singleCompId);
+                    if (singleCriteres.length > 0) {
+                        html += '<div class="bilan-section">';
+                        html += '<h4>Critères de réussite (' + wd.criteresValides.length + '/' + singleCriteres.length + ')</h4>';
+                        html += '<div class="bilan-criteres-list">';
+                        singleCriteres.forEach(function(c) {
+                            var checked = wd.criteresValides.indexOf(String(c.id)) !== -1;
+                            html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
+                            html += (checked ? '✅' : '❌') + ' ' + escapeHtml(c.libelle);
+                            html += '</div>';
+                        });
+                        html += '</div></div>';
+                    }
+                }
+            }
+
+            // Critères libres (if criteres_libres present — can appear alongside competence critères)
+            if (criteresLibres.length > 0) {
+                html += '<div class="bilan-section">';
+                html += '<h4>Critères libres (' + wd.criteresValides.filter(function(id) { return id.indexOf('libre_') === 0; }).length + '/' + criteresLibres.length + ')</h4>';
+                html += '<div class="bilan-criteres-list">';
+                criteresLibres.forEach(function(label, idx) {
+                    var critId = 'libre_' + idx;
+                    var checked = wd.criteresValides.indexOf(critId) !== -1;
+                    html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
+                    html += (checked ? '✅' : '❌') + ' ' + escapeHtml(label);
                     html += '</div>';
                 });
                 html += '</div></div>';
@@ -1453,7 +1499,7 @@ const AdminCorrections = {
             if (sub._sourceType === 'tc') {
                 valides = (wd.competenceValidees && wd.competenceValidees[compId]) ? wd.competenceValidees[compId] : [];
             } else {
-                // bonus_comp: critères dans criteresValides
+                // bonus mission (single comp): critères dans criteresValides
                 valides = wd.criteresValides || [];
             }
 
@@ -1471,7 +1517,7 @@ const AdminCorrections = {
         var matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
 
         var ptsMap = this._getCompPointsMap(evaluation);
-        var hasCompetences = Object.keys(ptsMap).length > 0 && (sub._sourceType === 'tc' || sub._sourceType === 'bonus_comp');
+        var hasCompetences = Object.keys(ptsMap).length > 0;
 
         if (hasCompetences) {
             // Auto-compute points from criteria validation
@@ -1529,7 +1575,7 @@ const AdminCorrections = {
 
             html += '</div>';
         } else {
-            // Mode global (fallback : bonus ponctuel, ou anciennes évals sans compétences)
+            // Mode global (fallback : bonus mission sans compétences, ou anciennes évals)
             var maxPts = evaluation ? (parseFloat(evaluation.briques) || 1) : 1;
             var currentScore = wd.score !== undefined ? wd.score : (wd.decision === 'valide' ? maxPts : 0);
             html += '<div class="bilan-section">';
@@ -1599,13 +1645,14 @@ const AdminCorrections = {
                     params.competence_ids_validees = JSON.stringify(wd.competenceValidees || {});
                     params.criteres_valides = JSON.stringify(wd.criteresValides);
                 } else {
-                    // Bonus comp / ponctuel: simple critères list
+                    // Bonus mission: simple critères list
                     params.criteres_valides = JSON.stringify(wd.criteresValides);
                 }
 
-                // Points attribués — auto-compute from criteria for TC/bonus comp
-                if (sub._sourceType === 'tc' || sub._sourceType === 'bonus_comp') {
-                    var evaluation = this.getEvaluationForSub(sub);
+                // Points attribués — data-driven: auto-compute if competence_ids present
+                var evaluation = this.getEvaluationForSub(sub);
+                var ptsMap = this._getCompPointsMap(evaluation);
+                if (Object.keys(ptsMap).length > 0) {
                     var computed = this._computePointsParCompetence(sub, evaluation, wd);
                     if (Object.keys(computed.ppc).length > 0) {
                         params.points_par_competence = JSON.stringify(computed.ppc);
