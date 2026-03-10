@@ -2094,13 +2094,6 @@
 /* ===== SAISIE SUIVI (vérifications datées) ===== */
 
 /* Bouton compact "+ Ajouter une vérification" à côté du titre */
-.saisie-title-area {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-}
-
 .suivi-add-verif-btn {
     white-space: nowrap;
     margin-left: auto;
