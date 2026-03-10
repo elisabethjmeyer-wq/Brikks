@@ -3056,6 +3056,18 @@ const AdminEvaluations = {
             }
         }
 
+        // Séparer les champs lourds (contenu block editor, JSON volumineux) pour éviter
+        // que l'URL JSONP dépasse la limite du navigateur/serveur.
+        // On envoie d'abord les champs légers, puis les champs lourds dans un 2e appel.
+        const heavyKeys = ['document_contenu', 'correction_contenu', 'criteres_libres'];
+        const heavyFields = {};
+        for (const key of heavyKeys) {
+            if (data[key] && data[key].length > 100) {
+                heavyFields[key] = data[key];
+                delete data[key];
+            }
+        }
+
         const nextBtn = document.getElementById('evalWizardNextBtn');
         try {
             nextBtn.disabled = true;
@@ -3069,16 +3081,33 @@ const AdminEvaluations = {
                 result = await this.callAPI('createEvaluation', data);
             }
 
-            if (result.success) {
-                this.closeModal();
-                SheetsAPI.clearCache();
-                await this.loadData();
-                this.updateCounts();
-                this.renderEvaluations();
-                this.showNotification(id ? 'Évaluation modifiée' : 'Évaluation créée');
-            } else {
+            if (!result.success) {
                 this.showNotification('Erreur: ' + (result.error || 'Erreur inconnue'), 'error');
+                return;
             }
+
+            // Envoyer les champs lourds séparément si nécessaire
+            const evalId = id || result.id;
+            if (Object.keys(heavyFields).length > 0 && evalId) {
+                // Envoyer chaque champ lourd individuellement pour rester sous la limite URL
+                for (const key of Object.keys(heavyFields)) {
+                    const updateData = { id: evalId };
+                    updateData[key] = heavyFields[key];
+                    const updateResult = await this.callAPI('updateEvaluation', updateData);
+                    if (!updateResult.success) {
+                        console.error('Erreur mise à jour ' + key + ':', updateResult.error);
+                        this.showNotification('Erreur lors de la sauvegarde du contenu', 'error');
+                        return;
+                    }
+                }
+            }
+
+            this.closeModal();
+            SheetsAPI.clearCache();
+            await this.loadData();
+            this.updateCounts();
+            this.renderEvaluations();
+            this.showNotification(id ? 'Évaluation modifiée' : 'Évaluation créée');
         } catch (error) {
             console.error('Erreur sauvegarde:', error);
             this.showNotification('Erreur lors de la sauvegarde', 'error');
@@ -5128,9 +5157,12 @@ const AdminEvaluations = {
                 reject(new Error('Erreur reseau'));
             };
 
-            // Encode data as Base64 to avoid URL length limits with JSON fields
+            // Encode data as URL-safe Base64 to avoid URL length limits
+            // URL-safe: + → -, / → _, padding = removed (saves ~10% vs standard Base64 URL-encoded)
             const jsonStr = JSON.stringify(data);
-            url.searchParams.set('d', btoa(unescape(encodeURIComponent(jsonStr))));
+            const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
+            const urlSafe = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            url.searchParams.set('d', urlSafe);
 
             url.searchParams.set('callback', callbackName);
             script.src = url.toString();

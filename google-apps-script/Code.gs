@@ -163,10 +163,13 @@ function handleRequest(e) {
       data = JSON.parse(e.postData.contents);
     }
 
-    // Si param 'd' présent : données encodées en Base64 (évite la limite URL)
+    // Si param 'd' présent : données encodées en Base64 URL-safe (évite la limite URL)
     if (params.d) {
       try {
-        var decoded = Utilities.newBlob(Utilities.base64Decode(params.d)).getDataAsString('UTF-8');
+        // Reconvertir URL-safe Base64 → standard Base64
+        var b64 = params.d.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4) b64 += '=';
+        var decoded = Utilities.newBlob(Utilities.base64Decode(b64)).getDataAsString('UTF-8');
         var parsed = JSON.parse(decoded);
         Object.keys(parsed).forEach(function(k) { data[k] = parsed[k]; });
       } catch (_e) { /* ignore */ }
