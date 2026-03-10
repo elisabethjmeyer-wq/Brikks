@@ -216,7 +216,7 @@ const EleveResultats = {
             const evalPpc = this._parsePointsParCompetence(ev.points_par_competence);
             if (evalPpc && Object.keys(evalPpc).length > 0) {
                 for (const compId in evalPpc) {
-                    const compMat = this._getCompetenceMatiere(compId);
+                    const compMat = this._getCompetenceMatiere(compId, ev);
                     if (compMat === matiere || compMat === 'Transversal') {
                         maxCats[cat] += parseFloat(evalPpc[compId]) || 0;
                     }
@@ -233,7 +233,7 @@ const EleveResultats = {
                 const resPpc = this._parsePointsParCompetence(r.points_par_competence);
                 if (resPpc && Object.keys(resPpc).length > 0) {
                     for (const compId in resPpc) {
-                        const compMat = this._getCompetenceMatiere(compId);
+                        const compMat = this._getCompetenceMatiere(compId, ev);
                         if (compMat === matiere || compMat === 'Transversal') {
                             cats[cat] += parseFloat(resPpc[compId]) || 0;
                         }
@@ -260,9 +260,22 @@ const EleveResultats = {
         } catch (_e) { return null; }
     },
 
-    _getCompetenceMatiere(compId) {
+    _getCompetenceMatiere(compId, evaluation) {
+        // D'abord chercher dans le référentiel
         const comp = (this.competencesRef || []).find(c => String(c.id) === String(compId));
-        return comp ? (comp.matiere || 'Transversal') : 'Transversal';
+        if (comp) return comp.matiere || 'Transversal';
+        // Sinon chercher dans les compétences personnalisées (criteres_libres)
+        if (evaluation && evaluation.criteres_libres) {
+            try {
+                const parsed = typeof evaluation.criteres_libres === 'string'
+                    ? JSON.parse(evaluation.criteres_libres) : evaluation.criteres_libres;
+                if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
+                    const cc = parsed.find(c => c.id === compId);
+                    if (cc) return cc.matiere || 'FR';
+                }
+            } catch (_e) { /* ignore */ }
+        }
+        return 'Transversal';
     },
 
     _calculateProgression(matiere, semestre) {
@@ -551,15 +564,29 @@ const EleveResultats = {
                     }
                 }
             }
-            // Merge: referential criteria + free-form criteria (avoiding duplicates)
+            // Merge: referential criteria + free-form criteria / compétences personnalisées
             if (criteresLibres.length > 0) {
                 const existing = new Set(criteres.map(c => String(c).trim().toLowerCase()));
-                criteresLibres.forEach(cl => {
-                    const text = typeof cl === 'string' ? cl : (cl.libelle || cl.label || String(cl));
-                    if (!existing.has(text.trim().toLowerCase())) {
-                        criteres.push(text);
-                    }
-                });
+                // Nouveau format : compétences personnalisées (objets avec nom, criteres)
+                if (criteresLibres.length > 0 && typeof criteresLibres[0] === 'object' && criteresLibres[0].nom) {
+                    criteresLibres.forEach(cc => {
+                        // Ajouter les critères de chaque compétence perso
+                        (cc.criteres || []).forEach(cr => {
+                            if (!existing.has(cr.trim().toLowerCase())) {
+                                criteres.push(cr);
+                                existing.add(cr.trim().toLowerCase());
+                            }
+                        });
+                    });
+                } else {
+                    // Ancien format : strings simples
+                    criteresLibres.forEach(cl => {
+                        const text = typeof cl === 'string' ? cl : (cl.libelle || cl.label || String(cl));
+                        if (!existing.has(text.trim().toLowerCase())) {
+                            criteres.push(text);
+                        }
+                    });
+                }
             }
 
             // Suivi: count validations + historique complet
