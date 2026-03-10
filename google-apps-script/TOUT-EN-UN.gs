@@ -1,7 +1,7 @@
 // ================================================================
 // FICHIER AUTO-GÉNÉRÉ — ne pas modifier directement
 // Généré par : npm run build:gas
-// Date : 2026-03-09
+// Date : 2026-03-10
 // ================================================================
 
 // ================================================================
@@ -6129,10 +6129,12 @@ function getEvaluationResultForReview(data) {
     }
   }
 
-  // 4. Si évaluation de type competences (TC), charger les compétences et critères
+  // 4. Si évaluation de type competences (TC) ou bonus compétence, charger les compétences et critères
   var competences = [];
   var criteres = [];
-  if (evaluation && String(evaluation.type || '').trim() === 'competences') {
+  var evalTypeForComp = evaluation ? String(evaluation.type || '').trim() : '';
+  var sousTypeBonusForComp = evaluation ? String(evaluation.sous_type_bonus || '').trim() : '';
+  if (evaluation && (evalTypeForComp === 'competences' || (evalTypeForComp === 'bonus' && sousTypeBonusForComp === 'competence'))) {
     var compSheet = ss.getSheetByName('CompetencesReferentiel');
     if (compSheet) {
       var compData = compSheet.getDataRange().getValues();

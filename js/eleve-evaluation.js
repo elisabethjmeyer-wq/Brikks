@@ -485,9 +485,11 @@ const EleveEvaluation = {
 
         const { resultat, evaluation, banque_titre, competences, criteres } = response.data;
 
-        // Si c'est une TC (type competences), rendre la vue spécifique
+        // Si c'est une TC ou un bonus compétence, rendre la vue compétences (2 colonnes)
         const evalType = evaluation ? String(evaluation.type || '').trim() : '';
-        if (evalType === 'competences') {
+        const sousTypeBonus = evaluation ? String(evaluation.sous_type_bonus || '').trim() : '';
+        const isCompetenceReview = evalType === 'competences' || (evalType === 'bonus' && sousTypeBonus === 'competence');
+        if (isCompetenceReview) {
             this._renderTCReview(resultat, evaluation, competences || [], criteres || []);
             this.showContent();
             return;
@@ -757,7 +759,7 @@ const EleveEvaluation = {
                     <div class="sujet-topbar-info">
                         <h1>${escapeHtml(titre)}</h1>
                         <div class="sujet-topbar-meta">
-                            <span class="sujet-mode-badge tc">Évaluation de compétence</span>
+                            <span class="sujet-mode-badge tc">${String(evaluation.type || '').trim() === 'bonus' ? 'Bonus compétence' : 'Évaluation de compétence'}</span>
                             ${matiereLabel ? `<span class="sujet-mode-badge matiere">${escapeHtml(matiereLabel)}</span>` : ''}
                         </div>
                     </div>
