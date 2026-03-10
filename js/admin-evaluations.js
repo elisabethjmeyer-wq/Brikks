@@ -3785,16 +3785,29 @@ const AdminEvaluations = {
             const isComplete = currentValidations >= nbValidations;
             const points = isComplete ? maxPts : 0;
 
+            // Parse dates par validation
+            let vDates = {};
+            if (r.validations_dates) {
+                try {
+                    vDates = typeof r.validations_dates === 'string' ? JSON.parse(r.validations_dates) : r.validations_dates;
+                } catch (_e) { /* ignore */ }
+            }
+
             // Build checkbox cells
             let checkboxCells = '';
             for (let i = 1; i <= nbValidations; i++) {
-                const checked = i <= currentValidations ? 'checked' : '';
+                const isChecked = i <= currentValidations;
+                const checked = isChecked ? 'checked' : '';
                 const disabled = i > currentValidations + 1 ? 'disabled' : ''; // Only next one is clickable
+                const dateStr = vDates[String(i)] || '';
+                const dateLabel = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '';
+                const titleAttr = dateStr ? ` title="${dateLabel}"` : '';
                 checkboxCells += `
                     <td class="col-validation">
-                        <input type="checkbox" class="suivi-checkbox" ${checked} ${disabled}
+                        <input type="checkbox" class="suivi-checkbox" ${checked} ${disabled}${titleAttr}
                             data-eleve="${eleve.id}" data-validation="${i}"
                             onchange="AdminEvaluations.onSuiviCheckChange('${eleve.id}', ${i}, this.checked)">
+                        ${isChecked && dateLabel ? `<div class="suivi-date-label">${dateLabel}</div>` : ''}
                     </td>`;
             }
 

@@ -442,11 +442,19 @@ const EleveEvaluations = {
             if (isBonus) {
                 // Bonus et TC sur demande : statuts basés sur le workflow de demande
                 if (sousType === 'suivi') {
-                    // Suivi : progression, pas de demande
-                    const validNum = resultat ? (parseInt(resultat.validation_numero) || 0) : 0;
-                    const nbTotal = parseInt(ev.nb_validations) || 5;
-                    const isComplete = validNum >= nbTotal;
-                    cardStatus = isComplete ? 'suivi_complete' : 'suivi_en_cours';
+                    // Suivi : flux demande + progression
+                    if (demandeStatut === 'demande') {
+                        cardStatus = 'suivi_demande';
+                    } else if (demandeStatut === 'accepte' || demandeStatut === 'rendu') {
+                        const validNum = resultat ? (parseInt(resultat.validation_numero) || 0) : 0;
+                        const nbTotal = parseInt(ev.nb_validations) || 5;
+                        const isComplete = validNum >= nbTotal;
+                        cardStatus = isComplete ? 'suivi_complete' : 'suivi_en_cours';
+                    } else if (demandeStatut === 'refuse') {
+                        cardStatus = 'suivi_refuse';
+                    } else {
+                        cardStatus = 'suivi_disponible';
+                    }
                 } else if (demandeStatut === 'demande') {
                     cardStatus = 'demande_envoyee';
                 } else if (demandeStatut === 'accepte') {
@@ -838,26 +846,58 @@ const EleveEvaluations = {
     },
 
     /**
-     * Carte bonus suivi (progression X/Y)
+     * Carte bonus suivi — 3 états : disponible, en cours (avec progression), complet
      */
     _renderBonusSuiviCard(evaluation) {
         const resultat = evaluation.resultat;
+        const cardStatus = evaluation.cardStatus;
         const briques = parseInt(evaluation.briques) || 1;
         const nbTotal = parseInt(evaluation.nb_validations) || 5;
         const currentVal = resultat ? (parseInt(resultat.validation_numero) || 0) : 0;
         const isComplete = currentVal >= nbTotal;
         const title = evaluation.titre || 'Suivi';
-        const pct = Math.round((currentVal / nbTotal) * 100);
+        const pct = nbTotal > 0 ? Math.round((currentVal / nbTotal) * 100) : 0;
 
         let cardClass = 'eval-card bonus-card bonus-suivi';
         if (isComplete) cardClass += ' done validated';
 
-        // Points
+        // Points badge
         let pointsBadge;
         if (isComplete) {
             pointsBadge = `<span class="card-points earned">+${briques}</span>`;
         } else {
             pointsBadge = `<span class="card-points pending">${briques} point${briques > 1 ? 's' : ''} à gagner</span>`;
+        }
+
+        // Critères dépliables
+        const criteresHtml = this._renderSuiviCriteres(evaluation);
+
+        // Contenu selon le statut
+        let statusHtml = '';
+        let actionHtml = '';
+
+        if (cardStatus === 'suivi_disponible') {
+            // Pas encore demandé
+            statusHtml = `<div class="card-type" style="color:#0d9488">Bonus suivi · ${nbTotal} validations</div>`;
+            actionHtml = `<button class="card-btn type-bonus" id="btnDemande_${evaluation.id}" onclick="event.stopPropagation(); EleveEvaluations.demanderEvaluation('${evaluation.id}')">Demander cette évaluation</button>`;
+        } else if (cardStatus === 'suivi_demande') {
+            // Demande envoyée, en attente
+            statusHtml = `<div class="card-type" style="color:#0d9488">Bonus suivi · ${nbTotal} validations</div>`;
+            actionHtml = '<span class="bonus-status en-attente">Demande envoyée</span>';
+        } else if (cardStatus === 'suivi_refuse') {
+            // Demande refusée
+            const remarque = resultat ? (resultat.remarque_prof || '') : '';
+            statusHtml = `<div class="card-type" style="color:#0d9488">Bonus suivi</div>`;
+            actionHtml = `<span class="bonus-status refuse">Refusé</span>`;
+            if (remarque) actionHtml += `<div class="bonus-remarque">${escapeHtml(remarque)}</div>`;
+        } else if (cardStatus === 'suivi_en_cours') {
+            // Accepté, en cours de progression
+            statusHtml = `<div class="card-type" style="color:#0d9488">Bonus suivi · En cours</div>`;
+            actionHtml = this._renderSuiviProgress(currentVal, nbTotal, pct, isComplete, resultat);
+        } else if (cardStatus === 'suivi_complete') {
+            // Toutes les validations atteintes
+            statusHtml = `<div class="card-type" style="color:#0d9488">Bonus suivi · Objectif atteint !</div>`;
+            actionHtml = this._renderSuiviProgress(currentVal, nbTotal, pct, isComplete, resultat);
         }
 
         return `
@@ -868,21 +908,86 @@ const EleveEvaluations = {
                             <span class="card-bullet" style="background:#0d9488"></span>
                             <h3 class="card-title">${escapeHtml(title)}</h3>
                         </div>
-                        <div class="card-type" style="color:#0d9488">Bonus suivi</div>
+                        ${statusHtml}
                         ${evaluation.description_eleve ? `<div class="card-description">${escapeHtml(evaluation.description_eleve)}</div>` : ''}
-                        <div class="suivi-progress-container">
-                            <div class="suivi-progress-bar">
-                                <div class="suivi-progress-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%"></div>
-                            </div>
-                            <span class="suivi-progress-label">${currentVal}/${nbTotal}</span>
-                        </div>
-                        ${isComplete ? '<span class="bonus-status valide">Objectif atteint !</span>' : ''}
+                        ${criteresHtml}
+                        ${actionHtml}
                     </div>
                     <div class="card-right">
                         ${pointsBadge}
                     </div>
                 </div>
             </div>
+        `;
+    },
+
+    /**
+     * Critères de réussite dépliables (chevron)
+     */
+    _renderSuiviCriteres(evaluation) {
+        let criteres = [];
+        if (evaluation.criteres_libres) {
+            try {
+                const parsed = typeof evaluation.criteres_libres === 'string'
+                    ? JSON.parse(evaluation.criteres_libres) : evaluation.criteres_libres;
+                if (Array.isArray(parsed)) criteres = parsed.filter(c => c && c.trim());
+            } catch (_e) { /* ignore */ }
+        }
+        if (criteres.length === 0) return '';
+
+        const uid = 'suivi_criteres_' + evaluation.id;
+        const items = criteres.map(c => `<li>${escapeHtml(c)}</li>`).join('');
+
+        return `
+            <div class="suivi-criteres-toggle" onclick="event.stopPropagation(); EleveEvaluations._toggleSuiviCriteres('${uid}')">
+                <span class="suivi-criteres-chevron" id="chevron_${uid}">▸</span> Critères de réussite
+            </div>
+            <ul class="suivi-criteres-list hidden" id="${uid}">${items}</ul>
+        `;
+    },
+
+    /**
+     * Toggle critères dépliables
+     */
+    _toggleSuiviCriteres(uid) {
+        const list = document.getElementById(uid);
+        const chevron = document.getElementById('chevron_' + uid);
+        if (!list) return;
+        const isHidden = list.classList.contains('hidden');
+        list.classList.toggle('hidden');
+        if (chevron) chevron.textContent = isHidden ? '▾' : '▸';
+    },
+
+    /**
+     * Barre de progression + date dernière validation
+     */
+    _renderSuiviProgress(currentVal, nbTotal, pct, isComplete, resultat) {
+        // Dernière date de validation
+        let lastDateHtml = '';
+        if (resultat && resultat.validations_dates) {
+            try {
+                const dates = typeof resultat.validations_dates === 'string'
+                    ? JSON.parse(resultat.validations_dates) : resultat.validations_dates;
+                // Trouver la date la plus récente
+                const lastKey = String(currentVal);
+                if (dates[lastKey]) {
+                    const d = new Date(dates[lastKey]);
+                    if (!isNaN(d.getTime())) {
+                        lastDateHtml = `<div class="suivi-last-date">Dernière validation : ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>`;
+                    }
+                }
+            } catch (_e) { /* ignore */ }
+        }
+
+        return `
+            <div class="suivi-progress-container">
+                <div class="suivi-progress-bar">
+                    <div class="suivi-progress-fill ${isComplete ? 'complete' : ''}" style="width:${pct}%"></div>
+                </div>
+                <span class="suivi-progress-label">${currentVal}/${nbTotal}</span>
+            </div>
+            ${isComplete ? '<span class="bonus-status valide">Objectif atteint !</span>' : ''}
+            ${lastDateHtml}
         `;
     },
 

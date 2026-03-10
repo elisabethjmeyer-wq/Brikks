@@ -811,6 +811,53 @@
     white-space: nowrap;
 }
 
+/* Suivi : critères dépliables */
+.suivi-criteres-toggle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0d9488;
+    cursor: pointer;
+    margin-top: 6px;
+    user-select: none;
+}
+
+.suivi-criteres-toggle:hover {
+    color: #0f766e;
+}
+
+.suivi-criteres-chevron {
+    display: inline-block;
+    transition: transform 0.15s ease;
+    font-size: 12px;
+}
+
+.suivi-criteres-list {
+    list-style: none;
+    padding: 4px 0 0 18px;
+    margin: 0;
+    font-size: 13px;
+    color: var(--gray-600);
+    line-height: 1.5;
+}
+
+.suivi-criteres-list li::before {
+    content: "•";
+    color: #0d9488;
+    font-weight: 700;
+    margin-right: 6px;
+}
+
+.suivi-criteres-list.hidden {
+    display: none;
+}
+
+/* Suivi : date dernière validation */
+.suivi-last-date {
+    font-size: 12px;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
 /* Compétence acquise (plafond 3 validations) */
 .eval-card.acquise {
     opacity: 0.6;
