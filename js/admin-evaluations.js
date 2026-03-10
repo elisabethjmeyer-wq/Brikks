@@ -3274,6 +3274,12 @@ const AdminEvaluations = {
         document.getElementById('saisie-content').style.display = 'none';
         document.getElementById('evaluations-content').style.display = 'block';
         document.getElementById('saisieSaveBar').style.display = 'none';
+        // Nettoyer le bouton compact suivi si présent
+        const addVerifBtn = document.querySelector('.suivi-add-verif-btn');
+        if (addVerifBtn) addVerifBtn.remove();
+        // Retirer la classe suivi-table
+        const table = document.querySelector('#saisieTableContainer .saisie-table');
+        if (table) table.classList.remove('suivi-table');
         this.saisieEvaluation = null;
         this.saisieSommative = null;
         this.saisieChanges = {};
@@ -3773,6 +3779,10 @@ const AdminEvaluations = {
         const nbReussitesRequises = parseInt(evaluation.nb_validations) || 5;
         const maxPts = evaluation.briques || 10;
 
+        // Ajouter la classe suivi-table pour les colonnes resserrées
+        const table = document.querySelector('#saisieTableContainer .saisie-table');
+        if (table) table.classList.add('suivi-table');
+
         // Élèves inscrits (acceptés)
         const elevesInscrits = this.eleves.filter(eleve => {
             const r = resultsMap[String(eleve.id).trim()];
@@ -3813,14 +3823,6 @@ const AdminEvaluations = {
             <th class="col-historique">Historique</th>
             <th class="col-total">Réussites</th>
             <th class="col-points">Points</th>`;
-
-        // Bouton ajouter une vérification
-        const addVerifHtml = `
-            <div class="suivi-add-verif">
-                <button class="btn btn-primary btn-sm" onclick="AdminEvaluations._openAddVerification()">
-                    + Ajouter une vérification
-                </button>
-            </div>`;
 
         const tbody = document.getElementById('saisieTableBody');
         let rowsHtml = '';
@@ -3895,13 +3897,15 @@ const AdminEvaluations = {
 
         tbody.innerHTML = rowsHtml;
 
-        // Insert add verification button above the table
-        const container = document.getElementById('saisieTableContainer');
-        let addBtn = container.querySelector('.suivi-add-verif');
-        if (!addBtn) {
-            container.insertAdjacentHTML('afterbegin', addVerifHtml);
+        // Bouton compact "+ Ajouter une vérification" à côté du titre
+        const titleArea = document.querySelector('.saisie-title-area');
+        let addBtn = titleArea?.querySelector('.suivi-add-verif-btn');
+        if (!addBtn && titleArea) {
+            titleArea.insertAdjacentHTML('beforeend',
+                `<button class="btn btn-primary btn-sm suivi-add-verif-btn" onclick="AdminEvaluations._openAddVerification()">+ Ajouter une vérification</button>`);
         }
 
+        const container = document.getElementById('saisieTableContainer');
         document.getElementById('saisieLoader').style.display = 'none';
         container.style.display = '';
     },
@@ -3937,49 +3941,40 @@ const AdminEvaluations = {
         });
 
         const today = new Date().toISOString().split('T')[0];
+        document.getElementById('verifDate').value = today;
 
-        const rows = elevesActifs.map(eleve =>
-            `<div class="verif-row">
-                <span class="verif-eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
-                <div class="verif-toggle" data-eleve="${eleve.id}" data-resultat="true">
-                    <button class="verif-btn ok active" onclick="AdminEvaluations._toggleVerifResult(this, true)">✓</button>
-                    <button class="verif-btn ko" onclick="AdminEvaluations._toggleVerifResult(this, false)">✗</button>
-                </div>
-            </div>`
-        ).join('');
+        const listContainer = document.getElementById('verifElevesList');
 
-        const noEleves = elevesActifs.length === 0
-            ? '<p style="text-align:center; color:var(--gray-400); padding:20px">Tous les élèves ont atteint l\'objectif.</p>'
-            : '';
-
-        // Afficher le panneau
-        const html = `
-            <div class="suivi-verif-panel">
-                <div class="verif-panel-header">
-                    <h3>Nouvelle vérification</h3>
-                    <div class="verif-date-picker">
-                        <label>Date :</label>
-                        <input type="date" id="verifDate" value="${today}" class="form-input">
-                    </div>
-                </div>
-                ${noEleves || `
-                <div class="verif-list">${rows}</div>
-                <div class="verif-actions">
-                    <button class="btn btn-secondary" onclick="AdminEvaluations._closeVerifPanel()">Annuler</button>
-                    <button class="btn btn-primary" onclick="AdminEvaluations._saveAllVerifications()">Enregistrer</button>
-                </div>`}
-            </div>`;
-
-        // Insérer après le bouton, avant le tableau
-        const container = document.getElementById('saisieTableContainer');
-        let panel = container.querySelector('.suivi-verif-panel');
-        if (panel) panel.remove();
-        const addBtn = container.querySelector('.suivi-add-verif');
-        if (addBtn) {
-            addBtn.insertAdjacentHTML('afterend', html);
+        if (elevesActifs.length === 0) {
+            listContainer.innerHTML = '<p style="text-align:center; color:var(--gray-400); padding:20px">Tous les élèves ont atteint l\'objectif.</p>';
+            document.getElementById('verifSaveBtn').style.display = 'none';
         } else {
-            container.insertAdjacentHTML('afterbegin', html);
+            const rows = elevesActifs.map(eleve => {
+                const r = resultsMap[String(eleve.id).trim()] || {};
+                let historique = [];
+                try { if (r.validations_historique) historique = JSON.parse(r.validations_historique); } catch (_e) { /* ignore */ }
+                const nbReussites = historique.filter(h => h.resultat).length;
+
+                return `<div class="verif-row">
+                    <div class="verif-eleve-info">
+                        <span class="verif-eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
+                        <span class="verif-eleve-progress">${nbReussites}/${nbReussitesRequises} réussites</span>
+                    </div>
+                    <div class="verif-toggle" data-eleve="${eleve.id}">
+                        <button class="verif-btn ok" onclick="AdminEvaluations._toggleVerifResult(this, true)">✓</button>
+                        <button class="verif-btn ko" onclick="AdminEvaluations._toggleVerifResult(this, false)">✗</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            listContainer.innerHTML = `<div class="verif-list">${rows}</div>`;
+            document.getElementById('verifSaveBtn').style.display = '';
+            document.getElementById('verifSaveBtn').disabled = false;
+            document.getElementById('verifSaveBtn').textContent = 'Enregistrer';
         }
+
+        this._updateVerifCounter();
+        document.getElementById('verificationModal').classList.remove('hidden');
     },
 
     /**
@@ -3987,17 +3982,34 @@ const AdminEvaluations = {
      */
     _toggleVerifResult(btn, resultat) {
         const toggle = btn.closest('.verif-toggle');
-        toggle.dataset.resultat = String(resultat);
-        toggle.querySelectorAll('.verif-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        // Re-clic sur le même bouton = déselection
+        if (btn.classList.contains('active')) {
+            btn.classList.remove('active');
+            delete toggle.dataset.resultat;
+        } else {
+            toggle.querySelectorAll('.verif-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            toggle.dataset.resultat = String(resultat);
+        }
+        this._updateVerifCounter();
     },
 
     /**
      * Fermer le panneau de vérification
      */
-    _closeVerifPanel() {
-        const panel = document.querySelector('.suivi-verif-panel');
-        if (panel) panel.remove();
+    _closeVerifModal() {
+        document.getElementById('verificationModal').classList.add('hidden');
+    },
+
+    _updateVerifCounter() {
+        const toggles = document.querySelectorAll('#verifElevesList .verif-toggle');
+        const selected = [...toggles].filter(t => t.dataset.resultat !== undefined).length;
+        const counter = document.getElementById('verifCounter');
+        if (counter) {
+            counter.textContent = selected > 0
+                ? `${selected} élève${selected > 1 ? 's' : ''} sera${selected > 1 ? 'ont' : ''} évalué${selected > 1 ? 's' : ''}`
+                : 'Aucun élève sélectionné';
+        }
     },
 
     /**
@@ -4009,7 +4021,6 @@ const AdminEvaluations = {
             this.showNotification('Veuillez saisir une date', 'error');
             return;
         }
-        // Vérifier le format et la cohérence de la date
         const dateObj = new Date(date + 'T00:00:00');
         if (isNaN(dateObj.getTime())) {
             this.showNotification('Date invalide', 'error');
@@ -4022,11 +4033,16 @@ const AdminEvaluations = {
             return;
         }
 
-        const toggles = document.querySelectorAll('.verif-toggle');
-        if (toggles.length === 0) return;
+        // Ne prendre que les élèves avec un choix (✓ ou ✗)
+        const toggles = [...document.querySelectorAll('#verifElevesList .verif-toggle')]
+            .filter(t => t.dataset.resultat !== undefined);
 
-        // Disable save button
-        const saveBtn = document.querySelector('.suivi-verif-panel .btn-primary');
+        if (toggles.length === 0) {
+            this.showNotification('Sélectionnez au moins un élève', 'error');
+            return;
+        }
+
+        const saveBtn = document.getElementById('verifSaveBtn');
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
 
         let errors = [];
@@ -4047,14 +4063,13 @@ const AdminEvaluations = {
                     const eleve = this.eleves.find(e => String(e.id).trim() === String(eleveId).trim());
                     errors.push(eleve ? `${eleve.prenom} ${eleve.nom}` : eleveId);
                 }
-            } catch (error) {
+            } catch (_error) {
                 const eleve = this.eleves.find(e => String(e.id).trim() === String(eleveId).trim());
                 errors.push(eleve ? `${eleve.prenom} ${eleve.nom}` : eleveId);
             }
         }
 
-        // Fermer le panneau et rafraîchir le tableau
-        this._closeVerifPanel();
+        this._closeVerifModal();
 
         if (errors.length > 0) {
             this.showNotification(`Échec pour : ${errors.join(', ')}`, 'error');
@@ -4062,7 +4077,6 @@ const AdminEvaluations = {
             this.showNotification('Vérification enregistrée');
         }
 
-        // Recharger les résultats pour rafraîchir le tableau
         await this._refreshSaisieSuivi();
     },
 
@@ -4395,6 +4409,11 @@ const AdminEvaluations = {
             ${dateDemandeHtml}
         `;
 
+        // Masquer la checkbox "sujet visible" pour les bonus suivi (pas de sujet)
+        const sousTypeBonus = String(evaluation?.sous_type_bonus || '').trim();
+        const sujetGroup = document.getElementById('reponseSujetVisible')?.closest('.form-group');
+        if (sujetGroup) sujetGroup.style.display = (evaluation?.type === 'bonus' && sousTypeBonus === 'suivi') ? 'none' : '';
+
         modal.classList.remove('hidden');
     },
 
@@ -4508,6 +4527,11 @@ const AdminEvaluations = {
         const saveBtn = document.getElementById('saveReponseBtn');
         saveBtn.disabled = false;
         saveBtn.textContent = 'Enregistrer';
+
+        // Masquer la checkbox "sujet visible" pour les bonus suivi (pas de sujet)
+        const sousTypeBonusDetail = String(evaluation?.sous_type_bonus || '').trim();
+        const sujetGroupDetail = document.getElementById('reponseSujetVisible')?.closest('.form-group');
+        if (sujetGroupDetail) sujetGroupDetail.style.display = (evaluation?.type === 'bonus' && sousTypeBonusDetail === 'suivi') ? 'none' : '';
 
         modal.classList.remove('hidden');
     },

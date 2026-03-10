@@ -2093,8 +2093,17 @@
 
 /* ===== SAISIE SUIVI (vérifications datées) ===== */
 
-.suivi-add-verif {
-    margin-bottom: 16px;
+/* Bouton compact "+ Ajouter une vérification" à côté du titre */
+.saisie-title-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.suivi-add-verif-btn {
+    white-space: nowrap;
+    margin-left: auto;
 }
 
 /* Pastilles historique */
@@ -2220,9 +2229,20 @@
     border: 1px solid var(--gray-200, #e5e7eb);
 }
 
+.verif-eleve-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .verif-eleve-name {
     font-size: 14px;
     font-weight: 500;
+}
+
+.verif-eleve-progress {
+    font-size: 12px;
+    color: var(--gray-400);
 }
 
 .verif-toggle {
@@ -2301,6 +2321,13 @@
     width: 100%;
     font-size: 13px;
 }
+
+/* ===== COLONNES SUIVI SAISIE ===== */
+.saisie-table.suivi-table .col-eleve { width: 18%; }
+.saisie-table.suivi-table .col-demande { width: 12%; text-align: center; }
+.saisie-table.suivi-table .col-historique { width: 40%; }
+.saisie-table.suivi-table .col-total { width: 15%; }
+.saisie-table.suivi-table .col-points { width: 15%; }
 
 /* ===== COLONNES TC SAISIE ===== */
 .saisie-table .col-eleve { width: 35%; }
