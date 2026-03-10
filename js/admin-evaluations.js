@@ -5157,15 +5157,13 @@ const AdminEvaluations = {
                 reject(new Error('Erreur reseau'));
             };
 
-            // Encode data as URL-safe Base64 to avoid URL length limits
-            // URL-safe: + → -, / → _, padding = removed (saves ~10% vs standard Base64 URL-encoded)
+            // Encode data as Base64 to avoid URL length limits with JSON fields
             const jsonStr = JSON.stringify(data);
-            const b64 = btoa(unescape(encodeURIComponent(jsonStr)));
-            const urlSafe = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-            url.searchParams.set('d', urlSafe);
+            url.searchParams.set('d', btoa(unescape(encodeURIComponent(jsonStr))));
 
             url.searchParams.set('callback', callbackName);
             script.src = url.toString();
+            console.log('[callAPI]', action, '- URL length:', script.src.length, '- Data JSON length:', jsonStr.length);
             document.body.appendChild(script);
 
             setTimeout(() => {
