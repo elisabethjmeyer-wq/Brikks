@@ -188,10 +188,7 @@ const AdminLayout = {
         // (évite de dépasser le quota Google Sheets API avec trop de requêtes simultanées)
         setTimeout(() => this.checkPendingActivities(), 2000);
 
-        // Si on est sur la page évaluations, marquer les notifications comme vues
-        if (pageId === 'evaluations') {
-            this._onCorrectionsPage = true;
-        }
+        // Les notifications sont marquées comme vues uniquement quand l'utilisateur ouvre la cloche
     },
 
     /**
@@ -472,20 +469,14 @@ const AdminLayout = {
             // Construire le contenu du dropdown
             this._renderNotificationDropdown(pending, demandes, elevesMap, evaluationsMap);
 
-            // Si on est sur la page corrections, marquer comme vu automatiquement
-            if (this._onCorrectionsPage) {
-                try { localStorage.setItem('brikks_notif_seen_count', String(totalCount)); } catch (_e) { /* ignore */ }
-                this.updateNotificationBadges(0);
-            } else {
-                // Vérifier si l'utilisateur a déjà vu ce nombre
-                var seenCount = 0;
-                try { seenCount = parseInt(localStorage.getItem('brikks_notif_seen_count') || '0', 10); } catch (_e) { /* ignore */ }
+            // Vérifier si l'utilisateur a déjà vu ce nombre
+            var seenCount = 0;
+            try { seenCount = parseInt(localStorage.getItem('brikks_notif_seen_count') || '0', 10); } catch (_e) { /* ignore */ }
 
-                if (totalCount > seenCount) {
-                    this.updateNotificationBadges(totalCount);
-                } else {
-                    this.updateNotificationBadges(0);
-                }
+            if (totalCount > seenCount) {
+                this.updateNotificationBadges(totalCount);
+            } else {
+                this.updateNotificationBadges(0);
             }
         } catch (error) {
             console.error('Erreur vérification activités:', error);

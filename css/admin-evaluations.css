@@ -2221,6 +2221,17 @@
     color: #065f46;
 }
 
+/* ===== BADGE DEMANDES EN ATTENTE (carte bonus) ===== */
+.eval-stat-alert .eval-stat-value {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+.eval-stat-alert .eval-stat-label {
+    color: #dc2626;
+    font-weight: 600;
+}
+
 /* ===== SAISIE BONUS (comp/ponctuel) ===== */
 .demande-inline-actions {
     display: flex;
