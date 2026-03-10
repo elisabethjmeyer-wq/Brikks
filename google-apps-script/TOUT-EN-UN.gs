@@ -173,6 +173,15 @@ function handleRequest(e) {
       data = JSON.parse(e.postData.contents);
     }
 
+    // Si param 'd' présent : données encodées en Base64 (évite la limite URL)
+    if (params.d) {
+      try {
+        var decoded = Utilities.newBlob(Utilities.base64Decode(params.d)).getDataAsString('UTF-8');
+        var parsed = JSON.parse(decoded);
+        Object.keys(parsed).forEach(function(k) { data[k] = parsed[k]; });
+      } catch (_e) { /* ignore */ }
+    }
+
     // Fusionner params et data
     const request = { ...params, ...data };
 
