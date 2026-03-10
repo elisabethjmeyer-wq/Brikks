@@ -678,7 +678,8 @@ const EleveEvaluations = {
         const actifs = bonus.filter(b =>
             b.cardStatus === 'disponible' || b.cardStatus === 'demande_envoyee' ||
             b.cardStatus === 'demande_acceptee' || b.cardStatus === 'demande_refusee' ||
-            b.cardStatus === 'suivi_en_cours'
+            b.cardStatus === 'suivi_disponible' || b.cardStatus === 'suivi_demande' ||
+            b.cardStatus === 'suivi_refuse' || b.cardStatus === 'suivi_en_cours'
         );
         const termines = bonus.filter(b =>
             b.cardStatus === 'validated' || b.cardStatus === 'failed' ||
