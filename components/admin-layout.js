@@ -292,18 +292,11 @@ const AdminLayout = {
     },
 
     /**
-     * Marque les notifications comme vues (localStorage)
+     * Marque les notifications comme vues (le badge reste visible tant qu'il y a des items)
      */
     _markNotificationsAsSeen() {
-        var count = this._pendingCount || 0;
-        try {
-            localStorage.setItem('brikks_notif_seen_count', String(count));
-        } catch (_e) { /* ignore */ }
-        // Cacher les badges
-        var headerBadge = document.getElementById('header-notification-badge');
-        if (headerBadge) headerBadge.style.display = 'none';
-        var menuBadge = document.getElementById('badge-evaluations');
-        if (menuBadge) menuBadge.style.display = 'none';
+        // Le badge reste affiché tant qu'il y a des demandes/corrections à traiter.
+        // On ne le masque plus à l'ouverture du dropdown.
     },
 
     /**
@@ -469,15 +462,8 @@ const AdminLayout = {
             // Construire le contenu du dropdown
             this._renderNotificationDropdown(pending, demandes, elevesMap, evaluationsMap);
 
-            // Vérifier si l'utilisateur a déjà vu ce nombre
-            var seenCount = 0;
-            try { seenCount = parseInt(localStorage.getItem('brikks_notif_seen_count') || '0', 10); } catch (_e) { /* ignore */ }
-
-            if (totalCount > seenCount) {
-                this.updateNotificationBadges(totalCount);
-            } else {
-                this.updateNotificationBadges(0);
-            }
+            // Toujours afficher le badge tant qu'il y a des items à traiter
+            this.updateNotificationBadges(totalCount);
         } catch (error) {
             console.error('Erreur vérification activités:', error);
         }
