@@ -4086,9 +4086,11 @@ const AdminEvaluations = {
     async _refreshSaisieSuivi() {
         try {
             SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
-            const results = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+            const rawData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+            const allResults = SheetsAPI.parseSheetData(rawData);
+            this.resultats = allResults;
             const evalId = String(this.saisieEvaluation.id).trim();
-            const evalResults = results.filter(r => String(r.evaluation_id).trim() === evalId);
+            const evalResults = allResults.filter(r => String(r.evaluation_id).trim() === evalId);
             const resultsMap = {};
             evalResults.forEach(r => { resultsMap[String(r.eleve_id).trim()] = r; });
             this._saisieResults = evalResults;
