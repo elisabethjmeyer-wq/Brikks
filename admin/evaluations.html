@@ -403,6 +403,28 @@
     </div>
 </div>
 
+<!-- Modal: Nouvelle vérification (bonus suivi) -->
+<div class="modal-overlay hidden" id="verificationModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Nouvelle vérification</h2>
+            <button class="modal-close" onclick="AdminEvaluations._closeVerifModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="verif-date-picker" style="margin-bottom:16px;">
+                <label>Date :</label>
+                <input type="date" id="verifDate" class="form-input" style="width:auto;">
+            </div>
+            <div id="verifElevesList"></div>
+            <p id="verifCounter" style="font-size:13px;color:var(--gray-500);margin-top:12px;"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="AdminEvaluations._closeVerifModal()">Annuler</button>
+            <button class="btn btn-primary" id="verifSaveBtn" onclick="AdminEvaluations._saveAllVerifications()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
 <!-- Notification -->
 <div class="notification" id="notification"></div>
 
