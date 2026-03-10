@@ -529,8 +529,12 @@ const AdminEvaluations = {
             validated = evalResults.filter(r => r.is_validated === true || r.is_validated === 'true').length;
             if (sousTypeBonusCard === 'suivi') {
                 const inscrits = demandes.filter(r => { const s = String(r.demande_statut || '').trim(); return s === 'accepte' || s === 'rendu' || s === 'corrige'; });
+                const nbDemandes = demandes.length;
                 totalEleves = inscrits.length;
                 statsLabel = totalEleves === 1 ? 'Inscrit' : 'Inscrits';
+                if (nbDemandes > inscrits.length) {
+                    statsLabel += ` (${nbDemandes - inscrits.length} en attente)`;
+                }
             } else {
                 statsLabel = totalEleves === 1 ? 'Demande' : 'Demandes';
             }
@@ -3958,6 +3962,18 @@ const AdminEvaluations = {
             this.showNotification('Veuillez saisir une date', 'error');
             return;
         }
+        // Vérifier le format et la cohérence de la date
+        const dateObj = new Date(date + 'T00:00:00');
+        if (isNaN(dateObj.getTime())) {
+            this.showNotification('Date invalide', 'error');
+            return;
+        }
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (dateObj > today) {
+            this.showNotification('La date ne peut pas être dans le futur', 'error');
+            return;
+        }
 
         const toggles = document.querySelectorAll('.verif-toggle');
         if (toggles.length === 0) return;
@@ -3966,9 +3982,10 @@ const AdminEvaluations = {
         const saveBtn = document.querySelector('.suivi-verif-panel .btn-primary');
         if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
 
-        let errors = 0;
+        let errors = [];
         for (const toggle of toggles) {
             const eleveId = toggle.dataset.eleve;
+            if (!eleveId) continue;
             const resultat = toggle.dataset.resultat === 'true';
 
             try {
@@ -3980,20 +3997,20 @@ const AdminEvaluations = {
                 });
 
                 if (!result.success) {
-                    errors++;
-                    console.error('Erreur sauvegarde vérif:', result.error);
+                    const eleve = this.eleves.find(e => String(e.id).trim() === String(eleveId).trim());
+                    errors.push(eleve ? `${eleve.prenom} ${eleve.nom}` : eleveId);
                 }
             } catch (error) {
-                errors++;
-                console.error('Erreur réseau vérif:', error);
+                const eleve = this.eleves.find(e => String(e.id).trim() === String(eleveId).trim());
+                errors.push(eleve ? `${eleve.prenom} ${eleve.nom}` : eleveId);
             }
         }
 
         // Fermer le panneau et rafraîchir le tableau
         this._closeVerifPanel();
 
-        if (errors > 0) {
-            this.showNotification(`${errors} erreur(s) lors de l'enregistrement`, 'error');
+        if (errors.length > 0) {
+            this.showNotification(`Échec pour : ${errors.join(', ')}`, 'error');
         } else {
             this.showNotification('Vérification enregistrée');
         }

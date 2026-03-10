@@ -545,15 +545,23 @@ const EleveResultats = {
                 }
             }
 
-            // Suivi: count validations
+            // Suivi: count validations + historique complet
             let suiviProgress = null;
             if (sousType === 'suivi') {
                 const nbValidations = parseInt(ev.nb_validations) || 5;
-                const validationsDone = r ? (parseInt(r.validations) || 0) : 0;
-                suiviProgress = { done: validationsDone, total: nbValidations };
+                const validationsDone = r ? (parseInt(r.validation_numero) || parseInt(r.validations) || 0) : 0;
+                let historique = [];
+                if (r && r.validations_historique) {
+                    try {
+                        historique = typeof r.validations_historique === 'string'
+                            ? JSON.parse(r.validations_historique) : r.validations_historique;
+                        if (!Array.isArray(historique)) historique = [];
+                    } catch (_e) { historique = []; }
+                }
+                suiviProgress = { done: validationsDone, total: nbValidations, historique };
             }
 
-            // Demande statut for bonus comp/ponctuel
+            // Demande statut for all bonus types
             const demandeStatut = r ? String(r.demande_statut || '').trim() : '';
 
             return {
@@ -1157,12 +1165,21 @@ const EleveResultats = {
         return h;
     },
 
-    /** Render a bonus suivi card with progress bar */
+    /** Render a bonus suivi card with progress bar + historique complet */
     _renderBonusSuiviCard(b, isOpen) {
         const C = this.COLORS;
-        const sp = b.suiviProgress || { done: 0, total: 5 };
+        const sp = b.suiviProgress || { done: 0, total: 5, historique: [] };
+        const hist = sp.historique || [];
         const pct = sp.total > 0 ? Math.round((sp.done / sp.total) * 100) : 0;
         const isComplete = sp.done >= sp.total;
+
+        // Gestion du statut de demande
+        if (b.demandeStatut === 'refuse') {
+            return this._renderBonusSuiviRefused(b);
+        }
+        if (b.demandeStatut === 'demande') {
+            return this._renderBonusSuiviPending(b);
+        }
 
         let h = '<div class="bonus-card' + (isOpen ? ' open' : '') + '">';
         h += '<div class="bonus-header" onclick="EleveResultats.toggleBonus(\'' + b.id + '\')">';
@@ -1170,7 +1187,7 @@ const EleveResultats = {
         h += '<div class="bonus-name"><div class="bonus-name-text" style="color:' + (isComplete ? '#1f2937' : '#6b7280') + '">' + escapeHtml(b.nom) + '</div>';
         h += '<div class="bonus-name-sub">';
         h += '<span class="bonus-type-tag" style="background:#fefce8;color:#ca8a04">Suivi</span> ';
-        h += sp.done + '/' + sp.total + ' validation' + (sp.done > 1 ? 's' : '');
+        h += sp.done + '/' + sp.total + ' validation' + (sp.total > 1 ? 's' : '');
         if (isComplete) h += '<span class="complete">Objectif atteint \u2713</span>';
         h += '</div></div>';
 
@@ -1189,16 +1206,62 @@ const EleveResultats = {
         h += '<div class="suivi-progress-bar"><div class="suivi-progress-fill" style="width:' + pct + '%;background:' + (isComplete ? '#059669' : C.yel) + '"></div></div>';
         h += '<div class="suivi-progress-label">' + pct + '% — ' + sp.done + ' / ' + sp.total + '</div>';
 
-        // Checkboxes (read-only)
-        h += '<div class="suivi-checks">';
-        for (let i = 1; i <= sp.total; i++) {
-            const done = i <= sp.done;
-            h += '<div class="suivi-check ' + (done ? 'done' : 'pending') + '">';
-            h += '<span class="suivi-check-icon">' + (done ? '\u2705' : '\u2B1C') + '</span>';
-            h += '<span>V' + i + '</span></div>';
+        // Historique complet avec dates et résultats ✓/✗
+        if (hist.length > 0) {
+            h += '<div class="suivi-historique">';
+            h += '<div class="suivi-historique-title">Historique des vérifications</div>';
+            h += '<div class="suivi-historique-list">';
+            hist.forEach(function(entry, idx) {
+                const ok = entry.resultat === true || entry.resultat === 'true';
+                const cls = ok ? 'success' : 'fail';
+                const icon = ok ? '\u2713' : '\u2717';
+                let dateStr = '';
+                try {
+                    const d = new Date(entry.date);
+                    if (!isNaN(d.getTime())) {
+                        dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+                    } else {
+                        dateStr = entry.date;
+                    }
+                } catch (_e) { dateStr = entry.date || ''; }
+                h += '<div class="suivi-historique-entry ' + cls + '">';
+                h += '<span class="suivi-historique-icon">' + icon + '</span>';
+                h += '<span class="suivi-historique-date">' + escapeHtml(dateStr) + '</span>';
+                h += '<span class="suivi-historique-label">' + (ok ? 'Validé' : 'Non validé') + '</span>';
+                h += '</div>';
+            });
+            h += '</div></div>';
+        } else {
+            h += '<div class="suivi-no-history">Aucune vérification pour le moment</div>';
         }
-        h += '</div></div>';
 
+        h += '</div>';
+        h += '</div></div>';
+        return h;
+    },
+
+    /** Carte suivi quand la demande est en attente */
+    _renderBonusSuiviPending(b) {
+        let h = '<div class="bonus-card">';
+        h += '<div class="bonus-header">';
+        h += '<span class="bonus-icon">\u2B50</span>';
+        h += '<div class="bonus-name"><div class="bonus-name-text" style="color:#6b7280">' + escapeHtml(b.nom) + '</div>';
+        h += '<div class="bonus-name-sub"><span class="bonus-type-tag" style="background:#fefce8;color:#ca8a04">Suivi</span> ';
+        h += '<span style="color:#f59e0b;font-weight:600">Demande envoyée</span></div></div>';
+        h += '<span class="bonus-pts-badge" style="background:#f3f4f6;color:#d1d5db">' + (b.pts || 0) + ' pts</span>';
+        h += '</div></div>';
+        return h;
+    },
+
+    /** Carte suivi quand la demande est refusée */
+    _renderBonusSuiviRefused(b) {
+        let h = '<div class="bonus-card">';
+        h += '<div class="bonus-header">';
+        h += '<span class="bonus-icon">\u2B50</span>';
+        h += '<div class="bonus-name"><div class="bonus-name-text" style="color:#6b7280">' + escapeHtml(b.nom) + '</div>';
+        h += '<div class="bonus-name-sub"><span class="bonus-type-tag" style="background:#fefce8;color:#ca8a04">Suivi</span> ';
+        h += '<span style="color:#ef4444;font-weight:600">Refusé</span></div></div>';
+        h += '<span class="bonus-pts-badge" style="background:#f3f4f6;color:#d1d5db">' + (b.pts || 0) + ' pts</span>';
         h += '</div></div>';
         return h;
     },
