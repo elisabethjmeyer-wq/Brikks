@@ -162,14 +162,14 @@ const EleveEvaluation = {
     },
 
     /**
-     * Rendu TC / bonus compétence : layout 2 colonnes.
+     * Rendu TC / bonus mission (avec compétences) : layout 2 colonnes.
      * Barre de titre + tag, sujet à gauche, critères à droite.
      * @param {string} variant - 'tc' (défaut) ou 'bonus' pour le badge
      */
     async _renderTCSujetMode(data, exercice, documentHtml, variant) {
         const title = data.titre || 'Sujet';
         const isBonus = variant === 'bonus';
-        const badgeLabel = isBonus ? 'Bonus compétence' : 'Évaluation de compétence';
+        const badgeLabel = isBonus ? 'Bonus mission' : 'Évaluation de compétence';
         const badgeClass = isBonus ? 'bonus' : 'tc';
 
         // Charger les critères de réussite des compétences liées
@@ -218,17 +218,17 @@ const EleveEvaluation = {
     },
 
     /**
-     * Rendu bonus : layout simple header + document pour bonus ponctuel,
-     * layout 2 colonnes (comme TC) pour bonus compétence.
+     * Rendu bonus mission : layout 2 colonnes si competence_ids présents,
+     * layout simple header + document sinon.
      */
     async _renderBonusSujetMode(data, exercice, documentHtml) {
-        // Bonus compétence : a des competence_ids → layout 2 colonnes comme TC
+        // Bonus mission avec compétences : layout 2 colonnes comme TC
         const competenceIds = this._parseCompetenceIds(data, exercice);
         if (competenceIds.length > 0) {
             return this._renderTCSujetMode(data, exercice, documentHtml, 'bonus');
         }
 
-        // Bonus ponctuel : layout simple (plein écran, sans sidebar critères)
+        // Bonus mission sans compétences : layout simple (plein écran, sans sidebar critères)
         const title = data.titre || 'Sujet';
 
         // Phase 9 : description directement sur data, fallback exercice.consigne
@@ -245,7 +245,7 @@ const EleveEvaluation = {
                     <div class="sujet-topbar-info">
                         <h1>${escapeHtml(title)}</h1>
                         <div class="sujet-topbar-meta">
-                            <span class="sujet-mode-badge bonus">Bonus ponctuel</span>
+                            <span class="sujet-mode-badge bonus">Bonus mission</span>
                         </div>
                     </div>
                 </div>
@@ -500,10 +500,10 @@ const EleveEvaluation = {
 
         const { resultat, evaluation, banque_titre, competences, criteres } = response.data;
 
-        // Si c'est une TC ou un bonus compétence, rendre la vue compétences (2 colonnes)
+        // Si c'est une TC ou un bonus mission avec compétences, rendre la vue compétences (2 colonnes)
         const evalType = evaluation ? String(evaluation.type || '').trim() : '';
-        const sousTypeBonus = evaluation ? String(evaluation.sous_type_bonus || '').trim() : '';
-        const isCompetenceReview = evalType === 'competences' || (evalType === 'bonus' && sousTypeBonus === 'competence');
+        const hasCompetenceIds = evaluation && this._parseCompetenceIds(evaluation, {}).length > 0;
+        const isCompetenceReview = evalType === 'competences' || (evalType === 'bonus' && hasCompetenceIds);
         if (isCompetenceReview) {
             this._renderTCReview(resultat, evaluation, competences || [], criteres || []);
             this.showContent();
@@ -774,7 +774,7 @@ const EleveEvaluation = {
                     <div class="sujet-topbar-info">
                         <h1>${escapeHtml(titre)}</h1>
                         <div class="sujet-topbar-meta">
-                            <span class="sujet-mode-badge tc">${String(evaluation.type || '').trim() === 'bonus' ? 'Bonus compétence' : 'Évaluation de compétence'}</span>
+                            <span class="sujet-mode-badge tc">${String(evaluation.type || '').trim() === 'bonus' ? 'Bonus mission' : 'Évaluation de compétence'}</span>
                             ${matiereLabel ? `<span class="sujet-mode-badge matiere">${escapeHtml(matiereLabel)}</span>` : ''}
                         </div>
                     </div>

@@ -1524,13 +1524,7 @@
     border: 1px solid #fecaca;
 }
 
-.badge-type-bonus-comp {
-    background: #f5f3ff;
-    color: #7c3aed;
-    border: 1px solid #ddd6fe;
-}
-
-.badge-type-bonus-ponctuel {
+.badge-type-bonus-mission {
     background: #f0fdfa;
     color: #0d9488;
     border: 1px solid #99f6e4;
