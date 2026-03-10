@@ -17,6 +17,9 @@
     --eval-bonus: #eab308;
     --eval-bonus-light: #fef9c3;
     --eval-bonus-text: #854d0e;
+    --eval-suivi: #0d9488;
+    --eval-suivi-light: #ccfbf1;
+    --eval-suivi-text: #0f766e;
     --eval-controle: #64748b;
     --eval-controle-light: #f1f5f9;
     --eval-controle-text: #334155;
@@ -462,6 +465,7 @@
 .card-type.type-sf { color: var(--eval-sf); }
 .card-type.type-comp { color: var(--eval-comp); }
 .card-type.type-bonus { color: var(--eval-bonus); }
+.card-type.type-suivi { color: var(--eval-suivi); }
 .card-type.type-controle { color: var(--eval-controle); }
 
 .card-description {
@@ -774,6 +778,24 @@
     color: var(--gray-500);
     margin-top: 2px;
     font-style: italic;
+}
+
+/* Suivi card — teal border + bullet */
+.eval-card.bonus-suivi {
+    border-left-color: var(--eval-suivi);
+}
+
+.eval-card.bonus-suivi .card-bullet {
+    background: var(--eval-suivi);
+}
+
+/* Description tronquée à 2 lignes */
+.card-description.suivi-description {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.5;
 }
 
 /* Suivi progress bar */

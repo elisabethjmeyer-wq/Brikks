@@ -859,7 +859,7 @@ const EleveEvaluations = {
         const title = evaluation.titre || 'Suivi';
         const pct = nbTotal > 0 ? Math.round((currentVal / nbTotal) * 100) : 0;
 
-        let cardClass = 'eval-card bonus-card bonus-suivi';
+        let cardClass = 'eval-card bonus-card bonus-suivi type-bonus';
         if (isComplete) cardClass += ' done validated';
 
         // Points badge
@@ -873,49 +873,53 @@ const EleveEvaluations = {
         // Critères dépliables
         const criteresHtml = this._renderSuiviCriteres(evaluation);
 
-        // Contenu selon le statut
-        let statusHtml = '';
-        let actionHtml = '';
+        // Type subtitle (cohérent avec les autres cartes)
+        let typeSubLabel = `${nbTotal} validations`;
+        if (cardStatus === 'suivi_en_cours') typeSubLabel = 'En cours';
+        else if (cardStatus === 'suivi_complete') typeSubLabel = 'Objectif atteint !';
+        else if (cardStatus === 'suivi_refuse') typeSubLabel = '';
 
-        if (cardStatus === 'suivi_disponible') {
-            // Pas encore demandé
-            statusHtml = `<div class="card-type" style="color:#0d9488">Bonus suivi · ${nbTotal} validations</div>`;
-            actionHtml = `<button class="card-btn type-bonus" id="btnDemande_${evaluation.id}" onclick="event.stopPropagation(); EleveEvaluations.demanderEvaluation('${evaluation.id}')">Demander cette évaluation</button>`;
-        } else if (cardStatus === 'suivi_demande') {
-            // Demande envoyée, en attente
-            statusHtml = `<div class="card-type" style="color:#0d9488">Bonus suivi · ${nbTotal} validations</div>`;
-            actionHtml = '<span class="bonus-status en-attente">Demande envoyée</span>';
+        const typeSubtitle = `<div class="card-type type-suivi">Bonus suivi${typeSubLabel ? ` · <span class="card-sublabel">${typeSubLabel}</span>` : ''}</div>`;
+
+        // Statut (badges inline dans card-info)
+        let statusHtml = '';
+        if (cardStatus === 'suivi_demande') {
+            statusHtml = '<span class="bonus-status en-attente">Demande envoyée</span>';
         } else if (cardStatus === 'suivi_refuse') {
-            // Demande refusée
             const remarque = resultat ? (resultat.remarque_prof || '') : '';
-            statusHtml = `<div class="card-type" style="color:#0d9488">Bonus suivi</div>`;
-            actionHtml = `<span class="bonus-status refuse">Refusé</span>`;
-            if (remarque) actionHtml += `<div class="bonus-remarque">${escapeHtml(remarque)}</div>`;
-        } else if (cardStatus === 'suivi_en_cours') {
-            // Accepté, en cours de progression
-            statusHtml = `<div class="card-type" style="color:#0d9488">Bonus suivi · En cours</div>`;
-            actionHtml = this._renderSuiviProgress(currentVal, nbTotal, pct, isComplete, resultat);
-        } else if (cardStatus === 'suivi_complete') {
-            // Toutes les validations atteintes
-            statusHtml = `<div class="card-type" style="color:#0d9488">Bonus suivi · Objectif atteint !</div>`;
-            actionHtml = this._renderSuiviProgress(currentVal, nbTotal, pct, isComplete, resultat);
+            statusHtml = `<span class="bonus-status refuse">Refusé</span>`;
+            if (remarque) statusHtml += `<div class="bonus-remarque">${escapeHtml(remarque)}</div>`;
+        } else if (cardStatus === 'suivi_en_cours' || cardStatus === 'suivi_complete') {
+            statusHtml = this._renderSuiviProgress(currentVal, nbTotal, pct, isComplete, resultat);
         }
+
+        // Action (dans card-right, comme les autres cartes)
+        let actionHtml = '';
+        if (cardStatus === 'suivi_disponible') {
+            actionHtml = `<button class="card-btn type-bonus" id="btnDemande_${evaluation.id}" onclick="event.stopPropagation(); EleveEvaluations.demanderEvaluation('${evaluation.id}')">Demander</button>`;
+        }
+
+        // Description tronquée (2 lignes max)
+        const descHtml = evaluation.description_eleve
+            ? `<div class="card-description suivi-description">${escapeHtml(evaluation.description_eleve)}</div>`
+            : '';
 
         return `
             <div class="${cardClass}">
                 <div class="card-layout">
                     <div class="card-info">
                         <div class="card-title-row">
-                            <span class="card-bullet" style="background:#0d9488"></span>
+                            <span class="card-bullet type-bonus"></span>
                             <h3 class="card-title">${escapeHtml(title)}</h3>
                         </div>
-                        ${statusHtml}
-                        ${evaluation.description_eleve ? `<div class="card-description">${escapeHtml(evaluation.description_eleve)}</div>` : ''}
+                        ${typeSubtitle}
+                        ${descHtml}
                         ${criteresHtml}
-                        ${actionHtml}
+                        ${statusHtml}
                     </div>
                     <div class="card-right">
                         ${pointsBadge}
+                        ${actionHtml}
                     </div>
                 </div>
             </div>
