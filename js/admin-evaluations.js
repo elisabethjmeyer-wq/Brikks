@@ -1795,27 +1795,35 @@ const AdminEvaluations = {
             groupsHtml = '<div style="padding: 24px; text-align: center; color: var(--gray-400);">Aucune compétence dans le référentiel</div>';
         }
 
-        // --- Section 2 : Critères libres ---
-        let criteres = [];
+        // --- Section 2 : Compétences personnalisées ---
+        let customComps = [];
         if (d.criteres_libres) {
             try {
                 const parsed = typeof d.criteres_libres === 'string' ? JSON.parse(d.criteres_libres) : d.criteres_libres;
-                if (Array.isArray(parsed)) criteres = parsed;
+                if (Array.isArray(parsed)) {
+                    // Nouveau format : objets {id, nom, matiere, points, criteres}
+                    if (parsed.length > 0 && typeof parsed[0] === 'object') {
+                        customComps = parsed;
+                    }
+                    // Ancien format : strings simples → convertir
+                    else if (parsed.length > 0 && typeof parsed[0] === 'string') {
+                        customComps = parsed.filter(s => s && s.trim()).map((s, i) => ({
+                            id: 'custom_' + Date.now() + '_' + i,
+                            nom: s,
+                            matiere: 'FR',
+                            points: 1,
+                            criteres: []
+                        }));
+                    }
+                }
             } catch (_e) { /* ignore */ }
         }
-        if (criteres.length === 0) criteres.push('');
 
-        const criteresRows = criteres.map((c, i) =>
-            `<div class="critere-libre-row">
-                <span class="critere-libre-num">${i + 1}</span>
-                <input type="text" class="form-input critere-libre-input" value="${escapeHtml(c)}" placeholder="Ex: Répondre avec une phrase complète">
-                <button class="btn-icon btn-remove" onclick="AdminEvaluations._ewRemoveCritere(${i})" title="Supprimer">&times;</button>
-            </div>`
-        ).join('');
+        const customCompsHtml = customComps.map((cc, idx) => this._renderCustomCompCard(cc, idx)).join('');
 
         // --- Assemblage avec 2 sections en toggle ---
         const hasSelectedComps = selectedIds.length > 0;
-        const hasCriteres = criteres.some(c => c.trim());
+        const hasCriteres = customComps.length > 0;
 
         return `<div class="eval-wizard-step-content cec-merged-step">
             <div class="step-header">
@@ -1841,20 +1849,20 @@ const AdminEvaluations = {
                 </div>
             </div>
 
-            <!-- Section Critères libres -->
+            <!-- Section Compétences personnalisées -->
             <div class="cec-section">
                 <button type="button" class="cec-section-header" onclick="AdminEvaluations._toggleCecSection(this)">
                     <div class="cec-section-icon" style="background: #0d948820; color: #0d9488;">✏️</div>
                     <div class="cec-section-title">
-                        <span class="cec-section-name">Critères libres</span>
-                        <span class="cec-section-desc">Ajoutez vos propres critères de réussite personnalisés</span>
+                        <span class="cec-section-name">Compétences personnalisées</span>
+                        <span class="cec-section-desc">Créez des compétences spécifiques à cette mission (avec matière, points et critères)</span>
                     </div>
-                    <span class="cec-section-badge" id="cecCritBadge">${hasCriteres ? criteres.filter(c => c.trim()).length + ' critère' + (criteres.filter(c => c.trim()).length > 1 ? 's' : '') : 'Optionnel'}</span>
+                    <span class="cec-section-badge" id="cecCritBadge">${hasCriteres ? customComps.length + ' compétence' + (customComps.length > 1 ? 's' : '') : 'Optionnel'}</span>
                     <span class="cec-section-arrow">${hasCriteres ? '▾' : '▸'}</span>
                 </button>
                 <div class="cec-section-body" id="cecCritBody"${hasCriteres ? '' : ' style="display:none;"'}>
-                    <div id="evalCriteresList" class="cw-criteres-list">${criteresRows}</div>
-                    <button class="btn btn-secondary btn-sm" onclick="AdminEvaluations._ewAddCritere()" style="margin-top: 8px;">+ Ajouter un critère</button>
+                    <div id="evalCustomCompsList">${customCompsHtml}</div>
+                    <button class="btn btn-secondary btn-sm" onclick="AdminEvaluations._addCustomComp()" style="margin-top: 12px;">+ Ajouter une compétence personnalisée</button>
                 </div>
             </div>
 
@@ -2424,6 +2432,145 @@ const AdminEvaluations = {
         }
     },
 
+    // --- COMPÉTENCES PERSONNALISÉES (bonus mission) ---
+
+    _renderCustomCompCard(cc, idx) {
+        const matiereOptions = ['FR', 'HG-EMC', 'Transversal'];
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        const mat = cc.matiere || 'FR';
+        const color = matiereColors[mat] || '#6b7280';
+        const criteresHtml = (cc.criteres || []).map((crit, ci) =>
+            `<div class="custom-comp-critere-row" style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="font-size:0.75rem;color:var(--gray-400);min-width:16px;">${ci + 1}.</span>
+                <input type="text" class="form-input custom-comp-critere-input" data-comp-idx="${idx}" value="${escapeHtml(crit)}" placeholder="Critère de réussite" style="flex:1;padding:4px 8px;font-size:0.85rem;">
+                <button class="btn-icon btn-remove" onclick="AdminEvaluations._removeCustomCompCritere(${idx}, ${ci})" title="Supprimer" style="font-size:0.8rem;">&times;</button>
+            </div>`
+        ).join('');
+
+        const matiereSelect = matiereOptions.map(m =>
+            `<option value="${m}"${m === mat ? ' selected' : ''}>${m === 'FR' ? 'Français' : m === 'HG-EMC' ? 'Histoire-Géo · EMC' : 'Transversal'}</option>`
+        ).join('');
+
+        return `<div class="custom-comp-card" data-comp-idx="${idx}" style="border:1px solid var(--gray-200, #e5e7eb);border-left:3px solid ${color};border-radius:8px;padding:14px 16px;margin-bottom:12px;background:var(--gray-50, #f9fafb);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <input type="text" class="form-input custom-comp-nom" value="${escapeHtml(cc.nom || '')}" placeholder="Nom de la compétence" style="flex:1;font-weight:600;font-size:0.9rem;">
+                <button class="btn-icon btn-remove" onclick="AdminEvaluations._removeCustomComp(${idx})" title="Supprimer cette compétence" style="font-size:1.1rem;color:var(--gray-400);">&times;</button>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
+                <div style="flex:1;">
+                    <label style="font-size:0.75rem;color:var(--gray-500);display:block;margin-bottom:2px;">Matière</label>
+                    <select class="form-input custom-comp-matiere" onchange="AdminEvaluations._updateCustomCompColor(${idx}, this)" style="padding:4px 8px;font-size:0.85rem;">${matiereSelect}</select>
+                </div>
+                <div style="width:90px;">
+                    <label style="font-size:0.75rem;color:var(--gray-500);display:block;margin-bottom:2px;">Points</label>
+                    <input type="number" class="form-input custom-comp-points" value="${cc.points || 1}" min="0.25" max="20" step="0.25" style="padding:4px 8px;font-size:0.85rem;">
+                </div>
+            </div>
+            <div style="margin-top:8px;">
+                <label style="font-size:0.75rem;color:var(--gray-500);display:block;margin-bottom:4px;">Critères de réussite</label>
+                <div class="custom-comp-criteres-list">${criteresHtml}</div>
+                <button class="btn btn-secondary btn-sm" onclick="AdminEvaluations._addCustomCompCritere(${idx})" style="margin-top:4px;font-size:0.8rem;padding:3px 10px;">+ Critère</button>
+            </div>
+        </div>`;
+    },
+
+    _addCustomComp() {
+        const container = document.getElementById('evalCustomCompsList');
+        if (!container) return;
+        const count = container.querySelectorAll('.custom-comp-card').length;
+        const newComp = {
+            id: 'custom_' + Date.now() + '_' + count,
+            nom: '',
+            matiere: 'FR',
+            points: 1,
+            criteres: ['']
+        };
+        const div = document.createElement('div');
+        div.innerHTML = this._renderCustomCompCard(newComp, count);
+        const card = div.firstElementChild;
+        container.appendChild(card);
+        card.querySelector('.custom-comp-nom').focus();
+        this._updateCustomCompBadge();
+    },
+
+    _removeCustomComp(idx) {
+        const comps = this._collectCustomComps();
+        comps.splice(idx, 1);
+        this._rerenderCustomComps(comps);
+    },
+
+    _addCustomCompCritere(compIdx) {
+        const cards = document.querySelectorAll('#evalCustomCompsList .custom-comp-card');
+        if (compIdx >= cards.length) return;
+        const list = cards[compIdx].querySelector('.custom-comp-criteres-list');
+        if (!list) return;
+        const count = list.querySelectorAll('.custom-comp-critere-row').length;
+        const row = document.createElement('div');
+        row.className = 'custom-comp-critere-row';
+        row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:4px;';
+        row.innerHTML = `<span style="font-size:0.75rem;color:var(--gray-400);min-width:16px;">${count + 1}.</span>
+            <input type="text" class="form-input custom-comp-critere-input" data-comp-idx="${compIdx}" value="" placeholder="Critère de réussite" style="flex:1;padding:4px 8px;font-size:0.85rem;">
+            <button class="btn-icon btn-remove" onclick="AdminEvaluations._removeCustomCompCritere(${compIdx}, ${count})" title="Supprimer" style="font-size:0.8rem;">&times;</button>`;
+        list.appendChild(row);
+        row.querySelector('.custom-comp-critere-input').focus();
+    },
+
+    _removeCustomCompCritere(compIdx, critIdx) {
+        const comps = this._collectCustomComps();
+        if (compIdx < comps.length) {
+            comps[compIdx].criteres.splice(critIdx, 1);
+        }
+        this._rerenderCustomComps(comps);
+    },
+
+    _collectCustomComps() {
+        const cards = document.querySelectorAll('#evalCustomCompsList .custom-comp-card');
+        const comps = [];
+        cards.forEach((card, idx) => {
+            const nom = (card.querySelector('.custom-comp-nom')?.value || '').trim();
+            const matiere = card.querySelector('.custom-comp-matiere')?.value || 'FR';
+            const points = parseFloat(card.querySelector('.custom-comp-points')?.value) || 1;
+            const critInputs = card.querySelectorAll('.custom-comp-critere-input');
+            const criteres = [];
+            critInputs.forEach(inp => {
+                const v = inp.value.trim();
+                if (v) criteres.push(v);
+            });
+            comps.push({
+                id: 'custom_' + Date.now() + '_' + idx,
+                nom: nom,
+                matiere: matiere,
+                points: points,
+                criteres: criteres
+            });
+        });
+        return comps;
+    },
+
+    _rerenderCustomComps(comps) {
+        const container = document.getElementById('evalCustomCompsList');
+        if (!container) return;
+        container.innerHTML = comps.map((cc, idx) => this._renderCustomCompCard(cc, idx)).join('');
+        this._updateCustomCompBadge();
+    },
+
+    _updateCustomCompBadge() {
+        const badge = document.getElementById('cecCritBadge');
+        if (!badge) return;
+        const cards = document.querySelectorAll('#evalCustomCompsList .custom-comp-card');
+        const count = cards.length;
+        badge.textContent = count > 0 ? count + ' compétence' + (count > 1 ? 's' : '') : 'Optionnel';
+    },
+
+    _updateCustomCompColor(idx, select) {
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        const card = select.closest('.custom-comp-card');
+        if (card) {
+            const color = matiereColors[select.value] || '#6b7280';
+            card.style.borderLeftColor = color;
+        }
+    },
+
     // --- ÉTAPE RÉSUMÉ ---
 
     _renderStepResume() {
@@ -2468,17 +2615,40 @@ const AdminEvaluations = {
             compHtml = `<div class="summary-row" style="align-items:flex-start;"><span class="label">Compétences</span><span class="value" style="flex-direction:column;gap:0;">${badges || 'Aucune'}</span></div>`;
         }
 
-        // Critères libres
+        // Compétences personnalisées
         let criteresHtml = '';
         if (d.criteres_libres) {
-            let criteres = [];
+            let customComps = [];
             try {
                 const parsed = typeof d.criteres_libres === 'string' ? JSON.parse(d.criteres_libres) : d.criteres_libres;
-                if (Array.isArray(parsed)) criteres = parsed;
+                if (Array.isArray(parsed)) {
+                    if (parsed.length > 0 && typeof parsed[0] === 'object') {
+                        customComps = parsed;
+                    } else if (parsed.length > 0 && typeof parsed[0] === 'string') {
+                        // Ancien format — affichage rétro-compatible
+                        const list = parsed.map((c, i) => `<div style="font-size:0.8rem;padding:2px 0;">${i + 1}. ${escapeHtml(c)}</div>`).join('');
+                        criteresHtml = `<div class="summary-row"><span class="label">Critères</span><span class="value" style="flex-direction:column;">${list}</span></div>`;
+                    }
+                }
             } catch (_e) { /* ignore */ }
-            if (criteres.length > 0) {
-                const list = criteres.map((c, i) => `<div style="font-size:0.8rem;padding:2px 0;">${i + 1}. ${escapeHtml(c)}</div>`).join('');
-                criteresHtml = `<div class="summary-row"><span class="label">Critères</span><span class="value" style="flex-direction:column;">${list}</span></div>`;
+            if (customComps.length > 0) {
+                const matiereColors2 = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+                const ccBadges = customComps.map(cc => {
+                    const ccColor = matiereColors2[cc.matiere] || '#6b7280';
+                    const ccPts = cc.points || '?';
+                    let ccHtml = `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;">
+                        <span style="display:inline-block;font-size:0.7rem;padding:2px 6px;border-radius:4px;background:${ccColor}20;color:${ccColor};font-weight:600;">${escapeHtml(cc.matiere || 'FR')}</span>
+                        <span style="font-size:0.85rem;">${escapeHtml(cc.nom)}</span>
+                        <span style="font-size:0.8rem;font-weight:600;color:var(--gray-600);">${ccPts} pt${ccPts > 1 ? 's' : ''}</span>
+                    </div>`;
+                    if (cc.criteres && cc.criteres.length > 0) {
+                        ccHtml += `<div style="padding-left:20px;">` +
+                            cc.criteres.map(cr => `<div style="font-size:0.75rem;color:var(--gray-500);padding:1px 0;">• ${escapeHtml(cr)}</div>`).join('') +
+                            `</div>`;
+                    }
+                    return ccHtml;
+                }).join('');
+                criteresHtml = `<div class="summary-row" style="align-items:flex-start;"><span class="label">Comp. personnalisées</span><span class="value" style="flex-direction:column;gap:0;">${ccBadges}</span></div>`;
             }
         }
 
@@ -2755,19 +2925,21 @@ const AdminEvaluations = {
                     for (const k in ptsParCompMerged) totalBriques += ptsParCompMerged[k];
                     this.wizardData.briques = totalBriques;
                 }
-                // 2. Collect critères libres
-                const inputsMerged = document.querySelectorAll('#evalCriteresList .critere-libre-input');
-                const criteresMerged = [];
-                inputsMerged.forEach(input => {
-                    const v = input.value.trim();
-                    if (v) criteresMerged.push(v);
-                });
-                // Validation : au moins une compétence OU un critère
-                if (idsMerged.length === 0 && criteresMerged.length === 0) {
-                    this.showNotification('Sélectionnez au moins une compétence ou ajoutez un critère libre', 'error');
+                // 2. Collect compétences personnalisées
+                const customComps = this._collectCustomComps();
+                const validCustomComps = customComps.filter(cc => cc.nom);
+                // Validation : au moins une compétence du référentiel OU une compétence personnalisée
+                if (idsMerged.length === 0 && validCustomComps.length === 0) {
+                    this.showNotification('Sélectionnez au moins une compétence ou ajoutez une compétence personnalisée', 'error');
                     return false;
                 }
-                this.wizardData.criteres_libres = criteresMerged.length > 0 ? JSON.stringify(criteresMerged) : '';
+                this.wizardData.criteres_libres = validCustomComps.length > 0 ? JSON.stringify(validCustomComps) : '';
+                // Ajouter les points des compétences personnalisées au total
+                if (validCustomComps.length > 0) {
+                    let totalCustomPts = 0;
+                    validCustomComps.forEach(cc => { totalCustomPts += (cc.points || 0); });
+                    this.wizardData.briques = (this.wizardData.briques || 0) + totalCustomPts;
+                }
                 return true;
             }
             case 'suivi_details': {
@@ -4969,7 +5141,8 @@ const AdminEvaluations = {
     // ========== CORRECTION (wizard intégré à la saisie — TC, bonus mission) ==========
 
     /**
-     * Parse les critères libres d'une évaluation bonus ponctuel (JSON array de strings).
+     * Parse les critères libres / compétences personnalisées d'une évaluation.
+     * Retourne un array (ancien format: strings, nouveau format: objets).
      */
     _getCriteresLibresForEval(evaluation) {
         const raw = evaluation ? evaluation.criteres_libres : '';
@@ -4978,6 +5151,13 @@ const AdminEvaluations = {
             const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
             return Array.isArray(parsed) ? parsed : [];
         } catch (_e) { return []; }
+    },
+
+    /**
+     * Détecte si criteres_libres est au nouveau format (compétences personnalisées).
+     */
+    _isNewCriteresFormat(criteres) {
+        return Array.isArray(criteres) && criteres.length > 0 && typeof criteres[0] === 'object';
     },
 
     /**

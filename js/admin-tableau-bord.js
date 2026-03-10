@@ -184,7 +184,7 @@ const AdminTableauBord = {
             const resPpc = this._parsePointsParCompetence(result.points_par_competence);
             if (resPpc && Object.keys(resPpc).length > 0) {
                 for (const compId in resPpc) {
-                    const compMat = this._getCompetenceMatiere(compId);
+                    const compMat = this._getCompetenceMatiere(compId, ev);
                     if (compMat === matiere || compMat === 'Transversal') {
                         cats[categorie] += parseFloat(resPpc[compId]) || 0;
                     }
@@ -210,9 +210,21 @@ const AdminTableauBord = {
         } catch (_e) { return null; }
     },
 
-    _getCompetenceMatiere(compId) {
+    _getCompetenceMatiere(compId, evaluation) {
         const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
-        return comp ? (comp.matiere || 'Transversal') : 'Transversal';
+        if (comp) return comp.matiere || 'Transversal';
+        // Compétences personnalisées : chercher dans criteres_libres de l'évaluation
+        if (evaluation && evaluation.criteres_libres) {
+            try {
+                const parsed = typeof evaluation.criteres_libres === 'string'
+                    ? JSON.parse(evaluation.criteres_libres) : evaluation.criteres_libres;
+                if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
+                    const cc = parsed.find(c => c.id === compId);
+                    if (cc) return cc.matiere || 'FR';
+                }
+            } catch (_e) { /* ignore */ }
+        }
+        return 'Transversal';
     },
 
     /**

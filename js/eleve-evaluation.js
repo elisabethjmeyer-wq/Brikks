@@ -666,8 +666,39 @@ const EleveEvaluation = {
 
         // --- Colonne droite : compétences groupées par matière, critères collapsibles ---
         let sidebarContent = '';
-        if (!isBrouillon && compIds.length > 0) {
-            const totalComps = compIds.length;
+
+        // Parse compétences personnalisées (nouveau format criteres_libres)
+        let customComps = [];
+        if (evaluation.criteres_libres) {
+            try {
+                const parsedCL = typeof evaluation.criteres_libres === 'string' ? JSON.parse(evaluation.criteres_libres) : evaluation.criteres_libres;
+                if (Array.isArray(parsedCL) && parsedCL.length > 0 && typeof parsedCL[0] === 'object' && parsedCL[0].nom) {
+                    customComps = parsedCL;
+                }
+            } catch (_e) { /* ignore */ }
+        }
+
+        // Parse competence_ids_validees pour les compétences perso
+        let compIdsValidees = {};
+        if (resultat.competence_ids_validees) {
+            try {
+                compIdsValidees = typeof resultat.competence_ids_validees === 'string' ? JSON.parse(resultat.competence_ids_validees) : resultat.competence_ids_validees;
+            } catch (_e) { /* ignore */ }
+        }
+
+        // Ajouter les points des compétences perso au pointsParMatiere
+        if (resPpc && customComps.length > 0) {
+            customComps.forEach(cc => {
+                const ccMat = cc.matiere || 'FR';
+                if (!pointsParMatiere[ccMat]) pointsParMatiere[ccMat] = { gained: 0, max: 0 };
+                pointsParMatiere[ccMat].gained += parseFloat(resPpc[cc.id]) || 0;
+                pointsParMatiere[ccMat].max += cc.points || 1;
+            });
+        }
+
+        const hasComps = compIds.length > 0 || customComps.length > 0;
+        if (!isBrouillon && hasComps) {
+            let totalComps = compIds.length + customComps.length;
             let nbCompsValidees = 0;
 
             // Regrouper par matière
@@ -695,6 +726,28 @@ const EleveEvaluation = {
                 });
             });
 
+            // Ajouter les compétences personnalisées à compsData
+            customComps.forEach(cc => {
+                const ccId = cc.id || 'custom_0';
+                const ccCriteres = (cc.criteres || []).map((cr, ci) => ({
+                    id: 'cc_' + ccId + '_' + ci,
+                    libelle: cr
+                }));
+                const ccValides = compIdsValidees[ccId] || [];
+                const allValid = ccCriteres.length > 0
+                    ? ccCriteres.every(c => ccValides.indexOf(String(c.id)) !== -1)
+                    : (resPpc && parseFloat(resPpc[ccId]) > 0);
+                if (allValid) nbCompsValidees++;
+
+                compsData.push({
+                    name: cc.nom || 'Compétence personnalisée',
+                    matiere: cc.matiere || 'FR',
+                    allValid: !!allValid,
+                    criteres: ccCriteres,
+                    isCustom: true
+                });
+            });
+
             // Grouper par matière
             const groups = {};
             compsData.forEach(cd => {
@@ -718,18 +771,35 @@ const EleveEvaluation = {
                 let cardsHtml = '';
                 groups[mat].forEach(cd => {
                     const nbCriteres = cd.criteres.length;
-                    const nbValides = cd.criteres.filter(c => criteresValides.indexOf(String(c.id)) !== -1).length;
+                    // Pour compétences perso, les validations sont dans compIdsValidees[ccId]
+                    const validationSource = cd.isCustom ? [] : criteresValides;
+                    const nbValides = cd.criteres.filter(c => {
+                        if (cd.isCustom) {
+                            // Trouver le ccId dans le nom du critère id (format: cc_<ccId>_<ci>)
+                            const parts = String(c.id).split('_');
+                            const ccId = parts.slice(1, -1).join('_');
+                            return (compIdsValidees[ccId] || []).indexOf(String(c.id)) !== -1;
+                        }
+                        return validationSource.indexOf(String(c.id)) !== -1;
+                    }).length;
 
                     cardsHtml += `
                         <div class="sujet-criteres-block" style="border-left: 3px solid ${cd.allValid ? '#10b981' : color};">
                             <button type="button" class="sujet-comp-toggle" onclick="EleveEvaluation._toggleCriteres(this)">
                                 <span class="sujet-comp-arrow">▸</span>
-                                <h4 class="sujet-criteres-title">${escapeHtml(cd.name)}</h4>
+                                <h4 class="sujet-criteres-title">${cd.isCustom ? '✏️ ' : ''}${escapeHtml(cd.name)}</h4>
                                 <span class="tc-review-comp-badge ${cd.allValid ? 'validated' : 'not-validated'}">${cd.allValid ? '✅ Validée' : `${nbValides}/${nbCriteres}`}</span>
                             </button>
                             <div class="sujet-criteres-list" style="display: none;">
                                 ${cd.criteres.map(c => {
-                                    const isValid = criteresValides.indexOf(String(c.id)) !== -1;
+                                    let isValid;
+                                    if (cd.isCustom) {
+                                        const parts = String(c.id).split('_');
+                                        const ccId = parts.slice(1, -1).join('_');
+                                        isValid = (compIdsValidees[ccId] || []).indexOf(String(c.id)) !== -1;
+                                    } else {
+                                        isValid = criteresValides.indexOf(String(c.id)) !== -1;
+                                    }
                                     return `<div class="sujet-critere-item" style="background: ${isValid ? '#f0fdf4' : '#fef2f2'};">
                                         <span class="sujet-critere-check" style="color: ${isValid ? '#10b981' : '#ef4444'};">${isValid ? '✅' : '❌'}</span>
                                         <span class="sujet-critere-label">${escapeHtml(c.libelle)}</span>

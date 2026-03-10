@@ -1,183 +1,97 @@
-# Plan de correction/évolution des évaluations
+# Plan : Compétences personnalisées dans les bonus missions
 
-> Réorganisé par blocs fonctionnels logiques (traités dans l'ordre).
+## Concept
 
----
+Remplacer les "critères libres" (simples textes sans points ni matière) par des **compétences personnalisées** : même structure qu'une compétence du référentiel (nom + matière + points + critères de réussite), mais locale à cette mission.
 
-## Bloc 1 — Corrections transversales (rapides)
+## Format de données
 
-### 1.1 Points décimaux (point 1)
-**Problème** : `parseInt()` empêche 0.25, 0.5, 1.5 pts dans "Points mis en jeu".
+### Ancien format `criteres_libres`
+```json
+["Critère 1", "Critère 2"]
+```
 
-**Fichiers** :
-- `js/admin-evaluations.js` L1145 et L1618 : `parseInt(briques)` → `parseFloat(briques)`
-- `js/admin-evaluations.js` HTML du champ : ajouter `step="0.25" min="0.25"` au lieu de `min="1"`
-- `google-apps-script/Evaluations.gs` : vérifier que `briques` n'est pas parsé en int côté backend
+### Nouveau format `criteres_libres`
+```json
+[
+  {
+    "id": "custom_1",
+    "nom": "Soin de la copie",
+    "matiere": "FR",
+    "points": 1,
+    "criteres": ["Écriture lisible", "Pas de ratures"]
+  }
+]
+```
 
-### 1.2 Badge "Disponible" trop large (point 4)
-**Problème** : Le badge bleu "Disponible" prend toute la largeur de la carte.
+### Rétro-compatibilité
+Détection automatique : si le premier élément est un `string` → ancien format (traité comme avant). Si c'est un `object` → nouveau format. Les évaluations existantes continuent de fonctionner sans migration.
 
-**Fichiers** :
-- `css/eleve-evaluations.css` L710-724 : `.bonus-status` est déjà `display: inline-block`. Le problème vient probablement du conteneur parent qui est en `display: block` ou de la carte qui n'a pas de layout flex. Vérifier le parent `.bonus-card-footer` ou équivalent.
+## Fichiers à modifier
 
----
+### 1. `js/admin-evaluations.js` — Wizard création (étape 2 + validation + résumé)
 
-## Bloc 2 — Évaluations de compétences (TC obligatoires)
+**Étape 2 (`_renderStepCompetencesEtCriteres`)** — Lignes 1798-1867 :
+- Remplacer la section "Critères libres" (simples inputs texte) par des **cartes de compétences personnalisées**
+- Chaque carte contient : nom (input texte), matière (sélecteur FR/HG-EMC/Transversal), points (input number), critères de réussite (liste d'inputs texte avec + / -)
+- Bouton "+ Ajouter une compétence personnalisée"
+- Chaque compétence perso reçoit un `id` généré (`custom_${timestamp}_${index}`)
 
-> Les TC obligatoires = évaluations de compétences avec dates ouverture/fermeture.
-> Se passent hors ligne (papier/mail), la prof saisit les résultats manuellement.
+**Validation étape (`_validateStep`, case `competences_et_criteres`)** — Lignes 2739-2771 :
+- Collecter les compétences personnalisées depuis le DOM (nom, matière, points, critères)
+- Les inclure dans le calcul de `briques` (total des points)
+- Sérialiser dans `wizardData.criteres_libres` au nouveau format JSON
+- Validation : chaque compétence perso doit avoir au minimum un nom
 
-### 2.1 TC obligatoires dans onglet Évaluations (point 3)
-**Problème** : Les TC obligatoires apparaissent dans l'onglet "Bonus" au lieu de "Évaluations".
+**Résumé (`_renderStepResume`)** — Lignes 2471-2483 :
+- Afficher les compétences personnalisées avec le même format que les compétences du référentiel (tag matière + points)
+- Lister les critères de réussite en dessous
 
-**Fichiers** :
-- `js/eleve-evaluations.js` L410 : `isTCBonus = isTC && !ev.date_ouverture && !ev.date_fermeture`
-  - La logique est déjà correcte : TC AVEC dates → onglet Évaluations (L444-459), TC SANS dates → Bonus.
-  - **À vérifier** : les TC créées côté admin ont-elles bien `date_ouverture`/`date_fermeture` renseignées ? Si non, elles tombent dans Bonus par défaut.
-  - **Action** : vérifier les données. Si les dates sont vides, le problème est côté admin (création) pas côté élève (affichage).
+### 2. `js/admin-corrections.js` — Wizard correction (étape Critères)
 
-### 2.2 Erreur getDataRange sur clic TC/bonus (point 7)
-**Problème** : `Cannot read properties of null (reading 'getDataRange')` quand on clique sur une éval compétences/bonus.
+**`getCriteresLibres()`** — Lignes 259-271 :
+- Adapter pour détecter l'ancien vs nouveau format
+- Si nouveau format : retourner les critères regroupés par compétence personnalisée
 
-**Cause** : `eleve-evaluation.js` redirige vers `evaluation.html` qui charge le backend `getEvaluationForEleve`. Le backend cherche des questions dans un sheet (ex: EVALUATION_QUESTIONS) qui n'existe pas ou est vide pour les TC/bonus (ils n'ont pas de questions en ligne).
+**`_renderStep3BonusPonctuel()`** — Lignes 1226-1248 :
+- Si nouveau format : afficher les critères groupés par compétence perso (comme les TC affichent par compétence du référentiel)
+- Si ancien format : comportement inchangé (liste plate)
 
-**Fichiers** :
-- `google-apps-script/Evaluations.gs` : dans la fonction qui charge l'évaluation pour l'élève, ajouter un guard `if (type === 'competences' || type === 'bonus') return { success: true, evaluation: evalData }` sans chercher les questions
-- `js/eleve-evaluation.js` : détecter le type TC/bonus → afficher le document/sujet en lecture seule (pas le module d'exercice)
-- `js/eleve-evaluations.js` L878 : `consulterSujet()` redirige vers `evaluation.html?mode=sujet` — ce mode doit être implémenté
+**`toggleCritere()` + bilan** — Lignes 1279-1314, 1468-1471 :
+- Adapter pour que les critères des compétences perso fonctionnent comme ceux du référentiel
+- Le bilan agrège les points par compétence personnalisée
 
-### 2.3 Consultation sujet TC en lecture seule (point 7 suite)
-**Problème** : Le mode `?mode=sujet` n'existe pas dans `eleve-evaluation.js`.
+**Save (`_saveCorrection`)** — Lignes 1634-1668 :
+- Inclure les points des compétences personnalisées dans `points_par_competence` (avec clé `custom_X`)
 
-**Implémentation** :
-- `js/eleve-evaluation.js` : ajouter un branch `if (mode === 'sujet')` dans `init()`
-- Charger l'évaluation (métadonnées seulement, pas de questions)
-- Récupérer le document/sujet de l'exercice TC lié (`exercice_tc_id` ou `exercice_comp_id`)
-- Afficher en lecture seule : titre, consignes, document (iframe Google Doc ou HTML)
-- Pas de timer, pas de bouton "Terminer", pas de correction
+### 3. `js/eleve-evaluations.js` — Cartes élève
 
-### 2.4 Supprimer remarque du tableau de saisie TC (point 9)
-**Problème** : Colonne "Remarque" inutile dans la saisie des résultats TC.
+**`_renderBonusDemandeCard()`** — Lignes 723-842 :
+- Points affichés = somme compétences référentiel + compétences perso (déjà dans `briques`)
+- Pas de changement structurel nécessaire
 
-**Fichiers** :
-- `js/admin-evaluations.js` L1929 : `const showRemarque = isBonusOrTC;` → `const showRemarque = false;` (ou simplement supprimer la condition)
-- Supprimer aussi la cellule remarqueCell dans le HTML des lignes (L1980-1984)
+### 4. `js/eleve-notes.js` — Page résultats élève
 
-### 2.5 Points attribués dans le wizard Correction TC (point 10)
-**Problème** : La page Corrections ne permet pas d'attribuer les points pour les TC.
+**`_getBonusData()`** — Lignes 541-553 :
+- Détecter nouveau format et extraire les critères correctement
+- Les compétences perso alimentent les points par matière (comme les compétences du référentiel)
 
-**Fichiers** :
-- `js/admin-corrections.js` : dans l'étape Bilan du wizard, ajouter :
-  - Affichage "Points mis en jeu : X pts" (lu depuis `evaluation.briques`)
-  - Champ input "Points attribués" (0 à briques, step 0.25)
-  - Ce champ est envoyé comme `score` dans `saveEvaluationCorrection`
-- `google-apps-script/Evaluations.gs` `saveEvaluationCorrection` : ajouter `score` aux colonnes écrites
-- `js/admin-evaluations.js` tableau de saisie : si `score` existe dans EVALUATION_RESULTATS, l'afficher en lecture seule dans la colonne Résultat (au lieu du dropdown)
+**`_renderBonusCard()`** — Lignes 1086-1181 :
+- Afficher les critères des compétences perso groupés par compétence (pas en liste plate)
 
-### 2.6 Feedback élève après correction TC (point 11 partiel)
-**Problème** : L'élève ne voit rien changer après correction.
+### 5. `js/eleve-evaluation.js` — Vue review TC/bonus
 
-**Fichiers** :
-- `js/eleve-evaluations.js` : dans `categorizeEvaluations()`, les TC avec `demande_statut='corrige'` ou `is_validated` doivent apparaître dans "Terminées" avec les points gagnés
-- Carte terminée cliquable → ouvre vue correction (correction_prof + critères validés par compétence)
-- Réutiliser la logique existante de `openReview()` en l'adaptant pour les TC
+- Si l'évaluation contient des compétences perso : les afficher dans la review avec le même traitement que les compétences du référentiel
 
----
+### 6. Backend (`Evaluations.gs`) — Aucune modification
+- `criteres_libres` est déjà un champ texte libre (JSON string)
+- Le backend ne parse pas le contenu, il le stocke tel quel
+- Pas de changement de schéma nécessaire
 
-## Bloc 3 — Évaluations bonus (compétence + ponctuel)
+## Ordre d'implémentation
 
-> Bonus = sur demande de l'élève. Se passent hors ligne.
-> Flux : Disponible → Demandé → Accepté → Rendu → Corrigé → Terminé
-
-### 3.1 Feedback après clic "Demander" (point 5)
-**Problème** : Le bouton "Demander" ne change pas visuellement après le clic.
-
-**Analyse** : Le code actuel (L854-872) fait `loadData() → categorizeEvaluations() → render()` après succès. En théorie la carte devrait se mettre à jour. **Hypothèses** :
-  - Le `loadData()` recharge depuis le cache localStorage (pas encore invalidé)
-  - Ou le re-render est trop rapide et le nouveau statut n'est pas encore visible
-
-**Fichiers** :
-- `js/eleve-evaluations.js` `demanderEvaluation()` : invalider le cache `EVALUATION_RESULTATS` avant le reload
-- Ajouter un feedback visuel immédiat (désactiver le bouton + texte "Envoi...") pendant l'appel API
-- Après succès : notification toast "Demande envoyée !" + re-render complet
-
-### 3.2 Notification admin dans la cloche (point 5)
-**Problème** : Pas de notification dans la cloche admin quand un élève fait une demande.
-
-**Fichiers** :
-- `components/admin-layout.js` : le système de cloche existe-t-il déjà ? Si oui, ajouter le compteur de demandes. Si non, ajouter une cloche dans le header admin avec badge.
-- Compter les `demande_statut='demande'` dans EVALUATION_RESULTATS
-- Clic sur la cloche → naviguer vers l'onglet Bonus avec la vue demandes
-
-### 3.3 Toggle "Créer / Gérer demandes" dans onglet Bonus admin (point 8)
-**Problème** : Le bandeau de demandes prend de la place. L'utilisatrice veut un toggle.
-
-**Implémentation** (option 1 choisie) :
-- `js/admin-evaluations.js` : dans le render de l'onglet Bonus, ajouter un toggle en haut :
-  ```
-  [Créer évaluations] [Gérer les demandes (3)]
-  ```
-- Vue "Créer" = contenu actuel (liste des évals bonus + bouton "+ Nouvelle")
-- Vue "Gérer" = liste des demandes en attente avec cartes (élève, éval, date, badge type) + boutons Accepter/Refuser
-- Supprimer le bandeau bleu `#demandesBanner`
-- Le compteur "(3)" dans le toggle se met à jour dynamiquement
-
-### 3.4 Acceptation → carte migre dans "Mes évaluations" (point 6)
-**Problème** : Quand la prof accepte un bonus, la carte reste dans l'onglet Bonus.
-
-**Règle** : Tout bonus accepté (`demande_statut='accepte'`) migre dans l'onglet Évaluations côté élève.
-
-**Fichiers** :
-- `js/eleve-evaluations.js` `categorizeEvaluations()` : modifier la logique pour que les bonus/TC-bonus avec `demande_statut='accepte'` aillent dans `categories.available` (onglet Évaluations, section "À passer") au lieu de rester dans `categories.bonus`
-- Carte affichée avec badge type (bonus comp = violet, ponctuel = teal) + info date
-- Mode passation forcé "papier" (pas de bouton "Commencer")
-
-### 3.5 Option "voir le sujet" lors de l'acceptation (point 6)
-**Problème** : La prof veut contrôler si l'élève peut voir le sujet avant.
-
-**Fichiers** :
-- `js/admin-evaluations.js` `openReponseModal()` : ajouter un toggle "L'élève peut consulter le sujet avant l'évaluation" (oui/non, défaut: non)
-- `google-apps-script/Evaluations.gs` `repondreDemandeEvaluation` : colonne `sujet_visible` dans EVALUATION_RESULTATS (migration progressive)
-- `js/eleve-evaluations.js` : si `sujet_visible` = true → lien "Consulter le sujet" visible. Si false → juste les infos (date, consigne) mais pas de lien vers le sujet.
-
-### 3.6 Bouton "J'ai rendu" côté élève (point 11)
-**Problème** : L'élève n'a aucun moyen de signaler qu'il a rendu sa copie.
-
-**Fichiers** :
-- `js/eleve-evaluations.js` : sur la carte acceptée (dans onglet Évaluations après migration), ajouter un bouton "J'ai rendu ma copie"
-- Appel API : action `signalerRendu` → met `demande_statut='rendu'` dans EVALUATION_RESULTATS
-- `google-apps-script/Evaluations.gs` : ajouter action `signalerRendu` (simple update d'une colonne)
-- `google-apps-script/Code.gs` : router l'action
-- Après rendu : carte passe en statut "En attente de correction" (pas de bouton, juste un badge)
-
-### 3.7 Correction visible côté élève (point 11)
-**Problème** : Après correction par la prof, l'élève ne voit rien.
-
-**Fichiers** :
-- `js/eleve-evaluations.js` `categorizeEvaluations()` : les bonus avec `demande_statut='corrige'` + `is_validated` défini → statut `validated` ou `failed`, dans "Terminées"
-- Carte terminée affiche les points gagnés (+X ou +0)
-- Clic → vue correction : affiche correction_prof (block editor content ou URL) + critères validés
-- Réutiliser `openReview()` en l'adaptant pour les bonus (charger depuis EVALUATION_RESULTATS au lieu de EleveEntrainementsCompetences)
-
----
-
-## Bloc 4 — Bonus suivi
-
-### 4.1 Wizard suivi : consignes pour l'élève (point 2)
-**Problème** : Le wizard bonus suivi n'a pas de champ pour expliquer à l'élève quoi faire.
-
-**Fichiers** :
-- `js/admin-evaluations.js` : dans `_renderWizardStep1()`, quand `sous_type_bonus === 'suivi'`, ajouter un textarea "Consignes pour l'élève" sous le champ nb_validations
-- Valeur stockée dans `wizardData.description_eleve`
-- `js/admin-evaluations.js` `saveEvaluation()` : envoyer `description_eleve` au backend
-- `google-apps-script/Evaluations.gs` `createEvaluation/updateEvaluation` : colonne `description_eleve` dans EVALUATIONS (migration progressive)
-- `js/eleve-evaluations.js` : afficher la description sur la carte bonus suivi, sous la barre de progression
-
----
-
-## Ordre de traitement
-
-1. **Bloc 1** — Corrections transversales (1.1 points décimaux, 1.2 badge CSS)
-2. **Bloc 2** — Évaluations de compétences (2.1 à 2.6)
-3. **Bloc 3** — Évaluations bonus (3.1 à 3.7)
-4. **Bloc 4** — Bonus suivi (4.1)
+1. **Admin wizard (étape 2)** — le cœur du changement : nouvelle UI compétences perso
+2. **Admin wizard (validation + résumé)** — collecte des données + affichage résumé
+3. **Admin corrections** — adapter la correction pour le nouveau format
+4. **Élève évaluations + notes** — adapter l'affichage
+5. **Rétro-compatibilité** — helper partagé de détection ancien/nouveau format

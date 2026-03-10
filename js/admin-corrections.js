@@ -253,7 +253,8 @@ const AdminCorrections = {
         return [];
     },
 
-    /** Get critères libres for an evaluation (bonus mission or other) */
+    /** Get critères libres for an evaluation (bonus mission or other).
+     *  Retourne un array — ancien format: strings, nouveau format: objets compétences perso. */
     getCriteresLibres(evaluation) {
         // Phase 9 : critères libres stockés directement dans EVALUATIONS
         var raw = evaluation ? evaluation.criteres_libres : '';
@@ -272,6 +273,19 @@ const AdminCorrections = {
             if (Array.isArray(parsed2)) return parsed2;
         } catch (_e2) { /* ignore */ }
         return [];
+    },
+
+    /** Détecte si criteres_libres est au nouveau format (compétences personnalisées) */
+    _isNewCriteresFormat(criteres) {
+        return Array.isArray(criteres) && criteres.length > 0 && typeof criteres[0] === 'object' && criteres[0].nom;
+    },
+
+    /** Retrouve le nom d'une compétence personnalisée par son ID dans criteres_libres */
+    _getCustomCompName(evaluation, ccId) {
+        var criteresLibres = this.getCriteresLibres(evaluation);
+        if (!this._isNewCriteresFormat(criteresLibres)) return 'Compétence personnalisée';
+        var found = criteresLibres.find(function(cc) { return cc.id === ccId; });
+        return found ? found.nom : 'Compétence personnalisée';
     },
 
     /** Get display info for a submission (title, competence, type label) */
@@ -1039,10 +1053,11 @@ const AdminCorrections = {
             }
 
             if (hasCriteresLibres) {
-                // Critères libres section (can appear alone or below competence critères)
+                // Critères libres ou compétences personnalisées — section sous les compétences du référentiel
                 if (hasCompetenceIds) {
+                    var sectionTitle = this._isNewCriteresFormat(criteresLibres) ? 'Compétences personnalisées' : 'Critères libres';
                     html += '<div class="criteres-separator" style="margin:20px 0 12px;padding-top:16px;border-top:1px solid var(--gray-200, #e5e7eb);">';
-                    html += '<h4 style="margin:0 0 8px;">Critères libres</h4>';
+                    html += '<h4 style="margin:0 0 8px;">' + sectionTitle + '</h4>';
                     html += '</div>';
                 }
                 html += this._renderStep3BonusPonctuel();
@@ -1162,6 +1177,24 @@ const AdminCorrections = {
                 label: matiereLabels[compMat] || compMat
             };
         });
+
+        // Ajouter les compétences personnalisées (nouveau format criteres_libres)
+        var criteresLibres = self.getCriteresLibres(evaluation);
+        if (self._isNewCriteresFormat(criteresLibres)) {
+            criteresLibres.forEach(function(cc) {
+                var ccId = cc.id || 'custom_0';
+                var ccMat = cc.matiere || 'FR';
+                map[String(ccId)] = {
+                    pts: cc.points || 1,
+                    matiere: ccMat,
+                    color: matiereColors[ccMat] || '#6b7280',
+                    label: matiereLabels[ccMat] || ccMat,
+                    isCustom: true,
+                    criteres: cc.criteres || []
+                };
+            });
+        }
+
         return map;
     },
 
@@ -1234,6 +1267,12 @@ const AdminCorrections = {
             return '<div class="empty-criteres">Aucun critère libre défini pour cette évaluation.</div>';
         }
 
+        // Nouveau format : compétences personnalisées (objets avec critères)
+        if (this._isNewCriteresFormat(criteresLibres)) {
+            return this._renderStep3CustomComps(criteresLibres, wd);
+        }
+
+        // Ancien format : strings simples
         var html = '<div class="criteres-correction-list">';
         criteresLibres.forEach(function(label, idx) {
             var critId = 'libre_' + idx;
@@ -1244,6 +1283,59 @@ const AdminCorrections = {
             html += '</div>';
         });
         html += '</div>';
+        return html;
+    },
+
+    /** Step 3 pour compétences personnalisées (nouveau format criteres_libres) */
+    _renderStep3CustomComps(customComps, wd) {
+        var matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        var matiereLabels = { 'FR': 'FR', 'HG-EMC': 'HG-EMC', 'Transversal': 'Trans.' };
+        var self = this;
+
+        // Initialiser competenceValidees pour les compétences perso si nécessaire
+        if (!wd.competenceValidees || typeof wd.competenceValidees !== 'object') {
+            wd.competenceValidees = {};
+        }
+
+        var html = '';
+        customComps.forEach(function(cc) {
+            var ccId = cc.id || 'custom_0';
+            var criteres = cc.criteres || [];
+            var compValides = wd.competenceValidees[ccId] || [];
+            var allValid = criteres.length > 0 && criteres.every(function(_, ci) { return compValides.indexOf('cc_' + ccId + '_' + ci) !== -1; });
+            var info = {
+                pts: cc.points || 1,
+                color: matiereColors[cc.matiere] || '#6b7280',
+                label: matiereLabels[cc.matiere] || cc.matiere || 'FR'
+            };
+
+            html += '<div class="tc-competence-section" data-comp-id="' + escapeHtml(ccId) + '">';
+            html += '<div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
+            html += '<span class="tc-comp-icon">✏️</span>';
+            html += '<h4 style="flex:1;margin:0;">' + escapeHtml(cc.nom) + '</h4>';
+            html += '<span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:' + info.color + '20;color:' + info.color + ';font-weight:600;white-space:nowrap;">' + info.pts + ' pt' + (info.pts > 1 ? 's' : '') + ' · ' + escapeHtml(info.label) + '</span>';
+            html += '<span class="comp-valid-badge" id="compBadge_' + escapeHtml(ccId) + '" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;' +
+                (allValid ? 'background:#dcfce7;color:#16a34a;">' + '✅ Validée' : 'background:#fee2e2;color:#dc2626;">' + '❌ Non validée') + '</span>';
+            html += '</div>';
+
+            if (criteres.length > 0) {
+                html += '<div class="criteres-correction-list">';
+                criteres.forEach(function(critLabel, ci) {
+                    var critId = 'cc_' + ccId + '_' + ci;
+                    var checked = compValides.indexOf(critId) !== -1;
+                    html += '<div class="critere-check' + (checked ? ' checked' : '') + '" onclick="AdminCorrections.toggleCritereCustomComp(\'' + escapeHtml(ccId) + '\', \'' + critId + '\', this)">';
+                    html += '<input type="checkbox"' + (checked ? ' checked' : '') + '>';
+                    html += '<label>' + escapeHtml(critLabel) + '</label>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            } else {
+                html += '<div class="empty-criteres">Aucun critère défini — la compétence sera validée/non validée globalement.</div>';
+            }
+
+            html += '</div>';
+        });
+
         return html;
     },
 
@@ -1309,6 +1401,41 @@ const AdminCorrections = {
                     badge.style.background = allValid ? '#dcfce7' : '#fee2e2';
                     badge.style.color = allValid ? '#16a34a' : '#dc2626';
                 }
+            }
+        }
+    },
+
+    /** Toggle critère pour compétence personnalisée (utilise competenceValidees comme les TC) */
+    toggleCritereCustomComp(ccId, critereId, el) {
+        var wd = this.wizardData;
+        if (!wd.competenceValidees) wd.competenceValidees = {};
+        if (!wd.competenceValidees[ccId]) wd.competenceValidees[ccId] = [];
+
+        var list = wd.competenceValidees[ccId];
+        var idx = list.indexOf(String(critereId));
+        if (idx === -1) {
+            list.push(String(critereId));
+            el.classList.add('checked');
+            el.querySelector('input').checked = true;
+        } else {
+            list.splice(idx, 1);
+            el.classList.remove('checked');
+            el.querySelector('input').checked = false;
+        }
+
+        // Update validation badge pour cette compétence perso
+        var evaluation = this.getEvaluationForSub(this.currentSubmission);
+        var criteresLibres = this.getCriteresLibres(evaluation);
+        var cc = criteresLibres.find(function(c) { return c.id === ccId; });
+        if (cc && cc.criteres) {
+            var allValid = cc.criteres.length > 0 && cc.criteres.every(function(_, ci) {
+                return list.indexOf('cc_' + ccId + '_' + ci) !== -1;
+            });
+            var badge = document.getElementById('compBadge_' + ccId);
+            if (badge) {
+                badge.innerHTML = allValid ? '✅ Validée' : '❌ Non validée';
+                badge.style.background = allValid ? '#dcfce7' : '#fee2e2';
+                badge.style.color = allValid ? '#16a34a' : '#dc2626';
             }
         }
     },
@@ -1465,19 +1592,49 @@ const AdminCorrections = {
                 }
             }
 
-            // Critères libres (if criteres_libres present — can appear alongside competence critères)
+            // Critères libres / compétences personnalisées
             if (criteresLibres.length > 0) {
-                html += '<div class="bilan-section">';
-                html += '<h4>Critères libres (' + wd.criteresValides.filter(function(id) { return id.indexOf('libre_') === 0; }).length + '/' + criteresLibres.length + ')</h4>';
-                html += '<div class="bilan-criteres-list">';
-                criteresLibres.forEach(function(label, idx) {
-                    var critId = 'libre_' + idx;
-                    var checked = wd.criteresValides.indexOf(critId) !== -1;
-                    html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
-                    html += (checked ? '✅' : '❌') + ' ' + escapeHtml(label);
-                    html += '</div>';
-                });
-                html += '</div></div>';
+                if (self._isNewCriteresFormat(criteresLibres)) {
+                    // Nouveau format : compétences personnalisées
+                    var matiereColors2 = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+                    criteresLibres.forEach(function(cc) {
+                        var ccId = cc.id || 'custom_0';
+                        var criteres = cc.criteres || [];
+                        var compValides = (wd.competenceValidees && wd.competenceValidees[ccId]) ? wd.competenceValidees[ccId] : [];
+                        var validCount = compValides.length;
+                        var ccColor = matiereColors2[cc.matiere] || '#6b7280';
+
+                        html += '<div class="bilan-section">';
+                        html += '<h4>✏️ ' + escapeHtml(cc.nom) +
+                            ' <span style="font-size:0.75rem;padding:2px 6px;border-radius:4px;background:' + ccColor + '20;color:' + ccColor + ';font-weight:600;">' + (cc.matiere || 'FR') + '</span>' +
+                            ' (' + validCount + '/' + criteres.length + ')</h4>';
+                        if (criteres.length > 0) {
+                            html += '<div class="bilan-criteres-list">';
+                            criteres.forEach(function(critLabel, ci) {
+                                var critId = 'cc_' + ccId + '_' + ci;
+                                var checked = compValides.indexOf(critId) !== -1;
+                                html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
+                                html += (checked ? '✅' : '❌') + ' ' + escapeHtml(critLabel);
+                                html += '</div>';
+                            });
+                            html += '</div>';
+                        }
+                        html += '</div>';
+                    });
+                } else {
+                    // Ancien format : strings simples
+                    html += '<div class="bilan-section">';
+                    html += '<h4>Critères libres (' + wd.criteresValides.filter(function(id) { return id.indexOf('libre_') === 0; }).length + '/' + criteresLibres.length + ')</h4>';
+                    html += '<div class="bilan-criteres-list">';
+                    criteresLibres.forEach(function(label, idx) {
+                        var critId = 'libre_' + idx;
+                        var checked = wd.criteresValides.indexOf(critId) !== -1;
+                        html += '<div class="bilan-critere ' + (checked ? 'checked' : 'unchecked') + '">';
+                        html += (checked ? '✅' : '❌') + ' ' + escapeHtml(label);
+                        html += '</div>';
+                    });
+                    html += '</div></div>';
+                }
             }
         }
 
@@ -1492,18 +1649,33 @@ const AdminCorrections = {
 
         for (var compId in ptsMap) {
             var info = ptsMap[compId];
-            var criteres = this.getCriteresByCompetence(compId);
+            var allValid;
 
-            // Déterminer les critères validés pour cette compétence
-            var valides;
-            if (sub._sourceType === 'tc') {
-                valides = (wd.competenceValidees && wd.competenceValidees[compId]) ? wd.competenceValidees[compId] : [];
+            if (info.isCustom) {
+                // Compétence personnalisée : critères dans competenceValidees
+                var ccValides = (wd.competenceValidees && wd.competenceValidees[compId]) ? wd.competenceValidees[compId] : [];
+                var ccCriteres = info.criteres || [];
+                if (ccCriteres.length > 0) {
+                    allValid = ccCriteres.every(function(_, ci) { return ccValides.indexOf('cc_' + compId + '_' + ci) !== -1; });
+                } else {
+                    // Pas de critères → validé si la décision globale est validée
+                    allValid = wd.decision === 'valide';
+                }
             } else {
-                // bonus mission (single comp): critères dans criteresValides
-                valides = wd.criteresValides || [];
+                var criteres = this.getCriteresByCompetence(compId);
+
+                // Déterminer les critères validés pour cette compétence
+                var valides;
+                if (sub._sourceType === 'tc') {
+                    valides = (wd.competenceValidees && wd.competenceValidees[compId]) ? wd.competenceValidees[compId] : [];
+                } else {
+                    // bonus mission (single comp): critères dans criteresValides
+                    valides = wd.criteresValides || [];
+                }
+
+                allValid = criteres.length > 0 && criteres.every(function(c) { return valides.indexOf(String(c.id)) !== -1; });
             }
 
-            var allValid = criteres.length > 0 && criteres.every(function(c) { return valides.indexOf(String(c.id)) !== -1; });
             var pts = allValid ? info.pts : 0;
             ppc[compId] = pts;
             total += pts;
@@ -1563,11 +1735,13 @@ const AdminCorrections = {
             for (var cId in ptsMap) {
                 var cInfo = ptsMap[cId];
                 var comp = self.getCompetence(cId);
+                var compNom = comp ? comp.nom : (cInfo.isCustom ? self._getCustomCompName(evaluation, cId) : 'Compétence');
                 var earned = computed.ppc[cId] || 0;
                 var isValid = earned > 0;
+                var iconPrefix = cInfo.isCustom ? '✏️ ' : '';
                 html += '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.8rem;">';
                 html += '<span>' + (isValid ? '✅' : '❌') + '</span>';
-                html += '<span style="flex:1;">' + escapeHtml(comp ? comp.nom : 'Compétence') + '</span>';
+                html += '<span style="flex:1;">' + iconPrefix + escapeHtml(compNom) + '</span>';
                 html += '<span style="font-weight:600;">' + earned + ' / ' + cInfo.pts + '</span>';
                 html += '</div>';
             }
@@ -1645,8 +1819,11 @@ const AdminCorrections = {
                     params.competence_ids_validees = JSON.stringify(wd.competenceValidees || {});
                     params.criteres_valides = JSON.stringify(wd.criteresValides);
                 } else {
-                    // Bonus mission: simple critères list
+                    // Bonus mission: critères list + compétences personnalisées (si présentes)
                     params.criteres_valides = JSON.stringify(wd.criteresValides);
+                    if (wd.competenceValidees && Object.keys(wd.competenceValidees).length > 0) {
+                        params.competence_ids_validees = JSON.stringify(wd.competenceValidees);
+                    }
                 }
 
                 // Points attribués — data-driven: auto-compute if competence_ids present
