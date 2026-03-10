@@ -1452,18 +1452,8 @@ const AdminEvaluations = {
         var container = document.getElementById('bonusSousTypeFields');
         if (container) {
             if (value === 'suivi') {
-                container.innerHTML = `
-                    <div class="form-group">
-                        <label>Nombre de réussites requises <span class="req">*</span></label>
-                        <input type="number" class="form-input" id="evalNbValidations" value="${this.wizardData.nb_validations || 5}" min="1" max="50">
-                        <div class="form-help">Nombre de vérifications réussies nécessaires pour obtenir les points. L'élève n'est pas pénalisé en cas d'échec</div>
-                    </div>
-                    <div class="form-group">
-                        <label>Description pour l'élève</label>
-                        <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Apporter ses affaires à chaque cours, réviser le vocabulaire...">${escapeHtml(this.wizardData.description_eleve || '')}</textarea>
-                        <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
-                    </div>
-                `;
+                // Champs description + nb_validations + critères déplacés en étape 2 (Détails)
+                container.innerHTML = '';
             } else if (value === 'competence' || value === 'ponctuel') {
                 container.innerHTML = `
                     <div class="form-group">
