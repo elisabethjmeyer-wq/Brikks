@@ -2091,35 +2091,59 @@
     width: 100%;
 }
 
-/* ===== SAISIE SUIVI (checkboxes progressives) ===== */
-.suivi-checkbox {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    accent-color: #10b981;
+/* ===== SAISIE SUIVI (vérifications datées) ===== */
+
+.suivi-add-verif {
+    margin-bottom: 16px;
 }
 
-.suivi-checkbox:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
+/* Pastilles historique */
+.col-historique {
+    min-width: 200px;
 }
 
-.col-validation {
-    text-align: center;
-    width: 50px;
+.verif-pastille {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 2px 3px;
+    cursor: default;
 }
 
-.suivi-date-label {
-    font-size: 10px;
+.verif-pastille.verif-ok {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.verif-pastille.verif-ko {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.verif-date {
+    font-weight: 400;
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.suivi-no-verif {
+    font-size: 13px;
     color: var(--gray-400);
-    margin-top: 2px;
-    line-height: 1;
+    font-style: italic;
 }
 
 .suivi-progress {
     font-weight: 600;
     font-size: 14px;
     color: var(--gray-600);
+}
+
+.suivi-progress.complete {
+    color: #10b981;
 }
 
 .suivi-points {
@@ -2135,6 +2159,109 @@
 .col-total, .col-points {
     text-align: center;
     white-space: nowrap;
+}
+
+/* Panneau ajout vérification */
+.suivi-verif-panel {
+    background: var(--gray-50, #f9fafb);
+    border: 1px solid var(--gray-200, #e5e7eb);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.verif-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.verif-panel-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.verif-date-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.verif-date-picker label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-600);
+}
+
+.verif-date-picker .form-input {
+    width: auto;
+    padding: 6px 10px;
+}
+
+/* Liste des élèves dans le panneau */
+.verif-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+.verif-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid var(--gray-200, #e5e7eb);
+}
+
+.verif-eleve-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.verif-toggle {
+    display: flex;
+    gap: 4px;
+}
+
+.verif-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 2px solid var(--gray-200, #e5e7eb);
+    background: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.verif-btn.ok.active {
+    background: #d1fae5;
+    border-color: #10b981;
+    color: #065f46;
+}
+
+.verif-btn.ko.active {
+    background: #fee2e2;
+    border-color: #ef4444;
+    color: #991b1b;
+}
+
+.verif-btn:not(.active):hover {
+    border-color: var(--gray-400);
+}
+
+.verif-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
 }
 
 /* ===== STATUT DEMANDE dans la saisie ===== */
