@@ -63,13 +63,15 @@ const AdminEvaluations = {
             await this.loadData();
             this.setupEventListeners();
 
-            // Si hash #bonus-demandes, basculer sur l'onglet bonus
-            if (window.location.hash === '#bonus-demandes') {
-                this.currentType = 'bonus';
-                // Mettre à jour l'UI des onglets
+            // Si hash #tab-xxx ou #bonus-demandes, basculer sur l'onglet correspondant
+            const hash = window.location.hash;
+            const tabMatch = hash.match(/^#tab-(\w+)/);
+            const targetTab = tabMatch ? tabMatch[1] : (hash === '#bonus-demandes' ? 'bonus' : null);
+            if (targetTab) {
+                this.currentType = targetTab;
                 document.querySelectorAll('.eval-tab').forEach(tab => {
                     tab.classList.remove('active');
-                    if (tab.dataset.type === 'bonus') tab.classList.add('active');
+                    if (tab.dataset.type === targetTab) tab.classList.add('active');
                 });
             }
 
