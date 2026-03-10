@@ -425,6 +425,37 @@
     </div>
 </div>
 
+<!-- Modal édition vérification individuelle -->
+<div class="modal-overlay hidden" id="editVerifModal">
+    <div class="modal" style="max-width:400px;">
+        <div class="modal-header">
+            <h2>Modifier la vérification</h2>
+            <button class="modal-close" onclick="AdminEvaluations._closeEditVerifModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="editVerifEleveName" style="font-weight:600;margin-bottom:16px;"></p>
+            <div style="margin-bottom:16px;">
+                <label>Date :</label>
+                <input type="date" id="editVerifDate" class="form-input" style="width:auto;">
+            </div>
+            <div style="margin-bottom:8px;">
+                <label>Résultat :</label>
+                <div class="verif-toggle" id="editVerifToggle" style="display:inline-flex;gap:8px;margin-left:8px;">
+                    <button class="verif-btn ok" onclick="AdminEvaluations._setEditVerifResult(true)">✓</button>
+                    <button class="verif-btn ko" onclick="AdminEvaluations._setEditVerifResult(false)">✗</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="justify-content:space-between;">
+            <button class="btn btn-danger" id="editVerifDeleteBtn" onclick="AdminEvaluations._deleteVerification()">Supprimer</button>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary" onclick="AdminEvaluations._closeEditVerifModal()">Annuler</button>
+                <button class="btn btn-primary" id="editVerifSaveBtn" onclick="AdminEvaluations._saveEditVerification()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Notification -->
 <div class="notification" id="notification"></div>
 
