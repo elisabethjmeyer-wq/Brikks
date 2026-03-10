@@ -3773,7 +3773,7 @@ const AdminEvaluations = {
         const nbReussitesRequises = parseInt(evaluation.nb_validations) || 5;
         const maxPts = evaluation.briques || 10;
 
-        // Filtrer : seuls les élèves ayant demandé (demande_statut = accepte ou plus loin)
+        // Élèves inscrits (acceptés)
         const elevesInscrits = this.eleves.filter(eleve => {
             const r = resultsMap[String(eleve.id).trim()];
             if (!r) return false;
@@ -3781,12 +3781,26 @@ const AdminEvaluations = {
             return statut === 'accepte' || statut === 'rendu' || statut === 'corrige';
         });
 
-        if (elevesInscrits.length === 0) {
+        // Élèves en attente de réponse
+        const elevesEnAttente = this.eleves.filter(eleve => {
+            const r = resultsMap[String(eleve.id).trim()];
+            if (!r) return false;
+            return String(r.demande_statut || '').trim() === 'demande';
+        });
+
+        // Élèves refusés
+        const elevesRefuses = this.eleves.filter(eleve => {
+            const r = resultsMap[String(eleve.id).trim()];
+            if (!r) return false;
+            return String(r.demande_statut || '').trim() === 'refuse';
+        });
+
+        if (elevesInscrits.length === 0 && elevesEnAttente.length === 0 && elevesRefuses.length === 0) {
             document.getElementById('saisieLoader').style.display = 'none';
             document.getElementById('saisieTableContainer').style.display = '';
             document.getElementById('saisieTableHead').innerHTML = '';
             document.getElementById('saisieTableBody').innerHTML = `
-                <tr><td colspan="5" style="text-align:center; padding:40px; color:var(--gray-400)">
+                <tr><td colspan="6" style="text-align:center; padding:40px; color:var(--gray-400)">
                     Aucun élève inscrit. Les élèves doivent d'abord demander cette évaluation.
                 </td></tr>`;
             return;
@@ -3795,6 +3809,7 @@ const AdminEvaluations = {
         // Header
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
+            <th class="col-demande">Demande</th>
             <th class="col-historique">Historique</th>
             <th class="col-total">Réussites</th>
             <th class="col-points">Points</th>`;
@@ -3808,10 +3823,11 @@ const AdminEvaluations = {
             </div>`;
 
         const tbody = document.getElementById('saisieTableBody');
-        tbody.innerHTML = elevesInscrits.map(eleve => {
-            const r = resultsMap[String(eleve.id).trim()] || {};
+        let rowsHtml = '';
 
-            // Parser l'historique
+        // Helper : ligne d'un élève inscrit (avec historique)
+        const renderInscritRow = (eleve) => {
+            const r = resultsMap[String(eleve.id).trim()] || {};
             let historique = [];
             if (r.validations_historique) {
                 try {
@@ -3819,12 +3835,10 @@ const AdminEvaluations = {
                         ? JSON.parse(r.validations_historique) : r.validations_historique;
                 } catch (_e) { /* ignore */ }
             }
-
             const nbReussites = historique.filter(h => h.resultat).length;
             const isComplete = nbReussites >= nbReussitesRequises;
             const points = isComplete ? maxPts : 0;
 
-            // Historique compact : pastilles ✓/✗ avec dates
             const historiqueHtml = historique.length > 0
                 ? historique.map((h, i) => {
                     const dateLabel = new Date(h.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
@@ -3836,19 +3850,50 @@ const AdminEvaluations = {
 
             return `
                 <tr data-eleve-id="${eleve.id}" class="${isComplete ? 'success-row' : ''}">
-                    <td class="col-eleve">
-                        <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
-                    </td>
+                    <td class="col-eleve"><span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span></td>
+                    <td class="col-demande"><button class="saisie-badge-btn badge-acceptee" onclick="event.stopPropagation(); AdminEvaluations.openReponseModal('${evaluation.id}', '${eleve.id}')">🟢 Acceptée</button></td>
                     <td class="col-historique">${historiqueHtml}</td>
-                    <td class="col-total">
-                        <span class="suivi-progress ${isComplete ? 'complete' : ''}">${nbReussites}/${nbReussitesRequises}</span>
-                    </td>
-                    <td class="col-points">
-                        <span class="suivi-points ${isComplete ? 'complete' : ''}">${points}/${maxPts}</span>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+                    <td class="col-total"><span class="suivi-progress ${isComplete ? 'complete' : ''}">${nbReussites}/${nbReussitesRequises}</span></td>
+                    <td class="col-points"><span class="suivi-points ${isComplete ? 'complete' : ''}">${points}/${maxPts}</span></td>
+                </tr>`;
+        };
+
+        // Helper : ligne d'un élève en attente
+        const renderAttenteRow = (eleve) => `
+            <tr data-eleve-id="${eleve.id}" class="pending-row">
+                <td class="col-eleve"><span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span></td>
+                <td class="col-demande"><button class="saisie-badge-btn badge-en-attente" onclick="event.stopPropagation(); AdminEvaluations.openReponseModal('${evaluation.id}', '${eleve.id}')">🟡 En attente</button></td>
+                <td class="col-historique">—</td>
+                <td class="col-total">—</td>
+                <td class="col-points">—</td>
+            </tr>`;
+
+        // Helper : ligne d'un élève refusé
+        const renderRefuseRow = (eleve) => `
+            <tr data-eleve-id="${eleve.id}" class="nr-row">
+                <td class="col-eleve"><span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span></td>
+                <td class="col-demande"><button class="saisie-badge-btn badge-refusee" onclick="event.stopPropagation(); AdminEvaluations.openReponseModal('${evaluation.id}', '${eleve.id}')">🔴 Refusée</button></td>
+                <td class="col-historique">—</td>
+                <td class="col-total">—</td>
+                <td class="col-points">—</td>
+            </tr>`;
+
+        // Demandes en attente en premier
+        if (elevesEnAttente.length > 0) {
+            rowsHtml += elevesEnAttente.map(renderAttenteRow).join('');
+        }
+
+        // Élèves inscrits
+        if (elevesInscrits.length > 0) {
+            rowsHtml += elevesInscrits.map(renderInscritRow).join('');
+        }
+
+        // Élèves refusés en dernier
+        if (elevesRefuses.length > 0) {
+            rowsHtml += elevesRefuses.map(renderRefuseRow).join('');
+        }
+
+        tbody.innerHTML = rowsHtml;
 
         // Insert add verification button above the table
         const container = document.getElementById('saisieTableContainer');
