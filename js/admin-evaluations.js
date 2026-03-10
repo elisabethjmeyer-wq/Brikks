@@ -832,8 +832,8 @@ const AdminEvaluations = {
         if (type === 'competences') return 5;
         // Bonus suivi : 2 étapes (Paramètres + Détails)
         if (type === 'bonus' && this.wizardData.sous_type_bonus === 'suivi') return 2;
-        // Bonus mission : 6 étapes (Paramètres + Compétences + Document + Corrigé + Critères + Résumé)
-        if (type === 'bonus') return 6;
+        // Bonus mission : 5 étapes (Paramètres + Compétences & Critères + Document + Corrigé + Résumé)
+        if (type === 'bonus') return 5;
         return 1;
     },
 
@@ -852,7 +852,7 @@ const AdminEvaluations = {
             return ['Paramètres', 'Détails'];
         }
         if (type === 'bonus') {
-            return ['Paramètres', 'Compétences', 'Document', 'Corrigé', 'Critères', 'Résumé'];
+            return ['Paramètres', 'Évaluation', 'Document', 'Corrigé', 'Résumé'];
         }
         return ['Paramètres'];
     },
@@ -935,14 +935,13 @@ const AdminEvaluations = {
             return;
         }
 
-        // Bonus mission : Steps 2-6
+        // Bonus mission : Steps 2-5
         if (type === 'bonus' && sousType !== 'suivi') {
             switch (this.wizardStep) {
-                case 2: content.innerHTML = this._renderStepCompetences(); this._initStepCompetences(); break;
+                case 2: content.innerHTML = this._renderStepCompetencesEtCriteres(); this._initStepCompetencesEtCriteres(); break;
                 case 3: content.innerHTML = this._renderStepDocument(); this._initStepDocument(); break;
                 case 4: content.innerHTML = this._renderStepCorrige(); this._initStepCorrige(); break;
-                case 5: content.innerHTML = this._renderStepCriteresLibres(); this._initStepCriteresLibres(); break;
-                case 6: content.innerHTML = this._renderStepResume(); break;
+                case 5: content.innerHTML = this._renderStepResume(); break;
             }
             return;
         }
@@ -1718,6 +1717,195 @@ const AdminEvaluations = {
         }
         // Calculer le total initial
         this._updateCompPointsTotal();
+    },
+
+    // --- ÉTAPE COMPÉTENCES & CRITÈRES FUSIONNÉE (bonus mission) ---
+
+    _renderStepCompetencesEtCriteres() {
+        const d = this.wizardData;
+
+        // --- Section 1 : Compétences du référentiel ---
+        let selectedIds = [];
+        if (d.competence_ids) {
+            try {
+                const parsed = typeof d.competence_ids === 'string' ? JSON.parse(d.competence_ids) : d.competence_ids;
+                if (Array.isArray(parsed)) selectedIds = parsed.map(id => String(id));
+            } catch (_e) { /* ignore */ }
+        }
+
+        let ppc = {};
+        if (d.points_par_competence) {
+            try {
+                ppc = typeof d.points_par_competence === 'string' ? JSON.parse(d.points_par_competence) : d.points_par_competence;
+            } catch (_e) { /* ignore */ }
+        }
+
+        const comps = (this.competencesReferentiel || []).slice().sort((a, b) => (a.ordre || 0) - (b.ordre || 0));
+        const groups = {};
+        comps.forEach(c => {
+            const mat = c.matiere || 'Transversal';
+            if (!groups[mat]) groups[mat] = [];
+            groups[mat].push(c);
+        });
+
+        const matiereOrder = ['FR', 'HG-EMC', 'Transversal'];
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            const ia = matiereOrder.indexOf(a) === -1 ? 99 : matiereOrder.indexOf(a);
+            const ib = matiereOrder.indexOf(b) === -1 ? 99 : matiereOrder.indexOf(b);
+            return ia - ib;
+        });
+
+        const matiereLabels = { 'FR': 'Français', 'HG-EMC': 'Histoire-Géo · EMC', 'Transversal': 'Transversal' };
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+
+        let groupsHtml = '';
+        sortedKeys.forEach(mat => {
+            const label = matiereLabels[mat] || mat;
+            const color = matiereColors[mat] || '#6b7280';
+            const items = groups[mat];
+            const selectedInGroup = items.filter(c => selectedIds.indexOf(String(c.id)) !== -1).length;
+            const hasSelection = selectedInGroup > 0;
+            groupsHtml += `<div class="cw-comp-group${hasSelection ? ' open' : ''}" data-matiere="${escapeHtml(mat)}">
+                <button type="button" class="cw-comp-group-toggle" style="border-left: 3px solid ${color};" onclick="AdminEvaluations._toggleCompGroup(this)">
+                    <span class="cw-comp-group-arrow">${hasSelection ? '▾' : '▸'}</span>
+                    <span class="cw-comp-group-label" style="color: ${color};">${label}</span>
+                    <span class="cw-comp-group-count">${selectedInGroup > 0 ? selectedInGroup + '/' : ''}${items.length}</span>
+                </button>
+                <div class="cw-comp-group-items"${hasSelection ? '' : ' style="display:none;"'}>`;
+            items.forEach(c => {
+                const checked = selectedIds.indexOf(String(c.id)) !== -1 ? ' checked' : '';
+                const pts = ppc[String(c.id)] !== undefined ? ppc[String(c.id)] : 1;
+                const isSelected = selectedIds.indexOf(String(c.id)) !== -1;
+                groupsHtml += `<div class="cw-comp-checkbox-item" data-comp-name="${escapeHtml((c.nom || '').toLowerCase())}">
+                    <label class="cw-comp-checkbox-row">
+                        <input type="checkbox" value="${c.id}"${checked} onchange="AdminEvaluations._onCompCheckChange(this)">
+                        <span class="cw-comp-checkbox-label">${escapeHtml(c.nom)}</span>
+                        <span class="cw-comp-matiere-tag" style="background: ${color}20; color: ${color}; border: 1px solid ${color}40; padding: 1px 6px; border-radius: 4px; font-size: 0.7rem; white-space: nowrap;">${mat}</span>
+                    </label>
+                    <div class="cw-comp-points-input" style="${isSelected ? '' : 'display:none;'}">
+                        <input type="number" class="form-input cw-comp-pts" data-comp-id="${c.id}" value="${pts}" min="0.25" max="20" step="0.25" onchange="AdminEvaluations._updateCompPointsTotal()" style="width: 70px; padding: 4px 8px; font-size: 0.85rem;">
+                        <span style="font-size: 0.8rem; color: var(--gray-500);">pt${pts > 1 ? 's' : ''}</span>
+                    </div>
+                </div>`;
+            });
+            groupsHtml += '</div></div>';
+        });
+
+        if (comps.length === 0) {
+            groupsHtml = '<div style="padding: 24px; text-align: center; color: var(--gray-400);">Aucune compétence dans le référentiel</div>';
+        }
+
+        // --- Section 2 : Critères libres ---
+        let criteres = [];
+        if (d.criteres_libres) {
+            try {
+                const parsed = typeof d.criteres_libres === 'string' ? JSON.parse(d.criteres_libres) : d.criteres_libres;
+                if (Array.isArray(parsed)) criteres = parsed;
+            } catch (_e) { /* ignore */ }
+        }
+        if (criteres.length === 0) criteres.push('');
+
+        const criteresRows = criteres.map((c, i) =>
+            `<div class="critere-libre-row">
+                <span class="critere-libre-num">${i + 1}</span>
+                <input type="text" class="form-input critere-libre-input" value="${escapeHtml(c)}" placeholder="Ex: Répondre avec une phrase complète">
+                <button class="btn-icon btn-remove" onclick="AdminEvaluations._ewRemoveCritere(${i})" title="Supprimer">&times;</button>
+            </div>`
+        ).join('');
+
+        // --- Assemblage avec 2 sections en toggle ---
+        const hasSelectedComps = selectedIds.length > 0;
+        const hasCriteres = criteres.some(c => c.trim());
+
+        return `<div class="eval-wizard-step-content cec-merged-step">
+            <div class="step-header">
+                <h3>Cadre d'évaluation</h3>
+                <p>Définissez les compétences du référentiel et/ou des critères libres pour cette mission</p>
+            </div>
+
+            <!-- Section Compétences du référentiel -->
+            <div class="cec-section">
+                <button type="button" class="cec-section-header" onclick="AdminEvaluations._toggleCecSection(this)">
+                    <div class="cec-section-icon" style="background: #8b5cf620; color: #8b5cf6;">📋</div>
+                    <div class="cec-section-title">
+                        <span class="cec-section-name">Compétences du référentiel</span>
+                        <span class="cec-section-desc">Sélectionnez les compétences officielles à évaluer</span>
+                    </div>
+                    <span class="cec-section-badge" id="cecCompBadge">${hasSelectedComps ? selectedIds.length + ' sélectionnée' + (selectedIds.length > 1 ? 's' : '') : 'Optionnel'}</span>
+                    <span class="cec-section-arrow">${hasSelectedComps || !hasCriteres ? '▾' : '▸'}</span>
+                </button>
+                <div class="cec-section-body" id="cecCompBody"${hasSelectedComps || !hasCriteres ? '' : ' style="display:none;"'}>
+                    <div class="cw-comp-search-bar"><input type="text" class="form-input" id="evalCompSearch" placeholder="Rechercher une compétence..."></div>
+                    <div class="cw-comp-list" id="evalCompetencesCheckboxes">${groupsHtml}</div>
+                    <div class="cw-comp-points-total" id="evalCompPointsTotal" style="margin-top: 12px; padding: 10px 16px; background: var(--gray-50, #f9fafb); border-radius: 8px; font-weight: 600; font-size: 0.9rem;"></div>
+                </div>
+            </div>
+
+            <!-- Section Critères libres -->
+            <div class="cec-section">
+                <button type="button" class="cec-section-header" onclick="AdminEvaluations._toggleCecSection(this)">
+                    <div class="cec-section-icon" style="background: #0d948820; color: #0d9488;">✏️</div>
+                    <div class="cec-section-title">
+                        <span class="cec-section-name">Critères libres</span>
+                        <span class="cec-section-desc">Ajoutez vos propres critères de réussite personnalisés</span>
+                    </div>
+                    <span class="cec-section-badge" id="cecCritBadge">${hasCriteres ? criteres.filter(c => c.trim()).length + ' critère' + (criteres.filter(c => c.trim()).length > 1 ? 's' : '') : 'Optionnel'}</span>
+                    <span class="cec-section-arrow">${hasCriteres ? '▾' : '▸'}</span>
+                </button>
+                <div class="cec-section-body" id="cecCritBody"${hasCriteres ? '' : ' style="display:none;"'}>
+                    <div id="evalCriteresList" class="cw-criteres-list">${criteresRows}</div>
+                    <button class="btn btn-secondary btn-sm" onclick="AdminEvaluations._ewAddCritere()" style="margin-top: 8px;">+ Ajouter un critère</button>
+                </div>
+            </div>
+
+            <!-- Message d'aide -->
+            <div class="cec-help-note" id="cecHelpNote">
+                <span class="cec-help-icon">💡</span>
+                Sélectionnez au moins une compétence ou un critère libre pour définir le cadre d'évaluation.
+            </div>
+        </div>`;
+    },
+
+    _initStepCompetencesEtCriteres() {
+        // Init search on competences
+        const searchInput = document.getElementById('evalCompSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const query = this.value.toLowerCase().trim();
+                document.querySelectorAll('#evalCompetencesCheckboxes .cw-comp-checkbox-item').forEach(item => {
+                    item.style.display = (!query || (item.dataset.compName || '').indexOf(query) !== -1) ? '' : 'none';
+                });
+                document.querySelectorAll('#evalCompetencesCheckboxes .cw-comp-group').forEach(group => {
+                    const visible = group.querySelectorAll('.cw-comp-checkbox-item:not([style*="display: none"])');
+                    group.style.display = visible.length > 0 ? '' : 'none';
+                    if (query && visible.length > 0) {
+                        group.classList.add('open');
+                        const items = group.querySelector('.cw-comp-group-items');
+                        const arrow = group.querySelector('.cw-comp-group-arrow');
+                        if (items) items.style.display = '';
+                        if (arrow) arrow.textContent = '▾';
+                    }
+                });
+            });
+        }
+        this._updateCompPointsTotal();
+
+        // Focus last empty critere input
+        const inputs = document.querySelectorAll('#evalCriteresList .critere-libre-input');
+        if (inputs.length > 0) {
+            const last = inputs[inputs.length - 1];
+            if (!last.value) last.focus();
+        }
+    },
+
+    _toggleCecSection(btn) {
+        const section = btn.closest('.cec-section');
+        if (!section) return;
+        const body = section.querySelector('.cec-section-body');
+        const arrow = section.querySelector('.cec-section-arrow');
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : '';
+        if (arrow) arrow.textContent = isOpen ? '▸' : '▾';
     },
 
     // --- ÉTAPE COMPÉTENCE UNIQUE (bonus compétence : sélection d'une seule) ---
@@ -2548,20 +2736,38 @@ const AdminEvaluations = {
                 }
                 return true;
             }
-            case 'criteres': {
-                // Bonus mission : collect free-form criteria (optionnel si compétences sélectionnées)
-                const inputs = document.querySelectorAll('#evalCriteresList .critere-libre-input');
-                const criteres = [];
-                inputs.forEach(input => {
-                    const v = input.value.trim();
-                    if (v) criteres.push(v);
+            case 'competences_et_criteres': {
+                // Bonus mission : compétences + critères libres fusionnés
+                // 1. Collect competences
+                const checkedMerged = document.querySelectorAll('#evalCompetencesCheckboxes input[type="checkbox"]:checked');
+                const idsMerged = [];
+                const ptsParCompMerged = {};
+                checkedMerged.forEach(cb => {
+                    idsMerged.push(cb.value);
+                    const item = cb.closest('.cw-comp-checkbox-item');
+                    const ptsInput = item ? item.querySelector('.cw-comp-pts') : null;
+                    ptsParCompMerged[cb.value] = ptsInput ? (parseFloat(ptsInput.value) || 1) : 1;
                 });
-                const hasCompetences = !!this.wizardData.competence_ids;
-                if (criteres.length === 0 && !hasCompetences) {
-                    this.showNotification('Ajoutez au moins un critère ou sélectionnez des compétences à l\'étape 2', 'error');
+                this.wizardData.competence_ids = idsMerged.length > 0 ? JSON.stringify(idsMerged) : '';
+                this.wizardData.points_par_competence = idsMerged.length > 0 ? JSON.stringify(ptsParCompMerged) : '';
+                if (idsMerged.length > 0) {
+                    let totalBriques = 0;
+                    for (const k in ptsParCompMerged) totalBriques += ptsParCompMerged[k];
+                    this.wizardData.briques = totalBriques;
+                }
+                // 2. Collect critères libres
+                const inputsMerged = document.querySelectorAll('#evalCriteresList .critere-libre-input');
+                const criteresMerged = [];
+                inputsMerged.forEach(input => {
+                    const v = input.value.trim();
+                    if (v) criteresMerged.push(v);
+                });
+                // Validation : au moins une compétence OU un critère
+                if (idsMerged.length === 0 && criteresMerged.length === 0) {
+                    this.showNotification('Sélectionnez au moins une compétence ou ajoutez un critère libre', 'error');
                     return false;
                 }
-                this.wizardData.criteres_libres = criteres.length > 0 ? JSON.stringify(criteres) : '';
+                this.wizardData.criteres_libres = criteresMerged.length > 0 ? JSON.stringify(criteresMerged) : '';
                 return true;
             }
             case 'suivi_details': {
@@ -2598,7 +2804,7 @@ const AdminEvaluations = {
             return ['params', 'suivi_details'][step - 1];
         }
         if (type === 'bonus') {
-            return ['params', 'competences', 'document', 'corrige', 'criteres', 'resume'][step - 1];
+            return ['params', 'competences_et_criteres', 'document', 'corrige', 'resume'][step - 1];
         }
         return 'params';
     },
