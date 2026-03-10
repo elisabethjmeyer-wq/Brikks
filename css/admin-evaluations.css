@@ -2221,6 +2221,65 @@
     color: #065f46;
 }
 
+/* ===== SAISIE BONUS (comp/ponctuel) ===== */
+.demande-inline-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.btn-xs {
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-xs.btn-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+.btn-xs.btn-success:hover {
+    background: #a7f3d0;
+}
+
+.btn-xs.btn-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+.btn-xs.btn-danger:hover {
+    background: #fecaca;
+}
+
+.btn-xs.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+}
+.btn-xs.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.col-date-rendu {
+    min-width: 120px;
+}
+
+.date-info {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.date-type {
+    font-size: 11px;
+    color: var(--gray-400, #9ca3af);
+}
+
+.col-points .points-display {
+    font-weight: 600;
+    font-size: 13px;
+}
+
 /* ===== BARRE TOUT PUBLIER ===== */
 .saisie-publish-bar {
     display: flex;
