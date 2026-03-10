@@ -7190,7 +7190,7 @@ function saveValidationSuivi(data) {
   // Migration progressive
   var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
-  ['validation_numero'].forEach(function(col) {
+  ['validation_numero', 'validations_dates'].forEach(function(col) {
     if (headerNames.indexOf(col) < 0) {
       sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
       headerNames.push(col);
@@ -7205,6 +7205,7 @@ function saveValidationSuivi(data) {
   var validNumCol = headers.indexOf('validation_numero');
   var validationsCol = headers.indexOf('validations');
   var dateCol = headers.indexOf('date_passage');
+  var validDatesCol = headers.indexOf('validations_dates');
 
   var existingRow = -1;
   for (var i = 1; i < allData.length; i++) {
@@ -7220,17 +7221,46 @@ function saveValidationSuivi(data) {
     if (validNumCol >= 0) sheet.getRange(existingRow, validNumCol + 1).setValue(data.validation_numero);
     if (validationsCol >= 0) sheet.getRange(existingRow, validationsCol + 1).setValue(data.validation_numero);
     if (dateCol >= 0) sheet.getRange(existingRow, dateCol + 1).setValue(new Date().toISOString());
+    // Stocker la date de chaque validation dans un JSON {1: "2026-01-12", 2: "2026-02-03", ...}
+    if (validDatesCol >= 0) {
+      var existingDates = {};
+      try {
+        var raw = String(allData[existingRow - 1][validDatesCol] || '').trim();
+        if (raw) existingDates = JSON.parse(raw);
+      } catch (_e) { /* ignore */ }
+      var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      if (data.validation_numero > 0) {
+        existingDates[String(data.validation_numero)] = today;
+        // Nettoyer les dates des validations retirées (si décochage)
+        for (var k in existingDates) {
+          if (parseInt(k) > data.validation_numero) delete existingDates[k];
+        }
+      } else {
+        existingDates = {};
+      }
+      sheet.getRange(existingRow, validDatesCol + 1).setValue(JSON.stringify(existingDates));
+    }
     return { success: true, message: 'Validation ' + data.validation_numero + ' enregistrée' };
   }
 
   // Créer un nouveau résultat
   var id = 'res_' + new Date().getTime();
+  var todayStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var initialDates = {};
+  if (data.validation_numero > 0) {
+    initialDates[String(data.validation_numero)] = todayStr;
+    // Remplir les validations précédentes avec la même date
+    for (var v = 1; v < data.validation_numero; v++) {
+      initialDates[String(v)] = todayStr;
+    }
+  }
   var newRow = headers.map(function(col) {
     if (col === 'id') return id;
     if (col === 'evaluation_id') return data.evaluation_id;
     if (col === 'eleve_id') return data.eleve_id;
     if (col === 'validation_numero') return data.validation_numero;
     if (col === 'validations') return data.validation_numero;
+    if (col === 'validations_dates') return JSON.stringify(initialDates);
     if (col === 'source') return 'saisie_admin';
     if (col === 'date_passage') return new Date().toISOString();
     return '';

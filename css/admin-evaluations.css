@@ -2109,6 +2109,13 @@
     width: 50px;
 }
 
+.suivi-date-label {
+    font-size: 10px;
+    color: var(--gray-400);
+    margin-top: 2px;
+    line-height: 1;
+}
+
 .suivi-progress {
     font-weight: 600;
     font-size: 14px;
