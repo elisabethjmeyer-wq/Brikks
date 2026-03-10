@@ -63,10 +63,9 @@ const AdminEvaluations = {
             await this.loadData();
             this.setupEventListeners();
 
-            // Si hash #bonus-demandes, basculer sur l'onglet bonus + vue demandes
+            // Si hash #bonus-demandes, basculer sur l'onglet bonus
             if (window.location.hash === '#bonus-demandes') {
                 this.currentType = 'bonus';
-                this._bonusView = 'demandes';
                 // Mettre à jour l'UI des onglets
                 document.querySelectorAll('.eval-tab').forEach(tab => {
                     tab.classList.remove('active');
@@ -346,20 +345,6 @@ const AdminEvaluations = {
     },
 
     // ========== RENDER ==========
-    _bonusView: 'creer',
-
-    async _setBonusView(view) {
-        this._bonusView = view;
-        // Rafraîchir les résultats quand on ouvre la vue demandes
-        if (view === 'demandes') {
-            try {
-                SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
-                const freshData = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
-                this.resultats = SheetsAPI.parseSheetData(freshData);
-            } catch (_e) { /* garder les données existantes */ }
-        }
-        this.renderEvaluations();
-    },
 
     renderEvaluations() {
         if (this.currentType === 'sommatives') {
@@ -370,23 +355,8 @@ const AdminEvaluations = {
         const container = document.getElementById('evaluationsList');
         const emptyState = document.getElementById('emptyState');
 
-        // Pour l'onglet bonus : toggle Créer / Gérer demandes
+        // Pour l'onglet bonus : afficher les cartes comme les autres types
         if (this.currentType === 'bonus') {
-            const demandesCount = this._getDemandesEnAttente().length;
-            const isDemandesView = this._bonusView === 'demandes';
-
-            let toggleHtml = '<div class="bonus-view-toggle">';
-            toggleHtml += `<button class="bonus-toggle-btn ${!isDemandesView ? 'active' : ''}" onclick="AdminEvaluations._setBonusView('creer')">Créer évaluations</button>`;
-            toggleHtml += `<button class="bonus-toggle-btn ${isDemandesView ? 'active' : ''}" onclick="AdminEvaluations._setBonusView('demandes')">Gérer les demandes${demandesCount > 0 ? ' <span class="toggle-badge">' + demandesCount + '</span>' : ''}</button>`;
-            toggleHtml += '</div>';
-
-            if (isDemandesView) {
-                emptyState.style.display = 'none';
-                container.innerHTML = toggleHtml + this._renderDemandesView();
-                return;
-            }
-
-            // Vue Créer : toggle + cartes
             let filtered = this.evaluations.filter(e => {
                 if (e.type !== 'bonus') return false;
                 if (this.filters.statut && e.statut !== this.filters.statut) return false;
@@ -395,11 +365,11 @@ const AdminEvaluations = {
             filtered = this._filterByMatiere(filtered);
 
             if (filtered.length === 0) {
-                emptyState.style.display = 'none';
-                container.innerHTML = toggleHtml + '<div class="empty-state-inline">Aucune évaluation bonus pour le moment.</div>';
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
             } else {
                 emptyState.style.display = 'none';
-                container.innerHTML = toggleHtml + filtered.map(e => this.renderEvaluationCard(e)).join('');
+                container.innerHTML = filtered.map(e => this.renderEvaluationCard(e)).join('');
             }
             return;
         }
@@ -597,8 +567,16 @@ const AdminEvaluations = {
             }
         }
 
+        // Count pending demandes for bonus types
+        const pendingDemandes = isBonusType ? evalResults.filter(r => String(r.demande_statut || '').trim() === 'demande').length : 0;
+
         const statsHtml = `
             <div class="eval-card-stats">
+                ${pendingDemandes > 0 ? `
+                <div class="eval-stat eval-stat-alert">
+                    <div class="eval-stat-value">${pendingDemandes}</div>
+                    <div class="eval-stat-label">En attente</div>
+                </div>` : ''}
                 <div class="eval-stat">
                     <div class="eval-stat-value">${isBonusType ? totalEleves : `${saisis}/${totalEleves}`}</div>
                     <div class="eval-stat-label">${statsLabel}</div>
