@@ -371,7 +371,7 @@ const AdminLayout = {
 
         // Corrections : lien vers la page évaluations
         if (correctionsCount > 0) {
-            html += '<a href="/Brikks/admin/corrections.html" class="notification-item">';
+            html += '<a href="/Brikks/admin/evaluations.html" class="notification-item">';
             html += '<span class="notification-item-icon">✏️</span>';
             html += '<span class="notification-item-text">' + correctionsCount + ' copie' + (correctionsCount > 1 ? 's' : '') + ' à corriger</span>';
             html += '</a>';
