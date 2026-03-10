@@ -1221,3 +1221,83 @@
 .suivi-check-icon {
     font-size: 0.9rem;
 }
+
+/* ========== Suivi historique complet ========== */
+.suivi-historique {
+    margin-top: 12px;
+}
+
+.suivi-historique-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.suivi-historique-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.suivi-historique-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+}
+
+.suivi-historique-entry.success {
+    background: #f0fdf4;
+}
+
+.suivi-historique-entry.fail {
+    background: #fef2f2;
+}
+
+.suivi-historique-icon {
+    font-weight: 700;
+    font-size: 0.9rem;
+    width: 18px;
+    text-align: center;
+}
+
+.suivi-historique-entry.success .suivi-historique-icon {
+    color: #059669;
+}
+
+.suivi-historique-entry.fail .suivi-historique-icon {
+    color: #dc2626;
+}
+
+.suivi-historique-date {
+    color: #6b7280;
+    min-width: 90px;
+}
+
+.suivi-historique-label {
+    font-weight: 500;
+}
+
+.suivi-historique-entry.success .suivi-historique-label {
+    color: #059669;
+}
+
+.suivi-historique-entry.fail .suivi-historique-label {
+    color: #dc2626;
+}
+
+.suivi-no-history {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    font-style: italic;
+    margin-top: 8px;
+}
+
+/* Harmoniser la barre de progression avec eleve-evaluations */
+.suivi-progress-bar {
+    height: 10px;
+    border-radius: 5px;
+}

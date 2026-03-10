@@ -454,9 +454,6 @@ function handleRequest(e) {
       case 'updateDemandeAcceptee':
         result = updateDemandeAcceptee(request);
         break;
-      case 'saveValidationSuivi':
-        result = saveValidationSuivi(request);
-        break;
       case 'saveVerificationSuivi':
         result = saveVerificationSuivi(request);
         break;
@@ -7175,105 +7172,6 @@ function updateDemandeAcceptee(data) {
 }
 
 /**
- * Sauvegarde une validation de suivi (bonus suivi — ex: gestion du matériel)
- * Incrémente le compteur de validations pour un élève
- * @param {Object} data - { evaluation_id, eleve_id, validation_numero }
- */
-function saveValidationSuivi(data) {
-  if (!data.evaluation_id || !data.eleve_id || !data.validation_numero) {
-    return { success: false, error: 'evaluation_id, eleve_id et validation_numero requis' };
-  }
-
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
-  if (!sheet) {
-    return { success: false, error: 'Sheet non trouvée' };
-  }
-
-  // Migration progressive
-  var headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  var headerNames = headerRow.map(function(h) { return String(h).toLowerCase().trim(); });
-  ['validation_numero', 'validations_dates'].forEach(function(col) {
-    if (headerNames.indexOf(col) < 0) {
-      sheet.getRange(1, sheet.getLastColumn() + 1).setValue(col);
-      headerNames.push(col);
-    }
-  });
-
-  // Chercher un résultat existant pour cet élève/évaluation
-  var allData = sheet.getDataRange().getValues();
-  var headers = allData[0].map(function(h) { return String(h).toLowerCase().trim(); });
-  var evalIdCol = headers.indexOf('evaluation_id');
-  var eleveIdCol = headers.indexOf('eleve_id');
-  var validNumCol = headers.indexOf('validation_numero');
-  var validationsCol = headers.indexOf('validations');
-  var dateCol = headers.indexOf('date_passage');
-  var validDatesCol = headers.indexOf('validations_dates');
-
-  var existingRow = -1;
-  for (var i = 1; i < allData.length; i++) {
-    if (String(allData[i][evalIdCol]).trim() === String(data.evaluation_id).trim() &&
-        String(allData[i][eleveIdCol]).trim() === String(data.eleve_id).trim()) {
-      existingRow = i + 1;
-      break;
-    }
-  }
-
-  if (existingRow > 0) {
-    // Mettre à jour le nombre de validations et la date
-    if (validNumCol >= 0) sheet.getRange(existingRow, validNumCol + 1).setValue(data.validation_numero);
-    if (validationsCol >= 0) sheet.getRange(existingRow, validationsCol + 1).setValue(data.validation_numero);
-    if (dateCol >= 0) sheet.getRange(existingRow, dateCol + 1).setValue(new Date().toISOString());
-    // Stocker la date de chaque validation dans un JSON {1: "2026-01-12", 2: "2026-02-03", ...}
-    if (validDatesCol >= 0) {
-      var existingDates = {};
-      try {
-        var raw = String(allData[existingRow - 1][validDatesCol] || '').trim();
-        if (raw) existingDates = JSON.parse(raw);
-      } catch (_e) { /* ignore */ }
-      var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-      if (data.validation_numero > 0) {
-        existingDates[String(data.validation_numero)] = today;
-        // Nettoyer les dates des validations retirées (si décochage)
-        for (var k in existingDates) {
-          if (parseInt(k) > data.validation_numero) delete existingDates[k];
-        }
-      } else {
-        existingDates = {};
-      }
-      sheet.getRange(existingRow, validDatesCol + 1).setValue(JSON.stringify(existingDates));
-    }
-    return { success: true, message: 'Validation ' + data.validation_numero + ' enregistrée' };
-  }
-
-  // Créer un nouveau résultat
-  var id = 'res_' + new Date().getTime();
-  var todayStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  var initialDates = {};
-  if (data.validation_numero > 0) {
-    initialDates[String(data.validation_numero)] = todayStr;
-    // Remplir les validations précédentes avec la même date
-    for (var v = 1; v < data.validation_numero; v++) {
-      initialDates[String(v)] = todayStr;
-    }
-  }
-  var newRow = headers.map(function(col) {
-    if (col === 'id') return id;
-    if (col === 'evaluation_id') return data.evaluation_id;
-    if (col === 'eleve_id') return data.eleve_id;
-    if (col === 'validation_numero') return data.validation_numero;
-    if (col === 'validations') return data.validation_numero;
-    if (col === 'validations_dates') return JSON.stringify(initialDates);
-    if (col === 'source') return 'saisie_admin';
-    if (col === 'date_passage') return new Date().toISOString();
-    return '';
-  });
-
-  sheet.appendRow(newRow);
-  return { success: true, id: id, message: 'Validation ' + data.validation_numero + ' enregistrée' };
-}
-
-/**
  * Sauvegarde une vérification de suivi (date + résultat validé/non validé).
  * Stocke l'historique complet dans validations_historique (JSON array).
  * Recalcule validation_numero = nombre de true dans l'historique.
@@ -7329,23 +7227,48 @@ function saveVerificationSuivi(data) {
   }
 
   // Mode : ajout, modification ou suppression d'une entrée
+  var resultatBool = data.resultat === true || data.resultat === 'true';
   if (data.action_type === 'delete') {
-    // Supprimer l'entrée à l'index donné
-    var idx = parseInt(data.index);
-    if (idx >= 0 && idx < historique.length) {
-      historique.splice(idx, 1);
+    // Supprimer par date d'origine (plus fiable que l'index après tri)
+    var targetDate = data.original_date || data.date;
+    var found = false;
+    for (var d = historique.length - 1; d >= 0; d--) {
+      if (historique[d].date === targetDate) {
+        historique.splice(d, 1);
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      // Fallback sur index si date non trouvée
+      var idx = parseInt(data.index);
+      if (!isNaN(idx) && idx >= 0 && idx < historique.length) {
+        historique.splice(idx, 1);
+      }
     }
   } else if (data.action_type === 'update') {
-    // Modifier une entrée existante
-    var updateIdx = parseInt(data.index);
-    if (updateIdx >= 0 && updateIdx < historique.length) {
-      historique[updateIdx] = { date: data.date, resultat: data.resultat === true || data.resultat === 'true' };
+    // Modifier par date d'origine
+    var origDate = data.original_date || '';
+    var updated = false;
+    for (var u = 0; u < historique.length; u++) {
+      if (historique[u].date === origDate) {
+        historique[u] = { date: data.date, resultat: resultatBool };
+        updated = true;
+        break;
+      }
+    }
+    if (!updated) {
+      // Fallback sur index
+      var updateIdx = parseInt(data.index);
+      if (!isNaN(updateIdx) && updateIdx >= 0 && updateIdx < historique.length) {
+        historique[updateIdx] = { date: data.date, resultat: resultatBool };
+      }
     }
   } else {
     // Ajouter une nouvelle vérification
     historique.push({
       date: data.date,
-      resultat: data.resultat === true || data.resultat === 'true'
+      resultat: resultatBool
     });
   }
 

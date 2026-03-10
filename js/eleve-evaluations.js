@@ -854,7 +854,7 @@ const EleveEvaluations = {
         const cardStatus = evaluation.cardStatus;
         const briques = parseInt(evaluation.briques) || 1;
         const nbTotal = parseInt(evaluation.nb_validations) || 5;
-        const currentVal = resultat ? (parseInt(resultat.validation_numero) || 0) : 0;
+        const currentVal = resultat ? (parseInt(resultat.validation_numero) || parseInt(resultat.validations) || 0) : 0;
         const isComplete = currentVal >= nbTotal;
         const title = evaluation.titre || 'Suivi';
         const pct = nbTotal > 0 ? Math.round((currentVal / nbTotal) * 100) : 0;
