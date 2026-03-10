@@ -4,6 +4,42 @@
 
 ---
 
+## 2026-03-10 — Session 35 : Refonte bonus suivi (Phase 11)
+
+### Wizard admin bonus suivi (admin-evaluations.js)
+
+1. **Wizard 2 étapes** : Paramètres (titre, matière, points, type) → Détails (description, nb réussites requises, critères de réussite)
+2. **Champs déplacés** de l'étape 1 vers l'étape 2 — `_onBonusSousTypeChange('suivi')` vidé
+3. **Labels clarifiés** : "Nombre de réussites requises" + "L'élève n'est pas pénalisé en cas d'échec"
+4. **Critères** stockés dans `criteres_libres` (colonne existante dans EVALUATIONS)
+
+### Carte élève bonus suivi (eleve-evaluations.js, css/eleve-evaluations.css)
+
+1. **Flux demande** : bouton "Demander cette évaluation" → statuts suivi_disponible, suivi_demande, suivi_refuse, suivi_en_cours, suivi_complete
+2. **Critères dépliables** : chevron ▸/▾ avec liste des critères de réussite dans la carte
+3. **Barre de progression** affichée uniquement après acceptation (pas avant)
+4. **Date dernière vérification** lue depuis `validations_historique`
+5. **Fix carte invisible** : statuts `suivi_*` ajoutés au filtre `actifs` de `_renderBonusTab()`
+
+### Saisie admin refonte (admin-evaluations.js, css/admin-evaluations.css)
+
+1. **Tableau filtré** : seuls les élèves avec `demande_statut = 'accepte'` (inscrits)
+2. **Panneau "Ajouter une vérification"** : date picker + toggle ✓/✗ par élève, sauvegarde en lot
+3. **Pastilles historique** : ✓ vertes / ✗ rouges avec dates dans chaque ligne
+4. **Élèves ayant atteint l'objectif** exclus du panneau d'ajout
+5. **Compteur carte admin** : "Inscrits" au lieu de "0/26 Saisis"
+
+### Backend (Evaluations.gs, Code.gs)
+
+1. **Nouvelle action** `saveVerificationSuivi` : historique JSON array `[{date, resultat}, ...]`, ajout/modification/suppression
+2. **Colonne** `validations_historique` en migration progressive dans EVALUATION_RESULTATS
+3. **`validation_numero`** recalculé = nombre de `true` dans l'historique (rétro-compatible)
+4. **`saveValidationSuivi`** conservé (legacy) mais plus appelé par le nouveau tableau
+
+**Fichiers modifiés** : `js/admin-evaluations.js`, `js/eleve-evaluations.js`, `css/admin-evaluations.css`, `css/eleve-evaluations.css`, `google-apps-script/Evaluations.gs`, `google-apps-script/Code.gs`, `google-apps-script/TOUT-EN-UN.gs`
+
+---
+
 ## 2026-03-09 — Session 34 : Fix erreurs 429 + dates françaises
 
 ### Fix erreur 429 Google Sheets (admin-layout.js)
