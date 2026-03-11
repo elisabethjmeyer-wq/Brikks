@@ -1199,7 +1199,7 @@ const AdminEvaluations = {
         const sommative = this.sommatives.find(s => String(s.id) === String(somId));
         if (!sommative) return;
 
-        const now = new Date().toISOString();
+        const now = new Date().toISOString().split('T')[0];
         const old = { statut: sommative.statut, date_ouverture: sommative.date_ouverture, date_fermeture: sommative.date_fermeture };
         sommative.statut = 'publiee';
         sommative.date_ouverture = now;
@@ -1410,8 +1410,8 @@ const AdminEvaluations = {
         const oldDateOuv = evaluation.date_ouverture;
         const oldDateFerm = evaluation.date_fermeture;
 
-        // Mise à jour optimiste — date_ouverture = maintenant
-        const now = new Date().toISOString();
+        // Mise à jour optimiste — date_ouverture = aujourd'hui
+        const now = new Date().toISOString().split('T')[0];
         evaluation.statut = 'publiee';
         evaluation.date_ouverture = now;
         evaluation.date_fermeture = '';
