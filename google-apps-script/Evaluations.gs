@@ -219,8 +219,42 @@ function getEvaluationForEleve(data) {
     }
   }
 
+  // Fallback : chercher dans NOTES_SOMMATIVES si pas trouvée dans EVALUATIONS
+  if (!evaluation) {
+    var somSheet = ss.getSheetByName(SHEETS.NOTES_SOMMATIVES);
+    if (somSheet) {
+      var somData = somSheet.getDataRange().getValues();
+      var somHeaders = somData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      for (var s = 1; s < somData.length; s++) {
+        var somIdCol = somHeaders.indexOf('id');
+        if (somIdCol >= 0 && String(somData[s][somIdCol]).trim() === String(data.id).trim()) {
+          evaluation = { type: 'controle', isSommative: true };
+          somHeaders.forEach(function(header, index) {
+            evaluation[header] = somData[s][index];
+          });
+          evaluation.type = 'controle';
+          break;
+        }
+      }
+    }
+  }
+
   if (!evaluation) {
     return { success: false, error: 'Evaluation non trouvee: ' + data.id };
+  }
+
+  // Sommative : logique d'accès simplifiée (pas de questions, juste le sujet)
+  if (evaluation.isSommative) {
+    var somStatut = _computeEffectiveStatut_(evaluation);
+    if (somStatut === 'brouillon') {
+      return { success: false, error: 'Cette évaluation n\'est pas encore disponible' };
+    }
+    var somSujetVisible = String(evaluation.sujet_visible || '').toLowerCase().trim() === 'true';
+    if (somStatut === 'planifiee' && !somSujetVisible) {
+      return { success: false, error: 'Cette évaluation n\'est pas encore ouverte' };
+    }
+    evaluation.questions = [];
+    return { success: true, data: evaluation };
   }
 
   // Vérifier que l'évaluation est accessible (pas brouillon, pas planifiée)

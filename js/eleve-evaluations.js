@@ -1145,8 +1145,9 @@ const EleveEvaluations = {
             pointsBadge = `<span class="card-points pending">${briques} point${briques > 1 ? 's' : ''} à gagner</span>`;
         }
 
-        // TC : sujet disponible à l'avance ?
+        // TC : sujet consultable ?
         const isTC = type === 'competences';
+        const hasDocContenu = String(evaluation.document_contenu || '').trim() !== '';
         const sujetAvance = isTC && (evaluation.sujet_disponible_avance === true || evaluation.sujet_disponible_avance === 'true' || evaluation.sujet_disponible_avance === 'TRUE');
 
         // Type subtitle
@@ -1188,25 +1189,24 @@ const EleveEvaluations = {
             if (remarque) {
                 statusExtra += `<div class="card-bonus-remarque">${escapeHtml(remarque)}</div>`;
             }
-            // Bouton consulter sujet (si autorisé)
-            const sujetVisible = resultat && (resultat.sujet_visible === true || resultat.sujet_visible === 'true' || resultat.sujet_visible === 'TRUE');
-            if (sujetVisible) {
+            // Bouton consulter sujet si document_contenu existe (bonus accepté = sujet accessible)
+            if (hasDocContenu) {
                 actionHtml = `<a href="evaluation.html?id=${evaluation.id}&mode=sujet" class="card-btn type-bonus" onclick="event.stopPropagation()">Consulter le sujet</a>`;
             }
         } else if (cardStatus === 'rendu') {
             statusExtra = '<span class="bonus-status en-attente" style="align-self:flex-start">En attente de correction</span>';
-        } else if (cardStatus === 'available' && isTC && sujetAvance) {
-            // TC ouverte + sujet disponible à l'avance → consulter le sujet
+        } else if (cardStatus === 'available' && isTC && hasDocContenu) {
+            // TC ouverte + sujet renseigné → consultable
             actionHtml = `<a href="evaluation.html?id=${evaluation.id}&mode=sujet" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
-        } else if (cardStatus === 'available' && isTC && !sujetAvance) {
-            // TC ouverte mais sujet non consultable → en classe seulement
+        } else if (cardStatus === 'available' && isTC) {
+            // TC ouverte sans sujet → en classe seulement
             actionHtml = '<div class="card-action-info papier">En classe</div>';
         } else if (cardStatus === 'available' && !isPapier) {
             actionHtml = `<a href="evaluation.html?id=${evaluation.id}" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Commencer</a>`;
         } else if (cardStatus === 'available' && isPapier) {
             actionHtml = '<div class="card-action-info papier">En classe</div>';
         } else if (cardStatus === 'upcoming' && sujetAvance) {
-            // TC planifiée mais sujet consultable à l'avance
+            // TC planifiée mais sujet consultable à l'avance (toggle explicite)
             actionHtml = `<a href="evaluation.html?id=${evaluation.id}&mode=sujet" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
         } else if (cardStatus === 'upcoming') {
             actionHtml = `<div class="card-action-info upcoming">${escapeHtml(this.getCountdown(evaluation.date_ouverture))}</div>`;
@@ -1286,10 +1286,22 @@ const EleveEvaluations = {
             ? `<div class="card-meta">${metaParts.join('<span class="meta-sep">·</span>')}</div>`
             : '';
 
-        // Status
+        // Sujet consultable ?
+        const hasDoc = String(som.document_contenu || '').trim() !== '';
+        const sujetVisibleAvance = som.sujet_visible === true || som.sujet_visible === 'true' || som.sujet_visible === 'TRUE';
+
+        // Status + action
         let statusHtml = '';
+        let actionHtml = '';
         if (hasNote) {
             statusHtml = '<div class="card-action-info">Note publiée</div>';
+        } else if (status === 'available' && hasDoc) {
+            // Éval ouverte + sujet renseigné → consultable
+            actionHtml = `<a href="evaluation.html?id=${som.id}&mode=sujet&type=sommative" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
+        } else if (status === 'upcoming' && hasDoc && sujetVisibleAvance) {
+            // Éval pas encore ouverte mais sujet rendu visible à l'avance
+            actionHtml = `<a href="evaluation.html?id=${som.id}&mode=sujet&type=sommative" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
+            statusHtml = '<span class="bonus-status sujet-avance" style="align-self:flex-start">Sujet consultable</span>';
         } else if (status === 'upcoming') {
             statusHtml = '<div class="card-action-info upcoming">À venir</div>';
         }
@@ -1304,10 +1316,11 @@ const EleveEvaluations = {
                         </div>
                         ${typeSubtitle}
                         ${metaLine}
+                        ${statusHtml}
                     </div>
                     <div class="card-right">
                         ${badge}
-                        ${statusHtml}
+                        ${actionHtml}
                     </div>
                 </div>
             </div>
