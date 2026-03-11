@@ -3331,7 +3331,8 @@ const AdminEvaluations = {
             coefficient: sommative ? (sommative.coefficient || 1) : 1,
             semestre: sommative ? String(sommative.semestre || '1') : '1',
             document_contenu: sommative ? (sommative.document_contenu || '') : '',
-            correction_contenu: sommative ? (sommative.correction_contenu || '') : ''
+            correction_contenu: sommative ? (sommative.correction_contenu || '') : '',
+            sujet_visible: sommative ? (sommative.sujet_visible === true || sommative.sujet_visible === 'true' || sommative.sujet_visible === 'TRUE') : false
         };
         this._somWizardStep = 1;
         this._renderSomWizard();
@@ -3376,6 +3377,7 @@ const AdminEvaluations = {
             if (el('somBareme')) d.bareme = parseInt(el('somBareme').value) || 20;
             if (el('somCoefficient')) d.coefficient = parseFloat(el('somCoefficient').value) || 1;
             if (el('somSemestre')) d.semestre = el('somSemestre').value;
+            if (el('somSujetVisible')) d.sujet_visible = el('somSujetVisible').checked;
         } else if (this._somWizardStep === 2) {
             // Save document block editor
             const urlInput = document.getElementById('somDocUrlInput');
@@ -3462,6 +3464,13 @@ const AdminEvaluations = {
                         <option value="1"${d.semestre === '1' ? ' selected' : ''}>Semestre 1</option>
                         <option value="2"${d.semestre === '2' ? ' selected' : ''}>Semestre 2</option>
                     </select>
+                </div>
+                <div class="form-group full-width">
+                    <label class="toggle-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                        <input type="checkbox" id="somSujetVisible"${d.sujet_visible ? ' checked' : ''}>
+                        Rendre le sujet consultable par les élèves
+                    </label>
+                    <div class="form-help">Si activé, les élèves pourront consulter le sujet depuis leur carte d'évaluation</div>
                 </div>
             </div>
         </div>`;
@@ -3596,7 +3605,8 @@ const AdminEvaluations = {
             coefficient: d.coefficient,
             semestre: d.semestre,
             document_contenu: d.document_contenu || '',
-            correction_contenu: d.correction_contenu || ''
+            correction_contenu: d.correction_contenu || '',
+            sujet_visible: d.sujet_visible ? 'true' : 'false'
         };
 
         try {

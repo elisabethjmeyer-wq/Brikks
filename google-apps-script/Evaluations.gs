@@ -1732,12 +1732,13 @@ function createNoteSommative(data) {
       case 'statut': return data.statut || 'brouillon';
       case 'date_ouverture': return data.date_ouverture || '';
       case 'date_fermeture': return data.date_fermeture || '';
+      case 'sujet_visible': return data.sujet_visible || 'false';
       default: return data[h] || '';
     }
   });
 
   // Ajouter les nouvelles colonnes si absentes
-  var extraCols = ['document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture'];
+  var extraCols = ['document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture', 'sujet_visible'];
   extraCols.forEach(function(col) {
     if (headers.indexOf(col) < 0 && data[col]) {
       var lastCol = headers.length + 1;
@@ -1772,7 +1773,7 @@ function updateNoteSommative(data) {
 
   for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      var updatable = ['titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre', 'document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture'];
+      var updatable = ['titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre', 'document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture', 'sujet_visible'];
       updatable.forEach(function(field) {
         if (data[field] !== undefined) {
           var colIdx = headers.indexOf(field);
