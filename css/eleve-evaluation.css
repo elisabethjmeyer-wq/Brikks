@@ -578,6 +578,11 @@
     color: #92400e;
 }
 
+.sujet-mode-badge.controle {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
 /* Layout 2 colonnes */
 .sujet-layout {
     display: grid;

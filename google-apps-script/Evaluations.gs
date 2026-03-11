@@ -219,8 +219,42 @@ function getEvaluationForEleve(data) {
     }
   }
 
+  // Fallback : chercher dans NOTES_SOMMATIVES si pas trouvée dans EVALUATIONS
+  if (!evaluation) {
+    var somSheet = ss.getSheetByName(SHEETS.NOTES_SOMMATIVES);
+    if (somSheet) {
+      var somData = somSheet.getDataRange().getValues();
+      var somHeaders = somData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      for (var s = 1; s < somData.length; s++) {
+        var somIdCol = somHeaders.indexOf('id');
+        if (somIdCol >= 0 && String(somData[s][somIdCol]).trim() === String(data.id).trim()) {
+          evaluation = { type: 'controle', isSommative: true };
+          somHeaders.forEach(function(header, index) {
+            evaluation[header] = somData[s][index];
+          });
+          evaluation.type = 'controle';
+          break;
+        }
+      }
+    }
+  }
+
   if (!evaluation) {
     return { success: false, error: 'Evaluation non trouvee: ' + data.id };
+  }
+
+  // Sommative : logique d'accès simplifiée (pas de questions, juste le sujet)
+  if (evaluation.isSommative) {
+    var somStatut = _computeEffectiveStatut_(evaluation);
+    if (somStatut === 'brouillon') {
+      return { success: false, error: 'Cette évaluation n\'est pas encore disponible' };
+    }
+    var somSujetVisible = String(evaluation.sujet_visible || '').toLowerCase().trim() === 'true';
+    if (somStatut === 'planifiee' && !somSujetVisible) {
+      return { success: false, error: 'Cette évaluation n\'est pas encore ouverte' };
+    }
+    evaluation.questions = [];
+    return { success: true, data: evaluation };
   }
 
   // Vérifier que l'évaluation est accessible (pas brouillon, pas planifiée)
@@ -1732,12 +1766,13 @@ function createNoteSommative(data) {
       case 'statut': return data.statut || 'brouillon';
       case 'date_ouverture': return data.date_ouverture || '';
       case 'date_fermeture': return data.date_fermeture || '';
+      case 'sujet_visible': return data.sujet_visible || 'false';
       default: return data[h] || '';
     }
   });
 
   // Ajouter les nouvelles colonnes si absentes
-  var extraCols = ['document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture'];
+  var extraCols = ['document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture', 'sujet_visible'];
   extraCols.forEach(function(col) {
     if (headers.indexOf(col) < 0 && data[col]) {
       var lastCol = headers.length + 1;
@@ -1772,7 +1807,7 @@ function updateNoteSommative(data) {
 
   for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      var updatable = ['titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre', 'document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture'];
+      var updatable = ['titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre', 'document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture', 'sujet_visible'];
       updatable.forEach(function(field) {
         if (data[field] !== undefined) {
           var colIdx = headers.indexOf(field);

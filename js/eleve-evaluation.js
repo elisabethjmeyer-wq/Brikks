@@ -152,7 +152,9 @@ const EleveEvaluation = {
         const docContenu = data.document_contenu || exercice.document_contenu || '';
         const documentHtml = this._buildDocumentHtml(docContenu);
 
-        if (type === 'competences') {
+        if (type === 'controle') {
+            this._renderSommativeSujetMode(data, documentHtml);
+        } else if (type === 'competences') {
             await this._renderTCSujetMode(data, exercice, documentHtml);
         } else {
             await this._renderBonusSujetMode(data, exercice, documentHtml);
@@ -254,6 +256,34 @@ const EleveEvaluation = {
                 <div class="sujet-document-section" style="max-width: 900px;">
                     <div class="sujet-section-header">📄 Sujet</div>
                     ${consigneHtml}
+                    <div class="sujet-document-content">
+                        ${documentHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    /**
+     * Rendu sommative : layout simple (header + document), même pattern que bonus sans compétences.
+     */
+    _renderSommativeSujetMode(data, documentHtml) {
+        const title = data.titre || 'Contrôle';
+
+        const container = document.getElementById('exerciseContainer');
+        container.innerHTML = `
+            <div class="sujet-view sujet-view-tc">
+                <div class="sujet-topbar">
+                    <button class="sujet-back-btn" onclick="window.history.back()">←</button>
+                    <div class="sujet-topbar-info">
+                        <h1>${escapeHtml(title)}</h1>
+                        <div class="sujet-topbar-meta">
+                            <span class="sujet-mode-badge controle">Contrôle</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sujet-document-section" style="max-width: 900px;">
+                    <div class="sujet-section-header">📄 Sujet</div>
                     <div class="sujet-document-content">
                         ${documentHtml}
                     </div>
