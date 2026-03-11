@@ -1301,3 +1301,14 @@
     height: 10px;
     border-radius: 5px;
 }
+
+/* Sommative detail view */
+.res-sommative-detail .res-card {
+    margin-bottom: 12px;
+}
+
+@media (max-width: 768px) {
+    .res-sommative-detail > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+}

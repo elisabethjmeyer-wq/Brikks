@@ -302,7 +302,16 @@ const EleveResultats = {
                 const bareme = parseFloat(s.bareme) || 20;
                 const coefficient = parseFloat(s.coefficient) || 1;
                 const note20 = note !== null ? (note / bareme) * 20 : null;
-                return { id: s.id, titre: s.titre || 'Sans titre', date: s.date || '', note, bareme, coefficient, note20 };
+                const statutCorrection = r ? (r.statut_correction || '') : '';
+                const remarqueTexte = r ? (r.remarque_texte || '') : '';
+                const documentContenu = s.document_contenu || '';
+                const correctionContenu = s.correction_contenu || '';
+                return {
+                    id: s.id, titre: s.titre || 'Sans titre', date: s.date || '',
+                    note, bareme, coefficient, note20,
+                    statutCorrection, remarqueTexte,
+                    documentContenu, correctionContenu
+                };
             });
     },
 
@@ -852,8 +861,8 @@ const EleveResultats = {
                 h += '<span class="res-controle-note" style="color:' + nc + '">' + (s.note !== null ? s.note : '\u2014');
                 h += '<span class="res-controle-bareme">/' + s.bareme + '</span></span>';
                 h += '</div>';
-                if (s.note !== null) {
-                    h += '<div class="res-controle-link"><span class="res-detail-link">Remarque et correction \u2192</span></div>';
+                if (s.note !== null && s.statutCorrection === 'publie') {
+                    h += '<div class="res-controle-link" onclick="EleveResultats._openSommativeDetail(\'' + s.id + '\')"><span class="res-detail-link">Remarque et correction \u2192</span></div>';
                 }
                 h += '</div>';
             });
@@ -1339,6 +1348,148 @@ const EleveResultats = {
                 }
             }, 30000);
         });
+    },
+
+    // ========== SOMMATIVE DETAIL VIEW ==========
+
+    _openSommativeDetail(sommativeId) {
+        const s = this._getSommatives(this.currentMatiere, this.currentSemestre)
+            .find(som => som.id === sommativeId);
+        if (!s) return;
+
+        // Only show if published
+        if (s.statutCorrection !== 'publie') return;
+
+        const container = document.getElementById('notes-content');
+        if (!container) return;
+
+        let h = '<div class="res-sommative-detail">';
+
+        // Back button
+        h += '<div class="res-back-row" onclick="EleveResultats._closeSommativeDetail()" style="cursor:pointer;display:flex;align-items:center;gap:6px;margin-bottom:16px;color:var(--primary);font-size:14px;">';
+        h += '\u2190 Retour aux résultats</div>';
+
+        // Header
+        h += '<div class="res-card" style="margin-bottom:16px;">';
+        h += '<div class="res-card-header"><div class="res-card-title"><span>\u{1F4DD}</span><span class="res-card-title-text">' + escapeHtml(s.titre) + '</span></div></div>';
+        const nc = s.note20 !== null ? this._noteColor(s.note20) : '#9ca3af';
+        h += '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;">';
+        h += '<span style="font-size:1.5rem;font-weight:700;color:' + nc + '">' + (s.note !== null ? s.note : '\u2014') + '<span style="font-size:0.9rem;color:#9ca3af">/' + s.bareme + '</span></span>';
+        if (s.date) h += '<span style="font-size:0.85rem;color:#9ca3af;">' + escapeHtml(s.date) + '</span>';
+        h += '<span style="font-size:0.85rem;color:#9ca3af;">coef. ' + s.coefficient + '</span>';
+        h += '</div>';
+        h += '</div>';
+
+        // Two-column layout
+        h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">';
+
+        // Left: Sujet + Corrigé type
+        h += '<div>';
+        if (s.documentContenu) {
+            h += '<div class="res-card" style="margin-bottom:12px;">';
+            h += '<div class="res-card-header"><div class="res-card-title"><span>\u{1F4C4}</span><span class="res-card-title-text">Sujet</span></div></div>';
+            h += this._renderBlockContent(s.documentContenu);
+            h += '</div>';
+        }
+        if (s.correctionContenu) {
+            h += '<div class="res-card">';
+            h += '<div class="res-card-header"><div class="res-card-title"><span>\u2705</span><span class="res-card-title-text">Corrigé type</span></div></div>';
+            h += this._renderBlockContent(s.correctionContenu);
+            h += '</div>';
+        }
+        if (!s.documentContenu && !s.correctionContenu) {
+            h += '<div class="res-card"><div class="res-empty">Aucun sujet ni corrigé type disponible</div></div>';
+        }
+        h += '</div>';
+
+        // Right: Remarque personnalisée
+        h += '<div>';
+        h += '<div class="res-card">';
+        h += '<div class="res-card-header"><div class="res-card-title"><span>\u{1F4AC}</span><span class="res-card-title-text">Remarque de la prof</span></div></div>';
+        if (s.remarqueTexte) {
+            h += this._renderBlockContent(s.remarqueTexte);
+        } else {
+            h += '<div class="res-empty">Aucune remarque</div>';
+        }
+        h += '</div>';
+        h += '</div>';
+
+        h += '</div>'; // grid
+        h += '</div>'; // res-sommative-detail
+
+        // Save current content and replace
+        this._savedMainContent = container.innerHTML;
+        container.innerHTML = h;
+    },
+
+    _closeSommativeDetail() {
+        const container = document.getElementById('notes-content');
+        if (container && this._savedMainContent) {
+            container.innerHTML = this._savedMainContent;
+            this._savedMainContent = null;
+        } else {
+            this.render();
+        }
+    },
+
+    /**
+     * Render block content (JSON blocks array, URL, or plain text/HTML)
+     */
+    _renderBlockContent(content) {
+        if (!content) return '';
+        const str = String(content).trim();
+
+        // URL → iframe or link
+        if (str.startsWith('http')) {
+            if (str.includes('docs.google.com')) {
+                const embedUrl = str.replace(/\/edit.*$/, '/preview');
+                return '<iframe src="' + escapeHtml(embedUrl) + '" style="width:100%;height:400px;border:1px solid #e5e7eb;border-radius:8px;" frameborder="0"></iframe>';
+            }
+            return '<a href="' + escapeHtml(str) + '" target="_blank" style="color:var(--primary);">Voir le document \u2192</a>';
+        }
+
+        // JSON blocks
+        try {
+            const blocks = JSON.parse(str);
+            if (Array.isArray(blocks)) {
+                return blocks.map(b => this._renderBlock(b)).join('');
+            }
+        } catch (_e) { /* not JSON */ }
+
+        // Plain text/HTML
+        return '<div style="padding:8px 0;">' + str + '</div>';
+    },
+
+    _renderBlock(block) {
+        if (!block || !block.type) return '';
+        switch (block.type) {
+            case 'text':
+                return '<div style="padding:6px 0;">' + (block.content || '') + '</div>';
+            case 'document': {
+                const url = block.url || '';
+                if (url.includes('docs.google.com')) {
+                    const embedUrl = url.replace(/\/edit.*$/, '/preview');
+                    return '<iframe src="' + escapeHtml(embedUrl) + '" style="width:100%;height:350px;border:1px solid #e5e7eb;border-radius:8px;" frameborder="0"></iframe>';
+                }
+                return url ? '<a href="' + escapeHtml(url) + '" target="_blank" style="color:var(--primary);">Voir le document \u2192</a>' : '';
+            }
+            case 'image':
+                return block.url ? '<img src="' + escapeHtml(block.url) + '" style="max-width:100%;border-radius:8px;margin:8px 0;" alt="">' : '';
+            case 'video': {
+                const vUrl = block.url || '';
+                const embed = vUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/');
+                return '<iframe src="' + escapeHtml(embed) + '" style="width:100%;height:300px;border-radius:8px;" frameborder="0" allowfullscreen></iframe>';
+            }
+            case 'group': {
+                const ratios = (block.ratio || '50-50').split('-').map(Number);
+                let gh = '<div style="display:flex;gap:12px;">';
+                (block.children || []).forEach((child, i) => {
+                    gh += '<div style="flex:' + (ratios[i] || 50) + '">' + this._renderBlock(child) + '</div>';
+                });
+                return gh + '</div>';
+            }
+            default: return '';
+        }
     }
 };
 

@@ -255,8 +255,6 @@ const AdminEvaluations = {
 
         // Sommative modal
         document.getElementById('closeSommativeModal').addEventListener('click', () => this.closeSommativeModal());
-        document.getElementById('cancelSommativeBtn').addEventListener('click', () => this.closeSommativeModal());
-        document.getElementById('saveSommativeBtn').addEventListener('click', () => this.saveSommative());
 
         // Attribution modal
         document.getElementById('closeAttributionModal').addEventListener('click', () => this.closeAttributionModal());
@@ -3118,35 +3116,34 @@ const AdminEvaluations = {
     },
 
     // ========== SOMMATIVE MODAL ==========
+    // ========== SOMMATIVE WIZARD (création/modification) ==========
+
+    _somWizardData: null,
+    _somWizardStep: 1,
+
     openSommativeModal(sommative = null) {
-        const modal = document.getElementById('sommativeModal');
         const title = document.getElementById('sommativeModalTitle');
+        title.textContent = sommative ? 'Modifier la sommative' : 'Nouvelle évaluation sommative';
 
-        if (sommative) {
-            title.textContent = 'Modifier la sommative';
-            document.getElementById('editSommativeId').value = sommative.id;
-            document.getElementById('somTitre').value = sommative.titre || '';
-            document.getElementById('somMatiere').value = sommative.matiere || 'FR';
-            document.getElementById('somBareme').value = sommative.bareme || 20;
-            document.getElementById('somCoefficient').value = sommative.coefficient || 1;
-            document.getElementById('somDate').value = sommative.date || '';
-            document.getElementById('somSemestre').value = sommative.semestre || '1';
-        } else {
-            title.textContent = 'Nouvelle évaluation sommative';
-            document.getElementById('editSommativeId').value = '';
-            document.getElementById('somTitre').value = '';
-            document.getElementById('somMatiere').value = this.currentMatiere;
-            document.getElementById('somBareme').value = 20;
-            document.getElementById('somCoefficient').value = 1;
-            document.getElementById('somDate').value = '';
-            document.getElementById('somSemestre').value = '1';
-        }
-
-        modal.classList.remove('hidden');
+        this._somWizardData = {
+            id: sommative ? sommative.id : null,
+            titre: sommative ? (sommative.titre || '') : '',
+            matiere: sommative ? (sommative.matiere || 'FR') : this.currentMatiere,
+            bareme: sommative ? (sommative.bareme || 20) : 20,
+            coefficient: sommative ? (sommative.coefficient || 1) : 1,
+            date: sommative ? (sommative.date || '') : '',
+            semestre: sommative ? String(sommative.semestre || '1') : '1',
+            document_contenu: sommative ? (sommative.document_contenu || '') : '',
+            correction_contenu: sommative ? (sommative.correction_contenu || '') : ''
+        };
+        this._somWizardStep = 1;
+        this._renderSomWizard();
+        document.getElementById('sommativeModal').classList.remove('hidden');
     },
 
     closeSommativeModal() {
         document.getElementById('sommativeModal').classList.add('hidden');
+        this._somWizardData = null;
     },
 
     editSommative(id) {
@@ -3154,32 +3151,270 @@ const AdminEvaluations = {
         if (sommative) this.openSommativeModal(sommative);
     },
 
-    async saveSommative() {
-        const id = document.getElementById('editSommativeId').value;
-        const titre = document.getElementById('somTitre').value.trim();
+    _somWizardNav(direction) {
+        this._saveSomStepState();
+        if (direction === 'next') {
+            if (this._somWizardStep === 1) {
+                const titre = document.getElementById('somTitre');
+                if (titre && !titre.value.trim()) {
+                    this.showNotification('Veuillez saisir un titre', 'error');
+                    return;
+                }
+            }
+            if (this._somWizardStep < 3) this._somWizardStep++;
+        } else if (direction === 'prev' && this._somWizardStep > 1) {
+            this._somWizardStep--;
+        }
+        this._renderSomWizard();
+    },
 
-        if (!titre) {
+    _saveSomStepState() {
+        const d = this._somWizardData;
+        if (!d) return;
+
+        if (this._somWizardStep === 1) {
+            const el = (id) => document.getElementById(id);
+            if (el('somTitre')) d.titre = el('somTitre').value.trim();
+            if (el('somMatiere')) d.matiere = el('somMatiere').value;
+            if (el('somBareme')) d.bareme = parseInt(el('somBareme').value) || 20;
+            if (el('somCoefficient')) d.coefficient = parseFloat(el('somCoefficient').value) || 1;
+            if (el('somDate')) d.date = el('somDate').value;
+            if (el('somSemestre')) d.semestre = el('somSemestre').value;
+        } else if (this._somWizardStep === 2) {
+            // Save document block editor
+            const urlInput = document.getElementById('somDocUrlInput');
+            const modeUrl = document.getElementById('somDocUrlPanel')?.style.display !== 'none';
+            if (modeUrl && urlInput && urlInput.value.trim()) {
+                d.document_contenu = urlInput.value.trim();
+            } else if (!modeUrl) {
+                d.document_contenu = this.getBlocksJSON() || '';
+            }
+        } else if (this._somWizardStep === 3) {
+            // Save correction block editor
+            const urlInput = document.getElementById('somCorrUrlInput');
+            const modeUrl = document.getElementById('somCorrUrlPanel')?.style.display !== 'none';
+            if (modeUrl && urlInput && urlInput.value.trim()) {
+                d.correction_contenu = urlInput.value.trim();
+            } else if (!modeUrl) {
+                d.correction_contenu = this.getBlocksJSON() || '';
+            }
+        }
+    },
+
+    _renderSomWizard() {
+        const d = this._somWizardData;
+        if (!d) return;
+
+        // Update stepper
+        const steps = document.querySelectorAll('#somWizardSteps .wizard-step');
+        steps.forEach((s, i) => {
+            s.classList.toggle('active', i + 1 === this._somWizardStep);
+            s.classList.toggle('completed', i + 1 < this._somWizardStep);
+        });
+
+        const body = document.getElementById('somWizardBody');
+        const footer = document.getElementById('somWizardFooter');
+
+        if (this._somWizardStep === 1) {
+            body.innerHTML = this._renderSomStep1();
+            footer.innerHTML = `<button class="btn btn-secondary" onclick="AdminEvaluations.closeSommativeModal()">Annuler</button>
+                <button class="btn btn-primary" onclick="AdminEvaluations._somWizardNav('next')">Suivant &rarr;</button>`;
+        } else if (this._somWizardStep === 2) {
+            body.innerHTML = this._renderSomStep2();
+            footer.innerHTML = `<button class="btn btn-secondary" onclick="AdminEvaluations._somWizardNav('prev')">&larr; Précédent</button>
+                <button class="btn btn-primary" onclick="AdminEvaluations._somWizardNav('next')">Suivant &rarr;</button>`;
+            this._initSomDocEditor();
+        } else if (this._somWizardStep === 3) {
+            body.innerHTML = this._renderSomStep3();
+            footer.innerHTML = `<button class="btn btn-secondary" onclick="AdminEvaluations._somWizardNav('prev')">&larr; Précédent</button>
+                <button class="btn btn-primary" id="saveSommativeBtn" onclick="AdminEvaluations.saveSommative()">Enregistrer</button>`;
+            this._initSomCorrEditor();
+        }
+    },
+
+    _renderSomStep1() {
+        const d = this._somWizardData;
+        return `<div class="eval-wizard-step-content">
+            <div class="step-header"><h3>Paramètres</h3><p>Configurez les informations de l'évaluation sommative</p></div>
+            <div class="wizard-form">
+                <div class="form-group full-width">
+                    <label>Titre <span class="req">*</span></label>
+                    <input type="text" class="form-input" id="somTitre" value="${escapeHtml(d.titre)}" placeholder="Ex: Contrôle chapitre 3">
+                </div>
+                <div class="form-group">
+                    <label>Matière <span class="req">*</span></label>
+                    <select class="form-select" id="somMatiere">
+                        <option value="FR"${d.matiere === 'FR' ? ' selected' : ''}>Français</option>
+                        <option value="HG-EMC"${d.matiere === 'HG-EMC' ? ' selected' : ''}>Histoire-Géographie-EMC</option>
+                        <option value="Les deux"${d.matiere === 'Les deux' ? ' selected' : ''}>Les deux matières</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Barème</label>
+                    <div class="input-with-suffix">
+                        <input type="number" class="form-input" id="somBareme" value="${d.bareme}" min="1" max="100">
+                        <span class="input-suffix-text">pts</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Coefficient</label>
+                    <input type="number" class="form-input" id="somCoefficient" value="${d.coefficient}" min="0.5" max="10" step="0.5">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" class="form-input" id="somDate" value="${escapeHtml(d.date)}">
+                </div>
+                <div class="form-group">
+                    <label>Semestre</label>
+                    <select class="form-select" id="somSemestre">
+                        <option value="1"${d.semestre === '1' ? ' selected' : ''}>Semestre 1</option>
+                        <option value="2"${d.semestre === '2' ? ' selected' : ''}>Semestre 2</option>
+                    </select>
+                </div>
+            </div>
+        </div>`;
+    },
+
+    _renderSomStep2() {
+        const d = this._somWizardData;
+        let hasBlocks = false;
+        if (d.document_contenu) {
+            try { const p = JSON.parse(d.document_contenu); if (Array.isArray(p)) hasBlocks = true; } catch (_e) { /* URL or HTML */ }
+        }
+        const isUrl = d.document_contenu && !hasBlocks && String(d.document_contenu).startsWith('http');
+        const mode = hasBlocks ? 'editor' : 'url';
+
+        return `<div class="eval-wizard-step-content">
+            <div class="step-header"><h3>Sujet</h3><p>Ajoutez le sujet de l'évaluation (optionnel)</p></div>
+            <div class="source-toggle" id="somDocToggle">
+                <button type="button" class="source-toggle-btn${mode === 'url' ? ' active' : ''}" data-mode="url" onclick="AdminEvaluations._switchSomDocMode('url')">Lien Google Doc</button>
+                <button type="button" class="source-toggle-btn${mode === 'editor' ? ' active' : ''}" data-mode="editor" onclick="AdminEvaluations._switchSomDocMode('editor')">Éditeur</button>
+            </div>
+            <div class="source-panel" id="somDocUrlPanel"${mode !== 'url' ? ' style="display:none"' : ''}>
+                <div class="form-group">
+                    <label>Lien Google Doc du sujet</label>
+                    <input type="text" class="form-input" id="somDocUrlInput" placeholder="https://docs.google.com/document/d/..." value="${escapeHtml(isUrl ? d.document_contenu : '')}">
+                    <div class="form-help">Collez le lien de partage du Google Doc (doit être accessible en lecture)</div>
+                </div>
+            </div>
+            <div class="source-panel" id="somDocEditorPanel"${mode !== 'editor' ? ' style="display:none"' : ''}>
+                <div id="somDocBlockEditorContainer" class="block-editor"></div>
+                ${this._renderBlockAddBar()}
+            </div>
+        </div>`;
+    },
+
+    _initSomDocEditor() {
+        const d = this._somWizardData;
+        if (!d) return;
+        const isUrl = d.document_contenu && String(d.document_contenu).startsWith('http');
+        if (isUrl) return;
+
+        let blocks = [];
+        if (d.document_contenu) {
+            try {
+                const parsed = JSON.parse(d.document_contenu);
+                if (Array.isArray(parsed)) blocks = parsed;
+            } catch (_e) { blocks = []; }
+        }
+        this._blockEditorContainerId = 'somDocBlockEditorContainer';
+        this.initBlockEditor(blocks);
+    },
+
+    _switchSomDocMode(mode) {
+        document.getElementById('somDocUrlPanel').style.display = mode === 'url' ? '' : 'none';
+        document.getElementById('somDocEditorPanel').style.display = mode === 'editor' ? '' : 'none';
+        document.querySelectorAll('#somDocToggle .source-toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+        if (mode === 'editor' && !document.querySelector('#somDocBlockEditorContainer .block-item')) {
+            this._initSomDocEditor();
+        }
+    },
+
+    _renderSomStep3() {
+        const d = this._somWizardData;
+        let hasBlocks = false;
+        if (d.correction_contenu) {
+            try { const p = JSON.parse(d.correction_contenu); if (Array.isArray(p)) hasBlocks = true; } catch (_e) { /* URL or HTML */ }
+        }
+        const isUrl = d.correction_contenu && !hasBlocks && String(d.correction_contenu).startsWith('http');
+        const mode = hasBlocks ? 'editor' : 'url';
+
+        return `<div class="eval-wizard-step-content">
+            <div class="step-header"><h3>Corrigé type</h3><p>Ajoutez le corrigé type que les élèves verront (optionnel)</p></div>
+            <div class="source-toggle" id="somCorrToggle">
+                <button type="button" class="source-toggle-btn${mode === 'url' ? ' active' : ''}" data-mode="url" onclick="AdminEvaluations._switchSomCorrMode('url')">Lien Google Doc</button>
+                <button type="button" class="source-toggle-btn${mode === 'editor' ? ' active' : ''}" data-mode="editor" onclick="AdminEvaluations._switchSomCorrMode('editor')">Éditeur</button>
+            </div>
+            <div class="source-panel" id="somCorrUrlPanel"${mode !== 'url' ? ' style="display:none"' : ''}>
+                <div class="form-group">
+                    <label>Lien Google Doc du corrigé</label>
+                    <input type="text" class="form-input" id="somCorrUrlInput" placeholder="https://docs.google.com/document/d/..." value="${escapeHtml(isUrl ? d.correction_contenu : '')}">
+                    <div class="form-help">Collez le lien de partage du Google Doc (doit être accessible en lecture)</div>
+                </div>
+            </div>
+            <div class="source-panel" id="somCorrEditorPanel"${mode !== 'editor' ? ' style="display:none"' : ''}>
+                <div id="somCorrBlockEditorContainer" class="block-editor"></div>
+                ${this._renderBlockAddBar()}
+            </div>
+        </div>`;
+    },
+
+    _initSomCorrEditor() {
+        const d = this._somWizardData;
+        if (!d) return;
+        const isUrl = d.correction_contenu && String(d.correction_contenu).startsWith('http');
+        if (isUrl) return;
+
+        let blocks = [];
+        if (d.correction_contenu) {
+            try {
+                const parsed = JSON.parse(d.correction_contenu);
+                if (Array.isArray(parsed)) blocks = parsed;
+            } catch (_e) { blocks = []; }
+        }
+        this._blockEditorContainerId = 'somCorrBlockEditorContainer';
+        this.initBlockEditor(blocks);
+    },
+
+    _switchSomCorrMode(mode) {
+        document.getElementById('somCorrUrlPanel').style.display = mode === 'url' ? '' : 'none';
+        document.getElementById('somCorrEditorPanel').style.display = mode === 'editor' ? '' : 'none';
+        document.querySelectorAll('#somCorrToggle .source-toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+        if (mode === 'editor' && !document.querySelector('#somCorrBlockEditorContainer .block-item')) {
+            this._initSomCorrEditor();
+        }
+    },
+
+    async saveSommative() {
+        this._saveSomStepState();
+        const d = this._somWizardData;
+        if (!d || !d.titre) {
             this.showNotification('Veuillez saisir un titre', 'error');
             return;
         }
 
         const data = {
-            titre,
-            matiere: document.getElementById('somMatiere').value,
-            bareme: parseInt(document.getElementById('somBareme').value) || 20,
-            coefficient: parseFloat(document.getElementById('somCoefficient').value) || 1,
-            date: document.getElementById('somDate').value,
-            semestre: document.getElementById('somSemestre').value
+            titre: d.titre,
+            matiere: d.matiere,
+            bareme: d.bareme,
+            coefficient: d.coefficient,
+            date: d.date,
+            semestre: d.semestre,
+            document_contenu: d.document_contenu || '',
+            correction_contenu: d.correction_contenu || ''
         };
 
         try {
             const saveBtn = document.getElementById('saveSommativeBtn');
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'Enregistrement...';
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Enregistrement...'; }
 
             let result;
-            if (id) {
-                data.id = id;
+            if (d.id) {
+                data.id = d.id;
                 result = await this.callAPI('updateNoteSommative', data);
             } else {
                 result = await this.callAPI('createNoteSommative', data);
@@ -3191,7 +3426,7 @@ const AdminEvaluations = {
                 await this.loadData();
                 this.updateCounts();
                 this.renderEvaluations();
-                this.showNotification(id ? 'Sommative modifiée' : 'Sommative créée');
+                this.showNotification(d.id ? 'Sommative modifiée' : 'Sommative créée');
             } else {
                 this.showNotification('Erreur: ' + (result.error || 'Erreur inconnue'), 'error');
             }
@@ -3200,8 +3435,7 @@ const AdminEvaluations = {
             this.showNotification('Erreur lors de la sauvegarde', 'error');
         } finally {
             const saveBtn = document.getElementById('saveSommativeBtn');
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Enregistrer';
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Enregistrer'; }
         }
     },
 
@@ -3570,8 +3804,8 @@ const AdminEvaluations = {
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
             <th class="col-note">Note /${sommative.bareme || 20}</th>
-            <th class="col-remarque">Remarque</th>
-            <th class="col-actions">Actions</th>
+            <th class="col-correction-action">Correction</th>
+            <th class="col-statut">Statut</th>
         `;
 
         // Render student rows
@@ -3580,7 +3814,12 @@ const AdminEvaluations = {
         tbody.innerHTML = this.eleves.map(eleve => {
             const r = resultsMap[String(eleve.id).trim()] || {};
             const note = r.note !== undefined && r.note !== '' ? r.note : '';
-            const remarque = r.remarque_texte || '';
+            const hasCorrection = !!(r.remarque_texte);
+            const statutCorr = r.statut_correction || '';
+            const corrBtnClass = hasCorrection ? 'btn-outline-success' : 'btn-outline';
+            const corrBtnLabel = hasCorrection ? 'Modifier' : 'Corriger';
+            const statutLabel = statutCorr === 'publie' ? 'Publié' : (statutCorr === 'brouillon' ? 'Brouillon' : '—');
+            const statutClass = statutCorr === 'publie' ? 'badge-success' : (statutCorr === 'brouillon' ? 'badge-warning' : '');
 
             return `
                 <tr data-eleve-id="${eleve.id}">
@@ -3592,13 +3831,13 @@ const AdminEvaluations = {
                             placeholder="—"
                             onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'note', this.value)">
                     </td>
-                    <td class="col-remarque">
-                        <input type="text" class="saisie-input remarque-input" value="${escapeHtml(remarque)}"
-                            placeholder="Remarque..."
-                            onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'remarque_texte', this.value)">
+                    <td class="col-correction-action">
+                        <button class="btn btn-sm ${corrBtnClass}" onclick="event.stopPropagation(); AdminEvaluations.openSomCorrectionWizard('${eleve.id}')">
+                            ${corrBtnLabel}
+                        </button>
                     </td>
-                    <td class="col-actions">
-                        ${r.id ? '<span class="saisie-saved">✓</span>' : ''}
+                    <td class="col-statut">
+                        <span class="badge ${statutClass}">${statutLabel}</span>
                     </td>
                 </tr>
             `;
@@ -6092,6 +6331,325 @@ const AdminEvaluations = {
         } catch (_e) { /* ignore */ }
         this.openSaisie(evaluation.id);
         if (btn) { btn.disabled = false; btn.textContent = 'Tout publier'; }
+    },
+
+    // ========== WIZARD CORRECTION SOMMATIVE (par élève) ==========
+
+    _somCorrData: null,
+
+    openSomCorrectionWizard(eleveId) {
+        const sommative = this.saisieSommative;
+        if (!sommative) return;
+
+        const eleve = this.eleves.find(e => String(e.id) === String(eleveId));
+        if (!eleve) return;
+
+        // Charger le résultat existant
+        const resultat = this.resultatsSommatives.find(r =>
+            String(r.sommative_id).trim() === String(sommative.id).trim() &&
+            String(r.eleve_id).trim() === String(eleveId).trim()
+        ) || {};
+
+        // Initialiser wizardData de correction sommative
+        this._somCorrData = {
+            eleveId: eleveId,
+            eleveName: `${eleve.prenom || ''} ${eleve.nom || ''}`.trim(),
+            sommativeId: sommative.id,
+            bareme: sommative.bareme || 20,
+            step: 1,
+            // Remarque (block editor)
+            correctionType: null,
+            correctionValue: '',
+            // Note
+            note: resultat.note !== undefined && resultat.note !== '' ? resultat.note : '',
+            // Statut publication
+            statutCorrection: resultat.statut_correction || 'brouillon'
+        };
+
+        // Parser remarque existante
+        if (resultat.remarque_texte) {
+            try {
+                const blocks = JSON.parse(resultat.remarque_texte);
+                if (Array.isArray(blocks)) {
+                    this._somCorrData.correctionType = 'blocks';
+                    this._somCorrData.correctionValue = resultat.remarque_texte;
+                }
+            } catch (_e) {
+                if (String(resultat.remarque_texte).startsWith('http')) {
+                    this._somCorrData.correctionType = 'url';
+                    this._somCorrData.correctionValue = resultat.remarque_texte;
+                } else if (resultat.remarque_texte.trim()) {
+                    this._somCorrData.correctionType = 'blocks';
+                    this._somCorrData.correctionValue = JSON.stringify([{ type: 'text', content: resultat.remarque_texte }]);
+                }
+            }
+        }
+
+        // Titre du modal
+        document.getElementById('corrSomModalTitle').textContent =
+            `${this._somCorrData.eleveName} — ${escapeHtml(sommative.titre || 'Sommative')}`;
+
+        this._renderSomCorrWizard();
+        document.getElementById('correctionSomModal').classList.remove('hidden');
+        window.addEventListener('beforeunload', this._somCorrBeforeUnload);
+    },
+
+    _somCorrBeforeUnload(e) {
+        e.preventDefault();
+        e.returnValue = '';
+    },
+
+    closeSomCorrectionWizard() {
+        document.getElementById('correctionSomModal').classList.add('hidden');
+        window.removeEventListener('beforeunload', this._somCorrBeforeUnload);
+        this._somCorrData = null;
+    },
+
+    somCorrNav(direction) {
+        const wd = this._somCorrData;
+        if (!wd) return;
+
+        this._saveSomCorrStepState();
+
+        if (direction === 'next' && wd.step < 3) wd.step++;
+        else if (direction === 'prev' && wd.step > 1) wd.step--;
+
+        this._renderSomCorrWizard();
+    },
+
+    _saveSomCorrStepState() {
+        const wd = this._somCorrData;
+        if (!wd) return;
+
+        if (wd.step === 1) {
+            const urlInput = document.getElementById('somCorrRqUrlInput');
+            const modeUrl = document.getElementById('somCorrRqUrlPanel')?.style.display !== 'none';
+            if (modeUrl && urlInput) {
+                wd.correctionType = urlInput.value.trim() ? 'url' : null;
+                wd.correctionValue = urlInput.value.trim();
+            } else {
+                const blocksJson = this.getBlocksJSON();
+                wd.correctionType = blocksJson ? 'blocks' : null;
+                wd.correctionValue = blocksJson || '';
+            }
+        } else if (wd.step === 2) {
+            const noteInput = document.getElementById('somCorrNoteInput');
+            if (noteInput) wd.note = noteInput.value;
+        }
+    },
+
+    _renderSomCorrWizard() {
+        const wd = this._somCorrData;
+        if (!wd) return;
+
+        const modal = document.getElementById('correctionSomModal');
+        if (!modal) return;
+
+        // Stepper
+        modal.querySelectorAll('.wizard-step').forEach((s, i) => {
+            s.classList.toggle('active', i + 1 === wd.step);
+            s.classList.toggle('completed', i + 1 < wd.step);
+        });
+
+        const body = document.getElementById('corrSomWizardBody');
+        const footer = document.getElementById('corrSomWizardFooter');
+
+        if (wd.step === 1) {
+            body.innerHTML = this._renderSomCorrStep1();
+            footer.innerHTML = `<div></div><button class="btn btn-primary" onclick="AdminEvaluations.somCorrNav('next')">Suivant &rarr;</button>`;
+            this._initSomCorrStep1();
+        } else if (wd.step === 2) {
+            body.innerHTML = this._renderSomCorrStep2();
+            footer.innerHTML = `<button class="btn btn-secondary" onclick="AdminEvaluations.somCorrNav('prev')">&larr; Précédent</button>
+                <button class="btn btn-primary" onclick="AdminEvaluations.somCorrNav('next')">Suivant &rarr;</button>`;
+        } else if (wd.step === 3) {
+            body.innerHTML = this._renderSomCorrStep3();
+            footer.innerHTML = `<button class="btn btn-secondary" onclick="AdminEvaluations.somCorrNav('prev')">&larr; Précédent</button>
+                <button class="btn btn-primary btn-confirm" id="saveSomCorrBtn" onclick="AdminEvaluations.saveSomCorrection()">Enregistrer</button>`;
+        }
+    },
+
+    // ----- Étape 1 : Remarque individuelle (block editor) -----
+
+    _renderSomCorrStep1() {
+        const wd = this._somCorrData;
+        const corrMode = wd.correctionType === 'url' ? 'url' : 'editor';
+
+        return `
+            <div class="step-header">
+                <span class="step-icon">📝</span>
+                <div><h3>Remarque individuelle</h3>
+                <p>Construisez la remarque que ${escapeHtml(wd.eleveName)} verra (optionnel)</p></div>
+            </div>
+
+            <div class="source-toggle" id="somCorrRqToggle">
+                <button type="button" class="source-toggle-btn${corrMode === 'url' ? ' active' : ''}" data-mode="url" onclick="AdminEvaluations._switchSomCorrRqMode('url')">Lien externe</button>
+                <button type="button" class="source-toggle-btn${corrMode === 'editor' ? ' active' : ''}" data-mode="editor" onclick="AdminEvaluations._switchSomCorrRqMode('editor')">Éditeur</button>
+            </div>
+
+            <div class="source-panel" id="somCorrRqUrlPanel"${corrMode !== 'url' ? ' style="display:none"' : ''}>
+                <div class="form-group">
+                    <label>Lien (Google Doc, vidéo Loom, etc.)</label>
+                    <input type="text" class="form-input" id="somCorrRqUrlInput" placeholder="https://..." value="${escapeHtml(wd.correctionType === 'url' ? wd.correctionValue : '')}">
+                </div>
+            </div>
+
+            <div class="source-panel" id="somCorrRqEditorPanel"${corrMode !== 'editor' ? ' style="display:none"' : ''}>
+                <div id="somCorrRqBlockEditorContainer" class="block-editor"></div>
+                ${this.renderBlockAddBar()}
+            </div>
+        `;
+    },
+
+    _initSomCorrStep1() {
+        const wd = this._somCorrData;
+        if (!wd || wd.correctionType === 'url') return;
+
+        let blocks = [];
+        if (wd.correctionValue) {
+            try {
+                blocks = JSON.parse(wd.correctionValue);
+                if (!Array.isArray(blocks)) blocks = [];
+            } catch (_e) { blocks = []; }
+        }
+
+        this._blockEditorContainerId = 'somCorrRqBlockEditorContainer';
+        this.initBlockEditor(blocks);
+    },
+
+    _switchSomCorrRqMode(mode) {
+        document.getElementById('somCorrRqUrlPanel').style.display = mode === 'url' ? '' : 'none';
+        document.getElementById('somCorrRqEditorPanel').style.display = mode === 'editor' ? '' : 'none';
+        document.querySelectorAll('#somCorrRqToggle .source-toggle-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+        if (mode === 'editor' && !document.querySelector('#somCorrRqBlockEditorContainer .block-item')) {
+            this._initSomCorrStep1();
+        }
+    },
+
+    // ----- Étape 2 : Note -----
+
+    _renderSomCorrStep2() {
+        const wd = this._somCorrData;
+        return `
+            <div class="step-header">
+                <span class="step-icon">📊</span>
+                <div><h3>Note</h3>
+                <p>Saisissez la note de ${escapeHtml(wd.eleveName)}</p></div>
+            </div>
+
+            <div class="som-note-section" style="max-width:300px;margin:24px auto;text-align:center;">
+                <div class="form-group">
+                    <div style="display:flex;align-items:baseline;justify-content:center;gap:8px;">
+                        <input type="number" class="form-input" id="somCorrNoteInput"
+                            value="${wd.note}" min="0" max="${wd.bareme}" step="0.5"
+                            placeholder="—"
+                            style="font-size:1.5rem;text-align:center;width:120px;">
+                        <span style="font-size:1.2rem;color:var(--gray-400);">/ ${wd.bareme}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    // ----- Étape 3 : Résumé -----
+
+    _renderSomCorrStep3() {
+        const wd = this._somCorrData;
+        const hasRemarque = wd.correctionType === 'blocks' ? !!wd.correctionValue : (wd.correctionType === 'url' ? !!wd.correctionValue : false);
+        const noteDisplay = wd.note !== '' && wd.note !== undefined ? `${wd.note} / ${wd.bareme}` : 'Non saisie';
+
+        return `
+            <div class="step-header">
+                <span class="step-icon">📋</span>
+                <div><h3>Résumé</h3>
+                <p>Vérifiez avant d'enregistrer la correction de ${escapeHtml(wd.eleveName)}</p></div>
+            </div>
+
+            <div class="bilan-section">
+                <div class="summary-row"><span class="label">Note</span><span class="value" style="font-weight:600;">${noteDisplay}</span></div>
+                <div class="summary-row"><span class="label">Remarque</span><span class="value">${hasRemarque ? '✅ Rédigée' : '— Aucune'}</span></div>
+            </div>
+
+            <div class="statut-toggle-section">
+                <h4>Visibilité pour l'élève</h4>
+                <div class="statut-toggle">
+                    <button type="button" class="statut-btn${wd.statutCorrection === 'brouillon' ? ' active' : ''}" onclick="AdminEvaluations._setSomCorrStatut('brouillon')">📝 Brouillon</button>
+                    <button type="button" class="statut-btn${wd.statutCorrection === 'publie' ? ' active' : ''}" onclick="AdminEvaluations._setSomCorrStatut('publie')">✅ Publié</button>
+                </div>
+                <p class="form-help">${wd.statutCorrection === 'brouillon' ? 'L\'élève ne voit pas encore la correction.' : 'L\'élève peut voir sa correction.'}</p>
+            </div>
+        `;
+    },
+
+    _setSomCorrStatut(statut) {
+        if (!this._somCorrData) return;
+        this._somCorrData.statutCorrection = statut;
+        document.getElementById('corrSomWizardBody').innerHTML = this._renderSomCorrStep3();
+    },
+
+    // ----- Sauvegarde -----
+
+    async saveSomCorrection() {
+        const wd = this._somCorrData;
+        if (!wd) return;
+
+        this._saveSomCorrStepState();
+
+        const btn = document.getElementById('saveSomCorrBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Enregistrement...'; }
+
+        try {
+            const params = {
+                sommative_id: wd.sommativeId,
+                eleve_id: wd.eleveId,
+                statut_correction: wd.statutCorrection || 'brouillon'
+            };
+
+            // Sauver la remarque dans remarque_texte
+            if (wd.correctionType === 'url') {
+                params.remarque_texte = wd.correctionValue || '';
+            } else if (wd.correctionType === 'blocks') {
+                params.remarque_texte = wd.correctionValue || '';
+            } else {
+                params.remarque_texte = '';
+            }
+
+            // Sauver la note
+            if (wd.note !== '' && wd.note !== undefined) {
+                params.note = wd.note;
+            }
+
+            const result = await this.callAPI('saveResultatSommative', params);
+
+            if (result.success) {
+                this.showNotification('Correction enregistrée !');
+                this.closeSomCorrectionWizard();
+
+                // Recharger et réafficher la saisie
+                SheetsAPI.clearCacheFor('RESULTATS_SOMMATIVES');
+                try {
+                    const freshData = await SheetsAPI.getSheetData('RESULTATS_SOMMATIVES');
+                    this.resultatsSommatives = SheetsAPI.parseSheetData(freshData);
+                } catch (_e) { /* ignore */ }
+                this.openSaisieSommative(wd.sommativeId);
+
+                // Mettre à jour la note dans le tableau si visible
+                const row = document.querySelector(`tr[data-eleve-id="${wd.eleveId}"]`);
+                if (row) {
+                    const noteInput = row.querySelector('.note-input');
+                    if (noteInput && wd.note !== '') noteInput.value = wd.note;
+                }
+            } else {
+                this.showNotification(result.error || 'Erreur lors de la sauvegarde', 'error');
+            }
+        } catch (error) {
+            console.error('Erreur sauvegarde correction sommative:', error);
+            this.showNotification('Erreur réseau', 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer'; }
+        }
     },
 };
 
