@@ -1,7 +1,7 @@
 // ================================================================
 // FICHIER AUTO-GÉNÉRÉ — ne pas modifier directement
 // Généré par : npm run build:gas
-// Date : 2026-03-10
+// Date : 2026-03-11
 // ================================================================
 
 // ================================================================
@@ -6394,7 +6394,7 @@ function saveParametresNotes(data) {
 // ========================================
 // NOTES SOMMATIVES
 // Table : NOTES_SOMMATIVES
-// Colonnes : id, titre, matiere, bareme, coefficient, date, semestre
+// Colonnes : id, titre, matiere, bareme, coefficient, date, semestre, document_contenu, correction_contenu
 // ========================================
 
 /**
@@ -6436,7 +6436,7 @@ function getNotesSommatives(data) {
 
 /**
  * Crée une évaluation sommative
- * @param {Object} data - { titre, matiere, bareme, coefficient, date, semestre }
+ * @param {Object} data - { titre, matiere, bareme, coefficient, date, semestre, document_contenu?, correction_contenu? }
  */
 function createNoteSommative(data) {
   if (!data.titre) {
@@ -6448,19 +6448,39 @@ function createNoteSommative(data) {
 
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.NOTES_SOMMATIVES);
-    sheet.appendRow(['id', 'titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre']);
+    sheet.appendRow(['id', 'titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre', 'document_contenu', 'correction_contenu']);
   }
 
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(h) { return String(h).toLowerCase().trim(); });
+
   var id = 'som_' + new Date().getTime();
-  var newRow = [
-    id,
-    data.titre,
-    data.matiere || 'FR',
-    data.bareme !== undefined ? data.bareme : 20,
-    data.coefficient !== undefined ? data.coefficient : 1,
-    data.date || '',
-    data.semestre || 1
-  ];
+
+  // Construire la ligne à partir des headers (migration progressive)
+  var newRow = headers.map(function(h) {
+    switch (h) {
+      case 'id': return id;
+      case 'titre': return data.titre;
+      case 'matiere': return data.matiere || 'FR';
+      case 'bareme': return data.bareme !== undefined ? data.bareme : 20;
+      case 'coefficient': return data.coefficient !== undefined ? data.coefficient : 1;
+      case 'date': return data.date || '';
+      case 'semestre': return data.semestre || 1;
+      case 'document_contenu': return data.document_contenu || '';
+      case 'correction_contenu': return data.correction_contenu || '';
+      default: return data[h] || '';
+    }
+  });
+
+  // Ajouter les nouvelles colonnes si absentes
+  var extraCols = ['document_contenu', 'correction_contenu'];
+  extraCols.forEach(function(col) {
+    if (headers.indexOf(col) < 0 && data[col]) {
+      var lastCol = headers.length + 1;
+      sheet.getRange(1, lastCol).setValue(col);
+      headers.push(col);
+      newRow.push(data[col]);
+    }
+  });
 
   sheet.appendRow(newRow);
   return { success: true, id: id, message: 'Sommative creee' };
@@ -6487,13 +6507,18 @@ function updateNoteSommative(data) {
 
   for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      var updatable = ['titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre'];
+      var updatable = ['titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre', 'document_contenu', 'correction_contenu'];
       updatable.forEach(function(field) {
         if (data[field] !== undefined) {
           var colIdx = headers.indexOf(field);
-          if (colIdx >= 0) {
-            sheet.getRange(i + 1, colIdx + 1).setValue(data[field]);
+          if (colIdx < 0) {
+            // Migration progressive : ajouter la colonne si absente
+            var lastCol = headers.length + 1;
+            sheet.getRange(1, lastCol).setValue(field);
+            headers.push(field);
+            colIdx = headers.length - 1;
           }
+          sheet.getRange(i + 1, colIdx + 1).setValue(data[field]);
         }
       });
       return { success: true, message: 'Sommative mise a jour' };
@@ -6550,7 +6575,7 @@ function deleteNoteSommative(data) {
 // ========================================
 // RESULTATS SOMMATIVES
 // Table : RESULTATS_SOMMATIVES
-// Colonnes : id, sommative_id, eleve_id, note, statut, remarque_texte, remarque_media, date_saisie
+// Colonnes : id, sommative_id, eleve_id, note, statut, remarque_texte, remarque_media, date_saisie, statut_correction
 // ========================================
 
 /**
@@ -6591,7 +6616,7 @@ function getResultatsSommatives(data) {
 
 /**
  * Sauvegarde un résultat de sommative (crée ou met à jour)
- * @param {Object} data - { sommative_id, eleve_id, note, statut, remarque_texte, remarque_media }
+ * @param {Object} data - { sommative_id, eleve_id, note, statut, remarque_texte, remarque_media, statut_correction }
  */
 function saveResultatSommative(data) {
   if (!data.sommative_id || !data.eleve_id) {
@@ -6622,13 +6647,18 @@ function saveResultatSommative(data) {
 
   if (existingRow > 0) {
     // Mise à jour
-    var updatable = ['note', 'statut', 'remarque_texte', 'remarque_media'];
+    var updatable = ['note', 'statut', 'remarque_texte', 'remarque_media', 'statut_correction'];
     updatable.forEach(function(field) {
       if (data[field] !== undefined) {
         var colIdx = headers.indexOf(field);
-        if (colIdx >= 0) {
-          sheet.getRange(existingRow, colIdx + 1).setValue(data[field]);
+        if (colIdx < 0) {
+          // Migration progressive : ajouter la colonne si absente
+          var lastCol = headers.length + 1;
+          sheet.getRange(1, lastCol).setValue(field);
+          headers.push(field);
+          colIdx = headers.length - 1;
         }
+        sheet.getRange(existingRow, colIdx + 1).setValue(data[field]);
       }
     });
     var dateCol = headers.indexOf('date_saisie');
