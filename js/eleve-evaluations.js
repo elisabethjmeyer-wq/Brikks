@@ -435,8 +435,7 @@ const EleveEvaluations = {
             available: [],
             upcoming: [],
             done: [],
-            bonus: [],
-            sommatives: []
+            bonus: []
         };
 
         // Progression evaluations
@@ -561,23 +560,34 @@ const EleveEvaluations = {
             }
         });
 
-        // Sommative evaluations (from NOTES_SOMMATIVES)
+        // Sommative evaluations (from NOTES_SOMMATIVES) — same sections as other evals
         this.notesSommatives.forEach(som => {
             if (this._getSemestreForEval(som) !== String(this.currentSemestre)) return;
+            const effStatut = this._effectiveSomStatut(som);
+            if (effStatut === 'brouillon') return;
             const r = this.resultatsSommatives.find(res =>
                 String(res.sommative_id).trim() === String(som.id).trim()
             );
             const note = r && r.note !== '' && r.note !== undefined ? parseFloat(r.note) : null;
             const bareme = parseFloat(som.bareme) || 20;
             const coefficient = parseFloat(som.coefficient) || 1;
-            const hasNote = note !== null;
-            this.categories.sommatives.push({
+            const somData = {
                 ...som,
                 type: 'controle',
                 note, bareme, coefficient,
-                cardStatus: hasNote ? 'done' : 'upcoming',
                 isSommative: true
-            });
+            };
+            if (effStatut === 'terminee' || note !== null) {
+                somData.cardStatus = note !== null ? 'done' : 'not_done';
+                this.categories.done.push(somData);
+            } else if (effStatut === 'planifiee') {
+                somData.cardStatus = 'upcoming';
+                this.categories.upcoming.push(somData);
+            } else {
+                // publiee
+                somData.cardStatus = 'available';
+                this.categories.available.push(somData);
+            }
         });
     },
 
@@ -593,8 +603,8 @@ const EleveEvaluations = {
     },
 
     updateTabCounts() {
-        const { available, upcoming, done, sommatives } = this.categories;
-        const evalsCount = available.length + upcoming.length + done.length + sommatives.length;
+        const { available, upcoming, done } = this.categories;
+        const evalsCount = available.length + upcoming.length + done.length;
         const elEvals = document.getElementById('tabCountEvals');
         const elBonus = document.getElementById('tabCountBonus');
         if (elEvals) elEvals.textContent = evalsCount;
@@ -624,9 +634,9 @@ const EleveEvaluations = {
 
     _renderEvaluationsTab() {
         const container = document.getElementById('evaluationsList');
-        const { available, upcoming, done, sommatives } = this.categories;
+        const { available, upcoming, done } = this.categories;
 
-        const totalCount = available.length + upcoming.length + done.length + sommatives.length;
+        const totalCount = available.length + upcoming.length + done.length;
         if (totalCount === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -648,24 +658,15 @@ const EleveEvaluations = {
             html += this._renderSection('À venir', upcoming, 'section-upcoming');
         }
 
-        // Sommatives with pending note
-        const sommativesPending = sommatives.filter(s => s.cardStatus === 'upcoming');
-        const sommativesDone = sommatives.filter(s => s.cardStatus === 'done');
-        if (sommativesPending.length > 0) {
-            html += this._renderSection('Contrôles à venir', sommativesPending, 'section-upcoming');
-        }
-
-        // Merge done progression + done sommatives
-        const allDone = [...done, ...sommativesDone];
-        if (allDone.length > 0) {
+        if (done.length > 0) {
             html += `
                 <div class="eval-section section-done">
                     <button class="section-header collapsible" onclick="EleveEvaluations.toggleSection(this)">
-                        <h2>Terminées <span class="section-count">${allDone.length}</span></h2>
+                        <h2>Terminées <span class="section-count">${done.length}</span></h2>
                         <span class="section-toggle">▼</span>
                     </button>
                     <div class="section-cards collapsed">
-                        ${allDone.map(e => e.isSommative ? this.renderSommativeCard(e) : this._renderAnyCard(e)).join('')}
+                        ${done.map(e => e.isSommative ? this.renderSommativeCard(e) : this._renderAnyCard(e)).join('')}
                     </div>
                 </div>
             `;
@@ -1258,9 +1259,10 @@ const EleveEvaluations = {
         const matiere = som.matiere || '';
         const title = som.titre || 'Contrôle';
 
+        const status = som.cardStatus || 'available';
         let cardClass = `eval-card ${config.cssClass}`;
-        if (hasNote) cardClass += ' done';
-        else cardClass += ' upcoming';
+        if (status === 'done' || status === 'not_done') cardClass += ' done';
+        else if (status === 'upcoming') cardClass += ' upcoming';
 
         // Badge: note or coef
         let badge = '';
@@ -1288,8 +1290,8 @@ const EleveEvaluations = {
         let statusHtml = '';
         if (hasNote) {
             statusHtml = '<div class="card-action-info">Note publiée</div>';
-        } else {
-            statusHtml = '<div class="card-action-info upcoming">Note à venir</div>';
+        } else if (status === 'upcoming') {
+            statusHtml = '<div class="card-action-info upcoming">À venir</div>';
         }
 
         return `
