@@ -693,7 +693,11 @@ const AdminEvaluations = {
         const container = document.getElementById('evaluationsList');
         const emptyState = document.getElementById('emptyState');
 
-        const filtered = this._filterSommativesByMatiere(this.sommatives);
+        let filtered = this._filterSommativesByMatiere(this.sommatives);
+        // Apply status filter if set
+        if (this.filters.statut) {
+            filtered = filtered.filter(s => this._effectiveSomStatut(s) === this.filters.statut);
+        }
 
         if (filtered.length === 0) {
             container.innerHTML = '';
@@ -715,12 +719,17 @@ const AdminEvaluations = {
             matiereBadge = '<span class="matiere-badge both">🔗 FR+HG</span>';
         }
 
+        // Status
+        const statusClass = this._effectiveSomStatut(sommative);
+        const statusLabels = { 'brouillon': 'Brouillon', 'planifiee': 'Planifiée', 'publiee': 'Publiée', 'terminee': 'Terminée' };
+
         // Count results
         const somResults = this.resultatsSommatives.filter(r =>
             String(r.sommative_id).trim() === String(sommative.id).trim()
         );
         const saisis = somResults.filter(r => r.note !== '' && r.note !== undefined).length;
         const totalEleves = this.eleves.length || 25;
+        const canSaisir = statusClass === 'publiee' || statusClass === 'terminee' || statusClass === 'planifiee';
 
         return `
             <div class="eval-card sommatives" data-id="${sommative.id}">
@@ -731,6 +740,7 @@ const AdminEvaluations = {
                             ${escapeHtml(sommative.titre || 'Sans titre')}
                             ${matiereBadge}
                             ${sommative.date ? `<span class="date-badge">📅 ${sommative.date}</span>` : ''}
+                            <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
                         </div>
                         <div class="eval-card-meta">
                             <span>📊 Coef. ${sommative.coefficient || 1}</span>
@@ -744,8 +754,14 @@ const AdminEvaluations = {
                         </div>
                     </div>
                     <div class="eval-card-actions">
-                        <button class="btn-icon" onclick="AdminEvaluations.openSaisieSommative('${sommative.id}')" title="Saisir notes">📝</button>
                         <button class="btn-icon" onclick="AdminEvaluations.editSommative('${sommative.id}')" title="Modifier">✏️</button>
+                        ${canSaisir ? `<button class="btn-icon" onclick="AdminEvaluations.openSaisieSommative('${sommative.id}')" title="Saisir notes">📝</button>` : ''}
+                        <div class="status-dropdown-wrapper">
+                            <button class="btn-icon" onclick="AdminEvaluations.toggleStatusDropdown(event, '${sommative.id}')" title="Changer le statut">
+                                <span class="status-dot ${statusClass}"></span>
+                            </button>
+                            ${this._renderSomStatusDropdown(sommative)}
+                        </div>
                         <button class="btn-icon danger" onclick="AdminEvaluations.confirmDelete('${sommative.id}', 'sommative')" title="Supprimer">🗑️</button>
                     </div>
                 </div>
@@ -1077,6 +1093,182 @@ const AdminEvaluations = {
         // Between ouverture and fermeture (or only ouverture set and passed)
         if (dateOuverture || dateFermeture) return 'publiee';
         return 'brouillon';
+    },
+
+    /**
+     * Calcule le statut effectif d'une sommative (avec auto-sync dates)
+     */
+    _effectiveSomStatut(sommative) {
+        const stored = sommative.statut || 'brouillon';
+        // Si brouillon ou terminee manuellement, respecter
+        if (stored === 'brouillon' || stored === 'terminee') return stored;
+        // Sinon, recalculer depuis les dates
+        if (sommative.date_ouverture || sommative.date_fermeture) {
+            return this._computeAutoStatut(sommative.date_ouverture, sommative.date_fermeture);
+        }
+        return stored;
+    },
+
+    /**
+     * Rend le dropdown de statut pour une sommative
+     */
+    _renderSomStatusDropdown(sommative) {
+        const id = sommative.id;
+        const statut = this._effectiveSomStatut(sommative);
+        const dateOuv = sommative.date_ouverture || '';
+        const dateFerm = sommative.date_fermeture || '';
+        const [datePartOuv, timePartOuv] = this._splitDateTime(dateOuv);
+        const [datePartFerm, timePartFerm] = this._splitDateTime(dateFerm);
+        const isProgrammed = statut === 'planifiee' || (statut === 'publiee' && dateOuv);
+
+        return `
+            <div class="status-dropdown" id="status-dropdown-${id}">
+                <button class="${statut === 'brouillon' ? 'active' : ''}" onclick="AdminEvaluations.changeSomStatut('${id}', 'brouillon')">
+                    <span class="status-dot-mini brouillon"></span> Brouillon
+                </button>
+                <button class="${statut === 'publiee' && !dateOuv ? 'active' : ''}" onclick="AdminEvaluations._publishSomNow('${id}')">
+                    <span class="status-dot-mini publiee"></span> Publier maintenant
+                </button>
+                <div class="status-dropdown-separator"></div>
+                <div class="status-dropdown-schedule ${isProgrammed ? 'active' : ''}">
+                    <button class="schedule-toggle ${isProgrammed ? 'active' : ''}" onclick="AdminEvaluations._toggleSchedulePanel(event, '${id}')">
+                        <span class="status-dot-mini planifiee"></span> Programmer
+                        <span class="schedule-chevron">${isProgrammed ? '▾' : '▸'}</span>
+                    </button>
+                    <div class="schedule-panel" id="schedule-panel-${id}" style="${isProgrammed ? '' : 'display:none'}">
+                        <div class="schedule-field">
+                            <label>Date</label>
+                            <div class="schedule-date-row">
+                                <input type="date" class="schedule-input" id="schedDate-${id}" value="${datePartOuv}">
+                                <input type="text" class="schedule-input schedule-time" id="schedTimeOuv-${id}" value="${this._formatTimeFR(timePartOuv)}" placeholder="HH:MM">
+                            </div>
+                        </div>
+                        <div class="schedule-field">
+                            <label>Fermeture <span class="schedule-optional">(optionnel)</span></label>
+                            <div class="schedule-date-row">
+                                <input type="date" class="schedule-input" id="schedDateFerm-${id}" value="${datePartFerm}">
+                                <input type="text" class="schedule-input schedule-time" id="schedTimeFerm-${id}" value="${this._formatTimeFR(timePartFerm)}" placeholder="HH:MM">
+                            </div>
+                        </div>
+                        <button class="schedule-save-btn" onclick="AdminEvaluations._saveSomSchedule('${id}')">
+                            Enregistrer
+                        </button>
+                    </div>
+                </div>
+                <div class="status-dropdown-separator"></div>
+                <button class="${statut === 'terminee' ? 'active' : ''}" onclick="AdminEvaluations.changeSomStatut('${id}', 'terminee')">
+                    <span class="status-dot-mini terminee"></span> Terminer
+                </button>
+            </div>`;
+    },
+
+    async changeSomStatut(somId, newStatut) {
+        document.querySelectorAll('.status-dropdown.open').forEach(d => d.classList.remove('open'));
+        const sommative = this.sommatives.find(s => String(s.id) === String(somId));
+        if (!sommative) return;
+
+        const oldStatut = sommative.statut;
+        if (oldStatut === newStatut) return;
+
+        sommative.statut = newStatut;
+        if (newStatut === 'brouillon') { sommative.date_ouverture = ''; sommative.date_fermeture = ''; }
+        this.renderEvaluations();
+
+        try {
+            const params = { id: somId, statut: newStatut };
+            if (newStatut === 'brouillon') { params.date_ouverture = ''; params.date_fermeture = ''; }
+            const result = await this.callAPI('updateNoteSommative', params);
+            if (!result.success) {
+                sommative.statut = oldStatut;
+                this.renderEvaluations();
+                this.showNotification('Erreur lors du changement de statut', 'error');
+            } else {
+                SheetsAPI.clearCacheFor('NOTES_SOMMATIVES');
+            }
+        } catch (_err) {
+            sommative.statut = oldStatut;
+            this.renderEvaluations();
+            this.showNotification('Erreur réseau', 'error');
+        }
+    },
+
+    async _publishSomNow(somId) {
+        document.querySelectorAll('.status-dropdown.open').forEach(d => d.classList.remove('open'));
+        const sommative = this.sommatives.find(s => String(s.id) === String(somId));
+        if (!sommative) return;
+
+        const old = { statut: sommative.statut, date_ouverture: sommative.date_ouverture, date_fermeture: sommative.date_fermeture };
+        sommative.statut = 'publiee';
+        sommative.date_ouverture = '';
+        sommative.date_fermeture = '';
+        this.renderEvaluations();
+
+        try {
+            const result = await this.callAPI('updateNoteSommative', {
+                id: somId, statut: 'publiee', date_ouverture: '', date_fermeture: ''
+            });
+            if (!result.success) {
+                Object.assign(sommative, old);
+                this.renderEvaluations();
+                this.showNotification('Erreur lors de la publication', 'error');
+            } else {
+                SheetsAPI.clearCacheFor('NOTES_SOMMATIVES');
+            }
+        } catch (_err) {
+            Object.assign(sommative, old);
+            this.renderEvaluations();
+            this.showNotification('Erreur réseau', 'error');
+        }
+    },
+
+    async _saveSomSchedule(somId) {
+        const sommative = this.sommatives.find(s => String(s.id) === String(somId));
+        if (!sommative) return;
+
+        const dateStr = document.getElementById(`schedDate-${somId}`)?.value || '';
+        if (!dateStr) { this.showNotification('Veuillez sélectionner une date', 'error'); return; }
+
+        const rawTimeOuv = document.getElementById(`schedTimeOuv-${somId}`)?.value || '';
+        const timeOuv = this._parseTimeFR(rawTimeOuv) || '08:00';
+        const dateOuverture = dateStr + 'T' + timeOuv;
+
+        let dateFermeture = '';
+        const dateFermStr = document.getElementById(`schedDateFerm-${somId}`)?.value || '';
+        if (dateFermStr) {
+            const rawTimeFerm = document.getElementById(`schedTimeFerm-${somId}`)?.value || '';
+            const timeFerm = this._parseTimeFR(rawTimeFerm) || '18:00';
+            dateFermeture = dateFermStr + 'T' + timeFerm;
+        }
+
+        const now = new Date();
+        const ouv = new Date(dateOuverture);
+        const newStatut = ouv > now ? 'planifiee' : 'publiee';
+
+        document.querySelectorAll('.status-dropdown.open').forEach(d => d.classList.remove('open'));
+
+        const old = { statut: sommative.statut, date_ouverture: sommative.date_ouverture, date_fermeture: sommative.date_fermeture };
+        sommative.statut = newStatut;
+        sommative.date_ouverture = dateOuverture;
+        sommative.date_fermeture = dateFermeture;
+        this.renderEvaluations();
+
+        try {
+            const result = await this.callAPI('updateNoteSommative', {
+                id: somId, statut: newStatut, date_ouverture: dateOuverture, date_fermeture: dateFermeture
+            });
+            if (!result.success) {
+                Object.assign(sommative, old);
+                this.renderEvaluations();
+                this.showNotification('Erreur lors de la programmation', 'error');
+            } else {
+                SheetsAPI.clearCacheFor('NOTES_SOMMATIVES');
+                this.showNotification('Programmation enregistrée', 'success');
+            }
+        } catch (_err) {
+            Object.assign(sommative, old);
+            this.renderEvaluations();
+            this.showNotification('Erreur réseau', 'error');
+        }
     },
 
     _getStatutLabel(statut) {

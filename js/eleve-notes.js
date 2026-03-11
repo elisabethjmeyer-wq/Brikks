@@ -175,6 +175,19 @@ const EleveResultats = {
         return ev.statut || 'brouillon';
     },
 
+    _effectiveSomStatut(som) {
+        const stored = som.statut || '';
+        if (stored === 'brouillon' || stored === 'terminee') return stored;
+        const now = new Date();
+        if (som.date_ouverture || som.date_fermeture) {
+            if (som.date_ouverture && new Date(som.date_ouverture) > now) return 'planifiee';
+            if (som.date_fermeture && new Date(som.date_fermeture) < now) return 'terminee';
+            return 'publiee';
+        }
+        // Pas de statut et pas de dates → considérer comme publiée (rétro-compatibilité)
+        return stored || 'publiee';
+    },
+
     // ========== CALCULATION ==========
     _getParams(matiere, semestre) {
         const p = this.parametresNotes.find(
@@ -292,7 +305,10 @@ const EleveResultats = {
         return this.sommatives
             .filter(s => {
                 const m = s.matiere || '';
-                return (m === matiere || m === 'Les deux') && String(s.semestre || '1') === String(semestre);
+                if (!((m === matiere || m === 'Les deux') && String(s.semestre || '1') === String(semestre))) return false;
+                // Filter by statut: only show publiée or terminée (not brouillon or planifiée)
+                const statut = this._effectiveSomStatut(s);
+                return statut === 'publiee' || statut === 'terminee';
             })
             .map(s => {
                 const r = this.resultatsSommatives.find(res =>

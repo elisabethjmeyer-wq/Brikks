@@ -6394,7 +6394,7 @@ function saveParametresNotes(data) {
 // ========================================
 // NOTES SOMMATIVES
 // Table : NOTES_SOMMATIVES
-// Colonnes : id, titre, matiere, bareme, coefficient, date, semestre, document_contenu, correction_contenu
+// Colonnes : id, titre, matiere, bareme, coefficient, date, semestre, document_contenu, correction_contenu, statut, date_ouverture, date_fermeture
 // ========================================
 
 /**
@@ -6467,12 +6467,15 @@ function createNoteSommative(data) {
       case 'semestre': return data.semestre || 1;
       case 'document_contenu': return data.document_contenu || '';
       case 'correction_contenu': return data.correction_contenu || '';
+      case 'statut': return data.statut || 'brouillon';
+      case 'date_ouverture': return data.date_ouverture || '';
+      case 'date_fermeture': return data.date_fermeture || '';
       default: return data[h] || '';
     }
   });
 
   // Ajouter les nouvelles colonnes si absentes
-  var extraCols = ['document_contenu', 'correction_contenu'];
+  var extraCols = ['document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture'];
   extraCols.forEach(function(col) {
     if (headers.indexOf(col) < 0 && data[col]) {
       var lastCol = headers.length + 1;
@@ -6488,7 +6491,7 @@ function createNoteSommative(data) {
 
 /**
  * Met à jour une évaluation sommative
- * @param {Object} data - { id, titre?, matiere?, bareme?, coefficient?, date?, semestre? }
+ * @param {Object} data - { id, titre?, matiere?, bareme?, coefficient?, date?, semestre?, document_contenu?, correction_contenu?, statut?, date_ouverture?, date_fermeture? }
  */
 function updateNoteSommative(data) {
   if (!data.id) {
@@ -6507,7 +6510,7 @@ function updateNoteSommative(data) {
 
   for (var i = 1; i < allData.length; i++) {
     if (String(allData[i][idCol]).trim() === String(data.id).trim()) {
-      var updatable = ['titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre', 'document_contenu', 'correction_contenu'];
+      var updatable = ['titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre', 'document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture'];
       updatable.forEach(function(field) {
         if (data[field] !== undefined) {
           var colIdx = headers.indexOf(field);
