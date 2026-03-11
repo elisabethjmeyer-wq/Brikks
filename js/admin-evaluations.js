@@ -1119,14 +1119,16 @@ const AdminEvaluations = {
         const dateFerm = sommative.date_fermeture || '';
         const [datePartOuv, timePartOuv] = this._splitDateTime(dateOuv);
         const [datePartFerm, timePartFerm] = this._splitDateTime(dateFerm);
-        const isProgrammed = statut === 'planifiee' || (statut === 'publiee' && dateOuv);
+        const isFutureDate = dateOuv && new Date(dateOuv) > new Date();
+        const isProgrammed = statut === 'planifiee' || isFutureDate;
+        const isPublishedNow = statut === 'publiee' && !isProgrammed;
 
         return `
             <div class="status-dropdown" id="status-dropdown-${id}">
                 <button class="${statut === 'brouillon' ? 'active' : ''}" onclick="AdminEvaluations.changeSomStatut('${id}', 'brouillon')">
                     <span class="status-dot-mini brouillon"></span> Brouillon
                 </button>
-                <button class="${statut === 'publiee' && !dateOuv ? 'active' : ''}" onclick="AdminEvaluations._publishSomNow('${id}')">
+                <button class="${isPublishedNow ? 'active' : ''}" onclick="AdminEvaluations._publishSomNow('${id}')">
                     <span class="status-dot-mini publiee"></span> Publier maintenant
                 </button>
                 <div class="status-dropdown-separator"></div>
@@ -1197,15 +1199,16 @@ const AdminEvaluations = {
         const sommative = this.sommatives.find(s => String(s.id) === String(somId));
         if (!sommative) return;
 
+        const now = new Date().toISOString().split('T')[0];
         const old = { statut: sommative.statut, date_ouverture: sommative.date_ouverture, date_fermeture: sommative.date_fermeture };
         sommative.statut = 'publiee';
-        sommative.date_ouverture = '';
+        sommative.date_ouverture = now;
         sommative.date_fermeture = '';
         this.renderEvaluations();
 
         try {
             const result = await this.callAPI('updateNoteSommative', {
-                id: somId, statut: 'publiee', date_ouverture: '', date_fermeture: ''
+                id: somId, statut: 'publiee', date_ouverture: now, date_fermeture: ''
             });
             if (!result.success) {
                 Object.assign(sommative, old);
@@ -1349,14 +1352,16 @@ const AdminEvaluations = {
         const [datePartOuv, timePartOuv] = this._splitDateTime(dateOuv);
         const [datePartFerm, timePartFerm] = this._splitDateTime(dateFerm);
 
-        const isProgrammed = statut === 'planifiee' || (statut === 'publiee' && dateOuv);
+        const isFutureDate = dateOuv && new Date(dateOuv) > new Date();
+        const isProgrammed = statut === 'planifiee' || isFutureDate;
+        const isPublishedNow = statut === 'publiee' && !isProgrammed;
 
         return `
             <div class="status-dropdown" id="status-dropdown-${id}">
                 <button class="${statut === 'brouillon' ? 'active' : ''}" onclick="AdminEvaluations.changeStatut('${id}', 'brouillon')">
                     <span class="status-dot-mini brouillon"></span> Brouillon
                 </button>
-                <button class="${statut === 'publiee' && !dateOuv ? 'active' : ''}" onclick="AdminEvaluations._publishNow('${id}')">
+                <button class="${isPublishedNow ? 'active' : ''}" onclick="AdminEvaluations._publishNow('${id}')">
                     <span class="status-dot-mini publiee"></span> Publier maintenant
                 </button>
                 <div class="status-dropdown-separator"></div>
@@ -1405,15 +1410,16 @@ const AdminEvaluations = {
         const oldDateOuv = evaluation.date_ouverture;
         const oldDateFerm = evaluation.date_fermeture;
 
-        // Mise à jour optimiste
+        // Mise à jour optimiste — date_ouverture = aujourd'hui
+        const now = new Date().toISOString().split('T')[0];
         evaluation.statut = 'publiee';
-        evaluation.date_ouverture = '';
+        evaluation.date_ouverture = now;
         evaluation.date_fermeture = '';
         this.renderEvaluations();
 
         try {
             const result = await this.callAPI('updateEvaluation', {
-                id: evalId, statut: 'publiee', date_ouverture: '', date_fermeture: ''
+                id: evalId, statut: 'publiee', date_ouverture: now, date_fermeture: ''
             });
             if (!result.success) {
                 evaluation.statut = oldStatut;
