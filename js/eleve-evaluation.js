@@ -172,12 +172,13 @@ const EleveEvaluation = {
         const badgeLabel = isBonus ? 'Bonus mission' : 'Évaluation de compétence';
         const badgeClass = isBonus ? 'bonus' : 'tc';
 
-        // Charger les critères de réussite des compétences liées
+        // Charger les critères de réussite des compétences liées (référentiel + personnalisées)
         let criteresHtml = '';
         try {
             const competenceIds = this._parseCompetenceIds(data, exercice);
-            if (competenceIds.length > 0) {
-                criteresHtml = await this._loadCriteresHtml(competenceIds);
+            const customComps = this._parseCustomComps(data);
+            if (competenceIds.length > 0 || customComps.length > 0) {
+                criteresHtml = await this._loadCriteresHtml(competenceIds, customComps);
             }
         } catch (e) {
             console.warn('Impossible de charger les critères:', e);
@@ -222,13 +223,14 @@ const EleveEvaluation = {
      * layout simple header + document sinon.
      */
     async _renderBonusSujetMode(data, exercice, documentHtml) {
-        // Bonus mission avec compétences : layout 2 colonnes comme TC
+        // Bonus mission avec compétences du référentiel ou personnalisées : layout 2 colonnes
         const competenceIds = this._parseCompetenceIds(data, exercice);
-        if (competenceIds.length > 0) {
+        const customComps = this._parseCustomComps(data);
+        if (competenceIds.length > 0 || customComps.length > 0) {
             return this._renderTCSujetMode(data, exercice, documentHtml, 'bonus');
         }
 
-        // Bonus mission sans compétences : layout simple (plein écran, sans sidebar critères)
+        // Bonus mission sans aucune compétence : layout simple (plein écran)
         const title = data.titre || 'Sujet';
 
         // Phase 9 : description directement sur data, fallback exercice.consigne
@@ -306,10 +308,28 @@ const EleveEvaluation = {
     },
 
     /**
+     * Parse les compétences personnalisées depuis criteres_libres.
+     * Format attendu : [{nom, matiere, points, criteres: [str, ...]}, ...]
+     */
+    _parseCustomComps(data) {
+        if (!data || !data.criteres_libres) return [];
+        try {
+            const parsed = typeof data.criteres_libres === 'string'
+                ? JSON.parse(data.criteres_libres) : data.criteres_libres;
+            if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && parsed[0].nom) {
+                return parsed;
+            }
+        } catch (_e) { /* ignore */ }
+        return [];
+    },
+
+    /**
      * Charge les critères de réussite pour les compétences données.
      * Retourne du HTML groupé par matière, avec critères repliables.
+     * @param {string[]} competenceIds - IDs du référentiel
+     * @param {Array} customComps - Compétences personnalisées (optionnel)
      */
-    async _loadCriteresHtml(competenceIds) {
+    async _loadCriteresHtml(competenceIds, customComps) {
         const [referentiel, criteres] = await Promise.all([
             SheetsAPI.fetchAndParse('CompetencesReferentiel'),
             SheetsAPI.fetchAndParse('CriteresReussite')
@@ -332,6 +352,21 @@ const EleveEvaluation = {
                 name: comp ? (comp.nom || 'Compétence') : 'Compétence',
                 matiere: (comp && comp.matiere) || 'Transversal',
                 criteres: compCriteres
+            });
+        }
+
+        // Ajouter les compétences personnalisées
+        if (customComps && customComps.length > 0) {
+            customComps.forEach(cc => {
+                const ccCriteres = (cc.criteres || []).map((cr, ci) => ({
+                    id: 'cc_' + (cc.id || 'custom') + '_' + ci,
+                    libelle: cr
+                }));
+                compsData.push({
+                    name: cc.nom || 'Compétence personnalisée',
+                    matiere: cc.matiere || 'FR',
+                    criteres: ccCriteres
+                });
             });
         }
 
