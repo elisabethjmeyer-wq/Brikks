@@ -438,8 +438,10 @@ const EleveEvaluations = {
             bonus: []
         };
 
-        // Progression evaluations
+        // Progression evaluations — filtrer par semestre courant
         this.evaluations.forEach(ev => {
+            if (this._getSemestreForEval(ev) !== String(this.currentSemestre)) return;
+
             const resultat = this.resultats.find(r =>
                 String(r.evaluation_id).trim() === String(ev.id).trim()
             );
@@ -802,8 +804,11 @@ const EleveEvaluations = {
             const remarque = resultat ? (resultat.remarque_prof || '') : '';
             const remarqueHtml = remarque ? `<div class="bonus-remarque">${escapeHtml(remarque)}</div>` : '';
             statusHtml = `<span class="bonus-status accepte">Accepté</span>${dateInfo}${remarqueHtml}`;
-            actionHtml = '<div class="card-action-info">Consulter le sujet</div>';
-            cardClass += ' clickable';
+            const hasDoc = String(evaluation.document_contenu || '').trim() !== '';
+            if (hasDoc) {
+                actionHtml = '<div class="card-action-info">Consulter le sujet</div>';
+                cardClass += ' clickable';
+            }
         } else if (cardStatus === 'demande_refusee') {
             const remarque = resultat ? (resultat.remarque_prof || '') : '';
             const remarqueHtml = remarque ? `<div class="bonus-remarque">${escapeHtml(remarque)}</div>` : '';
@@ -822,7 +827,7 @@ const EleveEvaluations = {
         let clickAttr = '';
         if (cardStatus === 'validated' || cardStatus === 'failed') {
             clickAttr = ` onclick="EleveEvaluations.openReview('${evaluation.id}')"`;
-        } else if (cardStatus === 'demande_acceptee') {
+        } else if (cardStatus === 'demande_acceptee' && String(evaluation.document_contenu || '').trim() !== '') {
             clickAttr = ` onclick="EleveEvaluations.consulterSujet('${evaluation.id}')"`;
         }
 
@@ -1082,11 +1087,13 @@ const EleveEvaluations = {
     },
 
     /**
-     * Route vers le bon renderer selon le type de carte (bonus suivi → renderBonusCard, sinon renderCard)
+     * Route vers le bon renderer selon le type de carte.
+     * Bonus suivi → renderBonusCard, bonus non-suivi → _renderBonusDemandeCard, sinon renderCard.
      */
     _renderAnyCard(e) {
         const sousType = String(e.sous_type_bonus || '').trim();
         if (sousType === 'suivi') return this.renderBonusCard(e);
+        if (e.type === 'bonus') return this._renderBonusDemandeCard(e, false);
         return this.renderCard(e);
     },
 
@@ -1297,10 +1304,10 @@ const EleveEvaluations = {
             statusHtml = '<div class="card-action-info">Note publiée</div>';
         } else if (status === 'available' && hasDoc) {
             // Éval ouverte + sujet renseigné → consultable
-            actionHtml = `<a href="evaluation.html?id=${som.id}&mode=sujet&type=sommative" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
+            actionHtml = `<a href="evaluation.html?id=${som.id}&mode=sujet" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
         } else if (status === 'upcoming' && hasDoc && sujetVisibleAvance) {
             // Éval pas encore ouverte mais sujet rendu visible à l'avance
-            actionHtml = `<a href="evaluation.html?id=${som.id}&mode=sujet&type=sommative" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
+            actionHtml = `<a href="evaluation.html?id=${som.id}&mode=sujet" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
             statusHtml = '<span class="bonus-status sujet-avance" style="align-self:flex-start">Sujet consultable</span>';
         } else if (status === 'upcoming') {
             statusHtml = '<div class="card-action-info upcoming">À venir</div>';

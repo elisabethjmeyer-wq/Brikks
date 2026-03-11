@@ -613,7 +613,7 @@ const AdminEvaluations = {
                             ${(() => { const sem = this._getSemestreTag(evaluation); return sem ? `<span class="sem-tag">${sem}</span>` : ''; })()}
                             ${sousTypeBonusCard !== 'suivi' ? `<span class="mode-badge ${evaluation.type === 'competences' || evaluation.mode_passation === 'papier' ? 'papier' : 'numerique'}">${evaluation.type === 'competences' ? '📝 En classe' : evaluation.mode_passation === 'papier' ? '📄 Papier' : '💻 Numérique'}</span>` : ''}
                             <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
-                            ${evaluation.type === 'competences' && (evaluation.sujet_disponible_avance === true || evaluation.sujet_disponible_avance === 'true' || evaluation.sujet_disponible_avance === 'TRUE') ? '<span class="mode-badge sujet-avance">👁 Sujet visible</span>' : ''}
+                            ${evaluation.type === 'competences' && (evaluation.sujet_disponible_avance === true || evaluation.sujet_disponible_avance === 'true' || evaluation.sujet_disponible_avance === 'TRUE') ? '<span class="mode-badge sujet-avance">👁 Sujet visible à l\'avance</span>' : ''}
                         </div>
                         <div class="eval-card-meta">
                             ${metaItems.map(item => `<span>${item}</span>`).join('')}
@@ -741,6 +741,7 @@ const AdminEvaluations = {
                             ${matiereBadge}
                             ${sommative.date_ouverture ? `<span class="date-badge">📅 ${new Date(sommative.date_ouverture).toLocaleDateString('fr-FR', {day:'numeric',month:'short',year:'numeric'})}</span>` : ''}
                             <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
+                            ${(sommative.sujet_visible === true || sommative.sujet_visible === 'true' || sommative.sujet_visible === 'TRUE') ? '<span class="mode-badge sujet-avance">👁 Sujet visible à l\'avance</span>' : ''}
                         </div>
                         <div class="eval-card-meta">
                             <span>📊 Coef. ${sommative.coefficient || 1}</span>
@@ -1588,9 +1589,9 @@ const AdminEvaluations = {
             <div class="form-group">
                 <label class="toggle-label">
                     <input type="checkbox" id="evalSujetAvance" ${checked ? 'checked' : ''}>
-                    <span>Sujet visible par les élèves</span>
+                    <span>Sujet consultable à l'avance</span>
                 </label>
-                <div class="form-help">Si activé, les élèves pourront consulter le sujet depuis leur carte d'évaluation</div>
+                <div class="form-help">Si activé, les élèves pourront consulter le sujet avant la date d'ouverture. Le sujet est toujours consultable une fois l'évaluation ouverte.</div>
             </div>
         `;
     },
@@ -3468,9 +3469,9 @@ const AdminEvaluations = {
                 <div class="form-group full-width">
                     <label class="toggle-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
                         <input type="checkbox" id="somSujetVisible"${d.sujet_visible ? ' checked' : ''}>
-                        Rendre le sujet consultable par les élèves
+                        Rendre le sujet consultable à l'avance
                     </label>
-                    <div class="form-help">Si activé, les élèves pourront consulter le sujet depuis leur carte d'évaluation</div>
+                    <div class="form-help">Si activé, les élèves pourront consulter le sujet avant la date d'ouverture. Le sujet est toujours consultable une fois l'évaluation ouverte.</div>
                 </div>
             </div>
         </div>`;

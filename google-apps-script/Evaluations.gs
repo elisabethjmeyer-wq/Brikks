@@ -74,6 +74,27 @@ function getEvaluation(data) {
     }
   }
 
+  // Fallback : chercher dans NOTES_SOMMATIVES
+  if (!evaluation) {
+    var somSheet = ss.getSheetByName(SHEETS.NOTES_SOMMATIVES);
+    if (somSheet) {
+      var somData2 = somSheet.getDataRange().getValues();
+      var somHeaders2 = somData2[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      for (var s = 1; s < somData2.length; s++) {
+        var somIdCol2 = somHeaders2.indexOf('id');
+        if (somIdCol2 >= 0 && String(somData2[s][somIdCol2]).trim() === String(data.id).trim()) {
+          evaluation = { type: 'controle', isSommative: true };
+          somHeaders2.forEach(function(header, index) {
+            evaluation[header] = somData2[s][index];
+          });
+          evaluation.type = 'controle';
+          evaluation.questions = [];
+          return { success: true, data: evaluation };
+        }
+      }
+    }
+  }
+
   if (!evaluation) {
     return { success: false, error: 'Evaluation non trouvee: ' + data.id };
   }
@@ -244,6 +265,7 @@ function getEvaluationForEleve(data) {
   }
 
   // Sommative : logique d'accès simplifiée (pas de questions, juste le sujet)
+  // Note : pas de blocage 'terminee' — le sujet reste consultable après la fermeture (document de révision)
   if (evaluation.isSommative) {
     var somStatut = _computeEffectiveStatut_(evaluation);
     if (somStatut === 'brouillon') {
@@ -1744,7 +1766,7 @@ function createNoteSommative(data) {
 
   if (!sheet) {
     sheet = ss.insertSheet(SHEETS.NOTES_SOMMATIVES);
-    sheet.appendRow(['id', 'titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre', 'document_contenu', 'correction_contenu']);
+    sheet.appendRow(['id', 'titre', 'matiere', 'bareme', 'coefficient', 'date', 'semestre', 'document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture', 'sujet_visible']);
   }
 
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(function(h) { return String(h).toLowerCase().trim(); });
@@ -1774,7 +1796,7 @@ function createNoteSommative(data) {
   // Ajouter les nouvelles colonnes si absentes
   var extraCols = ['document_contenu', 'correction_contenu', 'statut', 'date_ouverture', 'date_fermeture', 'sujet_visible'];
   extraCols.forEach(function(col) {
-    if (headers.indexOf(col) < 0 && data[col]) {
+    if (headers.indexOf(col) < 0 && data[col] !== undefined && data[col] !== '') {
       var lastCol = headers.length + 1;
       sheet.getRange(1, lastCol).setValue(col);
       headers.push(col);

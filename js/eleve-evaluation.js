@@ -44,8 +44,14 @@ const EleveEvaluation = {
 
             await this.loadEvaluation(evalId);
 
+            // Les TC, bonus et sommatives ne se passent pas en ligne
+            const evalType = String(this.evaluation.type || '').trim();
+            if (evalType === 'competences' || evalType === 'bonus' || evalType === 'controle') {
+                throw new Error('Cette évaluation ne se passe pas en ligne. Consultez le sujet depuis la liste des évaluations.');
+            }
+
             // Bifurquer selon le type d'évaluation
-            if (this.evaluation.type === 'savoir-faire') {
+            if (evalType === 'savoir-faire') {
                 this.setupSFModule();
             } else {
                 this.setupConnaissancesModule();
