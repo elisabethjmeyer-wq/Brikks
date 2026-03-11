@@ -163,10 +163,10 @@ function handleRequest(e) {
       data = JSON.parse(e.postData.contents);
     }
 
-    // Si param 'd' présent : données encodées en Base64 URL-safe (évite la limite URL)
+    // Si param 'd' présent : données encodées en Base64 (évite la limite URL)
+    // Supporte Base64 standard ET URL-safe (- → +, _ → /) pour rétro-compatibilité
     if (params.d) {
       try {
-        // Reconvertir URL-safe Base64 → standard Base64
         var b64 = params.d.replace(/-/g, '+').replace(/_/g, '/');
         while (b64.length % 4) b64 += '=';
         var decoded = Utilities.newBlob(Utilities.base64Decode(b64)).getDataAsString('UTF-8');
