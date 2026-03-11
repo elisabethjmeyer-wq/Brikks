@@ -713,14 +713,6 @@ const EleveEvaluation = {
             } catch (_e) { /* ignore */ }
         }
 
-        // Parse competence_ids_validees pour les compétences perso
-        let compIdsValidees = {};
-        if (resultat.competence_ids_validees) {
-            try {
-                compIdsValidees = typeof resultat.competence_ids_validees === 'string' ? JSON.parse(resultat.competence_ids_validees) : resultat.competence_ids_validees;
-            } catch (_e) { /* ignore */ }
-        }
-
         // Ajouter les points des compétences perso au pointsParMatiere
         if (resPpc && customComps.length > 0) {
             customComps.forEach(cc => {
@@ -768,9 +760,8 @@ const EleveEvaluation = {
                     id: 'cc_' + ccId + '_' + ci,
                     libelle: cr
                 }));
-                const ccValides = compIdsValidees[ccId] || [];
                 const allValid = ccCriteres.length > 0
-                    ? ccCriteres.every(c => ccValides.indexOf(String(c.id)) !== -1)
+                    ? ccCriteres.every(c => criteresValides.indexOf(String(c.id)) !== -1)
                     : (resPpc && parseFloat(resPpc[ccId]) > 0);
                 if (allValid) nbCompsValidees++;
 
@@ -806,16 +797,8 @@ const EleveEvaluation = {
                 let cardsHtml = '';
                 groups[mat].forEach(cd => {
                     const nbCriteres = cd.criteres.length;
-                    // Pour compétences perso, les validations sont dans compIdsValidees[ccId]
-                    const validationSource = cd.isCustom ? [] : criteresValides;
                     const nbValides = cd.criteres.filter(c => {
-                        if (cd.isCustom) {
-                            // Trouver le ccId dans le nom du critère id (format: cc_<ccId>_<ci>)
-                            const parts = String(c.id).split('_');
-                            const ccId = parts.slice(1, -1).join('_');
-                            return (compIdsValidees[ccId] || []).indexOf(String(c.id)) !== -1;
-                        }
-                        return validationSource.indexOf(String(c.id)) !== -1;
+                        return criteresValides.indexOf(String(c.id)) !== -1;
                     }).length;
 
                     cardsHtml += `
@@ -827,14 +810,7 @@ const EleveEvaluation = {
                             </button>
                             <div class="sujet-criteres-list" style="display: none;">
                                 ${cd.criteres.map(c => {
-                                    let isValid;
-                                    if (cd.isCustom) {
-                                        const parts = String(c.id).split('_');
-                                        const ccId = parts.slice(1, -1).join('_');
-                                        isValid = (compIdsValidees[ccId] || []).indexOf(String(c.id)) !== -1;
-                                    } else {
-                                        isValid = criteresValides.indexOf(String(c.id)) !== -1;
-                                    }
+                                    const isValid = criteresValides.indexOf(String(c.id)) !== -1;
                                     return `<div class="sujet-critere-item" style="background: ${isValid ? '#f0fdf4' : '#fef2f2'};">
                                         <span class="sujet-critere-check" style="color: ${isValid ? '#10b981' : '#ef4444'};">${isValid ? '✅' : '❌'}</span>
                                         <span class="sujet-critere-label">${escapeHtml(c.libelle)}</span>
