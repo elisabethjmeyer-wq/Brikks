@@ -5248,6 +5248,25 @@ const AdminEvaluations = {
                 label: matiereLabels[compMat] || compMat
             };
         });
+
+        // Ajouter les compétences personnalisées (nouveau format criteres_libres)
+        const criteresLibres = this._getCriteresLibresForEval(evaluation);
+        if (this._isNewCriteresFormat(criteresLibres)) {
+            criteresLibres.forEach(cc => {
+                const ccId = cc.id || 'custom_0';
+                const ccMat = cc.matiere || 'FR';
+                map[String(ccId)] = {
+                    pts: cc.points || 1,
+                    matiere: ccMat,
+                    color: matiereColors[ccMat] || '#6b7280',
+                    label: matiereLabels[ccMat] || ccMat,
+                    isCustom: true,
+                    criteres: cc.criteres || [],
+                    nom: cc.nom || 'Compétence personnalisée'
+                };
+            });
+        }
+
         return map;
     },
 
@@ -5262,9 +5281,20 @@ const AdminEvaluations = {
 
         for (const compId in ptsMap) {
             const info = ptsMap[compId];
-            const criteres = this._getCriteresByCompetence(compId);
-            const valides = (wd.competenceValidees && wd.competenceValidees[compId]) ? wd.competenceValidees[compId] : [];
-            const allValid = criteres.length > 0 && criteres.every(c => valides.indexOf(String(c.id)) !== -1);
+            let allValid = false;
+
+            if (info.isCustom) {
+                // Compétence personnalisée : critères stockés dans le ptsMap
+                const ccCriteres = info.criteres || [];
+                const valides = (wd.competenceValidees && wd.competenceValidees[compId]) ? wd.competenceValidees[compId] : [];
+                allValid = ccCriteres.length > 0 && ccCriteres.every((_, ci) => valides.indexOf('cc_' + compId + '_' + ci) !== -1);
+            } else {
+                // Compétence du référentiel
+                const criteres = this._getCriteresByCompetence(compId);
+                const valides = (wd.competenceValidees && wd.competenceValidees[compId]) ? wd.competenceValidees[compId] : [];
+                allValid = criteres.length > 0 && criteres.every(c => valides.indexOf(String(c.id)) !== -1);
+            }
+
             const pts = allValid ? info.pts : 0;
             ppc[compId] = pts;
             total += pts;
@@ -5339,6 +5369,18 @@ const AdminEvaluations = {
                 .filter(c => this._corrWizardData.criteresValides.indexOf(String(c.id)) !== -1)
                 .map(c => String(c.id));
         });
+
+        // Parser competenceValidees pour les compétences personnalisées
+        const criteresLibres = this._getCriteresLibresForEval(evaluation);
+        if (this._isNewCriteresFormat(criteresLibres)) {
+            criteresLibres.forEach(cc => {
+                const ccId = cc.id || 'custom_0';
+                const ccCriteres = cc.criteres || [];
+                this._corrWizardData.competenceValidees[ccId] = ccCriteres
+                    .map((_, ci) => 'cc_' + ccId + '_' + ci)
+                    .filter(critId => this._corrWizardData.criteresValides.indexOf(critId) !== -1);
+            });
+        }
 
         // Afficher le modal
         this._renderCorrectionWizard();
@@ -5508,28 +5550,34 @@ const AdminEvaluations = {
         const hasCompetences = compIds.length > 0;
         const hasCriteresLibres = criteresLibres.length > 0;
 
-        // Section critères libres (si présents)
+        // Section critères libres seuls (sans compétences du référentiel)
         if (hasCriteresLibres && !hasCompetences) {
-            const maxPts = evaluation.briques || 10;
-            const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
-            const allChecked = nbValides === criteresLibres.length;
-            criteresHtml += `<div class="tc-competence-section${allChecked ? ' comp-validated' : ''}">
-                <div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <span class="tc-comp-icon">📋</span>
-                    <h4 style="flex:1;margin:0;">Critères libres</h4>
-                    <span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:#0d9488;color:white;font-weight:600;white-space:nowrap;">${maxPts} pt${maxPts > 1 ? 's' : ''}</span>
-                    <span class="comp-valid-badge" id="compBadge_ponctuel" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;${allChecked ? 'background:#dcfce7;color:#16a34a;">✅ Validé' : 'background:#fee2e2;color:#dc2626;">❌ Non validé'}</span>
-                </div>
-                <div class="criteres-correction-list">`;
-            criteresLibres.forEach((label, idx) => {
-                const critId = 'libre_' + idx;
-                const checked = wd.criteresValides.indexOf(critId) !== -1;
-                criteresHtml += `<div class="critere-check${checked ? ' checked' : ''}" onclick="AdminEvaluations._toggleCritereLibre('${critId}', this)">
-                    <input type="checkbox"${checked ? ' checked' : ''}>
-                    <label>${escapeHtml(label)}</label>
-                </div>`;
-            });
-            criteresHtml += '</div></div>';
+            if (this._isNewCriteresFormat(criteresLibres)) {
+                // Nouveau format : compétences personnalisées avec nom, matière, points, critères
+                criteresHtml += this._renderCorrCustomComps(criteresLibres, wd);
+            } else {
+                // Ancien format : strings simples
+                const maxPts = evaluation.briques || 10;
+                const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
+                const allChecked = nbValides === criteresLibres.length;
+                criteresHtml += `<div class="tc-competence-section${allChecked ? ' comp-validated' : ''}">
+                    <div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span class="tc-comp-icon">📋</span>
+                        <h4 style="flex:1;margin:0;">Critères libres</h4>
+                        <span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:#0d9488;color:white;font-weight:600;white-space:nowrap;">${maxPts} pt${maxPts > 1 ? 's' : ''}</span>
+                        <span class="comp-valid-badge" id="compBadge_ponctuel" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;${allChecked ? 'background:#dcfce7;color:#16a34a;">✅ Validé' : 'background:#fee2e2;color:#dc2626;">❌ Non validé'}</span>
+                    </div>
+                    <div class="criteres-correction-list">`;
+                criteresLibres.forEach((label, idx) => {
+                    const critId = 'libre_' + idx;
+                    const checked = wd.criteresValides.indexOf(critId) !== -1;
+                    criteresHtml += `<div class="critere-check${checked ? ' checked' : ''}" onclick="AdminEvaluations._toggleCritereLibre('${critId}', this)">
+                        <input type="checkbox"${checked ? ' checked' : ''}>
+                        <label>${escapeHtml(label)}</label>
+                    </div>`;
+                });
+                criteresHtml += '</div></div>';
+            }
 
             return `
                 <div class="step-header">
@@ -5583,24 +5631,32 @@ const AdminEvaluations = {
 
         // Si l'évaluation a aussi des critères libres (bonus mission avec les deux)
         if (hasCriteresLibres) {
-            const nbValidesLibres = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
-            const allLibresChecked = nbValidesLibres === criteresLibres.length;
-            criteresHtml += `<div class="tc-competence-section${allLibresChecked ? ' comp-validated' : ''}" style="margin-top:16px;">
-                <div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <span class="tc-comp-icon">📋</span>
-                    <h4 style="flex:1;margin:0;">Critères libres</h4>
-                    <span class="comp-valid-badge" id="compBadge_ponctuel" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;${allLibresChecked ? 'background:#dcfce7;color:#16a34a;">✅ Validé' : 'background:#fee2e2;color:#dc2626;">❌ Non validé'}</span>
-                </div>
-                <div class="criteres-correction-list">`;
-            criteresLibres.forEach((label, idx) => {
-                const critId = 'libre_' + idx;
-                const checked = wd.criteresValides.indexOf(critId) !== -1;
-                criteresHtml += `<div class="critere-check${checked ? ' checked' : ''}" onclick="AdminEvaluations._toggleCritereLibre('${critId}', this)">
-                    <input type="checkbox"${checked ? ' checked' : ''}>
-                    <label>${escapeHtml(label)}</label>
-                </div>`;
-            });
-            criteresHtml += '</div></div>';
+            if (this._isNewCriteresFormat(criteresLibres)) {
+                // Nouveau format : compétences personnalisées en plus des compétences du référentiel
+                criteresHtml += '<div style="margin-top:16px;">';
+                criteresHtml += this._renderCorrCustomComps(criteresLibres, wd);
+                criteresHtml += '</div>';
+            } else {
+                // Ancien format : strings simples
+                const nbValidesLibres = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
+                const allLibresChecked = nbValidesLibres === criteresLibres.length;
+                criteresHtml += `<div class="tc-competence-section${allLibresChecked ? ' comp-validated' : ''}" style="margin-top:16px;">
+                    <div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span class="tc-comp-icon">📋</span>
+                        <h4 style="flex:1;margin:0;">Critères libres</h4>
+                        <span class="comp-valid-badge" id="compBadge_ponctuel" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;${allLibresChecked ? 'background:#dcfce7;color:#16a34a;">✅ Validé' : 'background:#fee2e2;color:#dc2626;">❌ Non validé'}</span>
+                    </div>
+                    <div class="criteres-correction-list">`;
+                criteresLibres.forEach((label, idx) => {
+                    const critId = 'libre_' + idx;
+                    const checked = wd.criteresValides.indexOf(critId) !== -1;
+                    criteresHtml += `<div class="critere-check${checked ? ' checked' : ''}" onclick="AdminEvaluations._toggleCritereLibre('${critId}', this)">
+                        <input type="checkbox"${checked ? ' checked' : ''}>
+                        <label>${escapeHtml(label)}</label>
+                    </div>`;
+                });
+                criteresHtml += '</div></div>';
+            }
         }
 
         const headerTitle = hasCompetences ? 'Compétences' : 'Critères';
@@ -5689,6 +5745,102 @@ const AdminEvaluations = {
         if (section) section.classList.toggle('comp-validated', allChecked);
     },
 
+    /**
+     * Rendu des compétences personnalisées dans le wizard de correction.
+     * Chaque compétence perso est affichée comme une section avec nom, matière, points et critères.
+     */
+    _renderCorrCustomComps(customComps, wd) {
+        const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
+        const matiereLabels = { 'FR': 'FR', 'HG-EMC': 'HG-EMC', 'Transversal': 'Trans.' };
+
+        if (!wd.competenceValidees || typeof wd.competenceValidees !== 'object') {
+            wd.competenceValidees = {};
+        }
+
+        let html = '';
+        customComps.forEach(cc => {
+            const ccId = cc.id || 'custom_0';
+            const criteres = cc.criteres || [];
+            const compValides = wd.competenceValidees[ccId] || [];
+            const allValid = criteres.length > 0 && criteres.every((_, ci) => compValides.indexOf('cc_' + ccId + '_' + ci) !== -1);
+            const pts = cc.points || 1;
+            const color = matiereColors[cc.matiere] || '#6b7280';
+            const label = matiereLabels[cc.matiere] || cc.matiere || 'FR';
+
+            html += `<div class="tc-competence-section${allValid ? ' comp-validated' : ''}" data-comp-id="${escapeHtml(ccId)}">
+                <div class="tc-comp-header" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span class="tc-comp-icon">✏️</span>
+                    <h4 style="flex:1;margin:0;">${escapeHtml(cc.nom || 'Compétence personnalisée')}</h4>
+                    <span style="font-size:0.75rem;padding:2px 8px;border-radius:4px;background:${color}20;color:${color};font-weight:600;white-space:nowrap;">${pts} pt${pts > 1 ? 's' : ''} · ${escapeHtml(label)}</span>
+                    <span class="comp-valid-badge" id="compBadge_${escapeHtml(ccId)}" style="font-size:0.75rem;padding:2px 8px;border-radius:4px;font-weight:600;white-space:nowrap;${allValid ? 'background:#dcfce7;color:#16a34a;">✅ Validée' : 'background:#fee2e2;color:#dc2626;">❌ Non validée'}</span>
+                </div>`;
+
+            if (criteres.length > 0) {
+                html += '<div class="criteres-correction-list">';
+                criteres.forEach((critLabel, ci) => {
+                    const critId = 'cc_' + ccId + '_' + ci;
+                    const checked = compValides.indexOf(critId) !== -1;
+                    html += `<div class="critere-check${checked ? ' checked' : ''}" onclick="AdminEvaluations._toggleCritereCustomComp('${escapeHtml(ccId)}', '${critId}', this)">
+                        <input type="checkbox"${checked ? ' checked' : ''}>
+                        <label>${escapeHtml(critLabel)}</label>
+                    </div>`;
+                });
+                html += '</div>';
+            } else {
+                html += '<div class="empty-criteres">Aucun critère défini — la compétence sera validée/non validée globalement.</div>';
+            }
+
+            html += '</div>';
+        });
+
+        return html;
+    },
+
+    /**
+     * Toggle un critère de compétence personnalisée dans le wizard de correction.
+     */
+    _toggleCritereCustomComp(ccId, critereId, el) {
+        const wd = this._corrWizardData;
+        if (!wd) return;
+
+        if (!wd.competenceValidees[ccId]) wd.competenceValidees[ccId] = [];
+        const arr = wd.competenceValidees[ccId];
+        const idx = arr.indexOf(critereId);
+        if (idx >= 0) {
+            arr.splice(idx, 1);
+            el.classList.remove('checked');
+            el.querySelector('input').checked = false;
+        } else {
+            arr.push(critereId);
+            el.classList.add('checked');
+            el.querySelector('input').checked = true;
+        }
+
+        // Mettre à jour criteresValides (flat list) — préserver les critères libres
+        const libreIds = (wd.criteresValides || []).filter(id => String(id).startsWith('libre_'));
+        wd.criteresValides = [...libreIds];
+        Object.values(wd.competenceValidees).forEach(ids => {
+            ids.forEach(id => { if (wd.criteresValides.indexOf(id) === -1) wd.criteresValides.push(id); });
+        });
+
+        // Mettre à jour le badge
+        const evaluation = this.saisieEvaluation;
+        const criteresLibres = this._getCriteresLibresForEval(evaluation);
+        const cc = criteresLibres.find(c => (c.id || 'custom_0') === ccId);
+        const nbCriteres = cc ? (cc.criteres || []).length : 0;
+        const compValides = wd.competenceValidees[ccId] || [];
+        const allChecked = nbCriteres > 0 && (cc.criteres || []).every((_, ci) => compValides.indexOf('cc_' + ccId + '_' + ci) !== -1);
+
+        const badgeEl = document.getElementById('compBadge_' + ccId);
+        if (badgeEl) {
+            badgeEl.style.background = allChecked ? '#dcfce7' : '#fee2e2';
+            badgeEl.style.color = allChecked ? '#16a34a' : '#dc2626';
+            badgeEl.innerHTML = allChecked ? '✅ Validée' : '❌ Non validée';
+        }
+        const section = el.closest('.tc-competence-section');
+        if (section) section.classList.toggle('comp-validated', allChecked);
+    },
+
     // ----- Étape 3 : Résumé -----
 
     _renderCorrStep3() {
@@ -5704,8 +5856,8 @@ const AdminEvaluations = {
         const hasCompetences = compIds.length > 0;
         const hasCriteresLibres = criteresLibres.length > 0;
 
-        if (!hasCompetences && hasCriteresLibres) {
-            // Critères libres uniquement : résumé simple
+        if (!hasCompetences && hasCriteresLibres && !this._isNewCriteresFormat(criteresLibres)) {
+            // Ancien format critères libres uniquement : résumé simple
             const maxPts = evaluation.briques || 10;
             const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
             const allValid = nbValides === criteresLibres.length && criteresLibres.length > 0;
@@ -5719,21 +5871,21 @@ const AdminEvaluations = {
                 </div>
                 <div style="font-size:0.85rem;color:var(--gray-400);">Critères validés : ${nbValides}/${criteresLibres.length}</div>
             </div>`;
-        } else if (hasCompetences) {
-            // Compétences (TC ou bonus mission) : résumé par matière
+        } else if (hasCompetences || (hasCriteresLibres && this._isNewCriteresFormat(criteresLibres))) {
+            // Compétences (référentiel et/ou personnalisées) : résumé par matière
             const ptsMap = this._getCompPointsMapForEval(evaluation);
             const computed = this._computePointsParCompetence(evaluation, wd);
-            const compIds = this._getCompetenceIdsForEval(evaluation);
             const matiereColors = { 'FR': '#3b82f6', 'HG-EMC': '#f59e0b', 'Transversal': '#6b7280' };
 
             const byMatiere = {};
-            compIds.forEach(compId => {
-                const info = ptsMap[String(compId)] || { pts: 1, matiere: 'Transversal', color: '#6b7280' };
+            // Parcourir TOUTES les compétences du ptsMap (référentiel + personnalisées)
+            for (const compId in ptsMap) {
+                const info = ptsMap[String(compId)];
                 const mat = info.matiere;
                 if (!byMatiere[mat]) byMatiere[mat] = { earned: 0, max: 0, color: info.color };
                 byMatiere[mat].max += info.pts;
                 byMatiere[mat].earned += computed.ppc[compId] || 0;
-            });
+            }
 
             let matiereHtml = '';
             ['FR', 'HG-EMC', 'Transversal'].forEach(mat => {
@@ -5749,16 +5901,20 @@ const AdminEvaluations = {
             });
 
             let compDetailHtml = '';
-            compIds.forEach(compId => {
-                const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
-                const info = ptsMap[String(compId)] || { pts: 1 };
+            for (const compId in ptsMap) {
+                const info = ptsMap[String(compId)];
                 const earned = computed.ppc[compId] || 0;
+                const compName = info.isCustom ? (info.nom || 'Compétence personnalisée') : (() => {
+                    const comp = (this.competencesReferentiel || []).find(c => String(c.id) === String(compId));
+                    return comp ? comp.nom : 'Compétence';
+                })();
+                const icon = info.isCustom ? '✏️' : (earned > 0 ? '✅' : '❌');
                 compDetailHtml += `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.8rem;">
-                    <span>${earned > 0 ? '✅' : '❌'}</span>
-                    <span style="flex:1;">${escapeHtml(comp ? comp.nom : 'Compétence')}</span>
+                    <span>${icon}</span>
+                    <span style="flex:1;">${escapeHtml(compName)}</span>
                     <span style="font-weight:600;">${earned} / ${info.pts}</span>
                 </div>`;
-            });
+            }
 
             pointsHtml = `<div class="bilan-section">
                 <h4>Points gagnés par matière</h4>
@@ -5825,18 +5981,23 @@ const AdminEvaluations = {
             let total = 0;
             let ppc = {};
 
-            if (hasCompetences) {
-                // Points par compétence (TC ou bonus mission avec compétences)
-                validatedCompIds = compIds.filter(cid => {
-                    const criteres = this._getCriteresByCompetence(cid);
-                    const compValides = wd.competenceValidees[cid] || [];
-                    return criteres.length > 0 && criteres.every(c => compValides.indexOf(String(c.id)) !== -1);
-                });
+            const isNewFormat = this._isNewCriteresFormat(criteresLibres);
+
+            if (hasCompetences || isNewFormat) {
+                // Points par compétence (référentiel et/ou personnalisées)
+                const ptsMap = this._getCompPointsMapForEval(evaluation);
                 const computed = this._computePointsParCompetence(evaluation, wd);
                 total = computed.total;
                 ppc = computed.ppc;
+
+                // Compétences validées (celles qui ont tous leurs critères cochés)
+                for (const compId in ptsMap) {
+                    if (computed.ppc[compId] > 0) {
+                        validatedCompIds.push(compId);
+                    }
+                }
             } else if (hasCriteresLibres) {
-                // Critères libres uniquement : points = briques si tous critères validés, sinon 0
+                // Ancien format critères libres : points = briques si tous validés
                 const maxPts = evaluation.briques || 10;
                 const nbValides = criteresLibres.filter((_l, idx) => wd.criteresValides.indexOf('libre_' + idx) !== -1).length;
                 const allValid = nbValides === criteresLibres.length && criteresLibres.length > 0;
