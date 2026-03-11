@@ -1277,7 +1277,7 @@ const EleveEvaluations = {
 
         // Meta
         const metaParts = [];
-        if (som.date) metaParts.push(`<span class="meta-date">${escapeHtml(this.formatDate(som.date))}</span>`);
+        if (som.date_ouverture) metaParts.push(`<span class="meta-date">${escapeHtml(this.formatDate(som.date_ouverture))}</span>`);
         if (matiere && matiere !== 'Les deux') metaParts.push(`<span class="meta-matiere">${escapeHtml(matiere)}</span>`);
         if (matiere === 'Les deux') metaParts.push('<span class="meta-matiere">FR + HG</span>');
         const metaLine = metaParts.length > 0

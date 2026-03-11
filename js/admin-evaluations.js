@@ -739,7 +739,7 @@ const AdminEvaluations = {
                         <div class="eval-card-title">
                             ${escapeHtml(sommative.titre || 'Sans titre')}
                             ${matiereBadge}
-                            ${sommative.date ? `<span class="date-badge">📅 ${sommative.date}</span>` : ''}
+                            ${sommative.date_ouverture ? `<span class="date-badge">📅 ${new Date(sommative.date_ouverture).toLocaleDateString('fr-FR', {day:'numeric',month:'short',year:'numeric'})}</span>` : ''}
                             <span class="status-badge ${statusClass}">${statusLabels[statusClass] || statusClass}</span>
                         </div>
                         <div class="eval-card-meta">
@@ -3323,7 +3323,6 @@ const AdminEvaluations = {
             matiere: sommative ? (sommative.matiere || 'FR') : this.currentMatiere,
             bareme: sommative ? (sommative.bareme || 20) : 20,
             coefficient: sommative ? (sommative.coefficient || 1) : 1,
-            date: sommative ? (sommative.date || '') : '',
             semestre: sommative ? String(sommative.semestre || '1') : '1',
             document_contenu: sommative ? (sommative.document_contenu || '') : '',
             correction_contenu: sommative ? (sommative.correction_contenu || '') : ''
@@ -3370,7 +3369,6 @@ const AdminEvaluations = {
             if (el('somMatiere')) d.matiere = el('somMatiere').value;
             if (el('somBareme')) d.bareme = parseInt(el('somBareme').value) || 20;
             if (el('somCoefficient')) d.coefficient = parseFloat(el('somCoefficient').value) || 1;
-            if (el('somDate')) d.date = el('somDate').value;
             if (el('somSemestre')) d.semestre = el('somSemestre').value;
         } else if (this._somWizardStep === 2) {
             // Save document block editor
@@ -3451,10 +3449,6 @@ const AdminEvaluations = {
                 <div class="form-group">
                     <label>Coefficient</label>
                     <input type="number" class="form-input" id="somCoefficient" value="${d.coefficient}" min="0.5" max="10" step="0.5">
-                </div>
-                <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" class="form-input" id="somDate" value="${escapeHtml(d.date)}">
                 </div>
                 <div class="form-group">
                     <label>Semestre</label>
@@ -3594,7 +3588,6 @@ const AdminEvaluations = {
             matiere: d.matiere,
             bareme: d.bareme,
             coefficient: d.coefficient,
-            date: d.date,
             semestre: d.semestre,
             document_contenu: d.document_contenu || '',
             correction_contenu: d.correction_contenu || ''
