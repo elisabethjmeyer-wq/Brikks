@@ -199,12 +199,12 @@
     color: var(--gray-400);
 }
 
-/* Objectif inline */
+/* Objectif inline — display */
 .res-obj-display {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 13px;
+    gap: 8px;
+    font-size: 14px;
 }
 
 .res-obj-value {
@@ -224,42 +224,130 @@
     cursor: pointer;
 }
 
-.res-obj-form {
+/* Objectif — presets picker */
+.res-obj-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 0 4px;
+}
+
+.res-obj-picker-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.res-obj-presets {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.res-obj-preset {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 2px solid var(--gray-200);
+    background: white;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+}
+
+.res-obj-preset:hover {
+    border-color: var(--gray-300);
+    background: var(--gray-50);
+    transform: translateY(-1px);
+}
+
+.res-obj-preset.active {
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+}
+
+.res-obj-free {
     display: flex;
     align-items: center;
     gap: 6px;
+    margin-left: 4px;
 }
 
-.res-obj-input {
-    width: 48px;
-    padding: 4px 6px;
-    border-radius: 6px;
-    border: 2px solid rgba(99, 102, 241, 0.3);
-    font-size: 14px;
+.res-obj-free-input {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 2px dashed var(--gray-200);
+    background: white;
+    font-size: 16px;
     font-weight: 700;
     text-align: center;
+    color: var(--gray-700);
     font-family: inherit;
     outline: none;
+    transition: border-color 0.15s;
 }
 
-.res-obj-input:focus {
+.res-obj-free-input::placeholder {
+    color: var(--gray-300);
+    font-weight: 400;
+}
+
+.res-obj-free-input:focus {
+    border-style: solid;
     border-color: var(--primary);
 }
 
-.res-obj-ok {
-    font-size: 11px;
+.res-obj-free-unit {
+    font-size: 13px;
+    color: var(--gray-400);
+}
+
+.res-obj-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 2px;
+}
+
+.res-obj-confirm {
+    font-size: 13px;
     font-weight: 700;
     color: white;
-    padding: 4px 10px;
-    border-radius: 6px;
+    padding: 8px 20px;
+    border-radius: 10px;
     cursor: pointer;
+    border: none;
+    transition: opacity 0.15s;
+}
+
+.res-obj-confirm:hover {
+    opacity: 0.9;
 }
 
 .res-obj-cancel {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--gray-400);
     cursor: pointer;
-    padding: 4px;
+    padding: 8px 4px;
+    background: none;
+    border: none;
+    font-family: inherit;
+}
+
+.res-obj-cancel:hover {
+    color: var(--gray-600);
 }
 
 /* Progress bar in hero */
