@@ -188,6 +188,18 @@ const EleveResultats = {
         return stored || 'publiee';
     },
 
+    _isSemestreTermine(semestre) {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const p = this.parametresNotes.find(
+            r => String(r.semestre) === String(semestre) && r.date_fin
+        );
+        if (p && p.date_fin) {
+            const fin = new Date(p.date_fin);
+            return !isNaN(fin.getTime()) && today > fin;
+        }
+        return false;
+    },
+
     // ========== CALCULATION ==========
     _getParams(matiere, semestre) {
         const p = this.parametresNotes.find(
@@ -494,16 +506,18 @@ const EleveResultats = {
 
                 if (!targetsComp) return;
 
-                // Find corrected result for this evaluation
+                // Find corrected result for this evaluation (published only)
                 const r = self.resultats.find(res =>
                     String(res.evaluation_id).trim() === String(ev.id).trim() &&
-                    String(res.demande_statut || '').trim() === 'corrige'
+                    String(res.demande_statut || '').trim() === 'corrige' &&
+                    String(res.statut_correction || '').trim() !== 'brouillon'
                 );
                 if (!r) return;
 
                 const isValid = r.is_validated === true || r.is_validated === 'true' || String(r.is_validated) === 'TRUE';
                 evalPassages.push({
                     id: r.id || ev.id,
+                    evalId: String(ev.id),
                     date: self._formatDate(r.date_passage) || '',
                     reussi: isValid,
                     source: evType === 'competences' ? 'tc' : 'bonus_mission',
@@ -524,6 +538,7 @@ const EleveResultats = {
                 const pts = p.reussi ? (validationCount <= 1 ? 1 : validationCount <= 2 ? 1.5 : 2) : 0;
                 return {
                     id: p.id,
+                    evalId: p.evalId || '',
                     date: p.date,
                     reussi: p.reussi,
                     pts,
@@ -556,8 +571,9 @@ const EleveResultats = {
         return bonusEvals.map(ev => {
             const r = this.resultats.find(res => String(res.evaluation_id).trim() === String(ev.id).trim());
             const pts = parseFloat(ev.briques) || 2;
-            const acquis = r ? parseFloat(r.validations) || 0 : 0;
-            const valide = r && (r.is_validated === true || r.is_validated === 'true' || r.is_validated === 'TRUE');
+            const corrPubliee = r && String(r.statut_correction || '').trim() !== 'brouillon';
+            const acquis = (r && corrPubliee) ? parseFloat(r.validations) || 0 : 0;
+            const valide = corrPubliee && r && (r.is_validated === true || r.is_validated === 'true' || r.is_validated === 'TRUE');
             const date = r ? this._formatDate(r.date_passage) : null;
             const sousType = String(ev.sous_type_bonus || 'mission').trim();
 
@@ -632,7 +648,9 @@ const EleveResultats = {
             }
 
             // Demande statut for all bonus types
-            const demandeStatut = r ? String(r.demande_statut || '').trim() : '';
+            // If correction is draft, show as 'accepte' (waiting) instead of 'corrige'
+            let demandeStatut = r ? String(r.demande_statut || '').trim() : '';
+            if (demandeStatut === 'corrige' && !corrPubliee) demandeStatut = 'accepte';
 
             return {
                 id: ev.id,
@@ -769,7 +787,7 @@ const EleveResultats = {
 
     // ========== HEADER + TOGGLES ==========
     _renderHeader(_acColor) {
-        const isRO = this.currentSemestre === '1';
+        const isRO = this._isSemestreTermine(this.currentSemestre);
         let h = '<header class="hero-header res-hero-header">';
         h += '<div class="hero-left">';
         h += '<h1 class="hero-title">Mes résultats</h1>';
@@ -807,7 +825,7 @@ const EleveResultats = {
         const soms = this._getSommatives(mat, sem);
         const moyenne = this._calculateMoyenne(prog.note, prog.params.coeffProg, soms);
         const obj = this._getObjectif(mat, sem);
-        const isRO = sem === '1';
+        const isRO = this._isSemestreTermine(sem);
         const mc = this._noteColor(moyenne);
         const pc = this._noteColor(prog.note);
         const moyPct = Math.max((moyenne !== null ? moyenne : 0) / 20 * 100, 2);
@@ -1100,7 +1118,9 @@ const EleveResultats = {
                     const ptsColor = isBonus ? C.yel : C.pur;
                     h += '<span class="comp-passage-pts" style="background:' + ptsBg + ';color:' + ptsColor + '">+' + p.pts + '</span>';
                 }
-                h += '<span class="res-detail-link">Remarque et correction \u2192</span>';
+                if (p.evalId) {
+                    h += '<span class="res-detail-link" onclick="event.stopPropagation();window.location.href=\'evaluation.html?id=' + p.evalId + '&mode=review\'">Voir le détail \u2192</span>';
+                }
                 h += '</div>';
             });
             h += '</div>';
@@ -1445,7 +1465,7 @@ const EleveResultats = {
             container.innerHTML = this._savedMainContent;
             this._savedMainContent = null;
         } else {
-            this.render();
+            this._render();
         }
     },
 
