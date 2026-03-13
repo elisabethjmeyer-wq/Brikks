@@ -4002,12 +4002,12 @@ const AdminEvaluations = {
         document.getElementById('saisieSubtitle').textContent =
             `Sommative · /${sommative.bareme || 20} · Coef. ${sommative.coefficient || 1}`;
 
-        // Update table headers for sommative
+        // Update table headers for sommative — ordre : Élève, Correction, Note, Statut
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
-            <th class="col-note">Note /${sommative.bareme || 20}</th>
             <th class="col-correction-action">Correction</th>
-            <th class="col-statut">Statut</th>
+            <th class="col-note-som">Note /${sommative.bareme || 20}</th>
+            <th class="col-statut-som">Statut</th>
         `;
 
         // Render student rows
@@ -4016,31 +4016,41 @@ const AdminEvaluations = {
         tbody.innerHTML = this.eleves.map(eleve => {
             const r = resultsMap[String(eleve.id).trim()] || {};
             const note = r.note !== undefined && r.note !== '' ? r.note : '';
-            const hasCorrection = !!(r.remarque_texte);
+            const hasNote = note !== '';
+            const hasCorrection = !!(r.remarque_texte) || hasNote;
             const statutCorr = r.statut_correction || '';
             const corrBtnClass = hasCorrection ? 'btn-outline-success' : 'btn-outline';
             const corrBtnLabel = hasCorrection ? 'Modifier' : 'Corriger';
-            const statutLabel = statutCorr === 'publie' ? 'Publié' : (statutCorr === 'brouillon' ? 'Brouillon' : '—');
-            const statutClass = statutCorr === 'publie' ? 'badge-success' : (statutCorr === 'brouillon' ? 'badge-warning' : '');
+
+            // Note en lecture seule — remplie automatiquement par le wizard
+            const noteDisplay = hasNote ? `<span class="som-note-display">${note}<span class="som-note-bareme">/${bareme}</span></span>` : '<span class="som-note-empty">—</span>';
+
+            // Statut cliquable seulement si note existe
+            let statutHtml;
+            if (hasNote) {
+                const isPub = statutCorr === 'publie';
+                const cls = isPub ? 'som-statut-badge publie' : 'som-statut-badge brouillon';
+                const label = isPub ? 'Publié' : 'Brouillon';
+                statutHtml = `<span class="${cls}" onclick="event.stopPropagation(); AdminEvaluations.toggleSomStatut('${eleve.id}')" title="Cliquer pour changer">${label}</span>`;
+            } else {
+                statutHtml = '<span class="som-statut-badge empty">—</span>';
+            }
+
+            // Ligne verte si correction publiée
+            const rowClass = statutCorr === 'publie' ? 'success-row' : '';
 
             return `
-                <tr data-eleve-id="${eleve.id}">
+                <tr data-eleve-id="${eleve.id}" class="${rowClass}">
                     <td class="col-eleve">
                         <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
-                    </td>
-                    <td class="col-note">
-                        <input type="number" class="saisie-input note-input" value="${note}" min="0" max="${bareme}" step="0.5"
-                            placeholder="—"
-                            onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'note', this.value)">
                     </td>
                     <td class="col-correction-action">
                         <button class="btn btn-sm ${corrBtnClass}" onclick="event.stopPropagation(); AdminEvaluations.openSomCorrectionWizard('${eleve.id}')">
                             ${corrBtnLabel}
                         </button>
                     </td>
-                    <td class="col-statut">
-                        <span class="badge ${statutClass}">${statutLabel}</span>
-                    </td>
+                    <td class="col-note-som">${noteDisplay}</td>
+                    <td class="col-statut-som">${statutHtml}</td>
                 </tr>
             `;
         }).join('');
@@ -6785,6 +6795,56 @@ const AdminEvaluations = {
         `;
     },
 
+    async toggleSomStatut(eleveId) {
+        const sommative = this.saisieSommative;
+        if (!sommative) return;
+
+        const resultat = this.resultatsSommatives.find(r =>
+            String(r.sommative_id).trim() === String(sommative.id).trim() &&
+            String(r.eleve_id).trim() === String(eleveId).trim()
+        );
+        if (!resultat || resultat.note === '' || resultat.note === undefined) return;
+
+        const oldStatut = String(resultat.statut_correction || '').trim();
+        const newStatut = oldStatut === 'publie' ? 'brouillon' : 'publie';
+
+        // Mise à jour optimiste du badge
+        const row = document.querySelector(`tr[data-eleve-id="${eleveId}"]`);
+        if (row) {
+            const badge = row.querySelector('.som-statut-badge');
+            if (badge) {
+                badge.className = `som-statut-badge ${newStatut}`;
+                badge.textContent = newStatut === 'publie' ? 'Publié' : 'Brouillon';
+            }
+            row.classList.toggle('success-row', newStatut === 'publie');
+        }
+
+        try {
+            const result = await this.callAPI('saveResultatSommative', {
+                sommative_id: sommative.id,
+                eleve_id: eleveId,
+                statut_correction: newStatut
+            });
+
+            if (result.success) {
+                resultat.statut_correction = newStatut;
+            } else {
+                // Rollback
+                if (row) {
+                    const badge = row.querySelector('.som-statut-badge');
+                    if (badge) {
+                        badge.className = `som-statut-badge ${oldStatut || 'empty'}`;
+                        badge.textContent = oldStatut === 'publie' ? 'Publié' : (oldStatut === 'brouillon' ? 'Brouillon' : '—');
+                    }
+                    row.classList.toggle('success-row', oldStatut === 'publie');
+                }
+                this.showNotification('Erreur lors du changement de statut', 'error');
+            }
+        } catch (_e) {
+            this.showNotification('Erreur réseau', 'error');
+        }
+    },
+
     _setSomCorrStatut(statut) {
         if (!this._somCorrData) return;
         this._somCorrData.statutCorrection = statut;
@@ -6837,12 +6897,7 @@ const AdminEvaluations = {
                 } catch (_e) { /* ignore */ }
                 this.openSaisieSommative(wd.sommativeId);
 
-                // Mettre à jour la note dans le tableau si visible
-                const row = document.querySelector(`tr[data-eleve-id="${wd.eleveId}"]`);
-                if (row) {
-                    const noteInput = row.querySelector('.note-input');
-                    if (noteInput && wd.note !== '') noteInput.value = wd.note;
-                }
+                // Le re-render via openSaisieSommative ci-dessus met à jour la note et le statut
             } else {
                 this.showNotification(result.error || 'Erreur lors de la sauvegarde', 'error');
             }
