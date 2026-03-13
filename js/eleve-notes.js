@@ -833,7 +833,7 @@ const EleveResultats = {
 
         let h = '';
         // HERO
-        h += '<div class="res-hero" style="border-left-color:' + acColor + ';box-shadow:0 2px 16px ' + acColor + '14;">';
+        h += '<div class="res-hero" style="--hero-accent:' + acColor + '">';
         h += '<div class="res-hero-top"><div class="res-hero-left">';
         h += '<span class="res-hero-label">Ma moyenne</span>';
         h += '<span class="res-hero-note" style="color:' + mc + '">' + this._fmt(moyenne) + '</span>';
@@ -852,7 +852,7 @@ const EleveResultats = {
         h += '<div class="res-hero-bar-labels"><span>0</span><span>20</span></div>';
         h += '</div>';
 
-        h += '<div class="res-connector">composée de</div>';
+        h += '<div class="res-connector">Détail</div>';
 
         // PROGRESSION
         h += '<div class="res-card">';
@@ -870,7 +870,7 @@ const EleveResultats = {
             const max = prog.pts.maxCats[c.key] || 0;
             const pct = max > 0 ? Math.max((val / max) * 100, 2) : 0;
             h += '<div class="res-pts-row" onclick="EleveResultats.setPage(\'' + k + '\')">';
-            h += '<span class="res-pts-dot">' + c.dot + '</span>';
+            h += '<span class="res-pts-dot" style="background:' + c.color + '"></span>';
             h += '<span class="res-pts-label">' + c.label + '</span>';
             h += '<div class="res-pts-bar"><div class="res-pts-bar-fill" style="width:' + pct + '%;background:' + c.color + '"></div></div>';
             h += '<span class="res-pts-value" style="color:' + (val > 0 ? c.color : '#d1d5db') + '">' + val + '/' + max + '</span>';
@@ -879,7 +879,7 @@ const EleveResultats = {
         });
         h += '</div>';
 
-        h += '<div class="res-plus">+</div>';
+        h += '<div class="res-plus">Contrôles</div>';
 
         // CONTROLES
         h += '<div class="res-card">';
@@ -889,15 +889,17 @@ const EleveResultats = {
         if (soms.length > 0) {
             soms.forEach(s => {
                 const nc = s.note20 !== null ? this._noteColor(s.note20) : '#9ca3af';
-                h += '<div class="res-controle-item"><div class="res-controle-top"><div>';
+                const hasDetail = s.note !== null && s.statutCorrection === 'publie';
+                const clickAttr = hasDetail ? ' onclick="EleveResultats._openSommativeDetail(\'' + s.id + '\')"' : '';
+                h += '<div class="res-controle-item' + (hasDetail ? ' clickable' : '') + '" style="border-left-color:' + nc + '"' + clickAttr + '><div class="res-controle-top"><div>';
                 h += '<div class="res-controle-title">' + escapeHtml(s.titre) + '</div>';
                 h += '<div class="res-controle-meta">' + (s.date || '') + ' \u00B7 coef. ' + s.coefficient + '</div>';
                 h += '</div>';
                 h += '<span class="res-controle-note" style="color:' + nc + '">' + (s.note !== null ? s.note : '\u2014');
                 h += '<span class="res-controle-bareme">/' + s.bareme + '</span></span>';
                 h += '</div>';
-                if (s.note !== null && s.statutCorrection === 'publie') {
-                    h += '<div class="res-controle-link" onclick="EleveResultats._openSommativeDetail(\'' + s.id + '\')"><span class="res-detail-link">Remarque et correction \u2192</span></div>';
+                if (hasDetail) {
+                    h += '<div class="res-controle-link"><span class="res-detail-link">Voir le détail \u2192</span></div>';
                 }
                 h += '</div>';
             });
@@ -1330,27 +1332,43 @@ const EleveResultats = {
 
     /** Carte suivi quand la demande est en attente */
     _renderBonusSuiviPending(b) {
-        let h = '<div class="bonus-card">';
-        h += '<div class="bonus-header">';
+        const isOpen = this._openBonus[b.id];
+        let h = '<div class="bonus-card' + (isOpen ? ' open' : '') + '">';
+        h += '<div class="bonus-header" onclick="EleveResultats.toggleBonus(\'' + b.id + '\')">';
         h += '<span class="bonus-icon">\u2B50</span>';
         h += '<div class="bonus-name"><div class="bonus-name-text" style="color:#6b7280">' + escapeHtml(b.nom) + '</div>';
         h += '<div class="bonus-name-sub"><span class="bonus-type-tag" style="background:#fefce8;color:#ca8a04">Suivi</span> ';
         h += '<span style="color:#f59e0b;font-weight:600">Demande envoyée</span></div></div>';
         h += '<span class="bonus-pts-badge" style="background:#f3f4f6;color:#d1d5db">' + (b.pts || 0) + ' pts</span>';
-        h += '</div></div>';
+        h += '<span class="bonus-chevron">\u203A</span>';
+        h += '</div>';
+        h += '<div class="bonus-detail">';
+        h += '<div class="bonus-status-box" style="background:#fffbeb;border:1px solid #fde68a;margin-top:14px">';
+        h += '<span class="bonus-status-icon">\u23F3</span>';
+        h += '<div class="bonus-status-info"><div class="bonus-status-text" style="color:#d97706">Ta demande a été envoyée</div>';
+        h += '<div class="bonus-status-date">En attente de réponse de la prof</div></div>';
+        h += '</div></div></div>';
         return h;
     },
 
     /** Carte suivi quand la demande est refusée */
     _renderBonusSuiviRefused(b) {
-        let h = '<div class="bonus-card">';
-        h += '<div class="bonus-header">';
+        const isOpen = this._openBonus[b.id];
+        let h = '<div class="bonus-card' + (isOpen ? ' open' : '') + '">';
+        h += '<div class="bonus-header" onclick="EleveResultats.toggleBonus(\'' + b.id + '\')">';
         h += '<span class="bonus-icon">\u2B50</span>';
         h += '<div class="bonus-name"><div class="bonus-name-text" style="color:#6b7280">' + escapeHtml(b.nom) + '</div>';
         h += '<div class="bonus-name-sub"><span class="bonus-type-tag" style="background:#fefce8;color:#ca8a04">Suivi</span> ';
         h += '<span style="color:#ef4444;font-weight:600">Refusé</span></div></div>';
         h += '<span class="bonus-pts-badge" style="background:#f3f4f6;color:#d1d5db">' + (b.pts || 0) + ' pts</span>';
-        h += '</div></div>';
+        h += '<span class="bonus-chevron">\u203A</span>';
+        h += '</div>';
+        h += '<div class="bonus-detail">';
+        h += '<div class="bonus-status-box" style="background:#fef2f2;border:1px solid #fecaca;margin-top:14px">';
+        h += '<span class="bonus-status-icon">\u274C</span>';
+        h += '<div class="bonus-status-info"><div class="bonus-status-text" style="color:#dc2626">Demande refusée</div>';
+        h += '<div class="bonus-status-date">Tu peux redemander plus tard</div></div>';
+        h += '</div></div></div>';
         return h;
     },
 
