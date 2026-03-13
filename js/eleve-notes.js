@@ -728,22 +728,51 @@ const EleveResultats = {
     },
 
     startEditObj() {
+        var obj = this._getObjectif(this.currentMatiere, this.currentSemestre);
         this._editingObj = true;
+        this._objPresetSelected = obj || null;
         this._render();
-        const inp = document.getElementById('resObjInput');
-        if (inp) inp.focus();
+    },
+
+    selectObjPreset(val) {
+        this._objPresetSelected = val;
+        var inp = document.getElementById('resObjFreeInput');
+        if (inp) inp.value = '';
+        this._render();
+    },
+
+    onObjFreeInput(inp) {
+        var raw = inp.value.replace(/[^0-9]/g, '');
+        inp.value = raw;
+        var v = parseInt(raw, 10);
+        this._objPresetSelected = (!isNaN(v) && v >= 0 && v <= 20) ? v : null;
+        // Re-render preset buttons without losing focus
+        var presetBtns = document.querySelectorAll('.res-obj-preset');
+        presetBtns.forEach(function(btn) { btn.classList.remove('active'); btn.removeAttribute('style'); });
+        var confirmBtn = document.querySelector('.res-obj-confirm');
+        if (confirmBtn) {
+            var acColor = this.currentMatiere === 'FR' ? this.COLORS.ac : this.COLORS.pur;
+            if (this._objPresetSelected !== null) {
+                confirmBtn.disabled = false;
+                confirmBtn.style.cssText = 'background:' + acColor + ';opacity:1;cursor:pointer';
+            } else {
+                confirmBtn.disabled = true;
+                confirmBtn.style.cssText = 'background:' + acColor + ';opacity:0.4;cursor:default';
+            }
+        }
     },
 
     cancelEditObj() {
         this._editingObj = false;
+        this._objPresetSelected = null;
         this._render();
     },
 
     async confirmObj() {
-        const inp = document.getElementById('resObjInput');
-        const val = inp ? parseFloat(inp.value) : NaN;
-        if (isNaN(val) || val < 0 || val > 20) return;
+        var val = this._objPresetSelected;
+        if (val === null || val === undefined || val < 0 || val > 20) return;
         this._editingObj = false;
+        this._objPresetSelected = null;
 
         try {
             const result = await this._callAPI('saveObjectifEleve', {
@@ -926,12 +955,30 @@ const EleveResultats = {
             h += '</div>';
             return h;
         }
-        let h = '<div class="res-obj-form"><span>\u{1F3AF}</span>';
-        h += '<input id="resObjInput" class="res-obj-input" type="number" min="0" max="20" value="' + (obj || '') + '" placeholder="14" style="border-color:' + acColor + '44">';
-        h += '<span style="font-size:10px;color:#9ca3af">/20</span>';
-        h += '<span class="res-obj-ok" style="background:' + acColor + '" onclick="EleveResultats.confirmObj()">OK</span>';
-        h += '<span class="res-obj-cancel" onclick="EleveResultats.cancelEditObj()">\u00D7</span>';
-        h += '</div>';
+        // Presets picker
+        var presets = [8, 10, 12, 14, 16, 18];
+        var sel = this._objPresetSelected;
+        var h = '<div class="res-obj-picker">';
+        h += '<span class="res-obj-picker-label">\u{1F3AF} Mon objectif</span>';
+        h += '<div class="res-obj-presets">';
+        presets.forEach(function(v) {
+            var isActive = sel === v;
+            h += '<button class="res-obj-preset' + (isActive ? ' active' : '') + '"';
+            h += isActive ? ' style="background:' + acColor + '"' : '';
+            h += ' onclick="EleveResultats.selectObjPreset(' + v + ')">' + v + '</button>';
+        });
+        h += '<div class="res-obj-free">';
+        h += '<input id="resObjFreeInput" class="res-obj-free-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2"';
+        h += ' value="' + (sel && presets.indexOf(sel) === -1 ? sel : '') + '"';
+        h += ' placeholder="\u2026" onfocus="EleveResultats._objPresetSelected=null" oninput="EleveResultats.onObjFreeInput(this)">';
+        h += '<span class="res-obj-free-unit">/20</span>';
+        h += '</div></div>';
+        h += '<div class="res-obj-actions">';
+        h += '<button class="res-obj-confirm" style="background:' + acColor + '" onclick="EleveResultats.confirmObj()"';
+        if (!sel) h += ' disabled style="background:' + acColor + ';opacity:0.4;cursor:default"';
+        h += '>Valider</button>';
+        h += '<button class="res-obj-cancel" onclick="EleveResultats.cancelEditObj()">Annuler</button>';
+        h += '</div></div>';
         return h;
     },
 
