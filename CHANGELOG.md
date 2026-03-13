@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-03-13 — Session 37 : Refonte tableau saisie sommative
+
+### Tableau de saisie (admin-evaluations.js, css/admin-evaluations.css)
+
+1. **Colonnes réordonnées** : Élève → Correction → Note → Statut (plus logique : on corrige d'abord, la note apparaît ensuite)
+2. **Note en lecture seule** : plus d'input direct — la note est remplie automatiquement par le wizard de correction
+3. **Statut cliquable** : badge toggle brouillon ↔ publié au clic, avec appel API immédiat et rollback en cas d'erreur. Activé uniquement quand une note existe
+4. **Ligne verte** quand la correction est publiée (cohérent avec les autres saisies)
+5. **Tableau compact** : max-width 720px, colonne élève en largeur auto, padding réduit
+6. **Zebra striping** : lignes alternées pour faciliter la lecture
+7. **Barre "Enregistrer" masquée** en mode sommative (pas de saisie directe, tout passe par le wizard)
+8. **Classe CSS `sommative-saisie`** ajoutée/retirée dynamiquement sur `saisie-content`
+
+**Fichiers modifiés** : `js/admin-evaluations.js`, `css/admin-evaluations.css`
+
+**Décisions prises** :
+- On ne peut publier que si une note a été saisie dans le wizard. Tant que pas de note, le statut reste "—" non cliquable
+- L'élève voit "En attente de correction" tant que `statut_correction !== 'publie'`
+
+---
+
 ## 2026-03-10 — Session 36 : Fusion étapes wizard bonus mission + fix sauvegarde
 
 ### Wizard bonus mission : 6 → 5 étapes (admin-evaluations.js, css/admin-evaluations.css)

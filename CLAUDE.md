@@ -493,7 +493,7 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - Chaque évaluation a un champ `matiere` (FR, HG-EMC, Les deux) — les "Les deux" comptent 100% dans chaque matière
 - Onglet **Sommatives** : CRUD évaluations sommatives (note /barème, coefficient, date, semestre)
 - **Saisie des résultats** : vue pleine page avec tableau des élèves, colonnes score, points, mode (papier/numérique), source (auto/manuel), remarque. Affiche la banque/exercice réellement passés par chaque élève. Statuts spéciaux NR (non rendu) / ABS (absent) avec couleurs de ligne distinctes.
-- **Saisie des notes sommatives** : vue similaire avec note /barème et remarque
+- **Saisie des notes sommatives** : tableau compact (max 720px), colonnes Élève / Correction / Note / Statut. Note en lecture seule (remplie par le wizard de correction). Statut cliquable (toggle brouillon ↔ publié) uniquement si note existe. Ligne verte quand publié.
 - **Bandeau corrections** : compte les copies à corriger (EleveEntrainementsCompetences avec statut='soumis')
 - **Page Paramétrage** : 2 onglets — Notes de progression (semestres, config par matière) et Référentiel compétences (CRUD avec filtre matière)
 - **Mode de passation** : chaque évaluation peut être "numérique" (défaut) ou "papier". En mode papier : badge 📄 sur la carte admin, boutons Commencer/Repasser masqués côté élève. L'attribution reste identique (auto par défaut, override manuel possible). Colonne `mode_passation` dans EVALUATIONS.
