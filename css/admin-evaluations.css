@@ -1198,8 +1198,26 @@
 }
 
 /* ===== COLONNES SOMMATIVE SAISIE ===== */
-.col-note-som { width: 100px; text-align: center; }
-.col-statut-som { width: 120px; text-align: center; }
+.sommative-saisie .saisie-table-container {
+    max-width: 720px;
+}
+.sommative-saisie .saisie-table .col-eleve { width: auto; }
+.sommative-saisie .col-correction-action { width: 110px; text-align: center; }
+.sommative-saisie .col-note-som { width: 90px; text-align: center; }
+.sommative-saisie .col-statut-som { width: 110px; text-align: center; }
+
+/* Lignes alternées pour sommative */
+.sommative-saisie .saisie-table tbody tr:nth-child(even) {
+    background: var(--gray-50);
+}
+.sommative-saisie .saisie-table tbody tr:nth-child(even):hover {
+    background: var(--gray-100);
+}
+
+/* Padding plus compact */
+.sommative-saisie .saisie-table td {
+    padding: 8px 14px;
+}
 
 /* Note en lecture seule */
 .som-note-display {
