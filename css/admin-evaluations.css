@@ -1197,6 +1197,56 @@
     width: 80px;
 }
 
+/* ===== COLONNES SOMMATIVE SAISIE ===== */
+.col-note-som { width: 100px; text-align: center; }
+.col-statut-som { width: 120px; text-align: center; }
+
+/* Note en lecture seule */
+.som-note-display {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--gray-800);
+}
+.som-note-bareme {
+    font-weight: 400;
+    font-size: 13px;
+    color: var(--gray-400);
+}
+.som-note-empty {
+    color: var(--gray-400);
+    font-size: 14px;
+}
+
+/* Statut cliquable */
+.som-statut-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.15s;
+}
+.som-statut-badge.publie {
+    background: #dcfce7;
+    color: #15803d;
+    cursor: pointer;
+}
+.som-statut-badge.publie:hover {
+    background: #bbf7d0;
+}
+.som-statut-badge.brouillon {
+    background: #fef3c7;
+    color: #92400e;
+    cursor: pointer;
+}
+.som-statut-badge.brouillon:hover {
+    background: #fde68a;
+}
+.som-statut-badge.empty {
+    color: var(--gray-400);
+    cursor: default;
+}
+
 .source-badge {
     font-size: 12px;
     padding: 3px 8px;

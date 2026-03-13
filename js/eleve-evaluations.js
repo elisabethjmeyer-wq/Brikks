@@ -570,7 +570,8 @@ const EleveEvaluations = {
             const r = this.resultatsSommatives.find(res =>
                 String(res.sommative_id).trim() === String(som.id).trim()
             );
-            const note = r && r.note !== '' && r.note !== undefined ? parseFloat(r.note) : null;
+            const corrPubliee = r && String(r.statut_correction || '').trim() === 'publie';
+            const note = corrPubliee && r.note !== '' && r.note !== undefined ? parseFloat(r.note) : null;
             const bareme = parseFloat(som.bareme) || 20;
             const coefficient = parseFloat(som.coefficient) || 1;
             const somData = {

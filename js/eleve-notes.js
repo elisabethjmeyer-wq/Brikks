@@ -314,7 +314,8 @@ const EleveResultats = {
                 const r = this.resultatsSommatives.find(res =>
                     String(res.sommative_id).trim() === String(s.id).trim()
                 );
-                const note = r && r.note !== '' && r.note !== undefined ? parseFloat(r.note) : null;
+                const corrPubliee = r && String(r.statut_correction || '').trim() === 'publie';
+                const note = corrPubliee && r.note !== '' && r.note !== undefined ? parseFloat(r.note) : null;
                 const bareme = parseFloat(s.bareme) || 20;
                 const coefficient = parseFloat(s.coefficient) || 1;
                 const note20 = note !== null ? (note / bareme) * 20 : null;
