@@ -4057,9 +4057,14 @@ const AdminEvaluations = {
 
         // Show saisie view
         document.getElementById('evaluations-content').style.display = 'none';
-        document.getElementById('saisie-content').style.display = 'block';
+        const saisieContent = document.getElementById('saisie-content');
+        saisieContent.style.display = 'block';
+        saisieContent.classList.add('sommative-saisie');
         document.getElementById('saisieLoader').style.display = 'none';
         document.getElementById('saisieTableContainer').style.display = '';
+
+        // Masquer la barre de sauvegarde (pas de saisie directe en sommative)
+        document.getElementById('saisieSaveBar').style.display = 'none';
     },
 
     onSaisieChange(eleveId, field, value) {
@@ -4119,7 +4124,9 @@ const AdminEvaluations = {
     },
 
     closeSaisie() {
-        document.getElementById('saisie-content').style.display = 'none';
+        const saisieContent = document.getElementById('saisie-content');
+        saisieContent.style.display = 'none';
+        saisieContent.classList.remove('sommative-saisie');
         document.getElementById('evaluations-content').style.display = 'block';
         document.getElementById('saisieSaveBar').style.display = 'none';
         // Nettoyer le bouton compact suivi si présent
