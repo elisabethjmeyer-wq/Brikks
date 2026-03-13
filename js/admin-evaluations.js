@@ -2504,10 +2504,17 @@ const AdminEvaluations = {
                     <textarea class="form-input" id="evalDescriptionEleve" rows="3" placeholder="Ex : Apporter ses affaires à chaque cours, réviser le vocabulaire...">${escapeHtml(d.description_eleve || '')}</textarea>
                     <div class="form-help">Ce texte sera visible par l'élève sur la carte de ce bonus</div>
                 </div>
-                <div class="form-group">
-                    <label>Nombre de réussites requises <span class="req">*</span></label>
-                    <input type="number" class="form-input" id="evalNbValidations" value="${d.nb_validations || 5}" min="1" max="50">
-                    <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre de réussites requises <span class="req">*</span></label>
+                        <input type="number" class="form-input" id="evalNbValidations" value="${d.nb_validations || 5}" min="1" max="50">
+                        <div class="form-help">L'élève doit réussir ce nombre de fois pour obtenir les points</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Points mis en jeu <span class="req">*</span></label>
+                        <input type="number" class="form-input" id="evalSuiviBriques" value="${d.briques || 3}" min="0.25" max="50" step="0.25">
+                        <div class="form-help">Points gagnés quand l'objectif est atteint</div>
+                    </div>
                 </div>
                 <div class="form-group full-width" style="margin-top: 16px;">
                     <label>Critères de réussite</label>
@@ -3147,9 +3154,10 @@ const AdminEvaluations = {
                 return true;
             }
             case 'suivi_details': {
-                // Bonus suivi : description + nb_validations + critères
+                // Bonus suivi : description + nb_validations + points + critères
                 this.wizardData.description_eleve = (document.getElementById('evalDescriptionEleve')?.value || '').trim();
                 this.wizardData.nb_validations = parseInt(document.getElementById('evalNbValidations')?.value) || 5;
+                this.wizardData.briques = parseFloat(document.getElementById('evalSuiviBriques')?.value) || 3;
                 // Collect critères (optional for suivi)
                 const suiviInputs = document.querySelectorAll('#evalSuiviCriteresList .critere-libre-input');
                 const suiviCriteres = [];
@@ -5384,10 +5392,20 @@ const AdminEvaluations = {
             ${dateDemandeHtml}
         `;
 
+        // Stocker l'évaluation courante pour setDecision()
+        this._reponseEvaluation = evaluation;
+
         // Masquer la checkbox "sujet visible" pour les bonus suivi (pas de sujet)
         const sousTypeBonus = String(evaluation?.sous_type_bonus || '').trim();
+        const isSuivi = evaluation?.type === 'bonus' && sousTypeBonus === 'suivi';
         const sujetGroup = document.getElementById('reponseSujetVisible')?.closest('.form-group');
-        if (sujetGroup) sujetGroup.style.display = (evaluation?.type === 'bonus' && sousTypeBonus === 'suivi') ? 'none' : '';
+        if (sujetGroup) sujetGroup.style.display = isSuivi ? 'none' : '';
+
+        // Masquer les champs date pour le bonus suivi (suivi sur la durée, pas de date de passage)
+        const typeDateGroup = document.getElementById('reponseTypeDate')?.closest('.form-group');
+        const dateGroup = document.getElementById('reponseDate')?.closest('.form-group');
+        if (typeDateGroup) typeDateGroup.style.display = isSuivi ? 'none' : '';
+        if (dateGroup) dateGroup.style.display = isSuivi ? 'none' : '';
 
         modal.classList.remove('hidden');
     },
@@ -5503,10 +5521,20 @@ const AdminEvaluations = {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Enregistrer';
 
+        // Stocker l'évaluation courante pour setDecision()
+        this._reponseEvaluation = evaluation;
+
         // Masquer la checkbox "sujet visible" pour les bonus suivi (pas de sujet)
         const sousTypeBonusDetail = String(evaluation?.sous_type_bonus || '').trim();
+        const isSuiviDetail = evaluation?.type === 'bonus' && sousTypeBonusDetail === 'suivi';
         const sujetGroupDetail = document.getElementById('reponseSujetVisible')?.closest('.form-group');
-        if (sujetGroupDetail) sujetGroupDetail.style.display = (evaluation?.type === 'bonus' && sousTypeBonusDetail === 'suivi') ? 'none' : '';
+        if (sujetGroupDetail) sujetGroupDetail.style.display = isSuiviDetail ? 'none' : '';
+
+        // Masquer les champs date pour le bonus suivi (suivi sur la durée, pas de date de passage)
+        const typeDateGroupDetail = document.getElementById('reponseTypeDate')?.closest('.form-group');
+        const dateGroupDetail = document.getElementById('reponseDate')?.closest('.form-group');
+        if (typeDateGroupDetail) typeDateGroupDetail.style.display = isSuiviDetail ? 'none' : '';
+        if (dateGroupDetail) dateGroupDetail.style.display = isSuiviDetail ? 'none' : '';
 
         modal.classList.remove('hidden');
     },
