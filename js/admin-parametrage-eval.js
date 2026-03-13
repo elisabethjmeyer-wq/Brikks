@@ -588,13 +588,23 @@ const AdminParametrageEval = {
 
     async confirmDelete() {
         var id = document.getElementById('deleteId').value;
-        if (!id) return;
+        if (!id || this._deleting) return;
+
+        var deleteBtn = document.querySelector('#deleteModal .btn-danger');
+        this._deleting = true;
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.textContent = 'Suppression…';
+        }
 
         try {
             // Delete critères first
             var criteres = this.getCriteresForCompetence(id);
             for (var i = 0; i < criteres.length; i++) {
-                await this.callAPI('deleteCritereReussite', { id: criteres[i].id });
+                var critResult = await this.callAPI('deleteCritereReussite', { id: criteres[i].id });
+                if (!critResult.success) {
+                    throw new Error(critResult.error || 'Erreur suppression critère');
+                }
             }
 
             // Delete competence
@@ -611,6 +621,12 @@ const AdminParametrageEval = {
         } catch (error) {
             console.error('Erreur suppression:', error);
             this.showNotification('Erreur lors de la suppression', 'error');
+        } finally {
+            this._deleting = false;
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.textContent = 'Supprimer';
+            }
         }
     }
 };
