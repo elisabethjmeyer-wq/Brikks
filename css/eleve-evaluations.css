@@ -541,6 +541,8 @@
 .card-btn.type-comp:hover { background: #7c3aed; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
 .card-btn.type-bonus { background: var(--eval-bonus); }
 .card-btn.type-bonus:hover { background: #ca8a04; box-shadow: 0 4px 12px rgba(234, 179, 8, 0.3); }
+.card-btn.type-controle { background: var(--eval-controle); }
+.card-btn.type-controle:hover { background: #475569; box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3); }
 
 .card-btn:hover {
     transform: translateY(-1px);
