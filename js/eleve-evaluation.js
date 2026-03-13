@@ -351,7 +351,9 @@ const EleveEvaluation = {
         // Résultat élève
         const hasNote = resultat && resultat.note !== '' && resultat.note !== undefined && resultat.note !== null;
         const note = hasNote ? parseFloat(resultat.note) : null;
-        const isCorrectionPubliee = resultat && String(resultat.statut_correction || '').trim() === 'publie';
+        // statut_correction peut être vide (saisie sans wizard) → publié par défaut si note existe
+        const statutCorr = resultat ? String(resultat.statut_correction || '').trim() : '';
+        const isCorrectionPubliee = hasNote && statutCorr !== 'brouillon';
 
         // Contenu sujet et corrigé type
         // En mode review, on y accède uniquement depuis une carte terminée/notée → corrigé toujours visible
