@@ -83,6 +83,7 @@
 /* ===== MATIERE TOGGLE ===== */
 /* Réutilise .tabs-bar de eleve-evaluations.css */
 .res-matiere-bar {
+    margin-top: 16px;
     margin-bottom: 24px;
 }
 
