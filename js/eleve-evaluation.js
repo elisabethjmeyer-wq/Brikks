@@ -36,6 +36,12 @@ const EleveEvaluation = {
                 return;
             }
 
+            // Mode review sommative : sujet + corrigé type + note/remarque
+            if (mode === 'review-som') {
+                await this._initSommativeReviewMode(evalId);
+                return;
+            }
+
             // Mode sujet : afficher le document en lecture seule (TC/bonus)
             if (mode === 'sujet') {
                 await this._initSujetMode(evalId);
@@ -292,6 +298,157 @@ const EleveEvaluation = {
                     <div class="sujet-section-header">📄 Sujet</div>
                     <div class="sujet-document-content">
                         ${documentHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    // ========== REVIEW SOMMATIVE (2 colonnes) ==========
+
+    /**
+     * Charge et affiche la review d'une évaluation sommative.
+     * Layout 2 colonnes : sujet/corrigé type à gauche, note/remarque à droite.
+     */
+    async _initSommativeReviewMode(evalId) {
+        const eleveId = this._getCurrentUserId();
+        if (!eleveId) {
+            throw new Error('Utilisateur non connecté');
+        }
+
+        const response = await this.callAPI('getSommativeForReview', {
+            sommative_id: evalId,
+            eleve_id: eleveId
+        });
+
+        if (!response.success || !response.data) {
+            throw new Error(response.error || 'Sommative non trouvée');
+        }
+
+        const { sommative, resultat } = response.data;
+        this._renderSommativeReview(sommative, resultat);
+        this.showContent();
+    },
+
+    /**
+     * Rendu de la vue review pour une sommative.
+     * Colonne gauche : onglets Sujet / Corrigé type.
+     * Colonne droite : note + remarque (si publiée) ou "En attente".
+     */
+    _renderSommativeReview(sommative, resultat) {
+        const exerciseContainer = document.getElementById('exerciseContainer');
+        if (exerciseContainer) exerciseContainer.style.display = 'none';
+
+        const resultContainer = document.getElementById('resultContainer');
+        resultContainer.style.display = 'block';
+
+        const titre = sommative.titre || 'Contrôle';
+        const bareme = parseFloat(sommative.bareme) || 20;
+        const coefficient = parseFloat(sommative.coefficient) || 1;
+        const matiere = sommative.matiere || '';
+        const matiereLabel = matiere === 'FR' ? 'Français' : matiere === 'HG-EMC' ? 'HG-EMC' : matiere === 'Les deux' ? 'FR + HG' : matiere;
+
+        // Statut effectif (terminée ou pas)
+        const effStatut = sommative._effStatut || 'publiee';
+        const isTerminee = effStatut === 'terminee';
+
+        // Résultat élève
+        const hasNote = resultat && resultat.note !== '' && resultat.note !== undefined && resultat.note !== null;
+        const note = hasNote ? parseFloat(resultat.note) : null;
+        const isCorrectionPubliee = resultat && String(resultat.statut_correction || '').trim() === 'publie';
+
+        // Contenu sujet et corrigé type
+        const docContenu = String(sommative.document_contenu || '').trim();
+        const corrContenu = String(sommative.correction_contenu || '').trim();
+        const hasSujet = docContenu !== '';
+        const hasCorrige = corrContenu !== '' && (isTerminee || hasNote);
+
+        // Remarque personnalisée (seulement si correction publiée)
+        const remarqueTexte = isCorrectionPubliee ? (resultat.remarque_texte || '') : '';
+
+        // --- Colonne gauche : onglets Sujet / Corrigé type ---
+        const hasTabs = hasSujet && hasCorrige;
+
+        let tabsHtml = '';
+        if (hasTabs) {
+            tabsHtml = `
+                <div class="tc-review-tabs">
+                    <button class="tc-review-tab active" data-tab="remarque" onclick="EleveEvaluation._switchTCTab('remarque')">Sujet</button>
+                    <button class="tc-review-tab" data-tab="corrige" onclick="EleveEvaluation._switchTCTab('corrige')">Corrigé type</button>
+                </div>
+            `;
+        }
+
+        let sujetHtml = '';
+        if (hasSujet) {
+            sujetHtml = `<div class="tc-review-tab-content${hasTabs ? ' active' : ''}" id="tcTabRemarque">
+                ${!hasTabs ? '<div class="som-review-section-title">Sujet</div>' : ''}
+                <div class="sujet-document-content">${this._buildDocumentHtml(docContenu)}</div>
+            </div>`;
+        }
+
+        let corrigeHtml = '';
+        if (hasCorrige) {
+            corrigeHtml = `<div class="tc-review-tab-content${!hasSujet ? ' active' : ''}" id="tcTabCorrige">
+                ${!hasTabs ? '<div class="som-review-section-title">Corrigé type</div>' : ''}
+                <div class="sujet-document-content">${this._buildCorrectionContent(corrContenu)}</div>
+            </div>`;
+        }
+
+        const leftEmpty = !hasSujet && !hasCorrige;
+        const leftContent = leftEmpty
+            ? '<div class="tc-review-empty">Aucun sujet ni corrigé disponible.</div>'
+            : `${tabsHtml}${sujetHtml}${corrigeHtml}`;
+
+        // --- Colonne droite : note + remarque ---
+        let noteHtml = '';
+        if (hasNote) {
+            const note20 = bareme === 20 ? note : Math.round((note / bareme) * 20 * 10) / 10;
+            const colorClass = note20 >= 10 ? 'som-note-good' : 'som-note-bad';
+            noteHtml = `
+                <div class="som-review-note ${colorClass}">
+                    <span class="som-review-note-value">${note}</span>
+                    <span class="som-review-note-bareme">/${bareme}</span>
+                </div>
+            `;
+        } else {
+            noteHtml = '<div class="som-review-waiting">En attente de correction</div>';
+        }
+
+        let remarqueHtml = '';
+        if (remarqueTexte) {
+            remarqueHtml = `
+                <div class="som-review-remarque">
+                    <div class="som-review-section-title">Remarque de la prof</div>
+                    <div class="sujet-document-content">${this._buildCorrectionContent(remarqueTexte)}</div>
+                </div>
+            `;
+        } else if (hasNote && !isCorrectionPubliee) {
+            remarqueHtml = '<div class="som-review-remarque-pending">Correction en cours de rédaction</div>';
+        }
+
+        resultContainer.innerHTML = `
+            <div class="sujet-view sujet-view-tc">
+                <div class="sujet-topbar">
+                    <button class="sujet-back-btn" onclick="window.history.back()">&#8592;</button>
+                    <div class="sujet-topbar-info">
+                        <h1>${escapeHtml(titre)}</h1>
+                        <div class="sujet-topbar-meta">
+                            <span class="sujet-mode-badge controle">Contrôle</span>
+                            ${matiereLabel ? `<span class="sujet-meta-item">${escapeHtml(matiereLabel)}</span>` : ''}
+                            <span class="sujet-meta-item">coef. ${coefficient}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sujet-layout">
+                    <div class="sujet-document-section">
+                        ${leftContent}
+                    </div>
+                    <div class="sujet-sidebar-section">
+                        <div class="som-review-sidebar">
+                            ${noteHtml}
+                            ${remarqueHtml}
+                        </div>
                     </div>
                 </div>
             </div>

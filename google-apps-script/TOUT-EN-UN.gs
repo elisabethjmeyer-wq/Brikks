@@ -1,7 +1,7 @@
 // ================================================================
 // FICHIER AUTO-GÉNÉRÉ — ne pas modifier directement
 // Généré par : npm run build:gas
-// Date : 2026-03-11
+// Date : 2026-03-13
 // ================================================================
 
 // ================================================================
@@ -500,6 +500,9 @@ function handleRequest(e) {
         break;
       case 'saveResultatSommative':
         result = saveResultatSommative(request);
+        break;
+      case 'getSommativeForReview':
+        result = getSommativeForReview(request);
         break;
       case 'getObjectifsEleves':
         result = getObjectifsEleves(request);
@@ -7554,6 +7557,76 @@ function signalerRendu(data) {
   }
 
   return { success: false, error: 'Demande acceptée non trouvée' };
+}
+
+// ========================================
+// REVIEW SOMMATIVE (élève)
+// ========================================
+
+/**
+ * Récupère une sommative + le résultat de l'élève pour la page review.
+ * @param {Object} data - { sommative_id, eleve_id }
+ * @returns {{ sommative, resultat }}
+ */
+function getSommativeForReview(data) {
+  if (!data.sommative_id || !data.eleve_id) {
+    return { success: false, error: 'sommative_id et eleve_id requis' };
+  }
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // 1. Lire la sommative
+  var somSheet = ss.getSheetByName(SHEETS.NOTES_SOMMATIVES);
+  if (!somSheet) {
+    return { success: false, error: 'Sommative non trouvée' };
+  }
+
+  var somData = somSheet.getDataRange().getValues();
+  var somHeaders = somData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+  var sommative = null;
+
+  for (var i = 1; i < somData.length; i++) {
+    var row = {};
+    somHeaders.forEach(function(h, idx) { row[h] = somData[i][idx]; });
+    if (String(row.id).trim() === String(data.sommative_id).trim()) {
+      sommative = row;
+      break;
+    }
+  }
+
+  if (!sommative) {
+    return { success: false, error: 'Sommative non trouvée' };
+  }
+
+  // Vérifier que la sommative est accessible (pas brouillon)
+  var effStatut = _computeEffectiveStatut_(sommative);
+  if (effStatut === 'brouillon') {
+    return { success: false, error: 'Cette évaluation n\'est pas disponible' };
+  }
+
+  sommative._effStatut = effStatut;
+
+  // 2. Lire le résultat de l'élève (peut ne pas exister)
+  var resSheet = ss.getSheetByName(SHEETS.RESULTATS_SOMMATIVES);
+  var resultat = null;
+
+  if (resSheet) {
+    var resData = resSheet.getDataRange().getValues();
+    if (resData.length >= 2) {
+      var resHeaders = resData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+      for (var j = 1; j < resData.length; j++) {
+        var resRow = {};
+        resHeaders.forEach(function(h, idx) { resRow[h] = resData[j][idx]; });
+        if (String(resRow.sommative_id).trim() === String(data.sommative_id).trim() &&
+            String(resRow.eleve_id).trim() === String(data.eleve_id).trim()) {
+          resultat = resRow;
+          break;
+        }
+      }
+    }
+  }
+
+  return { success: true, data: { sommative: sommative, resultat: resultat } };
 }
 
 // ================================================================

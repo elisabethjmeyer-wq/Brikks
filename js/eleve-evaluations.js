@@ -577,7 +577,8 @@ const EleveEvaluations = {
                 ...som,
                 type: 'controle',
                 note, bareme, coefficient,
-                isSommative: true
+                isSommative: true,
+                resultatSom: r || null
             };
             if (effStatut === 'terminee' || note !== null) {
                 somData.cardStatus = note !== null ? 'done' : 'not_done';
@@ -1295,21 +1296,32 @@ const EleveEvaluations = {
 
         // Sujet consultable ?
         const hasDoc = String(som.document_contenu || '').trim() !== '';
+        const hasCorrige = String(som.correction_contenu || '').trim() !== '';
         const sujetVisibleAvance = som.sujet_visible === true || som.sujet_visible === 'true' || som.sujet_visible === 'TRUE';
+        const hasContent = hasDoc || hasCorrige;
 
         // Status + action
         let statusHtml = '';
         let actionHtml = '';
         if (hasNote) {
-            statusHtml = '<div class="card-action-info">Note publiée</div>';
+            // État 4 : notée → lien vers review
+            actionHtml = `<a href="evaluation.html?id=${som.id}&mode=review-som" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Voir le détail &#8594;</a>`;
+        } else if (status === 'not_done' && hasContent) {
+            // État 3 : terminée sans note, contenu dispo → lien review
+            statusHtml = '<div class="card-action-info pending">En attente de correction</div>';
+            actionHtml = `<a href="evaluation.html?id=${som.id}&mode=review-som" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Voir le détail &#8594;</a>`;
+        } else if (status === 'not_done') {
+            // État 3 : terminée sans note, pas de contenu
+            statusHtml = '<div class="card-action-info pending">En attente de correction</div>';
         } else if (status === 'available' && hasDoc) {
-            // Éval ouverte + sujet renseigné → consultable
+            // État 2 : ouverte + sujet renseigné → consultable
             actionHtml = `<a href="evaluation.html?id=${som.id}&mode=sujet" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
         } else if (status === 'upcoming' && hasDoc && sujetVisibleAvance) {
-            // Éval pas encore ouverte mais sujet rendu visible à l'avance
+            // État 1 bis : planifiée mais sujet visible à l'avance
             actionHtml = `<a href="evaluation.html?id=${som.id}&mode=sujet" class="card-btn ${config.cssClass}" onclick="event.stopPropagation()">Consulter le sujet</a>`;
             statusHtml = '<span class="bonus-status sujet-avance" style="align-self:flex-start">Sujet consultable</span>';
         } else if (status === 'upcoming') {
+            // État 1 : planifiée
             statusHtml = '<div class="card-action-info upcoming">À venir</div>';
         }
 
