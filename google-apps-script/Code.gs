@@ -491,6 +491,9 @@ function handleRequest(e) {
       case 'saveResultatSommative':
         result = saveResultatSommative(request);
         break;
+      case 'getSommativeForReview':
+        result = getSommativeForReview(request);
+        break;
       case 'getObjectifsEleves':
         result = getObjectifsEleves(request);
         break;
