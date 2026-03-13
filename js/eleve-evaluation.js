@@ -348,20 +348,17 @@ const EleveEvaluation = {
         const matiere = sommative.matiere || '';
         const matiereLabel = matiere === 'FR' ? 'Français' : matiere === 'HG-EMC' ? 'HG-EMC' : matiere === 'Les deux' ? 'FR + HG' : matiere;
 
-        // Statut effectif (terminée ou pas)
-        const effStatut = sommative._effStatut || 'publiee';
-        const isTerminee = effStatut === 'terminee';
-
         // Résultat élève
         const hasNote = resultat && resultat.note !== '' && resultat.note !== undefined && resultat.note !== null;
         const note = hasNote ? parseFloat(resultat.note) : null;
         const isCorrectionPubliee = resultat && String(resultat.statut_correction || '').trim() === 'publie';
 
         // Contenu sujet et corrigé type
+        // En mode review, on y accède uniquement depuis une carte terminée/notée → corrigé toujours visible
         const docContenu = String(sommative.document_contenu || '').trim();
         const corrContenu = String(sommative.correction_contenu || '').trim();
         const hasSujet = docContenu !== '';
-        const hasCorrige = corrContenu !== '' && (isTerminee || hasNote);
+        const hasCorrige = corrContenu !== '';
 
         // Remarque personnalisée (seulement si correction publiée)
         const remarqueTexte = isCorrectionPubliee ? (resultat.remarque_texte || '') : '';
@@ -381,7 +378,7 @@ const EleveEvaluation = {
 
         let sujetHtml = '';
         if (hasSujet) {
-            sujetHtml = `<div class="tc-review-tab-content${hasTabs ? ' active' : ''}" id="tcTabRemarque">
+            sujetHtml = `<div class="tc-review-tab-content active" id="tcTabRemarque">
                 ${!hasTabs ? '<div class="som-review-section-title">Sujet</div>' : ''}
                 <div class="sujet-document-content">${this._buildDocumentHtml(docContenu)}</div>
             </div>`;
