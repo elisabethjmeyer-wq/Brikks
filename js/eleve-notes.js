@@ -35,6 +35,7 @@ const EleveResultats = {
     _openBonusCrit: {}, // { bonusId: true }
     _semOpen: false,
     _editingObj: false,
+    _objSliderValue: null,
 
     // ========== COLORS ==========
     COLORS: {
@@ -730,49 +731,74 @@ const EleveResultats = {
     startEditObj() {
         var obj = this._getObjectif(this.currentMatiere, this.currentSemestre);
         this._editingObj = true;
-        this._objPresetSelected = obj || null;
+        this._objSliderValue = obj || 10;
         this._render();
+        this._initSliderDrag();
     },
 
-    selectObjPreset(val) {
-        this._objPresetSelected = val;
-        var inp = document.getElementById('resObjFreeInput');
-        if (inp) inp.value = '';
-        this._render();
-    },
+    _initSliderDrag() {
+        var bar = document.getElementById('resObjBar');
+        var thumb = document.getElementById('resObjThumb');
+        if (!bar || !thumb) return;
+        var self = this;
 
-    onObjFreeInput(inp) {
-        var raw = inp.value.replace(/[^0-9]/g, '');
-        inp.value = raw;
-        var v = parseInt(raw, 10);
-        this._objPresetSelected = (!isNaN(v) && v >= 0 && v <= 20) ? v : null;
-        // Re-render preset buttons without losing focus
-        var presetBtns = document.querySelectorAll('.res-obj-preset');
-        presetBtns.forEach(function(btn) { btn.classList.remove('active'); btn.removeAttribute('style'); });
-        var confirmBtn = document.querySelector('.res-obj-confirm');
-        if (confirmBtn) {
-            var acColor = this.currentMatiere === 'FR' ? this.COLORS.ac : this.COLORS.pur;
-            if (this._objPresetSelected !== null) {
-                confirmBtn.disabled = false;
-                confirmBtn.style.cssText = 'background:' + acColor + ';opacity:1;cursor:pointer';
-            } else {
-                confirmBtn.disabled = true;
-                confirmBtn.style.cssText = 'background:' + acColor + ';opacity:0.4;cursor:default';
-            }
-        }
+        var onMove = function(clientX) {
+            var rect = bar.getBoundingClientRect();
+            var pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+            var val = Math.round(pct * 20);
+            self._objSliderValue = val;
+            thumb.style.left = (val / 20 * 100) + '%';
+            var tooltip = thumb.querySelector('.res-obj-tooltip');
+            if (tooltip) tooltip.textContent = val + '/20';
+            // Update displayed value in header
+            var valSpan = document.querySelector('.res-obj-value');
+            if (valSpan) valSpan.textContent = val + '/20';
+        };
+
+        // Mouse
+        thumb.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            var moveHandler = function(ev) { onMove(ev.clientX); };
+            var upHandler = function() {
+                document.removeEventListener('mousemove', moveHandler);
+                document.removeEventListener('mouseup', upHandler);
+            };
+            document.addEventListener('mousemove', moveHandler);
+            document.addEventListener('mouseup', upHandler);
+        });
+
+        // Touch
+        thumb.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            var moveHandler = function(ev) {
+                if (ev.touches.length) onMove(ev.touches[0].clientX);
+            };
+            var endHandler = function() {
+                document.removeEventListener('touchmove', moveHandler);
+                document.removeEventListener('touchend', endHandler);
+            };
+            document.addEventListener('touchmove', moveHandler, { passive: false });
+            document.addEventListener('touchend', endHandler);
+        }, { passive: false });
+
+        // Click on bar
+        bar.addEventListener('click', function(e) {
+            if (e.target === thumb || thumb.contains(e.target)) return;
+            onMove(e.clientX);
+        });
     },
 
     cancelEditObj() {
         this._editingObj = false;
-        this._objPresetSelected = null;
+        this._objSliderValue = null;
         this._render();
     },
 
     async confirmObj() {
-        var val = this._objPresetSelected;
+        var val = this._objSliderValue;
         if (val === null || val === undefined || val < 0 || val > 20) return;
         this._editingObj = false;
-        this._objPresetSelected = null;
+        this._objSliderValue = null;
 
         try {
             const result = await this._callAPI('saveObjectifEleve', {
@@ -871,14 +897,28 @@ const EleveResultats = {
         h += this._renderObjectifInline(obj, acColor, isRO);
         h += '</div>';
         // Bar
-        h += '<div class="res-hero-bar">';
+        var isSlider = this._editingObj && !isRO;
+        var sliderVal = this._objSliderValue !== null ? this._objSliderValue : (obj || 10);
+        var sliderPct = (sliderVal / 20) * 100;
+        h += '<div class="res-hero-bar' + (isSlider ? ' slider-mode' : '') + '" id="resObjBar">';
         h += '<div class="res-hero-bar-fill" style="width:' + moyPct + '%;background:linear-gradient(to right,' + mc + 'cc,' + mc + ')"></div>';
-        if (objPct) {
+        if (isSlider) {
+            h += '<div class="res-obj-thumb" id="resObjThumb" style="left:' + sliderPct + '%;background:' + acColor + '">';
+            h += '<div class="res-obj-tooltip">' + sliderVal + '/20</div>';
+            h += '</div>';
+        } else if (objPct) {
             h += '<div class="res-hero-bar-obj" style="left:' + objPct + '%;background:' + acColor + '">';
             h += '<div class="res-hero-bar-obj-label" style="color:' + acColor + '">' + obj + '</div></div>';
         }
         h += '</div>';
         h += '<div class="res-hero-bar-labels"><span>0</span><span>20</span></div>';
+        if (isSlider) {
+            h += '<div class="res-obj-slider-actions">';
+            h += '<button class="res-obj-confirm" style="background:' + acColor + '" onclick="EleveResultats.confirmObj()">Valider</button>';
+            h += '<button class="res-obj-cancel" onclick="EleveResultats.cancelEditObj()">Annuler</button>';
+            h += '</div>';
+            h += '<div class="res-obj-slider-hint">Glisse le curseur ou clique sur la barre</div>';
+        }
         h += '</div>';
 
         h += '<div class="res-connector">Détail</div>';
@@ -944,41 +984,17 @@ const EleveResultats = {
         if (isRO) {
             return obj ? '<span style="font-size:11px;color:#9ca3af">\u{1F3AF} obj. ' + obj + '</span>' : '';
         }
-        if (!this._editingObj) {
-            let h = '<div class="res-obj-display"><span>\u{1F3AF}</span>';
-            if (obj) {
-                h += '<span class="res-obj-value" style="color:' + acColor + '">' + obj + '/20</span>';
-                h += '<span class="res-obj-edit-link" onclick="EleveResultats.startEditObj()">modifier</span>';
-            } else {
-                h += '<span class="res-obj-set-link" style="color:' + acColor + '" onclick="EleveResultats.startEditObj()">Fixer un objectif</span>';
-            }
-            h += '</div>';
-            return h;
+        var h = '<div class="res-obj-display"><span>\u{1F3AF}</span>';
+        if (this._editingObj) {
+            var val = this._objSliderValue !== null ? this._objSliderValue : obj;
+            h += '<span class="res-obj-value" style="color:' + acColor + '">' + (val || '?') + '/20</span>';
+        } else if (obj) {
+            h += '<span class="res-obj-value" style="color:' + acColor + '">' + obj + '/20</span>';
+            h += '<span class="res-obj-edit-link" onclick="EleveResultats.startEditObj()">modifier</span>';
+        } else {
+            h += '<span class="res-obj-set-link" style="color:' + acColor + '" onclick="EleveResultats.startEditObj()">Fixer un objectif</span>';
         }
-        // Presets picker
-        var presets = [8, 10, 12, 14, 16, 18];
-        var sel = this._objPresetSelected;
-        var h = '<div class="res-obj-picker">';
-        h += '<span class="res-obj-picker-label">\u{1F3AF} Mon objectif</span>';
-        h += '<div class="res-obj-presets">';
-        presets.forEach(function(v) {
-            var isActive = sel === v;
-            h += '<button class="res-obj-preset' + (isActive ? ' active' : '') + '"';
-            h += isActive ? ' style="background:' + acColor + '"' : '';
-            h += ' onclick="EleveResultats.selectObjPreset(' + v + ')">' + v + '</button>';
-        });
-        h += '<div class="res-obj-free">';
-        h += '<input id="resObjFreeInput" class="res-obj-free-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2"';
-        h += ' value="' + (sel && presets.indexOf(sel) === -1 ? sel : '') + '"';
-        h += ' placeholder="\u2026" onfocus="EleveResultats._objPresetSelected=null" oninput="EleveResultats.onObjFreeInput(this)">';
-        h += '<span class="res-obj-free-unit">/20</span>';
-        h += '</div></div>';
-        h += '<div class="res-obj-actions">';
-        h += '<button class="res-obj-confirm" style="background:' + acColor + '" onclick="EleveResultats.confirmObj()"';
-        if (!sel) h += ' disabled style="background:' + acColor + ';opacity:0.4;cursor:default"';
-        h += '>Valider</button>';
-        h += '<button class="res-obj-cancel" onclick="EleveResultats.cancelEditObj()">Annuler</button>';
-        h += '</div></div>';
+        h += '</div>';
         return h;
     },
 
