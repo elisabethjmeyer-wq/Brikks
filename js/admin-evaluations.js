@@ -3661,7 +3661,7 @@ const AdminEvaluations = {
     },
 
     // ========== SAISIE DES RÉSULTATS (progression) ==========
-    async openSaisie(evaluationId) {
+    async openSaisie(evaluationId, { skipReload = false } = {}) {
         const evaluation = this.evaluations.find(e => String(e.id) === String(evaluationId));
         if (!evaluation) return;
 
@@ -3673,16 +3673,19 @@ const AdminEvaluations = {
         // Show saisie view with loader
         document.getElementById('evaluations-content').style.display = 'none';
         document.getElementById('saisie-content').style.display = 'block';
-        document.getElementById('saisieLoader').style.display = 'block';
-        document.getElementById('saisieTableContainer').style.display = 'none';
+        document.getElementById('saisieLoader').style.display = skipReload ? 'none' : 'block';
+        document.getElementById('saisieTableContainer').style.display = skipReload ? '' : 'none';
 
         // Recharger les résultats frais (sans cache) pour capter les passages récents
-        try {
-            localStorage.removeItem(SheetsAPI._cachePrefix + 'EVALUATION_RESULTATS_');
-            const freshResultats = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
-            this.resultats = SheetsAPI.parseSheetData(freshResultats);
-        } catch (_e) {
-            console.warn('Erreur rechargement résultats, utilisation des données en mémoire');
+        // Skip si on vient de sauvegarder (données locales déjà à jour)
+        if (!skipReload) {
+            try {
+                localStorage.removeItem(SheetsAPI._cachePrefix + 'EVALUATION_RESULTATS_');
+                const freshResultats = await SheetsAPI.getSheetData('EVALUATION_RESULTATS');
+                this.resultats = SheetsAPI.parseSheetData(freshResultats);
+            } catch (_e) {
+                console.warn('Erreur rechargement résultats, utilisation des données en mémoire');
+            }
         }
 
         // Get existing results for this evaluation
@@ -3692,14 +3695,16 @@ const AdminEvaluations = {
         const resultsMap = {};
         evalResults.forEach(r => { resultsMap[String(r.eleve_id).trim()] = r; });
 
-        // Load existing attributions
+        // Load existing attributions (skip si post-sauvegarde)
         let attributionsMap = {};
-        try {
-            const attrResult = await this.callAPI('getAttributionsSujets', { evaluation_id: evaluationId });
-            if (attrResult.success && attrResult.data) {
-                attrResult.data.forEach(a => { attributionsMap[String(a.eleve_id).trim()] = a; });
-            }
-        } catch (_e) { /* ignore */ }
+        if (!skipReload) {
+            try {
+                const attrResult = await this.callAPI('getAttributionsSujets', { evaluation_id: evaluationId });
+                if (attrResult.success && attrResult.data) {
+                    attrResult.data.forEach(a => { attributionsMap[String(a.eleve_id).trim()] = a; });
+                }
+            } catch (_e) { /* ignore */ }
+        }
 
         // Update header
         document.getElementById('saisieTitle').textContent = escapeHtml(evaluation.titre || 'Sans titre');
@@ -4282,27 +4287,73 @@ const AdminEvaluations = {
             if (errors === 0) {
                 const nbResults = changedIds.length;
                 this.showNotification(nbResults > 0 ? `${nbResults} résultat(s) enregistré(s)` : 'Attributions enregistrées');
+
+                // Mise à jour locale des données (pas de rechargement Sheets — délai de propagation)
+                if (this.saisieEvaluation) {
+                    changedIds.forEach(eleveId => {
+                        const changes = this.saisieChanges[eleveId];
+                        const validations = changes.validations;
+                        const isSpecial = validations === 'non_rendu' || validations === 'absent' || validations === 'non_evalue';
+                        const numericValidations = isSpecial ? 0 : validations;
+                        const evalId = String(this.saisieEvaluation.id).trim();
+                        const eId = String(eleveId).trim();
+                        let existing = this.resultats.find(r =>
+                            String(r.evaluation_id).trim() === evalId &&
+                            String(r.eleve_id).trim() === eId
+                        );
+                        if (existing) {
+                            if (changes.validations !== undefined) existing.validations = numericValidations;
+                            if (changes.score !== undefined) existing.score = changes.score;
+                            existing.source = 'manuel';
+                            existing.statut_resultat = isSpecial ? validations : '';
+                            if (changes.validations !== undefined) {
+                                existing.is_validated = isSpecial ? false :
+                                    (parseInt(numericValidations) > 0 ? true : existing.is_validated);
+                            }
+                        } else {
+                            this.resultats.push({
+                                id: 'temp_' + Date.now() + '_' + eleveId,
+                                evaluation_id: evalId,
+                                eleve_id: eId,
+                                validations: numericValidations,
+                                score: changes.score || '',
+                                source: 'manuel',
+                                statut_resultat: isSpecial ? validations : '',
+                                is_validated: isSpecial ? false : (parseInt(numericValidations) > 0)
+                            });
+                        }
+                    });
+                    // Invalider le cache pour que le prochain chargement complet soit frais
+                    SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+                } else if (this.saisieSommative) {
+                    changedIds.forEach(eleveId => {
+                        const changes = this.saisieChanges[eleveId];
+                        const somId = String(this.saisieSommative.id).trim();
+                        const eId = String(eleveId).trim();
+                        let existing = this.resultatsSommatives.find(r =>
+                            String(r.sommative_id).trim() === somId &&
+                            String(r.eleve_id).trim() === eId
+                        );
+                        if (existing) {
+                            Object.assign(existing, changes);
+                        } else {
+                            this.resultatsSommatives.push({
+                                id: 'temp_' + Date.now() + '_' + eleveId,
+                                sommative_id: somId,
+                                eleve_id: eId,
+                                ...changes
+                            });
+                        }
+                    });
+                    SheetsAPI.clearCacheFor('RESULTATS_SOMMATIVES');
+                }
+
                 this.saisieChanges = {};
                 document.getElementById('saisieSaveBar').style.display = 'none';
 
-                // Recharger uniquement les tables modifiées (pas tout)
+                // Re-render la vue saisie avec les données locales (pas de rechargement Sheets)
                 if (this.saisieEvaluation) {
-                    SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
-                    SheetsAPI.clearCacheFor('EVALUATIONS');
-                    const [resultatsData, evaluationsData] = await Promise.all([
-                        SheetsAPI.getSheetData('EVALUATION_RESULTATS'),
-                        SheetsAPI.getSheetData('EVALUATIONS')
-                    ]);
-                    this.resultats = SheetsAPI.parseSheetData(resultatsData);
-                    this.evaluations = SheetsAPI.parseSheetData(evaluationsData);
-                } else {
-                    SheetsAPI.clearCacheFor('RESULTATS_SOMMATIVES');
-                    const resultatsData = await SheetsAPI.getSheetData('RESULTATS_SOMMATIVES');
-                    this.resultatsSommatives = SheetsAPI.parseSheetData(resultatsData);
-                }
-
-                if (this.saisieEvaluation) {
-                    this.openSaisie(this.saisieEvaluation.id);
+                    this.openSaisie(this.saisieEvaluation.id, { skipReload: true });
                 } else if (this.saisieSommative) {
                     this.openSaisieSommative(this.saisieSommative.id);
                 }
