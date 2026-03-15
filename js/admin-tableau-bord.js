@@ -177,6 +177,10 @@ const AdminTableauBord = {
             );
             if (!result) return;
 
+            // NE (non évalué) : ne pas compter dans les points
+            const statutRes = String(result.statut_resultat || '').trim();
+            if (statutRes === 'non_evalue') return;
+
             const categorie = ev.categorie || ev.type || 'connaissances';
             if (cats[categorie] === undefined) return;
 
