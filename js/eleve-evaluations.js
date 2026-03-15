@@ -210,10 +210,50 @@ const EleveEvaluations = {
         };
     },
 
+    /**
+     * Retourne les bornes de date pour un semestre donné.
+     */
+    _getSemestreDates(semestre) {
+        const p = this.parametresNotes.find(n => String(n.semestre) === String(semestre));
+        if (!p) return { debut: null, fin: null };
+        const debut = p.date_debut ? new Date(p.date_debut) : null;
+        const fin = p.date_fin ? new Date(p.date_fin) : null;
+        return { debut, fin };
+    },
+
+    /**
+     * Pour un bonus suivi, calcule les points proportionnels pour un semestre
+     * en ne comptant que les vérifications ✓ dont la date tombe dans ce semestre.
+     */
+    _getSuiviPointsForSemestre(ev, result, semestre) {
+        const { debut, fin } = this._getSemestreDates(semestre);
+        if (!debut || !fin) return parseFloat(result.validations) || 0;
+
+        let historique = [];
+        try {
+            const raw = result.validations_historique;
+            historique = typeof raw === 'string' ? JSON.parse(raw) : (raw || []);
+            if (!Array.isArray(historique)) historique = [];
+        } catch (_e) { return 0; }
+
+        const nbReussitesSemestre = historique.filter(h => {
+            if (!h.resultat) return false;
+            const d = new Date(h.date);
+            return !isNaN(d.getTime()) && d >= debut && d <= fin;
+        }).length;
+
+        const nbValTotal = parseInt(ev.nb_validations) || 1;
+        const briques = parseFloat(ev.briques) || 0;
+        return Math.round((nbReussitesSemestre / nbValTotal) * briques * 100) / 100;
+    },
+
     _calculatePoints(matiere) {
         const cats = { connaissances: 0, 'savoir-faire': 0, competences: 0, bonus: 0 };
+        const sem = String(this.currentSemestre);
+        // Évals du semestre + bonus suivi (qui couvrent potentiellement les 2 semestres)
         const semestreEvals = this.evaluations.filter(ev => {
-            return this._getSemestreForEval(ev) === String(this.currentSemestre);
+            if (ev.type === 'bonus' && String(ev.sous_type_bonus || '') === 'suivi') return true;
+            return this._getSemestreForEval(ev) === sem;
         });
         semestreEvals.forEach(ev => {
             const result = this.resultats.find(r =>
@@ -227,6 +267,15 @@ const EleveEvaluations = {
 
             const categorie = ev.categorie || ev.type || 'connaissances';
             if (cats[categorie] === undefined) return;
+
+            // Bonus suivi : ventiler les points par semestre selon les dates de vérification
+            if (ev.type === 'bonus' && String(ev.sous_type_bonus || '') === 'suivi') {
+                const m = ev.matiere || '';
+                if (m === matiere || m === 'Les deux') {
+                    cats[categorie] += this._getSuiviPointsForSemestre(ev, result, sem);
+                }
+                return;
+            }
 
             // Mode points par compétence : ventiler par matière
             const resPpc = this._parsePointsParCompetence(result.points_par_competence);
