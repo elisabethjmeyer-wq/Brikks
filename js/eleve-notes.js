@@ -437,9 +437,10 @@ const EleveResultats = {
                 const r = this.resultats.find(res => String(res.evaluation_id).trim() === String(ev.id).trim());
                 const pts = parseFloat(ev.briques) || 2;
                 const acquis = r ? parseFloat(r.validations) || 0 : null;
-                const date = r ? this._formatDate(r.date_passage) : null;
-                return { id: ev.id, t: ev.titre || 'Évaluation', pts, acquis, date };
-            });
+                const date = this._formatDate(ev.date_ouverture) || (r ? this._formatDate(r.date_passage) : null);
+                return { id: ev.id, t: ev.titre || 'Évaluation', pts, acquis, date, _dateRaw: ev.date_ouverture || (r ? r.date_passage : '') || '' };
+            })
+            .sort((a, b) => new Date(b._dateRaw || 0) - new Date(a._dateRaw || 0));
     },
 
     _formatDate(ds) {
@@ -1087,7 +1088,7 @@ const EleveResultats = {
             h += '<div class="eval-item ' + (done ? 'done' : 'pending') + '" style="border-left-color:' + (done ? color : '#e5e7eb') + ';background:' + (done ? bg : '#f9fafb') + '">';
             h += '<span class="eval-item-icon">' + (done ? '\u2705' : '\u2B1C') + '</span>';
             h += '<div class="eval-item-info"><div class="eval-item-name ' + (done ? 'done' : 'pending') + '">' + escapeHtml(ev.t) + '</div>';
-            h += '<div class="eval-item-sub">' + (done ? 'Validé le ' + ev.date : 'Non validé') + '</div></div>';
+            h += '<div class="eval-item-sub">' + (done ? (ev.date ? ev.date : 'Validé') : ev.date ? ev.date : 'Non validé') + '</div></div>';
             h += '<div class="eval-item-pts" style="background:' + (done ? bg : '#f3f4f6') + ';color:' + (done ? color : '#d1d5db') + '">+' + (done ? ev.acquis : ev.pts) + ' pts</div>';
             h += '</div>';
         });
