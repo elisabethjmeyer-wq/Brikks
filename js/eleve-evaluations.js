@@ -926,7 +926,10 @@ const EleveEvaluations = {
             statusHtml = `<span class="bonus-status refuse">Refusé</span>`;
             if (remarque) statusHtml += `<div class="bonus-remarque">${escapeHtml(remarque)}</div>`;
         } else if (cardStatus === 'suivi_en_cours' || cardStatus === 'suivi_complete') {
-            statusHtml = this._renderSuiviProgress(currentVal, nbTotal, pct, isComplete, resultat);
+            if (currentVal === 0) {
+                statusHtml = '<span class="bonus-status accepte">Demande acceptée</span>';
+            }
+            statusHtml += this._renderSuiviProgress(currentVal, nbTotal, pct, isComplete, resultat);
         }
 
         // Action (dans card-right, comme les autres cartes)

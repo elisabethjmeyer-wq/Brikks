@@ -267,7 +267,7 @@ const EleveEvaluation = {
                         </div>
                     </div>
                 </div>
-                <div class="sujet-document-section" style="max-width: 900px;">
+                <div class="sujet-document-section">
                     <div class="sujet-section-header">📄 Sujet</div>
                     ${consigneHtml}
                     <div class="sujet-document-content">
