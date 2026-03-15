@@ -220,6 +220,11 @@ const EleveEvaluations = {
                 String(r.evaluation_id).trim() === String(ev.id).trim()
             );
             if (!result) return;
+
+            // NE (non évalué) : ne pas compter dans les points
+            const statutRes = String(result.statut_resultat || '').trim();
+            if (statutRes === 'non_evalue') return;
+
             const categorie = ev.categorie || ev.type || 'connaissances';
             if (cats[categorie] === undefined) return;
 
@@ -531,7 +536,8 @@ const EleveEvaluations = {
                 if (resultat) {
                     const statutRes = String(resultat.statut_resultat || '').trim();
                     if (statutRes === 'non_evalue') {
-                        this.categories.done.push({ ...ev, resultat, cardStatus: 'non_evalue' });
+                        // NE : masquer complètement de la liste élève
+                        return;
                     } else if (statutRes === 'non_rendu') {
                         this.categories.done.push({ ...ev, resultat, cardStatus: 'non_rendu' });
                     } else if (statutRes === 'absent') {
@@ -553,7 +559,7 @@ const EleveEvaluations = {
             if (resultat) {
                 const statutRes = String(resultat.statut_resultat || '').trim();
                 if (statutRes === 'non_evalue') {
-                    this.categories.done.push({ ...ev, resultat, cardStatus: 'non_evalue' });
+                    // NE : masquer complètement de la liste élève
                     return;
                 }
                 if (statutRes === 'non_rendu' || statutRes === 'absent') {

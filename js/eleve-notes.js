@@ -238,6 +238,10 @@ const EleveResultats = {
                 String(res.evaluation_id).trim() === String(ev.id).trim()
             );
 
+            // NE (non évalué) : exclure du budget max et des points
+            const statutRes = r ? String(r.statut_resultat || '').trim() : '';
+            if (statutRes === 'non_evalue') return;
+
             // Budget max : ventiler par compétence si disponible
             const evalPpc = this._parsePointsParCompetence(ev.points_par_competence);
             if (evalPpc && Object.keys(evalPpc).length > 0) {
@@ -434,17 +438,24 @@ const EleveResultats = {
         const banquesList = type === 'conn' ? this.banquesConn : this.banquesSF;
         return this._getEvalsForMatiere(matiere, semestre)
             .filter(ev => (ev.categorie || ev.type) === evalType)
+            .filter(ev => {
+                // Masquer les évals NE (non évalué) de la liste
+                const r = this.resultats.find(res => String(res.evaluation_id).trim() === String(ev.id).trim());
+                return !r || String(r.statut_resultat || '').trim() !== 'non_evalue';
+            })
             .map(ev => {
                 const r = this.resultats.find(res => String(res.evaluation_id).trim() === String(ev.id).trim());
                 const pts = parseFloat(ev.briques) || 2;
-                const acquis = r ? parseFloat(r.validations) || 0 : null;
+                const statutRes = r ? String(r.statut_resultat || '').trim() : '';
+                const isAbsent = statutRes === 'absent';
+                const acquis = isAbsent ? 0 : (r ? parseFloat(r.validations) || 0 : null);
                 const date = this._formatDate(ev.date_ouverture) || (r ? this._formatDate(r.date_passage) : null);
                 let banqueName = null;
                 if (r && r.banque_id) {
                     const banque = banquesList.find(b => String(b.id).trim() === String(r.banque_id).trim());
                     if (banque) banqueName = banque.titre || banque.nom || null;
                 }
-                return { id: ev.id, t: ev.titre || 'Évaluation', pts, acquis, date, banqueName, _dateRaw: ev.date_ouverture || (r ? r.date_passage : '') || '' };
+                return { id: ev.id, t: ev.titre || 'Évaluation', pts, acquis, date, banqueName, isAbsent, _dateRaw: ev.date_ouverture || (r ? r.date_passage : '') || '' };
             })
             .sort((a, b) => new Date(b._dateRaw || 0) - new Date(a._dateRaw || 0));
     },
@@ -1091,12 +1102,13 @@ const EleveResultats = {
         h += '<div class="eval-list-items">';
         evals.forEach(ev => {
             const done = ev.acquis !== null;
-            h += '<div class="eval-item ' + (done ? 'done' : 'pending') + '" style="border-left-color:' + (done ? color : '#e5e7eb') + ';background:' + (done ? bg : '#f9fafb') + '">';
-            h += '<span class="eval-item-icon">' + (done ? '\u2705' : '\u2B1C') + '</span>';
+            const absent = ev.isAbsent;
+            h += '<div class="eval-item ' + (done ? 'done' : 'pending') + (absent ? ' absent' : '') + '" style="border-left-color:' + (done && !absent ? color : '#e5e7eb') + ';background:' + (absent ? '#fef2f2' : (done ? bg : '#f9fafb')) + '">';
+            h += '<span class="eval-item-icon">' + (absent ? '\u274C' : (done ? '\u2705' : '\u2B1C')) + '</span>';
             h += '<div class="eval-item-info"><div class="eval-item-name ' + (done ? 'done' : 'pending') + '">' + escapeHtml(ev.t) + '</div>';
-            const sub = done ? (ev.date ? ev.date : 'Validé') : (ev.date ? ev.date : 'Non validé');
+            const sub = absent ? 'Absent(e)' : (done ? (ev.date ? ev.date : 'Validé') : (ev.date ? ev.date : 'Non validé'));
             h += '<div class="eval-item-sub">' + sub + (ev.banqueName ? ' · ' + escapeHtml(ev.banqueName) : '') + '</div></div>';
-            h += '<div class="eval-item-pts" style="background:' + (done ? bg : '#f3f4f6') + ';color:' + (done ? color : '#d1d5db') + '">+' + (done ? ev.acquis : ev.pts) + ' pts</div>';
+            h += '<div class="eval-item-pts" style="background:' + (absent ? '#fee2e2' : (done ? bg : '#f3f4f6')) + ';color:' + (absent ? '#dc2626' : (done ? color : '#d1d5db')) + '">+' + (done ? ev.acquis : ev.pts) + ' pts</div>';
             h += '</div>';
         });
         if (evals.length === 0) h += '<div class="res-empty">Aucune évaluation</div>';
