@@ -4165,9 +4165,9 @@ const AdminEvaluations = {
         let errors = 0;
 
         try {
-            for (const eleveId of changedIds) {
+            // Préparer tous les appels en parallèle (au lieu de séquentiel)
+            const savePromises = changedIds.map(eleveId => {
                 const changes = this.saisieChanges[eleveId];
-                let result;
 
                 if (this.saisieEvaluation) {
                     // Handle NR/ABS special values
@@ -4176,7 +4176,6 @@ const AdminEvaluations = {
                     const numericValidations = isSpecial ? 0 : validations;
 
                     // Include attribution banque_id + entrainement_id for traceability
-                    // Clé normalisée (trim) pour matcher _saisieAttributions
                     const attrKey = String(eleveId).trim();
                     const attr = this._saisieAttributions ? this._saisieAttributions[attrKey] : null;
 
@@ -4193,8 +4192,7 @@ const AdminEvaluations = {
                         isValidated = true;
                     }
 
-                    // Progression evaluation result
-                    result = await this.callAPI('saveEvaluationResult', {
+                    return this.callAPI('saveEvaluationResult', {
                         evaluation_id: this.saisieEvaluation.id,
                         eleve_id: eleveId,
                         ...changes,
@@ -4205,19 +4203,22 @@ const AdminEvaluations = {
                         entrainement_id: attr ? attr.entrainement_id : ''
                     });
                 } else if (this.saisieSommative) {
-                    // Sommative result
-                    result = await this.callAPI('saveResultatSommative', {
+                    return this.callAPI('saveResultatSommative', {
                         sommative_id: this.saisieSommative.id,
                         eleve_id: eleveId,
                         ...changes
                     });
                 }
+                return Promise.resolve({ success: true });
+            });
 
+            const results = await Promise.all(savePromises);
+            results.forEach((result, i) => {
                 if (!result || !result.success) {
                     errors++;
-                    console.error('Erreur sauvegarde pour élève', eleveId, result);
+                    console.error('Erreur sauvegarde pour élève', changedIds[i], result);
                 }
-            }
+            });
 
             // Save attributions if changed
             if (this.saisieEvaluation && this._saisieAttributions) {
@@ -4246,9 +4247,21 @@ const AdminEvaluations = {
                 this.saisieChanges = {};
                 document.getElementById('saisieSaveBar').style.display = 'none';
 
-                // Reload data and re-open saisie
-                SheetsAPI.clearCache();
-                await this.loadData();
+                // Recharger uniquement les tables modifiées (pas tout)
+                if (this.saisieEvaluation) {
+                    SheetsAPI.clearCacheFor('EVALUATION_RESULTATS');
+                    SheetsAPI.clearCacheFor('EVALUATIONS');
+                    const [resultatsData, evaluationsData] = await Promise.all([
+                        SheetsAPI.getSheetData('EVALUATION_RESULTATS'),
+                        SheetsAPI.getSheetData('EVALUATIONS')
+                    ]);
+                    this.resultats = SheetsAPI.parseSheetData(resultatsData);
+                    this.evaluations = SheetsAPI.parseSheetData(evaluationsData);
+                } else {
+                    SheetsAPI.clearCacheFor('RESULTATS_SOMMATIVES');
+                    const resultatsData = await SheetsAPI.getSheetData('RESULTATS_SOMMATIVES');
+                    this.resultatsSommatives = SheetsAPI.parseSheetData(resultatsData);
+                }
 
                 if (this.saisieEvaluation) {
                     this.openSaisie(this.saisieEvaluation.id);
