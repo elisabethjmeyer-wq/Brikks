@@ -416,7 +416,7 @@ const EleveResultats = {
             const lid = prog ? String(prog.derniere_banque_validee_id || '').trim() : '';
             if (lid) lastIdx = banques.findIndex(b => String(b.id).trim() === lid);
         }
-        if (lastIdx >= 0) return Math.min(lastIdx + 1, banques.length - 1);
+        if (lastIdx >= 0) return lastIdx + 1;
         return 0;
     },
 
@@ -431,6 +431,7 @@ const EleveResultats = {
 
     _getEvalsForType(type, matiere, semestre) {
         const evalType = type === 'conn' ? 'connaissances' : 'savoir-faire';
+        const banquesList = type === 'conn' ? this.banquesConn : this.banquesSF;
         return this._getEvalsForMatiere(matiere, semestre)
             .filter(ev => (ev.categorie || ev.type) === evalType)
             .map(ev => {
@@ -438,7 +439,12 @@ const EleveResultats = {
                 const pts = parseFloat(ev.briques) || 2;
                 const acquis = r ? parseFloat(r.validations) || 0 : null;
                 const date = this._formatDate(ev.date_ouverture) || (r ? this._formatDate(r.date_passage) : null);
-                return { id: ev.id, t: ev.titre || 'Évaluation', pts, acquis, date, _dateRaw: ev.date_ouverture || (r ? r.date_passage : '') || '' };
+                let banqueName = null;
+                if (r && r.banque_id) {
+                    const banque = banquesList.find(b => String(b.id).trim() === String(r.banque_id).trim());
+                    if (banque) banqueName = banque.titre || banque.nom || null;
+                }
+                return { id: ev.id, t: ev.titre || 'Évaluation', pts, acquis, date, banqueName, _dateRaw: ev.date_ouverture || (r ? r.date_passage : '') || '' };
             })
             .sort((a, b) => new Date(b._dateRaw || 0) - new Date(a._dateRaw || 0));
     },
@@ -1088,7 +1094,8 @@ const EleveResultats = {
             h += '<div class="eval-item ' + (done ? 'done' : 'pending') + '" style="border-left-color:' + (done ? color : '#e5e7eb') + ';background:' + (done ? bg : '#f9fafb') + '">';
             h += '<span class="eval-item-icon">' + (done ? '\u2705' : '\u2B1C') + '</span>';
             h += '<div class="eval-item-info"><div class="eval-item-name ' + (done ? 'done' : 'pending') + '">' + escapeHtml(ev.t) + '</div>';
-            h += '<div class="eval-item-sub">' + (done ? (ev.date ? ev.date : 'Validé') : ev.date ? ev.date : 'Non validé') + '</div></div>';
+            const sub = done ? (ev.date ? ev.date : 'Validé') : (ev.date ? ev.date : 'Non validé');
+            h += '<div class="eval-item-sub">' + sub + (ev.banqueName ? ' · ' + escapeHtml(ev.banqueName) : '') + '</div></div>';
             h += '<div class="eval-item-pts" style="background:' + (done ? bg : '#f3f4f6') + ';color:' + (done ? color : '#d1d5db') + '">+' + (done ? ev.acquis : ev.pts) + ' pts</div>';
             h += '</div>';
         });
