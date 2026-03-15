@@ -4780,7 +4780,7 @@ const AdminEvaluations = {
             }
             const nbReussites = historique.filter(h => h.resultat).length;
             const isComplete = nbReussites >= nbReussitesRequises;
-            const points = isComplete ? maxPts : 0;
+            const points = nbReussitesRequises > 0 ? Math.round((nbReussites / nbReussitesRequises) * maxPts * 100) / 100 : 0;
 
             const historiqueHtml = historique.length > 0
                 ? historique.map((h, i) => {

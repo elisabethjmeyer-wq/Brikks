@@ -901,10 +901,14 @@ const EleveEvaluations = {
             clickAttr = ` onclick="EleveEvaluations.consulterSujet('${evaluation.id}')"`;
         }
 
-        // Points badge
+        // Points badge — progressif
+        const pointsAcquis = resultat ? (parseFloat(resultat.validations) || 0) : 0;
         let pointsBadge;
         if (isComplete) {
             pointsBadge = `<span class="card-points earned">+${briques}</span>`;
+        } else if (pointsAcquis > 0) {
+            const displayPts = Number.isInteger(pointsAcquis) ? pointsAcquis : pointsAcquis.toFixed(1);
+            pointsBadge = `<span class="card-points earned">+${displayPts} / ${briques}</span>`;
         } else {
             pointsBadge = `<span class="card-points pending">${briques} point${briques > 1 ? 's' : ''} à gagner</span>`;
         }

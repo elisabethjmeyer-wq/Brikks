@@ -7422,13 +7422,32 @@ function saveVerificationSuivi(data) {
     if (historique[j].resultat) nbReussites++;
   }
 
+  // Lire briques et nb_validations depuis EVALUATIONS pour calculer les points progressifs
+  var pointsProgressifs = nbReussites;
+  var evalSheet = ss.getSheetByName(SHEETS.EVALUATIONS);
+  if (evalSheet) {
+    var evalData = evalSheet.getDataRange().getValues();
+    var evalHeaders = evalData[0].map(function(h) { return String(h).toLowerCase().trim(); });
+    var evalIdIdx = evalHeaders.indexOf('id');
+    var briquesIdx = evalHeaders.indexOf('briques');
+    var nbValIdx = evalHeaders.indexOf('nb_validations');
+    for (var e = 1; e < evalData.length; e++) {
+      if (String(evalData[e][evalIdIdx]).trim() === String(data.evaluation_id).trim()) {
+        var briques = parseFloat(evalData[e][briquesIdx]) || 0;
+        var nbValTotal = parseInt(evalData[e][nbValIdx]) || 1;
+        pointsProgressifs = Math.round((nbReussites / nbValTotal) * briques * 100) / 100;
+        break;
+      }
+    }
+  }
+
   if (existingRow > 0) {
     // Mettre à jour la ligne existante
     if (histCol >= 0) sheet.getRange(existingRow, histCol + 1).setValue(JSON.stringify(historique));
     if (validNumCol >= 0) sheet.getRange(existingRow, validNumCol + 1).setValue(nbReussites);
-    if (validationsCol >= 0) sheet.getRange(existingRow, validationsCol + 1).setValue(nbReussites);
+    if (validationsCol >= 0) sheet.getRange(existingRow, validationsCol + 1).setValue(pointsProgressifs);
     if (dateCol >= 0) sheet.getRange(existingRow, dateCol + 1).setValue(new Date().toISOString());
-    return { success: true, nb_reussites: nbReussites, historique: historique };
+    return { success: true, nb_reussites: nbReussites, points: pointsProgressifs, historique: historique };
   }
 
   // Créer une nouvelle ligne
@@ -7438,7 +7457,7 @@ function saveVerificationSuivi(data) {
     if (col === 'evaluation_id') return data.evaluation_id;
     if (col === 'eleve_id') return data.eleve_id;
     if (col === 'validation_numero') return nbReussites;
-    if (col === 'validations') return nbReussites;
+    if (col === 'validations') return pointsProgressifs;
     if (col === 'validations_historique') return JSON.stringify(historique);
     if (col === 'source') return 'saisie_admin';
     if (col === 'date_passage') return new Date().toISOString();
@@ -7446,7 +7465,7 @@ function saveVerificationSuivi(data) {
   });
 
   sheet.appendRow(newRow);
-  return { success: true, id: id, nb_reussites: nbReussites, historique: historique };
+  return { success: true, id: id, nb_reussites: nbReussites, points: pointsProgressifs, historique: historique };
 }
 
 /**
