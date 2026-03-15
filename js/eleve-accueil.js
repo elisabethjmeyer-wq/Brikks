@@ -71,6 +71,14 @@ const EleveAccueil = {
 
     async loadFeaturedReco() {
         try {
+            // Vérifier si la recommandation est activée sur l'accueil
+            const parametres = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.PARAMETRES);
+            const paramReco = (parametres || []).find(p => p.cle === 'reco_accueil');
+            if (paramReco && paramReco.valeur === 'FALSE') {
+                this.featuredReco = null;
+                return;
+            }
+
             const recos = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.RECOMMANDATIONS);
             if (!recos?.length) return;
             recos.sort((a, b) => new Date(b.date_publication || 0) - new Date(a.date_publication || 0));
