@@ -159,14 +159,54 @@ const AdminTableauBord = {
     },
 
     /**
+     * Retourne les bornes de date pour un semestre donné.
+     * @returns {{ debut: Date|null, fin: Date|null }}
+     */
+    _getSemestreDates(semestre) {
+        const p = this.parametresNotes.find(n => String(n.semestre) === String(semestre));
+        if (!p) return { debut: null, fin: null };
+        const debut = p.date_debut ? new Date(p.date_debut) : null;
+        const fin = p.date_fin ? new Date(p.date_fin) : null;
+        return { debut, fin };
+    },
+
+    /**
+     * Pour un bonus suivi, calcule les points proportionnels pour un semestre
+     * en ne comptant que les vérifications ✓ dont la date tombe dans ce semestre.
+     * @returns {number} points pour ce semestre (0 si aucune vérification dans le semestre)
+     */
+    _getSuiviPointsForSemestre(ev, result, semestre) {
+        const { debut, fin } = this._getSemestreDates(semestre);
+        if (!debut || !fin) return parseFloat(result.validations) || 0;
+
+        let historique = [];
+        try {
+            const raw = result.validations_historique;
+            historique = typeof raw === 'string' ? JSON.parse(raw) : (raw || []);
+            if (!Array.isArray(historique)) historique = [];
+        } catch (_e) { return 0; }
+
+        const nbReussitesSemestre = historique.filter(h => {
+            if (!h.resultat) return false;
+            const d = new Date(h.date);
+            return !isNaN(d.getTime()) && d >= debut && d <= fin;
+        }).length;
+
+        const nbValTotal = parseInt(ev.nb_validations) || 1;
+        const briques = parseFloat(ev.briques) || 0;
+        return Math.round((nbReussitesSemestre / nbValTotal) * briques * 100) / 100;
+    },
+
+    /**
      * Calculate points acquired by a student for a matière
      * Returns: { connaissances, savoirFaire, competences, bonus, total }
      */
     _calculatePoints(eleveId, matiere, semestre) {
         const cats = { connaissances: 0, 'savoir-faire': 0, competences: 0, bonus: 0 };
 
-        // Toutes les évals du semestre (on filtre la matière en dessous, selon le mode)
+        // Évals du semestre + bonus suivi (qui couvrent potentiellement les 2 semestres)
         const semestreEvals = this.evaluations.filter(ev => {
+            if (ev.type === 'bonus' && String(ev.sous_type_bonus || '') === 'suivi') return true;
             return this._getSemestreForEval(ev) === String(semestre);
         });
 
@@ -183,6 +223,18 @@ const AdminTableauBord = {
 
             const categorie = ev.categorie || ev.type || 'connaissances';
             if (cats[categorie] === undefined) return;
+
+            // Bonus suivi : ventiler les points par semestre selon les dates de vérification
+            if (ev.type === 'bonus' && String(ev.sous_type_bonus || '') === 'suivi') {
+                const pts = this._getSuiviPointsForSemestre(ev, result, semestre);
+                if (pts > 0) {
+                    const m = ev.matiere || '';
+                    if (m === matiere || m === 'Les deux') {
+                        cats[categorie] += pts;
+                    }
+                }
+                return;
+            }
 
             // Mode points par compétence : ventiler par matière de la compétence
             const resPpc = this._parsePointsParCompetence(result.points_par_competence);
