@@ -971,7 +971,7 @@ function deleteEvaluation(data) {
   var type = String(evaluation.type || '').trim();
   var matiere = String(evaluation.matiere || '').trim();
 
-  // 2. Collecter les élèves ayant un résultat validé (pour recalcul progression)
+  // 2. Collecter TOUS les élèves ayant un résultat (pour recalcul progression)
   var affectedEleves = [];
   var resSheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
   if (resSheet && resSheet.getLastRow() > 1) {
@@ -979,13 +979,13 @@ function deleteEvaluation(data) {
     var resHeaders = resData[0].map(function(h) { return String(h).toLowerCase().trim(); });
     var resEvalCol = resHeaders.indexOf('evaluation_id');
     var resEleveCol = resHeaders.indexOf('eleve_id');
-    var resValidCol = resHeaders.indexOf('is_validated');
 
     for (var j = 1; j < resData.length; j++) {
       if (String(resData[j][resEvalCol]).trim() === evalId) {
-        var isValid = resData[j][resValidCol] === true || String(resData[j][resValidCol]).toUpperCase() === 'TRUE';
-        if (isValid) {
-          affectedEleves.push(String(resData[j][resEleveCol]).trim());
+        var eid = String(resData[j][resEleveCol]).trim();
+        if (affectedEleves.indexOf(eid) < 0) {
+          affectedEleves.push(eid);
+        }
         }
       }
     }
