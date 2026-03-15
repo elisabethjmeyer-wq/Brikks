@@ -856,8 +856,8 @@ const AdminEvaluations = {
         if (type === 'connaissances' || type === 'savoir-faire') return 2;
         // TC : 5 étapes (Paramètres + Compétences + Document + Corrigé + Résumé)
         if (type === 'competences') return 5;
-        // Bonus suivi : 2 étapes (Paramètres + Détails)
-        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'suivi') return 2;
+        // Bonus suivi : 3 étapes (Paramètres + Détails + Document)
+        if (type === 'bonus' && this.wizardData.sous_type_bonus === 'suivi') return 3;
         // Bonus mission : 5 étapes (Paramètres + Compétences & Critères + Document + Corrigé + Résumé)
         if (type === 'bonus') return 5;
         return 1;
@@ -875,7 +875,7 @@ const AdminEvaluations = {
             return ['Paramètres', 'Compétences', 'Document', 'Corrigé', 'Résumé'];
         }
         if (type === 'bonus' && this.wizardData.sous_type_bonus === 'suivi') {
-            return ['Paramètres', 'Détails'];
+            return ['Paramètres', 'Détails', 'Document'];
         }
         if (type === 'bonus') {
             return ['Paramètres', 'Évaluation', 'Document', 'Corrigé', 'Résumé'];
@@ -972,11 +972,14 @@ const AdminEvaluations = {
             return;
         }
 
-        // Bonus suivi : Step 2 = Détails
+        // Bonus suivi : Step 2 = Détails, Step 3 = Document/Sujet
         if (type === 'bonus' && sousType === 'suivi') {
             if (this.wizardStep === 2) {
                 content.innerHTML = this._renderStepSuiviDetails();
                 this._initStepSuiviDetails();
+            } else if (this.wizardStep === 3) {
+                content.innerHTML = this._renderStepDocument();
+                this._initStepDocument();
             }
             return;
         }
@@ -2486,24 +2489,6 @@ const AdminEvaluations = {
     _renderStepSuiviDetails() {
         const d = this.wizardData;
 
-        // Parse existing critères
-        let criteres = [];
-        if (d.criteres_libres) {
-            try {
-                const parsed = typeof d.criteres_libres === 'string' ? JSON.parse(d.criteres_libres) : d.criteres_libres;
-                if (Array.isArray(parsed)) criteres = parsed;
-            } catch (_e) { /* ignore */ }
-        }
-        if (criteres.length === 0) criteres.push('');
-
-        const criteresRows = criteres.map((c, i) =>
-            `<div class="critere-libre-row">
-                <span class="critere-libre-num">${i + 1}</span>
-                <input type="text" class="form-input critere-libre-input" value="${escapeHtml(c)}" placeholder="Ex: Avoir son cahier à jour">
-                <button class="btn-icon btn-remove" onclick="AdminEvaluations._ewRemoveSuiviCritere(${i})" title="Supprimer">&times;</button>
-            </div>`
-        ).join('');
-
         return `<div class="eval-wizard-step-content">
             <div class="step-header">
                 <h3>Détails du suivi</h3>
@@ -2526,12 +2511,6 @@ const AdminEvaluations = {
                         <input type="number" class="form-input" id="evalSuiviBriques" value="${d.briques || 3}" min="0.25" max="50" step="0.25">
                         <div class="form-help">Points gagnés quand l'objectif est atteint</div>
                     </div>
-                </div>
-                <div class="form-group full-width" style="margin-top: 16px;">
-                    <label>Critères de réussite</label>
-                    <div class="form-help" style="margin-bottom: 8px;">Ce que l'élève devra réussir à chaque validation</div>
-                    <div id="evalSuiviCriteresList" class="cw-criteres-list">${criteresRows}</div>
-                    <button class="btn btn-secondary btn-sm" onclick="AdminEvaluations._ewAddSuiviCritere()" style="margin-top: 8px;">+ Ajouter un critère</button>
                 </div>
             </div>
         </div>`;
@@ -3165,18 +3144,10 @@ const AdminEvaluations = {
                 return true;
             }
             case 'suivi_details': {
-                // Bonus suivi : description + nb_validations + points + critères
+                // Bonus suivi : description + nb_validations + points
                 this.wizardData.description_eleve = (document.getElementById('evalDescriptionEleve')?.value || '').trim();
                 this.wizardData.nb_validations = parseInt(document.getElementById('evalNbValidations')?.value) || 5;
                 this.wizardData.briques = parseFloat(document.getElementById('evalSuiviBriques')?.value) || 3;
-                // Collect critères (optional for suivi)
-                const suiviInputs = document.querySelectorAll('#evalSuiviCriteresList .critere-libre-input');
-                const suiviCriteres = [];
-                suiviInputs.forEach(input => {
-                    const v = input.value.trim();
-                    if (v) suiviCriteres.push(v);
-                });
-                this.wizardData.criteres_libres = suiviCriteres.length > 0 ? JSON.stringify(suiviCriteres) : '';
                 return true;
             }
             case 'resume':
@@ -3196,7 +3167,7 @@ const AdminEvaluations = {
             return ['params', 'competences', 'document', 'corrige', 'resume'][step - 1];
         }
         if (type === 'bonus' && sousType === 'suivi') {
-            return ['params', 'suivi_details'][step - 1];
+            return ['params', 'suivi_details', 'document'][step - 1];
         }
         if (type === 'bonus') {
             return ['params', 'competences_et_criteres', 'document', 'corrige', 'resume'][step - 1];
@@ -3268,7 +3239,8 @@ const AdminEvaluations = {
             } else if (d.sous_type_bonus === 'suivi') {
                 data.nb_validations = d.nb_validations || 5;
                 if (d.description_eleve) data.description_eleve = d.description_eleve;
-                if (d.criteres_libres) data.criteres_libres = d.criteres_libres;
+                if (d.document_contenu) data.document_contenu = d.document_contenu;
+                if (d.description) data.description = d.description;
             }
         }
 

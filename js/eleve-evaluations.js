@@ -889,9 +889,17 @@ const EleveEvaluations = {
         const isComplete = currentVal >= nbTotal;
         const title = evaluation.titre || 'Suivi';
         const pct = nbTotal > 0 ? Math.round((currentVal / nbTotal) * 100) : 0;
+        const hasDocContenu = String(evaluation.document_contenu || '').trim() !== '';
 
         let cardClass = 'eval-card bonus-card bonus-suivi type-bonus';
         if (isComplete) cardClass += ' done validated';
+        if (hasDocContenu) cardClass += ' clickable';
+
+        // Clic sur la carte → consulter le sujet (accessible sans condition)
+        let clickAttr = '';
+        if (hasDocContenu) {
+            clickAttr = ` onclick="EleveEvaluations.consulterSujet('${evaluation.id}')"`;
+        }
 
         // Points badge
         let pointsBadge;
@@ -900,9 +908,6 @@ const EleveEvaluations = {
         } else {
             pointsBadge = `<span class="card-points pending">${briques} point${briques > 1 ? 's' : ''} à gagner</span>`;
         }
-
-        // Critères dépliables
-        const criteresHtml = this._renderSuiviCriteres(evaluation);
 
         // Type subtitle (cohérent avec les autres cartes)
         let typeSubLabel = `${nbTotal} validations`;
@@ -928,6 +933,8 @@ const EleveEvaluations = {
         let actionHtml = '';
         if (cardStatus === 'suivi_disponible') {
             actionHtml = `<button class="card-btn type-bonus" id="btnDemande_${evaluation.id}" onclick="event.stopPropagation(); EleveEvaluations.demanderEvaluation('${evaluation.id}')">Demander</button>`;
+        } else if (hasDocContenu && !isComplete) {
+            actionHtml = `<a href="evaluation.html?id=${evaluation.id}&mode=sujet" class="card-btn type-bonus" onclick="event.stopPropagation()">Voir le sujet</a>`;
         }
 
         // Description tronquée (2 lignes max)
@@ -936,7 +943,7 @@ const EleveEvaluations = {
             : '';
 
         return `
-            <div class="${cardClass}">
+            <div class="${cardClass}"${clickAttr}>
                 <div class="card-layout">
                     <div class="card-info">
                         <div class="card-title-row">
@@ -945,7 +952,6 @@ const EleveEvaluations = {
                         </div>
                         ${typeSubtitle}
                         ${descHtml}
-                        ${criteresHtml}
                         ${statusHtml}
                     </div>
                     <div class="card-right">
