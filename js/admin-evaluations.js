@@ -344,6 +344,14 @@ const AdminEvaluations = {
         });
     },
 
+    _sortByDateDesc(list) {
+        return [...list].sort((a, b) => {
+            const dateA = new Date(a.date_ouverture || a.date || 0);
+            const dateB = new Date(b.date_ouverture || b.date || 0);
+            return dateB - dateA;
+        });
+    },
+
     // ========== RENDER ==========
 
     renderEvaluations() {
@@ -363,6 +371,7 @@ const AdminEvaluations = {
                 return true;
             });
             filtered = this._filterByMatiere(filtered);
+            filtered = this._sortByDateDesc(filtered);
 
             if (filtered.length === 0) {
                 container.innerHTML = '';
@@ -382,6 +391,7 @@ const AdminEvaluations = {
         });
 
         filtered = this._filterByMatiere(filtered);
+        filtered = this._sortByDateDesc(filtered);
 
         if (filtered.length === 0) {
             container.innerHTML = '';
@@ -698,6 +708,7 @@ const AdminEvaluations = {
         if (this.filters.statut) {
             filtered = filtered.filter(s => this._effectiveSomStatut(s) === this.filters.statut);
         }
+        filtered = this._sortByDateDesc(filtered);
 
         if (filtered.length === 0) {
             container.innerHTML = '';
