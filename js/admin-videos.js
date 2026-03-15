@@ -34,7 +34,14 @@ const AdminVideos = {
      * Charge les données depuis Google Sheets
      */
     async loadData() {
-        const videos = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.VIDEOS);
+        const [videos, parametres] = await Promise.all([
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.VIDEOS),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.PARAMETRES)
+        ]);
+
+        // Lire le paramètre video_accueil (défaut TRUE)
+        const paramVideoAccueil = (parametres || []).find(p => p.cle === 'video_accueil');
+        this.displayEnabled = !paramVideoAccueil || paramVideoAccueil.valeur !== 'FALSE';
 
         // Filtrer les vidéos sans ID valide et trier par date
         this.videos = (videos || [])
@@ -88,6 +95,12 @@ const AdminVideos = {
      * Affiche la vidéo mise en avant
      */
     renderFeaturedVideo() {
+        // Synchroniser le toggle avec l'état chargé
+        const toggleEl = document.getElementById('toggleDisplay');
+        if (toggleEl) {
+            toggleEl.classList.toggle('active', this.displayEnabled);
+        }
+
         const section = document.getElementById('currentVideoSection');
         const noVideoState = document.getElementById('noVideoState');
         const content = document.getElementById('currentVideoContent');
@@ -329,13 +342,25 @@ const AdminVideos = {
     },
 
     /**
-     * Toggle l'affichage sur la page d'accueil
+     * Toggle l'affichage sur la page d'accueil — sauvegarde dans PARAMETRES
      */
-    toggleDisplay() {
+    async toggleDisplay() {
         const toggle = document.getElementById('toggleDisplay');
         toggle.classList.toggle('active');
         this.displayEnabled = toggle.classList.contains('active');
-        // Ici on pourrait sauvegarder ce paramètre
+
+        try {
+            await this.callWebApp('updateParametres', [
+                { cle: 'video_accueil', valeur: this.displayEnabled ? 'TRUE' : 'FALSE' }
+            ]);
+            SheetsAPI.clearCacheFor(CONFIG.SHEETS.PARAMETRES);
+        } catch (err) {
+            console.error('[AdminVideos] Erreur sauvegarde toggle:', err);
+            // Rollback visuel
+            toggle.classList.toggle('active');
+            this.displayEnabled = !this.displayEnabled;
+            alert('Erreur lors de la sauvegarde du paramètre');
+        }
     },
 
     /**
