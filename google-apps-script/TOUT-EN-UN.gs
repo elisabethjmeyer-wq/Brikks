@@ -6716,7 +6716,7 @@ function saveResultatSommative(data) {
 
   if (existingRow > 0) {
     // Mise à jour — écriture batch (une seule opération)
-    var updatable = ['note', 'statut', 'remarque_texte', 'remarque_media', 'statut_correction'];
+    var updatable = ['note', 'statut', 'remarque_texte', 'remarque_media', 'statut_correction', 'statut_resultat'];
     // Migration progressive : ajouter les colonnes manquantes d'abord
     updatable.forEach(function(field) {
       if (data[field] !== undefined && headers.indexOf(field) < 0) {

@@ -323,6 +323,13 @@ const EleveResultats = {
                 const statut = this._effectiveSomStatut(s);
                 return statut === 'publiee' || statut === 'terminee';
             })
+            .filter(s => {
+                // Exclure les sommatives marquées "non évalué" pour cet élève
+                const r = this.resultatsSommatives.find(res =>
+                    String(res.sommative_id).trim() === String(s.id).trim()
+                );
+                return !r || String(r.statut_resultat || '').trim() !== 'non_evalue';
+            })
             .map(s => {
                 const r = this.resultatsSommatives.find(res =>
                     String(res.sommative_id).trim() === String(s.id).trim()
