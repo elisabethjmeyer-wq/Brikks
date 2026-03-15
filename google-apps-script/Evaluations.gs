@@ -986,7 +986,6 @@ function deleteEvaluation(data) {
         if (affectedEleves.indexOf(eid) < 0) {
           affectedEleves.push(eid);
         }
-        }
       }
     }
   }
