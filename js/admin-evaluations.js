@@ -4208,60 +4208,64 @@ const AdminEvaluations = {
         let errors = 0;
 
         try {
-            // Préparer tous les appels en parallèle (au lieu de séquentiel)
-            const savePromises = changedIds.map(eleveId => {
-                const changes = this.saisieChanges[eleveId];
+            // Sauvegarder par lots de 4 pour éviter les race conditions backend
+            const BATCH_SIZE = 4;
+            for (let batchStart = 0; batchStart < changedIds.length; batchStart += BATCH_SIZE) {
+                const batchIds = changedIds.slice(batchStart, batchStart + BATCH_SIZE);
+                const batchPromises = batchIds.map(eleveId => {
+                    const changes = this.saisieChanges[eleveId];
 
-                if (this.saisieEvaluation) {
-                    // Handle NR/ABS/NE special values
-                    const validations = changes.validations;
-                    const isSpecial = validations === 'non_rendu' || validations === 'absent' || validations === 'non_evalue';
-                    const numericValidations = isSpecial ? 0 : validations;
+                    if (this.saisieEvaluation) {
+                        // Handle NR/ABS/NE special values
+                        const validations = changes.validations;
+                        const isSpecial = validations === 'non_rendu' || validations === 'absent' || validations === 'non_evalue';
+                        const numericValidations = isSpecial ? 0 : validations;
 
-                    // Include attribution banque_id + entrainement_id for traceability
-                    const attrKey = String(eleveId).trim();
-                    const attr = this._saisieAttributions ? this._saisieAttributions[attrKey] : null;
+                        // Include attribution banque_id + entrainement_id for traceability
+                        const attrKey = String(eleveId).trim();
+                        const attr = this._saisieAttributions ? this._saisieAttributions[attrKey] : null;
 
-                    // Déterminer is_validated :
-                    // - NR/ABS → false
-                    // - Score saisi → score >= seuil
-                    // - Pas de score mais points > 0 (mode papier) → true
-                    let isValidated;
-                    if (isSpecial) {
-                        isValidated = false;
-                    } else if (changes.score !== undefined && changes.score !== '') {
-                        isValidated = parseInt(changes.score) >= (this.saisieEvaluation.seuil || 80);
-                    } else if (numericValidations !== undefined && parseInt(numericValidations) > 0) {
-                        isValidated = true;
+                        // Déterminer is_validated :
+                        // - NR/ABS → false
+                        // - Score saisi → score >= seuil
+                        // - Pas de score mais points > 0 (mode papier) → true
+                        let isValidated;
+                        if (isSpecial) {
+                            isValidated = false;
+                        } else if (changes.score !== undefined && changes.score !== '') {
+                            isValidated = parseInt(changes.score) >= (this.saisieEvaluation.seuil || 80);
+                        } else if (numericValidations !== undefined && parseInt(numericValidations) > 0) {
+                            isValidated = true;
+                        }
+
+                        return this.callAPI('saveEvaluationResult', {
+                            evaluation_id: this.saisieEvaluation.id,
+                            eleve_id: eleveId,
+                            ...changes,
+                            validations: numericValidations,
+                            statut_resultat: isSpecial ? validations : '',
+                            is_validated: isValidated,
+                            banque_id: attr ? attr.banque_id : '',
+                            entrainement_id: attr ? attr.entrainement_id : ''
+                        });
+                    } else if (this.saisieSommative) {
+                        return this.callAPI('saveResultatSommative', {
+                            sommative_id: this.saisieSommative.id,
+                            eleve_id: eleveId,
+                            ...changes
+                        });
                     }
+                    return Promise.resolve({ success: true });
+                });
 
-                    return this.callAPI('saveEvaluationResult', {
-                        evaluation_id: this.saisieEvaluation.id,
-                        eleve_id: eleveId,
-                        ...changes,
-                        validations: numericValidations,
-                        statut_resultat: isSpecial ? validations : '',
-                        is_validated: isValidated,
-                        banque_id: attr ? attr.banque_id : '',
-                        entrainement_id: attr ? attr.entrainement_id : ''
-                    });
-                } else if (this.saisieSommative) {
-                    return this.callAPI('saveResultatSommative', {
-                        sommative_id: this.saisieSommative.id,
-                        eleve_id: eleveId,
-                        ...changes
-                    });
-                }
-                return Promise.resolve({ success: true });
-            });
-
-            const results = await Promise.all(savePromises);
-            results.forEach((result, i) => {
-                if (!result || !result.success) {
-                    errors++;
-                    console.error('Erreur sauvegarde pour élève', changedIds[i], result);
-                }
-            });
+                const batchResults = await Promise.all(batchPromises);
+                batchResults.forEach((result, i) => {
+                    if (!result || !result.success) {
+                        errors++;
+                        console.error('Erreur sauvegarde pour élève', batchIds[i], result);
+                    }
+                });
+            }
 
             // Save attributions if changed
             if (this.saisieEvaluation && this._saisieAttributions) {

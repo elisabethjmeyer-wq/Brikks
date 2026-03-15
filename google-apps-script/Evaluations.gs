@@ -1123,6 +1123,16 @@ function saveEvaluationResult(data) {
     return { success: false, error: 'evaluation_id et eleve_id requis' };
   }
 
+  // Verrou pour eviter les race conditions lors de sauvegardes paralleles
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+  } catch (e) {
+    return { success: false, error: 'Serveur occupe, reessayez' };
+  }
+
+  try {
+
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let sheet = ss.getSheetByName(SHEETS.EVALUATION_RESULTATS);
 
@@ -1200,7 +1210,7 @@ function saveEvaluationResult(data) {
   }
 
   // Nouveau résultat
-  const id = 'res_' + new Date().getTime();
+  const id = 'res_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 6);
   const datePassage = new Date().toISOString();
 
   var newRow = headers.map(function(col) {
@@ -1242,6 +1252,10 @@ function saveEvaluationResult(data) {
   autoTerminePapier_(ss, data.evaluation_id);
 
   return { success: true, id: id, message: 'Resultat sauvegarde' };
+
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**
@@ -1950,6 +1964,16 @@ function saveResultatSommative(data) {
     return { success: false, error: 'sommative_id et eleve_id requis' };
   }
 
+  // Verrou pour eviter les race conditions lors de sauvegardes paralleles
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+  } catch (e) {
+    return { success: false, error: 'Serveur occupe, reessayez' };
+  }
+
+  try {
+
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName(SHEETS.RESULTATS_SOMMATIVES);
 
@@ -1997,7 +2021,7 @@ function saveResultatSommative(data) {
   }
 
   // Création
-  var id = 'rsom_' + new Date().getTime();
+  var id = 'rsom_' + new Date().getTime() + '_' + Math.random().toString(36).substr(2, 6);
   var newRow = [
     id,
     data.sommative_id,
@@ -2011,6 +2035,10 @@ function saveResultatSommative(data) {
 
   sheet.appendRow(newRow);
   return { success: true, id: id, message: 'Resultat sommative sauvegarde' };
+
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ========================================
