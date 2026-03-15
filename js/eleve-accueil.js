@@ -22,6 +22,11 @@ const EleveAccueil = {
             this.user = JSON.parse(sessionStorage.getItem(CONFIG.STORAGE_KEYS.USER));
             this.renderGreeting();
 
+            // Charger les paramètres une seule fois (sans cache pour avoir la dernière valeur)
+            SheetsAPI.clearCacheFor(CONFIG.SHEETS.PARAMETRES);
+            const parametres = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.PARAMETRES);
+            this._parametres = parametres || [];
+
             await Promise.all([
                 this.loadFeaturedVideo(),
                 this.loadFeaturedReco()
@@ -53,8 +58,7 @@ const EleveAccueil = {
     async loadFeaturedVideo() {
         try {
             // Vérifier si la vidéo est activée sur l'accueil
-            const parametres = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.PARAMETRES);
-            const paramVideo = (parametres || []).find(p => p.cle === 'video_accueil');
+            const paramVideo = this._parametres.find(p => p.cle === 'video_accueil');
             if (paramVideo && paramVideo.valeur === 'FALSE') {
                 this.featuredVideo = null;
                 return;
@@ -72,8 +76,7 @@ const EleveAccueil = {
     async loadFeaturedReco() {
         try {
             // Vérifier si la recommandation est activée sur l'accueil
-            const parametres = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.PARAMETRES);
-            const paramReco = (parametres || []).find(p => p.cle === 'reco_accueil');
+            const paramReco = this._parametres.find(p => p.cle === 'reco_accueil');
             if (paramReco && paramReco.valeur === 'FALSE') {
                 this.featuredReco = null;
                 return;
