@@ -530,7 +530,9 @@ const EleveEvaluations = {
             if (effectiveStatut === 'terminee') {
                 if (resultat) {
                     const statutRes = String(resultat.statut_resultat || '').trim();
-                    if (statutRes === 'non_rendu') {
+                    if (statutRes === 'non_evalue') {
+                        this.categories.done.push({ ...ev, resultat, cardStatus: 'non_evalue' });
+                    } else if (statutRes === 'non_rendu') {
                         this.categories.done.push({ ...ev, resultat, cardStatus: 'non_rendu' });
                     } else if (statutRes === 'absent') {
                         this.categories.done.push({ ...ev, resultat, cardStatus: 'absent' });
@@ -550,6 +552,10 @@ const EleveEvaluations = {
 
             if (resultat) {
                 const statutRes = String(resultat.statut_resultat || '').trim();
+                if (statutRes === 'non_evalue') {
+                    this.categories.done.push({ ...ev, resultat, cardStatus: 'non_evalue' });
+                    return;
+                }
                 if (statutRes === 'non_rendu' || statutRes === 'absent') {
                     const cs = statutRes === 'non_rendu' ? 'non_rendu' : 'absent';
                     this.categories.done.push({ ...ev, resultat, cardStatus: cs });
@@ -1116,8 +1122,9 @@ const EleveEvaluations = {
         const resultat = evaluation.resultat;
         const isNonRendu = cardStatus === 'non_rendu';
         const isAbsent = cardStatus === 'absent';
+        const isNonEvalue = cardStatus === 'non_evalue';
         const isNotDone = cardStatus === 'not_done';
-        const isMissed = isNonRendu || isAbsent || isNotDone;
+        const isMissed = isNonRendu || isAbsent || isNotDone || isNonEvalue;
         const isDone = cardStatus === 'validated' || cardStatus === 'done' || cardStatus === 'failed' || isMissed;
 
         const title = evaluation.titre || 'Évaluation';
@@ -1130,7 +1137,8 @@ const EleveEvaluations = {
         if (cardStatus === 'upcoming') cardClass += ' upcoming';
         if (isDone) cardClass += ' done';
         if (cardStatus === 'validated') cardClass += ' validated';
-        if (cardStatus === 'failed' || isMissed) cardClass += ' failed';
+        if (cardStatus === 'failed' || (isMissed && !isNonEvalue)) cardClass += ' failed';
+        if (isNonEvalue) cardClass += ' non-evalue';
 
         let clickAttr = '';
         if (resultat && isDone && !isMissed && !isPapier) {
@@ -1140,7 +1148,9 @@ const EleveEvaluations = {
 
         // Points badge
         let pointsBadge = '';
-        if (isNonRendu) {
+        if (isNonEvalue) {
+            pointsBadge = '<span class="card-points neutral">Non évalué(e)</span>';
+        } else if (isNonRendu) {
             pointsBadge = '<span class="card-points lost">Non rendu</span><span class="card-points-sub">+0</span>';
         } else if (isAbsent) {
             pointsBadge = '<span class="card-points lost">Absent(e)</span><span class="card-points-sub">+0</span>';

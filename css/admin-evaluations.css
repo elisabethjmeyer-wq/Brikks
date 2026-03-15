@@ -1181,6 +1181,12 @@
 .saisie-table tr.nr-row:hover {
     background-color: #fecaca;
 }
+.saisie-table tr.ne-row {
+    background-color: #f3f4f6;
+}
+.saisie-table tr.ne-row:hover {
+    background-color: #e5e7eb;
+}
 
 /* Date input dans saisie */
 .saisie-date {

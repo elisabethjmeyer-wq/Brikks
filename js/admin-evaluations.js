@@ -3752,18 +3752,19 @@ const AdminEvaluations = {
         tbody.innerHTML = this.eleves.map(eleve => {
             const r = resultsMap[String(eleve.id).trim()] || {};
             const score = r.score !== undefined && r.score !== '' ? r.score : '';
-            // Si statut_resultat = non_rendu/absent, afficher NR/ABS au lieu de 0
+            // Si statut_resultat = non_rendu/absent/non_evalue, afficher NR/ABS/NE au lieu de 0
             const statutRes = String(r.statut_resultat || '').trim();
-            const validations = (statutRes === 'non_rendu' || statutRes === 'absent')
+            const validations = (statutRes === 'non_rendu' || statutRes === 'absent' || statutRes === 'non_evalue')
                 ? statutRes
                 : (r.validations !== undefined && r.validations !== '' ? r.validations : '');
             const isAuto = r.source === 'auto' || (!r.source && r.id);
             const sourceBadge = r.id ? (isAuto ? '<span class="source-badge auto">🤖</span>' : '<span class="source-badge manuel">✏️</span>') : '';
 
-            // Ligne verte si élève a réussi, orange si absent, rouge si non rendu
-            const isSuccess = r.is_validated === true || r.is_validated === 'true' || (r.validations && parseInt(r.validations) > 0 && r.validations !== 'non_rendu' && r.validations !== 'absent');
+            // Ligne verte si élève a réussi, orange si absent, rouge si non rendu, grise si non évalué
+            const isSuccess = r.is_validated === true || r.is_validated === 'true' || (r.validations && parseInt(r.validations) > 0 && r.validations !== 'non_rendu' && r.validations !== 'absent' && r.validations !== 'non_evalue');
             const isAbsent = validations === 'absent';
             const isNR = validations === 'non_rendu';
+            const isNE = validations === 'non_evalue';
 
             // Score : lecture seule (affiche uniquement les remontées auto)
             const scoreCell = showScoreDuree ? `<td class="col-score">${score !== '' ? score + '%' : '—'}</td>` : '';
@@ -3906,11 +3907,13 @@ const AdminEvaluations = {
             }
             const nrSelected = validations === 'non_rendu' ? 'selected' : '';
             const absSelected = validations === 'absent' ? 'selected' : '';
+            const neSelected = validations === 'non_evalue' ? 'selected' : '';
             resultatOptions += `<option value="non_rendu" ${nrSelected}>NR</option>`;
             resultatOptions += `<option value="absent" ${absSelected}>ABS</option>`;
+            resultatOptions += `<option value="non_evalue" ${neSelected}>NE</option>`;
 
             return `
-                <tr data-eleve-id="${eleve.id}" class="${isSuccess ? 'success-row' : ''} ${isAbsent ? 'absent-row' : ''} ${isNR ? 'nr-row' : ''} ${!r.id ? 'no-result' : ''}">
+                <tr data-eleve-id="${eleve.id}" class="${isSuccess ? 'success-row' : ''} ${isAbsent ? 'absent-row' : ''} ${isNR ? 'nr-row' : ''} ${isNE ? 'ne-row' : ''} ${!r.id ? 'no-result' : ''}">
                     <td class="col-eleve">
                         <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
                         ${sourceBadge}
@@ -4010,9 +4013,10 @@ const AdminEvaluations = {
         document.getElementById('saisieSubtitle').textContent =
             `Sommative · /${sommative.bareme || 20} · Coef. ${sommative.coefficient || 1}`;
 
-        // Update table headers for sommative — ordre : Élève, Correction, Note, Statut
+        // Update table headers for sommative — ordre : Élève, Résultat, Correction, Note, Statut
         document.getElementById('saisieTableHead').innerHTML = `
             <th class="col-eleve">Élève</th>
+            <th class="col-resultat-som">Résultat</th>
             <th class="col-correction-action">Correction</th>
             <th class="col-note-som">Note /${sommative.bareme || 20}</th>
             <th class="col-statut-som">Statut</th>
@@ -4033,6 +4037,17 @@ const AdminEvaluations = {
             // Note en lecture seule — remplie automatiquement par le wizard
             const noteDisplay = hasNote ? `<span class="som-note-display">${note}<span class="som-note-bareme">/${bareme}</span></span>` : '<span class="som-note-empty">—</span>';
 
+            // Statut résultat (NE/ABS)
+            const somStatutRes = String(r.statut_resultat || '').trim();
+            const somNeSelected = somStatutRes === 'non_evalue' ? 'selected' : '';
+            const somAbsSelected = somStatutRes === 'absent' ? 'selected' : '';
+            const somResSelect = `<select class="saisie-select resultat-select"
+                onchange="AdminEvaluations.onSaisieChange('${eleve.id}', 'statut_resultat', this.value)">
+                <option value="">—</option>
+                <option value="absent" ${somAbsSelected}>ABS</option>
+                <option value="non_evalue" ${somNeSelected}>NE</option>
+            </select>`;
+
             // Statut cliquable seulement si note existe
             let statutHtml;
             if (hasNote) {
@@ -4044,14 +4059,17 @@ const AdminEvaluations = {
                 statutHtml = '<span class="som-statut-badge empty">—</span>';
             }
 
-            // Ligne verte si correction publiée
-            const rowClass = statutCorr === 'publie' ? 'success-row' : '';
+            // Ligne verte si correction publiée, grise si NE, orange si ABS
+            const isSomNE = somStatutRes === 'non_evalue';
+            const isSomABS = somStatutRes === 'absent';
+            const rowClass = isSomNE ? 'ne-row' : isSomABS ? 'absent-row' : statutCorr === 'publie' ? 'success-row' : '';
 
             return `
                 <tr data-eleve-id="${eleve.id}" class="${rowClass}">
                     <td class="col-eleve">
                         <span class="eleve-name">${escapeHtml(eleve.prenom || '')} ${escapeHtml(eleve.nom || '')}</span>
                     </td>
+                    <td class="col-resultat-som">${somResSelect}</td>
                     <td class="col-correction-action">
                         <button class="btn btn-sm ${corrBtnClass}" onclick="event.stopPropagation(); AdminEvaluations.openSomCorrectionWizard('${eleve.id}')">
                             ${corrBtnLabel}
@@ -4094,11 +4112,20 @@ const AdminEvaluations = {
 
             // Mettre à jour la couleur de ligne quand on change le résultat
             if (field === 'validations') {
-                const isSuccess = value && parseInt(value) > 0 && value !== 'non_rendu' && value !== 'absent';
+                const isSuccess = value && parseInt(value) > 0 && value !== 'non_rendu' && value !== 'absent' && value !== 'non_evalue';
                 row.classList.toggle('success-row', isSuccess);
                 row.classList.toggle('absent-row', value === 'absent');
                 row.classList.toggle('nr-row', value === 'non_rendu');
+                row.classList.toggle('ne-row', value === 'non_evalue');
                 row.classList.toggle('no-result', false);
+            }
+            // Sommative : statut_resultat change la couleur de ligne
+            if (field === 'statut_resultat') {
+                row.classList.toggle('ne-row', value === 'non_evalue');
+                row.classList.toggle('absent-row', value === 'absent');
+                if (value) {
+                    row.classList.remove('success-row');
+                }
             }
         }
 
@@ -4170,9 +4197,9 @@ const AdminEvaluations = {
                 const changes = this.saisieChanges[eleveId];
 
                 if (this.saisieEvaluation) {
-                    // Handle NR/ABS special values
+                    // Handle NR/ABS/NE special values
                     const validations = changes.validations;
-                    const isSpecial = validations === 'non_rendu' || validations === 'absent';
+                    const isSpecial = validations === 'non_rendu' || validations === 'absent' || validations === 'non_evalue';
                     const numericValidations = isSpecial ? 0 : validations;
 
                     // Include attribution banque_id + entrainement_id for traceability
