@@ -182,7 +182,7 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - Points par catégorie (connaissances, savoir-faire, compétences, bonus) en barres colorées
 - Liste des évaluations sommatives avec notes et coefficients
 - Moyenne pondérée : `(progression × coefProg + Σ(sommative × coef)) / Σ(coefs)`
-- Objectif personnel saisissable et sauvegardé via API
+- Objectif personnel via slider interactif sur la barre de progression (clic pour positionner), sauvegardé via API
 
 **Calculs** : identiques au tableau de bord admin (`admin-tableau-bord.js`), appliqués au seul élève connecté.
 
@@ -207,7 +207,13 @@ BanquesCompetences (id, competence_id, titre, description, ordre, statut)  ← N
 - Bonus comp/ponctuel : statuts détaillés (demandé, accepté, corrigé, validé, refusé)
 - Type tags sur les cartes bonus (compétence violet, ponctuel teal, suivi jaune)
 
-**État** : créé (session 16), harmonisé visuellement (session 25), bonus/TC intégrés (session 28). Fonctionnel.
+**Refonte session 38** :
+- 6 bugs corrigés (visibilité, liens, calculs)
+- Refonte visuelle (cards, typographie, couleurs)
+- Toggle matière séparé du hero header
+- Objectif via slider sur la barre de progression (remplace l'ancien input)
+
+**État** : créé (session 16), harmonisé (session 25), bonus/TC (session 28), refondu (session 38). Fonctionnel.
 
 ### Mes évaluations élève (liste) — REFONDU SESSION 21
 
@@ -492,7 +498,7 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - Toggle matière (FR / HG-EMC / Toutes) pour filtrer les évaluations par matière
 - Chaque évaluation a un champ `matiere` (FR, HG-EMC, Les deux) — les "Les deux" comptent 100% dans chaque matière
 - Onglet **Sommatives** : CRUD évaluations sommatives (note /barème, coefficient, date, semestre)
-- **Saisie des résultats** : vue pleine page avec tableau des élèves, colonnes score, points, mode (papier/numérique), source (auto/manuel), remarque. Affiche la banque/exercice réellement passés par chaque élève. Statuts spéciaux NR (non rendu) / ABS (absent) avec couleurs de ligne distinctes.
+- **Saisie des résultats** : vue pleine page avec tableau des élèves, colonnes score, points, mode (papier/numérique), source (auto/manuel), remarque. Affiche la banque/exercice réellement passés par chaque élève. Statuts spéciaux NR (non rendu) / ABS (absent) / NE (non évalué) avec couleurs de ligne distinctes. Tri par date décroissante.
 - **Saisie des notes sommatives** : tableau compact (max 720px), colonnes Élève / Correction / Note / Statut. Note en lecture seule (remplie par le wizard de correction). Statut cliquable (toggle brouillon ↔ publié) uniquement si note existe. Ligne verte quand publié.
 - **Bandeau corrections** : compte les copies à corriger (EleveEntrainementsCompetences avec statut='soumis')
 - **Page Paramétrage** : 2 onglets — Notes de progression (semestres, config par matière) et Référentiel compétences (CRUD avec filtre matière)
@@ -504,7 +510,7 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - `NOTES_SOMMATIVES` : id, titre, matiere, bareme, coefficient, date, semestre
 - `RESULTATS_SOMMATIVES` : id, sommative_id, eleve_id, note, statut, remarque_texte, remarque_media, date_saisie
 - `OBJECTIFS_ELEVES` : id, eleve_id, matiere, semestre, objectif_note
-- `EVALUATION_RESULTATS` : ajout colonnes mode, source, remarque_texte, remarque_media, statut, statut_resultat (upsert). `statut_resultat` : 'normal' (défaut), 'non_rendu', 'absent' — géré par l'admin dans la saisie des résultats
+- `EVALUATION_RESULTATS` : ajout colonnes mode, source, remarque_texte, remarque_media, statut, statut_resultat (upsert). `statut_resultat` : 'normal' (défaut), 'non_rendu', 'absent', 'non_evalue' — géré par l'admin dans la saisie des résultats
 - `EVALUATIONS` : ajout colonnes date_ouverture, date_fermeture, mode_passation
 
 **Appels API (évaluations)** : `createEvaluation`, `updateEvaluation`, `deleteEvaluation`, `saveEvaluationResult`, `getEvaluationResults`
@@ -519,7 +525,7 @@ Le champ `donnees.comparaison_stricte` (boolean) contrôle le mode de correction
 - Moyenne pondérée : `(prog × coefProg + Σ(som × coef)) / Σ(coefs)`
 - Vue classe triable + panneau détail élève (slide-in) + toggle semestre S1/S2
 
-**État** : Phases 1-3 complètes. Mode passation papier/numérique ajouté (session 18). Page notes élève créée (session 16). Saisie résultats enrichie (session 23).
+**État** : Phases 1-3 complètes. Mode passation papier/numérique ajouté (session 18). Page notes élève créée (session 16). Saisie résultats enrichie (session 23). Race condition sauvegarde corrigée (session 39).
 
 ### Onglets Tâches complexes et Bonus ponctuels — SUPPRIMÉS (Phase 9, session 30)
 
@@ -777,3 +783,4 @@ Note : `competence_ids` existe déjà dans EVALUATIONS.
 - **`remarque_prof`** : colonne créée par migration progressive dans `EleveEntrainementsCompetences`, mais le wizard correction ne l'utilise plus (remarque supprimée au profit du block editor). Colonne inerte.
 - ~~**Erreur 429 Google Sheets au chargement**~~ : **CORRIGÉ (session 34)** — `checkPendingActivities` (4 appels) se lançait en parallèle de `loadData` (16 appels) → 20 requêtes simultanées dépassaient le quota. Différé de 2s pour laisser les données se mettre en cache.
 - ~~**Dates tronquées côté élève**~~ : **CORRIGÉ (session 34)** — `_formatDateOnly()` affichait "Mar 10 mar" sans année. Remplacé par `toLocaleDateString('fr-FR')` → "mardi 10 mars 2026". Heure perdue par auto-conversion Google Sheets → cellule `date_rendu` forcée en texte (`@`) dans `Evaluations.gs`.
+- ~~**Race condition sauvegarde résultats**~~ : **CORRIGÉ (session 39)** — `saveSaisie()` envoyait 24 requêtes en parallèle (`Promise.all`), causant des `appendRow` concurrents qui s'écrasaient + IDs dupliqués. Fix : `LockService.getScriptLock()` backend + ID unique avec suffixe aléatoire + sauvegarde par lots de 4 côté frontend.

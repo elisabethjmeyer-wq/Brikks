@@ -4,6 +4,47 @@
 
 ---
 
+## 2026-03-15 — Session 39 : Bugs admin évaluations + race condition sauvegarde
+
+### Performance et fiabilité sauvegarde (Evaluations.gs, admin-evaluations.js)
+
+1. **Race condition sauvegarde** : sauvegarder 24 résultats en parallèle → seuls ~11 persistaient. Les `appendRow` concurrents s'écrasaient mutuellement + IDs dupliqués (même milliseconde)
+   - **Backend** : ajout `LockService.getScriptLock()` dans `saveEvaluationResult` et `saveResultatSommative` pour sérialiser les écritures
+   - **Backend** : ID unique avec suffixe aléatoire (`res_timestamp_abc123`)
+   - **Frontend** : `Promise.all` remplacé par lots de 4 (`BATCH_SIZE = 4`) dans `saveSaisie()`
+2. **Sauvegarde ~10x plus rapide** : refactoring de `saveEvaluationResult` (batch lecture/écriture)
+3. **Résultats qui disparaissent après enregistrement** : la mise à jour locale (sans rechargement) ne trouvait pas les résultats existants → comparaison d'IDs corrigée
+4. **SyntaxError deleteEvaluation** : accolade en trop dans le code
+5. **Recalcul progression à la suppression** : `deleteEvaluation` recalcule maintenant pour TOUS les élèves qui avaient un résultat, pas seulement le premier
+
+### Nouvelles fonctionnalités (admin-evaluations.js)
+
+1. **Statut "Non évalué" (NE)** : 3ème statut spécial dans les saisies de résultats (en plus de NR et ABS), pour les élèves non concernés
+2. **Tri par date décroissante** : les évaluations les plus récentes apparaissent en premier
+3. **Date de l'évaluation** : affiche la date de l'évaluation (pas la date de saisie) dans les cartes
+
+### Bugs corrigés divers
+
+1. **Wizard bonus suivi** : champ points manquant + date masquée dans modal demande
+2. **Suppression compétence** : loading state ajouté + vérification critères avant suppression
+
+**Fichiers modifiés** : `js/admin-evaluations.js`, `google-apps-script/Evaluations.gs`, `google-apps-script/TOUT-EN-UN.gs`
+
+---
+
+## 2026-03-14 — Session 38 : Refonte page résultats élève + objectif
+
+### Page résultats élève (eleve-notes.js, eleve-notes.css)
+
+1. **6 bugs corrigés** : visibilité des sections, liens cassés, calculs de progression incorrects
+2. **Refonte visuelle** : 7 améliorations (cards, typographie, espacements, couleurs harmonisées)
+3. **Toggle matière** : barre séparée du hero header pour plus de clarté
+4. **Objectif personnel** : slider interactif sur la barre de progression (remplace l'ancien champ de saisie). L'élève clique sur la barre pour positionner son objectif, sauvegardé automatiquement via API
+
+**Fichiers modifiés** : `js/eleve-notes.js`, `css/eleve-notes.css`
+
+---
+
 ## 2026-03-13 — Session 37 : Refonte tableau saisie sommative
 
 ### Tableau de saisie (admin-evaluations.js, css/admin-evaluations.css)
