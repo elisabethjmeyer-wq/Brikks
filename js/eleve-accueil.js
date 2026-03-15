@@ -52,6 +52,14 @@ const EleveAccueil = {
 
     async loadFeaturedVideo() {
         try {
+            // Vérifier si la vidéo est activée sur l'accueil
+            const parametres = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.PARAMETRES);
+            const paramVideo = (parametres || []).find(p => p.cle === 'video_accueil');
+            if (paramVideo && paramVideo.valeur === 'FALSE') {
+                this.featuredVideo = null;
+                return;
+            }
+
             const videos = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.VIDEOS);
             if (!videos?.length) return;
             videos.sort((a, b) => new Date(b.date_publication || 0) - new Date(a.date_publication || 0));
