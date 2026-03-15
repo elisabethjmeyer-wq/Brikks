@@ -1,7 +1,7 @@
 // ================================================================
 // FICHIER AUTO-GÉNÉRÉ — ne pas modifier directement
 // Généré par : npm run build:gas
-// Date : 2026-03-13
+// Date : 2026-03-15
 // ================================================================
 
 // ================================================================
@@ -5902,25 +5902,31 @@ function saveEvaluationResult(data) {
   }
 
   if (existingRow > 0) {
-    // Mise à jour du résultat existant
+    // Mise à jour du résultat existant — écriture batch (une seule opération)
     // banque_id et entrainement_id ne sont PAS dans cette liste :
     // ils sont posés à la création et ne doivent pas être écrasés lors d'un repassage
     var updatableFields = ['score', 'validations', 'is_validated', 'temps_passe', 'details', 'mode', 'source', 'remarque_texte', 'remarque_media', 'statut', 'statut_resultat', 'correction_html', 'detailed_results'];
+    var rowData = sheet.getRange(existingRow, 1, 1, headers.length).getValues()[0];
+    var changed = false;
     updatableFields.forEach(function(field) {
       if (data[field] !== undefined) {
         var colIdx = headers.indexOf(field);
         if (colIdx >= 0) {
           var value = data[field];
           if (field === 'is_validated') value = (value === true || value === 'true');
-          sheet.getRange(existingRow, colIdx + 1).setValue(value);
+          rowData[colIdx] = value;
+          changed = true;
         }
       }
     });
     // Mettre à jour la date de passage (manuelle si fournie, sinon auto)
     var dateCol = headers.indexOf('date_passage');
     if (dateCol >= 0) {
-      var dateValue = data.date_passage ? data.date_passage : new Date().toISOString();
-      sheet.getRange(existingRow, dateCol + 1).setValue(dateValue);
+      rowData[dateCol] = data.date_passage ? data.date_passage : new Date().toISOString();
+      changed = true;
+    }
+    if (changed) {
+      sheet.getRange(existingRow, 1, 1, headers.length).setValues([rowData]);
     }
 
     // Mettre a jour la progression evaluation si valide
@@ -6709,23 +6715,26 @@ function saveResultatSommative(data) {
   }
 
   if (existingRow > 0) {
-    // Mise à jour
+    // Mise à jour — écriture batch (une seule opération)
     var updatable = ['note', 'statut', 'remarque_texte', 'remarque_media', 'statut_correction'];
+    // Migration progressive : ajouter les colonnes manquantes d'abord
+    updatable.forEach(function(field) {
+      if (data[field] !== undefined && headers.indexOf(field) < 0) {
+        var lastCol = headers.length + 1;
+        sheet.getRange(1, lastCol).setValue(field);
+        headers.push(field);
+      }
+    });
+    var rowData = sheet.getRange(existingRow, 1, 1, headers.length).getValues()[0];
     updatable.forEach(function(field) {
       if (data[field] !== undefined) {
         var colIdx = headers.indexOf(field);
-        if (colIdx < 0) {
-          // Migration progressive : ajouter la colonne si absente
-          var lastCol = headers.length + 1;
-          sheet.getRange(1, lastCol).setValue(field);
-          headers.push(field);
-          colIdx = headers.length - 1;
-        }
-        sheet.getRange(existingRow, colIdx + 1).setValue(data[field]);
+        if (colIdx >= 0) rowData[colIdx] = data[field];
       }
     });
     var dateCol = headers.indexOf('date_saisie');
-    if (dateCol >= 0) sheet.getRange(existingRow, dateCol + 1).setValue(new Date().toISOString());
+    if (dateCol >= 0) rowData[dateCol] = new Date().toISOString();
+    sheet.getRange(existingRow, 1, 1, headers.length).setValues([rowData]);
     return { success: true, message: 'Resultat sommative mis a jour' };
   }
 
