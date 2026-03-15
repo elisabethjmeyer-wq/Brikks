@@ -42,7 +42,14 @@ const AdminRecommandations = {
      * Charge les données depuis Google Sheets
      */
     async loadData() {
-        const recos = await SheetsAPI.fetchAndParse(CONFIG.SHEETS.RECOMMANDATIONS);
+        const [recos, parametres] = await Promise.all([
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.RECOMMANDATIONS),
+            SheetsAPI.fetchAndParse(CONFIG.SHEETS.PARAMETRES)
+        ]);
+
+        // Lire le paramètre reco_accueil (défaut TRUE)
+        const paramRecoAccueil = (parametres || []).find(p => p.cle === 'reco_accueil');
+        this.displayEnabled = !paramRecoAccueil || paramRecoAccueil.valeur !== 'FALSE';
 
         // Trier par date de publication (plus récente en premier)
         this.recos = (recos || []).sort((a, b) => {
@@ -88,6 +95,12 @@ const AdminRecommandations = {
      * Affiche la recommandation mise en avant
      */
     renderFeaturedReco() {
+        // Synchroniser le toggle avec l'état chargé
+        const toggleEl = document.getElementById('toggleDisplay');
+        if (toggleEl) {
+            toggleEl.classList.toggle('active', this.displayEnabled);
+        }
+
         const section = document.getElementById('currentRecoSection');
         const noRecoState = document.getElementById('noRecoState');
         const content = document.getElementById('currentRecoContent');
@@ -270,12 +283,24 @@ const AdminRecommandations = {
     },
 
     /**
-     * Toggle l'affichage sur la page d'accueil
+     * Toggle l'affichage sur la page d'accueil — sauvegarde dans PARAMETRES
      */
-    toggleDisplay() {
+    async toggleDisplay() {
         const toggle = document.getElementById('toggleDisplay');
         toggle.classList.toggle('active');
         this.displayEnabled = toggle.classList.contains('active');
+
+        try {
+            await this.callWebApp('updateParametres', [
+                { cle: 'reco_accueil', valeur: this.displayEnabled ? 'TRUE' : 'FALSE' }
+            ]);
+            SheetsAPI.clearCacheFor(CONFIG.SHEETS.PARAMETRES);
+        } catch (err) {
+            console.error('[AdminRecos] Erreur sauvegarde toggle:', err);
+            toggle.classList.toggle('active');
+            this.displayEnabled = !this.displayEnabled;
+            alert('Erreur lors de la sauvegarde du paramètre');
+        }
     },
 
     /**
