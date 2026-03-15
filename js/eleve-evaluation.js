@@ -244,8 +244,10 @@ const EleveEvaluation = {
             return this._renderTCSujetMode(data, exercice, documentHtml, 'bonus');
         }
 
-        // Bonus mission sans aucune compétence : layout simple (plein écran)
+        // Bonus sans compétence (mission ou suivi) : layout simple (plein écran)
         const title = data.titre || 'Sujet';
+        const sousType = String(data.sous_type_bonus || '').trim();
+        const badgeLabel = sousType === 'suivi' ? 'Bonus suivi' : 'Bonus mission';
 
         // Phase 9 : description directement sur data, fallback exercice.consigne
         const consigne = data.description || exercice.consigne || data.criteres || '';
@@ -261,7 +263,7 @@ const EleveEvaluation = {
                     <div class="sujet-topbar-info">
                         <h1>${escapeHtml(title)}</h1>
                         <div class="sujet-topbar-meta">
-                            <span class="sujet-mode-badge bonus">Bonus mission</span>
+                            <span class="sujet-mode-badge bonus">${badgeLabel}</span>
                         </div>
                     </div>
                 </div>
