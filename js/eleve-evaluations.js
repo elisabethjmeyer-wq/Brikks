@@ -493,9 +493,10 @@ const EleveEvaluations = {
             bonus: []
         };
 
-        // Progression evaluations — filtrer par semestre courant
+        // Progression evaluations — filtrer par semestre courant (sauf bonus suivi = annuel)
         this.evaluations.forEach(ev => {
-            if (this._getSemestreForEval(ev) !== String(this.currentSemestre)) return;
+            const isSuivi = ev.type === 'bonus' && String(ev.sous_type_bonus || '') === 'suivi';
+            if (!isSuivi && this._getSemestreForEval(ev) !== String(this.currentSemestre)) return;
 
             const resultat = this.resultats.find(r =>
                 String(r.evaluation_id).trim() === String(ev.id).trim()
@@ -950,13 +951,17 @@ const EleveEvaluations = {
             clickAttr = ` onclick="EleveEvaluations.consulterSujet('${evaluation.id}')"`;
         }
 
-        // Points badge — progressif
-        const pointsAcquis = resultat ? (parseFloat(resultat.validations) || 0) : 0;
+        // Points badge — adapté au semestre en cours
+        const pointsSemestre = this._getSuiviPointsForSemestre(evaluation, resultat || {}, String(this.currentSemestre));
+        const pointsTotaux = resultat ? (parseFloat(resultat.validations) || 0) : 0;
         let pointsBadge;
         if (isComplete) {
             pointsBadge = `<span class="card-points earned">+${briques}</span>`;
-        } else if (pointsAcquis > 0) {
-            const displayPts = Number.isInteger(pointsAcquis) ? pointsAcquis : pointsAcquis.toFixed(1);
+        } else if (pointsSemestre > 0) {
+            const displayPts = Number.isInteger(pointsSemestre) ? pointsSemestre : pointsSemestre.toFixed(1);
+            pointsBadge = `<span class="card-points earned">+${displayPts} ce semestre</span>`;
+        } else if (pointsTotaux > 0) {
+            const displayPts = Number.isInteger(pointsTotaux) ? pointsTotaux : pointsTotaux.toFixed(1);
             pointsBadge = `<span class="card-points earned">+${displayPts} / ${briques}</span>`;
         } else {
             pointsBadge = `<span class="card-points pending">${briques} point${briques > 1 ? 's' : ''} à gagner</span>`;

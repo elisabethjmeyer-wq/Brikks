@@ -282,15 +282,14 @@ const EleveResultats = {
 
             const isSuivi = ev.type === 'bonus' && String(ev.sous_type_bonus || '') === 'suivi';
 
-            // Bonus suivi : ventiler budget et points par semestre
+            // Bonus suivi : ventiler points par semestre, budget = points gagnés ce semestre
             if (isSuivi) {
                 const m = ev.matiere || '';
                 if (m === matiere || m === 'Les deux') {
-                    // Budget max = briques totaux (chaque semestre peut gagner jusqu'à briques)
-                    maxCats[cat] += parseFloat(ev.briques) || 0;
-                    if (r) {
-                        cats[cat] += this._getSuiviPointsForSemestre(ev, r, semestre);
-                    }
+                    const ptsSemestre = r ? this._getSuiviPointsForSemestre(ev, r, semestre) : 0;
+                    cats[cat] += ptsSemestre;
+                    // Budget = points gagnés (bonus = en plus, pas un objectif à remplir)
+                    maxCats[cat] += ptsSemestre;
                 }
                 return;
             }
