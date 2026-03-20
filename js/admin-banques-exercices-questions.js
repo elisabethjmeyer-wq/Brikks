@@ -576,7 +576,7 @@ Object.assign(AdminBanquesExercices, {
                 let cleanText = existingText;
                 if (existingText.includes('{') && existingGaps.length === 0) {
                     // Ancien format - convertir
-                    cleanText = existingText.replace(/\{([^}]+)\}/g, '$1');
+                    cleanText = existingText.replace(/\{+([^{}]+)\}+/g, '$1');
                 }
 
                 html = `
@@ -619,7 +619,7 @@ Object.assign(AdminBanquesExercices, {
                     this.texteATrousGaps = [];
                     // Si ancien format, extraire les trous
                     if (existingText.includes('{') && existingGaps.length === 0) {
-                        const regex = /\{([^}]+)\}/g;
+                        const regex = /\{+([^{}]+)\}+/g;
                         let match;
                         const words = cleanText.split(/(\s+)/);
                         while ((match = regex.exec(existingText)) !== null) {

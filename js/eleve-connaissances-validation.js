@@ -1083,7 +1083,7 @@ Object.assign(EleveConnaissances, {
         const block = document.querySelector(`.qcm-question-block[data-question="${qIdx}"]`);
         if (block) {
             block.querySelectorAll('input').forEach(el => el.disabled = true);
-            // Marquer visuellement le choix sélectionné (sans révéler les bonnes réponses)
+            // Marquer visuellement les choix sélectionnés
             block.querySelectorAll('.qcm-choice').forEach(label => {
                 const input = label.querySelector('input');
                 if (!input) return;

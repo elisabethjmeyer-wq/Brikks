@@ -50,17 +50,20 @@ Object.assign(EleveConnaissances, {
                 // Pour QCM, on affiche chaque question séparément
                 // On retourne un tableau de questions
                 return {
-                    multiQuestions: questionContents.map((qc, idx) => ({
+                    multiQuestions: questionContents.map((qc, idx) => {
+                        const repCorrects = qc.donnees.reponses_correctes || [];
+                        const isMultiple = qc.donnees.multiple || repCorrects.length > 1;
+                        return {
                         id: qc.id,
                         question: qc.donnees.question || qc.donnees.enonce || qc.donnees.titre || `Question ${idx + 1}`,
                         choix: qc.donnees.choix || qc.donnees.options || [],
                         reponse: qc.donnees.reponse ?? qc.donnees.reponse_correcte ?? null,
-                        reponses_correctes: qc.donnees.reponses_correctes || [],
-                        multiple: qc.donnees.multiple || false,
+                        reponses_correctes: repCorrects,
+                        multiple: isMultiple,
                         feedbacks_options: qc.donnees.feedbacks_options,
                         feedback_correct: qc.donnees.feedback_correct,
                         feedback_incorrect: qc.donnees.feedback_incorrect
-                    }))
+                    };})
                 };
 
             case 'chronologie':
@@ -323,7 +326,8 @@ Object.assign(EleveConnaissances, {
         const question = donnees.question || donnees.enonce || '';
         // Accepter 'choix' ou 'options' comme nom de champ
         const choices = donnees.choix || donnees.options || [];
-        const multiple = donnees.multiple || false;
+        const repCorrects = donnees.reponses_correctes || [];
+        const multiple = donnees.multiple || repCorrects.length > 1;
 
         // Vérifier qu'on a des choix
         if (choices.length === 0) {
@@ -739,9 +743,9 @@ Object.assign(EleveConnaissances, {
             `;
         }
 
-        // Replace {...} patterns with input fields
+        // Replace {answer} or {{{answer}}} patterns with input fields (handles multiple braces)
         let inputIndex = 0;
-        const processedTexte = texte.replace(/\{([^}]+)\}/g, (match, word) => {
+        const processedTexte = texte.replace(/\{+([^{}]+)\}+/g, (match, word) => {
             const idx = inputIndex++;
             this.storeAnswer(`trou_${idx}`, word, []);
             return `<input type="text" class="trou-input" id="trou_${idx}" placeholder="..." autocomplete="off">`;

@@ -297,7 +297,7 @@ const EleveEntrainement = {
                     step.format = 'trous';
                     step.texte = donnees.texte || q.enonce;
                     // Extraire les trous du texte format {mot}
-                    const matches = (donnees.texte || '').match(/\{([^}]+)\}/g) || [];
+                    const matches = (donnees.texte || '').match(/\{+([^{}]+)\}+/g) || [];
                     step.trous = matches.map((m, i) => ({
                         id: `trou_${i}`,
                         answer: m.replace(/[{}]/g, '')
