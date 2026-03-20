@@ -68,7 +68,7 @@ Object.assign(EleveConnaissances, {
                 return donnees.cartes?.length || donnees.paires?.length || 1;
             case 'texte_trou':
                 if (donnees.multiQuestions?.length > 1) return donnees.multiQuestions.length;
-                return (donnees.texte || '').match(/\{[^}]+\}/g)?.length || 1;
+                return (donnees.texte || '').match(/\{+[^{}]+\}+/g)?.length || 1;
             case 'association':
                 return donnees.paires?.length || 1;
             case 'carte':
@@ -474,7 +474,7 @@ Object.assign(EleveConnaissances, {
             const trouTexte = qData.texte || (qData.multiQuestions?.[0]?.texte);
             if (trouTexte && qDetails.some(d => d.question?.startsWith('Trou '))) {
                 let trouIdx = 0;
-                const rebuilt = trouTexte.replace(/\{([^}]+)\}/g, (_match, correctWord) => {
+                const rebuilt = trouTexte.replace(/\{+([^{}]+)\}+/g, (_match, correctWord) => {
                     const detail = qDetails[trouIdx++];
                     if (!detail) return correctWord;
                     if (detail.correct) {
