@@ -173,20 +173,38 @@ Object.assign(EleveConnaissances, {
                     const userAnswer = this.userAnswers[`qcm_${qIdx}`];
 
                     const correctIndices = this.getQcmCorrectIndices(q);
-                    const isCorrect = correctIndices.includes(parseInt(userAnswer));
+                    let isCorrect;
+                    if (Array.isArray(userAnswer)) {
+                        const selected = userAnswer.map(v => parseInt(v)).sort((a, b) => a - b);
+                        const expected = [...correctIndices].sort((a, b) => a - b);
+                        isCorrect = selected.length === expected.length && selected.every((v, i) => v === expected[i]);
+                    } else {
+                        isCorrect = correctIndices.includes(parseInt(userAnswer));
+                    }
                     if (isCorrect) correct++;
 
-                    // Construire le texte du feedback
                     let feedbackText = isCorrect ? 'Correct' : (userAnswer == null ? 'Non répondu' : 'Mauvaise réponse');
+                    let feedbackOption = '';
+                    if (q.feedbacks_options && userAnswer != null) {
+                        if (Array.isArray(userAnswer)) {
+                            feedbackOption = userAnswer.map(v => q.feedbacks_options[parseInt(v)] || '').filter(Boolean).join(' ');
+                        } else {
+                            feedbackOption = q.feedbacks_options[parseInt(userAnswer)] || '';
+                        }
+                    }
 
-                    // Récupérer le feedback spécifique à l'option choisie
-                    const feedbackOption = (q.feedbacks_options && userAnswer != null) ? (q.feedbacks_options[parseInt(userAnswer)] || '') : '';
-
-                    // Utiliser la fonction unifiée de feedback
                     this.displayUnifiedFeedback(`feedback_qcm_${qIdx}`, isCorrect, feedbackText, isCorrect ? 1 : 0, 1, 'qcm');
+                    let reponseTexte;
+                    if (userAnswer == null) {
+                        reponseTexte = null;
+                    } else if (Array.isArray(userAnswer)) {
+                        reponseTexte = userAnswer.map(v => choices[parseInt(v)]?.texte || choices[parseInt(v)] || v).join(', ');
+                    } else {
+                        reponseTexte = choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer;
+                    }
                     details.push({
                         question: q.question,
-                        reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
+                        reponse: reponseTexte,
                         attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
                         correct: isCorrect,
                         feedbackOption: feedbackOption
@@ -200,19 +218,36 @@ Object.assign(EleveConnaissances, {
             const userAnswer = this.userAnswers['qcm'];
 
             const correctIndices = this.getQcmCorrectIndices(donnees);
-            if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
+            if (Array.isArray(userAnswer)) {
+                const selected = userAnswer.map(v => parseInt(v)).sort((a, b) => a - b);
+                const expected = [...correctIndices].sort((a, b) => a - b);
+                if (selected.length === expected.length && selected.every((v, i) => v === expected[i])) correct = 1;
+            } else {
+                if (correctIndices.includes(parseInt(userAnswer))) correct = 1;
+            }
 
-            // Construire le texte du feedback
             let feedbackText = correct === 1 ? 'Correct' : (userAnswer == null ? 'Non répondu' : 'Mauvaise réponse');
+            let feedbackOption = '';
+            if (donnees.feedbacks_options && userAnswer != null) {
+                if (Array.isArray(userAnswer)) {
+                    feedbackOption = userAnswer.map(v => donnees.feedbacks_options[parseInt(v)] || '').filter(Boolean).join(' ');
+                } else {
+                    feedbackOption = donnees.feedbacks_options[parseInt(userAnswer)] || '';
+                }
+            }
 
-            // Récupérer le feedback spécifique à l'option choisie
-            const feedbackOption = (donnees.feedbacks_options && userAnswer != null) ? (donnees.feedbacks_options[parseInt(userAnswer)] || '') : '';
-
-            // Utiliser la fonction unifiée de feedback
             this.displayUnifiedFeedback('feedback_qcm', correct === 1, feedbackText, correct, 1, 'qcm');
+            let reponseTexte;
+            if (userAnswer == null) {
+                reponseTexte = null;
+            } else if (Array.isArray(userAnswer)) {
+                reponseTexte = userAnswer.map(v => choices[parseInt(v)]?.texte || choices[parseInt(v)] || v).join(', ');
+            } else {
+                reponseTexte = choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer;
+            }
             details.push({
                 question: donnees.question,
-                reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
+                reponse: reponseTexte,
                 attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
                 correct: correct === 1,
                 feedbackOption: feedbackOption
@@ -257,7 +292,10 @@ Object.assign(EleveConnaissances, {
             return { correct, total, details };
         }
 
-        const texteResult = this.runTexteValidation(donnees, document);
+        // Si 1 seule question dans multiQuestions, extraire ses données
+        const validationData = (donnees.multiQuestions && donnees.multiQuestions.length === 1)
+            ? donnees.multiQuestions[0] : donnees;
+        const texteResult = this.runTexteValidation(validationData, document);
         correct = texteResult.correct;
         total = texteResult.total;
         details = texteResult.details;
@@ -799,23 +837,31 @@ Object.assign(EleveConnaissances, {
         const details = [];
         const userPairs = this.userAnswers['association'] || [];
 
+        // Déterminer quel côté (element1/element2) est affiché sur les chips
+        const chipKey = this._assocChipSide === 'gauche' ? 'element1' : 'element2';
+
         userPairs.forEach(up => {
             const gridId = this._assocGridSide === 'gauche' ? up.gauche : up.droite;
             const chipId = this._assocChipSide === 'gauche' ? up.gauche : up.droite;
             const gridEl = container.querySelector(`.association-grid-card[data-id="${gridId}"]`);
             const chipEl = container.querySelector(`.association-chip[data-id="${chipId}"]`);
 
-            const isCorrect = String(up.gauche) === String(up.droite);
+            // Comparer par valeur (pas par index) pour gérer les doublons
+            const expectedValue = assocPaires[parseInt(gridId)]?.[chipKey];
+            const studentValue = assocPaires[parseInt(chipId)]?.[chipKey];
+            const isCorrect = expectedValue != null && expectedValue === studentValue;
             if (isCorrect) {
                 correct++;
                 [gridEl, chipEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('correct'); } });
             } else {
                 [gridEl, chipEl].forEach(el => { if (el) { el.classList.remove('paired'); el.classList.add('incorrect'); } });
             }
+            // Pour les details, toujours utiliser gridId/chipId (résolu depuis les côtés)
+            const gridSideKey = this._assocGridSide === 'gauche' ? 'element1' : 'element2';
             details.push({
-                question: assocPaires[parseInt(up.gauche)]?.element1 || up.gauche,
-                reponse: assocPaires[parseInt(up.droite)]?.element2 || up.droite,
-                attendu: assocPaires[parseInt(up.gauche)]?.element2 || '',
+                question: assocPaires[parseInt(gridId)]?.[gridSideKey] || gridId,
+                reponse: assocPaires[parseInt(chipId)]?.[chipKey] || chipId,
+                attendu: assocPaires[parseInt(gridId)]?.[chipKey] || '',
                 correct: isCorrect
             });
         });
@@ -864,7 +910,9 @@ Object.assign(EleveConnaissances, {
 
                 if (userPair) {
                     const chipId = this._assocChipSide === 'gauche' ? userPair.gauche : userPair.droite;
-                    const isCorrect = String(userPair.gauche) === String(userPair.droite);
+                    const expectedVal = assocPaires[parseInt(cardId)]?.[chipKey];
+                    const studentVal = assocPaires[parseInt(chipId)]?.[chipKey];
+                    const isCorrect = expectedVal != null && expectedVal === studentVal;
                     const studentText = getChipText(chipId);
                     if (isCorrect) {
                         label.className = 'assoc-paired-label assoc-label-success';
@@ -1008,7 +1056,15 @@ Object.assign(EleveConnaissances, {
         const userAnswer = this.userAnswers[`qcm_${qIdx}`];
 
         const correctIndices = this.getQcmCorrectIndices(q);
-        const isCorrect = correctIndices.includes(parseInt(userAnswer));
+        let isCorrect;
+        if (Array.isArray(userAnswer)) {
+            // QCM multiple : correct si exactement les mêmes indices sélectionnés
+            const selected = userAnswer.map(v => parseInt(v)).sort((a, b) => a - b);
+            const expected = [...correctIndices].sort((a, b) => a - b);
+            isCorrect = selected.length === expected.length && selected.every((v, i) => v === expected[i]);
+        } else {
+            isCorrect = correctIndices.includes(parseInt(userAnswer));
+        }
 
         // Construire le texte du feedback
         let feedbackText = isCorrect ? 'Correct' : (userAnswer == null ? 'Non répondu' : 'Mauvaise réponse');
@@ -1041,12 +1097,27 @@ Object.assign(EleveConnaissances, {
         }
 
         // Récupérer le feedback spécifique à l'option choisie
-        const feedbackOption = (q.feedbacks_options && userAnswer != null) ? (q.feedbacks_options[parseInt(userAnswer)] || '') : '';
+        let feedbackOption = '';
+        if (q.feedbacks_options && userAnswer != null) {
+            if (Array.isArray(userAnswer)) {
+                feedbackOption = userAnswer.map(v => q.feedbacks_options[parseInt(v)] || '').filter(Boolean).join(' ');
+            } else {
+                feedbackOption = q.feedbacks_options[parseInt(userAnswer)] || '';
+            }
+        }
 
         // Stocker le résultat
+        let reponseTexte;
+        if (userAnswer == null) {
+            reponseTexte = null;
+        } else if (Array.isArray(userAnswer)) {
+            reponseTexte = userAnswer.map(v => choices[parseInt(v)]?.texte || choices[parseInt(v)] || v).join(', ');
+        } else {
+            reponseTexte = choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer;
+        }
         this._qcmResults[qIdx] = {
             question: q.question,
-            reponse: userAnswer != null ? (choices[parseInt(userAnswer)]?.texte || choices[parseInt(userAnswer)] || userAnswer) : null,
+            reponse: reponseTexte,
             attendu: correctIndices.map(i => choices[i]?.texte || choices[i]).join(', '),
             correct: isCorrect,
             feedbackOption: feedbackOption

@@ -470,7 +470,24 @@ Object.assign(EleveConnaissances, {
                 `;
             }
 
-            // Fallback : erreurs texte (QCM, V/F, Texte à trous, Question ouverte)
+            // Texte à trous : afficher le texte reconstitué avec réponses en couleur
+            const trouTexte = qData.texte || (qData.multiQuestions?.[0]?.texte);
+            if (trouTexte && qDetails.some(d => d.question?.startsWith('Trou '))) {
+                let trouIdx = 0;
+                const rebuilt = trouTexte.replace(/\{([^}]+)\}/g, (_match, correctWord) => {
+                    const detail = qDetails[trouIdx++];
+                    if (!detail) return correctWord;
+                    if (detail.correct) {
+                        return `<span class="trou-correction trou-correct">${escapeHtml(detail.reponse || correctWord)}</span>`;
+                    }
+                    const studentVal = detail.reponse || '…';
+                    return `<span class="trou-correction trou-incorrect">${escapeHtml(studentVal)}</span>` +
+                        `<span class="trou-correction trou-expected">→ ${escapeHtml(correctWord)}</span>`;
+                });
+                return `<div class="correction-texte-trous">${rebuilt}</div>`;
+            }
+
+            // Fallback : erreurs texte (QCM, V/F, Question ouverte)
             // Layout panélisé : question → bloc erreur (réponse + feedback) → bloc bonne réponse
             return qErrors.map(err => {
                 const isUnanswered = !err.reponse;
@@ -505,7 +522,7 @@ Object.assign(EleveConnaissances, {
             if (qData.paires?.length > 0 && qData.mode) return 'Frise chronologique';
             if (qData.paires?.length > 0) return 'Association';
             if (qData.marqueurs?.length > 0) return 'Carte';
-            if (qData.texte) return 'Texte à trous';
+            if (qData.texte || qData.multiQuestions?.[0]?.texte) return 'Texte à trous';
             return this.getFormatLabel(fallbackFormat || '');
         };
 
