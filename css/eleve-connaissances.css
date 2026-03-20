@@ -2602,6 +2602,34 @@
 }
 
 
+/* ---- Correction : texte à trous reconstitué ---- */
+.correction-texte-trous {
+    font-size: 1rem;
+    line-height: 2;
+    padding: 1rem;
+    color: #374151;
+}
+.trou-correction {
+    display: inline;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+.trou-correct {
+    background: #d1fae5;
+    color: #065f46;
+}
+.trou-incorrect {
+    background: #fee2e2;
+    color: #991b1b;
+    text-decoration: line-through;
+}
+.trou-expected {
+    color: #065f46;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
 /* ---- Correction : blocs panélisés (QCM, V/F, Texte à trous, Question ouverte) ---- */
 .correction-error-block {
     margin-bottom: 1rem;

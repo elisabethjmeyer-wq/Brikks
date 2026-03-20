@@ -299,7 +299,9 @@ Object.assign(EleveConnaissances, {
                                             <input type="${multiple ? 'checkbox' : 'radio'}"
                                                    name="qcm_answer_${qIdx}"
                                                    value="${originalIdx}"
-                                                   onchange="EleveConnaissances.saveAnswer('qcm_${qIdx}', '${originalIdx}')">
+                                                   onchange="${multiple
+                                                       ? `EleveConnaissances.saveQcmMultiple('qcm_${qIdx}', 'qcm_answer_${qIdx}')`
+                                                       : `EleveConnaissances.saveAnswer('qcm_${qIdx}', '${originalIdx}')`}">
                                             <span class="qcm-label">${escapeHtml(choice.texte || choice)}</span>
                                         </label>
                                     `).join('')}
@@ -346,7 +348,9 @@ Object.assign(EleveConnaissances, {
                             <input type="${multiple ? 'checkbox' : 'radio'}"
                                    name="qcm_answer"
                                    value="${originalIdx}"
-                                   onchange="EleveConnaissances.saveAnswer('qcm', ${multiple} ? this.parentElement : '${originalIdx}')">
+                                   onchange="${multiple
+                                       ? `EleveConnaissances.saveQcmMultiple('qcm', 'qcm_answer')`
+                                       : `EleveConnaissances.saveAnswer('qcm', '${originalIdx}')`}">
                             <span class="qcm-label">${escapeHtml(choice.texte || choice)}</span>
                         </label>
                     `).join('')}
@@ -719,8 +723,11 @@ Object.assign(EleveConnaissances, {
         if (donnees.multiQuestions && donnees.multiQuestions.length > 1) {
             return this.renderMultiFormat('texte_trou', donnees, questions);
         }
-        let texte = donnees.texte || '';
-        const mots = donnees.mots || [];
+        // Si 1 seule question dans multiQuestions, extraire ses données
+        const src = (donnees.multiQuestions && donnees.multiQuestions.length === 1)
+            ? donnees.multiQuestions[0] : donnees;
+        let texte = src.texte || '';
+        const mots = src.mots || [];
 
         // Vérifier qu'on a du texte
         if (!texte) {
@@ -1577,6 +1584,12 @@ Object.assign(EleveConnaissances, {
      */
     saveAnswer(key, value) {
         this.userAnswers[key] = value;
+    },
+
+    /** Collecte tous les checkboxes cochés pour un QCM à réponses multiples */
+    saveQcmMultiple(key, inputName) {
+        const checked = document.querySelectorAll(`input[name="${inputName}"]:checked`);
+        this.userAnswers[key] = Array.from(checked).map(el => el.value);
     },
 
     extractFeedbackText(format, isCorrect, questionData, userAnswer, _result = null) {
